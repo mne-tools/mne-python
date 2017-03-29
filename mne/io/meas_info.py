@@ -21,11 +21,12 @@ from .tag import read_tag, find_tag
 from .proj import _read_proj, _write_proj, _uniquify_projs, _normalize_proj
 from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
-                    write_string, write_dig_point, write_float, write_int,
+                    write_string, write_dig_points, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..utils import logger, verbose, warn
+from ..transforms import _to_const
+from ..utils import logger, verbose, warn, object_diff
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
 
@@ -40,6 +41,7 @@ _kind_dict = dict(
     stim=(FIFF.FIFFV_STIM_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     eog=(FIFF.FIFFV_EOG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecg=(FIFF.FIFFV_ECG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    emg=(FIFF.FIFFV_EMG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
@@ -127,8 +129,6 @@ class Info(dict):
     file_id : dict | None
         The fif ID datastructure of the measurement file.
         See: :ref:`faq` for details.
-    filename : str | None
-        The name of the file that provided the raw data.
     highpass : float | None
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
     hpi_meas : list of dict | None
@@ -191,12 +191,9 @@ class Info(dict):
             if k in ['bads', 'ch_names']:
                 entr = (', '.join(b for ii, b in enumerate(v) if ii < 10)
                         if v else '0 items')
-                if len(entr) >= 56:
+                if len(v) > 10:
                     # get rid of of half printed ch names
                     entr = _summarize_str(entr)
-            elif k == 'filename' and v:
-                path, fname = op.split(v)
-                entr = path[:10] + '.../' + fname
             elif k == 'projs' and v:
                 entr = ', '.join(p['desc'] + ': o%s' %
                                  {0: 'ff', 1: 'n'}[p['active']] for p in v)
@@ -258,6 +255,9 @@ class Info(dict):
                        for x in np.setdiff1d(range(self['nchan']), unique_ids))
             raise RuntimeError('Channel names are not unique, found '
                                'duplicates for: %s' % dups)
+        if 'filename' in self:
+            warn('the "filename" key is misleading\
+                 and info should not have it')
 
     def _update_redundant(self):
         """Update the redundant entries."""
@@ -309,7 +309,7 @@ def read_fiducials(fname):
     return pts, coord_frame
 
 
-def write_fiducials(fname, pts, coord_frame=0):
+def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
     """Write fiducials to a fiff file.
 
     Parameters
@@ -321,27 +321,42 @@ def write_fiducials(fname, pts, coord_frame=0):
         the keys 'kind', 'ident' and 'r'.
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.io.constants.FIFF.FIFFV_COORD_...)
+        mne.io.constants.FIFF.FIFFV_COORD_...).
     """
-    pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
-    bad_frames = pts_frames - set((coord_frame,))
-    if len(bad_frames) > 0:
-        err = ("Points have coord_frame entries that are incompatible with "
-               "coord_frame=%i: %s." % (coord_frame, str(tuple(bad_frames))))
-        raise ValueError(err)
+    write_dig(fname, pts, coord_frame)
 
-    fid = start_file(fname)
-    start_block(fid, FIFF.FIFFB_ISOTRAK)
-    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
-    for pt in pts:
-        write_dig_point(fid, pt)
 
-    end_block(fid, FIFF.FIFFB_ISOTRAK)
-    end_file(fid)
+def write_dig(fname, pts, coord_frame=None):
+    """Write digitization data to a FIF file.
+
+    Parameters
+    ----------
+    fname : str
+        Destination file name.
+    pts : iterator of dict
+        Iterator through digitizer points. Each point is a dictionary with
+        the keys 'kind', 'ident' and 'r'.
+    coord_frame : int | str | None
+        If all the points have the same coordinate frame, specify the type
+        here. Can be None (default) if the points could have varying
+        coordinate frames.
+    """
+    if coord_frame is not None:
+        coord_frame = _to_const(coord_frame)
+        pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
+        bad_frames = pts_frames - set((coord_frame,))
+        if len(bad_frames) > 0:
+            raise ValueError(
+                'Points have coord_frame entries that are incompatible with '
+                'coord_frame=%i: %s.' % (coord_frame, str(tuple(bad_frames))))
+
+    with start_file(fname) as fid:
+        write_dig_points(fid, pts, block=True, coord_frame=coord_frame)
+        end_file(fid)
 
 
 def _read_dig_fif(fid, meas_info):
-    """Helper to read digitizer data from a FIFF file."""
+    """Read digitizer data from a FIFF file."""
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
     if len(isotrak) == 0:
@@ -370,7 +385,8 @@ def _read_dig_points(fname, comments='%', unit='auto'):
     Parameters
     ----------
     fname : str
-        The filepath of space delimited file with points.
+        The filepath of space delimited file with points, or a .mat file
+        (Polhemus FastTrak format).
     comments : str
         The character used to indicate the start of a comment;
         Default: '%'.
@@ -399,10 +415,17 @@ def _read_dig_points(fname, comments='%', unit='auto'):
         points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
                                                       re.MULTILINE)]
         dig_points = np.array(points_str, dtype=float)
+    elif ext == '.mat':  # like FastScan II
+        from scipy.io import loadmat
+        dig_points = loadmat(fname)['Points'].T
     else:
         dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
         if unit == 'auto':
             unit = 'mm'
+        if dig_points.shape[1] > 3:
+            warn('Found %d columns instead of 3, using first 3 for XYZ '
+                 'coordinates' % (dig_points.shape[1],))
+            dig_points = dig_points[:, :3]
 
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
@@ -450,7 +473,7 @@ def _write_dig_points(fname, dig_points):
 
 
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     dig_points=None, dig_ch_pos=None):
+                     extra_points=None, dig_ch_pos=None):
     """Construct digitizer info for the info.
 
     Parameters
@@ -463,7 +486,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
         Point designated as the right auricular point.
     hpi : array-like | numpy.ndarray, shape (n_points, 3) | None
         Points designated as head position indicator points.
-    dig_points : array-like | numpy.ndarray, shape (n_points, 3)
+    extra_points : array-like | numpy.ndarray, shape (n_points, 3)
         Points designed as the headshape points.
     dig_ch_pos : dict
         Dict of EEG channel positions.
@@ -476,60 +499,54 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     dig = []
     if lpa is not None:
         lpa = np.asarray(lpa)
-        if lpa.shape == (3,):
-            dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('LPA should have the shape (3,) instead of %s'
-                   % (lpa.shape,))
-            raise ValueError(msg)
+        if lpa.shape != (3,):
+            raise ValueError('LPA should have the shape (3,) instead of %s'
+                             % (lpa.shape,))
+        dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if nasion is not None:
         nasion = np.asarray(nasion)
-        if nasion.shape == (3,):
-            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('Nasion should have the shape (3,) instead of %s'
-                   % (nasion.shape,))
-            raise ValueError(msg)
+        if nasion.shape != (3,):
+            raise ValueError('Nasion should have the shape (3,) instead of %s'
+                             % (nasion.shape,))
+        dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if rpa is not None:
         rpa = np.asarray(rpa)
-        if rpa.shape == (3,):
-            dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('RPA should have the shape (3,) instead of %s'
-                   % (rpa.shape,))
-            raise ValueError(msg)
+        if rpa.shape != (3,):
+            raise ValueError('RPA should have the shape (3,) instead of %s'
+                             % (rpa.shape,))
+        dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if hpi is not None:
         hpi = np.asarray(hpi)
-        if hpi.shape[1] == 3:
-            for idx, point in enumerate(hpi):
-                dig.append({'r': point, 'ident': idx + 1,
-                            'kind': FIFF.FIFFV_POINT_HPI,
-                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('HPI should have the shape (n_points, 3) instead of '
-                   '%s' % (hpi.shape,))
-            raise ValueError(msg)
-    if dig_points is not None:
-        dig_points = np.asarray(dig_points)
-        if dig_points.shape[1] == 3:
-            for idx, point in enumerate(dig_points):
-                dig.append({'r': point, 'ident': idx + 1,
-                            'kind': FIFF.FIFFV_POINT_EXTRA,
-                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
-        else:
-            msg = ('Points should have the shape (n_points, 3) instead of '
-                   '%s' % (dig_points.shape,))
-            raise ValueError(msg)
+        if hpi.ndim != 2 or hpi.shape[1] != 3:
+            raise ValueError('HPI should have the shape (n_points, 3) instead '
+                             'of %s' % (hpi.shape,))
+        for idx, point in enumerate(hpi):
+            dig.append({'r': point, 'ident': idx + 1,
+                        'kind': FIFF.FIFFV_POINT_HPI,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+    if extra_points is not None:
+        extra_points = np.asarray(extra_points)
+        if extra_points.shape[1] != 3:
+            raise ValueError('Points should have the shape (n_points, 3) '
+                             'instead of %s' % (extra_points.shape,))
+        for idx, point in enumerate(extra_points):
+            dig.append({'r': point, 'ident': idx + 1,
+                        'kind': FIFF.FIFFV_POINT_EXTRA,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
     if dig_ch_pos is not None:
         keys = sorted(dig_ch_pos.keys())
-        for key in keys:
-            dig.append({'r': dig_ch_pos[key], 'ident': int(key[-3:]),
+        try:  # use the last 3 as int if possible (e.g., EEG001->1)
+            idents = [int(key[-3:]) for key in keys]
+        except ValueError:  # and if any conversion fails, simply use arange
+            idents = np.arange(1, len(keys) + 1)
+        for key, ident in zip(keys, idents):
+            dig.append({'r': dig_ch_pos[key], 'ident': ident,
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
     return dig
@@ -544,7 +561,8 @@ def read_info(fname, verbose=None):
     fname : str
         File name.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -599,7 +617,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         Should only be needed for old files where we did not check bads
         before saving.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1020,8 +1039,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     #   HPI Result
     for hpi_result in info['hpi_results']:
         start_block(fid, FIFF.FIFFB_HPI_RESULT)
-        for d in hpi_result['dig_points']:
-            write_dig_point(fid, d)
+        write_dig_points(fid, hpi_result['dig_points'])
         if 'order' in hpi_result:
             write_int(fid, FIFF.FIFF_HPI_DIGITIZATION_ORDER,
                       hpi_result['order'])
@@ -1080,12 +1098,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         end_block(fid, FIFF.FIFFB_HPI_MEAS)
 
     #   Polhemus data
-    if info['dig'] is not None:
-        start_block(fid, FIFF.FIFFB_ISOTRAK)
-        for d in info['dig']:
-            write_dig_point(fid, d)
-
-        end_block(fid, FIFF.FIFFB_ISOTRAK)
+    write_dig_points(fid, info['dig'], block=True)
 
     #   megacq parameters
     if info['acq_pars'] is not None or info['acq_stim'] is not None:
@@ -1227,23 +1240,6 @@ def write_info(fname, info, data_type=None, reset_range=True):
     end_file(fid)
 
 
-def _is_equal_dict(dicts):
-    """Check if dicts are equal."""
-    tests = zip(*[d.items() for d in dicts])
-    is_equal = []
-    for d in tests:
-        k0, v0 = d[0]
-        if (isinstance(v0, (list, np.ndarray)) and len(v0) > 0 and
-                isinstance(v0[0], dict)):
-            for k, v in d:
-                is_equal.append((k0 == k) and _is_equal_dict(v))
-        else:
-            is_equal.append(all(np.all(k == k0) and
-                            (np.array_equal(v, v0) if isinstance(v, np.ndarray)
-                             else np.all(v == v0)) for k, v in d))
-    return all(is_equal)
-
-
 @verbose
 def _merge_dict_values(dicts, key, verbose=None):
     """Merge things together.
@@ -1279,7 +1275,7 @@ def _merge_dict_values(dicts, key, verbose=None):
             return _flatten(lists)
     # dict
     elif _check_isinstance(values, dict, all):
-        is_qual = _is_equal_dict(values)
+        is_qual = all(object_diff(values[0], v) == '' for v in values[1:])
         if is_qual:
             return values[0]
         else:
@@ -1346,7 +1342,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
         to match those in the first item. Use at your own risk, as this
         may overwrite important metadata.
     verbose : bool, str, int, or NonIe
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1399,7 +1396,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'custom_ref_applied', 'description', 'dig',
-                    'experimenter', 'file_id', 'filename', 'highpass',
+                    'experimenter', 'file_id', 'highpass',
                     'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq',
@@ -1424,7 +1421,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
     ch_types : list of str | str
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
-        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'hbr' or 'hbo'.
+        'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
     montage : None | str | Montage | DigMontage | list
         A montage containing channel positions. If str or Montage is
@@ -1448,6 +1445,14 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
 
     Note that the MEG device-to-head transform ``info['dev_head_t']`` will
     be initialized to the identity transform.
+
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
     """
     if isinstance(ch_names, int):
         ch_names = list(np.arange(ch_names).astype(str))
@@ -1505,7 +1510,7 @@ RAW_INFO_FIELDS = (
     'acq_pars', 'acq_stim', 'bads', 'buffer_size_sec', 'ch_names', 'chs',
     'comps', 'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
     'dev_head_t', 'dig', 'experimenter', 'events',
-    'file_id', 'filename', 'highpass', 'hpi_meas', 'hpi_results',
+    'file_id', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
     'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
     'subject_info', 'xplotter_layout',
@@ -1518,7 +1523,7 @@ def _empty_info(sfreq):
     _none_keys = (
         'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter',
-        'file_id', 'filename', 'highpass', 'hpi_subsystem', 'kit_system_id',
+        'file_id', 'highpass', 'hpi_subsystem', 'kit_system_id',
         'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
         'subject_info', 'xplotter_layout',
     )
@@ -1530,7 +1535,7 @@ def _empty_info(sfreq):
     for k in _list_keys:
         info[k] = list()
     info['custom_ref_applied'] = False
-    info['dev_head_t'] = Transform('meg', 'head', np.eye(4))
+    info['dev_head_t'] = Transform('meg', 'head')
     info['highpass'] = 0.
     info['sfreq'] = float(sfreq)
     info['lowpass'] = info['sfreq'] / 2.
@@ -1594,6 +1599,11 @@ def anonymize_info(info):
         del info['subject_info']
     info['meas_date'] = [0, 0]
     for key_1 in ('file_id', 'meas_id'):
+        key = info.get(key_1)
+        if key is None:
+            continue
         for key_2 in ('secs', 'msecs', 'usecs'):
+            if key_2 not in key:
+                continue
             info[key_1][key_2] = 0
     return info

@@ -7,39 +7,38 @@ import numpy as np
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
 from ..utils import logger, verbose, _time_mask
-from .multitaper import _psd_multitaper
+from ..fixes import get_spectrogram
+from .multitaper import psd_array_multitaper
 
 
-def _pwelch(epoch, noverlap, nfft, fs, freq_mask, welch_fun):
+def _psd_func(epoch, noverlap, n_per_seg, nfft, fs, freq_mask, func):
     """Aux function."""
-    return welch_fun(epoch, nperseg=nfft, noverlap=noverlap,
-                     nfft=nfft, fs=fs)[1][..., freq_mask]
+    return func(epoch, fs=fs, nperseg=n_per_seg, noverlap=noverlap,
+                nfft=nfft, window='hann')[2][..., freq_mask, :]
 
 
-def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
-    """Compute the PSD."""
-    out = [psd(d, Fs=Fs, NFFT=n_fft, noverlap=n_overlap, pad_to=pad_to)
-           for d in data]
-    psd = np.array([o[0] for o in out])
-    freqs = out[0][1]
-    mask = (freqs >= fmin) & (freqs <= fmax)
-    freqs = freqs[mask]
-    return psd[:, mask], freqs
-
-
-def _check_nfft(n, n_fft, n_overlap):
-    """Helper to make sure n_fft and n_overlap make sense."""
-    n_fft = n if n_fft > n else n_fft
-    n_overlap = n_fft - 1 if n_overlap >= n_fft else n_overlap
-    return n_fft, n_overlap
+def _check_nfft(n, n_fft, n_per_seg, n_overlap):
+    """Ensure n_fft, n_per_seg and n_overlap make sense."""
+    if n_per_seg is None and n_fft > n:
+        raise ValueError(('If n_per_seg is None n_fft is not allowed to be > '
+                          'n_times. If you want zero-padding, you have to set '
+                          'n_per_seg to relevant length. Got n_fft of %d while'
+                          ' signal length is %d.') % (n_fft, n))
+    n_per_seg = n_fft if n_per_seg is None or n_per_seg > n_fft else n_per_seg
+    n_per_seg = n if n_per_seg > n else n_per_seg
+    if n_overlap >= n_per_seg:
+        raise ValueError(('n_overlap cannot be greater than n_per_seg (or '
+                          'n_fft). Got n_overlap of %d while n_per_seg is '
+                          '%d.') % (n_overlap, n_per_seg))
+    return n_fft, n_per_seg, n_overlap
 
 
 def _check_psd_data(inst, tmin, tmax, picks, proj):
-    """Helper to do checks on PSD data / pull arrays from inst."""
-    from ..io.base import _BaseRaw
-    from ..epochs import _BaseEpochs
+    """Check PSD data / pull arrays from inst."""
+    from ..io.base import BaseRaw
+    from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    if not isinstance(inst, (_BaseEpochs, _BaseRaw, Evoked)):
+    if not isinstance(inst, (BaseEpochs, BaseRaw, Evoked)):
         raise ValueError('epochs must be an instance of Epochs, Raw, or'
                          'Evoked. Got type {0}'.format(type(inst)))
 
@@ -51,21 +50,24 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
         inst = inst.copy().apply_proj()
 
     sfreq = inst.info['sfreq']
-    if isinstance(inst, _BaseRaw):
+    if isinstance(inst, BaseRaw):
         start, stop = np.where(time_mask)[0][[0, -1]]
         data, times = inst[picks, start:(stop + 1)]
-    elif isinstance(inst, _BaseEpochs):
+    elif isinstance(inst, BaseEpochs):
         data = inst.get_data()[:, picks][:, :, time_mask]
-    elif isinstance(inst, Evoked):
+    else:  # Evoked
         data = inst.data[picks][:, time_mask]
 
     return data, sfreq
 
 
-def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-               n_jobs=1):
+@verbose
+def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
+                    n_per_seg=None, n_jobs=1, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
+    Parameters
+    ----------
     x : array, shape=(..., n_times)
         The data to compute PSD from.
     sfreq : float
@@ -75,15 +77,20 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     fmax : float
         The upper frequency of interest.
     n_fft : int
-        The length of the tapers ie. the windows. The smaller
-        it is the smoother are the PSDs. The default value is 256.
-        If ``n_fft > len(inst.times)``, it will be adjusted down to
-        ``len(inst.times)``.
+        The length of FFT used, must be ``>= n_per_seg`` (default: 256).
+        The segments will be zero-padded if ``n_fft > n_per_seg``.
     n_overlap : int
-        The number of points of overlap between blocks. Will be adjusted
-        to be <= n_fft. The default value is 0.
+        The number of points of overlap between segments. Will be adjusted
+        to be <= n_per_seg. The default value is 0.
+    n_per_seg : int | None
+        Length of each Welch segment. The smaller it is with respect to the
+        signal length the smoother are the PSDs. Defaults to None, which sets
+        n_per_seg equal to n_fft.
     n_jobs : int
         Number of CPUs to use in the computation.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -92,14 +99,19 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         be the same as input.
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
+
+    Notes
+    -----
+    .. versionadded:: 0.14.0
     """
-    from scipy.signal import welch
+    spectrogram = get_spectrogram()
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
 
     # Prep the PSD
-    n_fft, n_overlap = _check_nfft(n_times, n_fft, n_overlap)
+    n_fft, n_per_seg, n_overlap = _check_nfft(n_times, n_fft, n_per_seg,
+                                              n_overlap)
     win_size = n_fft / float(sfreq)
     logger.info("Effective window size : %0.3f (s)" % win_size)
     freqs = np.arange(n_fft // 2 + 1, dtype=float) * (sfreq / n_fft)
@@ -107,22 +119,24 @@ def _psd_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     freqs = freqs[freq_mask]
 
     # Parallelize across first N-1 dimensions
-    parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs)
+    parallel, my_psd_func, n_jobs = parallel_func(_psd_func, n_jobs=n_jobs)
     x_splits = np.array_split(x, n_jobs)
-    f_psd = parallel(my_pwelch(d, noverlap=n_overlap, nfft=n_fft,
-                     fs=sfreq, freq_mask=freq_mask,
-                     welch_fun=welch)
-                     for d in x_splits)
+    f_spectrogram = parallel(my_psd_func(d, noverlap=n_overlap, nfft=n_fft,
+                                         fs=sfreq, freq_mask=freq_mask,
+                                         func=spectrogram, n_per_seg=n_per_seg)
+                             for d in x_splits)
 
-    # Combining/reshaping to original data shape
-    psds = np.concatenate(f_psd, axis=0)
+    # Combining, reducing windows and reshaping to original data shape
+    # XXX : we can certainly avoid the allocation before the mean
+    psds = np.concatenate(f_spectrogram, axis=0).mean(axis=-1)
     psds = psds.reshape(np.hstack([dshape, -1]))
     return psds, freqs
 
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
-              n_overlap=0, picks=None, proj=False, n_jobs=1, verbose=None):
+              n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
+              verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodigrams for a sliding window over the
@@ -141,13 +155,15 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     tmax : float | None
         Max time of interest
     n_fft : int
-        The length of the tapers ie. the windows. The smaller
-        it is the smoother are the PSDs. The default value is 256.
-        If ``n_fft > len(inst.times)``, it will be adjusted down to
-        ``len(inst.times)``.
+        The length of FFT used, must be ``>= n_per_seg`` (default: 256).
+        The segments will be zero-padded if ``n_fft > n_per_seg``.
     n_overlap : int
-        The number of points of overlap between blocks. Will be adjusted
-        to be <= n_fft. The default value is 0.
+        The number of points of overlap between segments. Will be adjusted
+        to be <= n_per_seg. The default value is 0.
+    n_per_seg : int | None
+        Length of each Welch segment. The smaller it is with respect to the
+        signal length the smoother are the PSDs. Defaults to None, which sets
+        n_per_seg equal to n_fft.
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -156,7 +172,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -170,7 +187,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     See Also
     --------
     mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_multitaper,
-    csd_epochs
+    csd_epochs, psd_array_welch
 
     Notes
     -----
@@ -178,8 +195,9 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
-    return _psd_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                      n_overlap=n_overlap, n_jobs=n_jobs)
+    return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
+                           n_overlap=n_overlap, n_per_seg=n_per_seg,
+                           n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose
@@ -226,7 +244,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -249,7 +268,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch, csd_epochs
+    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, psd_welch, csd_epochs,
+    psd_array_multitaper
 
     Notes
     -----
@@ -257,7 +277,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
-    return _psd_multitaper(data, sfreq, fmin=fmin, fmax=fmax,
-                           bandwidth=bandwidth, adaptive=adaptive,
-                           low_bias=low_bias,
-                           normalization=normalization,  n_jobs=n_jobs)
+    return psd_array_multitaper(data, sfreq, fmin=fmin, fmax=fmax,
+                                bandwidth=bandwidth, adaptive=adaptive,
+                                low_bias=low_bias, normalization=normalization,
+                                n_jobs=n_jobs, verbose=verbose)

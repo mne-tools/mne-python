@@ -4,7 +4,7 @@
 Filtering and resampling data
 =============================
 
-Certain artifacts are restricted to certain frequencies and can therefore
+Some artifacts are restricted to certain frequencies and can therefore
 be fixed by filtering. An artifact that typically affects only some
 frequencies is due to the power line.
 
@@ -44,7 +44,7 @@ picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                        stim=False, exclude='bads', selection=selection)
 
 # Let's first check out all channel types
-raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 ###############################################################################
 # Removing power-line noise with notch filtering
@@ -55,7 +55,7 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 
 raw.notch_filter(np.arange(60, 241, 60), picks=picks, filter_length='auto',
                  phase='zero')
-raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 ###############################################################################
 # Removing power-line noise with low-pass filtering
@@ -67,7 +67,7 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 # low pass filtering below 50 Hz
 raw.filter(None, 50., h_trans_bandwidth='auto', filter_length='auto',
            phase='zero')
-raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 ###############################################################################
 # High-pass filtering to remove slow drifts
@@ -81,7 +81,7 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
 
 raw.filter(1., None, l_trans_bandwidth='auto', filter_length='auto',
            phase='zero')
-raw.plot_psd(area_mode='range', tmax=10.0, picks=picks)
+raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 
 ###############################################################################

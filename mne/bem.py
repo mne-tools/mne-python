@@ -24,7 +24,10 @@ from .io.write import (start_file, start_block, write_float, write_int,
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
-from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn
+from .surface import (read_surface, write_surface, complete_surface_info,
+                      _compute_nearest, _get_ico_surface, read_tri,
+                      _fast_cross_nd_sum, _get_solids)
+from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn, _pl
 from .externals.six import string_types
 
 
@@ -45,16 +48,16 @@ class ConductorModel(dict):
     def __repr__(self):  # noqa: D105
         if self['is_sphere']:
             center = ', '.join('%0.1f' % (x * 1000.) for x in self['r0'])
-            pl = '' if len(self['layers']) == 1 else 's'
             rad = self.radius
             if rad is None:  # no radius / MEG only
                 extra = 'Sphere (no layers): r0=[%s] mm' % center
             else:
                 extra = ('Sphere (%s layer%s): r0=[%s] R=%1.f mm'
-                         % (len(self['layers']) - 1, pl, center, rad * 1000.))
+                         % (len(self['layers']) - 1, _pl(self['layers']),
+                            center, rad * 1000.))
         else:
-            pl = '' if len(self['surfs']) == 1 else 's'
-            extra = ('BEM (%s layer%s)' % (len(self['surfs']), pl))
+            extra = ('BEM (%s layer%s)' % (len(self['surfs']),
+                                           _pl(self['surfs'])))
         return '<ConductorModel  |  %s>' % extra
 
     @property
@@ -66,9 +69,9 @@ class ConductorModel(dict):
 
 
 def _calc_beta(rk, rk_norm, rk1, rk1_norm):
-    """These coefficients are used to calculate the magic vector omega."""
+    """Compute coefficients for calculating the magic vector omega."""
     rkk1 = rk1[0] - rk[0]
-    size = np.sqrt(np.dot(rkk1, rkk1))
+    size = np.linalg.norm(rkk1)
     rkk1 /= size
     num = rk_norm + np.dot(rk, rkk1)
     den = rk1_norm + np.dot(rk1, rkk1)
@@ -78,21 +81,21 @@ def _calc_beta(rk, rk_norm, rk1, rk1_norm):
 
 def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     """Compute the linear potential matrix element computations."""
-    from .source_space import _fast_cross_nd_sum
     omega = np.zeros((len(fros), 3))
 
     # we replicate a little bit of the _get_solids code here for speed
+    # (we need some of the intermediate values later)
     v1 = tri_rr[np.newaxis, 0, :] - fros
     v2 = tri_rr[np.newaxis, 1, :] - fros
     v3 = tri_rr[np.newaxis, 2, :] - fros
     triples = _fast_cross_nd_sum(v1, v2, v3)
-    l1 = np.sqrt(np.sum(v1 * v1, axis=1))
-    l2 = np.sqrt(np.sum(v2 * v2, axis=1))
-    l3 = np.sqrt(np.sum(v3 * v3, axis=1))
-    ss = (l1 * l2 * l3 +
-          np.sum(v1 * v2, axis=1) * l3 +
-          np.sum(v1 * v3, axis=1) * l2 +
-          np.sum(v2 * v3, axis=1) * l1)
+    l1 = np.linalg.norm(v1, axis=1)
+    l2 = np.linalg.norm(v2, axis=1)
+    l3 = np.linalg.norm(v3, axis=1)
+    ss = l1 * l2 * l3
+    ss += np.einsum('ij,ij,i->i', v1, v2, l3)
+    ss += np.einsum('ij,ij,i->i', v1, v3, l2)
+    ss += np.einsum('ij,ij,i->i', v2, v3, l1)
     solids = np.arctan2(triples, ss)
 
     # We *could* subselect the good points from v1, v2, v3, triples, solids,
@@ -218,7 +221,7 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
 
 
 def _fwd_bem_homog_solution(solids, nps):
-    """Helper to make a homogeneous solution."""
+    """Make a homogeneous solution."""
     return _fwd_bem_multi_solution(solids, None, nps)
 
 
@@ -247,7 +250,6 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
 def _fwd_bem_linear_collocation_solution(m):
     """Compute the linear collocation potential solution."""
     # first, add surface geometries
-    from .surface import complete_surface_info
     for surf in m['surfs']:
         complete_surface_info(surf, copy=False, verbose=False)
 
@@ -284,7 +286,8 @@ def make_bem_solution(surfs, verbose=None):
     surfs : list of dict
         The BEM surfaces to use (`from make_bem_model`)
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -327,7 +330,6 @@ def make_bem_solution(surfs, verbose=None):
 
 def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
-    from .surface import _get_ico_surface
     n_tri = surf['ntri']
     found = -1
     bad_msg = ("A surface with %d triangles cannot be isomorphic with a "
@@ -362,8 +364,7 @@ def _ico_downsample(surf, dest_grade):
 
 
 def _get_ico_map(fro, to):
-    """Helper to get a mapping between ico surfaces."""
-    from .surface import _compute_nearest
+    """Get a mapping between ico surfaces."""
     nearest, dists = _compute_nearest(fro['rr'], to['rr'], return_dists=True)
     n_bads = (dists > 5e-3).sum()
     if n_bads > 0:
@@ -391,7 +392,6 @@ def _order_surfaces(surfs):
 def _assert_complete_surface(surf):
     """Check the sum of solid angles as seen from inside."""
     # from surface_checks.c
-    from .source_space import _get_solids
     tot_angle = 0.
     # Center of mass....
     cm = surf['rr'].mean(axis=0)
@@ -414,9 +414,8 @@ _surf_name = {
 
 
 def _assert_inside(fro, to):
-    """Helper to check one set of points is inside a surface."""
+    """Check one set of points is inside a surface."""
     # this is "is_inside" in surface_checks.c
-    from .source_space import _get_solids
     tot_angle = _get_solids(to['rr'][to['tris']], fro['rr'])
     if (np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5).any():
         raise RuntimeError('Surface %s is not completely inside surface %s'
@@ -446,7 +445,6 @@ def _check_surface_size(surf):
 
 def _check_thicknesses(surfs):
     """Compute how close we are."""
-    from .surface import _compute_nearest
     for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
         min_dist = _compute_nearest(surf_1['rr'], surf_2['rr'],
                                     return_dists=True)[0]
@@ -459,24 +457,30 @@ def _check_thicknesses(surfs):
                      1000 * min_dist))
 
 
-def _surfaces_to_bem(fname_surfs, ids, sigmas, ico=None):
+def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True):
     """Convert surfaces to a BEM."""
-    from .surface import _read_surface_geom
     # equivalent of mne_surf2bem
-    surfs = list()
-    assert len(fname_surfs) in (1, 3)
-    for fname in fname_surfs:
-        surfs.append(_read_surface_geom(fname, patch_stats=False,
-                                        verbose=False))
-        surfs[-1]['rr'] /= 1000.
+    # surfs can be strings (filenames) or surface dicts
+    if len(surfs) not in (1, 3) or not (len(surfs) == len(ids) ==
+                                        len(sigmas)):
+        raise ValueError('surfs, ids, and sigmas must all have the same '
+                         'number of elements (1 or 3)')
+    surf = list(surfs)
+    for si, surf in enumerate(surfs):
+        if isinstance(surf, string_types):
+            surfs[si] = read_surface(surf, return_dict=True)[-1]
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
         for si, surf in enumerate(surfs):
             surfs[si] = _ico_downsample(surf, ico)
     for surf, id_ in zip(surfs, ids):
         surf['id'] = id_
+        surf['coord_frame'] = surf.get('coord_frame', FIFF.FIFFV_COORD_MRI)
+        surf.update(np=len(surf['rr']), ntri=len(surf['tris']))
+        if rescale:
+            surf['rr'] /= 1000.  # convert to meters
 
-    # Shifting surfaces is not implemented here
+    # Shifting surfaces is not implemented here...
 
     # Order the surfaces for the benefit of the topology checks
     for surf, sigma in zip(surfs, sigmas):
@@ -516,7 +520,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -715,7 +720,8 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     sigmas : array-like
         Sigma values for the spherical shells.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -831,7 +837,8 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
         .. versionadded:: 0.12
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -923,7 +930,7 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
         kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]
                                for d in sorted(dig_kinds)])
         msg = ('Only %s head digitization points of the specified kind%s (%s,)'
-               % (len(hsp), 's' if len(dig_kinds) != 1 else '', kinds_str))
+               % (len(hsp), _pl(dig_kinds), kinds_str))
         if len(hsp) < 4:
             raise ValueError(msg + ', at least 4 required')
         else:
@@ -948,7 +955,7 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
         warn('Estimated head size (%0.1f mm) exceeded 99th '
              'percentile for adult head size' % (1e3 * radius,))
     # > 2 cm away from head center in X or Y is strange
-    if np.sqrt(np.sum(origin_head[:2] ** 2)) > 0.02:
+    if np.linalg.norm(origin_head[:2]) > 0.02:
         warn('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
              'head frame origin' % tuple(1e3 * origin_head[:2]))
     logger.info('Origin head coordinates:'.ljust(30) +
@@ -972,9 +979,9 @@ def _fit_sphere(points, disp='auto'):
     x0 = np.concatenate([center_init, [radius_init]])
 
     def cost_fun(center_rad):
-        d = points - center_rad[:3]
-        d = (np.sqrt(np.sum(d * d, axis=1)) - center_rad[3])
-        return np.sum(d * d)
+        d = np.linalg.norm(points - center_rad[:3], axis=1) - center_rad[3]
+        d *= d
+        return d.sum()
 
     def constraint(center_rad):
         return center_rad[3]  # radius must be >= 0
@@ -1049,11 +1056,9 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     -----
     .. versionadded:: 0.10
     """
-    from .surface import read_surface, write_surface, _read_surface_geom
     from .viz.misc import plot_bem
     env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True,
-                                requires_mne=True)[:2]
+                                requires_freesurfer=True)[:2]
 
     subjects_dir = env['SUBJECTS_DIR']
     subject_dir = op.join(subjects_dir, subject)
@@ -1108,11 +1113,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         for s in surfs:
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
 
-            surf, volume_info = _read_surface_geom(surf_ws_out,
-                                                   read_metadata=True)
+            rr, tris, volume_info = read_surface(surf_ws_out,
+                                                 read_metadata=True)
             volume_info.update(new_info)  # replace volume info, 'head' stays
 
-            write_surface(s, surf['rr'], surf['tris'], volume_info=volume_info)
+            write_surface(s, rr, tris, volume_info=volume_info)
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
             if not overwrite and op.exists(surf_out):
@@ -1140,12 +1145,8 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     if op.isfile(fname_head):
         os.remove(fname_head)
 
-    # run the equivalent of mne_surf2bem
-    points, tris = read_surface(op.join(ws_dir,
-                                        subject + '_outer_skin_surface'))
-    points *= 1e-3
-    surf = dict(coord_frame=5, id=4, nn=None, np=len(points),
-                ntri=len(tris), rr=points, sigma=1, tris=tris)
+    surf = _surfaces_to_bem([op.join(ws_dir, subject + '_outer_skin_surface')],
+                            [FIFF.FIFFV_BEM_SURF_ID_HEAD], sigmas=[1])
     write_bem_surfaces(fname_head, surf)
 
     # Show computed BEM surfaces
@@ -1157,25 +1158,25 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
 
 def _extract_volume_info(mgz, raise_error=True):
-    """Helper for extracting volume info from a mgz file."""
+    """Extract volume info from a mgz file."""
     try:
         import nibabel as nib
     except ImportError:
         return  # warning raised elsewhere
     header = nib.load(mgz).header
-    new_info = dict()
+    vol_info = dict()
     version = header['version']
     if version == 1:
         version = '%s  # volume info valid' % version
     else:
         raise ValueError('Volume info invalid.')
-    new_info['valid'] = version
-    new_info['filename'] = mgz
-    new_info['volume'] = header['dims'][:3]
-    new_info['voxelsize'] = header['delta']
-    new_info['xras'], new_info['yras'], new_info['zras'] = header['Mdc'].T
-    new_info['cras'] = header['Pxyz_c']
-    return new_info
+    vol_info['valid'] = version
+    vol_info['filename'] = mgz
+    vol_info['volume'] = header['dims'][:3]
+    vol_info['voxelsize'] = header['delta']
+    vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc'].T
+    vol_info['cras'] = header['Pxyz_c']
+    return vol_info
 
 
 # ############################################################################
@@ -1196,7 +1197,8 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
         An error will be raised if it doesn't exist. If None, all
         surfaces are read and returned.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1208,7 +1210,6 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
     --------
     write_bem_surfaces, write_bem_solution, make_bem_model
     """
-    from .surface import complete_surface_info
     # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
     # Open the file, create directory
@@ -1329,7 +1330,8 @@ def read_bem_solution(fname, verbose=None):
     fname : string
         The file containing the BEM solution.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1416,7 +1418,7 @@ def read_bem_solution(fname, verbose=None):
 
 
 def _add_gamma_multipliers(bem):
-    """Helper to add gamma and multipliers in-place."""
+    """Add gamma and multipliers in-place."""
     bem['sigma'] = np.array([surf['sigma'] for surf in bem['surfs']])
     # Dirty trick for the zero conductivity outside
     sigma = np.r_[0.0, bem['sigma']]
@@ -1477,7 +1479,7 @@ def write_bem_surfaces(fname, surfs):
 
 
 def _write_bem_surfaces_block(fid, surfs):
-    """Helper to actually write bem surfaces."""
+    """Write bem surfaces to open file handle."""
     for surf in surfs:
         start_block(fid, FIFF.FIFFB_BEM_SURF)
         write_float(fid, FIFF.FIFF_BEM_SIGMA, surf['sigma'])
@@ -1530,15 +1532,12 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def _prepare_env(subject, subjects_dir, requires_freesurfer, requires_mne):
-    """Helper to prepare an env object for subprocess calls."""
+def _prepare_env(subject, subjects_dir, requires_freesurfer):
+    """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
     if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
         raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
                            'environment variable is not set.')
-    if requires_mne and not os.environ.get('MNE_ROOT'):
-        raise RuntimeError('I cannot find the MNE command line tools. The '
-                           'MNE_ROOT environment variable is not set.')
 
     if not isinstance(subject, string_types):
         raise TypeError('The subject argument must be set')
@@ -1579,7 +1578,8 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -1608,8 +1608,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     should be, as usual, in the subject's mri directory.
     """
     env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True,
-                                requires_mne=False)[:2]
+                                requires_freesurfer=True)[:2]
     curdir = os.getcwd()
     # Step 1a : Data conversion to mgz format
     if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
@@ -1710,7 +1709,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
-    -----------
+    ----------
     subject : str
         Subject name.
     overwrite : bool
@@ -1726,7 +1725,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         .. versionadded:: 0.13.0
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -1741,13 +1741,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     convert_flash_mris
     """
     from .viz.misc import plot_bem
-    from .surface import write_surface, read_tri
 
     is_test = os.environ.get('MNE_SKIP_FS_FLASH_CALL', False)
 
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
-                                         requires_freesurfer=True,
-                                         requires_mne=False)
+                                         requires_freesurfer=True)
 
     if flash_path is None:
         flash_path = op.join(mri_dir, 'flash', 'parameter_maps')
@@ -1879,13 +1877,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
 
 def _check_bem_size(surfs):
-    """Helper for checking bem surface sizes."""
-    if surfs[0]['np'] > 10000:
-        msg = ('The bem surface has %s data points. 5120 (ico grade=4) should '
-               'be enough.' % surfs[0]['np'])
-        if len(surfs) == 3:
-            msg += ' Dense 3-layer bems may not save properly.'
-        warn(msg)
+    """Check bem surface sizes."""
+    if len(surfs) > 1 and surfs[0]['np'] > 10000:
+        warn('The bem surfaces have %s data points. 5120 (ico grade=4) '
+             'should be enough. Dense 3-layer bems may not save properly.' %
+             surfs[0]['np'])
 
 
 def _symlink(src, dest):

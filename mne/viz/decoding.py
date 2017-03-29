@@ -16,7 +16,7 @@ from ..utils import warn
 def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
                     ax=None, cmap='RdBu_r', show=True, colorbar=True,
                     xlabel=True, ylabel=True):
-    """Plotting function of GeneralizationAcrossTime object.
+    """Plot a GeneralizationAcrossTime object.
 
     Predict each classifier. If multiple classifiers are passed, average
     prediction across all classifier to result in a single prediction per
@@ -64,9 +64,9 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
 
     # Define time limits
     if tlim is None:
-        tt_times = gat.train_times_['times']
-        tn_times = gat.test_times_['times']
-        tlim = [tn_times[0][0], tn_times[-1][-1], tt_times[0], tt_times[-1]]
+        tn_times = gat.train_times_['times']
+        tt_times = gat.test_times_['times']
+        tlim = [tt_times[0][0], tt_times[-1][-1], tn_times[0], tn_times[-1]]
 
     # Plot scores
     im = ax.imshow(gat.scores_, interpolation='nearest', origin='lower',

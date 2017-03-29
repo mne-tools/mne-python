@@ -1,4 +1,5 @@
 # Author: Mainak Jas <mainak.jas@telecom-paristech.fr>
+#         Mikolaj Magnuski <mmagnuski@swps.edu.pl>
 #
 # License: BSD (3-clause)
 
@@ -6,9 +7,9 @@ import os.path as op
 import shutil
 
 import warnings
-from nose.tools import assert_raises, assert_equal
+from nose.tools import assert_raises, assert_equal, assert_true
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
@@ -30,17 +31,18 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 @requires_version('scipy', '0.12')
 @testing.requires_testing_data
 def test_io_set():
-    """Test importing EEGLAB .set files"""
+    """Test importing EEGLAB .set files."""
     from scipy import io
-    with warnings.catch_warnings(record=True) as w1:
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # main tests, and test missing event_id
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname,
                          montage=montage)
         _test_raw_reader(read_raw_eeglab, input_fname=raw_fname_onefile,
                          montage=montage)
-        assert_equal(len(w1), 20)
-        # f3 or preload_false and a lot for dropping events
+    for want in ('Events like', 'consist entirely', 'could not be mapped',
+                 'string preload is not supported'):
+        assert_true(any(want in str(ww.message) for ww in w))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # test finding events in continuous data
@@ -65,7 +67,7 @@ def test_io_set():
         raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                     phase='zero')  # test that preloading works
 
-    # test that using uin16_codec does not break stuff
+    # test that using uint16_codec does not break stuff
     raw0 = read_raw_eeglab(input_fname=raw_fname, montage=montage,
                            event_id=event_id, preload=False,
                            uint16_codec='ascii')
@@ -96,6 +98,8 @@ def test_io_set():
 
     epochs = read_epochs_eeglab(epochs_fname, epochs.events, event_id)
     assert_equal(len(epochs.events), 4)
+    assert_true(epochs.preload)
+    assert_true(epochs._bad_dropped)
     epochs = read_epochs_eeglab(epochs_fname, out_fname, event_id)
     assert_raises(ValueError, read_epochs_eeglab, epochs_fname,
                   None, event_id)
@@ -131,6 +135,72 @@ def test_io_set():
         read_raw_eeglab(input_fname=one_chan_fname, preload=True)
     # no warning for 'no events found'
     assert_equal(len(w), 0)
+
+    # test reading file with 3 channels - one without position information
+    # first, create chanlocs structured array
+    ch_names = ['F3', 'unknown', 'FPz']
+    x, y, z = [1., 2., np.nan], [4., 5., np.nan], [7., 8., np.nan]
+    dt = [('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
+    chanlocs = np.zeros((3,), dtype=dt)
+    for ind, vals in enumerate(zip(ch_names, x, y, z)):
+        for fld in range(4):
+            chanlocs[ind][dt[fld][0]] = vals[fld]
+
+    # save set file
+    one_chanpos_fname = op.join(temp_dir, 'test_chanpos.set')
+    io.savemat(one_chanpos_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': 3, 'data': np.random.random((3, 3)),
+                'epoch': eeg.epoch, 'event': eeg.epoch,
+                'chanlocs': chanlocs, 'times': eeg.times[:3], 'pnts': 3}})
+    # load it
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    # one warning because some channels are not found in Montage
+    assert_equal(len(w), 1)
+    # position should be present for first two channels
+    for i in range(2):
+        assert_array_equal(raw.info['chs'][i]['loc'][:3],
+                           np.array([-chanlocs[i]['Y'],
+                                     chanlocs[i]['X'],
+                                     chanlocs[i]['Z']]))
+    # position of the last channel should be zero
+    assert_array_equal(raw.info['chs'][-1]['loc'][:3], np.array([0., 0., 0.]))
+
+    # test reading channel names from set and positions from montage
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True,
+                              montage=montage)
+    # one warning because some channels are not found in Montage
+    assert_equal(len(w), 1)
+
+    # when montage was passed - channel positions should be taken from there
+    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [0., 0., 0.],
+                   [0., 0.99977915, -0.02101571]]
+    for ch_ind in range(3):
+        assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],
+                                  np.array(correct_pos[ch_ind]))
+
+    # test reading channel names but not positions when there is no X (only Z)
+    # field in the EEG.chanlocs structure
+    nopos_chanlocs = chanlocs[['labels', 'Z']]
+    nopos_fname = op.join(temp_dir, 'test_no_chanpos.set')
+    io.savemat(nopos_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
+                'data': np.random.random((3, 2)), 'epoch': eeg.epoch,
+                'event': eeg.epoch, 'chanlocs': nopos_chanlocs,
+                'times': eeg.times[:2], 'pnts': 2}})
+    # load the file
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
+    # test that channel names have been loaded but not channel positions
+    for i in range(3):
+        assert_equal(raw.info['chs'][i]['ch_name'], ch_names[i])
+        assert_array_equal(raw.info['chs'][i]['loc'][:3],
+                           np.array([0., 0., 0.]))
 
     # test if .dat file raises an error
     eeg = io.loadmat(epochs_fname, struct_as_record=False,

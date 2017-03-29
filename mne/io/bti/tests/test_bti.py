@@ -13,6 +13,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
 
+from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
 from mne.io.bti.bti import (_read_config, _process_bti_headshape,
                             _read_bti_header, _get_bti_dev_t,
@@ -22,7 +23,7 @@ from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import pick_types
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, slow_test
 from mne.transforms import Transform, combine_transforms, invert_transform
 from mne.externals import six
 
@@ -38,8 +39,17 @@ exported_fnames = [op.join(base_dir, 'exported4D_%s_raw.fif' % a)
                    for a in archs]
 tmp_raw_fname = op.join(base_dir, 'tmp_raw.fif')
 
+fname_2500 = op.join(testing.data_path(download=False), 'BTi', 'erm_HFH',
+                     'c,rfDC')
+
 # the 4D exporter doesn't export all channels, so we confine our comparison
 NCH = 248
+
+
+@testing.requires_testing_data
+def test_read_2500():
+    """Test reading data from 2500 system."""
+    _test_raw_reader(read_raw_bti, pdf_fname=fname_2500, head_shape_fname=None)
 
 
 def test_read_config():
@@ -87,6 +97,7 @@ def test_transforms():
         assert_array_equal(dev_head_t_new['trans'], dev_head_t_old['trans'])
 
 
+@slow_test
 def test_raw():
     """Test bti conversion to Raw object."""
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,

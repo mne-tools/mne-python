@@ -16,6 +16,7 @@ dependencies:
     - "~/mne_data/MNE-brainstorm-data"
     - "~/mne_data/MEGSIM"
     - "~/mne_data/MNE-eegbci-data"
+    - "~/mne_data/mTRF_1.5"
     - "~/mne-tools.github.io"
   # Various dependencies
   pre:
@@ -37,7 +38,8 @@ dependencies:
       else
         echo "Conda already set up.";
       fi
-    - conda install -n circleenv --yes numpy scipy scikit-learn mayavi matplotlib sphinx pillow six IPython pandas;
+    # Let's use old Mayavi because 4.5.0 (as of 2016/12/20) breaks plot_mne_inverse_coherence_epochs.py
+    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi vtk;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
@@ -59,7 +61,7 @@ dependencies:
     - PATTERN="";
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
-      elif [ "$CIRCLE_BRANCH" == "maint/0.13" ]; then
+      elif [ "$CIRCLE_BRANCH" == "maint/0.14" ]; then
         echo html_stable > build.txt;
       else
         FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
@@ -93,6 +95,16 @@ dependencies:
               python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='single-trial', data_type='simulation', update_path=True))";
               python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='raw', data_type='experimental', update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
+              SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation())" --accept-hcpmmp-license;
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*mtrf.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.mtrf.data_path(update_path=True))";
+            fi;
           fi;
         done;
         echo PATTERN="$PATTERN";
@@ -108,7 +120,7 @@ dependencies:
     - echo BUILD="$(cat build.txt)"
     - ls -al ~/mne_data;
     - if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
-        python -c "import mne; mne.datasets._download_all_example_data()";
+        SUBJECTS_DIR=/home/ubuntu/mne_data/MNE-sample-data/subjects python -c "import mne; mne.datasets._download_all_example_data()";
       fi;
     - python -c "import mne; mne.sys_info()";
     - >
@@ -140,7 +152,7 @@ deployment:
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
   stable:
-    branch: maint/0.13
+    branch: maint/0.14
     commands:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"

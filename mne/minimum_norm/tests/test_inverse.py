@@ -112,9 +112,9 @@ def _compare(a, b):
             assert_array_almost_equal(a, b)
         else:
             assert_true(a == b)
-    except Exception as exptn:
+    except Exception:
         print(last_keys)
-        raise exptn
+        raise
 
 
 def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,

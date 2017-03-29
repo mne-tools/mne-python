@@ -40,7 +40,8 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         Initial values for posterior variances (gammas). If None, a
         variance of 1.0 is used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -83,6 +84,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         def denom_fun(x):
             return x
 
+    last_size = -1
     for itno in range(maxit):
         gammas[np.isnan(gammas)] = 0.0
 
@@ -139,13 +141,13 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 
         gammas_full_old = gammas_full
 
-        logger.info('Iteration: %d\t active set size: %d\t convergence: %0.3e'
-                    % (itno, len(gammas), err))
+        breaking = (err < tol or n_active == 0)
+        if len(gammas) != last_size or breaking:
+            logger.info('Iteration: %d\t active set size: %d\t convergence: '
+                        '%0.3e' % (itno, len(gammas), err))
+            last_size = len(gammas)
 
-        if err < tol:
-            break
-
-        if n_active == 0:
+        if breaking:
             break
 
     if itno < maxit - 1:
@@ -211,7 +213,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

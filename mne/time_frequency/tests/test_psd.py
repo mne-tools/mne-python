@@ -62,6 +62,22 @@ def test_psd():
         # Array input shouldn't work
         assert_raises(ValueError, func, raw[:3, :20][0])
 
+    # test n_per_seg in psd_welch (and padding)
+    psds1, freqs1 = psd_welch(raw, proj=False, n_fft=128, n_per_seg=128,
+                              **kws_psd)
+    psds2, freqs2 = psd_welch(raw, proj=False, n_fft=256, n_per_seg=128,
+                              **kws_psd)
+    assert_true(len(freqs1) == np.floor(len(freqs2) / 2.))
+    assert_true(psds1.shape[-1] == np.floor(psds2.shape[-1] / 2.))
+
+    # tests ValueError when n_per_seg=None and n_fft > signal length
+    kws_psd.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
+    assert_raises(ValueError, psd_welch, raw, proj=False, n_per_seg=None,
+                  **kws_psd)
+    # ValueError when n_overlap > n_per_seg
+    kws_psd.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
+    assert_raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
+
     # -- Epochs/Evoked --
     events = read_events(event_fname)
     events[:, 0] -= first_samp
@@ -143,9 +159,8 @@ def test_compares_psd():
     n_fft = 2048
 
     # Compute psds with the new implementation using Welch
-    psds_welch, freqs_welch = psd_welch(raw, tmin=tmin, tmax=tmax,
-                                        fmin=fmin, fmax=fmax,
-                                        proj=False, picks=picks,
+    psds_welch, freqs_welch = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
+                                        fmax=fmax, proj=False, picks=picks,
                                         n_fft=n_fft, n_jobs=1)
 
     # Compute psds with plt.psd

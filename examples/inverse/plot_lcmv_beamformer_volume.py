@@ -4,9 +4,8 @@ Compute LCMV inverse solution on evoked data in volume source space
 ===================================================================
 
 Compute LCMV inverse solution on an auditory evoked dataset in a volume source
-space. It stores the solution in a nifti file for visualisation e.g. with
+space. It stores the solution in a nifti file for visualisation, e.g. with
 Freeview.
-
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -65,7 +64,7 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
 # Run free orientation (vector) beamformer. Source orientation can be
 # restricted by setting pick_ori to 'max-power' (or 'normal' but only when
 # using a surface-based source space)
-stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, pick_ori=None)
+stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, pick_ori=None)
 
 # Save result in stc files
 stc.save('lcmv-vol')

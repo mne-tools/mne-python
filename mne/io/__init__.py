@@ -12,7 +12,7 @@ from .meas_info import (read_fiducials, write_fiducials, read_info, write_info,
 
 from .proj import make_eeg_average_ref_proj, Projection
 from .tag import _loc_to_coil_trans, _coil_trans_to_loc, _loc_to_eeg_loc
-from .base import _BaseRaw
+from .base import BaseRaw
 
 from . import array
 from . import base
@@ -39,6 +39,7 @@ from .egi import read_raw_egi
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
 from .nicolet import read_raw_nicolet
+from .artemis123 import read_raw_artemis123
 from .eeglab import read_raw_eeglab, read_epochs_eeglab
 
 # for backward compatibility

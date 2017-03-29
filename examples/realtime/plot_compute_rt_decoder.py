@@ -40,7 +40,8 @@ rt_client = MockRtClient(raw)
 
 # create the real-time epochs object
 rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks, decim=1,
-                     reject=dict(grad=4000e-13, eog=150e-6))
+                     reject=dict(grad=4000e-13, eog=150e-6), baseline=None,
+                     isi_max=4.)
 
 # start the acquisition
 rt_epochs.start()
@@ -60,7 +61,9 @@ from mne.decoding import Vectorizer, FilterEstimator  # noqa
 
 scores_x, scores, std_scores = [], [], []
 
-filt = FilterEstimator(rt_epochs.info, 1, 40)
+# don't highpass filter because it's epoched data and the signal length
+# is small
+filt = FilterEstimator(rt_epochs.info, None, 40)
 scaler = preprocessing.StandardScaler()
 vectorizer = Vectorizer()
 clf = SVC(C=1, kernel='linear')
@@ -70,6 +73,14 @@ concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
 
 data_picks = mne.pick_types(rt_epochs.info, meg='grad', eeg=False, eog=True,
                             stim=False, exclude=raw.info['bads'])
+ax = plt.subplot(111)
+ax.set_xlabel('Trials')
+ax.set_ylabel('Classification score (% correct)')
+ax.set_title('Real-time decoding')
+ax.set_xlim([min_trials, 50])
+ax.set_ylim([30, 105])
+plt.axhline(50, color='k', linestyle='--', label="Chance level")
+plt.show(block=False)
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
@@ -93,21 +104,20 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
         scores_x.append(ev_num)
 
         # Plot accuracy
-        plt.clf()
 
-        plt.plot(scores_x, scores, '+', label="Classif. score")
-        plt.hold(True)
-        plt.plot(scores_x, scores)
-        plt.axhline(50, color='k', linestyle='--', label="Chance level")
+        plt.plot(scores_x[-2:], scores[-2:], '-x', color='b',
+                 label="Classif. score")
+        ax.hold(True)
+        ax.plot(scores_x[-1], scores[-1])
+
         hyp_limits = (np.asarray(scores) - np.asarray(std_scores),
                       np.asarray(scores) + np.asarray(std_scores))
-        plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1],
-                         color='b', alpha=0.5)
-        plt.xlabel('Trials')
-        plt.ylabel('Classification score (% correct)')
-        plt.xlim([min_trials, 50])
-        plt.ylim([30, 105])
-        plt.title('Real-time decoding')
-        plt.show(block=False)
+        fill = plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1],
+                                color='b', alpha=0.5)
         plt.pause(0.01)
-plt.show()
+        plt.draw()
+        ax.collections.remove(fill)  # Remove old fill area
+
+plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1], color='b',
+                 alpha=0.5)
+plt.draw()  # Final figure

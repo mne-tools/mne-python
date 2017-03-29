@@ -14,10 +14,9 @@ from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
 from mne.utils import (_TempDir, requires_mayavi, requires_tvtk,
-                       run_tests_if_main, slow_test)
+                       run_tests_if_main, slow_test, object_diff)
 from mne.io import read_info
 from mne.transforms import _get_trans
-from mne.io.meas_info import _is_equal_dict
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -136,7 +135,7 @@ def test_io_surface():
                                                     read_metadata=True)
         assert_array_equal(pts, c_pts)
         assert_array_equal(tri, c_tri)
-        assert_true(_is_equal_dict([vol_info, c_vol_info]))
+        assert_equal(object_diff(vol_info, c_vol_info), '')
 
 
 @testing.requires_testing_data

@@ -7,7 +7,7 @@
 import numpy as np
 from scipy import linalg
 
-from ...transforms import combine_transforms, invert_transform
+from ...transforms import combine_transforms, invert_transform, Transform
 from ...utils import logger
 from ..constants import FIFF
 from .constants import CTF
@@ -28,7 +28,7 @@ def _make_transform_card(fro, to, r_lpa, r_nasion, r_rpa):
     ey /= np.sqrt(np.sum(ey * ey))
     trans[:3, 1] = ey
     trans[:3, 2] = np.cross(ex, ey)  # ez
-    return {'from': fro, 'to': to, 'trans': trans}
+    return Transform(fro, to, trans)
 
 
 def _quaternion_align(from_frame, to_frame, from_pts, to_pts):
@@ -88,7 +88,7 @@ def _quaternion_align(from_frame, to_frame, from_pts, to_pts):
         if diff > 1e-4:
             raise RuntimeError('Something is wrong: quaternion matching did '
                                'not work (see above)')
-    return {'from': from_frame, 'to': to_frame, 'trans': trans}
+    return Transform(from_frame, to_frame, trans)
 
 
 def _make_ctf_coord_trans_set(res4, coils):
@@ -125,8 +125,8 @@ def _make_ctf_coord_trans_set(res4, coils):
     R[0, 1] = -val
     R[1, 0] = val
     R[1, 1] = val
-    T4 = {'from': FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-          'to': FIFF.FIFFV_COORD_DEVICE, 'trans': R}
+    T4 = Transform(FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
+                   FIFF.FIFFV_COORD_DEVICE, R)
 
     # CTF device -> CTF head
     # We need to make the implicit transform explicit!

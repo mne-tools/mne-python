@@ -46,8 +46,7 @@ def _get_conditions():
 
 
 def test_cache_dir():
-    """Test use of cache dir
-    """
+    """Test use of cache dir."""
     tempdir = _TempDir()
     orig_dir = os.getenv('MNE_CACHE_DIR', None)
     orig_size = os.getenv('MNE_MEMMAP_MIN_SIZE', None)
@@ -81,13 +80,12 @@ def test_cache_dir():
 
 
 def test_permutation_step_down_p():
-    """Test cluster level permutations with step_down_p
-    """
+    """Test cluster level permutations with step_down_p."""
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
         except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa: F401
+            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa: F401,E501
     except ImportError:
         return
     rng = np.random.RandomState(0)
@@ -114,8 +112,7 @@ def test_permutation_step_down_p():
 
 
 def test_cluster_permutation_test():
-    """Test cluster level permutations tests
-    """
+    """Test cluster level permutations tests."""
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
         _get_conditions()
     for condition1, condition2 in zip((condition1_1d, condition1_2d),
@@ -141,8 +138,7 @@ def test_cluster_permutation_test():
 
 @slow_test
 def test_cluster_permutation_t_test():
-    """Test cluster level permutations T-test
-    """
+    """Test cluster level permutations T-test."""
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
         _get_conditions()
 
@@ -187,9 +183,9 @@ def test_cluster_permutation_t_test():
             assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
 
 
+@slow_test
 def test_cluster_permutation_with_connectivity():
-    """Test cluster level permutations with connectivity matrix
-    """
+    """Test cluster level permutations with connectivity matrix."""
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
@@ -334,8 +330,7 @@ def test_cluster_permutation_with_connectivity():
 
 @slow_test
 def test_permutation_connectivity_equiv():
-    """Test cluster level permutations with and without connectivity
-    """
+    """Test cluster level permutations with and without connectivity."""
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
@@ -412,8 +407,7 @@ def test_permutation_connectivity_equiv():
 
 @slow_test
 def spatio_temporal_cluster_test_connectivity():
-    """Test spatio-temporal cluster permutations
-    """
+    """Test spatio-temporal cluster permutations."""
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
@@ -455,17 +449,21 @@ def spatio_temporal_cluster_test_connectivity():
                                      threshold=threshold, n_jobs=2,
                                      buffer_size=None)
     assert_array_equal(p_values_no_conn, p_values2)
+    assert_raises(ValueError, spatio_temporal_cluster_test,
+                  [data1_2d, data2_2d], tail=1, threshold=-2.)
+    assert_raises(ValueError, spatio_temporal_cluster_test,
+                  [data1_2d, data2_2d], tail=-1, threshold=2.)
+    assert_raises(ValueError, spatio_temporal_cluster_test,
+                  [data1_2d, data2_2d], tail=0, threshold=-1)
 
 
 def ttest_1samp(X):
-    """Returns T-values
-    """
+    """Return T-values."""
     return stats.ttest_1samp(X, 0)[0]
 
 
 def test_summarize_clusters():
-    """Test cluster summary stcs
-    """
+    """Test cluster summary stcs."""
     clu = (np.random.random([1, 20484]),
            [(np.array([0]), np.array([0, 2, 4]))],
            np.array([0.02, 0.1]),

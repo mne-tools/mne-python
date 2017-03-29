@@ -49,8 +49,8 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
         other_raws = [reader(preload=buffer_fname, **kwargs),
                       reader(preload=False, **kwargs)]
         for sl_time in slices:
+            data1, times1 = raw[picks, sl_time]
             for other_raw in other_raws:
-                data1, times1 = raw[picks, sl_time]
                 data2, times2 = other_raw[picks, sl_time]
                 assert_allclose(data1, data2)
                 assert_allclose(times1, times2)
@@ -84,6 +84,9 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
     assert_equal(concat_raw.n_times, 2 * raw.n_times)
     assert_equal(concat_raw.first_samp, first_samp)
     assert_equal(concat_raw.last_samp - last_samp + first_samp, last_samp + 1)
+    idx = np.where(concat_raw.annotations.description == 'BAD boundary')[0]
+    assert_array_almost_equal([(last_samp - first_samp) / raw.info['sfreq']],
+                              concat_raw.annotations.onset[idx], decimal=2)
     return raw
 
 

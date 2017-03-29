@@ -6,6 +6,7 @@ Visualize Raw data
 
 """
 import os.path as op
+import numpy as np
 
 import mne
 
@@ -37,8 +38,25 @@ raw.plot(block=True)
 # with parameter ``scalings``. If you don't know the scaling factor for
 # channels, you can automatically set them by passing scalings='auto'. With
 # ``pageup/pagedown`` and ``home/end`` keys you can adjust the amount of data
-# viewed at once. To see all the interactive features, hit ``?`` or click
-# ``help`` in the lower left corner of the browser window.
+# viewed at once.
+#
+# Drawing annotations
+# -------------------
+#
+# You can enter annotation mode by pressing ``a`` key. In annotation mode you
+# can mark segments of data (and modify existing annotations) with the left
+# mouse button. You can use the description of any existing annotation or
+# create a new description by typing when the annotation dialog is active.
+# Notice that the description starting with the keyword ``'bad'`` means that
+# the segment will be discarded when epoching the data. Existing annotations
+# can be deleted with the right mouse button.  Annotation mode is exited by
+# pressing ``a`` again or closing the annotation window. See also
+# :class:`mne.Annotations` and :ref:`marking_bad_segments`. To see all the
+# interactive features, hit ``?`` key or click ``help`` in the lower left
+# corner of the browser window.
+#
+# .. warning:: Annotations are modified in-place immediately at run-time.
+#              Deleted annotations cannot be retrieved after deletion.
 #
 # The channels are sorted by channel type by default. You can use the ``order``
 # parameter of :func:`raw.plot <mne.io.Raw.plot>` to group the channels in a
@@ -97,8 +115,10 @@ raw.plot()
 # projectors.
 #
 # Raw container also lets us easily plot the power spectra over the raw data.
-# See the API documentation for more info.
-raw.plot_psd()
+# Here we plot the data using `spatial_colors` to map the line colors to
+# channel locations (default in versions >= 0.15.0). Other option is to use the
+# `average` (default in < 0.15.0). See the API documentation for more info.
+raw.plot_psd(tmax=np.inf, average=False)
 
 ###############################################################################
 # Plotting channel-wise power spectra is just as easy. The layout is inferred

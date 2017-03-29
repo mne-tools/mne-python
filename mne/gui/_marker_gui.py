@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import os
+import sys
 
 import numpy as np
 
@@ -34,7 +35,11 @@ if backend_is_wx:
                     'Pickled markers (*.pickled)|*.pickled']
     mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
-    mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
+    if sys.platform in ('win32',  'linux2'):
+        # on Windows and Ubuntu, multiple wildcards does not seem to work
+        mrk_wildcard = ["*.sqd", "*.mrk", "*.txt", "*.pickled"]
+    else:
+        mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
     mrk_out_wildcard = "*.txt"
 out_ext = '.txt'
 
@@ -301,22 +306,19 @@ class CombineMarkersModel(HasPrivateTraits):
         self.mrk3.reset_traits(['method'])
 
     def _mrk1_default(self):
-        mrk = MarkerPointSource()
-        return mrk
+        return MarkerPointSource()
 
     def _mrk1_file_default(self):
         return self.mrk1.trait('file')
 
     def _mrk2_default(self):
-        mrk = MarkerPointSource()
-        return mrk
+        return MarkerPointSource()
 
     def _mrk2_file_default(self):
         return self.mrk2.trait('file')
 
     def _mrk3_default(self):
-        mrk = MarkerPointDest(src1=self.mrk1, src2=self.mrk2)
-        return mrk
+        return MarkerPointDest(src1=self.mrk1, src2=self.mrk2)
 
     @cached_property
     def _get_distance(self):
@@ -380,21 +382,24 @@ class CombineMarkersPanel(HasTraits):  # noqa: D401
         m = self.model
         m.sync_trait('distance', self, 'distance', mutual=False)
 
-        self.mrk1_obj = PointObject(scene=self.scene, color=(155, 55, 55),
+        self.mrk1_obj = PointObject(scene=self.scene,
+                                    color=(0.608, 0.216, 0.216),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk1_obj, mutual=False)
         m.mrk1.sync_trait('points', self.mrk1_obj, 'points', mutual=False)
         m.mrk1.sync_trait('enabled', self.mrk1_obj, 'visible',
                           mutual=False)
 
-        self.mrk2_obj = PointObject(scene=self.scene, color=(55, 155, 55),
+        self.mrk2_obj = PointObject(scene=self.scene,
+                                    color=(0.216, 0.608, 0.216),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk2_obj, mutual=False)
         m.mrk2.sync_trait('points', self.mrk2_obj, 'points', mutual=False)
         m.mrk2.sync_trait('enabled', self.mrk2_obj, 'visible',
                           mutual=False)
 
-        self.mrk3_obj = PointObject(scene=self.scene, color=(150, 200, 255),
+        self.mrk3_obj = PointObject(scene=self.scene,
+                                    color=(0.588, 0.784, 1.),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk3_obj, mutual=False)
         m.mrk3.sync_trait('points', self.mrk3_obj, 'points', mutual=False)

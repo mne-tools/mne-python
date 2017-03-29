@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 import os.path as op
 
 from nose.tools import assert_false, assert_equal, assert_raises, assert_true
@@ -16,6 +16,8 @@ from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _force_update_info, RAW_INFO_FIELDS)
 from mne.utils import _TempDir, run_tests_if_main
 from mne.channels.montage import read_montage, read_dig_montage
+
+warnings.simplefilter("always")  # ensure we can verify expected warnings
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
@@ -209,20 +211,20 @@ def test_io_dig_points():
 
 def test_make_dig_points():
     """Test application of Polhemus HSP to info."""
-    dig_points = _read_dig_points(hsp_fname)
+    extra_points = _read_dig_points(hsp_fname)
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = _make_dig_points(dig_points=dig_points)
+    info['dig'] = _make_dig_points(extra_points=extra_points)
     assert_true(info['dig'])
     assert_allclose(info['dig'][0]['r'], [-.10693, .09980, .06881])
 
-    dig_points = _read_dig_points(elp_fname)
-    nasion, lpa, rpa = dig_points[:3]
+    elp_points = _read_dig_points(elp_fname)
+    nasion, lpa, rpa = elp_points[:3]
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = _make_dig_points(nasion, lpa, rpa, dig_points[3:], None)
+    info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_array_equal(info['dig'][idx]['r'],
@@ -231,9 +233,9 @@ def test_make_dig_points():
     assert_raises(ValueError, _make_dig_points, None, lpa[:2])
     assert_raises(ValueError, _make_dig_points, None, None, rpa[:2])
     assert_raises(ValueError, _make_dig_points, None, None, None,
-                  dig_points[:, :2])
+                  elp_points[:, :2])
     assert_raises(ValueError, _make_dig_points, None, None, None, None,
-                  dig_points[:, :2])
+                  elp_points[:, :2])
 
 
 def test_redundant():
@@ -315,6 +317,13 @@ def test_check_consistency():
     info2['lowpass'] = 'foo'
     assert_raises(ValueError, info2._check_consistency)
 
+    info2 = info.copy()
+    info2['filename'] = 'foo'
+    with warnings.catch_warnings(record=True) as w:
+        info2._check_consistency()
+    assert_equal(len(w), 1)
+    assert_true(all('filename' in str(ww.message) for ww in w))
+
     # Silent type conversion to float
     info2 = info.copy()
     info2['sfreq'] = 1
@@ -332,7 +341,7 @@ def test_check_consistency():
 
 
 def test_anonymize():
-    """Checks that sensitive information can be anonymized."""
+    """Test that sensitive information can be anonymized."""
     assert_raises(ValueError, anonymize_info, 'foo')
 
     # Fake some subject data
@@ -369,6 +378,11 @@ def test_anonymize():
     # XXX mne.io.write.write_id necessarily writes secs
     assert_true(raw.info['file_id']['secs'] != orig_file_id)
     assert_true(raw.info['meas_id']['secs'] != orig_meas_id)
+
+    # Test no error for incomplete info
+    info = raw.info.copy()
+    info.pop('file_id')
+    anonymize_info(info)
 
 
 run_tests_if_main()

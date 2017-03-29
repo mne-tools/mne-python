@@ -16,13 +16,13 @@ from ...utils import logger, verbose, sum_squared
 from ...transforms import (combine_transforms, invert_transform, apply_trans,
                            Transform)
 from ..constants import FIFF
-from .. import _BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
+from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
 from ..utils import _mult_cal_one, read_str
 from .constants import BTI
 from .read import (read_int32, read_int16, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,
                    read_uint32, read_double_matrix, read_float_matrix,
-                   read_int16_matrix)
+                   read_int16_matrix, read_dev_header)
 from ...externals import six
 
 FIFF_INFO_CHS_FIELDS = ('loc',
@@ -198,7 +198,7 @@ def _process_bti_headshape(fname, convert=True, use_hpi=True):
     if convert:
         ctf_head_t = _get_ctf_head_to_head_t(idx_points)
     else:
-        ctf_head_t = Transform('ctf_head', 'ctf_head', np.eye(4))
+        ctf_head_t = Transform('ctf_head', 'ctf_head')
 
     if dig_points is not None:
         # dig_points = apply_trans(ctf_head_t['trans'], dig_points)
@@ -300,15 +300,16 @@ def _read_config(fname):
         for block in range(cfg['hdr']['total_user_blocks']):
             ub = dict()
 
-            ub['hdr'] = {'nbytes': read_int32(fid),
+            ub['hdr'] = {'nbytes': read_uint32(fid),
                          'kind': read_str(fid, 20),
                          'checksum': read_int32(fid),
                          'username': read_str(fid, 32),
-                         'timestamp': read_int32(fid),
-                         'user_space_size': read_int32(fid),
+                         'timestamp': read_uint32(fid),
+                         'user_space_size': read_uint32(fid),
                          'reserved': read_char(fid, 32)}
 
             _correct_offset(fid)
+            start_bytes = fid.tell()
             kind = ub['hdr'].pop('kind')
             if not kind:  # make sure reading goes right. Should never be empty
                 raise RuntimeError('Could not read user block. Probably you '
@@ -464,20 +465,19 @@ def _read_config(fname):
                         cols = dta['hdr']['n_e_values']
                         dta['etable'] = read_float_matrix(fid, rows, cols)
 
-                        _correct_offset(fid)
-
                 elif any([kind == BTI.UB_B_WEIGHTS_USED,
                           kind[:4] == BTI.UB_B_WEIGHT_TABLE]):
-                    dta['hdr'] = {'version': read_int32(fid),
-                                  'entry_size': read_int32(fid),
-                                  'n_entries': read_int32(fid),
-                                  'name': read_str(fid, 32),
-                                  'description': read_str(fid, 80),
-                                  'n_anlg': read_int32(fid),
-                                  'n_dsp': read_int32(fid),
-                                  'reserved': read_str(fid, 72)}
-
+                    dta['hdr'] = dict(
+                        version=read_int32(fid),
+                        n_bytes=read_uint32(fid),
+                        n_entries=read_uint32(fid),
+                        name=read_str(fid, 32))
                     if dta['hdr']['version'] == 2:
+                        dta['hdr'].update(
+                            description=read_str(fid, 80),
+                            n_anlg=read_uint32(fid),
+                            n_dsp=read_uint32(fid),
+                            reserved=read_str(fid, 72))
                         dta['ch_names'] = [read_str(fid, 16) for ch in
                                            range(dta['hdr']['n_entries'])]
                         dta['anlg_ch_names'] = [read_str(fid, 16) for ch in
@@ -485,33 +485,38 @@ def _read_config(fname):
 
                         dta['dsp_ch_names'] = [read_str(fid, 16) for ch in
                                                range(dta['hdr']['n_dsp'])]
-
-                        rows = dta['hdr']['n_entries']
-                        cols = dta['hdr']['n_dsp']
-                        dta['dsp_wts'] = read_float_matrix(fid, rows, cols)
-                        cols = dta['hdr']['n_anlg']
-                        dta['anlg_wts'] = read_int16_matrix(fid, rows, cols)
-
+                        dta['dsp_wts'] = read_float_matrix(
+                            fid, dta['hdr']['n_entries'], dta['hdr']['n_dsp'])
+                        dta['anlg_wts'] = read_int16_matrix(
+                            fid, dta['hdr']['n_entries'], dta['hdr']['n_anlg'])
                     else:  # handle MAGNES2500 naming scheme
+                        fid.seek(start_bytes + ub['hdr']['user_space_size'] -
+                                 dta['hdr']['n_bytes'] *
+                                 dta['hdr']['n_entries'], 0)
+
+                        dta['hdr']['n_dsp'] = dta['hdr']['n_bytes'] // 4 - 2
+                        assert (dta['hdr']['n_dsp'] ==
+                                len(BTI_WH2500_REF_MAG) +
+                                len(BTI_WH2500_REF_GRAD))
                         dta['ch_names'] = ['WH2500'] * dta['hdr']['n_entries']
-                        dta['anlg_ch_names'] = BTI_WH2500_REF_MAG[:3]
-                        dta['hdr']['n_anlg'] = len(dta['anlg_ch_names'])
-                        dta['dsp_ch_names'] = BTI_WH2500_REF_GRAD
-                        dta['hdr.n_dsp'] = len(dta['dsp_ch_names'])
-                        dta['anlg_wts'] = np.zeros((dta['hdr']['n_entries'],
-                                                    dta['hdr']['n_anlg']),
-                                                   dtype='i2')
-                        dta['dsp_wts'] = np.zeros((dta['hdr']['n_entries'],
-                                                   dta['hdr']['n_dsp']),
-                                                  dtype='f4')
+                        dta['hdr']['n_anlg'] = 3
+                        # These orders could be wrong, so don't set them
+                        # for now
+                        # dta['anlg_ch_names'] = BTI_WH2500_REF_MAG[:3]
+                        # dta['dsp_ch_names'] = (BTI_WH2500_REF_GRAD +
+                        #                        BTI_WH2500_REF_MAG)
+                        dta['anlg_wts'] = np.zeros(
+                            (dta['hdr']['n_entries'], dta['hdr']['n_anlg']),
+                            dtype='i2')
+                        dta['dsp_wts'] = np.zeros(
+                            (dta['hdr']['n_entries'], dta['hdr']['n_dsp']),
+                            dtype='f4')
                         for n in range(dta['hdr']['n_entries']):
-                            dta['anlg_wts'][d] = read_int16_matrix(
+                            dta['anlg_wts'][n] = read_int16_matrix(
                                 fid, 1, dta['hdr']['n_anlg'])
                             read_int16(fid)
-                            dta['dsp_wts'][d] = read_float_matrix(
+                            dta['dsp_wts'][n] = read_float_matrix(
                                 fid, 1, dta['hdr']['n_dsp'])
-
-                        _correct_offset(fid)
 
                 elif kind == BTI.UB_B_TRIG_MASK:
                     dta['version'] = read_int32(fid)
@@ -531,17 +536,18 @@ def _read_config(fname):
                 dta['unknown'] = {'hdr': read_char(fid,
                                   ub['hdr']['user_space_size'])}
 
+            n_read = fid.tell() - start_bytes
+            if n_read != ub['hdr']['user_space_size']:
+                raise RuntimeError('Internal MNE reading error, read size %d '
+                                   '!= %d expected size for kind %s'
+                                   % (n_read, ub['hdr']['user_space_size'],
+                                      kind))
             ub.update(dta)  # finally update the userblock data
             _correct_offset(fid)  # after reading.
 
         cfg['chs'] = list()
 
         # prepare reading channels
-        def dev_header(x):
-            """Create a dev header."""
-            return dict(size=read_int32(x), checksum=read_int32(x),
-                        reserved=read_str(x, 32))
-
         for channel in range(cfg['hdr']['total_chans']):
             ch = {'name': read_str(fid, 16),
                   'chan_no': read_int16(fid),
@@ -561,10 +567,10 @@ def _read_config(fname):
             _correct_offset(fid)  # before and after
             dta = dict()
             if ch['ch_type'] in [BTI.CHTYPE_MEG, BTI.CHTYPE_REFERENCE]:
-                dev = {'device_info': dev_header(fid),
+                dev = {'device_info': read_dev_header(fid),
                        'inductance': read_float(fid),
                        'padding': read_str(fid, 4),
-                       'transform': _correct_trans(read_transform(fid)),
+                       'transform': _correct_trans(read_transform(fid), False),
                        'xform_flag': read_int16(fid),
                        'total_loops': read_int16(fid)}
 
@@ -583,30 +589,30 @@ def _read_config(fname):
                     dta['loops'] += [d]
 
             elif ch['ch_type'] == BTI.CHTYPE_EEG:
-                dta = {'device_info': dev_header(fid),
+                dta = {'device_info': read_dev_header(fid),
                        'impedance': read_float(fid),
                        'padding': read_str(fid, 4),
                        'transform': read_transform(fid),
                        'reserved': read_char(fid, 32)}
 
             elif ch['ch_type'] == BTI.CHTYPE_EXTERNAL:
-                dta = {'device_info': dev_header(fid),
+                dta = {'device_info': read_dev_header(fid),
                        'user_space_size': read_int32(fid),
                        'reserved': read_str(fid, 32)}
 
             elif ch['ch_type'] == BTI.CHTYPE_TRIGGER:
-                dta = {'device_info': dev_header(fid),
+                dta = {'device_info': read_dev_header(fid),
                        'user_space_size': read_int32(fid)}
                 fid.seek(2, 1)
                 dta['reserved'] = read_str(fid, 32)
 
             elif ch['ch_type'] in [BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
-                dta = {'device_info': dev_header(fid),
+                dta = {'device_info': read_dev_header(fid),
                        'user_space_size': read_int32(fid),
                        'reserved': read_str(fid, 32)}
 
             elif ch['ch_type'] == BTI.CHTYPE_SHORTED:
-                dta = {'device_info': dev_header(fid),
+                dta = {'device_info': read_dev_header(fid),
                        'reserved': read_str(fid, 32)}
 
             ch.update(dta)  # add data collected
@@ -954,16 +960,19 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
     return info
 
 
-def _correct_trans(t):
+def _correct_trans(t, check=True):
     """Convert to a transformation matrix."""
     t = np.array(t, np.float64)
     t[:3, :3] *= t[3, :3][:, np.newaxis]  # apply scalings
     t[3, :3] = 0.  # remove them
-    assert t[3, 3] == 1.
+    if check:
+        assert t[3, 3] == 1.
+    else:
+        t[3, 3] = 1.
     return t
 
 
-class RawBTi(_BaseRaw):
+class RawBTi(BaseRaw):
     """Raw object from 4D Neuroimaging MagnesWH3600 data.
 
     Parameters
@@ -1003,7 +1012,8 @@ class RawBTi(_BaseRaw):
         ..versionadded:: 0.11
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
 
     @verbose
@@ -1089,9 +1099,14 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     if not isinstance(config_fname, six.BytesIO):
         if not op.isabs(config_fname):
-            config_fname = op.abspath(config_fname)
-
-        if not op.exists(config_fname):
+            config_tries = [op.abspath(config_fname),
+                            op.abspath(op.join(op.dirname(pdf_fname),
+                                               config_fname))]
+            for config_try in config_tries:
+                if op.isfile(config_try):
+                    config_fname = config_try
+                    break
+        if not op.isfile(config_fname):
             raise ValueError('Could not find the config file %s. Please check'
                              ' whether you are in the right directory '
                              'or pass the full name' % config_fname)
@@ -1106,7 +1121,8 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         if not op.isfile(head_shape_fname):
             raise ValueError('Could not find the head_shape file "%s". '
                              'You should check whether you are in the '
-                             'right directory or pass the full file name.'
+                             'right directory, pass the full file name, '
+                             'or pass head_shape_fname=None.'
                              % orig_name)
 
     logger.info('Reading 4D PDF file %s...' % pdf_fname)
@@ -1118,10 +1134,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     # for old backward compatibility and external processing
     rotation_x = 0. if rotation_x is None else rotation_x
-    if convert:
-        bti_dev_t = _get_bti_dev_t(rotation_x, translation)
-    else:
-        bti_dev_t = np.eye(4)
+    bti_dev_t = _get_bti_dev_t(rotation_x, translation) if convert else None
     bti_dev_t = Transform('ctf_meg', 'meg', bti_dev_t)
 
     use_hpi = False  # hard coded, but marked as later option.
@@ -1210,7 +1223,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
         elif chan_4d.startswith('M'):
             chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_MAG
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_REF_MAG
             chan_info['coord_frame'] = meg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_T
 
@@ -1219,9 +1232,10 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['coord_frame'] = meg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_T_M
             if chan_4d in ('GxxA', 'GyyA'):
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_REF_GRAD
             elif chan_4d in ('GyxA', 'GzxA', 'GzyA'):
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF
+                chan_info['coil_type'] = \
+                    FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD
 
         elif chan_4d.startswith('EEG'):
             chan_info['kind'] = FIFF.FIFFV_EEG_CH
@@ -1262,12 +1276,12 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                                    'meg', 'ctf_head')
             dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
         else:
-            dev_head_t = Transform('meg', 'head', np.eye(4))
+            dev_head_t = Transform('meg', 'head')
         logger.info('Done.')
     else:
         logger.info('... no headshape file supplied, doing nothing.')
-        dev_head_t = Transform('meg', 'head', np.eye(4))
-        ctf_head_t = Transform('ctf_head', 'head', np.eye(4))
+        dev_head_t = Transform('meg', 'head')
+        ctf_head_t = Transform('ctf_head', 'head')
     info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                 ctf_head_t=ctf_head_t)
 
@@ -1364,7 +1378,8 @@ def read_raw_bti(pdf_fname, config_fname='config',
         ..versionadded:: 0.11
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

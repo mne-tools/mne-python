@@ -10,6 +10,7 @@ from __future__ import print_function
 
 from functools import partial
 from itertools import cycle
+from copy import deepcopy
 
 import numpy as np
 
@@ -149,8 +150,13 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
                y_label=None, font_color='w', unified=False, img=False):
-    """Helper function to plot on sensor layout."""
+    """Plot on sensor layout."""
     import matplotlib.pyplot as plt
+
+    if layout.kind == 'custom':
+        layout = deepcopy(layout)
+        layout.pos[:, :2] -= layout.pos[:, :2].min(0)
+        layout.pos[:, :2] /= layout.pos[:, :2].max(0)
 
     # prepare callbacks
     tmin, tmax = times[[0, -1]]
@@ -220,7 +226,7 @@ def _plot_topo_onpick(event, show_func):
         ax.set_axis_bgcolor(face_color)
 
         # allow custom function to override parameters
-        show_func(plt, ch_idx)
+        show_func(ax, ch_idx)
 
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers,
@@ -247,28 +253,75 @@ def _check_vlim(vlim):
 
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
-                tfr=None, freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap=('RdBu_r', True), title=None,
-                hline=None):
-    """Show time-freq map on topo."""
-    import matplotlib.pyplot as plt
+                tfr=None, freq=None, x_label=None, y_label=None,
+                colorbar=False, cmap=('RdBu_r', True), yscale='auto'):
+    """Show time-frequency map as two-dimensional image."""
+    from matplotlib import pyplot as plt, ticker
     from matplotlib.widgets import RectangleSelector
 
-    extent = (tmin, tmax, freq[0], freq[-1])
-    cmap, interactive_cmap = cmap
+    if yscale not in ['auto', 'linear', 'log']:
+        raise ValueError("yscale should be either 'auto', 'linear', or 'log'"
+                         ", got {}".format(yscale))
 
-    img = ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-                    vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
-    if isinstance(ax, plt.Axes):
-        if x_label is not None:
-            ax.set_xlabel(x_label)
-        if y_label is not None:
-            ax.set_ylabel(y_label)
+    cmap, interactive_cmap = cmap
+    times = np.linspace(tmin, tmax, num=tfr[ch_idx].shape[1])
+
+    # test yscale
+    if yscale == 'log' and not freq[0] > 0:
+        raise ValueError('Using log scale for frequency axis requires all your'
+                         ' frequencies to be positive (you cannot include'
+                         ' the DC component (0 Hz) in the TFR).')
+    if len(freq) < 2 or freq[0] == 0:
+        yscale = 'linear'
+    elif yscale != 'linear':
+        ratio = freq[1:] / freq[:-1]
+    if yscale == 'auto':
+        if freq[0] > 0 and np.allclose(ratio, ratio[0]):
+            yscale = 'log'
+        else:
+            yscale = 'linear'
+
+    # compute bounds between time samples
+    time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
+    time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
+                               time_diff, [times[-1] + time_diff[-1]]])
+
+    # the same for frequency - depending on whether yscale is log
+    if yscale == 'linear':
+        freq_diff = np.diff(freq) / 2. if len(freq) > 1 else [0.5]
+        freq_lims = np.concatenate([[freq[0] - freq_diff[0]], freq[:-1] +
+                                   freq_diff, [freq[-1] + freq_diff[-1]]])
     else:
-        if x_label is not None:
-            plt.xlabel(x_label)
-        if y_label is not None:
-            plt.ylabel(y_label)
+        log_freqs = np.concatenate([[freq[0] / ratio[0]], freq,
+                                   [freq[-1] * ratio[0]]])
+        freq_lims = np.sqrt(log_freqs[:-1] * log_freqs[1:])
+
+    # construct a time-frequency bounds grid
+    time_mesh, freq_mesh = np.meshgrid(time_lims, freq_lims)
+
+    img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
+                        vmin=vmin, vmax=vmax)
+
+    # limits, yscale and yticks
+    ax.set_xlim(time_lims[0], time_lims[-1])
+    if ylim is None:
+        ylim = (freq_lims[0], freq_lims[-1])
+    ax.set_ylim(ylim)
+
+    if yscale == 'log':
+        ax.set_yscale('log')
+        ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
+
+    ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+    ax.yaxis.set_minor_locator(ticker.NullLocator())  # get rid of minor ticks
+    tick_vals = freq[np.unique(np.linspace(
+        0, len(freq) - 1, 12).round().astype('int'))]
+    ax.set_yticks(tick_vals)
+
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+    if y_label is not None:
+        ax.set_ylabel(y_label)
     if colorbar:
         if isinstance(colorbar, DraggableColorbar):
             cbar = colorbar.cbar  # this happens with multiaxes case
@@ -276,10 +329,6 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
             cbar = plt.colorbar(mappable=img)
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img)
-    if title:
-        plt.title(title)
-    if not isinstance(ax, plt.Axes):
-        ax = plt.gca()
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
 
 
@@ -307,10 +356,10 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     for data_, color_ in zip(data, color):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times, data_[ch_idx], color_, picker=1e9)
+            ax.plot(times, data_[ch_idx], color=color_, picker=1e9)
             picker_flag = True
         else:
-            ax.plot(times, data_[ch_idx], color_)
+            ax.plot(times, data_[ch_idx], color=color_)
     if vline:
         for x in vline:
             plt.axvline(x, color='w', linewidth=0.5)
@@ -344,7 +393,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     for data_, color_ in zip(data, color):
         data_lines.append(ax.plot(
             bn.x_t + bn.x_s * times, bn.y_t + bn.y_s * data_[ch_idx],
-            color_, clip_on=True, clip_box=pos)[0])
+            color=color_, clip_on=True, clip_box=pos)[0])
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
         ax.vlines(vline, pos[1], pos[1] + pos[3], color='w', linewidth=0.5)
@@ -370,7 +419,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     """Plot erfimage on sensor topography."""
     from scipy import ndimage
     import matplotlib.pyplot as plt
-    this_data = data[:, ch_idx, :].copy()
+    this_data = data[:, ch_idx, :].copy() * scalings[ch_idx]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -381,9 +430,9 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     if sigma > 0.:
         this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
 
-    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
-              origin='lower', vmin=vmin, vmax=vmax, picker=True, cmap=cmap,
-              interpolation='nearest')
+    img = ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)],
+                    aspect='auto', origin='lower', vmin=vmin, vmax=vmax,
+                    picker=True, cmap=cmap, interpolation='nearest')
 
     ax = plt.gca()
     if x_label is not None:
@@ -391,7 +440,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, data=None,
     if y_label is not None:
         ax.set_ylabel(y_label)
     if colorbar:
-        plt.colorbar()
+        plt.colorbar(mappable=img)
 
 
 def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
@@ -405,7 +454,7 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     data_lines = bn.data_lines
     extent = (bn.x_t + bn.x_s * tmin, bn.x_t + bn.x_s * tmax, bn.y_t,
               bn.y_t + bn.y_s * len(epochs.events))
-    this_data = data[:, ch_idx, :].copy()
+    this_data = data[:, ch_idx, :].copy() * scalings[ch_idx]
 
     if callable(order):
         order = order(epochs.times, this_data)
@@ -426,7 +475,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, show=True):
+                      merge_grads=False, legend=True, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -480,6 +529,14 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
+    legend : bool | int | string | tuple
+        If True, create a legend based on evoked.comment. If False, disable the
+        legend. Otherwise, the legend is created and the parameter value is
+        passed as the location parameter to the matplotlib legend call. It can
+        be an integer (e.g. 0 corresponds to upper right corner of the plot),
+        a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
+        lower left corner of the legend in the axes coordinate system).
+        See matplotlib documentation for more details.
     show : bool
         Show figure if True.
 
@@ -488,6 +545,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    import matplotlib.pyplot as plt
+
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
@@ -606,6 +665,16 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     add_background_image(fig, fig_background)
 
+    if legend is not False:
+        legend_loc = 0 if legend is True else legend
+        labels = [e.comment if e.comment else 'Unknown' for e in evoked]
+        legend = plt.legend(labels, loc=legend_loc,
+                            prop={'size': 10})
+        legend.get_frame().set_facecolor(axis_facecolor)
+        txts = legend.get_texts()
+        for txt, col in zip(txts, color):
+            txt.set_color(col)
+
     if proj == 'interactive':
         for e in evoked:
             _check_delayed_ssp(e)
@@ -699,17 +768,15 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     for idx in range(epochs.info['nchan']):
         ch_type = channel_type(epochs.info, idx)
         scale_coeffs.append(scalings.get(ch_type, 1))
-    for epoch_data in data:
-        epoch_data *= np.asarray(scale_coeffs)[:, np.newaxis]
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     if layout is None:
         layout = find_layout(epochs.info)
 
-    show_func = partial(_erfimage_imshow_unified, scalings=scalings,
+    show_func = partial(_erfimage_imshow_unified, scalings=scale_coeffs,
                         order=order, data=data, epochs=epochs, sigma=sigma,
                         cmap=cmap)
-    erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
+    erf_imshow = partial(_erfimage_imshow, scalings=scale_coeffs, order=order,
                          data=data, epochs=epochs, sigma=sigma, cmap=cmap)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,

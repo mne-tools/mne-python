@@ -90,17 +90,15 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
 
 def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     """Dot product of channel mapping matrix to channel data."""
-    from ..io.base import _BaseRaw
-    from ..epochs import _BaseEpochs
+    from ..io.base import BaseRaw
+    from ..epochs import BaseEpochs
     from ..evoked import Evoked
 
-    if isinstance(inst, _BaseRaw):
+    if isinstance(inst, (BaseRaw, Evoked)):
         inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
-    elif isinstance(inst, _BaseEpochs):
+    elif isinstance(inst, BaseEpochs):
         inst._data[:, bads_idx, :] = np.einsum('ij,xjy->xiy', interpolation,
                                                inst._data[:, goods_idx, :])
-    elif isinstance(inst, Evoked):
-        inst.data[bads_idx] = interpolation.dot(inst.data[goods_idx])
     else:
         raise ValueError('Inputs of type {0} are not supported'
                          .format(type(inst)))
@@ -167,7 +165,8 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
         Legendre polynomial expansion used for interpolation. `'fast'` should
         be sufficient for most applications.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
     picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')

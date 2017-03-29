@@ -36,10 +36,8 @@ def run():
         sys.exit(1)
 
     print("Converting %s to BEM FIF file." % options.surf)
-    points, tris = mne.read_surface(options.surf)
-    points *= 1e-3
-    surf = dict(coord_frame=5, id=int(options.id), nn=None, np=len(points),
-                ntri=len(tris), rr=points, sigma=1, tris=tris)
+    surf = mne.bem._surfaces_to_bem([options.surf], [int(options.id)],
+                                    sigma=[1])
     mne.write_bem_surfaces(options.fif, surf)
 
 

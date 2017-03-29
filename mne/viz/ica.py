@@ -28,7 +28,8 @@ from ..time_frequency.psd import psd_multitaper
 
 
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
-                     stop=None, title=None, show=True, block=False):
+                     stop=None, title=None, show=True, block=False,
+                     show_first_samp=False):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -63,6 +64,8 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         Whether to halt program execution until the figure is closed.
         Useful for interactive selection of components in raw and epoch
         plotter. For evoked, this parameter has no effect. Defaults to False.
+    show_first_samp : bool
+        If True, show time axis relative to the ``raw.first_samp``.
 
     Returns
     -------
@@ -77,19 +80,20 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
 
     .. versionadded:: 0.10.0
     """
-    from ..io.base import _BaseRaw
+    from ..io.base import BaseRaw
     from ..evoked import Evoked
-    from ..epochs import _BaseEpochs
+    from ..epochs import BaseEpochs
 
     if exclude is None:
         exclude = ica.exclude
     elif len(ica.exclude) > 0:
         exclude = np.union1d(ica.exclude, exclude)
-    if isinstance(inst, _BaseRaw):
+    if isinstance(inst, BaseRaw):
         fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
                                 stop=stop, show=show, title=title,
-                                block=block)
-    elif isinstance(inst, _BaseEpochs):
+                                block=block,
+                                show_first_samp=show_first_samp)
+    elif isinstance(inst, BaseEpochs):
         fig = _plot_sources_epochs(ica, inst, picks, exclude, start=start,
                                    stop=stop, show=show, title=title,
                                    block=block)
@@ -174,11 +178,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     -----
     .. versionadded:: 0.13
     """
-    from ..io.base import _BaseRaw
-    from ..epochs import _BaseEpochs
+    from ..io.base import BaseRaw
+    from ..epochs import BaseEpochs
     from ..preprocessing import ICA
 
-    if not isinstance(inst, (_BaseRaw, _BaseEpochs)):
+    if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('inst should be an instance of Raw or Epochs,'
                          ' got %s instead.' % type(inst))
     if not isinstance(ica, ICA):
@@ -219,7 +223,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     # calculations
     # ------------
     plot_line_at_zero = False
-    if isinstance(inst, _BaseRaw):
+    if isinstance(inst, BaseRaw):
         # break up continuous signal into segments
         from ..epochs import _segment_raw
         inst = _segment_raw(inst, segment_length=2., verbose=False,
@@ -606,11 +610,11 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         The figure.
     """
     # avoid circular imports
-    from ..io.base import _BaseRaw
+    from ..io.base import BaseRaw
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
 
-    if not isinstance(inst, (_BaseRaw, Evoked)):
+    if not isinstance(inst, (BaseRaw, Evoked)):
         raise ValueError('Data input must be of Raw or Evoked type')
     if title is None:
         title = 'Signals before (red) and after (black) cleaning'
@@ -618,7 +622,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         picks = [inst.ch_names.index(k) for k in ica.ch_names]
     if exclude is None:
         exclude = ica.exclude
-    if isinstance(inst, _BaseRaw):
+    if isinstance(inst, BaseRaw):
         if start is None:
             start = 0.0
         if stop is None:
@@ -738,7 +742,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
-                      block):
+                      block, show_first_samp):
     """Plot the ICA components as raw array."""
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
@@ -787,10 +791,13 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     inds = list(range(len(picks)))
     data = np.array(data)
     n_channels = min([20, len(picks)])
+    first_time = raw._first_time if show_first_samp else 0
+    start += first_time
     params = dict(raw=raw, orig_data=data, data=data[:, 0:t_end], inds=inds,
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=n_channels, times=times, types=types,
-                  n_times=raw.n_times, bad_color=bad_color, picks=picks)
+                  n_times=raw.n_times, bad_color=bad_color, picks=picks,
+                  first_time=first_time)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -825,7 +832,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
 def _update_data(params):
     """Prepare the data on horizontal shift of the viewport."""
     sfreq = params['info']['sfreq']
-    start = int(params['t_start'] * sfreq)
+    start = int((params['t_start'] - params['first_time']) * sfreq)
     end = int((params['t_start'] + params['duration']) * sfreq)
     params['data'] = params['orig_data'][:, start:end]
     params['times'] = params['raw'].times[start:end]

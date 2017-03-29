@@ -17,7 +17,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
     """Get path to local copy of EEGMMI dataset URL.
 
     This is a low-level function useful for getting a local copy of a
-    remote EEGBCI dataet.
+    remote EEGBCI dataset [1]_ which is available at PhysioNet [2]_.
 
     Parameters
     ----------
@@ -26,10 +26,9 @@ def data_path(url, path=None, force_update=False, update_path=None,
     path : None | str
         Location of where to look for the EEGBCI data storing location.
         If None, the environment variable or config parameter
-        MNE_DATASETS_EEGBCI_PATH is used. If it doesn't exist, the
-        "mne-python/examples" directory is used. If the EEGBCI dataset
-        is not found under the given path (e.g., as
-        "mne-python/examples/MNE-eegbci-data"), the data
+        ``MNE_DATASETS_EEGBCI_PATH`` is used. If it doesn't exist, the
+        "~/mne_data" directory is used. If the EEGBCI dataset
+        is not found under the given path, the data
         will be automatically downloaded to the specified folder.
     force_update : bool
         Force update of the dataset even if a local copy exists.
@@ -37,7 +36,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------
@@ -57,15 +56,16 @@ def data_path(url, path=None, force_update=False, update_path=None,
     and prompt the user to save the 'datasets' path to the mne-python config,
     if it isn't there already.
 
-    The EEGBCI dataset is documented in the following publication:
-        Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
-        Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface
-        (BCI) System. IEEE TBME 51(6):1034-1043
-    The data set is available at PhysioNet:
-        Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
-        Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
-        PhysioToolkit, and PhysioNet: Components of a New Research Resource for
-        Complex Physiologic Signals. Circulation 101(23):e215-e220
+    References
+    ----------
+    .. [1] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
+           Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer
+           Interface (BCI) System. IEEE TBME 51(6):1034-1043
+    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
+           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
+           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
+           Research Resource for Complex Physiologic Signals.
+           Circulation 101(23):e215-e220
     """  # noqa: E501
     key = 'MNE_DATASETS_EEGBCI_PATH'
     name = 'EEGBCI'
@@ -89,30 +89,35 @@ def data_path(url, path=None, force_update=False, update_path=None,
 @verbose
 def load_data(subject, runs, path=None, force_update=False, update_path=None,
               base_url=EEGMI_URL, verbose=None):  # noqa: D301
-    """Get paths to local copy of EEGBCI dataset files.
+    """Get paths to local copies of EEGBCI dataset files.
+
+    This will fetch data for the EEGBCI dataset [1]_, which is also
+    available at PhysioNet [2]_.
 
     Parameters
     ----------
     subject : int
         The subject to use. Can be in the range of 1-109 (inclusive).
-    runs : int | list of ints
-        The runs to use. Can be a list or a single number. The runs correspond
-        to the following tasks:
-              run | task
-        ----------+-----------------------------------------
-                1 | Baseline, eyes open
-                2 | Baseline, eyes closed
-         3, 7, 11 | Motor execution: left vs right hand
-         4, 8, 12 | Motor imagery: left vs right hand
-         5, 9, 13 | Motor execution: hands vs feet
-        6, 10, 14 | Motor imagery: hands vs feet
+    runs : int | list of int
+        The runs to use. The runs correspond to:
+
+        =========  ===================================
+        run        task
+        =========  ===================================
+        1          Baseline, eyes open
+        2          Baseline, eyes closed
+        3, 7, 11   Motor execution: left vs right hand
+        4, 8, 12   Motor imagery: left vs right hand
+        5, 9, 13   Motor execution: hands vs feet
+        6, 10, 14  Motor imagery: hands vs feet
+        =========  ===================================
+
     path : None | str
         Location of where to look for the EEGBCI data storing location.
         If None, the environment variable or config parameter
-        MNE_DATASETS_EEGBCI_PATH is used. If it doesn't exist, the
-        "mne-python/examples" directory is used. If the EEGBCI dataset
-        is not found under the given path (e.g., as
-        "mne-python/examples/MEGSIM"), the data
+        ``MNE_DATASETS_EEGBCI_PATH`` is used. If it doesn't exist, the
+        "~/mne_data" directory is used. If the EEGBCI dataset
+        is not found under the given path, the data
         will be automatically downloaded to the specified folder.
     force_update : bool
         Force update of the dataset even if a local copy exists.
@@ -120,7 +125,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -140,15 +146,16 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     user to save the 'datasets' path to the  mne-python config, if it isn't
     there already.
 
-    The EEGBCI dataset is documented in the following publication:
-        Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
-        Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface
-        (BCI) System. IEEE TBME 51(6):1034-1043
-    The data set is available at PhysioNet:
-        Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
-        Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
-        PhysioToolkit, and PhysioNet: Components of a New Research Resource for
-        Complex Physiologic Signals. Circulation 101(23):e215-e220
+    References
+    ----------
+    .. [1] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
+           Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer
+           Interface (BCI) System. IEEE TBME 51(6):1034-1043
+    .. [2] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh,
+           Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000)
+           PhysioBank, PhysioToolkit, and PhysioNet: Components of a New
+           Research Resource for Complex Physiologic Signals.
+           Circulation 101(23):e215-e220
     """
     if not hasattr(runs, '__iter__'):
         runs = [runs]

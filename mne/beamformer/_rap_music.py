@@ -156,15 +156,13 @@ def _make_dipoles(times, poss, oris, sol, gof):
     dipoles : list
         The list of Dipole instances.
     """
-    amplitude = sol * 1e9
     oris = np.array(oris)
 
     dipoles = []
     for i_dip in range(poss.shape[0]):
         i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
         i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        dipoles.append(Dipole(times, i_pos, amplitude[i_dip],
-                              i_ori, gof))
+        dipoles.append(Dipole(times, i_pos, sol[i_dip], i_ori, gof))
 
     return dipoles
 
@@ -172,10 +170,19 @@ def _make_dipoles(times, poss, oris, sol, gof):
 def _compute_subcorr(G, phi_sig):
     """Compute the subspace correlation."""
     Ug, Sg, Vg = linalg.svd(G, full_matrices=False)
+    # Now we look at the actual rank of the forward fields
+    # in G and handle the fact that it might be rank defficient
+    # eg. when using MEG and a sphere model for which the
+    # radial component will be truly 0.
+    rank = np.sum(Sg > (Sg[0] * 1e-12))
+    if rank == 0:
+        return 0, np.zeros(len(G))
+    rank = max(rank, 2)  # rank cannot be 1
+    Ug, Sg, Vg = Ug[:, :rank], Sg[:rank], Vg[:rank]
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
-    Uc, Sc, Vc = linalg.svd(tmp, full_matrices=False)
-    X = np.dot(np.dot(Vg.T, np.diag(1. / Sg)), Uc)  # subcorr
-    return Sc[0], X[:, 0] / linalg.norm(X[:, 0])
+    Uc, Sc, _ = linalg.svd(tmp, full_matrices=False)
+    X = np.dot(Vg.T / Sg[None, :], Uc[:, 0])  # subcorr
+    return Sc[0], X / linalg.norm(X)
 
 
 def _compute_proj(A):
@@ -208,7 +215,8 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

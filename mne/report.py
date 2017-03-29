@@ -20,7 +20,8 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import Raw, read_info
-from .utils import _TempDir, logger, verbose, get_subjects_dir, warn
+from .utils import (_TempDir, logger, verbose, get_subjects_dir, warn,
+                    _import_mlab)
 from .viz import plot_events, plot_trans, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -46,18 +47,19 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 
 def _fig_to_img(function=None, fig=None, image_format='png',
                 scale=None, **kwargs):
-    """Wrapper function to plot figure and create a binary image."""
+    """Plot figure and create a binary image."""
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if not isinstance(fig, Figure) and function is None:
         from scipy.misc import imread
         mlab = None
         try:
-            from mayavi import mlab  # noqa: F401
-        except:  # on some systems importing Mayavi raises SystemExit (!)
-            warn('Could not import mayavi. Trying to render'
+            mlab = _import_mlab()
+        # on some systems importing Mayavi raises SystemExit (!)
+        except Exception as e:
+            warn('Could not import mayavi (%r). Trying to render'
                  '`mayavi.core.scene.Scene` figure instances'
-                 ' will throw an error.')
+                 ' will throw an error.' % (e,))
         tempdir = _TempDir()
         temp_fname = op.join(tempdir, 'test')
         if fig.scene is not None:
@@ -78,8 +80,11 @@ def _fig_to_img(function=None, fig=None, image_format='png',
     output = BytesIO()
     if scale is not None:
         _scale_mpl_figure(fig, scale)
-    fig.savefig(output, format=image_format, bbox_inches='tight',
-                dpi=fig.get_dpi())
+    logger.debug('Saving figure %s with dpi %s'
+                 % (fig.get_size_inches(), fig.get_dpi()))
+    # We don't use bbox_inches='tight' here because it can break
+    # newer matplotlib, and should only save a little bit of space
+    fig.savefig(output, format=image_format, dpi=fig.get_dpi())
     plt.close(fig)
     output = output.getvalue()
     return (output if image_format == 'svg' else
@@ -390,6 +395,7 @@ def _build_html_image(img, id, div_klass, img_klass, caption=None, show=True):
         html.append(u'<h4>%s</h4>' % caption)
     html.append(u'</li>')
     return u'\n'.join(html)
+
 
 slider_template = HTMLTemplate(u"""
 <script>$("#{{slider_id}}").slider({
@@ -774,7 +780,8 @@ class Report(object):
         The baseline (a, b) includes both endpoints, i.e. all
         timepoints t such that a <= t <= b.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -822,7 +829,7 @@ class Report(object):
         return s
 
     def __len__(self):
-        """The number of items in report."""
+        """Return the number of items in report."""
         return len(self.fnames)
 
     def _get_id(self):
@@ -1207,7 +1214,9 @@ class Report(object):
             What to do if a file cannot be rendered. Can be 'ignore',
             'warn' (default), or 'raise'.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
         """
         valid_errors = ['ignore', 'warn', 'raise']
         if on_error not in valid_errors:
@@ -1562,13 +1571,16 @@ class Report(object):
 
     def _render_evoked(self, evoked_fname, baseline=None, figsize=None):
         """Render evoked."""
+        logger.debug('Evoked: Reading %s' % evoked_fname)
         evokeds = read_evokeds(evoked_fname, baseline=baseline, verbose=False)
 
         html = []
-        for ev in evokeds:
+        for ei, ev in enumerate(evokeds):
             global_id = self._get_id()
 
             kwargs = dict(show=False)
+            logger.debug('Evoked: Plotting instance %s/%s'
+                         % (ei + 1, len(evokeds)))
             img = _fig_to_img(ev.plot, **kwargs)
 
             caption = u'Evoked : %s (%s)' % (evoked_fname, ev.comment)
@@ -1588,15 +1600,15 @@ class Report(object):
             if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
                 has_types.append('mag')
             for ch_type in has_types:
-                kwargs.update(ch_type=ch_type)
-                img = _fig_to_img(ev.plot_topomap, **kwargs)
+                logger.debug('    Topomap type %s' % ch_type)
+                img = _fig_to_img(ev.plot_topomap, ch_type=ch_type, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(img=img,
                                                       div_klass=div_klass,
                                                       img_klass=img_klass,
                                                       caption=caption,
                                                       show=show))
-
+        logger.debug('Evoked: done')
         return '\n'.join(html)
 
     def _render_eve(self, eve_fname, sfreq=None):

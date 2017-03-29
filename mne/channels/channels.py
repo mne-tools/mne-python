@@ -57,7 +57,7 @@ def _contains_ch_type(info, ch_type):
     """Check whether a certain channel type is in an info object.
 
     Parameters
-    ---------
+    ----------
     info : instance of Info
         The measurement information.
     ch_type : str
@@ -86,7 +86,7 @@ def _contains_ch_type(info, ch_type):
 
 
 def _get_ch_type(inst, ch_type):
-    """Helper to choose a single channel type (usually for plotting).
+    """Choose a single channel type (usually for plotting).
 
     Usually used in plotting to plot a single datatype, e.g. look for mags,
     then grads, then ... to plot.
@@ -110,21 +110,22 @@ def equalize_channels(candidates, verbose=None):
     candidates : list
         list Raw | Epochs | Evoked | AverageTFR
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
     This function operates inplace.
     """
-    from ..io.base import _BaseRaw
-    from ..epochs import _BaseEpochs
+    from ..io.base import BaseRaw
+    from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
 
-    if not all(isinstance(c, (_BaseRaw, _BaseEpochs, Evoked, AverageTFR))
+    if not all(isinstance(c, (BaseRaw, BaseEpochs, Evoked, AverageTFR))
                for c in candidates):
-        valid = ['Raw', 'Epochs', 'Evoked', 'AverageTFR']
-        raise ValueError('candidates must be ' + ' or '.join(valid))
+        raise ValueError('candidates must be Raw, Epochs, Evoked, or '
+                         'AverageTFR')
 
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
@@ -222,7 +223,7 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
 
 
 def _check_set(ch, projs, ch_type):
-    """Helper to make sure type change is compatible with projectors."""
+    """Ensure type change is compatible with projectors."""
     new_kind = _human2fiff[ch_type]
     if ch['kind'] != new_kind:
         for proj in projs:
@@ -236,12 +237,48 @@ def _check_set(ch, projs, ch_type):
 class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
-    def set_eeg_reference(self, ref_channels=None):
-        """Rereference EEG channels to new reference channel(s).
+    @verbose
+    def set_eeg_reference(self, ref_channels=None, verbose=None):
+        """Specify which reference to use for EEG data.
 
-        If multiple reference channels are specified, they will be averaged. If
-        no reference channels are specified, an average reference will be
-        applied.
+        By default, MNE-Python will automatically re-reference the EEG signal
+        to use an average reference (see below). Use this function to
+        explicitly specify the desired reference for EEG. This can be either an
+        existing electrode or a new virtual channel. This function will
+        re-reference the data according to the desired reference and prevent
+        MNE-Python from automatically adding an average reference.
+
+        Some common referencing schemes and the corresponding value for the
+        ``ref_channels`` parameter:
+
+        No re-referencing:
+            If the EEG data is already using the proper reference, set
+            ``ref_channels=[]``. This will prevent MNE-Python from
+            automatically re-referencing the data to an average reference.
+
+        Average reference:
+            A new virtual reference electrode is created by averaging the
+            current EEG signal. Make sure that all bad EEG channels are
+            properly marked and set ``ref_channels=None``.
+
+        A single electrode:
+            Set ``ref_channels`` to the name of the channel that will act as
+            the new reference.
+
+        The mean of multiple electrodes:
+            A new virtual reference electrode is created by computing the
+            average of the current EEG signal recorded from two or more
+            selected channels. Set ``ref_channels`` to a list of channel names,
+            indicating which channels to use. For example, to apply an average
+            mastoid reference, when using the 10-20 naming scheme, set
+            ``ref_channels=['M1', 'M2']``.
+
+        .. note:: In case of average reference (ref_channels=None), the
+                  reference is added as an SSP projector and it is not applied
+                  automatically. For it to take effect, apply with method
+                  :meth:`apply_proj <mne.io.proj.ProjMixin.apply_proj>`.
+                  For custom reference (ref_channel is not None), this method
+                  operates in place.
 
         Parameters
         ----------
@@ -252,6 +289,10 @@ class SetChannelsMixin(object):
             is specified, the data is assumed to already have a proper
             reference and MNE will not attempt any re-referencing of the data.
             Defaults to an average reference (None).
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -270,6 +311,12 @@ class SetChannelsMixin(object):
 
         3. In order to apply a reference other than an average reference, the
            data must be preloaded.
+
+        4. Re-referencing to an average reference is done with an SSP
+           projector. This allows applying this reference without preloading
+           the data. Be aware that on preloaded data, SSP projectors are not
+           automatically applied. Use the ``apply_proj()`` method to apply
+           them.
 
         .. versionadded:: 0.13.0
 
@@ -354,6 +401,7 @@ class SetChannelsMixin(object):
         ch_names = self.info['ch_names']
 
         # first check and assemble clean mappings of index and name
+        unit_changes = dict()
         for ch_name, ch_type in mapping.items():
             if ch_name not in ch_names:
                 raise ValueError("This channel name (%s) doesn't exist in "
@@ -375,8 +423,10 @@ class SetChannelsMixin(object):
                                  "fix the measurement info of your data."
                                  % (ch_name, unit_old))
             if unit_old != _human2unit[ch_type]:
-                warn("The unit for channel %s has changed from %s to %s."
-                     % (ch_name, _unit2human[unit_old], _unit2human[unit_new]))
+                this_change = (_unit2human[unit_old], _unit2human[unit_new])
+                if this_change not in unit_changes:
+                    unit_changes[this_change] = list()
+                unit_changes[this_change].append(ch_name)
             self.info['chs'][c_ind]['unit'] = _human2unit[ch_type]
             if ch_type in ['eeg', 'seeg', 'ecog']:
                 coil_type = FIFF.FIFFV_COIL_EEG
@@ -387,6 +437,9 @@ class SetChannelsMixin(object):
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type
+        msg = "The unit for channel(s) {0} has changed from {1} to {2}."
+        for this_change, names in unit_changes.items():
+            warn(msg.format(", ".join(sorted(names)), *this_change))
 
     def rename_channels(self, mapping):
         """Rename channels.
@@ -406,14 +459,16 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_montage(self, montage, verbose=None):
-        """Set EEG sensor configuration.
+        """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
         montage : instance of Montage or DigMontage
             The montage to use.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Notes
         -----
@@ -423,10 +478,11 @@ class SetChannelsMixin(object):
         """
         from .montage import _set_montage
         _set_montage(self.info, montage)
+        return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
-                     show_names=False, ch_groups=None, axes=None, block=False,
-                     show=True):
+                     show_names=False, ch_groups=None, to_sphere=True,
+                     axes=None, block=False, show=True):
         """Plot sensor positions.
 
         Parameters
@@ -455,6 +511,13 @@ class SetChannelsMixin(object):
             array, the channels are divided by picks given in the array.
 
             .. versionadded:: 0.13.0
+
+        to_sphere : bool
+            Whether to project the 3d locations to a sphere. When False, the
+            sensor array appears similar as to looking downwards straight above
+            the subject's head. Has no effect when kind='3d'. Defaults to True.
+
+            .. versionadded:: 0.14.0
 
         axes : instance of Axes | instance of Axes3D | None
             Axes to draw the sensors to. If ``kind='3d'``, axes must be an
@@ -493,7 +556,8 @@ class SetChannelsMixin(object):
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
-                            axes=axes, block=block, show=show)
+                            to_sphere=to_sphere, axes=axes, block=block,
+                            show=show)
 
     @copy_function_doc_to_method_doc(anonymize_info)
     def anonymize(self):
@@ -660,38 +724,26 @@ class UpdateChannelsMixin(object):
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
-        from ..io.base import _BaseRaw
-        from ..epochs import _BaseEpochs
-        from ..evoked import Evoked
+        from ..io.base import _check_preload
         from ..time_frequency import AverageTFR
 
-        if isinstance(self, (_BaseRaw, _BaseEpochs)):
-            if not self.preload:
-                raise RuntimeError('If Raw or Epochs, data must be preloaded '
-                                   'to drop or pick channels')
+        _check_preload(self, 'adding or dropping channels')
 
-        def inst_has(attr):
-            return getattr(self, attr, None) is not None
-
-        if inst_has('picks'):
+        if getattr(self, 'picks', None) is not None:
             self.picks = self.picks[idx]
 
-        if inst_has('_cals'):
+        if hasattr(self, '_cals'):
             self._cals = self._cals[idx]
 
         pick_info(self.info, idx, copy=False)
 
-        if inst_has('_projector'):
+        if getattr(self, '_projector', None) is not None:
             self._projector = self._projector[idx][:, idx]
 
-        if isinstance(self, _BaseRaw) and inst_has('_data'):
-            self._data = self._data.take(idx, axis=0)
-        elif isinstance(self, _BaseEpochs) and inst_has('_data'):
-            self._data = self._data.take(idx, axis=1)
-        elif isinstance(self, AverageTFR) and inst_has('data'):
-            self.data = self.data.take(idx, axis=0)
-        elif isinstance(self, Evoked):
-            self.data = self.data.take(idx, axis=0)
+        if self.preload:
+            # All others (Evoked, Epochs, Raw) have chs axis=-2
+            axis = -3 if isinstance(self, AverageTFR) else -2
+            self._data = self._data.take(idx, axis=axis)
 
     def add_channels(self, add_list, force_update_info=False):
         """Append new channels to the instance.
@@ -714,30 +766,27 @@ class UpdateChannelsMixin(object):
             The modified instance.
         """
         # avoid circular imports
-        from ..io import _BaseRaw, _merge_info
-        from ..epochs import _BaseEpochs
+        from ..io import BaseRaw, _merge_info
+        from ..epochs import BaseEpochs
 
         if not isinstance(add_list, (list, tuple)):
             raise AssertionError('Input must be a list or tuple of objs')
 
         # Object-specific checks
-        if isinstance(self, (_BaseRaw, _BaseEpochs)):
-            if not all([inst.preload for inst in add_list] + [self.preload]):
-                raise AssertionError('All data must be preloaded')
-            data_name = '_data'
-            if isinstance(self, _BaseRaw):
-                con_axis = 0
-                comp_class = _BaseRaw
-            elif isinstance(self, _BaseEpochs):
-                con_axis = 1
-                comp_class = _BaseEpochs
+        if not all([inst.preload for inst in add_list] + [self.preload]):
+            raise AssertionError('All data must be preloaded')
+        if isinstance(self, BaseRaw):
+            con_axis = 0
+            comp_class = BaseRaw
+        elif isinstance(self, BaseEpochs):
+            con_axis = 1
+            comp_class = BaseEpochs
         else:
-            data_name = 'data'
             con_axis = 0
             comp_class = type(self)
         if not all(isinstance(inst, comp_class) for inst in add_list):
             raise AssertionError('All input data must be of same type')
-        data = [getattr(inst, data_name) for inst in [self] + add_list]
+        data = [inst._data for inst in [self] + add_list]
 
         # Make sure that all dimensions other than channel axis are the same
         compare_axes = [i for i in range(data[0].ndim) if i != con_axis]
@@ -751,9 +800,9 @@ class UpdateChannelsMixin(object):
         new_info = _merge_info(infos, force_update_to_first=force_update_info)
 
         # Now update the attributes
-        setattr(self, data_name, data)
+        self._data = data
         self.info = new_info
-        if isinstance(self, _BaseRaw):
+        if isinstance(self, BaseRaw):
             self._cals = np.concatenate([getattr(inst, '_cals')
                                          for inst in [self] + add_list])
         return self
@@ -856,7 +905,7 @@ def rename_channels(info, mapping):
 
 
 def _recursive_flatten(cell, dtype):
-    """Helper to unpack mat files in Python."""
+    """Unpack mat files in Python."""
     while not isinstance(cell[0], dtype):
         cell = [c for d in cell for c in d]
     return cell
@@ -998,7 +1047,7 @@ def fix_mag_coil_types(info):
 
 
 def _get_T1T2_mag_inds(info):
-    """Helper to find T1/T2 magnetometer coil types."""
+    """Find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []
     for ii in picks:

@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-import copy as cp
+from copy import deepcopy
 from distutils.version import LooseVersion
 import itertools as itt
 from math import log
@@ -15,7 +15,7 @@ from scipy import linalg
 
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
-                      _needs_eeg_average_ref_proj)
+                      _needs_eeg_average_ref_proj, _check_projs)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _picks_by_type, _pick_data_channels)
@@ -32,7 +32,7 @@ from .epochs import Epochs
 from .event import make_fixed_length_events
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn,
-                    copy_function_doc_to_method_doc)
+                    copy_function_doc_to_method_doc, _pl)
 from . import viz
 
 from .externals.six.moves import zip
@@ -108,6 +108,7 @@ class Covariance(dict):
                  method=None, loglik=None):
         """Init of covariance."""
         diag = True if data.ndim == 1 else False
+        projs = _check_projs(projs)
         self.update(data=data, dim=len(data), names=names, bads=bads,
                     nfree=nfree, eig=eig, eigvec=eigvec, diag=diag,
                     projs=projs, kind=FIFF.FIFFV_MNE_NOISE_COV)
@@ -145,10 +146,10 @@ class Covariance(dict):
 
         try:
             _write_cov(fid, self)
-        except Exception as inst:
+        except Exception:
             fid.close()
             os.remove(fname)
-            raise inst
+            raise
 
         end_file(fid)
 
@@ -160,7 +161,7 @@ class Covariance(dict):
         cov : instance of Covariance
             The copied object.
         """
-        return cp.deepcopy(self)
+        return deepcopy(self)
 
     def as_diag(self):
         """Set covariance to be processed as being diagonal.
@@ -195,7 +196,7 @@ class Covariance(dict):
     def __add__(self, cov):
         """Add Covariance taking into account number of degrees of freedom."""
         _check_covs_algebra(self, cov)
-        this_cov = cp.deepcopy(cov)
+        this_cov = cov.copy()
         this_cov['data'] = (((this_cov['data'] * this_cov['nfree']) +
                              (self['data'] * self['nfree'])) /
                             (self['nfree'] + this_cov['nfree']))
@@ -238,7 +239,8 @@ def read_cov(fname, verbose=None):
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
     verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -268,7 +270,8 @@ def make_ad_hoc_cov(info, verbose=None):
     info : instance of Info
         Measurement info.
     verbose : bool, str, int, or None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -312,7 +315,8 @@ def _check_n_samples(n_samples, n_chan):
 def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            flat=None, picks=None, method='empirical',
                            method_params=None, cv=3, scalings=None, n_jobs=1,
-                           return_estimators=False, verbose=None):
+                           return_estimators=False, reject_by_annotation=True,
+                           verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance from empty room
@@ -403,8 +407,16 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
         .. versionadded:: 0.12
 
+    reject_by_annotation : bool
+        Whether to reject based on annotations. If True (default), epochs
+        overlapping with segments whose description begins with ``'bad'`` are
+        rejected. If False, no rejection based on annotations is performed.
+
+        .. versionadded:: 0.14.0
+
     verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -423,8 +435,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     tstep = tmax - tmin if tstep is None else float(tstep)
     tstep_m1 = tstep - 1. / raw.info['sfreq']  # inclusive!
     events = make_fixed_length_events(raw, 1, tmin, tmax, tstep)
-    pl = 's' if len(events) != 1 else ''
-    logger.info('Using up to %s segment%s' % (len(events), pl))
+    logger.info('Using up to %s segment%s' % (len(events), _pl(events)))
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
@@ -436,7 +447,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         pick_mask = slice(None)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
-                    preload=False, proj=False, add_eeg_ref=False)
+                    preload=False, proj=False,
+                    reject_by_annotation=reject_by_annotation)
     if method is None:
         method = 'empirical'
     if isinstance(method, string_types) and method == 'empirical':
@@ -458,8 +470,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         logger.info('[done]')
         ch_names = [raw.info['ch_names'][k] for k in picks]
         bads = [b for b in raw.info['bads'] if b in ch_names]
-        projs = cp.deepcopy(raw.info['projs'])
-        return Covariance(data, ch_names, bads, projs, nfree=n_samples)
+        return Covariance(data, ch_names, bads, raw.info['projs'],
+                          nfree=n_samples)
     del picks, pick_mask
 
     # This makes it equivalent to what we used to do (and do above for
@@ -596,7 +608,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         have been processed with Maxwell filtering but not transformed
         to the same head position.
     verbose : bool | str | int | or None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -630,13 +643,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
            'in a list) are "%s" or None.' % '" or "'.join(accepted_methods))
 
     # scale to natural unit for best stability with MEG/EEG
-    if isinstance(scalings, dict):
-        for k, v in scalings.items():
-            if k not in ('mag', 'grad', 'eeg'):
-                raise ValueError('The keys in `scalings` must be "mag" or'
-                                 '"grad" or "eeg". You gave me: %s' % k)
-    scalings = _handle_default('scalings', scalings)
-
+    scalings = _check_scalings_user(scalings)
     _method_params = {
         'empirical': {'store_precision': False, 'assume_centered': True},
         'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
@@ -697,7 +704,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     bads = epochs[0].info['bads']
     if projs is None:
-        projs = cp.deepcopy(epochs[0].info['projs'])
+        projs = epochs[0].info['projs']
         # make sure Epochs are compatible
         for epochs_t in epochs[1:]:
             if epochs_t.proj != epochs[0].proj:
@@ -705,8 +712,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             for proj_a, proj_b in zip(epochs_t.info['projs'], projs):
                 if not _proj_equal(proj_a, proj_b):
                     raise ValueError('Epochs must have same projectors')
-    else:
-        projs = cp.deepcopy(projs)
+    projs = _check_projs(projs)
     ch_names = epochs[0].ch_names
 
     # make sure Epochs are compatible
@@ -839,6 +845,19 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         out = covs[0]
 
     return out
+
+
+def _check_scalings_user(scalings):
+    if isinstance(scalings, dict):
+        for k, v in scalings.items():
+            if k not in ('mag', 'grad', 'eeg'):
+                raise ValueError('The keys in `scalings` must be "mag" or'
+                                 '"grad" or "eeg". You gave me: %s' % k)
+    elif scalings is not None and not isinstance(scalings, np.ndarray):
+        raise TypeError('scalings must be a dict, ndarray, or None, got %s'
+                        % type(scalings))
+    scalings = _handle_default('scalings', scalings)
+    return scalings
 
 
 def _compute_covariance_auto(data, method, info, method_params, cv,
@@ -975,7 +994,7 @@ def _gaussian_loglik_scorer(est, X, y=None):
 
 
 def _cross_val(data, est, cv, n_jobs):
-    """Helper to compute cross validation."""
+    """Compute cross validation."""
     try:
         from sklearn.model_selection import cross_val_score
     except ImportError:
@@ -988,7 +1007,7 @@ def _cross_val(data, est, cv, n_jobs):
 def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
                          stop_early=True, verbose=None):
     """Compute latent variable models."""
-    method_params = cp.deepcopy(method_params)
+    method_params = deepcopy(method_params)
     iter_n_components = method_params.pop('iter_n_components')
     if iter_n_components is None:
         iter_n_components = np.arange(5, data.shape[1], 5)
@@ -1006,7 +1025,7 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
     scores.fill(np.nan)
 
     # make sure we don't empty the thing if it's a generator
-    max_n = max(list(cp.deepcopy(iter_n_components)))
+    max_n = max(list(deepcopy(iter_n_components)))
     if max_n > data.shape[1]:
         warn('You are trying to estimate %i components on matrix '
              'with %i features.' % (max_n, data.shape[1]))
@@ -1193,7 +1212,7 @@ def _unpack_epochs(epochs):
 
 
 def _get_ch_whitener(A, pca, ch_type, rank):
-    """"Get whitener params for a set of channels."""
+    """Get whitener params for a set of channels."""
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
@@ -1235,7 +1254,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1316,7 +1336,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         warn('No average EEG reference present in info["projs"], covariance '
              'may be adversely affected. Consider recomputing covariance using'
              ' a raw file with an average eeg reference projector added.')
-    noise_cov = cp.deepcopy(noise_cov)
+    noise_cov = noise_cov.copy()
     noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
                      diag=False, names=ch_names)
     return noise_cov
@@ -1330,12 +1350,12 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     channel type separately. Special care is taken to keep the
     rank of the data constant.
 
-    **Note:** This function is kept for reasons of backward-compatibility.
-    Please consider explicitly using the ``method`` parameter in
-    `compute_covariance` to directly combine estimation with regularization
-    in a data-driven fashion see the
-    `faq <http://martinos.org/mne/dev/faq.html#how-should-i-regularize-the-covariance-matrix>`_
-    for more information.
+    .. note:: This function is kept for reasons of backward-compatibility.
+              Please consider explicitly using the ``method`` parameter in
+              :func:`mne.compute_covariance` to directly combine estimation
+              with regularization in a data-driven fashion.
+              See the `faq <http://martinos.org/mne/dev/faq.html#how-should-i-regularize-the-covariance-matrix>`_
+              for more information.
 
     Parameters
     ----------
@@ -1355,7 +1375,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     proj : bool (default true)
         Apply or not projections to keep rank of data.
     verbose : bool | str | int | None (default None)
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`).
 
     Returns
     -------
@@ -1364,9 +1384,9 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
 
     See Also
     --------
-    compute_covariance
+    mne.compute_covariance
     """  # noqa: E501
-    cov = cp.deepcopy(cov)
+    cov = cov.copy()
     info._check_consistency()
 
     if exclude is None:
@@ -1386,6 +1406,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
     ch_names_mag = [info_ch_names[i] for i in sel_mag]
     ch_names_grad = [info_ch_names[i] for i in sel_grad]
+    del sel_eeg, sel_mag, sel_grad
 
     # This actually removes bad channels from the cov, which is not backward
     # compatible, so let's leave all channels in
@@ -1539,7 +1560,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         The rescaling method to be applied. See documentation of
         ``prepare_noise_cov`` for details.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1554,7 +1576,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 
-    noise_cov = cp.deepcopy(noise_cov)
+    noise_cov = noise_cov.copy()
     noise_cov = prepare_noise_cov(noise_cov, info, ch_names,
                                   rank=rank, scalings=scalings)
     n_chan = len(ch_names)
@@ -1604,14 +1626,15 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
             dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     evoked_white : instance of Evoked
         The whitened evoked data.
     """
-    evoked = cp.deepcopy(evoked)
+    evoked = evoked.copy()
     if picks is None:
         picks = pick_types(evoked.info, meg=True, eeg=True)
     W = _get_whitener_data(evoked.info, noise_cov, picks,
@@ -1625,13 +1648,15 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
                        scalings=None, verbose=None):
     """Get whitening matrix for a set of data."""
     ch_names = [info['ch_names'][k] for k in picks]
+    # XXX this relies on pick_channels, which does not respect order,
+    # so this could create problems if users have reordered their data
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
     if len(noise_cov['data']) != len(ch_names):
         missing = list(set(ch_names) - set(noise_cov['names']))
         raise RuntimeError('Not all channels present in noise covariance:\n%s'
                            % missing)
     if diag:
-        noise_cov = cp.deepcopy(noise_cov)
+        noise_cov = noise_cov.copy()
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
     scalings = _handle_default('scalings_cov_rank', scalings)
@@ -1820,12 +1845,17 @@ def _apply_scaling_array(data, picks_list, scalings):
         data *= scalings[:, np.newaxis]  # F - order
 
 
-def _undo_scaling_array(data, picks_list, scalings):
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
+def _invert_scalings(scalings):
     if isinstance(scalings, dict):
         scalings = dict((k, 1. / v) for k, v in scalings.items())
     elif isinstance(scalings, np.ndarray):
         scalings = 1. / scalings
+    return scalings
+
+
+def _undo_scaling_array(data, picks_list, scalings):
+    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
+                                                      scalings))
     return _apply_scaling_array(data, picks_list, scalings)
 
 
@@ -1856,11 +1886,8 @@ def _apply_scaling_cov(data, picks_list, scalings):
 
 
 def _undo_scaling_cov(data, picks_list, scalings):
-    scalings = _check_scaling_inputs(data, picks_list, scalings)
-    if isinstance(scalings, dict):
-        scalings = dict((k, 1. / v) for k, v in scalings.items())
-    elif isinstance(scalings, np.ndarray):
-        scalings = 1. / scalings
+    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
+                                                      scalings))
     return _apply_scaling_cov(data, picks_list, scalings)
 
 

@@ -8,13 +8,14 @@
 
 from inspect import isgenerator
 from collections import namedtuple
+from distutils.version import LooseVersion
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import linalg, sparse, __version__
 
 from ..externals.six import string_types
 from ..source_estimate import SourceEstimate
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, warn
 from ..io.pick import pick_types, pick_info, _pick_data_channels
@@ -60,7 +61,7 @@ def linear_regression(inst, design_matrix, names=None):
     if names is None:
         names = ['x%i' % i for i in range(design_matrix.shape[1])]
 
-    if isinstance(inst, _BaseEpochs):
+    if isinstance(inst, BaseEpochs):
         picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=True,
                            stim=False, eog=False, ecg=False,
                            emg=False, exclude=['bads'])
@@ -90,12 +91,9 @@ def linear_regression(inst, design_matrix, names=None):
         parameters = [p[name] for p in lm_params]
         for ii, value in enumerate(parameters):
             out_ = out.copy()
-            if isinstance(out_, SourceEstimate):
-                out_._data[:] = value
-            elif isinstance(out_, Evoked):
-                out_.data[:] = value
-            else:
+            if not isinstance(out_, (SourceEstimate, Evoked)):
                 raise RuntimeError('Invalid container.')
+            out_._data[:] = value
             parameters[ii] = out_
         lm_fits[name] = lm(*parameters)
     logger.info('Done')
@@ -174,10 +172,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
     events : ndarray of int, shape (n_events, 3)
         An array where the first column corresponds to samples in raw
         and the last to integer codes in event_id.
-    event_id : dict
+    event_id : dict | None
         As in Epochs; a dictionary where the values may be integers or
         iterables of integers, corresponding to the 3rd column of
         events, and the keys are condition names.
+        If None, uses all events in the events array.
     tmin : float | dict
         If float, gives the lower limit (in seconds) for the time window for
         which all event types' effects are estimated. If a dict, can be used to
@@ -227,9 +226,20 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
     solver : str | function
         Either a function which takes the sparse predictor matrix X and the
         observation matrix Y, and returns the coefficient matrix b; or a
-        string. If str, must be ``'cholesky'``, in which case the solver used
-        is ``linalg.solve(dot(X.T, X), dot(X.T, y))``, or ``'pinv'``,
-        in which case a solver based on a pseudo-inverse is used.
+        string. If str, must be one of:
+            ``'cholesky'``: the solver used is
+            ``linalg.solve(dot(X.T, X), dot(X.T, y))``
+
+            ``'pinv'``: a solver based on a pseudo-inverse
+
+            ``'lstsq'`` : Least-squares solving (`scipy.linalg.lstsq`)
+
+        When passing a function/custom solver, note:
+        X is of shape (n_times, n_predictors * time_window_length).
+        y is of shape (n_channels, n_times).
+        n_times is often very large, so make sure the solver does not
+        create memory-breaking arrays by operating on the wrong dimensions.
+
 
     Returns
     -------
@@ -244,11 +254,15 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
            waveforms: II. Non-linear effects, overlap correction, and practical
            considerations. Psychophysiology, 52(2), 169-189.
     """
+
     solver = _get_solver(solver)
 
     # build data
     data, info, events = _prepare_rerp_data(raw, events, picks=picks,
                                             decim=decim)
+
+    if event_id is None:
+        event_id = dict((str(v), v) for v in set(events[:, 2]))
 
     # build predictors
     X, conds, cond_length, tmin_s, tmax_s = _prepare_rerp_preds(
@@ -259,7 +273,11 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
     X, data = _clean_rerp_input(X, data, reject, flat, decim, info, tstep)
 
     # solve linear system
-    coefs = solver(X, data)
+    coefs = solver(X, data.T)
+    if coefs.shape[0] != data.shape[0]:
+        raise ValueError("solver output has unexcepted shape. Supply a "
+                         "function that returns coefficients in the form "
+                         "(n_targets, n_features), where targets == channels.")
 
     # construct Evoked objects to be returned from output
     evokeds = _make_evokeds(coefs, conds, cond_length, tmin_s, tmax_s, info)
@@ -403,20 +421,31 @@ def _get_solver(solver='cholesky'):
             return _lstsq
         else:
             raise ValueError("No such solver: {0}".format(solver))
+    elif callable(solver):
+        warn("When using a custom solver, note that since MNE 0.15, this "
+             "function will pass the transposed data (n_channels, n_times) "
+             "to the solver. If you are using a solver that expects a "
+             "different format, it will give wrong results and might in "
+             "extreme cases crash your session.")
+    else:
+        raise TypeError("The solver must be a str or a callable.")
 
 
 def _cho_solver(X, y):
     a = (X.T * X).toarray()  # dot product of sparse matrices
-    return linalg.solve(a, X.T * y.T, sym_pos=True,
+    return linalg.solve(a, X.T * y, sym_pos=True,
                         overwrite_a=True, overwrite_b=True).T
 
 
 def _pinv_solver(X, y):
     from ..utils import _get_fast_dot
     fast_dot = _get_fast_dot()
-    return fast_dot(linalg.pinv(X.T.dot(X).todense()), X.T.dot(y.T)).T
+    return fast_dot(linalg.pinv(X.T.dot(X).todense()), X.T.dot(y)).T
 
 
 def _lstsq(X, y):
-    from scipy.linalg import lstsq
-    return lstsq(X.todense(), y.T, lapack_driver='gelsy')[0].T
+    if LooseVersion(__version__) < LooseVersion('0.17.1'):
+        return lstsq(X.todense(), y, lapack_driver='gelsy')[0].T
+    else:
+        warn("Scipy version < 0.16.0, cannot use 'gelsy' LAPACK driver.")
+        return lstsq(X.todense(), y)[0].T

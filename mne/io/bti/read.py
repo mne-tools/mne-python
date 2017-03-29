@@ -3,6 +3,8 @@
 
 import numpy as np
 
+from ..utils import read_str
+
 
 def _unpack_matrix(fid, rows, cols, dtype, out_dtype):
     """Unpack matrix."""
@@ -106,3 +108,9 @@ def read_double_matrix(fid, rows, cols):
 def read_transform(fid):
     """Read 64bit float matrix transform from bti file."""
     return read_double_matrix(fid, rows=4, cols=4)
+
+
+def read_dev_header(x):
+    """Create a dev header."""
+    return dict(size=read_int32(x), checksum=read_int32(x),
+                reserved=read_str(x, 32))

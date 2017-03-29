@@ -28,12 +28,13 @@ import tempfile
 import time
 import traceback
 import warnings
+import webbrowser
 
 import numpy as np
 from scipy import linalg, sparse
 
 from .externals.six.moves import urllib
-from .externals.six import string_types, StringIO, BytesIO
+from .externals.six import string_types, StringIO, BytesIO, integer_types
 from .externals.decorator import decorator
 
 from .fixes import _get_args
@@ -56,7 +57,7 @@ except ImportError:
 
 
 def nottest(f):
-    """Decorator to mark a function as not a test."""
+    """Mark a function as not a test (decorator)."""
     f.__test__ = False
     return f
 
@@ -70,6 +71,12 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 
 ###############################################################################
 # RANDOM UTILITIES
+
+
+def _pl(x):
+    """Determine if plural should be used."""
+    len_x = x if isinstance(x, (integer_types, np.generic)) else len(x)
+    return '' if len_x == 1 else 's'
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -409,7 +416,7 @@ class _TempDir(str):
     """
 
     def __new__(self):  # noqa: D105
-        new = str.__new__(self, tempfile.mkdtemp())
+        new = str.__new__(self, tempfile.mkdtemp(prefix='tmp_mne_tempdir_'))
         return new
 
     def __init__(self):  # noqa: D102
@@ -512,17 +519,15 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
 
 def _get_inst_data(inst):
     """Get data view from MNE object instance like Raw, Epochs or Evoked."""
-    from .io.base import _BaseRaw
-    from .epochs import _BaseEpochs
+    from .io.base import BaseRaw
+    from .epochs import BaseEpochs
     from . import Evoked
     from .time_frequency.tfr import _BaseTFR
 
-    if isinstance(inst, (_BaseRaw, _BaseEpochs)):
+    if isinstance(inst, (BaseRaw, BaseEpochs, Evoked, _BaseTFR)):
         if not inst.preload:
             inst.load_data()
         return inst._data
-    elif isinstance(inst, (Evoked, _BaseTFR)):
-        return inst.data
     else:
         raise TypeError('The argument must be an instance of Raw, Epochs, '
                         'Evoked, EpochsTFR or AverageTFR, got {0}.'.format(
@@ -530,14 +535,14 @@ def _get_inst_data(inst):
 
 
 class _FormatDict(dict):
-    """Helper for pformat()."""
+    """Help pformat() work properly."""
 
     def __missing__(self, key):
         return "{" + key + "}"
 
 
 def pformat(temp, **fmt):
-    """Partially format a template string.
+    """Format a template string partially.
 
     Examples
     --------
@@ -559,7 +564,7 @@ warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
 class deprecated(object):
-    """Decorator to mark a function or class as deprecated.
+    """Mark a function or class as deprecated (decorator).
 
     Issue a warning when the function is called/the class is instantiated and
     adds a warning to the docstring.
@@ -652,8 +657,11 @@ class deprecated(object):
 def verbose(function, *args, **kwargs):
     """Verbose decorator to allow functions to override log-level.
 
-    Do not call this directly to set global verbosity level, instead use
-    set_log_level().
+    This decorator is used to set the verbose level during a function or method
+    call, such as :func:`mne.compute_covariance`. The `verbose` keyword
+    argument can be 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', True (an
+    alias for 'INFO'), or False (an alias for 'WARNING'). To set the global
+    verbosity level for all functions, use :func:`mne.set_log_level`.
 
     Parameters
     ----------
@@ -664,7 +672,22 @@ def verbose(function, *args, **kwargs):
     -------
     dec : function
         The decorated function
-    """
+
+    Examples
+    --------
+    You can use the ``verbose`` argument to set the verbose level on the fly::
+        >>> import mne
+        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
+        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
+        Using up to 49 segments
+        Number of samples used : 5880
+        [done]
+
+    See Also
+    --------
+    set_log_level
+    set_config
+    """  # noqa: E501
     arg_names = _get_args(function)
     default_level = verbose_level = None
     if len(arg_names) > 0 and arg_names[0] == 'self':
@@ -705,14 +728,14 @@ class use_log_level(object):
 
 @nottest
 def slow_test(f):
-    """Decorator for slow tests."""
+    """Mark slow tests (decorator)."""
     f.slow_test = True
     return f
 
 
 @nottest
 def ultra_slow_test(f):
-    """Decorator for ultra slow tests."""
+    """Mark ultra slow tests (decorator)."""
     f.ultra_slow_test = True
     f.slow_test = True
     return f
@@ -744,24 +767,24 @@ def has_nibabel(vox2ras_tkr=False):
 
 
 def has_mne_c():
-    """Aux function."""
+    """Check for MNE-C."""
     return 'MNE_ROOT' in os.environ
 
 
 def has_freesurfer():
-    """Aux function."""
+    """Check for Freesurfer."""
     return 'FREESURFER_HOME' in os.environ
 
 
 def requires_nibabel(vox2ras_tkr=False):
-    """Aux function."""
+    """Check for nibabel."""
     extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
     return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
                                  'Requires nibabel%s' % extra)
 
 
 def buggy_mkl_svd(function):
-    """Decorator for tests that make calls to SVD and intermittently fail."""
+    """Decorate tests that make calls to SVD and intermittently fail."""
     @wraps(function)
     def dec(*args, **kwargs):
         try:
@@ -777,14 +800,14 @@ def buggy_mkl_svd(function):
 
 
 def requires_version(library, min_version):
-    """Helper for testing."""
+    """Check for a library version."""
     return np.testing.dec.skipif(not check_version(library, min_version),
                                  'Requires %s version >= %s'
                                  % (library, min_version))
 
 
 def requires_module(function, name, call=None):
-    """Decorator to skip test if package is not available."""
+    """Skip a test if package is not available (decorator)."""
     call = ('import %s' % name) if call is None else call
     try:
         from nose.plugins.skip import SkipTest
@@ -803,7 +826,7 @@ def requires_module(function, name, call=None):
 
 
 def copy_doc(source):
-    """Decorator to copy the docstring from another function.
+    """Copy the docstring from another function (decorator).
 
     The docstring of the source function is prepepended to the docstring of the
     function wrapped by this decorator.
@@ -997,7 +1020,8 @@ if version < required_version:
 """
 
 _mayavi_call = """
-from mayavi import mlab
+with warnings.catch_warnings(record=True):  # traits
+    from mayavi import mlab
 mlab.options.backend = 'test'
 """
 
@@ -1038,7 +1062,9 @@ requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
 requires_statsmodels = partial(requires_module, name='statsmodels')
 requires_pysurfer = partial(requires_module, name='PySurfer',
-                            call='from surfer import Brain')
+                            call="""import warnings
+with warnings.catch_warnings(record=True):
+    from surfer import Brain""")
 requires_PIL = partial(requires_module, name='PIL',
                        call='from PIL import Image')
 requires_good_network = partial(
@@ -1063,7 +1089,8 @@ def check_version(library, min_version):
         The library name to import. Must have a ``__version__`` property.
     min_version : str
         The minimum version string. Anything that matches
-        ``'(\d+ | [a-z]+ | \.)'``
+        ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
+        check (just check for library presence).
 
     Returns
     -------
@@ -1076,14 +1103,15 @@ def check_version(library, min_version):
     except ImportError:
         ok = False
     else:
-        this_version = LooseVersion(library.__version__)
-        if this_version < min_version:
-            ok = False
+        if min_version:
+            this_version = LooseVersion(library.__version__)
+            if this_version < min_version:
+                ok = False
     return ok
 
 
 def _check_mayavi_version(min_version='4.3.0'):
-    """Helper for mayavi."""
+    """Check mayavi version."""
     if not check_version('mayavi', min_version):
         raise RuntimeError("Need mayavi >= %s" % min_version)
 
@@ -1102,7 +1130,7 @@ def _check_pyface_backend():
 
     Notes
     -----
-    See also: http://docs.enthought.com/pyface/
+    See also http://docs.enthought.com/pyface/.
     """
     try:
         from traits.trait_base import ETSConfig
@@ -1115,6 +1143,13 @@ def _check_pyface_backend():
     else:
         status = 1
     return backend, status
+
+
+def _import_mlab():
+    """Quietly import mlab."""
+    with warnings.catch_warnings(record=True):
+        from mayavi import mlab
+    return mlab
 
 
 @verbose
@@ -1131,8 +1166,9 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to self.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        self.verbose.
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
 
@@ -1287,7 +1323,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
 
 
 class catch_logging(object):
-    """Helper to store logging.
+    """Store logging.
 
     This will remove all other logging handlers, and return the handler to
     stdout when complete.
@@ -1432,19 +1468,34 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = (
     'MNE_BROWSE_RAW_SIZE',
     'MNE_CACHE_DIR',
+    'MNE_COREG_COPY_ANNOT',
+    'MNE_COREG_GUESS_MRI_SUBJECT',
+    'MNE_COREG_HEAD_HIGH_RES',
+    'MNE_COREG_HEAD_OPACITY',
+    'MNE_COREG_PREPARE_BEM',
+    'MNE_COREG_SCALE_LABELS',
+    'MNE_COREG_SCENE_HEIGHT',
+    'MNE_COREG_SCENE_WIDTH',
+    'MNE_COREG_SUBJECTS_DIR',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
     'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_MISC_PATH',
+    'MNE_DATASETS_MTRF_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_MULTIMODAL_PATH',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_TESTING_PATH',
+    'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
     'MNE_FORCE_SERIAL',
+    'MNE_KIT2FIFF_STIM_CHANNELS',
+    'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
+    'MNE_KIT2FIFF_STIM_CHANNEL_SLOPE',
+    'MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD',
     'MNE_LOGGING_LEVEL',
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_FTP_TESTS',
@@ -1486,7 +1537,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     key : None | str
         The preference key to look for. The os evironment is searched first,
         then the mne-python config file is parsed.
-        If None, all the config parameters present in the path are returned.
+        If None, all the config parameters present in environment variables or
+        the path are returned.
     default : str | None
         Value to return if the key is not found.
     raise_error : bool
@@ -1515,15 +1567,17 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     # second, look for it in mne-python config file
     config_path = get_config_path(home_dir=home_dir)
     if not op.isfile(config_path):
-        key_found = False
-        val = default
+        config = {}
     else:
         config = _load_config(config_path)
-        if key is None:
-            return config
-        key_found = key in config
-        val = config.get(key, default)
-    if not key_found and raise_error is True:
+
+    if key is None:
+        # update config with environment variables
+        env_keys = (set(config).union(known_config_types).
+                    intersection(os.environ))
+        config.update({key: os.environ[key] for key in env_keys})
+        return config
+    elif raise_error is True and key not in config:
         meth_1 = 'os.environ["%s"] = VALUE' % key
         meth_2 = 'mne.utils.set_config("%s", VALUE, set_env=True)' % key
         raise KeyError('Key "%s" not found in environment or in the '
@@ -1534,7 +1588,8 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
                        'set the environment variable before '
                        'running python.'
                        % (key, config_path, meth_1, meth_2))
-    return val
+    else:
+        return config.get(key, default)
 
 
 def set_config(key, value, home_dir=None, set_env=True):
@@ -1602,9 +1657,10 @@ class ProgressBar(object):
 
     Parameters
     ----------
-    max_value : int
+    max_value : int | iterable
         Maximum value of process (e.g. number of samples to process, bytes to
-        download, etc.).
+        download, etc.). If an iterable is given, then `max_value` will be set
+        to the length of this iterable.
     initial_value : int
         Initial value of process, useful when resuming process from a specific
         value, defaults to 0.
@@ -1642,7 +1698,13 @@ class ProgressBar(object):
                  progress_character='.', spinner=False,
                  verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
-        self.max_value = max_value
+        if isinstance(max_value, (float, int)):
+            self.max_value = max_value
+            self.iterable = None
+        else:
+            # input is an iterable
+            self.max_value = len(max_value)
+            self.iterable = max_value
         self.mesg = mesg
         self.max_chars = max_chars
         self.progress_character = progress_character
@@ -1712,6 +1774,14 @@ class ProgressBar(object):
         """
         self.cur_value += increment_value
         self.update(self.cur_value, mesg)
+
+    def __iter__(self):
+        """Iterate to auto-increment the pbar with 1."""
+        if self.iterable is None:
+            raise ValueError("Must give an iterable to be used in a loop.")
+        for obj in self.iterable:
+            yield obj
+            self.update_with_increment_value(1)
 
 
 def _get_ftp(url, temp_file_name, initial_size, file_size, verbose_bool):
@@ -1830,7 +1900,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
     timeout : float
         The URL open timeout.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
@@ -1937,11 +2008,11 @@ class SizeMixin(object):
             The hash
         """
         from .evoked import Evoked
-        from .epochs import _BaseEpochs
-        from .io.base import _BaseRaw
+        from .epochs import BaseEpochs
+        from .io.base import BaseRaw
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))
-        elif isinstance(self, (_BaseEpochs, _BaseRaw)):
+        elif isinstance(self, (BaseEpochs, BaseRaw)):
             if not self.preload:
                 raise RuntimeError('Cannot hash %s unless data are loaded'
                                    % self.__class__.__name__)
@@ -2024,7 +2095,7 @@ def _check_fname(fname, overwrite=False, must_exist=False):
         if not overwrite:
             raise IOError('Destination file exists. Please use option '
                           '"overwrite=True" to force overwriting.')
-        else:
+        elif overwrite != 'read':
             logger.info('Overwriting existing file.')
 
 
@@ -2197,6 +2268,18 @@ class ArgvSetter(object):
         sys.stderr = self.orig_stderr
 
 
+class SilenceStdout(object):
+    """Silence stdout."""
+
+    def __enter__(self):  # noqa: D105
+        self.stdout = sys.stdout
+        sys.stdout = StringIO()
+        return self
+
+    def __exit__(self, *args):  # noqa: D105
+        sys.stdout = self.stdout
+
+
 def md5sum(fname, block_size=1048576):  # 2 ** 20
     """Calculate the md5sum for a file.
 
@@ -2280,7 +2363,7 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
 
 
 def _get_fast_dot():
-    """"Get fast dot."""
+    """Get fast dot."""
     try:
         from sklearn.utils.extmath import fast_dot
     except ImportError:
@@ -2454,12 +2537,10 @@ def sys_info(fid=None, show_paths=False):
 
         sklearn:       0.18.dev0
         nibabel:       2.1.0dev
-        nitime:        0.6
         mayavi:        4.3.1
-        nose:          1.3.7
-        pandas:        0.17.1+25.g547750a
         pycuda:        2015.1.3
         skcuda:        0.5.2
+        pandas:        0.17.1+25.g547750a
 
     """  # noqa: E501
     ljust = 15
@@ -2483,8 +2564,8 @@ def sys_info(fid=None, show_paths=False):
     libs = ', '.join(libs)
     version_texts = dict(pycuda='VERSION_TEXT')
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
-                     'sklearn', 'nibabel', 'nitime', 'mayavi', 'nose',
-                     'pandas', 'pycuda', 'skcuda'):
+                     'sklearn', 'nibabel', 'mayavi', 'pycuda', 'skcuda',
+                     'pandas'):
         if mod_name == '':
             out += '\n'
             continue
@@ -2514,3 +2595,34 @@ class ETSContext(object):
             value.code += ("\nThis can probably be solved by setting "
                            "ETS_TOOLKIT=qt4. On bash, type\n\n    $ export "
                            "ETS_TOOLKIT=qt4\n\nand run the command again.")
+
+
+def open_docs(kind=None, version=None):
+    """Launch a new web browser tab with the MNE documentation.
+
+    Parameters
+    ----------
+    kind : str | None
+        Can be "api" (default), "tutorials", or "examples".
+        The default can be changed by setting the configuration value
+        MNE_DOCS_KIND.
+    version : str | None
+        Can be "stable" (default) or "dev".
+        The default can be changed by setting the configuration value
+        MNE_DOCS_VERSION.
+    """
+    if kind is None:
+        kind = get_config('MNE_DOCS_KIND', 'api')
+    help_dict = dict(api='python_reference.html', tutorials='tutorials.html',
+                     examples='auto_examples/index.html')
+    if kind not in help_dict:
+        raise ValueError('kind must be one of %s, got %s'
+                         % (sorted(help_dict.keys()), kind))
+    kind = help_dict[kind]
+    if version is None:
+        version = get_config('MNE_DOCS_VERSION', 'stable')
+    versions = ('stable', 'dev')
+    if version not in versions:
+        raise ValueError('version must be one of %s, got %s'
+                         % (version, versions))
+    webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))

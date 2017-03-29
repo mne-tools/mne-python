@@ -6,20 +6,20 @@
 
 import numpy as np
 
-from ..base import _BaseRaw
+from ..base import BaseRaw
 from ..meas_info import Info
 from ...utils import verbose, logger
 
 
-class RawArray(_BaseRaw):
+class RawArray(BaseRaw):
     """Raw object from numpy array.
 
     Parameters
     ----------
     data : array, shape (n_channels, n_times)
-        The channels' time series.
+        The channels' time series. See notes for proper units of measure.
     info : instance of Info
-        Info dictionary. Consider using `create_info` to populate
+        Info dictionary. Consider using :func:`mne.create_info` to populate
         this structure. This may be modified in place by the class.
     first_samp : int
         First sample offset used during recording (default 0).
@@ -27,11 +27,24 @@ class RawArray(_BaseRaw):
         .. versionadded:: 0.12
 
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
 
     See Also
     --------
-    EpochsArray, EvokedArray, create_info
+    mne.EpochsArray
+    mne.EvokedArray
+    mne.create_info
     """
 
     @verbose
@@ -54,6 +67,7 @@ class RawArray(_BaseRaw):
         assert len(info['ch_names']) == info['nchan']
         if info.get('buffer_size_sec', None) is None:
             info['buffer_size_sec'] = 1.  # reasonable default
+        info = info.copy()  # do not modify original info
         super(RawArray, self).__init__(info, data,
                                        first_samps=(int(first_samp),),
                                        dtype=dtype, verbose=verbose)

@@ -70,6 +70,10 @@ def order_func(times, data):
 good_pick = 97  # channel with a clear evoked response
 bad_pick = 98  # channel with no evoked response
 
+# We'll also plot a sample time onset for each trial
+plt_times = np.linspace(0, .2, len(epochs))
+
 plt.close('all')
 mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=0.5, vmin=-100,
-                          vmax=250, colorbar=True, order=order_func, show=True)
+                          vmax=250, colorbar=True, order=order_func,
+                          overlay_times=plt_times, show=True)

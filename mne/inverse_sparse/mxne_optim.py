@@ -352,7 +352,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     tol : float
         Tolerance on dual gap for convergence checking.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
@@ -380,7 +381,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     has_sklearn = True
     try:
-        from sklearn.linear_model.coordinate_descent import MultiTaskLasso  # noqa: F401
+        from sklearn.linear_model.coordinate_descent import MultiTaskLasso  # noqa: F401,E501
     except ImportError:
         has_sklearn = False
 
@@ -517,7 +518,8 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
     tol : float
         Tolerance on dual gap for convergence checking.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
@@ -878,7 +880,8 @@ def _tf_mixed_norm_solver_bcd_active_set(
         subproblem limited to the active set is stopped. If None, full
         convergence will be achieved.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1004,7 +1007,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     debias : bool
         Debias source estimates.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

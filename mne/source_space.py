@@ -13,6 +13,7 @@ import numpy as np
 from scipy import sparse, linalg
 
 from .io.constants import FIFF
+from .io.meas_info import create_info
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
@@ -23,13 +24,12 @@ from .io.write import (start_block, end_block, write_int,
 from .bem import read_bem_surfaces
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
-                      _read_surface_geom, _normalize_vectors,
-                      complete_surface_info, _compute_nearest,
-                      fast_cross_3d, _fast_cross_nd_sum, mesh_dist,
-                      _triangle_neighbors)
+                      _normalize_vectors, _get_solids, _triangle_neighbors,
+                      complete_surface_info, _compute_nearest, fast_cross_3d,
+                      mesh_dist)
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
-                    check_version, _get_call_line, warn)
+                    check_version, _get_call_line, warn, _check_fname)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -38,11 +38,12 @@ from .externals.six import string_types
 
 
 def _get_lut():
-    """Helper to get the FreeSurfer LUT."""
+    """Get the FreeSurfer LUT."""
     data_dir = op.join(op.dirname(__file__), 'data')
     lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
     return np.genfromtxt(lut_fname, dtype=None,
-                         usecols=(0, 1), names=['id', 'name'])
+                         usecols=(0, 1, 2, 3, 4, 5),
+                         names=['id', 'name', 'R', 'G', 'B', 'A'])
 
 
 def _get_lut_id(lut, label, use_lut):
@@ -90,6 +91,53 @@ class SourceSpaces(list):
         else:
             self.info = dict(info)
 
+    @verbose
+    def plot(self, head=False, brain=None, skull=None, subjects_dir=None,
+             verbose=None):
+        """Plot the source space.
+
+        Parameters
+        ----------
+        head : bool
+            If True, show head surface.
+        brain : bool | str
+            If True, show the brain surfaces. Can also be a str for
+            surface type (e.g., 'pial', same as True). Default is None,
+            which means 'white' for surface source spaces and False otherwise.
+        skull : bool | str | list of str | list of dict | None
+            Whether to plot skull surface. If string, common choices would be
+            'inner_skull', or 'outer_skull'. Can also be a list to plot
+            multiple skull surfaces. If a list of dicts, each dict must
+            contain the complete surface info (such as you get from
+            :func:`mne.make_bem_model`). True is an alias of 'outer_skull'.
+            The subjects bem and bem/flash folders are searched for the 'surf'
+            files. Defaults to None, which is False for surface source spaces,
+            and True otherwise.
+        subjects_dir : string, or None
+            Path to SUBJECTS_DIR if it is not set in the environment.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+
+        Returns
+        -------
+        fig : instance of mlab Figure
+            The figure.
+        """
+        if brain is None:
+            brain = 'white' if any(ss['type'] == 'surf'
+                                   for ss in self) else False
+        if skull is None:
+            skull = False if self.kind == 'surface' else True
+        from .viz import plot_trans
+        info = create_info(0, 1000., 'eeg')
+        return plot_trans(
+            info, trans=None, subject=self[0]['subject_his_id'],
+            subjects_dir=subjects_dir, source=(), coord_frame='mri',
+            meg_sensors=(), eeg_sensors=False, dig=False, ref_meg=False,
+            ecog_sensors=False, head=False, brain=brain, skull=skull, src=self)
+
     def __repr__(self):  # noqa: D105
         ss_repr = []
         for ss in self:
@@ -115,7 +163,8 @@ class SourceSpaces(list):
             return 'combined'
         return _src_kind_dict[ss_types[0]]
 
-    def __add__(self, other):  # noqa: D105
+    def __add__(self, other):
+        """Combine source spaces."""
         return SourceSpaces(list.__add__(self, other))
 
     def copy(self):
@@ -129,15 +178,18 @@ class SourceSpaces(list):
         src = deepcopy(self)
         return src
 
-    def save(self, fname):
+    def save(self, fname, overwrite=False):
         """Save the source spaces to a fif file.
 
         Parameters
         ----------
         fname : str
             File to write.
+        overwrite : bool
+            If True, the destination file (if it exists) will be overwritten.
+            If False (default), an error will be raised if the file exists.
         """
-        write_source_spaces(fname, self)
+        write_source_spaces(fname, self, overwrite)
 
     @verbose
     def export_volume(self, fname, include_surfaces=True,
@@ -172,7 +224,9 @@ class SourceSpaces(list):
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Notes
         -----
@@ -456,7 +510,8 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -494,7 +549,8 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -742,7 +798,9 @@ def _read_one_source_space(fid, this, verbose=None):
         logger.info('    Distance information added...')
 
     tag = find_tag(fid, this, FIFF.FIFF_SUBJ_HIS_ID)
-    if tag is not None:
+    if tag is None:
+        res['subject_his_id'] = None
+    else:
         res['subject_his_id'] = tag.data
 
     return res
@@ -759,9 +817,7 @@ def _complete_source_space_info(this, verbose=None):
     r3 = this['rr'][this['tris'][:, 2], :]
     this['tri_cent'] = (r1 + r2 + r3) / 3.0
     this['tri_nn'] = fast_cross_3d((r2 - r1), (r3 - r1))
-    size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
-    this['tri_area'] = size / 2.0
-    this['tri_nn'] /= size[:, None]
+    this['tri_area'] = _normalize_vectors(this['tri_nn']) / 2.0
     logger.info('[done]')
 
     #   Selected triangles
@@ -772,8 +828,7 @@ def _complete_source_space_info(this, verbose=None):
         r3 = this['rr'][this['use_tris'][:, 2], :]
         this['use_tri_cent'] = (r1 + r2 + r3) / 3.0
         this['use_tri_nn'] = fast_cross_3d((r2 - r1), (r3 - r1))
-        this['use_tri_area'] = np.sqrt(np.sum(this['use_tri_nn'] ** 2, axis=1)
-                                       ) / 2.0
+        this['use_tri_area'] = np.linalg.norm(this['use_tri_nn'], axis=1) / 2.
     logger.info('[done]')
 
 
@@ -864,7 +919,8 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
     src : list
         The list of source spaces.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     for s in src:
         logger.info('    Write a source space...')
@@ -876,7 +932,7 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
 
 
 @verbose
-def write_source_spaces(fname, src, verbose=None):
+def write_source_spaces(fname, src, overwrite=False, verbose=None):
     """Write source spaces to a file.
 
     Parameters
@@ -886,14 +942,19 @@ def write_source_spaces(fname, src, verbose=None):
         -src.fif.gz.
     src : SourceSpaces
         The source spaces (as returned by read_source_spaces).
+    overwrite : bool
+        If True, the destination file (if it exists) will be overwritten.
+        If False (default), an error will be raised if the file exists.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
     read_source_spaces
     """
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
+    _check_fname(fname, overwrite=overwrite)
 
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)
@@ -1034,7 +1095,8 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
         back to 'freesurfer' if it fails. Results should be equivalent with
         either option, but nibabel may be quicker (and more pythonic).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1180,50 +1242,8 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 # Creation and decimation
 
 @verbose
-def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
-                       overwrite=False, subjects_dir=None, add_dist=True,
-                       n_jobs=1, verbose=None):
-    """Setup bilateral hemisphere surface-based source space with subsampling.
-
-    Parameters
-    ----------
-    subject : str
-        Subject to process.
-    fname : str | None | bool
-        Filename to use. If True, a default name will be used. If None,
-        the source space will not be saved (only returned).
-    spacing : str
-        The spacing to use. Can be ``'ico#'`` for a recursively subdivided
-        icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
-        or ``'all'`` for all points.
-    surface : str
-        The surface to use.
-    overwrite: bool
-        If True, overwrite output file (if it exists).
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
-    add_dist : bool
-        Add distance and patch information to the source space. This takes some
-        time so precomputing it is recommended.
-    n_jobs : int
-        Number of jobs to run in parallel. Will use at most 2 jobs
-        (one for each hemisphere).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    src : list
-        The source space for each hemisphere.
-
-    See Also
-    --------
-    setup_volume_source_space
-    """
-    cmd = ('setup_source_space(%s, fname=%s, spacing=%s, surface=%s, '
-           'overwrite=%s, subjects_dir=%s, add_dist=%s, verbose=%s)'
-           % (subject, fname, spacing, surface, overwrite,
-              subjects_dir, add_dist, verbose))
+def _check_spacing(spacing, verbose=None):
+    """Check spacing parameter."""
     # check to make sure our parameters are good, parse 'spacing'
     space_err = ('"spacing" must be a string with values '
                  '"ico#", "oct#", or "all", and "ico" and "oct"'
@@ -1248,64 +1268,94 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
             sval = float(sval)
     except:
         raise ValueError(space_err)
-    subjects_dir = get_subjects_dir(subjects_dir)
+    if stype == 'all':
+        logger.info('Include all vertices')
+        ico_surf = None
+        src_type_str = 'all'
+    else:
+        src_type_str = '%s = %s' % (stype, sval)
+        if stype == 'ico':
+            logger.info('Icosahedron subdivision grade %s' % sval)
+            ico_surf = _get_ico_surface(sval)
+        elif stype == 'oct':
+            logger.info('Octahedron subdivision grade %s' % sval)
+            ico_surf = _tessellate_sphere_surf(sval)
+    return stype, sval, ico_surf, src_type_str
+
+
+@verbose
+def setup_source_space(subject, spacing='oct6', surface='white',
+                       subjects_dir=None, add_dist=True, n_jobs=1,
+                       verbose=None):
+    """Set up bilateral hemisphere surface-based source space with subsampling.
+
+    Parameters
+    ----------
+    subject : str
+        Subject to process.
+    spacing : str
+        The spacing to use. Can be ``'ico#'`` for a recursively subdivided
+        icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
+        or ``'all'`` for all points.
+    surface : str
+        The surface to use.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    add_dist : bool
+        Add distance and patch information to the source space. This takes some
+        time so precomputing it is recommended.
+    n_jobs : int
+        Number of jobs to run in parallel. Will use at most 2 jobs
+        (one for each hemisphere).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    src : list
+        The source space for each hemisphere.
+
+    See Also
+    --------
+    setup_volume_source_space
+    """
+    cmd = ('setup_source_space(%s, spacing=%s, surface=%s, '
+           'subjects_dir=%s, add_dist=%s, verbose=%s)'
+           % (subject, spacing, surface, subjects_dir, add_dist, verbose))
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surfs = [op.join(subjects_dir, subject, 'surf', hemi + surface)
              for hemi in ['lh.', 'rh.']]
-    bem_dir = op.join(subjects_dir, subject, 'bem')
-
     for surf, hemi in zip(surfs, ['LH', 'RH']):
         if surf is not None and not op.isfile(surf):
             raise IOError('Could not find the %s surface %s'
                           % (hemi, surf))
 
-    if not (fname is True or fname is None or isinstance(fname, string_types)):
-        raise ValueError('"fname" must be a string, True, or None')
-    if fname is True:
-        extra = '%s-%s' % (stype, sval) if sval != '' else stype
-        fname = op.join(bem_dir, '%s-%s-src.fif' % (subject, extra))
-    if fname is not None and op.isfile(fname) and overwrite is False:
-        raise IOError('file "%s" exists, use overwrite=True if you want '
-                      'to overwrite the file' % fname)
-
     logger.info('Setting up the source space with the following parameters:\n')
     logger.info('SUBJECTS_DIR = %s' % subjects_dir)
     logger.info('Subject      = %s' % subject)
     logger.info('Surface      = %s' % surface)
-    if stype == 'ico':
-        src_type_str = 'ico = %s' % sval
-        logger.info('Icosahedron subdivision grade %s\n' % sval)
-    elif stype == 'oct':
-        src_type_str = 'oct = %s' % sval
-        logger.info('Octahedron subdivision grade %s\n' % sval)
-    else:
-        src_type_str = 'all'
-        logger.info('Include all vertices\n')
+    stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
+    logger.info('')
+    del spacing
 
-    # Create the fif file
-    if fname is not None:
-        logger.info('>>> 1. Creating the source space file %s...' % fname)
-    else:
-        logger.info('>>> 1. Creating the source space...\n')
+    logger.info('>>> 1. Creating the source space...\n')
 
     # mne_make_source_space ... actually make the source spaces
     src = []
 
     # pre-load ico/oct surf (once) for speed, if necessary
-    if stype in ['ico', 'oct']:
-        # ### from mne_ico_downsample.c ###
-        if stype == 'ico':
-            logger.info('Doing the icosahedral vertex picking...')
-            ico_surf = _get_ico_surface(sval)
-        else:
-            logger.info('Doing the octahedral vertex picking...')
-            ico_surf = _tessellate_sphere_surf(sval)
-    else:
-        ico_surf = None
-
+    if stype != 'all':
+        logger.info('Doing the %shedral vertex picking...'
+                    % (dict(ico='icosa', oct='octa')[stype],))
     for hemi, surf in zip(['lh', 'rh'], surfs):
         logger.info('Loading %s...' % surf)
         # Setup the surface spacing in the MRI coord frame
-        s = _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
+        if stype != 'all':
+            logger.info('Mapping %s %s -> %s (%d) ...'
+                        % (hemi, subject, stype, sval))
+        s = _create_surf_spacing(surf, hemi, subject, stype, ico_surf,
                                  subjects_dir)
         logger.info('loaded %s %d/%d selected to source space (%s)'
                     % (op.split(surf)[1], s['nuse'], s['np'], src_type_str))
@@ -1332,29 +1382,23 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
         add_source_space_distances(src, n_jobs=n_jobs, verbose=verbose)
 
     # write out if requested, then return the data
-    if fname is not None:
-        write_source_spaces(fname, src)
-        logger.info('Wrote %s' % fname)
     logger.info('You are now one step closer to computing the gain matrix')
     return src
 
 
 @verbose
-def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
+def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
-                              overwrite=False, subjects_dir=None,
-                              volume_label=None, add_interpolator=True,
-                              verbose=None):
-    """Setup a volume source space with grid spacing or discrete source space.
+                              subjects_dir=None, volume_label=None,
+                              add_interpolator=True, verbose=None):
+    """Set up a volume source space with grid spacing or discrete source space.
 
     Parameters
     ----------
-    subject : str
-        Subject to process.
-    fname : str | None
-        Filename to use. If None, the source space will not be saved
-        (only returned).
+    subject : str | None
+        Subject to process. If None, the path to the mri volume must be
+        absolute. Defaults to None.
     pos : float | dict
         Positions to use for sources. If float, a grid will be constructed
         with the spacing given by `pos` in mm, generating a volume source
@@ -1383,17 +1427,16 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     exclude : float
         Exclude points closer than this distance (mm) from the center of mass
         of the bounding surface.
-    overwrite: bool
-        If True, overwrite output file (if it exists).
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    volume_label : str | None
+    volume_label : str | list | None
         Region of interest corresponding with freesurfer lookup table.
     add_interpolator : bool
         If True and ``mri`` is not None, then an interpolation matrix
         will be produced.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1422,7 +1465,11 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                          'specified')
     if mri is not None:
         if not op.isfile(mri):
-            raise IOError('mri file "%s" not found' % mri)
+            if subject is None:
+                raise IOError('mri file "%s" not found' % mri)
+            mri = op.join(subjects_dir, subject, 'mri', mri)
+            if not op.isfile(mri):
+                raise IOError('mri file "%s" not found' % mri)
         if isinstance(pos, dict):
             raise ValueError('Cannot create interpolation matrix for '
                              'discrete source space, mri must be None if '
@@ -1432,11 +1479,17 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         if mri is None:
             raise RuntimeError('"mri" must be provided if "volume_label" is '
                                'not None')
+        if not isinstance(volume_label, list):
+                volume_label = [volume_label]
+
         # Check that volume label is found in .mgz file
         volume_labels = get_volume_labels_from_aseg(mri)
-        if volume_label not in volume_labels:
-            raise ValueError('Volume %s not found in file %s. Double check '
-                             'freesurfer lookup table.' % (volume_label, mri))
+
+        for label in volume_label:
+            if label not in volume_labels:
+                raise ValueError('Volume %s not found in file %s. Double '
+                                 'check  freesurfer lookup table.'
+                                 % (label, mri))
 
     sphere = np.asarray(sphere)
     if sphere.size != 4:
@@ -1451,7 +1504,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                 raise KeyError('surface, if dict, must have entries "rr" '
                                'and "tris"')
             # let's make sure we have geom info
-            surface = _read_surface_geom(surface, verbose=False)
+            complete_surface_info(surface, copy=False, verbose=False)
             surf_extra = 'dict()'
         elif isinstance(surface, string_types):
             if not op.isfile(surface):
@@ -1479,7 +1532,6 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         logger.info('Assuming input in millimeters')
         logger.info('Assuming input in MRI coordinates')
 
-    logger.info('Output file           : %s', fname)
     if isinstance(pos, float):
         logger.info('grid                  : %.1f mm' % pos)
         logger.info('mindist               : %.1f mm' % mindist)
@@ -1506,7 +1558,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         elif surface is not None:
             if isinstance(surface, string_types):
                 # read the surface in the MRI coordinate frame
-                surf = _read_surface_geom(surface)
+                surf = read_surface(surface, return_dict=True)[-1]
             else:
                 surf = surface
             logger.info('Loaded bounding surface from %s (%d nodes)'
@@ -1525,28 +1577,39 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             # normalize to sphere (in MRI coord frame)
             surf['rr'] *= sphere[3] / 1000.0  # scale by radius
             surf['rr'] += sphere[:3] / 1000.0  # move by center
-            complete_surface_info(surf, do_neighbor_vert=True, copy=False)
         # Make the grid of sources in MRI space
-        sp = _make_volume_source_space(surf, pos, exclude, mindist, mri,
-                                       volume_label)
+        if volume_label is not None:
+            sp = []
+            for label in volume_label:
+                vol_sp = _make_volume_source_space(surf, pos, exclude, mindist,
+                                                   mri, label)
+                sp.append(vol_sp)
+        else:
+            sp = _make_volume_source_space(surf, pos, exclude, mindist, mri,
+                                           volume_label)
 
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
-    if mri is not None:
-        _add_interpolator(sp, mri, add_interpolator)
-    elif sp['type'] == 'vol':
-        # If there is no interpolator, it's actually a discrete source space
-        sp['type'] = 'discrete'
+    if not isinstance(sp, list):
+        sp = [sp]
 
-    if 'vol_dims' in sp:
-        del sp['vol_dims']
+    if mri is not None:
+        for s in sp:
+            _add_interpolator(s, mri, add_interpolator)
+    elif sp[0]['type'] == 'vol':
+        # If there is no interpolator, it's actually a discrete source space
+        sp[0]['type'] = 'discrete'
+
+    for s in sp:
+        if 'vol_dims' in s:
+            del s['vol_dims']
 
     # Save it
-    sp.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
-                   dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
-                   nuse_tri=0, tris=None))
-    sp = SourceSpaces([sp], dict(working_dir=os.getcwd(), command_line='None'))
-    if fname is not None:
-        write_source_spaces(fname, sp, verbose=False)
+    for s in sp:
+        s.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
+                      dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
+                      nuse_tri=0, tris=None, subject_his_id=subject))
+
+    sp = SourceSpaces(sp, dict(working_dir=os.getcwd(), command_line='None'))
     return sp
 
 
@@ -1616,7 +1679,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     cm = np.mean(surf['rr'], axis=0)  # center of mass
 
     # Define the sphere which fits the surface
-    maxdist = np.sqrt(np.max(np.sum((surf['rr'] - cm) ** 2, axis=1)))
+    maxdist = np.linalg.norm(surf['rr'] - cm, axis=1).max()
 
     logger.info('Surface CM = (%6.1f %6.1f %6.1f) mm'
                 % (1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
@@ -1655,7 +1718,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     logger.info('%d sources before omitting any.', sp['nuse'])
 
     # Exclude infeasible points
-    dists = np.sqrt(np.sum((sp['rr'] - cm) ** 2, axis=1))
+    dists = np.linalg.norm(sp['rr'] - cm, axis=1)
     bads = np.where(np.logical_or(dists < exclude, dists > maxdist))[0]
     sp['inuse'][bads] = False
     sp['nuse'] -= len(bads)
@@ -1776,7 +1839,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
         # Filter out points too far from volume region voxels
         dists = _compute_nearest(rr_voi, sp['rr'], return_dists=True)[1]
         # Maximum distance from center of mass of a voxel to any of its corners
-        maxdist = np.sqrt(((trans[:3, :3].sum(0) / 2.) ** 2).sum())
+        maxdist = np.linalg.norm(trans[:3, :3].sum(0) / 2.)
         bads = np.where(dists > maxdist)[0]
 
         # Update source info
@@ -2088,43 +2151,6 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
-def _get_solids(tri_rrs, fros):
-    """Compute _sum_solids_div total angle in chunks."""
-    # NOTE: This incorporates the division by 4PI that used to be separate
-    # for tri_rr in tri_rrs:
-    #     v1 = fros - tri_rr[0]
-    #     v2 = fros - tri_rr[1]
-    #     v3 = fros - tri_rr[2]
-    #     triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
-    #     l1 = np.sqrt(np.sum(v1 * v1, axis=1))
-    #     l2 = np.sqrt(np.sum(v2 * v2, axis=1))
-    #     l3 = np.sqrt(np.sum(v3 * v3, axis=1))
-    #     s = (l1 * l2 * l3 +
-    #          np.sum(v1 * v2, axis=1) * l3 +
-    #          np.sum(v1 * v3, axis=1) * l2 +
-    #          np.sum(v2 * v3, axis=1) * l1)
-    #     tot_angle -= np.arctan2(triple, s)
-
-    # This is the vectorized version, but with a slicing heuristic to
-    # prevent memory explosion
-    tot_angle = np.zeros((len(fros)))
-    slices = np.r_[np.arange(0, len(fros), 100), [len(fros)]]
-    for i1, i2 in zip(slices[:-1], slices[1:]):
-        v1 = fros[i1:i2] - tri_rrs[:, 0, :][:, np.newaxis]
-        v2 = fros[i1:i2] - tri_rrs[:, 1, :][:, np.newaxis]
-        v3 = fros[i1:i2] - tri_rrs[:, 2, :][:, np.newaxis]
-        triples = _fast_cross_nd_sum(v1, v2, v3)
-        l1 = np.sqrt(np.sum(v1 * v1, axis=2))
-        l2 = np.sqrt(np.sum(v2 * v2, axis=2))
-        l3 = np.sqrt(np.sum(v3 * v3, axis=2))
-        ss = (l1 * l2 * l3 +
-              np.sum(v1 * v2, axis=2) * l3 +
-              np.sum(v1 * v3, axis=2) * l2 +
-              np.sum(v2 * v3, axis=2) * l1)
-        tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
-    return tot_angle
-
-
 @verbose
 def _ensure_src(src, kind=None, verbose=None):
     """Ensure we have a source space."""
@@ -2180,7 +2206,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         Number of jobs to run in parallel. Will only use (up to) as many
         cores as there are source spaces.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2295,19 +2322,23 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-def get_volume_labels_from_aseg(mgz_fname):
-    """Get a list of names of segmented volumes.
+def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
+    """Return a list of names and colors of segmented volumes.
 
     Parameters
     ----------
     mgz_fname : str
         Filename to read. Typically aseg.mgz or some variant in the freesurfer
         pipeline.
+    return_colors : bool
+        If True returns also the labels colors
 
     Returns
     -------
     label_names : list of str
         The names of segmented volumes included in this mgz file.
+    label_colors : list of str
+        The RGB colors of the labels included in this mgz file.
 
     Notes
     -----
@@ -2320,10 +2351,90 @@ def get_volume_labels_from_aseg(mgz_fname):
 
     # Get the unique label names
     lut = _get_lut()
+
     label_names = [lut[lut['id'] == ii]['name'][0].decode('utf-8')
                    for ii in np.unique(mgz_data)]
-    label_names = sorted(label_names, key=lambda n: n.lower())
-    return label_names
+    label_colors = [[lut[lut['id'] == ii]['R'][0],
+                     lut[lut['id'] == ii]['G'][0],
+                     lut[lut['id'] == ii]['B'][0],
+                     lut[lut['id'] == ii]['A'][0]]
+                    for ii in np.unique(mgz_data)]
+
+    order = np.argsort(label_names)
+    label_names = [label_names[k] for k in order]
+    label_colors = [label_colors[k] for k in order]
+
+    if return_colors:
+        return label_names, label_colors
+    else:
+        return label_names
+
+
+def get_volume_labels_from_src(src, subject, subjects_dir):
+    """Return a list of Label of segmented volumes included in the src space.
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces
+        The source space containing the volume regions
+    subject: str
+        Subject name
+    subjects_dir: str
+        Freesurfer folder of the subjects
+
+    Returns
+    -------
+    labels_aseg : list of Label
+        List of Label of segmented volumes included in src space.
+
+    """
+    import os.path as op
+    import numpy as np
+
+    from . import Label
+    from . import get_volume_labels_from_aseg
+
+    # Read the aseg file
+    aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
+    if not op.isfile(aseg_fname):
+        raise IOError('aseg file "%s" not found' % aseg_fname)
+    all_labels_aseg = get_volume_labels_from_aseg(aseg_fname,
+                                                  return_colors=True)
+
+    # Create a list of Label
+    if len(src) < 2:
+        raise ValueError('No vol src space in src')
+
+    if any(np.any(s['type'] != 'vol') for s in src[2:]):
+            raise ValueError('source spaces have to be of vol type')
+
+    labels_aseg = list()
+    for nr in range(2, len(src)):
+        vertices = src[nr]['vertno']
+
+        pos = src[nr]['rr'][src[nr]['vertno'], :]
+        roi_str = src[nr]['seg_name']
+        try:
+            ind = all_labels_aseg[0].index(roi_str)
+            color = np.array(all_labels_aseg[1][ind]) / 255
+        except ValueError:
+            pass
+
+        if 'left' in roi_str.lower():
+            hemi = 'lh'
+            roi_str = roi_str.replace('Left-', '') + '-lh'
+        elif 'right' in roi_str.lower():
+            hemi = 'rh'
+            roi_str = roi_str.replace('Right-', '') + '-rh'
+        else:
+            hemi = 'both'
+
+        label = Label(vertices=vertices, pos=pos, hemi=hemi,
+                      name=roi_str, color=color,
+                      subject=subject)
+        labels_aseg.append(label)
+
+    return labels_aseg
 
 
 def _get_hemi(s):
@@ -2351,7 +2462,7 @@ def _get_vertex_map_nn(fro_src, subject_from, subject_to, hemi, subjects_dir,
                 % (hemi, subject_from, subject_to))
     regs = [op.join(subjects_dir, s, 'surf', '%s.sphere.reg' % hemi)
             for s in (subject_from, subject_to)]
-    reg_fro, reg_to = [_read_surface_geom(r, patch_stats=False) for r in regs]
+    reg_fro, reg_to = [read_surface(r, return_dict=True)[-1] for r in regs]
     if to_neighbor_tri is None:
         to_neighbor_tri = _triangle_neighbors(reg_to['tris'], reg_to['np'])
     morph_inuse = np.zeros(len(reg_to['rr']), bool)
@@ -2401,7 +2512,8 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -2421,7 +2533,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
         hemi, idx, id_ = _get_hemi(fro)
         to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
         logger.info('Reading destination surface %s' % (to,))
-        to = _read_surface_geom(to, patch_stats=False, verbose=False)
+        to = read_surface(to, return_dict=True, verbose=False)[-1]
         complete_surface_info(to, copy=False)
         # Now we morph the vertices to the destination
         # The C code does something like this, but with a nearest-neighbor
@@ -2471,7 +2583,8 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

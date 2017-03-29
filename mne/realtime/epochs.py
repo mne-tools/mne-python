@@ -12,11 +12,11 @@ import numpy as np
 
 from .. import pick_channels
 from ..utils import logger, verbose
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..event import _find_events
 
 
-class RtEpochs(_BaseEpochs):
+class RtEpochs(BaseEpochs):
     """Realtime Epochs.
 
     Can receive epochs in real time from an RtClient.
@@ -61,8 +61,6 @@ class RtEpochs(_BaseEpochs):
         interval is used.
     picks : array-like of int | None (default)
         Indices of channels to include (if None, all channels are used).
-    name : string
-        Comment that describes the Evoked data created.
     reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -98,10 +96,6 @@ class RtEpochs(_BaseEpochs):
         either turn off baseline correction, as this may introduce a DC
         shift, or set baseline correction to use the entire time interval
         (will yield equivalent results but be slower).
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists). This parameter will be removed in 0.15. Use
-        :func:`mne.set_eeg_reference` instead.
     isi_max : float
         The maximmum time in seconds between epochs. If no epoch
         arrives in the next isi_max seconds the RtEpochs stops.
@@ -115,8 +109,9 @@ class RtEpochs(_BaseEpochs):
 
         See :func:`mne.find_events` for detailed explanation of these options.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to client.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        client.verbose.
 
     Attributes
     ----------
@@ -135,10 +130,9 @@ class RtEpochs(_BaseEpochs):
     @verbose
     def __init__(self, client, event_id, tmin, tmax, stim_channel='STI 014',
                  sleep_time=0.1, baseline=(None, 0), picks=None,
-                 name='Unknown', reject=None, flat=None, proj=True,
+                 reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 add_eeg_ref=False, isi_max=2., find_events=None,
-                 verbose=None):  # noqa: D102
+                 isi_max=2., find_events=None, verbose=None):  # noqa: D102
         info = client.get_measurement_info()
 
         # the measurement info of the data as we receive it
@@ -146,12 +140,12 @@ class RtEpochs(_BaseEpochs):
 
         verbose = client.verbose if verbose is None else verbose
 
-        # call _BaseEpochs constructor
+        # call BaseEpochs constructor
         super(RtEpochs, self).__init__(
             info, None, None, event_id, tmin, tmax, baseline, picks=picks,
-            name=name, reject=reject, flat=flat, decim=decim,
+            reject=reject, flat=flat, decim=decim,
             reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
-            add_eeg_ref=add_eeg_ref, verbose=verbose, proj=True)
+            verbose=verbose, proj=True)
 
         self._client = client
 
@@ -320,11 +314,36 @@ class RtEpochs(_BaseEpochs):
 
         # detect events
         data = np.abs(raw_buffer[self._stim_picks]).astype(np.int)
-        data = np.atleast_2d(data)
-        buff_events = _find_events(data, self._first_samp, verbose=verbose,
-                                   **self._find_events_kwargs)
+        # if there is a previous buffer check the last samples from it too
+        if self._last_buffer is not None:
+            prev_data = self._last_buffer[self._stim_picks,
+                                          -raw_buffer.shape[1]:].astype(np.int)
+            data = np.concatenate((prev_data, data), axis=1)
+            data = np.atleast_2d(data)
+            buff_events = _find_events(data,
+                                       self._first_samp - raw_buffer.shape[1],
+                                       verbose=verbose,
+                                       **self._find_events_kwargs)
+        else:
+            data = np.atleast_2d(data)
+            buff_events = _find_events(data, self._first_samp, verbose=verbose,
+                                       **self._find_events_kwargs)
 
         events = self._event_backlog
+
+        # remove events before the last epoch processed
+        min_event_samp = self._first_samp - \
+            int(self._find_events_kwargs['min_samples'])
+        if len(self._event_backlog) > 0:
+            backlog_samps = np.array(self._event_backlog)[:, 0]
+            min_event_samp = backlog_samps[-1] + 1
+
+        if buff_events.shape[0] > 0:
+            valid_events_idx = buff_events[:, 0] >= min_event_samp
+            buff_events = buff_events[valid_events_idx]
+
+        # add events from this buffer to the list of events
+        # processed so far
         for event_id in self.event_id.values():
             idx = np.where(buff_events[:, -1] == event_id)[0]
             events.extend(zip(list(buff_events[idx, 0]),

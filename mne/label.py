@@ -169,7 +169,8 @@ class Label(object):
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -270,10 +271,12 @@ class Label(object):
         n_vert = len(self)
         return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
-    def __len__(self):  # noqa: D105
+    def __len__(self):
+        """Return the number of vertices."""
         return len(self.vertices)
 
-    def __add__(self, other):  # noqa: D105
+    def __add__(self, other):
+        """Add BiHemiLabels."""
         if isinstance(other, BiHemiLabel):
             return other + self
         elif isinstance(other, Label):
@@ -342,7 +345,8 @@ class Label(object):
                       self.subject, color, verbose)
         return label
 
-    def __sub__(self, other):  # noqa: D105
+    def __sub__(self, other):
+        """Subtract BiHemiLabels."""
         if isinstance(other, BiHemiLabel):
             if self.hemi == 'lh':
                 return self - other.lh
@@ -484,8 +488,9 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -536,7 +541,9 @@ class Label(object):
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
@@ -740,6 +747,10 @@ class Label(object):
         subject = _check_subject(self.subject, subject)
         if np.any(self.values < 0):
             raise ValueError('Cannot compute COM with negative values')
+        if np.all(self.values == 0):
+            raise ValueError('Cannot compute COM with all values == 0. For '
+                             'structural labels, consider setting to ones via '
+                             'label.values[:] = 1.')
         vertex = _center_of_mass(self.vertices, self.values, self.hemi, surf,
                                  subject, subjects_dir, restrict_vertices)
         return vertex
@@ -791,10 +802,12 @@ class BiHemiLabel(object):
         name += repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
 
-    def __len__(self):  # noqa: D105
+    def __len__(self):
+        """Return the number of vertices."""
         return len(self.lh) + len(self.rh)
 
-    def __add__(self, other):  # noqa: D105
+    def __add__(self, other):
+        """Add labels."""
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh + other
@@ -812,7 +825,8 @@ class BiHemiLabel(object):
         color = _blend_colors(self.color, other.color)
         return BiHemiLabel(lh, rh, name, color)
 
-    def __sub__(self, other):  # noqa: D105
+    def __sub__(self, other):
+        """Subtract labels."""
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh - other
@@ -923,7 +937,8 @@ def write_label(filename, label, verbose=None):
     label : Label
         The label object to save.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -1420,7 +1435,7 @@ def _verts_within_dist(graph, sources, max_dist):
 
 
 def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
-    """Helper for parallelization of grow_labels."""
+    """Parallelize grow_labels."""
     labels = []
     for seed, extent, hemi, name in zip(seeds, extents, hemis, names):
         label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
@@ -1712,7 +1727,7 @@ def _read_annot(fname):
 
 
 def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
-    """Helper function to get the .annot filenames and hemispheres."""
+    """Get the .annot filenames and hemispheres."""
     if annot_fname is not None:
         # we use use the .annot file specified by the user
         hemis = [op.basename(annot_fname)[:2]]
@@ -1765,7 +1780,8 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -1809,7 +1825,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
             if (regexp is not None) and not r_.match(name):
                 continue
             pos = vert_pos[vertices, :]
-            values = np.zeros(len(vertices))
+            values = np.ones(len(vertices))
             label_rgba = tuple(label_rgba / 255.)
             label = Label(vertices, pos, values, hemi, name=name,
                           subject=subject, color=label_rgba)
@@ -1909,7 +1925,8 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         The hemisphere(s) for which to write \*.annot files (only applies if
         annot_fname is not specified; default is 'both').
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----

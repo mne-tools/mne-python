@@ -68,7 +68,7 @@ raw = mne.preprocessing.maxwell_filter(raw, origin=(0., 0., 0.))
 # We know our phantom produces sinusoidal bursts below 25 Hz, so let's filter.
 
 raw.filter(None, 40., h_trans_bandwidth='auto', filter_length='auto',
-           phase='zero')
+           phase='zero', fir_window='hamming')
 raw.plot(events=events)
 
 ###############################################################################
@@ -100,7 +100,7 @@ dip = fit_dipole(evoked, cov, sphere, n_jobs=1)[0]
 ###############################################################################
 # Now we can compare to the actual locations, taking the difference in mm:
 
-actual_pos = mne.dipole.get_phantom_dipoles(kind='122')[0]
+actual_pos = mne.dipole.get_phantom_dipoles()[0]
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
 print('Differences (mm):\n%s' % diffs[:, np.newaxis])
 print('μ = %s' % (np.mean(diffs),))

@@ -102,7 +102,7 @@ def test_plot_epochs():
     assert_raises(RuntimeError, epochs.plot, picks=[])
     plt.close('all')
     with warnings.catch_warnings(record=True):
-        fig = epochs.plot()
+        fig = epochs.plot(events=epochs.events)
         # test mouse clicks
         x = fig.get_axes()[0].get_xlim()[1] / 2
         y = fig.get_axes()[0].get_ylim()[0] / 2

@@ -60,7 +60,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
 
 
 def _st(x, start_f, windows):
-    """Implementation based on Ali Moukadem Matlab code (used in tests)."""
+    """Compute ST based on Ali Moukadem MATLAB code (used in tests)."""
     n_samp = x.shape[-1]
     ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
     # do the work
@@ -97,9 +97,11 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     return psd, itc
 
 
-def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
-                             decim=1, return_itc=False, n_jobs=1):
+def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
+                        width=1.0, decim=1, return_itc=False, n_jobs=1):
     """Compute power and intertrial coherence using Stockwell (S) transform.
+
+    See [1]_, [2]_, [3]_, [4]_ for more information.
 
     Parameters
     ----------
@@ -139,23 +141,31 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
 
     References
     ----------
-    Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
-        operators: Partial differential equations and time-frequency
-        analysis 52 (2007): 279-309.
-    Moukadem, A., Bouguila, Z., Abdeslam, D. O, and Dieterlen, A. Stockwell
-        transform optimization applied on the detection of split in heart
-        sounds (2014). Signal Processing Conference (EUSIPCO), 2013 Proceedings
-        of the 22nd European, pages 2015--2019.
-    Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen (2010).
-        During Visual Word Recognition, Phonology Is Accessed
-        within 100 ms and May Be Mediated by a Speech Production
-        Code: Evidence from Magnetoencephalography. The Journal of
-        Neuroscience, 30 (15), 5229-5233.
-    K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
-        Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
-        (2006). S-transform time-frequency analysis of P300 reveals deficits in
-        individuals diagnosed with alcoholism.
-        Clinical Neurophysiology 117 2128--2143
+    .. [1] Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
+       operators: Partial differential equations and time-frequency
+       analysis 52 (2007): 279-309.
+    .. [2] Moukadem, A., Bouguila, Z., Abdeslam, D. O, and Dieterlen, A.
+       Stockwell transform optimization applied on the detection of split in
+       heart sounds (2014). Signal Processing Conference (EUSIPCO), 2013
+       Proceedings of the 22nd European, pages 2015--2019.
+    .. [3] Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen
+       (2010). During Visual Word Recognition, Phonology Is Accessed
+       within 100 ms and May Be Mediated by a Speech Production
+       Code: Evidence from Magnetoencephalography. The Journal of
+       Neuroscience, 30 (15), 5229-5233.
+    .. [4] K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
+       Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
+       (2006). S-transform time-frequency analysis of P300 reveals deficits in
+       individuals diagnosed with alcoholism.
+       Clinical Neurophysiology 117 2128--2143
+
+    See Also
+    --------
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_array_morlet
     """
     n_epochs, n_channels = data.shape[:2]
     n_out = data.shape[2] // decim + bool(data.shape[2] % decim)
@@ -217,7 +227,8 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     n_jobs : int
         The number of jobs to run in parallel (over channels).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -228,8 +239,11 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
 
     See Also
     --------
-    cwt : Compute time-frequency decomposition with user-provided wavelets
-    cwt_morlet, psd_multitaper
+    mne.time_frequency.tfr_array_stockwell
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_array_morlet
 
     Notes
     -----
@@ -241,14 +255,11 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
     n_jobs = check_n_jobs(n_jobs)
-    power, itc, freqs = _induced_power_stockwell(data,
-                                                 sfreq=info['sfreq'],
-                                                 fmin=fmin, fmax=fmax,
-                                                 n_fft=n_fft,
-                                                 width=width,
-                                                 decim=decim,
-                                                 return_itc=return_itc,
-                                                 n_jobs=n_jobs)
+    power, itc, freqs = tfr_array_stockwell(data, sfreq=info['sfreq'],
+                                            fmin=fmin, fmax=fmax, n_fft=n_fft,
+                                            width=width, decim=decim,
+                                            return_itc=return_itc,
+                                            n_jobs=n_jobs)
     times = inst.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave, method='stockwell-power')

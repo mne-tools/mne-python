@@ -11,7 +11,8 @@ def test_datasets():
     """Test simple dataset functions
     """
     for dname in ('sample', 'somato', 'spm_face', 'testing',
-                  'bst_raw', 'bst_auditory', 'bst_resting'):
+                  'bst_raw', 'bst_auditory', 'bst_resting',
+                  'visual_92_categories'):
         if dname.startswith('bst'):
             dataset = getattr(datasets.brainstorm, dname)
         else:

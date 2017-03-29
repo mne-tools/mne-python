@@ -51,7 +51,12 @@ Z1 = bivariate_normal(X, Y, 8.0, 7.0, -5.0, 0.9, 1.0)
 Z2 = bivariate_normal(X, Y, 15.0, 2.5, 2.6, -2.5, 2.5)
 Z = Z2 - 0.7 * Z1
 
-# color map: field gradient (yellow-red-transparent-blue-cyan)
+# color map: field gradient (yellow-red-gray-blue-cyan)
+# yrtbc = {
+#     'red': ((0, 1, 1), (0.4, 1, 1), (0.5, 0.5, 0.5), (0.6, 0, 0), (1, 0, 0)),
+#     'blue': ((0, 0, 0), (0.4, 0, 0), (0.5, 0.5, 0.5), (0.6, 1, 1), (1, 1, 1)),  # noqa
+#     'green': ((0, 1, 1), (0.4, 0, 0), (0.5, 0.5, 0.5), (0.6, 0, 0), (1, 1, 1)),  # noqa
+# }
 yrtbc = {'red': ((0.0, 1.0, 1.0), (0.5, 1.0, 0.0), (1.0, 0.0, 0.0)),
          'blue': ((0.0, 0.0, 0.0), (0.5, 0.0, 1.0), (1.0, 1.0, 1.0)),
          'green': ((0.0, 1.0, 1.0), (0.5, 0.0, 0.0), (1.0, 1.0, 1.0)),
@@ -78,6 +83,7 @@ mult = (plot_dims / dims).min()
 mult = [mult, -mult]  # y axis is inverted (origin at top left)
 offset = plot_dims / 2. - center_fudge
 mne_clip = Path(offset + vert * mult, mne_path.codes)
+ax.add_patch(PathPatch(mne_clip, color='w', zorder=0, linewidth=0))
 # apply clipping mask to field gradient and lines
 im.set_clip_path(mne_clip, transform=im.get_transform())
 for coll in cs.collections:
@@ -103,11 +109,8 @@ yy = np.max([tag_clip.vertices.max(0)[-1],
 ax.set_ylim(np.ceil(yy), yl[-1])
 
 # only save actual image extent plus a bit of padding
-extent = Bbox(np.c_[ax.get_xlim(), ax.get_ylim()])
-extent = extent.transformed(ax.transData + fig.dpi_scale_trans.inverted())
 plt.draw()
-plt.savefig(op.join(static_dir, 'mne_logo.png'),
-            bbox_inches=extent.expanded(1.2, 1.))
+plt.savefig(op.join(static_dir, 'mne_logo.png'), transparent=True)
 plt.close()
 
 # 92x22 image
@@ -125,7 +128,9 @@ ax = plt.Axes(fig, [0., 0., 1., 1.])
 ax.set_axis_off()
 fig.add_axes(ax)
 # plot rainbow
-im = plt.imshow(X, cmap=mne_field_grad_cols, aspect='equal')
+im = ax.imshow(X, cmap=mne_field_grad_cols, aspect='equal', zorder=1)
+im = ax.imshow(np.ones_like(X) * 0.5, cmap='Greys', aspect='equal', zorder=0,
+               clim=[0, 1])
 plot_dims = np.r_[np.diff(ax.get_xbound()), np.diff(ax.get_ybound())]
 # MNE text in white
 mne_path = TextPath((0, 0), 'MNE')
@@ -148,9 +153,6 @@ xpad = np.abs(np.diff([xmin, xl[1]])) / 20.
 ypad = np.abs(np.diff([ymax, ymin])) / 20.
 ax.set_xlim(xmin - xpad, xl[1] + xpad)
 ax.set_ylim(ymax + ypad, ymin - ypad)
-extent = Bbox(np.c_[ax.get_xlim(), ax.get_ylim()])
-extent = extent.transformed(ax.transData + fig.dpi_scale_trans.inverted())
 plt.draw()
-plt.savefig(op.join(static_dir, 'mne_logo_small.png'), transparent=True,
-            bbox_inches=extent)
+plt.savefig(op.join(static_dir, 'mne_logo_small.png'), transparent=True)
 plt.close()

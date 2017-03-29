@@ -322,9 +322,19 @@ def test_generalization_across_time():
     assert_true(0.0 <= np.min(scores) <= 1.0)
     assert_true(0.0 <= np.max(scores) <= 1.0)
 
+    # Test that error if cv is not partition
+    gat = GeneralizationAcrossTime(cv=cv_shuffle,
+                                   predict_mode='cross-validation')
+    gat.fit(epochs)
+    assert_raises(ValueError, gat.predict, epochs)
+    gat = GeneralizationAcrossTime(cv=cv_shuffle,
+                                   predict_mode='mean-prediction')
+    gat.fit(epochs)
+    gat.predict(epochs)
+
     # Test that gets error if train on one dataset, test on another, and don't
     # specify appropriate cv:
-    gat = GeneralizationAcrossTime(cv=cv_shuffle)
+    gat = GeneralizationAcrossTime()
     gat.fit(epochs)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)

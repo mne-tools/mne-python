@@ -17,7 +17,8 @@ import copy
 import os.path as op
 import sys
 import mne
-from mne.utils import run_subprocess, _TempDir, verbose, logger, ETSContext
+from mne.utils import (run_subprocess, verbose, logger, ETSContext,
+                       get_subjects_dir)
 
 
 def _check_file(fname, overwrite):
@@ -63,21 +64,9 @@ def run():
 @verbose
 def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
     this_env = copy.copy(os.environ)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     this_env['SUBJECTS_DIR'] = subjects_dir
     this_env['SUBJECT'] = subject
-
-    if 'SUBJECTS_DIR' not in this_env:
-        raise RuntimeError('The environment variable SUBJECTS_DIR should '
-                           'be set')
-
-    if not op.isdir(subjects_dir):
-        raise RuntimeError('subjects directory %s not found, specify using '
-                           'the environment variable SUBJECTS_DIR or '
-                           'the command line option --subjects-dir')
-
-    if 'MNE_ROOT' not in this_env:
-        raise RuntimeError('MNE_ROOT environment variable is not set')
-
     if 'FREESURFER_HOME' not in this_env:
         raise RuntimeError('The FreeSurfer environment needs to be set up '
                            'for this script')
@@ -87,17 +76,15 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
         raise RuntimeError('%s does not exist. Please check your subject '
                            'directory path.' % subj_path)
 
-    if op.exists(op.join(subj_path, 'mri', 'T1.mgz')):
-        mri = 'T1.mgz'
-    else:
-        mri = 'T1'
+    mri = 'T1.mgz' if op.exists(op.join(subj_path, 'mri', 'T1.mgz')) else 'T1'
 
     logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
 
     def check_seghead(surf_path=op.join(subj_path, 'surf')):
-        for k in ['/lh.seghead', '/lh.smseghead']:
-            surf = surf_path + k if op.exists(surf_path + k) else None
-            if surf is not None:
+        surf = None
+        for k in ['lh.seghead', 'lh.smseghead']:
+            surf = op.join(surf_path, k)
+            if op.exists(surf):
                 break
         return surf
 
@@ -115,33 +102,27 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
                                                           subject)
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
-    run_subprocess(['mne_surf2bem', '--surf', surf, '--id', '4', force,
-                    '--fif', dense_fname], env=this_env)
+    surf = mne.bem._surfaces_to_bem(
+        [surf], [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1])[0]
+    mne.write_bem_surfaces(dense_fname, surf)
     levels = 'medium', 'sparse'
-    my_surf = mne.read_bem_surfaces(dense_fname)[0]
     tris = [] if no_decimate else [30000, 2500]
     if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
-        tris = [len(my_surf['tris'])]  # don't actually decimate
+        tris = [len(surf['tris'])]  # don't actually decimate
     for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
         logger.info('%i. Creating %s tessellation...' % (ii, level))
         logger.info('%i.1 Decimating the dense tessellation...' % ii)
         with ETSContext():
-            points, tris = mne.decimate_surface(points=my_surf['rr'],
-                                                triangles=my_surf['tris'],
+            points, tris = mne.decimate_surface(points=surf['rr'],
+                                                triangles=surf['tris'],
                                                 n_triangles=n_tri)
-        other_fname = dense_fname.replace('dense', level)
-        logger.info('%i.2 Creating %s' % (ii, other_fname))
-        _check_file(other_fname, overwrite)
-        tempdir = _TempDir()
-        surf_fname = tempdir + '/tmp-surf.surf'
-        # convert points to meters, make mne_analyze happy
-        mne.write_surface(surf_fname, points * 1e3, tris)
-        # XXX for some reason --check does not work here.
-        try:
-            run_subprocess(['mne_surf2bem', '--surf', surf_fname, '--id', '4',
-                            '--force', '--fif', other_fname], env=this_env)
-        finally:
-            del tempdir
+        dec_fname = dense_fname.replace('dense', level)
+        logger.info('%i.2 Creating %s' % (ii, dec_fname))
+        _check_file(dec_fname, overwrite)
+        dec_surf = mne.bem._surfaces_to_bem(
+            [dict(rr=points, tris=tris)],
+            [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False)
+        mne.write_bem_surfaces(dec_fname, dec_surf)
 
 is_main = (__name__ == '__main__')
 if is_main:

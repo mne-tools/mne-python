@@ -1,22 +1,50 @@
 from glob import glob
 import os
 
-from nose.tools import assert_raises, assert_true
+from nose.tools import assert_equal, assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_less
 
 import mne
-from mne.transforms import apply_trans, rotation, translation, scaling
+from mne.transforms import (Transform, apply_trans, rotation, translation,
+                            scaling)
 from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _point_cloud_error, _decimate_points,
                        create_default_subject, scale_mri,
-                       _is_mri_subject, scale_labels, scale_source_space)
-from mne.utils import (requires_mne, requires_freesurfer, _TempDir,
-                       run_tests_if_main, requires_version)
+                       _is_mri_subject, scale_labels, scale_source_space,
+                       coregister_fiducials)
+from mne.io.constants import FIFF
+from mne.utils import (requires_freesurfer, _TempDir, run_tests_if_main,
+                       requires_version)
+from mne.source_space import write_source_spaces
 from functools import reduce
 
 
-@requires_mne
+def test_coregister_fiducials():
+    """Test coreg.coregister_fiducials()"""
+    # prepare head and MRI fiducials
+    trans = Transform('head', 'mri',
+                      rotation(.4, .1, 0).dot(translation(.1, -.1, .1)))
+    coords_orig = np.array([[-0.08061612, -0.02908875, -0.04131077],
+                            [0.00146763, 0.08506715, -0.03483611],
+                            [0.08436285, -0.02850276, -0.04127743]])
+    coords_trans = apply_trans(trans, coords_orig)
+
+    def make_dig(coords, cf):
+        return ({'coord_frame': cf, 'ident': 1, 'kind': 1, 'r': coords[0]},
+                {'coord_frame': cf, 'ident': 2, 'kind': 1, 'r': coords[1]},
+                {'coord_frame': cf, 'ident': 3, 'kind': 1, 'r': coords[2]})
+
+    mri_fiducials = make_dig(coords_trans, FIFF.FIFFV_COORD_MRI)
+    info = {'dig': make_dig(coords_orig, FIFF.FIFFV_COORD_HEAD)}
+
+    # test coregister_fiducials()
+    trans_est = coregister_fiducials(info, mri_fiducials)
+    assert_equal(trans_est.from_str, trans.from_str)
+    assert_equal(trans_est.to_str, trans.to_str)
+    assert_array_almost_equal(trans_est['trans'], trans['trans'])
+
+
 @requires_freesurfer
 @requires_version('scipy', '0.11')
 def test_scale_mri():
@@ -41,8 +69,11 @@ def test_scale_mri():
 
     # create source space
     path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-0-src.fif')
-    mne.setup_source_space('fsaverage', path, 'ico0', overwrite=True,
-                           subjects_dir=tempdir, add_dist=False)
+    src = mne.setup_source_space('fsaverage', 'ico0', subjects_dir=tempdir,
+                                 add_dist=False)
+    src_path = os.path.join(tempdir, 'fsaverage', 'bem',
+                            'fsaverage-ico-0-src.fif')
+    write_source_spaces(src_path, src)
 
     # scale fsaverage
     os.environ['_MNE_FEW_SURFACES'] = 'true'
@@ -53,6 +84,7 @@ def test_scale_mri():
     assert_true(is_mri, "Scaling fsaverage failed")
     src_path = os.path.join(tempdir, 'flachkopf', 'bem',
                             'flachkopf-ico-0-src.fif')
+
     assert_true(os.path.exists(src_path), "Source space was not scaled")
     scale_labels('flachkopf', subjects_dir=tempdir)
 
@@ -64,11 +96,12 @@ def test_scale_mri():
     # add distances to source space
     src = mne.read_source_spaces(path)
     mne.add_source_space_distances(src)
-    src.save(path)
+    src.save(path, overwrite=True)
 
     # scale with distances
     os.remove(src_path)
     scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
+    assert_true(os.path.exists(src_path), "Source space was not scaled")
 
 
 def test_fit_matched_points():

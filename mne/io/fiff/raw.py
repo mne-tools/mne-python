@@ -17,16 +17,17 @@ from ..open import fiff_open, _fiff_get_fid, _get_next_fname
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag, read_tag_info
-from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
-from ..base import (_BaseRaw, _RawShell, _check_raw_compatibility,
+from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
-from ...annotations import Annotations, _combine_annotations
+from ...annotations import Annotations, _combine_annotations, _sync_onset
+
+from ...event import AcqParserFIF
 from ...utils import check_fname, logger, verbose, warn
 
 
-class Raw(_BaseRaw):
+class Raw(BaseRaw):
     """Raw data in FIF format.
 
     Parameters
@@ -48,17 +49,14 @@ class Raw(_BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists). This parameter will be removed in 0.15. Use
-        :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
     info : dict
-        Measurement info.
+        :class:`Measurement info <mne.Info>`.
     ch_names : list of string
         List of channels' names.
     n_times : int
@@ -71,7 +69,7 @@ class Raw(_BaseRaw):
 
     @verbose
     def __init__(self, fname, allow_maxshield=False, preload=False,
-                 add_eeg_ref=False, verbose=None):  # noqa: D102
+                 verbose=None):  # noqa: D102
         fnames = [op.realpath(fname)]
         del fname
         split_fnames = []
@@ -98,27 +96,35 @@ class Raw(_BaseRaw):
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._raw_extras for r in raws],
             raws[0].orig_format, None, verbose=verbose)
-        from ...epochs import _dep_eeg_ref
-        add_eeg_ref = _dep_eeg_ref(add_eeg_ref)
-
-        # combine information from each raw file to construct self
-        if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
-            eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
-            self.add_proj(eeg_ref)
 
         # combine annotations
         self.annotations = raws[0].annotations
         if any([r.annotations for r in raws[1:]]):
-            first_samps = list()
-            last_samps = list()
+            first_samps = self._first_samps
+            last_samps = self._last_samps
             for r in raws:
-                first_samps = np.r_[first_samps, r.first_samp]
-                last_samps = np.r_[last_samps, r.last_samp]
                 self.annotations = _combine_annotations((self.annotations,
                                                          r.annotations),
                                                         last_samps,
                                                         first_samps,
-                                                        r.info['sfreq'])
+                                                        r.info['sfreq'],
+                                                        self.info['meas_date'])
+                first_samps = np.r_[first_samps, r.first_samp]
+                last_samps = np.r_[last_samps, r.last_samp]
+
+        # Add annotations for in-data skips
+        offsets = [0] + self._raw_lengths[:-1]
+        for extra, first_samp, offset in zip(self._raw_extras,
+                                             self._first_samps, offsets):
+            for skip in extra:
+                if skip['ent'] is None:  # these are skips
+                    if self.annotations is None:
+                        self.annotations = Annotations((), (), ())
+                    start = skip['first'] - first_samp + offset
+                    stop = skip['last'] - first_samp - 1 + offset
+                    self.annotations.append(
+                        _sync_onset(self, start / self.info['sfreq']),
+                        (stop - start) / self.info['sfreq'], 'BAD_ACQ_SKIP')
         if preload:
             self._preload_data(preload)
         else:
@@ -180,9 +186,6 @@ class Raw(_BaseRaw):
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
 
-            #   Set up the output structure
-            info['filename'] = fname
-
             #   Process the directory
             directory = raw_node['directory']
             nent = raw_node['nent']
@@ -218,6 +221,8 @@ class Raw(_BaseRaw):
 
             for k in range(first, nent):
                 ent = directory[k]
+                # There can be skips in the data (e.g., if the user unclicked)
+                # an re-clicked the button
                 if ent.kind == FIFF.FIFF_DATA_SKIP:
                     tag = read_tag(fid, ent.pos)
                     nskip = int(tag.data)
@@ -413,6 +418,18 @@ class Raw(_BaseRaw):
         fix_mag_coil_types(self.info)
         return self
 
+    @property
+    def acqparser(self):
+        """The AcqParserFIF for the measurement info.
+
+        See Also
+        --------
+        mne.AcqParserFIF
+        """
+        if getattr(self, '_acqparser', None) is None:
+            self._acqparser = AcqParserFIF(self.info)
+        return self._acqparser
+
 
 def _check_entry(first, nent):
     """Sanity check entries."""
@@ -420,8 +437,7 @@ def _check_entry(first, nent):
         raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
-def read_raw_fif(fname, allow_maxshield=False, preload=False,
-                 add_eeg_ref=False, verbose=None):
+def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
     """Reader function for Raw FIF data.
 
     Parameters
@@ -443,12 +459,9 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists). This parameter will be removed in 0.15. Use
-        :func:`mne.set_eeg_reference` instead.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -460,4 +473,4 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
     .. versionadded:: 0.9.0
     """
     return Raw(fname=fname, allow_maxshield=allow_maxshield,
-               preload=preload, add_eeg_ref=add_eeg_ref, verbose=verbose)
+               preload=preload, verbose=verbose)

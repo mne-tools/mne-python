@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from copy import deepcopy
-from functools import partial
 
 import numpy as np
 from scipy import linalg
@@ -15,7 +14,6 @@ from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import transform_surface_to, read_trans, _find_trans
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
-                         _get_legen_lut_fast, _get_legen_lut_accurate,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
@@ -44,19 +42,13 @@ def _ad_hoc_noise(coils, ch_type='meg'):
 
 
 def _setup_dots(mode, coils, ch_type):
-    """Setup dot products."""
+    """Set up dot products."""
+    from scipy.interpolate import interp1d
     int_rad = 0.06
     noise = _ad_hoc_noise(coils, ch_type)
-    if mode == 'fast':
-        # Use 50 coefficients with nearest-neighbor interpolation
-        n_coeff = 50
-        lut_fun = _get_legen_lut_fast
-    else:  # 'accurate'
-        # Use 100 coefficients with linear interpolation
-        n_coeff = 100
-        lut_fun = _get_legen_lut_accurate
+    n_coeff, interp = (50, 'nearest') if mode == 'fast' else (100, 'linear')
     lut, n_fact = _get_legen_table(ch_type, False, n_coeff, verbose=False)
-    lut_fun = partial(lut_fun, lut=lut)
+    lut_fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, interp, axis=0)
     return int_rad, noise, lut_fun, n_fact
 
 
@@ -248,7 +240,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         coords and in meters. The default is ``'auto'``, which means
         a head-digitization-based origin fit.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -373,7 +366,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     n_jobs : int
         The number of jobs to run in parallel.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
         .. versionadded:: 0.11
 

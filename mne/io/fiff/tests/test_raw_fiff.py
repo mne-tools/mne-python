@@ -21,7 +21,7 @@ from mne.io import RawArray, concatenate_raws, read_raw_fif
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info)
-from mne.utils import (_TempDir, requires_pandas, slow_test,
+from mne.utils import (_TempDir, requires_pandas, slow_test, object_diff,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
@@ -35,6 +35,7 @@ testing_path = testing.data_path(download=False)
 data_dir = op.join(testing_path, 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 ms_fname = op.join(testing_path, 'SSS', 'test_move_anon_raw.fif')
+skip_fname = op.join(testing_path, 'misc', 'intervalrecording_raw.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 test_fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -46,6 +47,14 @@ bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+
+
+@testing.requires_testing_data
+def test_acq_skip():
+    """Test treatment of acquisition skips."""
+    raw = read_raw_fif(skip_fname)
+    assert_equal(len(raw.times), 17000)
+    assert_equal(len(raw.annotations), 3)  # there are 3 skips
 
 
 def test_fix_types():
@@ -357,10 +366,15 @@ def test_split_files():
 
     assert_allclose(raw_1.info['buffer_size_sec'], 10., atol=1e-2)  # samp rate
     split_fname = op.join(tempdir, 'split_raw.fif')
+    raw_1.annotations = Annotations([2.], [5.5], 'test')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.info['buffer_size_sec'], 1., atol=1e-2)  # samp rate
+    assert_array_equal(raw_1.annotations.onset, raw_2.annotations.onset)
+    assert_array_equal(raw_1.annotations.duration, raw_2.annotations.duration)
+    assert_array_equal(raw_1.annotations.description,
+                       raw_2.annotations.description)
     data_1, times_1 = raw_1[:, :]
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
@@ -732,17 +746,17 @@ def test_preload_modify():
 
         try:
             raw[picks, :nsamp // 2] = data
-        except RuntimeError as err:
+        except RuntimeError:
             if not preload:
                 continue
             else:
-                raise err
+                raise
 
         tmp_fname = op.join(tempdir, 'raw.fif')
         raw.save(tmp_fname, overwrite=True)
 
         raw_new = read_raw_fif(tmp_fname)
-        data_new, _ = raw_new[picks, :nsamp / 2]
+        data_new, _ = raw_new[picks, :nsamp // 2]
 
         assert_allclose(data, data_new)
 
@@ -1141,7 +1155,7 @@ def test_add_channels():
     assert_raises(ValueError, raw_meg.copy().add_channels, [raw_arr])
     raw_meg.copy().add_channels([raw_arr], force_update_info=True)
     # Make sure that values didn't get overwritten
-    assert_true(raw_arr.info['dev_head_t'] is orig_head_t)
+    assert_equal(object_diff(raw_arr.info['dev_head_t'], orig_head_t), '')
 
     # Now test errors
     raw_badsf = raw_eeg.copy()
@@ -1192,8 +1206,8 @@ def test_save():
     onsets = raw.annotations.onset
     durations = raw.annotations.duration
     # 2*5s clips combined with annotations at 2.5s + 2s clip, annotation at 1s
-    assert_array_almost_equal([2.5, 7.5, 11.], onsets, decimal=2)
-    assert_array_almost_equal([2., 2.5, 1.], durations, decimal=2)
+    assert_array_almost_equal([2.5, 7.5, 11.], onsets[:3], decimal=2)
+    assert_array_almost_equal([2., 2.5, 1.], durations[:3], decimal=2)
 
     # test annotation clipping
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',

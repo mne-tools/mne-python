@@ -3,24 +3,25 @@
 Compute effect-matched-spatial filtering (EMS)
 ==============================================
 
-This example computes the EMS to reconstruct the time course of
-the experimental effect as described in:
+This example computes the EMS to reconstruct the time course of the
+experimental effect as described in [1]_.
 
-Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing multi-sensor
-data to a single time course that reveals experimental effects",
-BMC Neuroscience 2013, 14:122
-
-
-This technique is used to create spatial filters based on the
-difference between two conditions. By projecting the trial onto the
-corresponding spatial filters, surrogate single trials are created
-in which multi-sensor activity is reduced to one time series which
-exposes experimental effects, if present.
+This technique is used to create spatial filters based on the difference
+between two conditions. By projecting the trial onto the corresponding spatial
+filters, surrogate single trials are created in which multi-sensor activity is
+reduced to one time series which exposes experimental effects, if present.
 
 We will first plot a trials x times image of the single trials and order the
 trials by condition. A second plot shows the average time series for each
-condition. Finally a topographic plot is created which exhibits the
-temporal evolution of the spatial filters.
+condition. Finally a topographic plot is created which exhibits the temporal
+evolution of the spatial filters.
+
+References
+----------
+
+.. [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
+       multi-sensor data to a single time course that reveals experimental
+       effects", BMC Neuroscience 2013, 14:122.
 """
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #         Jean-Remi King <jeanremi.king@gmail.com>

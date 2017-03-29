@@ -28,8 +28,10 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         Defaults to None, which means the identity matrix is used.
     l_rate : float
         This quantity indicates the relative size of the change in weights.
+        Defaults to ``0.01 / log(n_features ** 2)``.
+
         .. note:: Smaller learning rates will slow down the ICA procedure.
-        Defaults to 0.01 / log(n_features ** 2).
+
     block : int
         The block size of randomly chosen data segments.
         Defaults to floor(sqrt(n_times / 3.)).
@@ -40,8 +42,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         Defaults to 60.0.
     anneal_step : float
         The factor by which the learning rate will be reduced once
-        ``anneal_deg`` is exceeded:
-            l_rate *= anneal_step
+        ``anneal_deg`` is exceeded: ``l_rate *= anneal_step.``
         Defaults to 0.9.
     extended : bool
         Whether to use the extended Infomax algorithm or not.
@@ -72,20 +73,18 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     blowup_fac : float
         The factor by which the learning rate will be reduced if the difference
         between two successive estimations of the unmixing matrix exceededs
-        ``blowup``:
-            l_rate *= blowup_fac
-        Defaults to 0.5.
+        ``blowup``: ``l_rate *= blowup_fac``. Defaults to 0.5.
     n_small_angle : int | None
         The maximum number of allowed steps in which the angle between two
         successive estimations of the unmixing matrix is less than
         ``anneal_deg``. If None, this parameter is not taken into account to
-        stop the iterations.
-        Defaults to 20.
+        stop the iterations. Defaults to 20.
     use_bias : bool
         This quantity indicates if the bias should be computed.
         Defaults to True.
     verbose : bool, str, int, or None
-        If not None, override default verbosity level (see mne.verbose).
+        If not None, override default verbosity level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -94,12 +93,12 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
     References
     ----------
-    [1] A. J. Bell, T. J. Sejnowski. An information-maximization approach to
-        blind separation and blind deconvolution. Neural Computation, 7(6),
-        1129-1159, 1995.
-    [2] T. W. Lee, M. Girolami, T. J. Sejnowski. Independent component analysis
-        using an extended infomax algorithm for mixed subgaussian and
-        supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
+    .. [1] A. J. Bell, T. J. Sejnowski. An information-maximization approach to
+           blind separation and blind deconvolution. Neural Computation, 7(6),
+           1129-1159, 1995.
+    .. [2] T. W. Lee, M. Girolami, T. J. Sejnowski. Independent component
+           analysis using an extended infomax algorithm for mixed subgaussian
+           and supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
     from scipy.stats import kurtosis
     rng = check_random_state(random_state)

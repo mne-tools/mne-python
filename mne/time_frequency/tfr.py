@@ -26,7 +26,7 @@ from ..io.pick import pick_info, pick_types
 from ..io.meas_info import Info
 from ..utils import SizeMixin
 from .multitaper import dpss_windows
-from ..viz.utils import figure_nobar, plt_show
+from ..viz.utils import figure_nobar, plt_show, _setup_cmap
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
 
@@ -303,7 +303,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -565,7 +566,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
     See Also
     --------
-    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition
+    mne.time_frequency.tfr_morlet : Compute time-frequency decomposition
                                     with Morlet wavelets
     """
     decim = _check_decim(decim)
@@ -653,8 +654,8 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     n_jobs : int, defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
-        The indices of the channels to plot. If None, all available
-        channels are displayed.
+        The indices of the channels to decompose. If None, all available
+        channels are decomposed.
     zero_mean : bool, defaults to True
         Make sure the wavelet has a mean of zero.
 
@@ -664,24 +665,107 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
         .. versionadded:: 0.13.0
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     power : AverageTFR | EpochsTFR
-        The averaged power.
+        The averaged or single-trial power.
     itc : AverageTFR | EpochsTFR
         The inter-trial coherence (ITC). Only returned if return_itc
         is True.
 
     See Also
     --------
-    tfr_multitaper, tfr_stockwell
+    mne.time_frequency.tfr_array_morlet
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_array_stockwell
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=zero_mean)
     return _tfr_aux('morlet', inst, freqs, decim, return_itc, picks,
                     average, **tfr_params)
+
+
+@verbose
+def tfr_array_morlet(epoch_data, sfreq, frequencies, n_cycles=7.0,
+                     zero_mean=False, use_fft=True, decim=1, output='complex',
+                     n_jobs=1, verbose=None):
+    """Compute time-frequency transform using Morlet wavelets.
+
+    Convolves epoch data with selected Morlet wavelets.
+
+    Parameters
+    ----------
+    epoch_data : array of shape (n_epochs, n_channels, n_times)
+        The epochs.
+    sfreq : float | int
+        Sampling frequency of the data.
+    frequencies : array-like of floats, shape (n_freqs)
+        The frequencies.
+    n_cycles : float | array of float, defaults to 7.0
+        Number of cycles in the Morlet wavelet. Fixed number or one per
+        frequency.
+    zero_mean : bool | False
+        If True, make sure the wavelets have a mean of zero. Defaults to False.
+    use_fft : bool
+        Use the FFT for convolutions or not. Defaults to True.
+    decim : int | slice
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition. Defaults to 1
+        If `int`, returns tfr[..., ::decim].
+        If `slice`, returns tfr[..., decim].
+
+        .. note::
+            Decimation may create aliasing artifacts, yet decimation
+            is done after the convolutions.
+
+    output : str, defaults to 'complex'
+
+        * 'complex' : single trial complex.
+        * 'power' : single trial power.
+        * 'phase' : single trial phase.
+        * 'avg_power' : average of single trial power.
+        * 'itc' : inter-trial coherence.
+        * 'avg_power_itc' : average of single trial power and inter-trial
+          coherence across trials.
+
+    n_jobs : int
+        The number of epochs to process at the same time. The parallelization
+        is implemented across channels. Defaults to 1
+    verbose : bool, str, int, or None, defaults to None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    out : array
+        Time frequency transform of epoch_data. If output is in ['complex',
+        'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
+        n_times), else it is (n_chans, n_freqs, n_times). If output is
+        'avg_power_itc', the real values code for 'avg_power' and the
+        imaginary values code for the 'itc': out = avg_power + i * itc
+
+    See Also
+    --------
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_array_stockwell
+
+    Notes
+    -----
+    .. versionadded:: 0.14.0
+    """
+    return _compute_tfr(epoch_data=epoch_data, frequencies=frequencies,
+                        sfreq=sfreq, method='morlet', n_cycles=n_cycles,
+                        zero_mean=zero_mean, time_bandwidth=None,
+                        use_fft=use_fft, decim=decim, output=output,
+                        n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose
@@ -709,7 +793,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     use_fft : bool, defaults to True
         The fft based convolution or not.
     return_itc : bool, defaults to True
-        Return inter-trial coherence (ITC) as well as averaged power.
+        Return inter-trial coherence (ITC) as well as averaged (or
+        single-trial) power.
     decim : int | slice, defaults to 1
         To reduce memory usage, decimation factor after time-frequency
         decomposition.
@@ -721,26 +806,31 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     n_jobs : int,  defaults to 1
         The number of jobs to run in parallel.
     picks : array-like of int | None, defaults to None
-        The indices of the channels to plot. If None, all available
-        channels are displayed.
+        The indices of the channels to decompose. If None, all available
+        channels are decomposed.
     average : bool, defaults to True
         If True average across Epochs.
 
         .. versionadded:: 0.13.0
     verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     power : AverageTFR | EpochsTFR
-        The averaged power.
+        The averaged or single-trial power.
     itc : AverageTFR | EpochsTFR
         The inter-trial coherence (ITC). Only returned if return_itc
         is True.
 
     See Also
     --------
-    tfr_multitaper, tfr_stockwell
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_array_stockwell
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_array_morlet
 
     Notes
     -----
@@ -756,6 +846,14 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
 class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
     """Base TFR class."""
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self._data = data
 
     @property
     def ch_names(self):
@@ -811,7 +909,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             is rendered in log-scale first.
             If None no baseline correction is applied.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see :func:`mne.verbose`).
 
         Returns
         -------
@@ -847,7 +945,8 @@ class AverageTFR(_BaseTFR):
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -877,13 +976,14 @@ class AverageTFR(_BaseTFR):
         self.nave = nave
         self.comment = comment
         self.method = method
+        self.preload = True
 
     @verbose
-    def plot(self, picks, baseline=None, mode='mean', tmin=None,
-             tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
-             cmap='RdBu_r', dB=False, colorbar=True, show=True,
-             title=None, axes=None, layout=None, verbose=None):
-        """Plot TFRs in a topography with images.
+    def plot(self, picks, baseline=None, mode='mean', tmin=None, tmax=None,
+             fmin=None, fmax=None, vmin=None, vmax=None, cmap='RdBu_r',
+             dB=False, colorbar=True, show=True, title=None, axes=None,
+             layout=None, yscale='auto', verbose=None):
+        """Plot TFRs as a two-dimensional image(s).
 
         Parameters
         ----------
@@ -956,8 +1056,15 @@ class AverageTFR(_BaseTFR):
             Layout instance specifying sensor positions. Used for interactive
             plotting of topographies on rectangle selection. If possible, the
             correct layout is inferred from the data.
+        yscale : 'auto' (default) | 'linear' | 'log'
+            The scale of y (frequency) axis. 'linear' gives linear y axis,
+            'log' leads to log-spaced y axis and 'auto' detects if frequencies
+            are log-spaced and only then sets the y axis to 'log'.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+            If not None, override default verbose level (see :func:`mne.verbose`).
 
         Returns
         -------
@@ -986,10 +1093,7 @@ class AverageTFR(_BaseTFR):
                 raise RuntimeError('There must be an axes for each picked '
                                    'channel.')
 
-        if cmap == 'interactive':
-            cmap = ('RdBu_r', True)
-        elif not isinstance(cmap, tuple):
-            cmap = (cmap, True)
+        cmap = _setup_cmap(cmap)
         for idx in range(len(data)):
             if axes is None:
                 fig = plt.figure()
@@ -1002,17 +1106,15 @@ class AverageTFR(_BaseTFR):
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (ms)', y_label='Frequency (Hz)',
-                        colorbar=colorbar, picker=False, cmap=cmap)
+                        colorbar=colorbar, cmap=cmap, yscale=yscale)
             if title:
                 fig.suptitle(title)
-            # Only draw 1 cbar. For interactive mode we pass the ref to cbar.
-            colorbar = ax.CB if cmap[1] else False
 
         plt_show(show)
         return fig
 
     def _onselect(self, eclick, erelease, baseline, mode, layout):
-        """Callback function called by rubber band selector in channel tfr."""
+        """Handle rubber band selector in channel tfr."""
         import matplotlib.pyplot as plt
         from ..viz import plot_tfr_topomap
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
@@ -1058,7 +1160,7 @@ class AverageTFR(_BaseTFR):
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
                   border='none', fig_facecolor='k', fig_background=None,
-                  font_color='w'):
+                  font_color='w', yscale='auto'):
         """Plot TFRs in a topography with images.
 
         Parameters
@@ -1127,6 +1229,10 @@ class AverageTFR(_BaseTFR):
             `matplotlib.pyplot.imshow`. Defaults to None.
         font_color: str | obj
             The color of tick labels in the colorbar. Defaults to white.
+        yscale : 'auto' (default) | 'linear' | 'log'
+            The scale of y (frequency) axis. 'linear' gives linear y axis,
+            'log' leads to log-spaced y axis and 'auto' detects if frequencies
+            are log-spaced and only then sets the y axis to 'log'.
 
         Returns
         -------
@@ -1153,7 +1259,7 @@ class AverageTFR(_BaseTFR):
         onselect_callback = partial(self._onselect, baseline=baseline,
                                     mode=mode, layout=layout)
 
-        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs,
+        click_fun = partial(_imshow_tfr, tfr=data, freq=freqs, yscale=yscale,
                             cmap=(cmap, True), onselect=onselect_callback)
         imshow = partial(_imshow_tfr_unified, tfr=data, freq=freqs, cmap=cmap,
                          onselect=onselect_callback)
@@ -1305,6 +1411,7 @@ class AverageTFR(_BaseTFR):
         assert np.all(tfr.freqs == self.freqs)
 
     def __add__(self, tfr):  # noqa: D105
+        """Add instances."""
         self._check_compat(tfr)
         out = self.copy()
         out.data += tfr.data
@@ -1316,6 +1423,7 @@ class AverageTFR(_BaseTFR):
         return self
 
     def __sub__(self, tfr):  # noqa: D105
+        """Subtract instances."""
         self._check_compat(tfr)
         out = self.copy()
         out.data -= tfr.data
@@ -1367,7 +1475,8 @@ class EpochsTFR(_BaseTFR):
     method : str | None, defaults to None
         Comment on the method used to compute the data, e.g., morlet wavelet.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Attributes
     ----------
@@ -1400,6 +1509,7 @@ class EpochsTFR(_BaseTFR):
         self.freqs = np.array(freqs, dtype=float)
         self.comment = comment
         self.method = method
+        self.preload = True
 
     def __repr__(self):  # noqa: D105
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
@@ -1490,16 +1600,16 @@ def combine_tfr(all_tfr, weights='nave'):
 
 def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time."""
-    from ..epochs import _BaseEpochs
+    from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    if not isinstance(inst, (_BaseEpochs, Evoked)):
+    if not isinstance(inst, (BaseEpochs, Evoked)):
         raise TypeError('inst must be Epochs or Evoked')
-    if isinstance(inst, _BaseEpochs):
+    if isinstance(inst, BaseEpochs):
         data = inst.get_data()
     else:
         if return_itc:
             raise ValueError('return_itc must be False for evoked data')
-        data = inst.data[np.newaxis, ...].copy()
+        data = inst.data[np.newaxis].copy()
     return data
 
 

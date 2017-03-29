@@ -19,9 +19,9 @@ from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger, warn
 from ...transforms import (apply_trans, als_ras_trans,
                            get_ras_to_neuromag_trans, Transform)
-from ..base import _BaseRaw
+from ..base import BaseRaw
 from ..utils import _mult_cal_one
-from ...epochs import _BaseEpochs
+from ...epochs import BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
 from .constants import KIT, KIT_CONSTANTS, SYSNAMES
@@ -30,7 +30,7 @@ from ...externals.six import string_types
 from ...event import read_events
 
 
-class RawKIT(_BaseRaw):
+class RawKIT(BaseRaw):
     """Raw object from KIT SQD file.
 
     Parameters
@@ -72,7 +72,8 @@ class RawKIT(_BaseRaw):
         How to decode trigger values from stim channels. 'binary' read stim
         channel events as binary code, 'channel' encodes channel number.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -187,11 +188,13 @@ class RawKIT(_BaseRaw):
                 else:
                     raise ValueError("stim needs to be list of int, '>' or "
                                      "'<', not %r" % str(stim))
-            elif np.max(stim) >= self._raw_extras[0]['nchan']:
-                raise ValueError('Tried to set stim channel %i, but sqd file '
-                                 'only has %i channels'
-                                 % (np.max(stim),
-                                    self._raw_extras[0]['nchan']))
+            else:
+                stim = np.asarray(stim, int)
+                if stim.max() >= self._raw_extras[0]['nchan']:
+                    raise ValueError(
+                        'Got stim=%s, but sqd file only has %i channels' %
+                        (stim, self._raw_extras[0]['nchan']))
+
             # modify info
             nchan = self._raw_extras[0]['nchan'] + 1
             ch_name = 'STI 014'
@@ -262,7 +265,7 @@ class RawKIT(_BaseRaw):
 
 
 def _default_stim_chs(info):
-    """Default stim channels for SQD files."""
+    """Return default stim channels for SQD files."""
     return pick_types(info, meg=False, ref_meg=False, misc=True,
                       exclude=[])[:8]
 
@@ -286,7 +289,7 @@ def _make_stim_channel(trigger_chs, slope, threshold, stim_code,
     return np.array(trig_chs.sum(axis=0), ndmin=2)
 
 
-class EpochsKIT(_BaseEpochs):
+class EpochsKIT(BaseEpochs):
     """Epochs Array object from KIT SQD file.
 
     Parameters
@@ -351,7 +354,8 @@ class EpochsKIT(_BaseEpochs):
         Digitizer head shape points, or path to head shape file. If more than
         10`000 points are in the head shape, they are automatically decimated.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -390,7 +394,9 @@ class EpochsKIT(_BaseEpochs):
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         self.info, kit_info = get_kit_info(input_fname)
+        kit_info.update(filename=input_fname)
         self._raw_extras = [kit_info]
+        self._filenames = []
         if len(events) != self._raw_extras[0]['n_epochs']:
             raise ValueError('Event list does not match number of epochs.')
 
@@ -411,18 +417,15 @@ class EpochsKIT(_BaseEpochs):
                 raise ValueError('No matching events found for %s '
                                  '(event id %i)' % (key, val))
 
-        self._filename = input_fname
         data = self._read_kit_data()
         assert data.shape == (self._raw_extras[0]['n_epochs'],
                               self.info['nchan'],
                               self._raw_extras[0]['frame_length'])
         tmax = ((data.shape[2] - 1) / self.info['sfreq']) + tmin
-        super(EpochsKIT, self).__init__(self.info, data, events, event_id,
-                                        tmin, tmax, baseline,
-                                        reject=reject, flat=flat,
-                                        reject_tmin=reject_tmin,
-                                        reject_tmax=reject_tmax,
-                                        verbose=verbose)
+        super(EpochsKIT, self).__init__(
+            self.info, data, events, event_id, tmin, tmax, baseline,
+            reject=reject, flat=flat, reject_tmin=reject_tmin,
+            reject_tmax=reject_tmax, filename=input_fname, verbose=verbose)
         logger.info('Ready.')
 
     def _read_kit_data(self):
@@ -439,8 +442,9 @@ class EpochsKIT(_BaseEpochs):
         epoch_length = self._raw_extras[0]['frame_length']
         n_epochs = self._raw_extras[0]['n_epochs']
         n_samples = self._raw_extras[0]['n_samples']
+        filename = self._raw_extras[0]['filename']
 
-        with open(self._filename, 'rb', buffering=0) as fid:
+        with open(filename, 'rb', buffering=0) as fid:
             # extract data
             data_offset = self._raw_extras[0]['data_offset']
             dtype = self._raw_extras[0]['dtype']
@@ -473,7 +477,7 @@ def _set_dig_kit(mrk, elp, hsp):
     """Add landmark points and head shape data to the KIT instance.
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
-    ALS coordinate system.
+    ALS coordinate system. This is converted to [m].
 
     Parameters
     ----------
@@ -500,7 +504,7 @@ def _set_dig_kit(mrk, elp, hsp):
         hsp = _read_dig_points(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
-        hsp = _decimate_points(hsp, res=5)
+        hsp = _decimate_points(hsp, res=0.005)
         n_new = len(hsp)
         warn("The selected head shape contained {n_in} points, which is "
              "more than recommended ({n_rec}), and was automatically "
@@ -605,11 +609,15 @@ def get_kit_info(rawfile):
                 # planargradiometer
                 # x,y,z,theta,phi,btheta,bphi,baseline,coilsize
                 sensors.append(np.fromfile(fid, dtype='d', count=9))
-            elif sens_type == 257:
+            elif sens_type in (257, 0):
                 # reference channels
                 sensors.append(np.zeros(7))
                 sqd['i'] = sens_type
+            else:
+                raise IOError("Unknown KIT channel type: %i" % sens_type)
         sqd['sensor_locs'] = np.array(sensors)
+        if len(sqd['sensor_locs']) != KIT_SYS.N_SENS:
+            raise IOError("An error occurred while reading %s" % rawfile)
 
         # amplifier gain
         fid.seek(KIT_SYS.AMPLIFIER_INFO)
@@ -675,32 +683,24 @@ def get_kit_info(rawfile):
         # Create raw.info dict for raw fif object with SQD data
         info = _empty_info(float(sqd['sfreq']))
         info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
-                    highpass=sqd['highpass'], filename=rawfile,
-                    buffer_size_sec=1., kit_system_id=sysid)
+                    highpass=sqd['highpass'], buffer_size_sec=1.,
+                    kit_system_id=sysid)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
-        ch_names = {}
-        ch_names['MEG'] = ['MEG %03d' % ch for ch
-                           in range(1, sqd['n_sens'] + 1)]
-        ch_names['MISC'] = ['MISC %03d' % ch for ch
-                            in range(1, sqd['nmiscchan'] + 1)]
         locs = sqd['sensor_locs']
         chan_locs = apply_trans(als_ras_trans, locs[:, :3])
         chan_angles = locs[:, 3:]
-        info['chs'] = []
-        for idx, ch_info in enumerate(zip(ch_names['MEG'], chan_locs,
-                                          chan_angles), 1):
-            ch_name, ch_loc, ch_angles = ch_info
-            chan_info = {}
-            chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['logno'] = idx
-            chan_info['scanno'] = idx
-            chan_info['range'] = KIT.RANGE
-            chan_info['unit_mul'] = KIT.UNIT_MUL
-            chan_info['ch_name'] = ch_name
-            chan_info['unit'] = FIFF.FIFF_UNIT_T
-            chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+        for idx, (ch_loc, ch_angles) in enumerate(zip(chan_locs, chan_angles),
+                                                  1):
+            chan_info = {'cal': KIT.CALIB_FACTOR,
+                         'logno': idx,
+                         'scanno': idx,
+                         'range': KIT.RANGE,
+                         'unit_mul': KIT.UNIT_MUL,
+                         'ch_name': 'MEG %03d' % idx,
+                         'unit': FIFF.FIFF_UNIT_T,
+                         'coord_frame': FIFF.FIFFV_COORD_DEVICE}
             if idx <= sqd['nmegchan']:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
@@ -738,19 +738,18 @@ def get_kit_info(rawfile):
             info['chs'].append(chan_info)
 
         # label trigger and misc channels
-        for idy, ch_name in enumerate(ch_names['MISC'],
-                                      sqd['n_sens'] + 1):
-            chan_info = {}
-            chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['logno'] = idy
-            chan_info['scanno'] = idy
-            chan_info['range'] = 1.0
-            chan_info['unit'] = FIFF.FIFF_UNIT_V
-            chan_info['unit_mul'] = 0
-            chan_info['ch_name'] = ch_name
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['loc'] = np.zeros(12)
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+        for idx in range(1, sqd['nmiscchan'] + 1):
+            ch_idx = idx + KIT_SYS.N_SENS
+            chan_info = {'cal': KIT.CALIB_FACTOR,
+                         'logno': ch_idx,
+                         'scanno': ch_idx,
+                         'range': 1.0,
+                         'unit': FIFF.FIFF_UNIT_V,
+                         'unit_mul': 0,
+                         'ch_name': 'MISC %03d' % idx,
+                         'coil_type': FIFF.FIFFV_COIL_NONE,
+                         'loc': np.zeros(12),
+                         'kind': FIFF.FIFFV_MISC_CH}
             info['chs'].append(chan_info)
     info._update_redundant()
     return info, sqd
@@ -797,7 +796,8 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
         How to decode trigger values from stim channels. 'binary' read stim
         channel events as binary code, 'channel' encodes channel number.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -807,6 +807,11 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    If mrk, hsp or elp are array_like inputs, then the numbers in xyz
+    coordinates should be in units of meters.
     """
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,
@@ -845,7 +850,8 @@ def read_epochs_kit(input_fname, events, event_id=None,
         Digitizer head shape points, or path to head shape file. If more than
         10,000 points are in the head shape, they are automatically decimated.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

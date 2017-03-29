@@ -14,12 +14,12 @@ class Annotations(object):
     """Annotation object for annotating segments of raw data.
 
     Annotations are added to instance of :class:`mne.io.Raw` as an attribute
-    named ``annotations``. See the example below. To reject bad epochs using
-    annotations, use annotation description starting with 'bad' keyword. The
-    epochs with overlapping bad segments are then rejected automatically by
-    default.
+    named ``annotations``. To reject bad epochs using annotations, use
+    annotation description starting with 'bad' keyword. The epochs with
+    overlapping bad segments are then rejected automatically by default.
 
     To remove epochs with blinks you can do::
+
         >>> eog_events = mne.preprocessing.find_eog_events(raw)  # doctest: +SKIP
         >>> n_blinks = len(eog_events)  # doctest: +SKIP
         >>> onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25  # doctest: +SKIP
@@ -32,7 +32,8 @@ class Annotations(object):
     Parameters
     ----------
     onset : array of float, shape (n_annotations,)
-        Annotation time onsets from the beginning of the recording in seconds.
+        Annotation time onsets relative to the ``orig_time``, the starting time
+        of annotation acquisition.
     duration : array of float, shape (n_annotations,)
         Durations of the annotations in seconds.
     description : array of str, shape (n_annotations,) | str
@@ -82,11 +83,46 @@ class Annotations(object):
 
         self.onset = onset
         self.duration = duration
-        self.description = np.array(description)
+        self.description = np.array(description, dtype=str)
+
+    def __len__(self):
+        """Return the number of annotations."""
+        return len(self.duration)
+
+    def append(self, onset, duration, description):
+        """Add an annotated segment. Operates inplace.
+
+        Parameters
+        ----------
+        onset : float
+            Annotation time onset from the beginning of the recording in
+            seconds.
+        duration : float
+            Duration of the annotation in seconds.
+        description : str
+            Description for the annotation. To reject epochs, use description
+            starting with keyword 'bad'
+        """
+        self.onset = np.append(self.onset, onset)
+        self.duration = np.append(self.duration, duration)
+        self.description = np.append(self.description, description)
+
+    def delete(self, idx):
+        """Remove an annotation. Operates inplace.
+
+        Parameters
+        ----------
+        idx : int | list of int
+            Index of the annotation to remove.
+        """
+        self.onset = np.delete(self.onset, idx)
+        self.duration = np.delete(self.duration, idx)
+        self.description = np.delete(self.description, idx)
 
 
-def _combine_annotations(annotations, last_samps, first_samps, sfreq):
-    """Helper for combining a tuple of annotations."""
+def _combine_annotations(annotations, last_samps, first_samps, sfreq,
+                         meas_date):
+    """Combine a tuple of annotations."""
     if not any(annotations):
         return None
     elif annotations[1] is None:
@@ -102,9 +138,13 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
         old_description = annotations[0].description
         old_orig_time = annotations[0].orig_time
 
-    extra_samps = len(first_samps) - 1  # Account for sample 0
-    onset = (annotations[1].onset + (sum(last_samps[:-1]) + extra_samps -
-                                     sum(first_samps[:-1])) / sfreq)
+    extra_samps = len(first_samps)  # Account for sample 0
+    if old_orig_time is not None and annotations[1].orig_time is None:
+        meas_date = _handle_meas_date(meas_date)
+        extra_samps += sfreq * (meas_date - old_orig_time) + first_samps[0]
+
+    onset = annotations[1].onset + (np.sum(last_samps) + extra_samps -
+                                    np.sum(first_samps)) / sfreq
 
     onset = np.concatenate([old_onset, onset])
     duration = np.concatenate([old_duration, annotations[1].duration])
@@ -112,9 +152,8 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq):
     return Annotations(onset, duration, description, old_orig_time)
 
 
-def _onset_to_seconds(raw, onset):
-    """Helper function for adjusting onsets in relation to raw data."""
-    meas_date = raw.info['meas_date']
+def _handle_meas_date(meas_date):
+    """Convert meas_date to seconds."""
     if meas_date is None:
         meas_date = 0
     elif not np.isscalar(meas_date):
@@ -122,11 +161,17 @@ def _onset_to_seconds(raw, onset):
             meas_date = meas_date[0] + meas_date[1] / 1000000.
         else:
             meas_date = meas_date[0]
+    return meas_date
+
+
+def _sync_onset(raw, onset, inverse=False):
+    """Adjust onsets in relation to raw data."""
+    meas_date = _handle_meas_date(raw.info['meas_date'])
     if raw.annotations.orig_time is None:
         orig_time = meas_date
     else:
-        orig_time = (raw.annotations.orig_time -
-                     raw.first_samp / raw.info['sfreq'])
+        offset = -raw._first_time if inverse else raw._first_time
+        orig_time = raw.annotations.orig_time - offset
 
     annot_start = orig_time - meas_date + onset
     return annot_start

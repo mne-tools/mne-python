@@ -22,6 +22,8 @@ import warnings
 import numpy as np
 from scipy import linalg, __version__ as sp_version
 
+from .externals.six import string_types, iteritems
+
 
 ###############################################################################
 # Misc
@@ -70,7 +72,85 @@ def _safe_svd(A, **kwargs):
 
 
 ###############################################################################
-# Back porting scipy.signal.sosfilt (0.17) and sosfiltfilt (0.18)
+# Backporting nibabel's read_geometry
+
+def _get_read_geometry():
+    """Get the geometry reading function."""
+    try:
+        import nibabel as nib
+        has_nibabel = True
+    except ImportError:
+        has_nibabel = False
+    if has_nibabel and LooseVersion(nib.__version__) > LooseVersion('2.1.0'):
+        from nibabel.freesurfer import read_geometry
+    else:
+        read_geometry = _read_geometry
+    return read_geometry
+
+
+def _read_geometry(filepath, read_metadata=False, read_stamp=False):
+    """Backport from nibabel."""
+    from .surface import _fread3, _fread3_many
+    volume_info = dict()
+
+    TRIANGLE_MAGIC = 16777214
+    QUAD_MAGIC = 16777215
+    NEW_QUAD_MAGIC = 16777213
+    with open(filepath, "rb") as fobj:
+        magic = _fread3(fobj)
+        if magic in (QUAD_MAGIC, NEW_QUAD_MAGIC):  # Quad file
+            nvert = _fread3(fobj)
+            nquad = _fread3(fobj)
+            (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
+            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float) / div
+            coords = coords.reshape(-1, 3)
+            quads = _fread3_many(fobj, nquad * 4)
+            quads = quads.reshape(nquad, 4)
+            #
+            #   Face splitting follows
+            #
+            faces = np.zeros((2 * nquad, 3), dtype=np.int)
+            nface = 0
+            for quad in quads:
+                if (quad[0] % 2) == 0:
+                    faces[nface] = quad[0], quad[1], quad[3]
+                    nface += 1
+                    faces[nface] = quad[2], quad[3], quad[1]
+                    nface += 1
+                else:
+                    faces[nface] = quad[0], quad[1], quad[2]
+                    nface += 1
+                    faces[nface] = quad[0], quad[2], quad[3]
+                    nface += 1
+
+        elif magic == TRIANGLE_MAGIC:  # Triangle file
+            create_stamp = fobj.readline().rstrip(b'\n').decode('utf-8')
+            fobj.readline()
+            vnum = np.fromfile(fobj, ">i4", 1)[0]
+            fnum = np.fromfile(fobj, ">i4", 1)[0]
+            coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
+            faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
+
+            if read_metadata:
+                volume_info = _read_volume_info(fobj)
+        else:
+            raise ValueError("File does not appear to be a Freesurfer surface")
+
+    coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
+
+    ret = (coords, faces)
+    if read_metadata:
+        if len(volume_info) == 0:
+            warnings.warn('No volume information contained in the file')
+        ret += (volume_info,)
+    if read_stamp:
+        ret += (create_stamp,)
+
+    return ret
+
+
+###############################################################################
+# Backporting scipy.signal.sosfilt (0.17) and sosfiltfilt (0.18)
 
 
 def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
@@ -280,6 +360,60 @@ def get_sosfiltfilt():
     return sosfiltfilt
 
 
+def minimum_phase(h):
+    """Convert a linear-phase FIR filter to minimum phase.
+
+    Parameters
+    ----------
+    h : array
+        Linear-phase FIR filter coefficients.
+
+    Returns
+    -------
+    h_minimum : array
+        The minimum-phase version of the filter, with length
+        ``(length(h) + 1) // 2``.
+    """
+    try:
+        from scipy.signal import minimum_phase
+    except Exception:
+        pass
+    else:
+        return minimum_phase(h)
+    from scipy.fftpack import fft, ifft
+    h = np.asarray(h)
+    if np.iscomplexobj(h):
+        raise ValueError('Complex filters not supported')
+    if h.ndim != 1 or h.size <= 2:
+        raise ValueError('h must be 1D and at least 2 samples long')
+    n_half = len(h) // 2
+    if not np.allclose(h[-n_half:][::-1], h[:n_half]):
+        warnings.warn('h does not appear to by symmetric, conversion may '
+                      'fail', RuntimeWarning)
+    n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
+    # zero-pad; calculate the DFT
+    h_temp = np.abs(fft(h, n_fft))
+    # take 0.25*log(|H|**2) = 0.5*log(|H|)
+    h_temp += 1e-7 * h_temp[h_temp > 0].min()  # don't let log blow up
+    np.log(h_temp, out=h_temp)
+    h_temp *= 0.5
+    # IDFT
+    h_temp = ifft(h_temp).real
+    # multiply pointwise by the homomorphic filter
+    # lmin[n] = 2u[n] - d[n]
+    win = np.zeros(n_fft)
+    win[0] = 1
+    stop = (len(h) + 1) // 2
+    win[1:stop] = 2
+    if len(h) % 2:
+        win[stop] = 1
+    h_temp *= win
+    h_temp = ifft(np.exp(fft(h_temp)))
+    h_minimum = h_temp.real
+    n_out = n_half + len(h) % 2
+    return h_minimum[:n_out]
+
+
 ###############################################################################
 # scipy.special.sph_harm ()
 
@@ -340,6 +474,436 @@ def _get_sph_harm():
     else:
         from scipy.special import sph_harm
     return sph_harm
+
+
+###############################################################################
+# Scipy spectrogram (for mne.time_frequency.psd_welch) needed for scipy < 0.16
+
+def _spectrogram(x, fs=1.0, window=('tukey',.25), nperseg=256, noverlap=None,
+                nfft=None, detrend='constant', return_onesided=True,
+                scaling='density', axis=-1, mode='psd'):
+    """
+    Compute a spectrogram with consecutive Fourier transforms.
+    Spectrograms can be used as a way of visualizing the change of a
+    nonstationary signal's frequency content over time.
+
+    Parameters
+    ----------
+    x : array_like
+        Time series of measurement values
+    fs : float, optional
+        Sampling frequency of the `x` time series. Defaults to 1.0.
+    window : str or tuple or array_like, optional
+        Desired window to use. See `get_window` for a list of windows and
+        required parameters. If `window` is array_like it will be used
+        directly as the window and its length will be used for nperseg.
+        Defaults to a Tukey window with shape parameter of 0.25.
+    nperseg : int, optional
+        Length of each segment.  Defaults to 256.
+    noverlap : int, optional
+        Number of points to overlap between segments. If None,
+        ``noverlap = nperseg // 8``.  Defaults to None.
+    nfft : int, optional
+        Length of the FFT used, if a zero padded FFT is desired.  If None,
+        the FFT length is `nperseg`. Defaults to None.
+    detrend : str or function or False, optional
+        Specifies how to detrend each segment. If `detrend` is a string,
+        it is passed as the ``type`` argument to `detrend`.  If it is a
+        function, it takes a segment and returns a detrended segment.
+        If `detrend` is False, no detrending is done.  Defaults to 'constant'.
+    return_onesided : bool, optional
+        If True, return a one-sided spectrum for real data. If False return
+        a two-sided spectrum. Note that for complex data, a two-sided
+        spectrum is always returned.
+    scaling : { 'density', 'spectrum' }, optional
+        Selects between computing the power spectral density ('density')
+        where `Pxx` has units of V**2/Hz and computing the power spectrum
+        ('spectrum') where `Pxx` has units of V**2, if `x` is measured in V
+        and fs is measured in Hz.  Defaults to 'density'
+    axis : int, optional
+        Axis along which the spectrogram is computed; the default is over
+        the last axis (i.e. ``axis=-1``).
+    mode : str, optional
+        Defines what kind of return values are expected. Options are ['psd',
+        'complex', 'magnitude', 'angle', 'phase'].
+
+    Returns
+    -------
+    f : ndarray
+        Array of sample frequencies.
+    t : ndarray
+        Array of segment times.
+    Sxx : ndarray
+        Spectrogram of x. By default, the last axis of Sxx corresponds to the
+        segment times.
+
+    See Also
+    --------
+    periodogram: Simple, optionally modified periodogram
+    lombscargle: Lomb-Scargle periodogram for unevenly sampled data
+    welch: Power spectral density by Welch's method.
+    csd: Cross spectral density by Welch's method.
+
+    Notes
+    -----
+    An appropriate amount of overlap will depend on the choice of window
+    and on your requirements. In contrast to welch's method, where the entire
+    data stream is averaged over, one may wish to use a smaller overlap (or
+    perhaps none at all) when computing a spectrogram, to maintain some
+    statistical independence between individual segments.
+    .. versionadded:: 0.16.0
+
+    References
+    ----------
+    .. [1] Oppenheim, Alan V., Ronald W. Schafer, John R. Buck "Discrete-Time
+           Signal Processing", Prentice Hall, 1999.
+    """
+    # Less overlap than welch, so samples are more statisically independent
+    if noverlap is None:
+        noverlap = nperseg // 8
+
+    freqs, time, Pxy = _spectral_helper(x, x, fs, window, nperseg, noverlap,
+                                        nfft, detrend, return_onesided, scaling,
+                                        axis, mode=mode)
+
+    return freqs, time, Pxy
+
+
+def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=256,
+                    noverlap=None, nfft=None, detrend='constant',
+                    return_onesided=True, scaling='spectrum', axis=-1,
+                    mode='psd'):
+    """
+    Calculate various forms of windowed FFTs for PSD, CSD, etc.
+    This is a helper function that implements the commonality between the
+    psd, csd, and spectrogram functions. It is not designed to be called
+    externally. The windows are not averaged over; the result from each window
+    is returned.
+
+    Parameters
+    ---------
+    x : array_like
+        Array or sequence containing the data to be analyzed.
+    y : array_like
+        Array or sequence containing the data to be analyzed. If this is
+        the same object in memoery as x (i.e. _spectral_helper(x, x, ...)),
+        the extra computations are spared.
+    fs : float, optional
+        Sampling frequency of the time series. Defaults to 1.0.
+    window : str or tuple or array_like, optional
+        Desired window to use. See `get_window` for a list of windows and
+        required parameters. If `window` is array_like it will be used
+        directly as the window and its length will be used for nperseg.
+        Defaults to 'hann'.
+    nperseg : int, optional
+        Length of each segment.  Defaults to 256.
+    noverlap : int, optional
+        Number of points to overlap between segments. If None,
+        ``noverlap = nperseg // 2``.  Defaults to None.
+    nfft : int, optional
+        Length of the FFT used, if a zero padded FFT is desired.  If None,
+        the FFT length is `nperseg`. Defaults to None.
+    detrend : str or function or False, optional
+        Specifies how to detrend each segment. If `detrend` is a string,
+        it is passed as the ``type`` argument to `detrend`.  If it is a
+        function, it takes a segment and returns a detrended segment.
+        If `detrend` is False, no detrending is done.  Defaults to 'constant'.
+    return_onesided : bool, optional
+        If True, return a one-sided spectrum for real data. If False return
+        a two-sided spectrum. Note that for complex data, a two-sided
+        spectrum is always returned.
+    scaling : { 'density', 'spectrum' }, optional
+        Selects between computing the cross spectral density ('density')
+        where `Pxy` has units of V**2/Hz and computing the cross spectrum
+        ('spectrum') where `Pxy` has units of V**2, if `x` and `y` are
+        measured in V and fs is measured in Hz.  Defaults to 'density'
+    axis : int, optional
+        Axis along which the periodogram is computed; the default is over
+        the last axis (i.e. ``axis=-1``).
+    mode : str, optional
+        Defines what kind of return values are expected. Options are ['psd',
+        'complex', 'magnitude', 'angle', 'phase'].
+
+    Returns
+    -------
+    freqs : ndarray
+        Array of sample frequencies.
+    t : ndarray
+        Array of times corresponding to each data segment
+    result : ndarray
+        Array of output data, contents dependent on *mode* kwarg.
+
+    References
+    ----------
+    .. [1] Stack Overflow, "Rolling window for 1D arrays in Numpy?",
+        http://stackoverflow.com/a/6811241
+    .. [2] Stack Overflow, "Using strides for an efficient moving average
+        filter", http://stackoverflow.com/a/4947453
+
+    Notes
+    -----
+    Adapted from matplotlib.mlab
+    .. versionadded:: 0.16.0
+    """
+    from scipy import fftpack
+    from scipy.signal import signaltools
+    from scipy.signal.windows import get_window
+
+    if mode not in ['psd', 'complex', 'magnitude', 'angle', 'phase']:
+        raise ValueError("Unknown value for mode %s, must be one of: "
+                         "'default', 'psd', 'complex', "
+                         "'magnitude', 'angle', 'phase'" % mode)
+
+    # If x and y are the same object we can save ourselves some computation.
+    same_data = y is x
+
+    if not same_data and mode != 'psd':
+        raise ValueError("x and y must be equal if mode is not 'psd'")
+
+    axis = int(axis)
+
+    # Ensure we have np.arrays, get outdtype
+    x = np.asarray(x)
+    if not same_data:
+        y = np.asarray(y)
+        outdtype = np.result_type(x,y,np.complex64)
+    else:
+        outdtype = np.result_type(x,np.complex64)
+
+    if not same_data:
+        # Check if we can broadcast the outer axes together
+        xouter = list(x.shape)
+        youter = list(y.shape)
+        xouter.pop(axis)
+        youter.pop(axis)
+        try:
+            outershape = np.broadcast(np.empty(xouter), np.empty(youter)).shape
+        except ValueError:
+            raise ValueError('x and y cannot be broadcast together.')
+
+    if same_data:
+        if x.size == 0:
+            return np.empty(x.shape), np.empty(x.shape), np.empty(x.shape)
+    else:
+        if x.size == 0 or y.size == 0:
+            outshape = outershape + (min([x.shape[axis], y.shape[axis]]),)
+            emptyout = np.rollaxis(np.empty(outshape), -1, axis)
+            return emptyout, emptyout, emptyout
+
+    if x.ndim > 1:
+        if axis != -1:
+            x = np.rollaxis(x, axis, len(x.shape))
+            if not same_data and y.ndim > 1:
+                y = np.rollaxis(y, axis, len(y.shape))
+
+    # Check if x and y are the same length, zero-pad if necessary
+    if not same_data:
+        if x.shape[-1] != y.shape[-1]:
+            if x.shape[-1] < y.shape[-1]:
+                pad_shape = list(x.shape)
+                pad_shape[-1] = y.shape[-1] - x.shape[-1]
+                x = np.concatenate((x, np.zeros(pad_shape)), -1)
+            else:
+                pad_shape = list(y.shape)
+                pad_shape[-1] = x.shape[-1] - y.shape[-1]
+                y = np.concatenate((y, np.zeros(pad_shape)), -1)
+
+    # X and Y are same length now, can test nperseg with either
+    if x.shape[-1] < nperseg:
+        warnings.warn('nperseg = {0:d}, is greater than input length = {1:d}, '
+                      'using nperseg = {1:d}'.format(nperseg, x.shape[-1]))
+        nperseg = x.shape[-1]
+
+    nperseg = int(nperseg)
+    if nperseg < 1:
+        raise ValueError('nperseg must be a positive integer')
+
+    if nfft is None:
+        nfft = nperseg
+    elif nfft < nperseg:
+        raise ValueError('nfft must be greater than or equal to nperseg.')
+    else:
+        nfft = int(nfft)
+
+    if noverlap is None:
+        noverlap = nperseg//2
+    elif noverlap >= nperseg:
+        raise ValueError('noverlap must be less than nperseg.')
+    else:
+        noverlap = int(noverlap)
+
+    # Handle detrending and window functions
+    if not detrend:
+        def detrend_func(d):
+            return d
+    elif not hasattr(detrend, '__call__'):
+        def detrend_func(d):
+            return signaltools.detrend(d, type=detrend, axis=-1)
+    elif axis != -1:
+        # Wrap this function so that it receives a shape that it could
+        # reasonably expect to receive.
+        def detrend_func(d):
+            d = np.rollaxis(d, -1, axis)
+            d = detrend(d)
+            return np.rollaxis(d, axis, len(d.shape))
+    else:
+        detrend_func = detrend
+
+    if isinstance(window, string_types) or type(window) is tuple:
+        win = get_window(window, nperseg)
+    else:
+        win = np.asarray(window)
+        if len(win.shape) != 1:
+            raise ValueError('window must be 1-D')
+        if win.shape[0] != nperseg:
+            raise ValueError('window must have length of nperseg')
+
+    if np.result_type(win,np.complex64) != outdtype:
+        win = win.astype(outdtype)
+
+    if mode == 'psd':
+        if scaling == 'density':
+            scale = 1.0 / (fs * (win*win).sum())
+        elif scaling == 'spectrum':
+            scale = 1.0 / win.sum()**2
+        else:
+            raise ValueError('Unknown scaling: %r' % scaling)
+    else:
+        scale = 1
+
+    if return_onesided is True:
+        if np.iscomplexobj(x):
+            sides = 'twosided'
+        else:
+            sides = 'onesided'
+            if not same_data:
+                if np.iscomplexobj(y):
+                    sides = 'twosided'
+    else:
+        sides = 'twosided'
+
+    if sides == 'twosided':
+        num_freqs = nfft
+    elif sides == 'onesided':
+        if nfft % 2:
+            num_freqs = (nfft + 1)//2
+        else:
+            num_freqs = nfft//2 + 1
+
+    # Perform the windowed FFTs
+    result = _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft)
+    result = result[..., :num_freqs]
+    freqs = fftpack.fftfreq(nfft, 1/fs)[:num_freqs]
+
+    if not same_data:
+        # All the same operations on the y data
+        result_y = _fft_helper(y, win, detrend_func, nperseg, noverlap, nfft)
+        result_y = result_y[..., :num_freqs]
+        result = np.conjugate(result) * result_y
+    elif mode == 'psd':
+        result = np.conjugate(result) * result
+    elif mode == 'magnitude':
+        result = np.absolute(result)
+    elif mode == 'angle' or mode == 'phase':
+        result = np.angle(result)
+    elif mode == 'complex':
+        pass
+
+    result *= scale
+    if sides == 'onesided':
+        if nfft % 2:
+            result[...,1:] *= 2
+        else:
+            # Last point is unpaired Nyquist freq point, don't double
+            result[...,1:-1] *= 2
+
+    t = np.arange(nperseg/2, x.shape[-1] - nperseg/2 + 1, nperseg - noverlap)/float(fs)
+
+    if sides != 'twosided' and not nfft % 2:
+        # get the last value correctly, it is negative otherwise
+        freqs[-1] *= -1
+
+    # we unwrap the phase here to handle the onesided vs. twosided case
+    if mode == 'phase':
+        result = np.unwrap(result, axis=-1)
+
+    result = result.astype(outdtype)
+
+    # All imaginary parts are zero anyways
+    if same_data and mode != 'complex':
+        result = result.real
+
+    # Output is going to have new last axis for window index
+    if axis != -1:
+        # Specify as positive axis index
+        if axis < 0:
+            axis = len(result.shape)-1-axis
+
+        # Roll frequency axis back to axis where the data came from
+        result = np.rollaxis(result, -1, axis)
+    else:
+        # Make sure window/time index is last axis
+        result = np.rollaxis(result, -1, -2)
+
+    return freqs, t, result
+
+
+def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft):
+    """
+    Calculate windowed FFT, for internal use by scipy.signal._spectral_helper
+    This is a helper function that does the main FFT calculation for
+    _spectral helper. All input valdiation is performed there, and the data
+    axis is assumed to be the last axis of x. It is not designed to be called
+    externally. The windows are not averaged over; the result from each window
+    is returned.
+
+    Returns
+    -------
+    result : ndarray
+        Array of FFT data
+
+    References
+    ----------
+    .. [1] Stack Overflow, "Repeat NumPy array without replicating data?",
+        http://stackoverflow.com/a/5568169
+
+    Notes
+    -----
+    Adapted from matplotlib.mlab
+    .. versionadded:: 0.16.0
+    """
+    from scipy import fftpack
+
+    # Created strided array of data segments
+    if nperseg == 1 and noverlap == 0:
+        result = x[..., np.newaxis]
+    else:
+        step = nperseg - noverlap
+        shape = x.shape[:-1]+((x.shape[-1]-noverlap)//step, nperseg)
+        strides = x.strides[:-1]+(step*x.strides[-1], x.strides[-1])
+        result = np.lib.stride_tricks.as_strided(x, shape=shape,
+                                                 strides=strides)
+
+    # Detrend each data segment individually
+    result = detrend_func(result)
+
+    # Apply window by multiplication
+    result = win * result
+
+    # Perform the fft. Acts on last axis by default. Zero-pads automatically
+    result = fftpack.fft(result, n=nfft)
+
+    return result
+
+
+def get_spectrogram():
+    '''helper function to get relevant spectrogram'''
+    from .utils import check_version
+    if check_version('scipy', '0.16.0'):
+        from scipy.signal import spectrogram
+    else:
+        spectrogram = _spectrogram
+    return spectrogram
 
 
 ###############################################################################
@@ -494,3 +1058,131 @@ def _serialize_volume_info(volume_info):
             strings.append('{0} = {1:0.10g} {2:0.10g} {3:0.10g}\n'.format(
                 key.ljust(6), val[0], val[1], val[2]).encode('utf-8'))
     return b''.join(strings)
+
+
+##############################################################################
+# adapted from scikit-learn
+
+class BaseEstimator(object):
+    """Base class for all estimators in scikit-learn
+
+    Notes
+    -----
+    All estimators should specify all the parameters that can be set
+    at the class level in their ``__init__`` as explicit keyword
+    arguments (no ``*args`` or ``**kwargs``).
+    """
+
+    @classmethod
+    def _get_param_names(cls):
+        """Get parameter names for the estimator"""
+        try:
+            from inspect import signature
+        except ImportError:
+            from .externals.funcsigs import signature
+        # fetch the constructor or the original constructor before
+        # deprecation wrapping if any
+        init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
+        if init is object.__init__:
+            # No explicit constructor to introspect
+            return []
+
+        # introspect the constructor arguments to find the model parameters
+        # to represent
+        init_signature = signature(init)
+        # Consider the constructor parameters excluding 'self'
+        parameters = [p for p in init_signature.parameters.values()
+                      if p.name != 'self' and p.kind != p.VAR_KEYWORD]
+        for p in parameters:
+            if p.kind == p.VAR_POSITIONAL:
+                raise RuntimeError("scikit-learn estimators should always "
+                                   "specify their parameters in the signature"
+                                   " of their __init__ (no varargs)."
+                                   " %s with constructor %s doesn't "
+                                   " follow this convention."
+                                   % (cls, init_signature))
+        # Extract and sort argument names excluding 'self'
+        return sorted([p.name for p in parameters])
+
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Parameters
+        ----------
+        deep : boolean, optional
+            If True, will return the parameters for this estimator and
+            contained subobjects that are estimators.
+
+        Returns
+        -------
+        params : mapping of string to any
+            Parameter names mapped to their values.
+        """
+        out = dict()
+        for key in self._get_param_names():
+            # We need deprecation warnings to always be on in order to
+            # catch deprecated param values.
+            # This is set in utils/__init__.py but it gets overwritten
+            # when running under python3 somehow.
+            warnings.simplefilter("always", DeprecationWarning)
+            try:
+                with warnings.catch_warnings(record=True) as w:
+                    value = getattr(self, key, None)
+                if len(w) and w[0].category == DeprecationWarning:
+                    # if the parameter is deprecated, don't show it
+                    continue
+            finally:
+                warnings.filters.pop(0)
+
+            # XXX: should we rather test if instance of estimator?
+            if deep and hasattr(value, 'get_params'):
+                deep_items = value.get_params().items()
+                out.update((key + '__' + k, val) for k, val in deep_items)
+            out[key] = value
+        return out
+
+    def set_params(self, **params):
+        """Set the parameters of this estimator.
+        The method works on simple estimators as well as on nested objects
+        (such as pipelines). The latter have parameters of the form
+        ``<component>__<parameter>`` so that it's possible to update each
+        component of a nested object.
+        Returns
+        -------
+        self
+        """
+        if not params:
+            # Simple optimisation to gain speed (inspect is slow)
+            return self
+        valid_params = self.get_params(deep=True)
+        for key, value in iteritems(params):
+            split = key.split('__', 1)
+            if len(split) > 1:
+                # nested objects case
+                name, sub_name = split
+                if name not in valid_params:
+                    raise ValueError('Invalid parameter %s for estimator %s. '
+                                     'Check the list of available parameters '
+                                     'with `estimator.get_params().keys()`.' %
+                                     (name, self))
+                sub_object = valid_params[name]
+                sub_object.set_params(**{sub_name: value})
+            else:
+                # simple objects case
+                if key not in valid_params:
+                    raise ValueError('Invalid parameter %s for estimator %s. '
+                                     'Check the list of available parameters '
+                                     'with `estimator.get_params().keys()`.' %
+                                     (key, self.__class__.__name__))
+                setattr(self, key, value)
+        return self
+
+    def __repr__(self):
+        from sklearn.base import _pprint
+        class_name = self.__class__.__name__
+        return '%s(%s)' % (class_name, _pprint(self.get_params(deep=False),
+                                               offset=len(class_name),),)
+
+    # __getstate__ and __setstate__ are omitted because they only contain
+    # conditionals that are not satisfied by our objects (e.g.,
+    # ``if type(self).__module__.startswith('sklearn.')``.

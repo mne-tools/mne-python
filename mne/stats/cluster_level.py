@@ -16,7 +16,7 @@ from scipy import sparse
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import split_list, logger, verbose, ProgressBar, warn
+from ..utils import split_list, logger, verbose, ProgressBar, warn, _pl
 from ..source_estimate import SourceEstimate
 
 
@@ -689,6 +689,11 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     """
     if out_type not in ['mask', 'indices']:
         raise ValueError('out_type must be either \'mask\' or \'indices\'')
+    if not isinstance(threshold, dict) and (tail < 0 and threshold > 0 or
+                                            tail > 0 and threshold < 0 or
+                                            tail == 0 and threshold < 0):
+        raise ValueError('incompatible tail and threshold signs, got %s and %s'
+                         % (tail, threshold))
 
     # check dimensions for each group in X (a list at this stage).
     X = [x[:, np.newaxis] if x.ndim == 1 else x for x in X]
@@ -842,10 +847,10 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             n_step_downs += 1
             if step_down_p > 0:
                 a_text = 'additional ' if n_step_downs > 1 else ''
-                pl = '' if n_removed == 1 else 's'
                 logger.info('Step-down-in-jumps iteration #%i found %i %s'
                             'cluster%s to exclude from subsequent iterations'
-                            % (n_step_downs, n_removed, a_text, pl))
+                            % (n_step_downs, n_removed, a_text,
+                               _pl(n_removed)))
         logger.info('Done.')
         # The clusters should have the same shape as the samples
         clusters = _reshape_clusters(clusters, sample_shape)
@@ -944,7 +949,8 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
@@ -1076,7 +1082,8 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
@@ -1210,7 +1217,8 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
@@ -1336,7 +1344,8 @@ def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     seed : int or None
