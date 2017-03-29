@@ -1450,9 +1450,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         evokeds = dict((str(ii + 1), evoked)
                        for ii, evoked in enumerate(evokeds))
     for cond in evokeds.keys():
-        if not isinstance(cond, str):
+        if not isinstance(cond, string_types):
             t = type(cond)
-            raise TypeError("Conditions must be str, not {}.".format(t))
+            raise TypeError('Conditions must be str, not %s' % (type(cond),))
     conditions = sorted(list(evokeds.keys()))
 
     # get and set a few limits and variables (times, channels, units)
