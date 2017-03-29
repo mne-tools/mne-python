@@ -59,7 +59,6 @@ Classes
    decoding.CSP
    decoding.FilterEstimator
    decoding.PSDEstimator
-   decoding.Scale
    decoding.ReceptiveField
    decoding.Scaler
    decoding.SlidingEstimator
