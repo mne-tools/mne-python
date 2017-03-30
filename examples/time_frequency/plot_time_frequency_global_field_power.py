@@ -46,10 +46,6 @@ from mne.datasets import somato
 data_path = somato.data_path()
 raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
 
-# Setup for reading the raw data
-raw = mne.io.read_raw_fif(raw_fname, preload=False)
-events = mne.find_events(raw, stim_channel='STI 014')
-
 # let's explore some frequency bands
 iter_freqs = [
     ('Theta', 4, 7),
@@ -64,9 +60,15 @@ iter_freqs = [
 # set epoching parameters
 event_id, tmin, tmax = 1, -1., 3.
 baseline = None
-frequency_map = list()
-for band, fmin, fmax in iter_freqs:
 
+# get the header to extract events
+raw = mne.io.read_raw_fif(raw_fname, preload=False)
+events = mne.find_events(raw, stim_channel='STI 014')
+
+frequency_map = list()
+
+for band, fmin, fmax in iter_freqs:
+    # (re)load the data
     raw = mne.io.read_raw_fif(raw_fname, preload=True)
     raw.pick_types(meg='grad', eog=True)  # we just look at gradiometers
 
@@ -79,9 +81,8 @@ for band, fmin, fmax in iter_freqs:
                         reject=dict(grad=4000e-13, eog=350e-6),
                         preload=True)
     # remove evoked response and get analytic signal (envelope)
-    data = epochs.get_data()
-    mean = np.mean(data, axis=0, keepdims=True)
-    epochs._data = np.abs(data - mean)
+    epochs.subtract_evoked()
+    epochs._data = np.abs(epochs.get_data())
     # now average and move on
     frequency_map.append(((band, fmin, fmax), epochs.average()))
 
@@ -94,7 +95,6 @@ for band, fmin, fmax in iter_freqs:
 rank = raw.estimate_rank()
 print('The numerical rank is: %i' % rank)
 rng = np.random.RandomState(42)
-mne.utils.set_log_level('warning')
 
 # Then we prepare a bootstrapping function to estimate confidence intervals
 
