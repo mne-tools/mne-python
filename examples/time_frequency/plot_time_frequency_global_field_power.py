@@ -8,11 +8,10 @@ effects. For this purpose we adapt the method described in [1] and use it on
 the somato dataset. The idea is to track the band-limited temporal evolution
 of spatial patterns by using the Global Field Power (GFP).
 We first bandpass filter the signals, then apply a Hilbert transform, then
-subtract the avarage and finally rectify the signals prior to averaging.
+subtract the average and finally rectify the signals prior to averaging.
 Then the GFP is computed as described in [2], using the
-sum of the squares devided by the true degrees of freedom.
-Baselinging is
-applied to make the GFPs comparabel between frequencies.
+sum of the squares divided by the true degrees of freedom.
+Baselining is applied to make the GFPs comparable between frequencies.
 The procedure is then repeated for each frequency band of interest and
 all GFPs are visualized. The non-parametric confidence intervals are computed
 as described in [3].
