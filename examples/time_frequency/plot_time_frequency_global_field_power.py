@@ -140,6 +140,9 @@ for (freq_name, average), color, ax in zip(
                     alpha=0.3)
     ax.grid(True)
     ax.set_ylabel(freq_name)
+    ax.annotate('%d-%dHz' % (fmin, fmax),
+                xy=(0.8, 0.8),
+                xycoords='axes fraction')
 axes.ravel()[-1].set_xlabel('Time [ms]')
 
 
