@@ -84,7 +84,7 @@ for band, fmin, fmax in iter_freqs:
     mean = np.mean(data, axis=0, keepdims=True)
     epochs._data = np.abs(data - mean)
     # now average and move on
-    frequency_map.append((band, epochs.average()))
+    frequency_map.append(((band, fmin, fmax), epochs.average()))
 
 ###############################################################################
 # Now we can compute the Global Field Power
@@ -123,11 +123,11 @@ def get_gfp_ci(average, rank=rank):
 fig, axes = plt.subplots(4, 1, figsize=(10, 7),
                          sharex=True, sharey=True)
 colors = [plt.cm.viridis(ii) for ii in (0.1, 0.35, 0.75, 0.95)]
-for (freq_name, average), color, ax in zip(
+for ((freq_name, fmin, fmax), average), color, ax in zip(
         frequency_map, colors, axes.ravel()[::-1]):
     times = average.times * 1e3
     gfp = np.sum(average.data ** 2, 0) / rank
-    gfp = mne.baseline.rescale(gfp, times, (None, 0))
+    gfp = mne.baseline.rescale(gfp, times, baseline=(None, 0))
     ax.plot(times,
             gfp,
             label=freq_name, color=color,
@@ -140,8 +140,8 @@ for (freq_name, average), color, ax in zip(
     ax.grid(True)
     ax.set_ylabel('GFP')
     ax.annotate('%s (%d-%dHz)' % (freq_name, fmin, fmax),
-                xy=(0.8, 0.8),
-                horizontalalignment='left'
+                xy=(0.95, 0.8),
+                horizontalalignment='right',
                 xycoords='axes fraction')
 axes.ravel()[-1].set_xlabel('Time [ms]')
 
