@@ -17,7 +17,10 @@ def run():
     """Run command."""
     parser = mne.commands.utils.get_optparser(
         __file__, usage='mne show_fiff <file>')
+    parser.add_option("-t", "--tag", dest="tag",
+                      help="provide information about this tag", metavar="TAG")
     options, args = parser.parse_args()
+
     if len(args) != 1:
         parser.print_help()
         sys.exit(1)
@@ -26,7 +29,8 @@ def run():
         # https://pythonhosted.org/kitchen/unicode-frustrations.html
         UTF8Writer = codecs.getwriter('utf8')
         sys.stdout = UTF8Writer(sys.stdout)
-    print(mne.io.show_fiff(args[0]))
+
+    print(mne.io.show_fiff(args[0], tag=options.tag).strip())
 
 
 is_main = (__name__ == '__main__')
