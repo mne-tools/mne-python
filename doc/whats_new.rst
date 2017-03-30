@@ -36,7 +36,7 @@ BUG
 API
 ~~~
 
-    - ...
+    - Make the goodness of fit (GOF) of the dipoles returned by :func:`mne.beamformer.rap_music` consistent with the GOF of dipoles returned by :func:`mne.fit_dipole` by `Alex Gramfort`_.
 
 
 .. _changes_0_14:
