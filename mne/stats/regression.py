@@ -376,7 +376,7 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
                          " optimized for continuous predictors; consider "
                          "`mne.decoding.ReceptiveField` instead.".format(cond))
                 else:
-                    warn("{} is also dense.".format(cond)
+                    warn("{} is also dense.".format(cond))
 
         cond_length[cond] = len(onsets)
         xs.append(sparse.dia_matrix((values, onsets),
