@@ -52,9 +52,9 @@ class CSP(TransformerMixin, BaseEstimator):
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape (n_channels, n_channels)
+    ``filters_`` : ndarray, shape (n_components, n_channels)
         If fit, the CSP components used to decompose the data, else None.
-    ``patterns_`` : ndarray, shape (n_channels, n_channels)
+    ``patterns_`` : ndarray, shape (n_components, n_channels)
         If fit, the CSP patterns used to restore M/EEG signals, else None.
     ``mean_`` : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
@@ -254,7 +254,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
         # compute features (mean band power)
         if self.transform_into == 'average_power':
-            X = (X ** 2).mean(axis=-1)
+            X = (X ** 2).mean(axis=2)
             log = True if self.log is None else self.log
             if log:
                 X = np.log(X)
@@ -691,18 +691,18 @@ class SPoC(CSP):
 
     Attributes
     ----------
-    filters_ : ndarray
+    ``filters_`` : ndarray, shape(n_components, n_channels)
         If fit, the SPoC spatial filters, else None.
-    patterns_ : ndarray
+    ``patterns_`` : ndarray, shape(n_components, n_channels)
         If fit, the SPoC spatial patterns, else None.
-    mean_ : ndarray, shape (n_components,)
+    ``mean_`` : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
-    std_ : ndarray, shape (n_components,)
+    ``std_`` : ndarray, shape (n_components,)
         If fit, the std squared power for each component.
 
     See Also
     --------
-    mne.preprocessing.mne.preprocessing.Xdawn, CSP
+    mne.preprocessing.Xdawn, CSP
 
     References
     ----------
@@ -752,12 +752,10 @@ class SPoC(CSP):
 
         n_epochs, n_channels = X.shape[:2]
 
+        # Estimate single trial covariance
         covs = np.zeros((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
-            cov = np.cov(epoch, bias=True)
-            cov = _regularized_covariance(cov, reg=self.reg)
-            # normalize by trace and stack
-            covs[ii] = cov / np.trace(cov)
+            covs[ii] = _regularized_covariance(epoch, reg=self.reg)
 
         C = covs.mean(0)
         Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)
@@ -770,11 +768,11 @@ class SPoC(CSP):
         ix = np.argsort(np.abs(evals))[::-1]
 
         # sort eigenvectors
-        evecs = evecs[:, ix]
+        evecs = evecs[:, ix].T
 
         # spatial patterns
-        self.patterns_ = np.linalg.pinv(evecs)
-        self.filters_ = evecs.T
+        self.patterns_ = linalg.pinv(evecs).T  # n_components x n_channels
+        self.filters_ = evecs  # n_components x n_channels
 
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
