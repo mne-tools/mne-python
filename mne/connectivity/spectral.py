@@ -525,7 +525,7 @@ _CON_METHOD_MAP = {'coh': _CohEst, 'cohy': _CohyEst, 'imcoh': _ImCohEst,
 
 
 def _check_estimators(method, mode):
-    """Helper to check connectivity estimation"""
+    """Check constrution of connectivity estimators."""
     n_methods = len(method)
     con_method_types = list()
     for this_method in method:
@@ -940,7 +940,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
                           mode, fskip, n_bands,
                           cwt_frequencies, faverage):
-    """Helper to check and precompute dimensions of results data"""
+    """Check and precompute dimensions of results data."""
     first_epoch = epoch_block[0]
 
     # get the data size and time scale
@@ -1054,7 +1054,7 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
 def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,
                               mt_low_bias,
                               cwt_n_cycles, cwt_frequencies, freqs, freq_mask):
-    """Helper to prepare estimation of time-frequency"""
+    """Prepare time-frequency decomposition."""
     spectral_params = dict(
         eigvals=None, window_fun=None, wavelets=None)
     n_tapers = None
