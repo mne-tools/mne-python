@@ -29,8 +29,8 @@ def run():
         # https://pythonhosted.org/kitchen/unicode-frustrations.html
         UTF8Writer = codecs.getwriter('utf8')
         sys.stdout = UTF8Writer(sys.stdout)
-
-    print(mne.io.show_fiff(args[0], tag=options.tag).strip())
+    msg = mne.io.show_fiff(args[0], tag=options.tag).strip()
+    print(msg)
 
 
 is_main = (__name__ == '__main__')

@@ -14,7 +14,7 @@ from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose
-from ..externals.six import string_types, iteritems, text_type
+from ..externals.six import string_types, iteritems
 
 
 def _fiff_get_fid(fname):
@@ -189,7 +189,8 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     tree['block'] = FIFF.FIFFB_ROOT
     with f as fid:
         out = _show_tree(fid, tree, indent=indent, level=0,
-                         read_limit=read_limit, max_str=max_str, tag=tag)
+                         read_limit=read_limit, max_str=max_str,
+                         tag_id=int(tag))
     if output == str:
         out = '\n'.join(out)
     return out
@@ -206,7 +207,7 @@ def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     return vals
 
 
-def _show_tree(fid, tree, indent, level, read_limit, max_str, tag):
+def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
     """Show FIFF tree."""
     from scipy import sparse
     this_idt = indent * level
@@ -215,8 +216,8 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag):
     out = [this_idt + str(int(tree['block'])) + ' = ' +
            '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
     tag_found = False
-    if tag is not None:
-        if out[0].strip().startswith(str(tag)):
+    if tag_id is not None:
+        if out[0].strip().startswith(str(tag_id)):
             tag_found = True
     else:
         tag_found = True
@@ -228,7 +229,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag):
         good = True
         for k, kn, size, pos in zip(kinds[:-1], kinds[1:], sizes, poss):
             if not tag_found:
-                if k != tag:
+                if k != tag_id:
                     continue
                 else:
                     tag_found = True
@@ -250,7 +251,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag):
                 postpend = ''
                 # print tag data nicely
                 if tag.data is not None:
-                    postpend = ' = ' + text_type(tag.data)[:max_str]
+                    postpend = ' = ' + unicode(tag.data)[:max_str]
                     if isinstance(tag.data, np.ndarray):
                         if tag.data.size > 1:
                             postpend += ' ... array size=' + str(tag.data.size)
@@ -272,10 +273,10 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag):
                 out[-1] = out[-1].replace('\n', u'¶')
                 counter = 0
                 good = True
-    if tag is not None and not tag_found:
+    if tag_id is not None and not tag_found:
         out = ['']
     # deal with children
     for branch in tree['children']:
         out += _show_tree(fid, branch, indent, level + 1, read_limit, max_str,
-                          tag)
+                          tag_id)
     return out
