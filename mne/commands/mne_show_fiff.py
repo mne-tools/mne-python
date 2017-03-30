@@ -4,6 +4,10 @@
 You can do for example:
 
 $ mne show_fiff test_raw.fif
+
+To see only tag 102:
+
+$ mne show_fiff test_raw.fif --tag=102
 """
 
 # Authors : Eric Larson, PhD

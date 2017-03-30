@@ -189,8 +189,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     tree['block'] = FIFF.FIFFB_ROOT
     with f as fid:
         out = _show_tree(fid, tree, indent=indent, level=0,
-                         read_limit=read_limit, max_str=max_str,
-                         tag_id=int(tag))
+                         read_limit=read_limit, max_str=max_str, tag_id=tag)
     if output == str:
         out = '\n'.join(out)
     return out
@@ -217,6 +216,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
            '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
     tag_found = False
     if tag_id is not None:
+        tag_id = int(tag_id)  # mne show_fiff passes a string
         if out[0].strip().startswith(str(tag_id)):
             tag_found = True
     else:
