@@ -15,7 +15,7 @@ Baselining is applied to make the GFPs comparable between frequencies.
 The procedure is then repeated for each frequency band of interest and
 all GFPs are visualized. The non-parametric confidence intervals are computed
 as described in [3].
-The advantage of this method over summarizing the the Space x Time x Frequency
+The advantage of this method over summarizing the Space x Time x Frequency
 output of a Morlet Wavelet in frequency bands is relative speed and, more
 importantly, the comparability of the spectral decomposition (the same type of
 filter is used across all bands).
