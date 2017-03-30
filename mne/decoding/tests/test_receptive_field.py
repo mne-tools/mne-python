@@ -6,7 +6,8 @@ import os.path as op
 
 from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose)
 
 from mne import io, pick_types
 from mne.utils import requires_sklearn_0_15, run_tests_if_main
@@ -71,7 +72,7 @@ def test_time_delay():
 
 @requires_sklearn_0_15
 def test_receptive_field():
-    """Test model prep and fitting"""
+    """Test model prep and fitting."""
     from sklearn.linear_model import Ridge
     # Make sure estimator pulling works
     mod = Ridge()
@@ -146,5 +147,35 @@ def test_receptive_field():
     # Need correct scorers
     assert_raises(ValueError, ReceptiveField, tmin, tmax, 1, scoring='foo')
 
+
+@requires_sklearn_0_15
+def test_receptive_field_fast():
+    """Test that the fast solving works like Ridge."""
+    from sklearn.linear_model import Ridge
+    rng = np.random.RandomState(0)
+    y = np.zeros(500)
+    x = rng.randn(500)
+    for delay in range(-2, 3):
+        y.fill(0.)
+        slims = [(-4, 2)]
+        if delay == 0:
+            y = x.copy()
+        elif delay < 0:
+            y[-delay:] = x[:delay]
+            slims += [(-4, -1)]
+        else:
+            y[:-delay] = x[delay:]
+            slims += [(1, 2)]
+        for slim in slims:
+            for estimator in (Ridge(alpha=0.), 0.):
+                model = ReceptiveField(slim[0], slim[1], 1.,
+                                       estimator=estimator)
+                model.fit(x[:, np.newaxis], y)
+                assert_array_equal(model.delays_,
+                                   np.arange(slim[0], slim[1] + 1))
+                expected = (model.delays_ == delay).astype(float)
+                assert_allclose(model.coef_[0], expected, atol=1e-2)
+                p = model.predict(x[:, np.newaxis])[:, 0]
+                assert_allclose(y, p, atol=5e-2)
 
 run_tests_if_main()

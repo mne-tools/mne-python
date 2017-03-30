@@ -164,12 +164,12 @@ class ReceptiveField(BaseEstimator):
             # X is now shape (n_times, n_epochs, n_feats, n_delays)
             X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
                                        newaxis=X.ndim)
+            # Remove timepoints that don't have lag data after delaying
+            X_del = X_del[self.keep_samples_]
+            y = y[self.keep_samples_]
         else:
             X_del = X[..., np.newaxis]
 
-        # Remove timepoints that don't have lag data after delaying
-        X_del = X_del[self.keep_samples_]
-        y = y[self.keep_samples_]
         X_del = _reshape_for_est(X_del)
 
         # Concat times + epochs

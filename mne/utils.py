@@ -2231,7 +2231,7 @@ def run_tests_if_main(measure_mem=False):
                 elapsed = int(round(time.time() - t1))
                 if elapsed >= max_elapsed:
                     max_elapsed, elapsed_name = elapsed, name
-                sys.stdout.write('time: %s sec%s\n' % (elapsed, mem))
+                sys.stdout.write('time: %0.3f sec%s\n' % (elapsed, mem))
                 sys.stdout.flush()
             except Exception as err:
                 if 'skiptest' in err.__class__.__name__.lower():
@@ -2240,9 +2240,10 @@ def run_tests_if_main(measure_mem=False):
                 else:
                     raise
     elapsed = int(round(time.time() - t0))
-    sys.stdout.write('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory'
-                     ' %s MB (%s)\n' % (count, elapsed, max_elapsed,
-                                        elapsed_name, peak_mem, peak_name))
+    sys.stdout.write('Total: %s tests\n• %0.3f sec (%0.3f sec for %s)\n• '
+                     'Peak memory %s MB (%s)\n'
+                     % (count, elapsed, max_elapsed, elapsed_name, peak_mem,
+                        peak_name))
 
 
 class ArgvSetter(object):

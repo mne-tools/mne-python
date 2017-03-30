@@ -18,21 +18,26 @@ def _compute_corrs(X, y, smin, smax, fit_intercept):
     len_trf = smax - smin
     len_x, n_ch_x = X.shape
     len_y, n_ch_y = y.shape
+    assert len_x == len_y
 
-    n_fft = next_fast_len(X.shape[0] + y.shape[0] - 1)
-    X_in = np.fft.rfft(X.T, n_fft)
-    X_out = np.fft.rfft(y.T, n_fft)
     if fit_intercept:
-        # Remove the mean, i.e. DC value
-        X_in[:, 0] = 0
-        X_out[:, 0] = 0
-    del X, y
+        # We could do this in the Fourier domain, too, but it should
+        # be a bit cleaner numerically do do it here.
+        X = X - np.mean(X, axis=0, keepdims=True)
+        y = y - np.mean(y, axis=0, keepdims=True)
+    n_fft = next_fast_len(X.shape[0] + max(smax, 0) - min(smin, 0) - 1)
+    X_fft = np.fft.rfft(X.T, n_fft)
+    y_fft = np.fft.rfft(y.T, n_fft)
+    # del X, y
 
     # compute the autocorrelations
     ac = np.zeros((n_ch_x, n_ch_x, len_trf * 2 - 1))
     for ch0 in range(n_ch_x):
         for ch1 in range(ch0, n_ch_x):
-            ac_temp = np.fft.irfft(X_in[ch0] * np.conj(X_in[ch1]), n_fft)
+            # This is equivalent to:
+            # ac_temp = np.correlate(X[:, ch0], X[:, ch1], mode='full')
+            # ac_temp = np.roll(ac_temp_2, X.shape[0])
+            ac_temp = np.fft.irfft(X_fft[ch0] * np.conj(X_fft[ch1]), n_fft)
             ac[ch0, ch1] = np.concatenate((ac_temp[-len_trf + 1:],
                                            ac_temp[:len_trf]))
             if ch0 != ch1:
@@ -42,9 +47,8 @@ def _compute_corrs(X, y, smin, smax, fit_intercept):
     x_y = np.zeros((n_ch_y, n_ch_x, len_trf))
     for ch_in in range(n_ch_x):
         for ch_out in range(n_ch_y):
-            cc_temp = np.fft.irfft(X_out[ch_out] * X_in[ch_in].conj(),
-                                   n_fft)
-            if smin < 0 and smax > 0:
+            cc_temp = np.fft.irfft(y_fft[ch_out] * X_fft[ch_in].conj(), n_fft)
+            if smin < 0 and smax >= 0:
                 x_y[ch_out, ch_in] = np.append(cc_temp[smin:], cc_temp[:smax])
             else:
                 x_y[ch_out, ch_in] = cc_temp[smin:smax]
@@ -77,7 +81,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
         args = [reg] * n_ch_x
         reg = linalg.block_diag(*args)
     mat = x_xt + alpha * reg
-    w = linalg.lstsq(mat, x_y.T)[0].T
+    w = linalg.lstsq(mat, x_y.T, lapack_driver='gelsy')[0].T
     w = w.reshape([n_ch_out, n_ch_in, n_trf])
     return w
 
@@ -161,11 +165,10 @@ class TimeDelayingRidge(BaseEstimator):
             The predicted response.
         """
         out = np.zeros((X.shape[0], self.coef_.shape[0]))
+        offset = max(self._smin, 0)
         for oi in range(self.coef_.shape[0]):
             for fi in range(self.coef_.shape[1]):
                 temp = np.convolve(X[:, fi], self.coef_[oi, fi][::-1])
-                # XXX This won't work if it's not a standard neg,pos limit...
-                # Now that the self.coef_ is time-reversed, this might also
-                # need to be updated.
-                out[:, oi] += temp[-self._smin:-self._smax + 1]
+                temp = temp[max(-self._smin, 0):][:len(out) - offset]
+                out[offset:len(temp) + offset, oi] += temp
         return out
