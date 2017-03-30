@@ -105,12 +105,10 @@ def get_gfp_ci(average, rank=rank):
     gfps_bs = list()
     for bootstrap_iteration in range(2000):
         bs_indices = rng.choice(indices, replace=True, size=len(indices))
-        gfp_bs = np.sum(
-            average.data[bs_indices] ** 2, 0) / rank
+        gfp_bs = np.sum(average.data[bs_indices] ** 2, 0) / rank
         gfps_bs.append(gfp_bs)
     gfps_bs = np.array(gfps_bs)
-    gfps_bs = mne.baseline.rescale(
-        gfps_bs, average.times, baseline=(None, 0))
+    gfps_bs = mne.baseline.rescale(gfps_bs, average.times, baseline=(None, 0))
     ci_low = np.percentile(gfps_bs, 2.5, axis=0)
     ci_up = np.percentile(gfps_bs, 97.5, axis=0)
     return ci_low, ci_up
@@ -127,12 +125,9 @@ for ((freq_name, fmin, fmax), average), color, ax in zip(
     times = average.times * 1e3
     gfp = np.sum(average.data ** 2, 0) / rank
     gfp = mne.baseline.rescale(gfp, times, baseline=(None, 0))
-    ax.plot(times,
-            gfp,
-            label=freq_name, color=color,
-            linewidth=2.5)
-    ax.plot(times, np.zeros_like(times), linestyle='--',
-            color='red', linewidth=1)
+    ax.plot(times, gfp, label=freq_name, color=color, linewidth=2.5)
+    ax.plot(times, np.zeros_like(times), linestyle='--', color='red',
+            linewidth=1)
     ci_low, ci_up = get_gfp_ci(average)
     ax.fill_between(times, gfp + ci_up, gfp - ci_low, color=color,
                     alpha=0.3)
