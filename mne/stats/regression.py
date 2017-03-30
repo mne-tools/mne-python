@@ -255,7 +255,6 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1.,
            waveforms: II. Non-linear effects, overlap correction, and practical
            considerations. Psychophysiology, 52(2), 169-189.
     """
-
     solver = _get_solver(solver)
 
     # build data
