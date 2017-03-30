@@ -68,7 +68,7 @@ events = mne.find_events(raw, stim_channel='STI 014')
 frequency_map = list()
 
 for band, fmin, fmax in iter_freqs:
-    # (re)load the data
+    # (re)load the data to save memory
     raw = mne.io.read_raw_fif(raw_fname, preload=True)
     raw.pick_types(meg='grad', eog=True)  # we just look at gradiometers
 
@@ -76,10 +76,8 @@ for band, fmin, fmax in iter_freqs:
     raw.filter(fmin, fmax, n_jobs=1)  # use more jobs to speed up.
     raw.apply_hilbert(n_jobs=1, envelope=False)
 
-    epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                        baseline=baseline,
-                        reject=dict(grad=4000e-13, eog=350e-6),
-                        preload=True)
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=baseline,
+                        reject=dict(grad=4000e-13, eog=350e-6), preload=True)
     # remove evoked response and get analytic signal (envelope)
     epochs.subtract_evoked()
     epochs._data = np.abs(epochs.get_data())
