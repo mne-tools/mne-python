@@ -100,18 +100,18 @@ mne.utils.set_log_level('warning')
 # Then we prepare a bootstrapping function to estimate confidence intervals
 
 
-def get_gfp_ci(this_average, rank=rank):
+def get_gfp_ci(average, rank=rank):
     """get confidence intervals from non-parametric bootstrap"""
-    indices = np.arange(len(this_average.ch_names), dtype=int)
+    indices = np.arange(len(average.ch_names), dtype=int)
     gfps_bs = list()
     for bootstrap_iteration in range(2000):
         bs_indices = rng.choice(indices, replace=True, size=len(indices))
         gfp_bs = np.sum(
-            this_average.data[bs_indices] ** 2, 0) / rank
+            average.data[bs_indices] ** 2, 0) / rank
         gfps_bs.append(gfp_bs)
     gfps_bs = np.array(gfps_bs)
     gfps_bs = mne.baseline.rescale(
-        gfps_bs, this_average.times, baseline=(None, 0))
+        gfps_bs, average.times, baseline=(None, 0))
     ci_low = np.percentile(gfps_bs, 2.5, axis=0)
     ci_up = np.percentile(gfps_bs, 97.5, axis=0)
     return ci_low, ci_up
@@ -125,9 +125,8 @@ fig, axes = plt.subplots(4, 1, figsize=(10, 7),
 colors = [plt.cm.viridis(ii) for ii in (0.1, 0.35, 0.75, 0.95)]
 for (freq_name, average), color, ax in zip(
         frequency_map, colors, axes.ravel()[::-1]):
-    this_average = average
     times = average.times * 1e3
-    gfp = np.sum(this_average.data ** 2, 0) / rank
+    gfp = np.sum(average.data ** 2, 0) / rank
     gfp = mne.baseline.rescale(gfp, times, (None, 0))
     ax.plot(times,
             gfp,
@@ -135,13 +134,14 @@ for (freq_name, average), color, ax in zip(
             linewidth=2.5)
     ax.plot(times, np.zeros_like(times), linestyle='--',
             color='red', linewidth=1)
-    ci_low, ci_up = get_gfp_ci(this_average)
+    ci_low, ci_up = get_gfp_ci(average)
     ax.fill_between(times, gfp + ci_up, gfp - ci_low, color=color,
                     alpha=0.3)
     ax.grid(True)
-    ax.set_ylabel(freq_name)
-    ax.annotate('%d-%dHz' % (fmin, fmax),
+    ax.set_ylabel('GFP')
+    ax.annotate('%s (%d-%dHz)' % (freq_name, fmin, fmax),
                 xy=(0.8, 0.8),
+                horizontalalignment='left'
                 xycoords='axes fraction')
 axes.ravel()[-1].set_xlabel('Time [ms]')
 
