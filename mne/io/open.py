@@ -14,7 +14,7 @@ from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose
-from ..externals.six import string_types, iteritems
+from ..externals.six import string_types, iteritems, text_type
 
 
 def _fiff_get_fid(fname):
@@ -251,7 +251,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                 postpend = ''
                 # print tag data nicely
                 if tag.data is not None:
-                    postpend = ' = ' + unicode(tag.data)[:max_str]
+                    postpend = ' = ' + text_type(tag.data)[:max_str]
                     if isinstance(tag.data, np.ndarray):
                         if tag.data.size > 1:
                             postpend += ' ... array size=' + str(tag.data.size)
