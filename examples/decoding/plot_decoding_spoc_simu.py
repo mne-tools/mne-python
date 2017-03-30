@@ -2,44 +2,15 @@
 =========================================
 Continuous Target Decoding with SPoC
 =========================================
-
-This example reproduces figures from Lalor et al's mTRF toolbox in
-matlab [1]_. We will show how the :class:`mne.decoding.ReceptiveField` class
-can perform a similar function along with :mod:`sklearn`. We will fit a
-linear encoding model using the continuously-varying speech envelope to
-predict activity of a 128 channel EEG system.
-
-References
-----------
-.. [1] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
-       The Multivariate Temporal Response Function (mTRF) Toolbox:
-       A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
-       Frontiers in Human Neuroscience 10, 604. doi:10.3389/fnhum.2016.00604
-
-.. _figure 1: http://journal.frontiersin.org/article/10.3389/fnhum.2016.00604/full#F1
-.. _figure 2: http://journal.frontiersin.org/article/10.3389/fnhum.2016.00604/full#F2
-"""  # noqa: E501
-
-# Authors: Chris Holdgraf <choldgraf@gmail.com>
-#
-# License: BSD (3-clause)
-# sphinx_gallery_thumbnail_number = 3
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-import mne
 from mne.decoding import SPoC
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold, cross_val_predict, cross_val_score
 from sklearn.pipeline import make_pipeline
-###############################################################################
-# Simulations
-# ----------------------------------
-#
-#
-
-# define parameters
 
 n_channels = 64
 sfreq = 128.
@@ -72,8 +43,7 @@ for ii, start in enumerate(indices_start):
     X[ii] = eeg[:, sl]
     y[ii] = target[sl].mean()
 
-
-clf = make_pipeline(SPoC(n_components=1), Ridge())
+clf = make_pipeline(SPoC(1), Ridge())
 
 cv = KFold(5)
 preds = cross_val_predict(clf, X, y, cv=cv)
