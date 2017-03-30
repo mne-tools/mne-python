@@ -9,6 +9,7 @@ from scipy import linalg
 
 import warnings
 from nose.tools import assert_true
+from numpy.testing import assert_array_equal
 
 import mne
 from mne.datasets import testing
@@ -134,6 +135,9 @@ def test_rap_music_simulated():
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)
     _check_dipoles(dipoles, forward_fixed, stc, evoked)
+    assert_true(0.98 < dipoles[0].gof.max() < 1.)
+    assert_true(dipoles[0].gof.min() >= 0.)
+    assert_array_equal(dipoles[0].gof, dipoles[1].gof)
 
     dipoles, residual = rap_music(sim_evoked, forward_fixed, noise_cov,
                                   n_dipoles=n_dipoles, return_residual=True)
