@@ -316,12 +316,11 @@ def _get_help_text(params):
             text2.insert(3, 'Navigate channels up\n')
             text.insert(6, u'a : \n')
             text2.insert(6, 'Toggle annotation mode\n')
+            text.insert(7, u'b : \n')
+            text2.insert(7, 'Toggle butterfly plot on/off\n')
             if 'fig_selection' not in params:
-                text2.insert(9, 'Reduce the number of channels per view\n')
-                text2.insert(10, 'Increase the number of channels per view\n')
-            else:
-                text.insert(9, u'b : \n')
-                text2.insert(9, 'Toggle butterfly plot on/off\n')
+                text2.insert(10, 'Reduce the number of channels per view\n')
+                text2.insert(11, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -1966,6 +1965,8 @@ def _annotation_radio_clicked(label, radio, selector):
 
 def _setup_butterfly(params):
     """Set butterfly view of raw plotter."""
+    if 'ica' in params:
+        return
     butterfly = not params['butterfly']
     ax = params['ax']
 

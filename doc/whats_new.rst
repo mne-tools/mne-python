@@ -43,6 +43,8 @@ Changelog
 
     - Add :meth:`mne.time_frequency.EpochsTFR.save` by `Jaakko Leppakangas`_
 
+    - Add butterfly mode (toggled with 'b' key) to :meth:`mne.io.Raw.plot by ``Jaakko Leppakangas`_
+
 BUG
 ~~~
 
