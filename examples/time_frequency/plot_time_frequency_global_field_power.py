@@ -1,7 +1,7 @@
 """
-=============================================
-Explore oscillatory activity in sensor space
-=============================================
+===========================================================
+Explore event-related dynamics for specific frequency bands
+===========================================================
 
 The objective is to show you how to explore spectrally localized
 effects. For this purpose we adapt the method described in [1]_ and use it on
