@@ -659,7 +659,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 
 
 class SPoC(CSP):
-    """Implementation of the SPoC spatial filtering with Covariance as input.
+    """Source Power Comodulation (SPoC) spatial filtering.
 
     Source Power Comodulation (SPoC) [1]_ allows to extract spatial filters and
     patterns by using a target (continuous) variable in the decomposition
