@@ -41,8 +41,8 @@ from sklearn.model_selection import KFold, cross_val_predict
 
 # define parameters
 fname = data_path() + '/SubjectCMC.ds'
-raw = mne.io.read_raw_ctf(fname, preload=True)
-raw.crop(50., 250.)  # crop for memory purposes
+raw = mne.io.read_raw_ctf(fname)
+raw.crop(50., 250.).load_data()  # crop for memory purposes
 
 # Filter muscular activity to only keep high frequencies
 emg = raw.copy().pick_channels(['EMGlft'])
