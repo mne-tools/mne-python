@@ -7,6 +7,8 @@ import threading
 import time
 import numpy as np
 
+from mne.io.meas import create_info
+
 def _buffer_recv_worker(client):
     """Worker thread that constantly receives buffers.
     """
@@ -50,6 +52,7 @@ class _BaseClient(object):
         self.tmax = tmax
         self.buffer_size = buffer_size
         self.verbose = verbose
+        self.create_info()
 
 
     def __enter__(self):  # noqa: D105
@@ -76,6 +79,9 @@ class _BaseClient(object):
         return self
 
     def connect(self):
+        pass
+
+    def create_info(self):
         pass
 
     def _enter_extra():
