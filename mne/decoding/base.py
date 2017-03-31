@@ -366,23 +366,23 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     estimator : estimator object implementing 'fit'
         The object to use to fit the data.
 
-    X : array-like
+    X : array-like, shape (n_samples, n_dimensional_features,)
         The data to fit. Can be, for example a list, or an array at least 2d.
 
-    y : array-like, optional, default: None
+    y : array-like, shape (n_samples, n_targets,)
         The target variable to try to predict in the case of
         supervised learning.
 
-    groups : array-like, with shape (n_samples,), optional
+    groups : array-like, with shape (n_samples,)
         Group labels for the samples used while splitting the dataset into
         train/test set.
 
-    scoring : string, callable or None, optional, default: None
+    scoring : string, callable | None
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
 
-    cv : int, cross-validation generator or an iterable, optional
+    cv : int, cross-validation generator | iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
           - None, to use the default 3-fold cross validation,
@@ -393,9 +393,6 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         For integer/None inputs, if the estimator is a classifier and ``y`` is
         either binary or multiclass, :class:`StratifiedKFold` is used. In all
         other cases, :class:`KFold` is used.
-
-        Refer :ref:`User Guide <cross_validation>` for the various
-        cross-validation strategies that can be used here.
 
     n_jobs : integer, optional
         The number of CPUs to use to do the computation. -1 means
@@ -458,69 +455,6 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                    return_parameters=False, return_n_test_samples=False,
                    return_times=False, error_score='raise'):
     """Fit estimator and compute scores for a given dataset split.
-
-    Parameters
-    ----------
-    estimator : estimator object implementing 'fit'
-        The object to use to fit the data.
-
-    X : array-like of shape at least 2D
-        The data to fit.
-
-    y : array-like, optional, default: None
-        The target variable to try to predict in the case of
-        supervised learning.
-
-    scorer : callable
-        A scorer callable object / function with signature
-        ``scorer(estimator, X, y)``.
-
-    train : array-like, shape (n_train_samples,)
-        Indices of training samples.
-
-    test : array-like, shape (n_test_samples,)
-        Indices of test samples.
-
-    verbose : integer
-        The verbosity level.
-
-    error_score : 'raise' (default) or numeric
-        Value to assign to the score if an error occurs in estimator fitting.
-        If set to 'raise', the error is raised. If a numeric value is given,
-        FitFailedWarning is raised. This parameter does not affect the refit
-        step, which will always raise the error.
-
-    parameters : dict or None
-        Parameters to be set on the estimator.
-
-    fit_params : dict or None
-        Parameters that will be passed to ``estimator.fit``.
-
-    return_train_score : boolean, optional, default: False
-        Compute and return score on training set.
-
-    return_parameters : boolean, optional, default: False
-        Return parameters that has been used for the estimator.
-
-    Returns
-    -------
-    train_score : float, optional
-        Score on training set, returned only if `return_train_score` is `True`.
-
-    test_score : float
-        Score on test set.
-
-    n_test_samples : int
-        Number of test samples.
-
-    fit_time : float
-        Time spent for fitting in seconds.
-
-    score_time : float
-        Time spent for scoring in seconds.
-
-    parameters : dict or None, optional
-        The parameters that have been evaluated.
     """
     #  This code is adapted from sklearn
     from sklearn.model_selection._validation import _index_param_value

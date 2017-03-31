@@ -5,10 +5,10 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true, assert_equal, assert_raises
-from ...utils import requires_sklearn_0_15
-from ..base import (_get_inverse_funcs, LinearModel, get_coef,
-                    cross_val_multiscore)
-from ..search_light import SlidingEstimator
+from mne.utils import requires_sklearn_0_15
+from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
+                               cross_val_multiscore)
+from mne.decoding.search_light import SlidingEstimator
 
 
 @requires_sklearn_0_15

@@ -6,9 +6,9 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
-from ...utils import requires_sklearn_0_15
-from ..search_light import SlidingEstimator, GeneralizingEstimator
-from .. import Vectorizer
+from mne.utils import requires_sklearn_0_15
+from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
+from mne.decoding.base import Vectorizer
 
 
 def make_data():

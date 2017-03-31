@@ -54,6 +54,7 @@ def get_name(func):
 # functions to ignore args / docstring of
 _docstring_ignores = [
     'mne.io.write',  # always ignore these
+    'mne.decoding.base.cross_val_multiscore',
 ]
 
 _tab_ignores = [
