@@ -42,11 +42,11 @@ API
 
     - Make the goodness of fit (GOF) of the dipoles returned by :func:`mne.beamformer.rap_music` consistent with the GOF of dipoles returned by :func:`mne.fit_dipole` by `Alex Gramfort`_.
 
-    - :class:`mne.decoding.SlidingEstimator` will now replace ``mne.decoding.TimeDecoding`` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alexandre Gramfort`_
+    - :class:`mne.decoding.SlidingEstimator` will now replace ``mne.decoding.TimeDecoding`` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alex Gramfort`_
 
-    - :class:`mne.decoding.GeneralizingEstimator` will now replace ``mne.decoding.GeneralizationAcrossTime`` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alexandre Gramfort`_
+    - :class:`mne.decoding.GeneralizingEstimator` will now replace ``mne.decoding.GeneralizationAcrossTime`` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alex Gramfort`_
 
-    - ``mne.viz.decoding.plot_gat_times``, ``mne.viz.decoding.plot_gat_matrix`` are now deprecated. Use matplotlib instead as shown in the examples, by `Jean-Remi King`_ and `Alexandre Gramfort`_
+    - ``mne.viz.decoding.plot_gat_times``, ``mne.viz.decoding.plot_gat_matrix`` are now deprecated. Use matplotlib instead as shown in the examples, by `Jean-Remi King`_ and `Alex Gramfort`_
 
 
 .. _changes_0_14:
