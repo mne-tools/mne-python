@@ -78,7 +78,7 @@ Large entries in the diagonal matrix corresponds to a spatial filter which gives
 
 Source Power Comodulation (SPoC)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Source Power Comodulation (SPoC) [1] allows to extract spatial filters and patterns by using a target (continuous) variable in the decomposition process in order to give preference to components whose power correlates with the target variable.
+Source Power Comodulation (SPoC) [1] allows to identify the composition of orthogonal spatial filters that maximally correlate with a continuous target.
 
 SPoC can be seen as an extension of the CSP where the target is driven by a continuous variable rather than a discrete variable. Typical applications include extraction of motor patterns using EMG power or audio patterns using sound envelope.
 
