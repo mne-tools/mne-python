@@ -99,14 +99,13 @@ rng = np.random.RandomState(42)
 # Then we prepare a bootstrapping function to estimate confidence intervals
 
 
-def get_gfp_ci(average, rank=rank):
+def get_gfp_ci(average, rank=rank, n_bootstraps=2000):
     """get confidence intervals from non-parametric bootstrap"""
     indices = np.arange(len(average.ch_names), dtype=int)
-    gfps_bs = list()
-    for bootstrap_iteration in range(2000):
+    gfps_bs = np.zeros((n_bootstraps, len(average.times)))
+    for iteration in range(n_bootstraps):
         bs_indices = rng.choice(indices, replace=True, size=len(indices))
-        gfp_bs = np.sum(average.data[bs_indices] ** 2, 0) / rank
-        gfps_bs.append(gfp_bs)
+        gfps_bs[iteration] = np.sum(average.data[bs_indices] ** 2, 0) / rank
     gfps_bs = np.array(gfps_bs)
     gfps_bs = mne.baseline.rescale(gfps_bs, average.times, baseline=(None, 0))
     ci_low, ci_up = np.percentile(gfps_bs, (2.5, 97.5), axis=0)
