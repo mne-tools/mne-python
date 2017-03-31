@@ -114,7 +114,7 @@ def test_get_coef():
                            [n_features, n_times])
     for t in [0, 1]:
         assert_array_equal(get_coef(clf.estimators_[t], 'filters_', False),
-                           filters[t])
+                           filters[:, t])
 
 
 @requires_sklearn_0_15
