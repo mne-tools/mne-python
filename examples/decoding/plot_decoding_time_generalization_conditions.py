@@ -12,7 +12,7 @@ References
 ----------
 
 .. [1] King & Dehaene (2014) 'Characterizing the dynamics of mental
-       representations: the temporal generalization method', Trends In
+       representations: the Temporal Generalization method', Trends In
        Cognitive Sciences, 18(4), 203-210. doi: 10.1016/j.tics.2014.01.002.
 """
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>

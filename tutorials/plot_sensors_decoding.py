@@ -101,7 +101,7 @@ evoked.plot_joint(times=np.arange(0., .500, .100), title='patterns')
 # The idea is to fit the models on each time instant and see how it
 # generalizes to any other time point.
 
-# define the temporal generalization object
+# define the Temporal Generalization object
 time_gen = GeneralizingEstimator(clf, n_jobs=1, scoring='roc_auc')
 
 scores = cross_val_multiscore(time_gen, X, y, cv=5, n_jobs=1)

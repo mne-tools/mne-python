@@ -150,7 +150,7 @@ To generate this plot see our tutorial :ref:`sphx_glr_auto_tutorials_plot_sensor
 Temporal Generalization
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Temporal generalization is an extension of the decoding over time approach.
+Temporal Generalization is an extension of the decoding over time approach.
 It consists in evaluating whether the model estimated at a particular
 time instant accurately predicts any other time instant. It is analogous to
 transferring a trained model to a distinct learning problem, where the problems

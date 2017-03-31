@@ -1116,8 +1116,6 @@ Classes:
    UnsupervisedSpatialFilter
    Vectorizer
    ReceptiveField
-   SearchLight
-   GeneralizationLight
    SlidingEstimator
    GeneralizingEstimator
 

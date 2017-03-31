@@ -422,7 +422,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     Returns
     -------
-    scores : array of float, shape=(len(list(cv)),) | array of array
+    scores : array of float, shape (n_splits,) | shape (n_splits, n_scores)
         Array of scores of the estimator for each run of the cross validation.
 
     """
