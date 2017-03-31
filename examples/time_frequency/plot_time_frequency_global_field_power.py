@@ -89,7 +89,7 @@ for band, fmin, fmax in iter_freqs:
 ###############################################################################
 # Now we can compute the Global Field Power
 
-# We first estimae the rank as this data is rank-reduced as SSS was applied.
+# We first estimate the rank as this data is rank-reduced as SSS was applied.
 # Therefore the degrees of freedom are less then the number of sensors.
 
 rank = raw.estimate_rank()
@@ -114,7 +114,7 @@ def get_gfp_ci(average, rank=rank):
     return ci_low, ci_up
 
 # Now we can track the emergence of spatial patterns compared to baseline
-# for each freqyenct band
+# for each frequency band
 
 
 fig, axes = plt.subplots(4, 1, figsize=(10, 7),
