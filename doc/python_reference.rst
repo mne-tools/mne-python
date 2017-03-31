@@ -58,11 +58,11 @@ Classes
    preprocessing.Xdawn
    decoding.CSP
    decoding.FilterEstimator
-   decoding.GeneralizationAcrossTime
    decoding.PSDEstimator
-   decoding.Scaler
-   decoding.TimeDecoding
    decoding.ReceptiveField
+   decoding.Scaler
+   decoding.SlidingEstimator
+   decoding.GeneralizingEstimator
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
@@ -1108,16 +1108,16 @@ Classes:
    CSP
    EMS
    FilterEstimator
-   GeneralizationAcrossTime
    LinearModel
    PSDEstimator
    Scaler
    TemporalFilter
-   TimeDecoding
    TimeFrequency
    UnsupervisedSpatialFilter
    Vectorizer
    ReceptiveField
+   SlidingEstimator
+   GeneralizingEstimator
 
 Functions:
 

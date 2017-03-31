@@ -122,42 +122,55 @@ To plot the corresponding filter, you can do::
 Sensor-space decoding
 =====================
 
-Generalization Across Time
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-Generalization Across Time (GAT) is a modern strategy to infer neuroscientific conclusions from decoding analysis of sensor-space data. An accuracy matrix is constructed where each point represents the performance of the model trained on one time window and tested on another.
+Decoding over time
+^^^^^^^^^^^^^^^^^^
 
-.. image:: ../../_images/sphx_glr_plot_decoding_time_generalization_001.png
-   :align: center
-   :width: 400px
+This strategy consists in fitting a multivariate predictive model on each
+time instant and evaluating its performance at the same instant on new
+epochs. The :class:`decoding.SlidingEstimator` will take as input a
+pair of features :math:`X` and targets :math:`y`, where :math:`X` has
+more than 2 dimensions. For decoding over time the data :math:`X`
+is the epochs data of shape n_epochs x n_channels x n_times. As the
+last dimension of :math:`X` is the time an estimator will be fit
+on every time instant.
 
-To use this functionality, simply do::
+This approach is analogous to SlidingEstimator-based approaches in fMRI,
+where here we are interested in when one can discriminate experimental
+conditions and therefore figure out when the effect of interest happens.
 
-    >>> gat = GeneralizationAcrossTime(predict_mode='cross-validation', n_jobs=1)
-    >>> gat.fit(epochs)
-    >>> gat.score(epochs)
-    >>> gat.plot(vmin=0.1, vmax=0.9, title="Generalization Across Time (faces vs. scrambled)")
-
-.. topic:: Examples:
-
-    * :ref:`sphx_glr_auto_examples_decoding_plot_ems_filtering.py`
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization_conditions.py`
-
-Time Decoding
-^^^^^^^^^^^^^
-In this strategy, a model trained on one time window is tested on the same time window. A moving time window will thus yield an accuracy curve similar to an ERP, but is considered more sensitive to effects in some situations. It is related to searchlight-based approaches in fMRI. This is also the diagonal of the GAT matrix.
+When working with linear models as estimators, this approach boils
+down to estimating a discriminative spatial filter for each time instant.
 
 .. image:: ../../_images/sphx_glr_plot_decoding_sensors_001.png
    :align: center
    :width: 400px
 
-To generate this plot, you need to initialize a GAT object and then use the method ``plot_diagonal``::
+To generate this plot see our tutorial :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`.
 
-    >>> gat.plot_diagonal()
+Temporal Generalization
+^^^^^^^^^^^^^^^^^^^^^^^
 
-.. topic:: Examples:
+Temporal Generalization is an extension of the decoding over time approach.
+It consists in evaluating whether the model estimated at a particular
+time instant accurately predicts any other time instant. It is analogous to
+transferring a trained model to a distinct learning problem, where the problems
+correspond to decoding the patterns of brain activity recorded at distinct time
+instants.
 
-    * :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization_conditions.py`
+The object to for Temporal Generalization is
+:class:`decoding.GeneralizingEstimator`. It expects as input :math:`X` and
+:math:`y` (similarly to :class:`decoding.SlidingEstimator`) but, when generate
+predictions from each model for all time instants. The class
+:class:`decoding.GeneralizingEstimator` is generic and will treat the last
+dimension as the one to be used for generalization testing. For convenience,
+here, we refer to it different tasks. If :math:`X` corresponds to epochs data
+then the last dimension is time.
+
+.. image:: ../../_images/sphx_glr_plot_decoding_time_generalization_001.png
+   :align: center
+   :width: 400px
+
+To generate this plot see our tutorial :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`.
 
 Source-space decoding
 =====================
