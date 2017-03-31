@@ -11,12 +11,13 @@ from scipy import linalg
 from ..io.pick import pick_channels_evoked
 from ..cov import compute_whitener
 from ..utils import logger, verbose
-from ..dipole import Dipole
+from ..dipole import DipoleFixed
 from ._lcmv import _prepare_beamformer_input, _setup_picks
 
 
-def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
-                     picks=None, return_explained_data=False):
+def _apply_rap_music(data, info, times, forward, noise_cov, nave, aspect_kind,
+                     first, last, comment, verbose, n_dipoles=2, picks=None,
+                     return_explained_data=False):
     """RAP-MUSIC for evoked data.
 
     Parameters
@@ -31,6 +32,18 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         Forward operator.
     noise_cov : instance of Covariance
         The noise covariance.
+    nave : int
+        Number of averages.
+    aspect_kind : int
+        The kind of data.
+    first : int
+        First sample.
+    last : int
+        Last sample.
+    comment : str
+        The dipole comment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level
     n_dipoles : int
         The number of dipoles to estimate. The default value is 2.
     picks : array-like of int | None
@@ -41,7 +54,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
 
     Returns
     -------
-    dipoles : list of instances of Dipole
+    dipoles : list of instances of DipoleFixed
         The dipole fits.
     explained_data : array | None
         Data explained by the dipoles using a least square fitting with the
@@ -130,15 +143,20 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         gof = (linalg.norm(np.dot(whitener, explained_data)) /
                linalg.norm(data))
 
-    return _make_dipoles(times, poss,
-                         oris, sol, gof), explained_data
+    return _make_dipoles(data, info, times, poss, oris, sol, gof, nave, aspect_kind, first,
+                         last, comment, verbose), explained_data
 
 
-def _make_dipoles(times, poss, oris, sol, gof):
-    """Instantiate a list of Dipoles.
+def _make_dipoles(data, info, times, poss, oris, sol, gof, nave, aspect_kind,
+                  first, last, comment, verbose):
+    """Instantiate a list of DipoleFixed.
 
     Parameters
     ----------
+    data : array, shape (n_channels, n_times)
+        The dipole data.
+    info : instance of Info
+        The measurement info.
     times : array, shape (n_times,)
         The time instants.
     poss : array, shape (n_dipoles, 3)
@@ -150,19 +168,33 @@ def _make_dipoles(times, poss, oris, sol, gof):
     gof : array, shape (n_times,)
         The goodness of fit of the dipoles.
         Shared between all dipoles.
+    nave : int
+        Number of averages.
+    aspect_kind : int
+        The kind of data.
+    first : int
+        First sample.
+    last : int
+        Last sample.
+    comment : str
+        The dipole comment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level
 
     Returns
     -------
     dipoles : list
-        The list of Dipole instances.
+        The list of DipoleFixed instances.
     """
+
     oris = np.array(oris)
 
     dipoles = []
     for i_dip in range(poss.shape[0]):
         i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
         i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        dipoles.append(Dipole(times, i_pos, sol[i_dip], i_ori, gof))
+        dipoles.append(DipoleFixed(info, data, times, nave, aspect_kind,
+                                   first, last, comment, verbose=verbose))
 
     return dipoles
 
@@ -220,7 +252,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
 
     Returns
     -------
-    dipoles : list of instance of Dipole
+    dipoles : list of instance of DipoleFixed
         The dipole fits.
     residual : instance of Evoked
         The residual a.k.a. data not explained by the dipoles.
@@ -249,14 +281,22 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     info = evoked.info
     data = evoked.data
     times = evoked.times
+    nave = evoked.nave
+    aspect_kind = evoked._aspect_kind
+    first = evoked.first
+    last = evoked.last
+    comment = evoked.comment
+    verbose = evoked.verbose
 
     picks = _setup_picks(picks, info, forward, noise_cov)
 
     data = data[picks]
 
     dipoles, explained_data = _apply_rap_music(data, info, times, forward,
-                                               noise_cov, n_dipoles,
-                                               picks, return_residual)
+                                               noise_cov, nave, aspect_kind,
+                                               first, last, comment, verbose,
+                                               n_dipoles, picks,
+                                               return_residual)
 
     if return_residual:
         residual = evoked.copy()
