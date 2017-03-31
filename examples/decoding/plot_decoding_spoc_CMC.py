@@ -53,8 +53,9 @@ raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False)
 raw.filter(15., 30., method='iir')
 
 # Build epochs as sliding windows over the continuous raw file
-onsets = raw.first_samp + np.arange(0., raw.n_times, .250 * raw.info['sfreq'])
-events = np.c_[onsets, np.zeros((len(onsets), 2))].astype(int)
+step = int(.250 * raw.info['sfreq'])
+onsets = raw.first_samp + np.arange(0, raw.n_times, step)
+events = np.c_[onsets, np.zeros((len(onsets), 2), dtype=int)]
 
 # Epoch lenght is 1.5 second
 meg_epochs = Epochs(raw, events, tmin=0., tmax=1.500, baseline=None, detrend=1)
