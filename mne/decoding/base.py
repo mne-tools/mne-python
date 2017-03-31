@@ -11,7 +11,7 @@ import time
 import numbers
 from ..parallel import parallel_func
 from ..fixes import BaseEstimator
-from ..utils import check_version, requires_sklearn_0_15, logger, warn
+from ..utils import check_version, logger, warn
 
 
 class LinearModel(BaseEstimator):
@@ -355,7 +355,6 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         return coef
 
 
-@requires_sklearn_0_15
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
                          cv=None, n_jobs=1, verbose=0, fit_params=None,
                          pre_dispatch='2*n_jobs'):
