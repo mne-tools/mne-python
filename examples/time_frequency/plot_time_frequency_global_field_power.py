@@ -7,22 +7,24 @@ The objective is to show you how to explore spectrally localized
 effects. For this purpose we adapt the method described in [1] and use it on
 the somato dataset. The idea is to track the band-limited temporal evolution
 of spatial patterns by using the Global Field Power (GFP).
-We first bandpass filter the signals, then apply a Hilbert transform, then
-subtract the average and finally rectify the signals prior to averaging.
+We first bandpass filter the signals and then apply a Hilbert transform. To
+reveal oscillatory activity the evoked response is then subtracted from every
+single trial. Finally, we rectify the signals prior to averaging across trials.
 Then the GFP is computed as described in [2], using the
 sum of the squares divided by the true degrees of freedom.
-Baselining is applied to make the GFPs comparable between frequencies.
+Baselining is subsequently applied to make the GFPs comparable between
+frequencies.
 The procedure is then repeated for each frequency band of interest and
-all GFPs are visualized. The non-parametric confidence intervals are computed
-as described in [3].
+all GFPs are visualized. To estimate uncertainty, non-parametric confidence
+intervals are computed as described in [3] across channels.
 The advantage of this method over summarizing the Space x Time x Frequency
 output of a Morlet Wavelet in frequency bands is relative speed and, more
-importantly, the comparability of the spectral decomposition (the same type of
-filter is used across all bands).
+importantly, the clear-cut comparability of the spectral decomposition (the
+same type of filter is used across all bands).
 
 References
 ----------
-.. [1] Haari R. and Salmelin R. Human cortical oscillations: a neuromagnetic
+.. [1] Hari R. and Salmelin R. Human cortical oscillations: a neuromagnetic
        view through the skull (1997). Trends in Neuroscience 20 (1),
        pp. 44-49.
 .. [2] Engemann D. and Gramfort A. (2015) Automated model selection in
