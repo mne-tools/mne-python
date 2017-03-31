@@ -14,8 +14,8 @@ from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .utils import logger, verbose, sum_squared, check_version, warn
 
-# These values are *double* what is given in Ifeachor and Jervis.
-_length_factors = dict(hann=6.2, hamming=6.6, blackman=11.0)
+# These values from Ifeachor and Jervis.
+_length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
 
 
 def is_power2(num):
@@ -310,7 +310,7 @@ def _firwin_design(N, freq, gain, window, sfreq):
         assert this_gain in (0, 1)
         if this_gain != prev_gain:
             # Get the correct N to satistify the requested transition bandwidth
-            transition = prev_freq - this_freq
+            transition = (prev_freq - this_freq) / 2.
             this_N = int(round(_length_factors[window] / transition))
             this_N += (1 - this_N % 2)  # make it odd
             if this_N > N:
@@ -1778,9 +1778,9 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             if filter_length == 'auto':
                 h_check = h_trans_bandwidth if h_freq is not None else np.inf
                 l_check = l_trans_bandwidth if l_freq is not None else np.inf
-                div_fact = 2. if fir_design == 'firwin' else 1.
+                mult_fact = 2. if fir_design == 'firwin2' else 1.
                 filter_length = max(int(round(
-                    _length_factors[fir_window] * (sfreq / div_fact) /
+                    _length_factors[fir_window] * sfreq * mult_fact /
                     float(min(h_check, l_check)))), 1)
                 logger.info('Filter length of %s samples (%0.3f sec) selected'
                             % (filter_length, filter_length / sfreq))

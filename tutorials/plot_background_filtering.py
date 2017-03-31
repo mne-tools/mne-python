@@ -209,7 +209,8 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 sec)', flim=flim)
 # based on desired response characteristics. These include:
 #
 #     1. The Remez_ algorithm (:func:`scipy.signal.remez`, `MATLAB firpm`_)
-#     2. Windowed FIR design (:func:`scipy.signal.firwin2`, `MATLAB fir2`_)
+#     2. Windowed FIR design (:func:`scipy.signal.firwin2`, `MATLAB fir2`_
+#        and :func:`scipy.signal.firwin`)
 #     3. Least squares designs (:func:`scipy.signal.firls`, `MATLAB firls`_)
 #     4. Frequency-domain design (construct filter in Fourier
 #        domain and use an :func:`IFFT <scipy.fftpack.ifft>` to invert it)
@@ -781,7 +782,7 @@ baseline_plot(x)
 # and thus :func:`mne.io.Raw.filter` is used. This function under the hood
 # (among other things) calls :func:`mne.filter.filter_data` to actually
 # filter the data, which by default applies a zero-phase FIR filter designed
-# using :func:`scipy.signal.firwin2`. In Widmann *et al.* 2015 [7]_, they
+# using :func:`scipy.signal.firwin`. In Widmann *et al.* 2015 [7]_, they
 # suggest a specific set of parameters to use for high-pass filtering,
 # including:
 #
@@ -827,27 +828,28 @@ baseline_plot(x)
 # To choose the filter length automatically with ``filter_length='auto'``,
 # the reciprocal of the shortest transition bandwidth is used to ensure
 # decent attenuation at the stop frequency. Specifically, the reciprocal
-# (in samples) is multiplied by 6.2, 6.6, or 11.0 for the Hann, Hamming,
+# (in samples) is multiplied by 3.1, 3.3, or 5.0 for the Hann, Hamming,
 # or Blackman windows, respectively as selected by the ``fir_window``
-# argument.
+# argument for ``fir_design='firwin'``, and double these for
+# ``fir_design='firwin2'`` mode.
 #
-# .. note:: These multiplicative factors are double what is given in
-#           Ifeachor and Jervis [2]_ (p. 357). The window functions have a
-#           smearing effect on the frequency response; I&J thus take the
-#           approach of setting the stop frequency as
-#           :math:`f_s = f_p + f_{trans} / 2.`, but our stated definitions of
-#           :math:`f_s` and :math:`f_{trans}` do not
-#           allow us to do this in a nice way. Instead, we increase our filter
-#           length to achieve acceptable (20+ dB) attenuation by
-#           :math:`f_s = f_p + f_{trans}`, and excellent (50+ dB)
-#           attenuation by :math:`f_s + f_{trans}` (and usually earlier).
+# .. note:: For ``fir_design='firwin2'``, the multiplicative factors are
+#           doubled compared to what is given in Ifeachor and Jervis [2]_
+#           (p. 357), as :func:`scipy.signal.firwin2` has a smearing effect
+#           on the frequency response, which we compensate for by
+#           increasing the filter length. This is why
+#           ``fir_desgin='firwin'`` is preferred to ``fir_design='firwin2'``.
 #
 # In 0.14, we default to using a Hamming window in filter design, as it
 # provides up to 53 dB of stop-band attenuation with small pass-band ripple.
 #
 # .. note:: In band-pass applications, often a low-pass filter can operate
 #           effectively with fewer samples than the high-pass filter, so
-#           it is advisable to apply the high-pass and low-pass separately.
+#           it is advisable to apply the high-pass and low-pass separately
+#           when using ``fir_design='firwin2'``. For design mode
+#           ``fir_design='firwin'``, there is no need to separate the
+#           operations, as the lowpass and highpass elements are constructed
+#           separately to meet the transition band requirements.
 #
 # For more information on how to use the
 # MNE-Python filtering functions with real data, consult the preprocessing
