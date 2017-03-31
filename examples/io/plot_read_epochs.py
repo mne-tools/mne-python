@@ -16,7 +16,6 @@ for both MEG and EEG data by averaging all the epochs.
 import mne
 from mne import io
 from mne.datasets import sample
-from matplotlib import pyplot as plt
 
 print(__doc__)
 
@@ -47,4 +46,4 @@ evoked = epochs.average()  # average epochs to get the evoked response
 
 ###############################################################################
 # Show result
-evoked.plot(joint=True)
+evoked.plot()
