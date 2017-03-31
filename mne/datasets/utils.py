@@ -221,7 +221,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
-        'mtrf': 'MNE_DATASETS_MTRF_PATH'
+        'mtrf': 'MNE_DATASETS_MTRF_PATH',
+        'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH'
     }[name]
 
     path = _get_path(path, key, name)
@@ -241,7 +242,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         multimodal='MNE-multimodal-data.tar.gz',
         fake='foo.tgz',
         visual_92_categories='MNE-visual_92_categories.tar.gz',
-        mtrf='mTRF_1.5.zip'
+        mtrf='mTRF_1.5.zip',
+        fieldtrip_cmc='SubjectCMC.zip'
     )
     if archive_name is not None:
         archive_names.update(archive_name)
@@ -256,6 +258,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         spm='MNE-spm-face',
         testing='MNE-testing-data',
         visual_92_categories='MNE-visual_92_categories-data',
+        fieldtrip_cmc='MNE-fieldtrip_cmc-data'
     )
     urls = dict(
         brainstorm='https://mne-tools.s3.amazonaws.com/datasets/'
@@ -271,7 +274,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
         visual_92_categories='https://mne-tools.s3.amazonaws.com/datasets/%s',
-        mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/%s"
+        mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/%s",
+        fieldtrip_cmc="ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/tutorial/%s"
     )
     hashes = dict(
         brainstorm=None,
@@ -284,6 +288,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         visual_92_categories='46c7e590f4a48596441ce001595d5e58',
         mtrf='273a390ebbc48da2c3184b01a82e4636',
+        fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c'
     )
     folder_origs = dict(  # not listed means None
         misc='mne-misc-data-%s' % releases['misc'],
@@ -364,8 +369,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         logger.info('(please be patient, this can take some time)')
         if name != 'brainstorm':
             extract_path = path
+        if name == 'fieldtrip_cmc':
+            extract_path = folder_path
         if archive_name.endswith('.zip'):
             with zipfile.ZipFile(archive_name, 'r') as ff:
+                print(extract_path)
                 ff.extractall(extract_path)
         else:
             for ext in ['gz', 'bz2']:  # informed guess
@@ -437,7 +445,7 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal, mtrf)
+                   eegbci, multimodal, mtrf, fieldtrip_cmc)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -445,6 +453,7 @@ def _download_all_example_data(verbose=True):
     somato.data_path()
     multimodal.data_path()
     mtrf.data_path()
+    fieldtrip_cmc.data_path()
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()
