@@ -29,7 +29,6 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname)
-
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
