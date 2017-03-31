@@ -373,7 +373,6 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             extract_path = folder_path
         if archive_name.endswith('.zip'):
             with zipfile.ZipFile(archive_name, 'r') as ff:
-                print(extract_path)
                 ff.extractall(extract_path)
         else:
             for ext in ['gz', 'bz2']:  # informed guess
