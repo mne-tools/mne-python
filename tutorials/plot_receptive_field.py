@@ -234,7 +234,8 @@ mne.viz.tight_layout()
 # values for the "ridge" parameter. Here we will plot the model score as well
 # as the model coefficients for each value, in order to visualize how
 # coefficients change with different levels of regularization. These issues
-# as well as the STRF pipeline are described in detail in [1]_ and [2]_
+# as well as the STRF pipeline are described in detail in [1]_, [2]_, and
+# [4]_.
 
 # Plot model score for each ridge parameter
 fig = plt.figure(figsize=(20, 4))

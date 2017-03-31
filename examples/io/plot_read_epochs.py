@@ -16,6 +16,7 @@ for both MEG and EEG data by averaging all the epochs.
 import mne
 from mne import io
 from mne.datasets import sample
+from matplotlib import pyplot as plt
 
 print(__doc__)
 
@@ -29,6 +30,7 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname)
+
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
@@ -45,4 +47,4 @@ evoked = epochs.average()  # average epochs to get the evoked response
 
 ###############################################################################
 # Show result
-evoked.plot()
+evoked.plot(joint=True)

@@ -1,5 +1,5 @@
 
-Decoding / MVPA
----------------
+Decoding / Encoding
+-------------------
 
-Decoding, a.k.a. MVPA or machine learning examples.
+Decoding, encoding, and general machine learning examples.
