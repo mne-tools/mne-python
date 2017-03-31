@@ -597,6 +597,7 @@ def _radio_clicked(label, params):
     """Handle radio buttons in selection dialog."""
     from .evoked import _rgb
     params['butterfly'] = False  # force butterfly mode off
+    params['ax_vscroll'].set_visible(True)
     labels = [l._text for l in params['fig_selection'].radio.labels]
     idx = labels.index(label)
     params['fig_selection'].radio._active_idx = idx
@@ -690,18 +691,18 @@ def _plot_raw_onkey(event, params):
         if params['fig_annotation'] is not None:
             plt.close(params['fig_annotation'])
     elif event.key == 'down':
-        if params['butterfly']:
-            return
         if 'fig_selection' in params.keys():
             _change_channel_group(-1, params)
+            return
+        elif params['butterfly']:
             return
         params['ch_start'] += params['n_channels']
         _channels_changed(params, len(params['inds']))
     elif event.key == 'up':
-        if params['butterfly']:
-            return
         if 'fig_selection' in params.keys():
             _change_channel_group(1, params)
+            return
+        elif params['butterfly']:
             return
         params['ch_start'] -= params['n_channels']
         _channels_changed(params, len(params['inds']))

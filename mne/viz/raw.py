@@ -932,7 +932,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                           params['duration'], False)
     if not params['butterfly']:
         params['ax'].set_yticklabels(tick_list)
-    if params['ax_vscroll'].get_visible():
+    if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
