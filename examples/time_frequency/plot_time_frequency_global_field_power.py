@@ -109,8 +109,7 @@ def get_gfp_ci(average, rank=rank):
         gfps_bs.append(gfp_bs)
     gfps_bs = np.array(gfps_bs)
     gfps_bs = mne.baseline.rescale(gfps_bs, average.times, baseline=(None, 0))
-    ci_low = np.percentile(gfps_bs, 2.5, axis=0)
-    ci_up = np.percentile(gfps_bs, 97.5, axis=0)
+    ci_low, ci_up = np.percentile(gfps_bs, (2.5, 97.5), axis=0)
     return ci_low, ci_up
 
 # Now we can track the emergence of spatial patterns compared to baseline
@@ -119,9 +118,9 @@ def get_gfp_ci(average, rank=rank):
 
 fig, axes = plt.subplots(4, 1, figsize=(10, 7),
                          sharex=True, sharey=True)
-colors = [plt.cm.viridis(ii) for ii in (0.1, 0.35, 0.75, 0.95)]
+colors = plt.cm.viridis((0.1, 0.35, 0.75, 0.95))
 for ((freq_name, fmin, fmax), average), color, ax in zip(
-        frequency_map, colors, axes.ravel()[::-1]):
+        frequency_map, colors, reversed(axes.ravel())):
     times = average.times * 1e3
     gfp = np.sum(average.data ** 2, 0) / rank
     gfp = mne.baseline.rescale(gfp, times, baseline=(None, 0))
