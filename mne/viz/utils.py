@@ -691,17 +691,17 @@ def _plot_raw_onkey(event, params):
         if params['fig_annotation'] is not None:
             plt.close(params['fig_annotation'])
     elif event.key == 'down':
+        if params['butterfly']:
+            return
         if 'fig_selection' in params.keys():
-            if params['butterfly']:
-                return
             _change_channel_group(-1, params)
             return
         params['ch_start'] += params['n_channels']
         _channels_changed(params, len(params['inds']))
     elif event.key == 'up':
+        if params['butterfly']:
+            return
         if 'fig_selection' in params.keys():
-            if params['butterfly']:
-                return
             _change_channel_group(1, params)
             return
         params['ch_start'] -= params['n_channels']
@@ -1016,7 +1016,7 @@ def _onclick_help(event, params):
 
 
 def _setup_browser_offsets(params, n_channels):
-    """Compute viewport height and adjusting offsets."""
+    """Compute viewport height and adjust offsets."""
     ylim = [n_channels * 2 + 1, 0]
     offset = ylim[0] / n_channels
     params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
@@ -1966,13 +1966,17 @@ def _annotation_radio_clicked(label, radio, selector):
 
 def _setup_butterfly(params):
     """Set butterfly view of raw plotter."""
-    if 'selections' not in params:
-        return
     butterfly = not params['butterfly']
     ax = params['ax']
 
     if butterfly:
         from ..selection import _SELECTIONS
+        from .raw import _setup_browser_selection
+        if 'selections' not in params:
+            params['prev_inds'] = params['inds'].copy()
+            selections = _setup_browser_selection(params['raw'], 'position',
+                                                  selector=False)
+            params['selections'] = selections
         selections = _SELECTIONS[1:] + ['Misc']  # Vertex not used
         picks = list()
         for selection in selections:
@@ -1996,8 +2000,16 @@ def _setup_butterfly(params):
         params['inds'] = np.arange(len(offsets))
         ax.set_yticklabels([''] + selections, color='black')
     else:
+        if 'fig_selection' not in params:
+            params.pop('selections')
+            params['inds'] = params.pop('prev_inds')
+            for idx in np.arange(params['n_channels'], len(params['lines'])):
+                params['lines'][idx].set_xdata([])
+                params['lines'][idx].set_ydata([])
         _setup_browser_offsets(params, params['n_channels'])
-        _set_radio_button(0, params)
+        if 'fig_selection' in params:
+            _set_radio_button(0, params)
+
     params['ax_vscroll'].set_visible(not butterfly)
     params['butterfly'] = butterfly
     params['plot_fun']()

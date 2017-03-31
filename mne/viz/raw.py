@@ -831,13 +831,18 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     lines = params['lines']
     info = params['info']
     inds = params['inds']
-    n_channels = len(inds) if params['butterfly'] else params['n_channels']
+    if params['butterfly']:
+        n_channels = len(inds)
+        ch_start = 0
+    else:
+        n_channels = params['n_channels']
+        ch_start = params['ch_start']
     params['bad_color'] = bad_color
     labels = params['ax'].yaxis.get_ticklabels()
     # do the plotting
     tick_list = list()
     for ii in range(n_channels):
-        ch_ind = ii + params['ch_start']
+        ch_ind = ii + ch_start
         # let's be generous here and allow users to pass
         # n_channels per view >= the number of traces available
         if ii >= len(lines):
@@ -927,7 +932,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                           params['duration'], False)
     if not params['butterfly']:
         params['ax'].set_yticklabels(tick_list)
-    if 'fig_selection' not in params:
+    if params['ax_vscroll'].get_visible():
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
@@ -1036,7 +1041,7 @@ def _set_custom_selection(params):
     _set_radio_button(labels.index('Custom'), params=params)
 
 
-def _setup_browser_selection(raw, kind):
+def _setup_browser_selection(raw, kind, selector=True):
     """Organize browser selections."""
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons
@@ -1072,6 +1077,8 @@ def _setup_browser_selection(raw, kind):
     if len(misc) > 0:
         order['Misc'] = misc
     keys = np.concatenate([keys, ['Misc']])
+    if not selector:
+        return order
     fig_selection = figure_nobar(figsize=(2, 6), dpi=80)
     fig_selection.canvas.set_window_title('Selection')
     rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
