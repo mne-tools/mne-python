@@ -23,6 +23,21 @@ For further reading:
 
 .. raw:: html
 
+    <style class='text/css'>
+    .panel-title a {
+        display: block;
+        padding: 5px;
+        text-decoration: none;
+    }
+
+    .plus {
+        float: right;
+        color: #212121;
+    }
+    </style>
+
+.. raw:: html
+
     <div class="panel-group">
       <div class="panel panel-default">
         <div class="panel-heading">
@@ -32,20 +47,23 @@ For further reading:
         </div>
 
         <div id="collapse1" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
+          <div class="panel-body">
 
 .. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_python_intro.rst
     tutorials/seven_stories_about_mne.rst
-    auto_tutorials/plot_introduction.rst       
+    auto_tutorials/plot_introduction.rst 
+    auto_tutorials/plot_configuration.rst          
 
 .. raw:: html
 
+          </div>
         </div>
       </div>
     </div>
+
 
 .. raw:: html
 
@@ -53,21 +71,29 @@ For further reading:
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse2">Background information</a>
+            <a data-toggle="collapse" href="#collapse5">
+              Data Structures and Containers
+            </a>
           </h4>
         </div>
 
-        <div id="collapse2" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
+        <div id="collapse5" class="panel-collapse collapse">
+          <div class="panel-body">
 
-  .. toctree::
+.. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_background_filtering.rst
-    auto_tutorials/plot_configuration.rst    
+    auto_tutorials/plot_object_raw.rst
+    auto_tutorials/plot_modifying_data_inplace.rst
+    auto_tutorials/plot_object_epochs.rst
+    auto_tutorials/plot_object_evoked.rst
+    auto_tutorials/plot_creating_data_structures.rst
+    auto_tutorials/plot_info.rst
+    auto_tutorials/plot_ecog.rst
 
 .. raw:: html
 
+          </div>
         </div>
       </div>
     </div>
@@ -79,14 +105,42 @@ For further reading:
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse2">Preprocessing</a>
+            <a data-toggle="collapse" href="#collapse11">Datasets in MNE</a>
+          </h4>
+        </div>
+
+        <div id="collapse11" class="panel-collapse collapse">
+          <div class="panel-body">
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_tutorials/plot_brainstorm_auditory.rst
+    auto_tutorials/plot_brainstorm_phantom_ctf.rst
+    auto_tutorials/plot_brainstorm_phantom_elekta.rst
+
+.. raw:: html
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="panel-group">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <a data-toggle="collapse" href="#collapse2">Preprocessing and Filtering</a>
           </h4>
         </div>
 
         <div id="collapse2" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
+          <div class="panel-body">
 
-  .. toctree::
+.. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_artifacts_detection.rst
@@ -95,9 +149,11 @@ For further reading:
     auto_tutorials/plot_artifacts_correction_ssp.rst
     auto_tutorials/plot_artifacts_correction_ica.rst
     auto_tutorials/plot_artifacts_correction_maxwell_filtering.rst
+    auto_tutorials/plot_background_filtering.rst
 
 .. raw:: html
 
+          </div>
         </div>
       </div>
     </div>
@@ -114,77 +170,18 @@ For further reading:
         </div>
 
         <div id="collapse3" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
+          <div class="panel-body">
 
-  .. toctree::
+.. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_epoching_and_averaging.rst
     auto_tutorials/plot_eeg_erp.rst
     auto_tutorials/plot_sensors_time_frequency.rst
-    auto_tutorials/plot_sensors_decoding.rst
 
 .. raw:: html
 
-        </div>
-      </div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="panel-group">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse4">Visualization and Reporting</a>
-          </h4>
-        </div>
-
-        <div id="collapse4" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
-
-  .. toctree::
-    :maxdepth: 1
-
-    auto_tutorials/plot_visualize_raw.rst
-    auto_tutorials/plot_visualize_epochs.rst
-    auto_tutorials/plot_visualize_evoked.rst
-    tutorials/report.rst
-
-.. raw:: html
-
-        </div>
-      </div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="panel-group">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse5">Manipulating Data Structures and Containers</a>
-          </h4>
-        </div>
-
-        <div id="collapse5" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
-
-  .. toctree::
-    :maxdepth: 1
-
-    auto_tutorials/plot_object_raw.rst
-    auto_tutorials/plot_modifying_data_inplace.rst
-    auto_tutorials/plot_object_epochs.rst
-    auto_tutorials/plot_object_evoked.rst
-    auto_tutorials/plot_creating_data_structures.rst
-    auto_tutorials/plot_info.rst
-    auto_tutorials/plot_ecog.rst
-
-.. raw:: html
-
+          </div>
         </div>
       </div>
     </div>
@@ -201,22 +198,20 @@ For further reading:
         </div>
 
         <div id="collapse6" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
+          <div class="panel-body">
 
-  .. toctree::
+.. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_forward.rst
     auto_tutorials/plot_compute_covariance.rst
     auto_tutorials/plot_mne_dspm_source_localization.rst
     auto_tutorials/plot_dipole_fit.rst
-    auto_tutorials/plot_brainstorm_auditory.rst
-    auto_tutorials/plot_brainstorm_phantom_ctf.rst
-    auto_tutorials/plot_brainstorm_phantom_elekta.rst
     auto_tutorials/plot_point_spread.rst
 
 .. raw:: html
 
+          </div>
         </div>
       </div>
     </div>
@@ -228,14 +223,46 @@ For further reading:
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse7">Sensor-space Univariate Statistics</a>
+            <a data-toggle="collapse" href="#collapse4">Visualization and Reporting</a>
+          </h4>
+        </div>
+
+        <div id="collapse4" class="panel-collapse collapse">
+          <div class="panel-body">
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_tutorials/plot_visualize_raw.rst
+    auto_tutorials/plot_visualize_epochs.rst
+    auto_tutorials/plot_visualize_evoked.rst
+    tutorials/report.rst
+
+.. raw:: html
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="panel-group">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <a data-toggle="collapse" href="#collapse7">Statistics in sensor- and source-space</a>
           </h4>
         </div>
 
         <div id="collapse7" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
+          <div class="panel-body">
 
-  .. toctree::
+
+*Sensor Space*
+
+.. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_stats_cluster_methods.rst
@@ -243,27 +270,9 @@ For further reading:
     auto_tutorials/plot_stats_cluster_1samp_test_time_frequency.rst
     auto_tutorials/plot_stats_cluster_time_frequency.rst
 
-.. raw:: html
+*Source Space*
 
-        </div>
-      </div>
-    </div>
-
-
-.. raw:: html
-
-    <div class="panel-group">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse8">Source-space Univariate Statistics</a>
-          </h4>
-        </div>
-
-        <div id="collapse8" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
-
-  .. toctree::
+.. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_stats_cluster_time_frequency_repeated_measures_anova.rst
@@ -273,6 +282,7 @@ For further reading:
 
 .. raw:: html
 
+          </div>
         </div>
       </div>
     </div>
@@ -284,21 +294,23 @@ For further reading:
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse9">Decoding and Encoding</a>
+            <a data-toggle="collapse" href="#collapse9">Decoding, Encoding, MVPA, and Machine Learning</a>
           </h4>
         </div>
 
         <div id="collapse9" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
+          <div class="panel-body">
 
-  .. toctree::
+.. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_sensors_decoding.rst
     auto_tutorials/plot_receptive_field.rst
 
+
 .. raw:: html
 
+          </div>
         </div>
       </div>
     </div>
@@ -315,9 +327,9 @@ For further reading:
         </div>
 
         <div id="collapse10" class="panel-collapse collapse">
-          <div class="panel-body">Panel Body</div>
+          <div class="panel-body">
 
-  .. toctree::
+.. toctree::
     :maxdepth: 1
 
     tutorials/command_line.rst
@@ -325,6 +337,7 @@ For further reading:
 
 .. raw:: html
 
+          </div>
         </div>
       </div>
     </div>
