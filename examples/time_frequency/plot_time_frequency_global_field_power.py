@@ -136,4 +136,5 @@ for ((freq_name, fmin, fmax), average), color, ax in zip(
                 xy=(0.95, 0.8),
                 horizontalalignment='right',
                 xycoords='axes fraction')
+    ax.set_xlim(-1050, 3050)
 axes.ravel()[-1].set_xlabel('Time [ms]')
