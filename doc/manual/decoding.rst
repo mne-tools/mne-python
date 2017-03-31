@@ -78,13 +78,13 @@ Large entries in the diagonal matrix corresponds to a spatial filter which gives
 
 Source Power Comodulation (SPoC)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Source Power Comodulation (SPoC) [1] allows to identify the composition of orthogonal spatial filters that maximally correlate with a continuous target.
+Source Power Comodulation (SPoC) [1]_ allows to identify the composition of orthogonal spatial filters that maximally correlate with a continuous target.
 
 SPoC can be seen as an extension of the CSP where the target is driven by a continuous variable rather than a discrete variable. Typical applications include extraction of motor patterns using EMG power or audio patterns using sound envelope.
 
-  .. reference::
-  * [1] :ref: Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M., Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for relating the amplitude of neuronal oscillations to behaviorally relevant parameters. NeuroImage, 86, 111-122.
+.. topic:: Examples
 
+    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_spoc_CMC.py`
 
 xDAWN
 ^^^^^
@@ -193,3 +193,8 @@ Source space decoding is also possible, but because the number of features can b
     * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_spatio_temporal_source.py`
 
 .. _script of the week: http://blog.kaggle.com/2015/08/12/july-2015-scripts-of-the-week/
+
+References
+==========
+
+.. [1] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M., Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for relating the amplitude of neuronal oscillations to behaviorally relevant parameters. NeuroImage, 86, 111-122.

@@ -3,13 +3,15 @@
 Continuous Target Decoding with SPoC
 ====================================
 
-Source Power Comodulation (SPoC) [1] allows to identify the composition of
+Source Power Comodulation (SPoC) [1]_ allows to identify the composition of
 orthogonal spatial filters that maximally correlate with a continuous target.
 
 SPoC can be seen as an extension of the CSP for continuous variables.
 
 Here, SPoC is applied to decode the (continuous) fluctuation of an
-electromyogram from MEG beta activity [2].
+electromyogram from MEG beta activity using data from `Cortico-Muscular
+Coherence example of fieldtrip
+<http://www.fieldtriptoolbox.org/tutorial/coherence>`_
 
 References
 ----------
@@ -17,9 +19,6 @@ References
 .. [1] Dahne, S., et al (2014). SPoC: a novel framework for relating the
        amplitude of neuronal oscillations to behaviorally relevant parameters.
        NeuroImage, 86, 111-122.
-
-.. [2] http://www.fieldtriptoolbox.org/tutorial/coherence
-
 """
 
 # Author: Alexandre Barachant <alexandre.barachant@gmail.com>
@@ -27,7 +26,6 @@ References
 #
 # License: BSD (3-clause)
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
@@ -53,11 +51,9 @@ raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False)
 raw.filter(15., 30., method='iir')
 
 # Build epochs as sliding windows over the continuous raw file
-step = int(.250 * raw.info['sfreq'])
-onsets = raw.first_samp + np.arange(0, raw.n_times, step)
-events = np.c_[onsets, np.zeros((len(onsets), 2), dtype=int)]
+events = mne.make_fixed_length_events(raw, id=1, duration=.250)
 
-# Epoch lenght is 1.5 second
+# Epoch length is 1.5 second
 meg_epochs = Epochs(raw, events, tmin=0., tmax=1.500, baseline=None, detrend=1)
 emg_epochs = Epochs(emg, events, tmin=0., tmax=1.500, baseline=None)
 

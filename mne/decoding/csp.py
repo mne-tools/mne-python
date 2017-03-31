@@ -67,16 +67,16 @@ class CSP(TransformerMixin, BaseEstimator):
 
     References
     ----------
-    [1] Zoltan J. Koles, Michael S. Lazar, Steven Z. Zhou. Spatial Patterns
-        Underlying Population Differences in the Background EEG. Brain
-        Topography 2(4), 275-284, 1990.
-    [2] Benjamin Blankertz, Ryota Tomioka, Steven Lemm, Motoaki Kawanabe,
-        Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
-        Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
-        2008.
-    [3] Grosse-Wentrup, Moritz, and Martin Buss. Multiclass common spatial
-        patterns and information theoretic feature extraction. IEEE
-        Transactions on Biomedical Engineering, Vol 55, no. 8, 2008.
+    .. [1] Zoltan J. Koles, Michael S. Lazar, Steven Z. Zhou. Spatial Patterns
+           Underlying Population Differences in the Background EEG. Brain
+           Topography 2(4), 275-284, 1990.
+    .. [2] Benjamin Blankertz, Ryota Tomioka, Steven Lemm, Motoaki Kawanabe,
+           Klaus-Robert Müller. Optimizing Spatial Filters for Robust EEG
+           Single-Trial Analysis. IEEE Signal Processing Magazine 25(1), 41-56,
+           2008.
+    .. [3] Grosse-Wentrup, Moritz, and Martin Buss. Multiclass common spatial
+           patterns and information theoretic feature extraction. IEEE
+           Transactions on Biomedical Engineering, Vol 55, no. 8, 2008.
     """
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
@@ -597,9 +597,9 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 
     References
     ----------
-    [1] Pham, Dinh Tuan. "Joint approximate diagonalization of positive
-    definite Hermitian matrices." SIAM Journal on Matrix Analysis and
-    Applications 22, no. 4 (2001): 1136-1152.
+    .. [1] Pham, Dinh Tuan. "Joint approximate diagonalization of positive
+           definite Hermitian matrices." SIAM Journal on Matrix Analysis and
+           Applications 22, no. 4 (2001): 1136-1152.
 
     """
     # Adapted from http://github.com/alexandrebarachant/pyRiemann
@@ -661,7 +661,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 class SPoC(CSP):
     """Implementation of the SPoC spatial filtering with Covariance as input.
 
-    Source Power Comodulation (SPoC) [1] allows to extract spatial filters and
+    Source Power Comodulation (SPoC) [1]_ allows to extract spatial filters and
     patterns by using a target (continuous) variable in the decomposition
     process in order to give preference to components whose power correlates
     with the target variable.
@@ -706,10 +706,10 @@ class SPoC(CSP):
 
     References
     ----------
-    [1] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M.,
-        Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for
-        relating the amplitude of neuronal oscillations to behaviorally
-        relevant parameters. NeuroImage, 86, 111-122.
+    .. [1] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M.,
+           Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for
+           relating the amplitude of neuronal oscillations to behaviorally
+           relevant parameters. NeuroImage, 86, 111-122.
     """
 
     def __init__(self, n_components=4, reg=None, log=None,
@@ -718,6 +718,9 @@ class SPoC(CSP):
         super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
                                    cov_est="epoch",
                                    transform_into=transform_into)
+        # Covariance estimation have to be done on the single epoch level,
+        # unlike CSP where covariance estimation can also be achieved through
+        # concatenation of all epochs from the same class.
         delattr(self, 'cov_est')
 
     def fit(self, X, y):
