@@ -9,7 +9,7 @@ covariance matrix over each epoch and extract the CSP filtered
 signals. A linear discriminant classifier is then applied to these signals.
 """
 # Authors: Nicole Proulx <nh.proulx@gmail.com>
-#          Hubert Banville <hubert.jbanville@gmail.com> 
+#          Hubert Banville <hubert.jbanville@gmail.com>
 #          Laura Gwilliams <laura.gwilliams@nyu.edu>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #          Alex Barachant <alexandre.barachant@gmail.com>
@@ -84,13 +84,13 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     X = epochs.copy().get_data()
 
     # Save mean scores over folds for each frequency and time window
-    scores[freq,] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
-                            cv=cv, n_jobs=1), axis=0)
+    scores[freq, ] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
+                                             cv=cv, n_jobs=1), axis=0)
 
 ###############################################################################
 # Plot results
 
-plt.bar(left=freqs[:-1], height=scores, width=freqs[1]-freqs[0], align='edge',
+plt.bar(left=freqs[:-1], height=scores, width=np.diff(freqs)[0], align='edge',
         edgecolor='black')
 plt.xticks(freqs)
 plt.xlabel('Frequency (Hz)')
