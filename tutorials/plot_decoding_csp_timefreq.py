@@ -70,7 +70,7 @@ n_windows = len(centered_w_times)
 # Loop through frequencies, apply classifier and save scores
 
 # init scores
-f_scores = np.zeros((n_freqs - 1,))
+freq_scores = np.zeros((n_freqs - 1,))
 
 # Loop through each frequency range of interest
 for freq, (fmin, fmax) in enumerate(freq_ranges):
@@ -90,13 +90,14 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     X = epochs.copy().get_data()
 
     # Save mean scores over folds for each frequency and time window
-    f_scores[freq, ] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
-                                               cv=cv, n_jobs=1), axis=0)
+    freq_scores[freq, ] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
+                                                  scoring='roc_auc', cv=cv,
+                                                  n_jobs=1), axis=0)
 
 ###############################################################################
 # Plot frequency results
 
-plt.bar(left=freqs[:-1], height=f_scores, width=np.diff(freqs)[0],
+plt.bar(left=freqs[:-1], height=freq_scores, width=np.diff(freqs)[0],
         align='edge', edgecolor='black')
 plt.xticks(freqs)
 plt.xlabel('Frequency (Hz)')
@@ -136,7 +137,8 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 
         # Save mean scores over folds for each frequency and time window
         tf_scores[freq, t] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
-                                                     cv=cv, n_jobs=1), axis=0)
+                                                     scoring='roc_auc', cv=cv,
+                                                     n_jobs=1), axis=0)
 
 ###############################################################################
 # Plot time-frequency results
