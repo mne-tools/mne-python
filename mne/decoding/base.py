@@ -358,7 +358,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
                          cv=None, n_jobs=1, verbose=0, fit_params=None,
                          pre_dispatch='2*n_jobs'):
-    """Evaluate a score by cross-validation
+    """Evaluate a score by cross-validation.
 
     Parameters
     ----------
@@ -453,8 +453,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                    parameters, fit_params, return_train_score=False,
                    return_parameters=False, return_n_test_samples=False,
                    return_times=False, error_score='raise'):
-    """Fit estimator and compute scores for a given dataset split.
-    """
+    """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
     from sklearn.model_selection._validation import _index_param_value
     from sklearn.utils.metaestimators import _safe_split
@@ -536,7 +535,6 @@ def _score(estimator, X_test, y_test, scorer):
     This code is the same as sklearn.model_selection._validation._score
     but accepts to output arrays instead of floats.
     """
-
     if y_test is None:
         score = scorer(estimator, X_test)
     else:
