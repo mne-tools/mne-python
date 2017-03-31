@@ -58,17 +58,17 @@ time_gen = GeneralizingEstimator(clf, scoring='roc_auc', n_jobs=1)
 
 # Fit classifiers on the epochs where the stimulus was presented to the left.
 # Note that the experimental condition y indicates auditory or visual
-time_gen.fit(X=epochs['left'].get_data(),
-             y=epochs['left'].events[:, 2] > 2)
+time_gen.fit(X=epochs['Left'].get_data(),
+             y=epochs['Left'].events[:, 2] > 2)
 
 # Score on the epochs where the stimulus was presented to the right.
-scores = time_gen.score(X=epochs['right'].get_data(),
-                        y=epochs['right'].events[:, 2] > 2)
+scores = time_gen.score(X=epochs['Right'].get_data(),
+                        y=epochs['Right'].events[:, 2] > 2)
 
-# plot
+# Plot
 fig, ax = plt.subplots(1)
 im = ax.matshow(scores, vmin=0, vmax=1., cmap='RdBu_r', origin='lower',
-                extent=[epochs.times[[0, -1]]] * 2)
+                extent=epochs.times[[0, -1, 0, -1]])
 ax.axhline(0., color='k')
 ax.axvline(0., color='k')
 ax.xaxis.set_ticks_position('bottom')
