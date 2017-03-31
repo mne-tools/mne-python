@@ -659,7 +659,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
 
 
 class SPoC(CSP):
-    """Source Power Comodulation (SPoC) spatial filtering.
+    """Implementation of the SPoC spatial filtering.
 
     Source Power Comodulation (SPoC) [1]_ allows to extract spatial filters and
     patterns by using a target (continuous) variable in the decomposition
@@ -774,8 +774,8 @@ class SPoC(CSP):
         evecs = evecs[:, ix].T
 
         # spatial patterns
-        self.patterns_ = linalg.pinv(evecs).T  # n_components x n_channels
-        self.filters_ = evecs  # n_components x n_channels
+        self.patterns_ = linalg.pinv(evecs).T  # n_channels x n_channels
+        self.filters_ = evecs  # n_channels x n_channels
 
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
