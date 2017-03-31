@@ -94,13 +94,10 @@ for band, fmin, fmax in iter_freqs:
 
 ###############################################################################
 # Now we can compute the Global Field Power
-
-# We first estimate the rank as this data is rank-reduced as SSS was applied.
-# Therefore the degrees of freedom are less then the number of sensors.
+#
+# Then we prepare a bootstrapping function to estimate confidence intervals
 
 rng = np.random.RandomState(42)
-
-# Then we prepare a bootstrapping function to estimate confidence intervals
 
 
 def get_gfp_ci(average, n_bootstraps=2000):
@@ -115,16 +112,18 @@ def get_gfp_ci(average, n_bootstraps=2000):
     return ci_low, ci_up
 
 
+##############################################################################
 # Now we can track the emergence of spatial patterns compared to baseline
 # for each frequency band
-
+#
 # We see dominant responses in the Alpha and Beta bands.
+
 fig, axes = plt.subplots(4, 1, figsize=(10, 7), sharex=True, sharey=True)
 colors = plt.cm.viridis((0.1, 0.35, 0.75, 0.95))
 for ((freq_name, fmin, fmax), average), color, ax in zip(
-        frequency_map, colors, reversed(axes.ravel())):
+        frequency_map, colors, axes.ravel()[::-1]):
     times = average.times * 1e3
-    gfp = np.sum(average.data ** 2, 0)
+    gfp = np.sum(average.data ** 2, axis=0)
     gfp = mne.baseline.rescale(gfp, times, baseline=(None, 0))
     ax.plot(times, gfp, label=freq_name, color=color, linewidth=2.5)
     ax.plot(times, np.zeros_like(times), linestyle='--', color='red',
@@ -139,4 +138,5 @@ for ((freq_name, fmin, fmax), average), color, ax in zip(
                 horizontalalignment='right',
                 xycoords='axes fraction')
     ax.set_xlim(-1050, 3050)
+
 axes.ravel()[-1].set_xlabel('Time [ms]')
