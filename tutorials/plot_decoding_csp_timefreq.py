@@ -6,8 +6,8 @@ Decoding in time-frequency space data using the Common Spatial Pattern (CSP)
 
 The time-frequency decomposition is estimated by iterating over raw data that
 has been band-passed at different frequencies. This is used to compute a
-covariance matrix over each epoch or a rolling time-window and extract the CSP 
-filtered signals. A linear discriminant classifier is then applied to these 
+covariance matrix over each epoch or a rolling time-window and extract the CSP
+filtered signals. A linear discriminant classifier is then applied to these
 signals.
 """
 # Authors: Laura Gwilliams <laura.gwilliams@nyu.edu>
@@ -59,7 +59,7 @@ n_freqs = 8  # how many frequency bins to use
 
 # Assemble list of frequency range tuples
 freqs = np.linspace(min_freq, max_freq, n_freqs)  # assemble frequencies
-freq_ranges = list(zip(freqs[:-1], freqs[1:]))  # make freqs into a list of tuples
+freq_ranges = list(zip(freqs[:-1], freqs[1:]))  # make freqs list of tuples
 
 # Infer window spacing from the max freq and number of cycles to avoid gaps
 window_spacing = (n_cycles / np.max(freqs) / 2.)
@@ -96,7 +96,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 ###############################################################################
 # Plot frequency results
 
-plt.bar(left=freqs[:-1], height=f_scores, width=np.diff(freqs)[0], 
+plt.bar(left=freqs[:-1], height=f_scores, width=np.diff(freqs)[0],
         align='edge', edgecolor='black')
 plt.xticks(freqs)
 plt.xlabel('Frequency (Hz)')
