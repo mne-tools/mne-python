@@ -1096,7 +1096,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
-               fir_window='hamming', verbose=None):
+               fir_window='hamming', fir_design=None, verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -1180,13 +1180,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             then a minimum-phase, causal filter will be used.
 
             .. versionadded:: 0.13
-
         fir_window : str
             The window to use in FIR design, can be "hamming" (default),
             "hann" (default in 0.13), or "blackman".
 
             .. versionadded:: 0.13
+        fir_design : str
+            Can be "firwin" (default in 0.16) to use
+            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+            before) to use :func:`scipy.signal.firwin2`.
 
+            ..versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1231,7 +1235,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         filter_data(self._data, self.info['sfreq'], l_freq, h_freq, picks,
                     filter_length, l_trans_bandwidth, h_trans_bandwidth,
                     n_jobs, method, iir_params, copy=False, phase=phase,
-                    fir_window=fir_window)
+                    fir_window=fir_window, fir_design=fir_design)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
         if update_info:
@@ -1250,7 +1254,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
-                     verbose=None):
+                     fir_design=None, verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -1321,13 +1325,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             then a minimum-phase, causal filter will be used.
 
             .. versionadded:: 0.13
-
         fir_window : str
             The window to use in FIR design, can be "hamming" (default),
             "hann", or "blackman".
 
             .. versionadded:: 0.13
+        fir_design : str
+            Can be "firwin" (default in 0.16) to use
+            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+            before) to use :func:`scipy.signal.firwin2`.
 
+            ..versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1360,7 +1368,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
             method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
             p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
-            phase=phase, fir_window=fir_window)
+            phase=phase, fir_window=fir_window, fir_design=fir_design)
         return self
 
     @verbose

@@ -294,7 +294,7 @@ def _prep_for_filtering(x, copy, picks=None):
     return x, orig_shape, picks
 
 
-def _firwin_design(N, freq, gain, window):
+def _firwin_design(N, freq, gain, window, sfreq):
     """Construct a FIR filter using firwin."""
     from scipy.signal import firwin
     assert freq[0] == 0
@@ -309,13 +309,19 @@ def _firwin_design(N, freq, gain, window):
     for this_freq, this_gain in zip(freq[::-1][1:], gain[::-1][1:]):
         assert this_gain in (0, 1)
         if this_gain != prev_gain:
+            # Get the correct N to satistify the requested transition bandwidth
+            this_N = int(round(_length_factors[window] /
+                               (prev_freq - this_freq)))
+            this_N += (1 - this_N % 2)  # make it odd
+            assert this_N <= N
             # Construct a lowpass
-            this_h = firwin(N, (prev_freq + this_freq) / 2., window=window,
-                            pass_zero=True, nyq=freq[-1])
+            this_h = firwin(this_N, (prev_freq + this_freq) / 2.,
+                            window=window, pass_zero=True, nyq=freq[-1])
+            offset = (N - this_N) // 2
             if this_gain == 0:
-                h -= this_h
+                h[offset:N - offset] -= this_h
             else:
-                h += this_h
+                h[offset:N - offset] += this_h
         prev_gain = this_gain
         prev_freq = this_freq
     return h
@@ -359,10 +365,11 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
     xf : array
         x filtered.
     """
+    assert freq[0] == 0
     if fir_design == 'firwin2':
         from scipy.signal import firwin2 as fir_design
     else:
-        fir_design = _firwin_design
+        fir_design = partial(_firwin_design, sfreq=sfreq)
 
     # issue a warning if attenuation is less than this
     min_att_db = 12 if phase == 'minimum' else 20
@@ -708,7 +715,7 @@ def _check_method(method, iir_params, extra_types=()):
 def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                 method='fir', iir_params=None, copy=True, phase='zero',
-                fir_window='hamming', verbose=None):
+                fir_window='hamming', fir_design=None, verbose=None):
     """Filter a subset of channels.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -793,13 +800,17 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         then a minimum-phase, causal filter will be used.
 
         .. versionadded:: 0.13
-
     fir_window : str
         The window to use in FIR design, can be "hamming" (default),
         "hann" (default in 0.13), or "blackman".
 
         .. versionadded:: 0.13
+    fir_design : str
+        Can be "firwin" (default in 0.16) to use :func:`scipy.signal.firwin`,
+        or "firwin2" (default in 0.15 and before) to use
+        :func:`scipy.signal.firwin2`.
 
+        ..versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -828,7 +839,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     iir_params, method = _check_method(method, iir_params)
     filt = create_filter(
         data, sfreq, l_freq, h_freq, filter_length, l_trans_bandwidth,
-        h_trans_bandwidth, method, iir_params, phase, fir_window)
+        h_trans_bandwidth, method, iir_params, phase, fir_window, fir_design)
     if method in ('fir', 'fft'):
         data = _overlap_add_filter(data, filt, None, phase, picks, n_jobs,
                                    copy)
@@ -909,20 +920,17 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         then a minimum-phase, causal filter will be used.
 
         .. versionadded:: 0.13
-
     fir_window : str
         The window to use in FIR design, can be "hamming" (default),
         "hann", or "blackman".
 
         .. versionadded:: 0.13
-
     fir_design : str
         Can be "firwin" (default in 0.16) to use :func:`scipy.signal.firwin`,
         or "firwin2" (default in 0.15 and before) to use
         :func:`scipy.signal.firwin2`.
 
         ..versionadded:: 0.15
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
