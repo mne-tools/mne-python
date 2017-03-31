@@ -31,6 +31,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
+from mne import Epochs
 from mne.decoding import SPoC
 from mne.datasets.fieldtrip_cmc import data_path
 
@@ -56,14 +57,12 @@ onsets = raw.first_samp + np.arange(0., raw.n_times, .250 * raw.info['sfreq'])
 events = np.c_[onsets, np.zeros((len(onsets), 2))].astype(int)
 
 # Epoch lenght is 1.5 second
-meg_epochs = mne.Epochs(raw, events, tmin=0., tmax=1.500, baseline=None)
-emg_epochs = mne.Epochs(emg, events, tmin=0., tmax=1.500, baseline=None)
+meg_epochs = Epochs(raw, events, tmin=0., tmax=1.500, baseline=None, detrend=1)
+emg_epochs = Epochs(emg, events, tmin=0., tmax=1.500, baseline=None)
 
 # Prepare classification
 X = meg_epochs.get_data()
 y = emg_epochs.get_data().var(axis=2)[:, 0]  # target is EMG power
-
-X -= X.mean(axis=2, keepdims=True)  # XXX fix filter error
 
 # Classification pipeline with SPoC spatial filtering and Ridge Regression
 clf = make_pipeline(SPoC(n_components=2, log=True, reg='oas'), Ridge())
