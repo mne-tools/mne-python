@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
 from mne.utils import requires_sklearn_0_15
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
-from mne.decoding.base import Vectorizer
+from mne.decoding.transformer import Vectorizer
 
 
 def make_data():
