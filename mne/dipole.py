@@ -1230,10 +1230,7 @@ def _concatenate_dipoles(dipoles):
         pos.append(dipole.pos)
         amplitude.append(dipole.amplitude)
         ori.append(dipole.ori)
-        if dipole.gof.ndim == 0:
-            gof.append(np.repeat(dipole.gof, len(dipole.times)))
-        else:
-            gof.append(dipole.gof)
+        gof.append(dipole.gof)
 
     return Dipole(np.concatenate(times), np.concatenate(pos),
                   np.concatenate(amplitude), np.concatenate(ori),

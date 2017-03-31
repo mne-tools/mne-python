@@ -183,6 +183,8 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')
+    if isinstance(tag, string_types):  # command mne show_fiff passes string
+        tag = int(tag)
     f, tree, directory = fiff_open(fname)
     # This gets set to 0 (unknown) by fiff_open, but FIFFB_ROOT probably
     # makes more sense for display
@@ -215,12 +217,9 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
     out = [this_idt + str(int(tree['block'])) + ' = ' +
            '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
     tag_found = False
-    if tag_id is not None:
-        tag_id = int(tag_id)  # mne show_fiff passes a string
-        if out[0].strip().startswith(str(tag_id)):
-            tag_found = True
-    else:
+    if tag_id is None or out[0].strip().startswith(str(tag_id)):
         tag_found = True
+
     if tree['directory'] is not None:
         kinds = [ent.kind for ent in tree['directory']] + [-1]
         sizes = [ent.size for ent in tree['directory']]
@@ -273,8 +272,9 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                 out[-1] = out[-1].replace('\n', u'¶')
                 counter = 0
                 good = True
-    if tag_id is not None and not tag_found:
+    if not tag_found:
         out = ['']
+        level = -1  # removes extra indent
     # deal with children
     for branch in tree['children']:
         out += _show_tree(fid, branch, indent, level + 1, read_limit, max_str,
