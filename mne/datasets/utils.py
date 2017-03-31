@@ -421,6 +421,7 @@ def has_dataset(name):
     """Check for dataset presence."""
     endswith = {
         'brainstorm': 'MNE_brainstorm-data',
+        'fieldtrip_cmc': 'MNE-fieldtrip_cmc-data',
         'fake': 'foo',
         'misc': 'MNE-misc-data',
         'sample': 'MNE-sample-data',

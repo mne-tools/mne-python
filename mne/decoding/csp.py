@@ -691,9 +691,9 @@ class SPoC(CSP):
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape(n_components, n_channels)
+    ``filters_`` : ndarray, shape (n_components, n_channels)
         If fit, the SPoC spatial filters, else None.
-    ``patterns_`` : ndarray, shape(n_components, n_channels)
+    ``patterns_`` : ndarray, shape (n_components, n_channels)
         If fit, the SPoC spatial patterns, else None.
     ``mean_`` : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
@@ -740,20 +740,20 @@ class SPoC(CSP):
                              % type(X))
         self._check_Xy(X, y)
 
-        if len(set(y)) < 2:
+        if len(np.unique(y)) < 2:
             raise ValueError("y must have at least two distinct values.")
 
         # The following code is direclty copied from pyRiemann
 
         # Normalize target variable
-        target = np.float64(y.copy())
+        target = y.astype(np.float64)
         target -= target.mean()
         target /= target.std()
 
         n_epochs, n_channels = X.shape[:2]
 
         # Estimate single trial covariance
-        covs = np.zeros((n_epochs, n_channels, n_channels))
+        covs = np.empty((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
             covs[ii] = _regularized_covariance(epoch, reg=self.reg)
 
@@ -762,7 +762,7 @@ class SPoC(CSP):
 
         # solve eigenvalue decomposition
         evals, evecs = linalg.eigh(Cz, C)
-        evals = evals.real  # XXX check
+        evals = evals.real
         evecs = evecs.real
         # sort vectors
         ix = np.argsort(np.abs(evals))[::-1]

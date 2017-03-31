@@ -10,7 +10,8 @@ from ..utils import (has_dataset, _data_path, _data_path_doc,
                      _get_version, _version_doc)
 
 
-data_name = 'fieldtrip_cmc'
+data_name = "fieldtrip_cmc"
+conf_name = "MNE_DATASETS_FIELDTRIP_CMC_PATH"
 has_mtrf_data = partial(has_dataset, name=data_name)
 
 
@@ -22,7 +23,7 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
                       download=download)
 
 data_path.__doc__ = _data_path_doc.format(name=data_name,
-                                          conf='MNE_DATASETS_FIELDTRIP_CMC_PATH')
+                                          conf=conf_name)
 
 
 def get_version():  # noqa: D103
