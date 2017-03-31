@@ -343,12 +343,11 @@ x += np.sin(2. * np.pi * 60. * np.arange(len(x)) / sfreq) / 2000.
 
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
-filter_dur = 6.6 / transition_band  # sec
+filter_dur = 6.6 / transition_band / 2.  # sec
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
-# h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                              fir_design='firwin')
 x_v16 = np.convolve(h, x)[len(h) // 2:]
@@ -356,8 +355,10 @@ x_v16 = np.convolve(h, x)[len(h) // 2:]
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.16 default', flim=flim)
 
 ###############################################################################
-# Filter it with a different design mode (firwin2), and also
-# compensate for the constant filter delay):
+# Filter it with a different design mode ``fir_design="firwin2"``, and also
+# compensate for the constant filter delay. This method does not produce
+# quite as sharp a transition compared to ``fir_design="firwin"``, despite
+# being twice as long:
 
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
@@ -413,7 +414,7 @@ plot_filter(h, sfreq, freq, gain, 'MNE-C default', flim=flim)
 # And now an example of a minimum-phase filter:
 
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
-                             phase='minimum', fir_design='firwin2')
+                             phase='minimum', fir_design='firwin')
 x_min = np.convolve(h, x)
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band

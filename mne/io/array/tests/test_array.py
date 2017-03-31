@@ -66,21 +66,16 @@ def test_array_raw():
     picks = pick_types(raw2.info, misc=True, exclude='bads')[:4]
     assert_equal(len(picks), 4)
     raw_lp = raw2.copy()
-    raw_lp.filter(None, 4.0, h_trans_bandwidth=4.,
-                  filter_length='auto', picks=picks, n_jobs=2, phase='zero',
-                  fir_window='hamming')
+    kwargs = dict(fir_design='firwin', picks=picks)
+    raw_lp.filter(None, 4.0, h_trans_bandwidth=4., n_jobs=2, **kwargs)
     raw_hp = raw2.copy()
-    raw_hp.filter(16.0, None, l_trans_bandwidth=4.,
-                  filter_length='auto', picks=picks, n_jobs=2, phase='zero',
-                  fir_window='hamming')
+    raw_hp.filter(16.0, None, l_trans_bandwidth=4., n_jobs=2, **kwargs)
     raw_bp = raw2.copy()
-    raw_bp.filter(8.0, 12.0, l_trans_bandwidth=4.,
-                  h_trans_bandwidth=4., filter_length='auto', picks=picks,
-                  phase='zero', fir_window='hamming')
+    raw_bp.filter(8.0, 12.0, l_trans_bandwidth=4., h_trans_bandwidth=4.,
+                  **kwargs)
     raw_bs = raw2.copy()
     raw_bs.filter(16.0, 4.0, l_trans_bandwidth=4., h_trans_bandwidth=4.,
-                  filter_length='auto', picks=picks, n_jobs=2, phase='zero',
-                  fir_window='hamming')
+                  n_jobs=2, **kwargs)
     data, _ = raw2[picks, :]
     lp_data, _ = raw_lp[picks, :]
     hp_data, _ = raw_hp[picks, :]

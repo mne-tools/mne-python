@@ -19,7 +19,6 @@ Current
 Changelog
 ~~~~~~~~~
 
-
     - :meth:`mne.channels.Layout.plot` and :func:`mne.viz.plot_layout` now allows plotting a subset of channels with ``picks`` argument by `Jaakko Leppakangas`_
 
     - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
@@ -33,8 +32,12 @@ BUG
 
     - Fix unit scaling when reading in EGI digitization files using :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
+    - Fix ``picks`` default in :meth:`mne.io.Raw.filter` to include ``ref_meg`` channels by default by `Eric Larson`_
+
 API
 ~~~
+
+    - Add new filtering mode ``fir_design='firwin'`` (default in the next 0.16 release) that gets improved attenuation using fewer samples compared to ``fir_design='firwin2'`` (default in the current 0.15 release) by `Eric Larson`_
 
     - Make the goodness of fit (GOF) of the dipoles returned by :func:`mne.beamformer.rap_music` consistent with the GOF of dipoles returned by :func:`mne.fit_dipole` by `Alex Gramfort`_.
 

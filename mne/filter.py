@@ -310,10 +310,14 @@ def _firwin_design(N, freq, gain, window, sfreq):
         assert this_gain in (0, 1)
         if this_gain != prev_gain:
             # Get the correct N to satistify the requested transition bandwidth
-            this_N = int(round(_length_factors[window] /
-                               (prev_freq - this_freq)))
+            transition = prev_freq - this_freq
+            this_N = int(round(_length_factors[window] / transition))
             this_N += (1 - this_N % 2)  # make it odd
-            assert this_N <= N
+            if this_N > N:
+                raise ValueError('The requested filter length %s is too short '
+                                 'for the requested %0.2f Hz transition band, '
+                                 'which requires %s samples'
+                                 % (N, transition * sfreq / 2., this_N))
             # Construct a lowpass
             this_h = firwin(this_N, (prev_freq + this_freq) / 2.,
                             window=window, pass_zero=True, nyq=freq[-1])
@@ -752,15 +756,17 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     filter_length : str | int
         Length of the FIR filter to use (if applicable):
 
-            * int: specified length in samples.
-            * 'auto' (default in 0.14): the filter length is chosen based
-              on the size of the transition regions (6.6 times the reciprocal
-              of the shortest transition band for fir_window='hamming').
-            * str: (default in 0.13 is "10s") a human-readable time in
-              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-              converted to that number of samples if ``phase="zero"``, or
-              the shortest power-of-two length at least that duration for
-              ``phase="zero-double"``.
+        * 'auto' (default): the filter length is chosen based
+          on the size of the transition regions (6.6 times the reciprocal
+          of the shortest transition band for fir_window='hamming'
+          and fir_design="firwin2", and half that for "firwin").
+        * str: a human-readable time in
+          units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+          converted to that number of samples if ``phase="zero"``, or
+          the shortest power-of-two length at least that duration for
+          ``phase="zero-double"``.
+        * int: specified length in samples. For fir_design="firwin",
+          this should not be used.
 
     l_trans_bandwidth : float | str
         Width of the transition band at the low cut-off frequency in Hz
@@ -878,15 +884,17 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
     filter_length : str | int
         Length of the FIR filter to use (if applicable):
 
-            * int: specified length in samples.
-            * 'auto' (default): the filter length is chosen based
-              on the size of the transition regions (6.6 times the reciprocal
-              of the shortest transition band for fir_window='hamming').
-            * str: a human-readable time in
-              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-              converted to that number of samples if ``phase="zero"``, or
-              the shortest power-of-two length at least that duration for
-              ``phase="zero-double"``.
+        * 'auto' (default): the filter length is chosen based
+          on the size of the transition regions (6.6 times the reciprocal
+          of the shortest transition band for fir_window='hamming'
+          and fir_design="firwin2", and half that for "firwin").
+        * str: a human-readable time in
+          units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+          converted to that number of samples if ``phase="zero"``, or
+          the shortest power-of-two length at least that duration for
+          ``phase="zero-double"``.
+        * int: specified length in samples. For fir_design="firwin",
+          this should not be used.
 
     l_trans_bandwidth : float | str
         Width of the transition band at the low cut-off frequency in Hz
@@ -1161,15 +1169,17 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     filter_length : str | int
         Length of the FIR filter to use (if applicable):
 
-            * int: specified length in samples.
-            * 'auto' (default): the filter length is chosen based
-              on the size of the transition regions (6.6 times the reciprocal
-              of the shortest transition band for fir_window='hamming').
-            * str: a human-readable time in
-              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-              converted to that number of samples if ``phase="zero"``, or
-              the shortest power-of-two length at least that duration for
-              ``phase="zero-double"``.
+        * 'auto' (default): the filter length is chosen based
+          on the size of the transition regions (6.6 times the reciprocal
+          of the shortest transition band for fir_window='hamming'
+          and fir_design="firwin2", and half that for "firwin").
+        * str: a human-readable time in
+          units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+          converted to that number of samples if ``phase="zero"``, or
+          the shortest power-of-two length at least that duration for
+          ``phase="zero-double"``.
+        * int: specified length in samples. For fir_design="firwin",
+          this should not be used.
 
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
@@ -1686,9 +1696,10 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                          'got "%s"' % (fir_window,))
     if fir_design is None:
         fir_design = 'firwin2'
-        warn('fir_design defaults to "firwin2" in 0.15 but will change to '
-             '"firwin" in 0.16, set it explicitly to avoid this warning.',
-             DeprecationWarning)
+        if method != 'iir':
+            warn('fir_design defaults to "firwin2" in 0.15 but will change to '
+                 '"firwin" in 0.16, set it explicitly to avoid this warning.',
+                 DeprecationWarning)
     if not isinstance(fir_design, string_types) or \
             fir_design not in ('firwin', 'firwin2'):
         raise ValueError('fir_design must be "firwin" or "firwin2", got %s'
@@ -1767,11 +1778,10 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             if filter_length == 'auto':
                 h_check = h_trans_bandwidth if h_freq is not None else np.inf
                 l_check = l_trans_bandwidth if l_freq is not None else np.inf
+                div_fact = 2. if fir_design == 'firwin' else 1.
                 filter_length = max(int(round(
-                    _length_factors[fir_window] * sfreq /
+                    _length_factors[fir_window] * (sfreq / div_fact) /
                     float(min(h_check, l_check)))), 1)
-                if fir_design == 'firwin':
-                    filter_length //= 2
                 logger.info('Filter length of %s samples (%0.3f sec) selected'
                             % (filter_length, filter_length / sfreq))
             else:

@@ -1134,16 +1134,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
-                * int: specified length in samples.
-                * 'auto' (default): the filter length is chosen based
-                  on the size of the transition regions (6.6 times the
-                  reciprocal of the shortest transition band for
-                  fir_window='hamming').
-                * str: a human-readable time in
-                  units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-                  converted to that number of samples if ``phase="zero"``, or
-                  the shortest power-of-two length at least that duration for
-                  ``phase="zero-double"``.
+            * 'auto' (default): the filter length is chosen based
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming'
+              and fir_design="firwin2", and half that for "firwin").
+            * str: a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+            * int: specified length in samples. For fir_design="firwin",
+              this should not be used.
 
         l_trans_bandwidth : float | str
             Width of the transition band at the low cut-off frequency in Hz
