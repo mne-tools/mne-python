@@ -151,7 +151,7 @@ class LinearModel(BaseEstimator):
         return self.model.predict(X)
 
     def predict_proba(self, X):
-        """Compute probablistic predictions of y from X.
+        """Compute probabilistic predictions of y from X.
 
         Parameters
         ----------

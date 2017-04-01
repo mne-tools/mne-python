@@ -179,7 +179,6 @@ def _make_dipoles(data, info, times, poss, oris, sol, gof, nave, aspect_kind,
     dipoles : list
         The list of DipoleFixed instances.
     """
-
     oris = np.array(oris)
 
     dipoles = []
