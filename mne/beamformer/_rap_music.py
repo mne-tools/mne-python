@@ -7,6 +7,7 @@
 
 import numpy as np
 from scipy import linalg
+from copy import deepcopy
 
 from ..io.pick import pick_channels_evoked
 from ..cov import compute_whitener
@@ -184,6 +185,11 @@ def _make_dipoles(data, info, times, poss, oris, sol, gof, nave, aspect_kind,
 
     dipoles = []
     for i_dip in range(poss.shape[0]):
+        info = deepcopy(info)
+        info['pos'] = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
+        info['ori'] = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
+        info['gof'] = gof
+        info['amplitude'] = sol[i_dip]
         dipoles.append(DipoleFixed(info, data, times, nave, aspect_kind,
                                    first, last, comment, verbose=verbose))
 
