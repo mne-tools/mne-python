@@ -137,8 +137,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, nave, aspect_kind,
     residual = data - np.dot(whitener, explained_data)
     gof = 1. - np.sum(residual ** 2, axis=0) / np.sum(data ** 2, axis=0)
     return _make_dipoles(data, info, times, poss, oris, sol, gof, nave,
-                         aspect_kind, first, last, comment, verbose),
-    explained_data
+                         aspect_kind, first, last, comment, verbose), \
+        explained_data
 
 
 def _make_dipoles(data, info, times, poss, oris, sol, gof, nave, aspect_kind,
