@@ -366,10 +366,15 @@ def test_split_files():
 
     assert_allclose(raw_1.info['buffer_size_sec'], 10., atol=1e-2)  # samp rate
     split_fname = op.join(tempdir, 'split_raw.fif')
+    raw_1.annotations = Annotations([2.], [5.5], 'test')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.info['buffer_size_sec'], 1., atol=1e-2)  # samp rate
+    assert_array_equal(raw_1.annotations.onset, raw_2.annotations.onset)
+    assert_array_equal(raw_1.annotations.duration, raw_2.annotations.duration)
+    assert_array_equal(raw_1.annotations.description,
+                       raw_2.annotations.description)
     data_1, times_1 = raw_1[:, :]
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
@@ -1201,8 +1206,8 @@ def test_save():
     onsets = raw.annotations.onset
     durations = raw.annotations.duration
     # 2*5s clips combined with annotations at 2.5s + 2s clip, annotation at 1s
-    assert_array_almost_equal([2.5, 7.5, 11.], onsets, decimal=2)
-    assert_array_almost_equal([2., 2.5, 1.], durations, decimal=2)
+    assert_array_almost_equal([2.5, 7.5, 11.], onsets[:3], decimal=2)
+    assert_array_almost_equal([2., 2.5, 1.], durations[:3], decimal=2)
 
     # test annotation clipping
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',

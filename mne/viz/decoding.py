@@ -10,9 +10,10 @@ from __future__ import print_function
 import numpy as np
 
 from .utils import plt_show
-from ..utils import warn
+from ..utils import warn, deprecated
 
 
+@deprecated('plot_gat_matrix is deprecated and will be removed in 0.15.')
 def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
                     ax=None, cmap='RdBu_r', show=True, colorbar=True,
                     xlabel=True, ylabel=True):
@@ -87,6 +88,7 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
     return fig if ax is None else ax.get_figure()
 
 
+@deprecated('plot_gat_matrix is deprecated and will be removed in 0.15.')
 def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
                    xmax=None, ymin=None, ymax=None, ax=None, show=True,
                    color=None, xlabel=True, ylabel=True, legend=True,

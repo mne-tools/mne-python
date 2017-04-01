@@ -41,6 +41,62 @@ def _get_events():
     return read_events(event_name)
 
 
+def _annotation_helper(raw):
+    """Helper for testing interactive annotations."""
+    import matplotlib.pyplot as plt
+    n_anns = 0 if raw.annotations is None else len(raw.annotations.onset)
+
+    fig = raw.plot()
+    data_ax = fig.axes[0]
+    fig.canvas.key_press_event('a')  # annotation mode
+    # modify description
+    ann_fig = plt.gcf()
+    for key in ' test':
+        ann_fig.canvas.key_press_event(key)
+    ann_fig.canvas.key_press_event('enter')
+
+    ann_fig = plt.gcf()
+    # XXX: _fake_click raises an error on Agg backend
+    _annotation_radio_clicked('', ann_fig.radio, data_ax.selector)
+
+    # draw annotation
+    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
+    # hover event
+    _fake_click(fig, data_ax, [4.5, 1.], xform='data', button=None,
+                kind='motion')
+    _fake_click(fig, data_ax, [4.7, 1.], xform='data', button=None,
+                kind='motion')
+    # modify annotation from end
+    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
+                kind='release')
+    # modify annotation from beginning
+    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1,
+                kind='release')
+    assert_equal(len(raw.annotations.onset), n_anns + 1)
+    assert_equal(len(raw.annotations.duration), n_anns + 1)
+    assert_equal(len(raw.annotations.description), n_anns + 1)
+    assert_equal(raw.annotations.description[n_anns], 'BAD test')
+
+    # draw another annotation merging the two
+    _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
+    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='motion')
+    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='release')
+    # delete the annotation
+    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
+    fig.canvas.key_press_event('a')  # exit annotation mode
+
+    assert_equal(len(raw.annotations.onset), n_anns)
+    assert_equal(len(raw.annotations.duration), n_anns)
+    assert_equal(len(raw.annotations.description), n_anns)
+    plt.close('all')
+
+
 def test_plot_raw():
     """Test plotting of raw data."""
     import matplotlib.pyplot as plt
@@ -123,63 +179,11 @@ def test_plot_raw():
 
 def test_plot_annotations():
     """Test annotation mode of the plotter."""
-    import matplotlib.pyplot as plt
     raw = _get_raw()
-    fig = raw.plot()
-    data_ax = fig.axes[0]
-    fig.canvas.key_press_event('a')  # annotation mode
-    # modify description
-    ann_fig = plt.gcf()
-    for key in ' test':
-        ann_fig.canvas.key_press_event(key)
-    ann_fig.canvas.key_press_event('enter')
+    _annotation_helper(raw)
 
-    ann_fig = plt.gcf()
-    # XXX: _fake_click raises an error on Agg backend
-    _annotation_radio_clicked('', ann_fig.radio, data_ax.selector)
-
-    # draw annotation
-    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
-    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='motion')
-    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='release')
-    # hover event
-    _fake_click(fig, data_ax, [4.5, 1.], xform='data', button=None,
-                kind='motion')
-    _fake_click(fig, data_ax, [4.7, 1.], xform='data', button=None,
-                kind='motion')
-    # modify annotation from end
-    _fake_click(fig, data_ax, [5., 1.], xform='data', button=1, kind='press')
-    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1, kind='motion')
-    _fake_click(fig, data_ax, [2.5, 1.], xform='data', button=1,
-                kind='release')
-    # modify annotation from beginning
-    _fake_click(fig, data_ax, [1., 1.], xform='data', button=1, kind='press')
-    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1, kind='motion')
-    _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1,
-                kind='release')
-    assert_equal(len(raw.annotations.onset), 1)
-    assert_equal(len(raw.annotations.duration), 1)
-    assert_equal(len(raw.annotations.description), 1)
-    assert_equal(raw.annotations.description[0], 'BAD test')
-
-    # draw another annotation merging the two
-    _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
-    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='motion')
-    _fake_click(fig, data_ax, [2., 1.], xform='data', button=1, kind='release')
-    # delete the annotation
-    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
-    fig.canvas.key_press_event('a')  # exit annotation mode
-    plt.close('all')
-
-    assert_equal(len(raw.annotations.onset), 0)
-    assert_equal(len(raw.annotations.duration), 0)
-    assert_equal(len(raw.annotations.description), 0)
-    plt.close('all')
-
-    raw.annotations = Annotations([1], [1], 'test', raw.info['meas_date'])
-    fig = raw.plot()
-    assert_raises(NotImplementedError, fig.canvas.key_press_event, 'a')
-    plt.close('all')
+    raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])
+    _annotation_helper(raw)
 
 
 @requires_version('scipy', '0.10')
@@ -202,8 +206,7 @@ def test_plot_raw_psd():
     import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
-    with warnings.catch_warnings(record=True):  # deprecation of tmax
-        raw.plot_psd()
+    raw.plot_psd()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False,
@@ -244,7 +247,7 @@ def test_plot_sensors():
     raw.plot_sensors('topomap', ch_type='mag')
     ax = plt.subplot(111)
     raw.plot_sensors(ch_groups='position', axes=ax)
-    raw.plot_sensors(ch_groups='selection')
+    raw.plot_sensors(ch_groups='selection', to_sphere=False)
     raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
     assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info

@@ -49,8 +49,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov, nave, aspect_kind,
     picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    return_explained_data : bool
-        If True, the explained data is returned as an array.
 
     Returns
     -------
@@ -116,13 +114,12 @@ def _apply_rap_music(data, info, times, forward, noise_cov, nave, aspect_kind,
 
         A[:, k] = Ak.ravel()
 
-        if return_explained_data:
-            gain_k = gain[:, idx_k]
-            if n_orient == 3:
-                gain_k = np.dot(gain_k,
-                                np.dot(forward['source_nn'][idx_k],
-                                       source_ori))
-            gain_dip[:, k] = gain_k.ravel()
+        gain_k = gain[:, idx_k]
+        if n_orient == 3:
+            gain_k = np.dot(gain_k,
+                            np.dot(forward['source_nn'][idx_k],
+                                   source_ori))
+        gain_dip[:, k] = gain_k.ravel()
 
         oris[k] = source_ori
         poss[k] = source_pos
@@ -136,13 +133,9 @@ def _apply_rap_music(data, info, times, forward, noise_cov, nave, aspect_kind,
         phi_sig_proj = np.dot(projection, phi_sig)
 
     sol = linalg.lstsq(A, data)[0]
-
-    gof, explained_data = [], None
-    if return_explained_data:
-        explained_data = np.dot(gain_dip, sol)
-        gof = (linalg.norm(np.dot(whitener, explained_data)) /
-               linalg.norm(data))
-
+    explained_data = np.dot(gain_dip, sol)
+    residual = data - np.dot(whitener, explained_data)
+    gof = 1. - np.sum(residual ** 2, axis=0) / np.sum(data ** 2, axis=0)
     return _make_dipoles(data, info, times, poss, oris, sol, gof, nave, aspect_kind, first,
                          last, comment, verbose), explained_data
 
@@ -230,6 +223,9 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
     (RAP-MUSIC) on evoked data.
+
+    .. note:: The goodness of fit (GOF) of all the returned dipoles is the
+              same and corresponds to the GOF of the full set of dipoles.
 
     Parameters
     ----------

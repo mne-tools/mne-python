@@ -58,10 +58,11 @@ Classes
    preprocessing.Xdawn
    decoding.CSP
    decoding.FilterEstimator
-   decoding.GeneralizationAcrossTime
    decoding.PSDEstimator
+   decoding.ReceptiveField
    decoding.Scaler
-   decoding.TimeDecoding
+   decoding.SlidingEstimator
+   decoding.GeneralizingEstimator
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
@@ -362,6 +363,20 @@ Datasets
    :no-inherited-members:
 
 .. currentmodule:: mne.datasets.visual_92_categories
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   data_path
+
+:py:mod:`mne.datasets.mtrf`:
+
+.. automodule:: mne.datasets.mtrf
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.datasets.mtrf
 
 .. autosummary::
    :toctree: generated/
@@ -1093,17 +1108,20 @@ Classes:
    CSP
    EMS
    FilterEstimator
-   GeneralizationAcrossTime
    LinearModel
    PSDEstimator
    Scaler
    TemporalFilter
-   TimeDecoding
    TimeFrequency
    UnsupervisedSpatialFilter
    Vectorizer
+   ReceptiveField
+   SlidingEstimator
+   GeneralizingEstimator
 
 Functions:
+
+Functions that assist with decoding and model fitting:
 
 .. autosummary::
    :toctree: generated/

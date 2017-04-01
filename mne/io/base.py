@@ -855,7 +855,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             done. If 'omit', segments annotated with description starting with
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
-            Whether to return times as well.
+            Whether to return times as well. Defaults to False.
 
         Returns
         -------
@@ -1559,10 +1559,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin:smax + 1].copy()
         self._update_times()
+
         if self.annotations is not None:
             annotations = self.annotations
             annotations.onset -= tmin
             self.annotations = annotations
+
+            # If all annotations are outside the data range, we set them to
+            # None. Otherwise this causes problems when saving and reading.
+            if len(self.annotations.onset) == 0:
+                self.annotations = None
         return self
 
     @verbose
@@ -1711,17 +1717,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
-    def plot_psd(self, tmin=0.0, tmax=None, fmin=0, fmax=np.inf,
+    def plot_psd(self, tmin=0.0, tmax=np.inf, fmin=0, fmax=np.inf,
                  proj=False, n_fft=None, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, average=None, show=True,
                  n_jobs=1, line_alpha=None, spatial_colors=None,
                  xscale='linear', verbose=None):
-        if tmax is None:
-            tmax = 60.
-            warn('tmax defaults to 60. in 0.14 but will change to np.inf in '
-                 '0.15. Set it explicitly to avoid this warning',
-                 DeprecationWarning)
         return plot_raw_psd(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
             n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,
@@ -1893,6 +1894,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def append(self, raws, preload=None):
         """Concatenate raw instances as if they were continuous.
 
+        .. note:: Boundaries of the raw files are annotated bad. If you wish to
+                  use the data as continuous recording, you can remove the
+                  boundary annotations after concatenation (see
+                  :meth:`mne.Annotations.delete`).
+
         Parameters
         ----------
         raws : list, or Raw instance
@@ -1959,19 +1965,27 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # now combine information from each raw file to construct new self
         annotations = self.annotations
+        edge_samps = list()
         for r in raws:
-            self._first_samps = np.r_[self._first_samps, r._first_samps]
-            self._last_samps = np.r_[self._last_samps, r._last_samps]
-            self._raw_extras += r._raw_extras
-            self._filenames += r._filenames
             annotations = _combine_annotations((annotations, r.annotations),
                                                self._last_samps,
                                                self._first_samps,
                                                self.info['sfreq'],
                                                self.info['meas_date'])
+            edge_samps.append(sum(self._last_samps) - sum(self._first_samps))
+            self._first_samps = np.r_[self._first_samps, r._first_samps]
+            self._last_samps = np.r_[self._last_samps, r._last_samps]
+            self._raw_extras += r._raw_extras
+            self._filenames += r._filenames
 
         self._update_times()
+        if annotations is None:
+            annotations = Annotations([], [], [])
         self.annotations = annotations
+        for edge_samp in edge_samps:
+            onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
+            self.annotations.append(onset, (1. / self.info['sfreq']),
+                                    'BAD boundary')
 
         if not (len(self._first_samps) == len(self._last_samps) ==
                 len(self._raw_extras) == len(self._filenames)):
@@ -2387,6 +2401,10 @@ def concatenate_raws(raws, preload=None, events_list=None):
     """Concatenate raw instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
+              Boundaries of the raw files are annotated bad. If you wish to use
+              the data as continuous recording, you can remove the boundary
+              annotations after concatenation (see
+              :meth:`mne.Annotations.delete`).
 
     Parameters
     ----------

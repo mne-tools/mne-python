@@ -751,12 +751,10 @@ def _setup_annotation_fig(params):
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
         params['fig_annotation'].canvas.close_event()
+    if params['raw'].annotations is None:
+        params['raw'].annotations = Annotations(list(), list(), list())
     annotations = params['raw'].annotations
-    if annotations is not None and annotations.orig_time is not None:
-        raise NotImplementedError('Interactive annotation mode is only '
-                                  'available for annotations with '
-                                  'orig_time=None.')
-    labels = [] if annotations is None else list(set(annotations.description))
+    labels = list(set(annotations.description))
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
     fig.patch.set_facecolor('white')
@@ -784,12 +782,13 @@ def _setup_annotation_fig(params):
     fig.canvas.set_window_title('Annotations')
     fig.radio = RadioButtons(ax, labels, activecolor='#cccccc')
     radius = 0.15
-    for circle, label in zip(fig.radio.circles, fig.radio.labels):
+    circles = fig.radio.circles
+    for circle, label in zip(circles, fig.radio.labels):
         circle.set_edgecolor(params['segment_colors'][label.get_text()])
         circle.set_linewidth(4)
         circle.set_radius(radius / (len(labels)))
         label.set_x(circle.center[0] + (radius + 0.1) / len(labels))
-    col = 'r' if len(fig.radio.labels) < 1 else fig.radio.labels[0].get_color()
+    col = 'r' if len(fig.radio.circles) < 1 else circles[0].get_edgecolor()
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
     fig.button = Button(button_ax, 'Add label')
@@ -837,17 +836,15 @@ def _mouse_click(event, params):
     if event.button == 3:
         if params['fig_annotation'] is None:
             return
-        for coll in params['ax'].collections:
-            if coll.contains(event)[0]:
-                path = coll.get_paths()[-1]
-                mn = min(path.vertices[:4, 0]) - params['first_time']
-                mx = max(path.vertices[:4, 0]) - params['first_time']
-                ann_idx = np.where(params['raw'].annotations.onset == mn)[0]
-                for idx in ann_idx:
-                    if params['raw'].annotations.duration[idx] == mx - mn:
-                        params['raw'].annotations.delete(idx)
+        raw = params['raw']
+        if np.any([c.contains(event)[0] for c in params['ax'].collections]):
+            xdata = event.xdata - params['first_time']
+            onset = _sync_onset(raw, raw.annotations.onset)
+            ends = onset + raw.annotations.duration
+            ann_idx = np.where((xdata > onset) & (xdata < ends))[0]
+            raw.annotations.delete(ann_idx)  # only first one deleted
         _remove_segment_line(params)
-        _plot_annotations(params['raw'], params)
+        _plot_annotations(raw, params)
         params['plot_fun']()
         return
 
@@ -1034,12 +1031,12 @@ class ClickableImage(object):
         self.ax = self.fig.add_subplot(111)
         self.ymax = self.imdata.shape[0]
         self.xmax = self.imdata.shape[1]
-        self.im = self.ax.imshow(imdata, aspect='auto',
+        self.im = self.ax.imshow(imdata,
                                  extent=(0, self.xmax, 0, self.ymax),
                                  picker=True, **kwargs)
         self.ax.axis('off')
         self.fig.canvas.mpl_connect('pick_event', self.onclick)
-        plt_show()
+        plt_show(block=True)
 
     def onclick(self, event):
         """Handle Mouse clicks.
@@ -1061,6 +1058,9 @@ class ClickableImage(object):
             Arguments are passed to imshow in displaying the bg image.
         """
         from matplotlib.pyplot import subplots
+        if len(self.coords) == 0:
+            raise ValueError('No coordinates found, make sure you click '
+                             'on the image that is first shown.')
         f, ax = subplots()
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
         xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
@@ -1207,9 +1207,9 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
 
 
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
-                 show_names=False, ch_groups=None, axes=None, block=False,
-                 show=True):
-    """Plot sensor positions.
+                 show_names=False, ch_groups=None, to_sphere=True, axes=None,
+                 block=False, show=True):
+    """Plot sensors positions.
 
     Parameters
     ----------
@@ -1239,6 +1239,13 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         array, the channels are divided by picks given in the array.
 
         .. versionadded:: 0.13.0
+
+    to_sphere : bool
+        Whether to project the 3d locations to a sphere. When False, the
+        sensor array appears similar as to looking downwards straight above the
+        subject's head. Has no effect when kind='3d'. Defaults to True.
+
+        .. versionadded:: 0.14.0
 
     axes : instance of Axes | instance of Axes3D | None
         Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
@@ -1343,11 +1350,12 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                     colors[pick_idx] = color_vals[ind]
                     break
     if kind in ('topomap', 'select'):
-        pos = _auto_topomap_coords(info, picks, True)
+        pos = _auto_topomap_coords(info, picks, True, to_sphere=to_sphere)
 
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, colors, bads, ch_names, title, show_names, axes,
-                        show, kind == 'select', block=block)
+                        show, kind == 'select', block=block,
+                        to_sphere=to_sphere)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -1383,7 +1391,7 @@ def _close_event(event, fig):
 
 
 def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
-                  select, block):
+                  select, block, to_sphere):
     """Plot sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -1413,11 +1421,17 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
         ax.set_yticks([])
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                             hspace=None)
-        pos, outlines = _check_outlines(pos, 'head')
+        if to_sphere:
+            pos, outlines = _check_outlines(pos, 'head')
+        else:
+            pos, outlines = _check_outlines(pos, np.array([0.5, 0.5]),
+                                            {'center': (0, 0),
+                                             'scale': (4.5, 4.5)})
         _draw_outlines(ax, outlines)
 
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
-                         edgecolor=edgecolors, linewidth=2)
+                         edgecolor=edgecolors, linewidth=2, clip_on=False)
+
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
 
@@ -1719,7 +1733,7 @@ class SelectFromCollection(object):
 def _annotate_select(vmin, vmax, params):
     """Handle annotation span selector."""
     raw = params['raw']
-    onset = vmin - params['first_time']
+    onset = _sync_onset(raw, vmin, True) - params['first_time']
     duration = vmax - vmin
     active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
     description = params['fig_annotation'].radio.labels[active_idx].get_text()
@@ -1752,10 +1766,9 @@ def _plot_annotations(raw, params):
         annot_start = _sync_onset(raw, onset) + params['first_time']
         annot_end = annot_start + raw.annotations.duration[ann_order][idx]
         segments.append([annot_start, annot_end])
-        ylim = params['ax_hscroll'].get_ylim()
         dscr = descriptions[idx]
         params['ax_hscroll'].fill_betweenx(
-            ylim, annot_start, annot_end, alpha=0.3,
+            (0., 1.), annot_start, annot_end, alpha=0.3,
             color=params['segment_colors'][dscr])
     params['segments'] = np.array(segments)
     params['annot_description'] = descriptions
@@ -1842,19 +1855,21 @@ def _remove_segment_line(params):
 
 def _annotation_modify(old_x, new_x, params):
     """Modify annotation."""
+    raw = params['raw']
+
     segment = np.array(np.where(params['segments'] == old_x))
     if segment.shape[1] == 0:
         return
     annotations = params['raw'].annotations
     idx = [segment[0][0], segment[1][0]]
-    onset = params['segments'][idx[0]][0]
+    onset = _sync_onset(raw, params['segments'][idx[0]][0], True)
     ann_idx = np.where(annotations.onset == onset - params['first_time'])[0]
     if idx[1] == 0:  # start of annotation
-        onset = new_x - params['first_time']
+        onset = _sync_onset(raw, new_x, True) - params['first_time']
         duration = annotations.duration[ann_idx] + old_x - new_x
     else:  # end of annotation
         onset = annotations.onset[ann_idx]
-        duration = new_x - onset - params['first_time']
+        duration = _sync_onset(raw, new_x, True) - onset - params['first_time']
 
     if duration < 0:
         onset += duration

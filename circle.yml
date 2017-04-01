@@ -16,6 +16,7 @@ dependencies:
     - "~/mne_data/MNE-brainstorm-data"
     - "~/mne_data/MEGSIM"
     - "~/mne_data/MNE-eegbci-data"
+    - "~/mne_data/mTRF_1.5"
     - "~/mne-tools.github.io"
   # Various dependencies
   pre:
@@ -60,7 +61,7 @@ dependencies:
     - PATTERN="";
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
-      elif [ "$CIRCLE_BRANCH" == "maint/0.13" ]; then
+      elif [ "$CIRCLE_BRANCH" == "maint/0.14" ]; then
         echo html_stable > build.txt;
       else
         FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
@@ -100,6 +101,9 @@ dependencies:
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*mtrf.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.mtrf.data_path(update_path=True))";
             fi;
           fi;
         done;
@@ -148,7 +152,7 @@ deployment:
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
   stable:
-    branch: maint/0.13
+    branch: maint/0.14
     commands:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"

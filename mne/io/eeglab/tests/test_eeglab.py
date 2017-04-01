@@ -31,7 +31,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 @requires_version('scipy', '0.12')
 @testing.requires_testing_data
 def test_io_set():
-    """Test importing EEGLAB .set files"""
+    """Test importing EEGLAB .set files."""
     from scipy import io
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')

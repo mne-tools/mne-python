@@ -3,12 +3,14 @@
 Compute source power using DICS beamfomer
 =========================================
 
-Compute a Dynamic Imaging of Coherent Sources (DICS) filter from single trial
-activity to estimate source power for two frequencies of interest.
+Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
+single-trial activity to estimate source power for two frequencies of
+interest.
 
-The original reference for DICS is:
-Gross et al. Dynamic imaging of coherent sources: Studying neural interactions
-in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+References
+----------
+.. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
+       interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
 # Author: Roman Goj <roman.goj@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>
@@ -61,11 +63,10 @@ noise_csds = csd_epochs(epochs, mode='multitaper', tmin=-0.11,
 # Compute DICS spatial filter and estimate source power
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
 
-clim = dict(kind='value', lims=[1.6, 1.9, 2.2])
 for i, csd in enumerate(data_csds):
     message = 'DICS source power at %0.1f Hz' % csd.frequencies[0]
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                     time_label=message, figure=i, clim=clim)
+                     time_label=message, figure=i)
     brain.set_data_time_index(i)
     brain.show_view('lateral')
     # Uncomment line below to save images

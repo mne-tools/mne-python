@@ -28,6 +28,7 @@ from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 from ..io.meas_info import Info
+from ..externals.six import string_types
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -99,8 +100,7 @@ def _plot_update_evoked_topomap(params, bools):
     new_evoked.add_proj(projs)
     new_evoked.apply_proj()
 
-    data = new_evoked.data[np.ix_(params['picks'],
-                                  params['time_idx'])] * params['scale']
+    data = new_evoked.data[:, params['time_idx']] * params['scale']
     if params['merge_grads']:
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
@@ -276,7 +276,7 @@ def _check_outlines(pos, outlines, head_pos=None):
             raise ValueError('head_pos["%s"] must have shape (2,), not '
                              '%s' % (key, head_pos[key].shape))
 
-    if outlines in ('head', 'skirt', None):
+    if isinstance(outlines, np.ndarray) or outlines in ('head', 'skirt', None):
         radius = 0.5
         l = np.linspace(0, 2 * np.pi, 101)
         head_x = np.cos(l) * radius
@@ -301,7 +301,7 @@ def _check_outlines(pos, outlines, head_pos=None):
         else:
             outlines_dict = dict()
 
-        if outlines == 'skirt':
+        if isinstance(outlines, string_types) and outlines == 'skirt':
             if 'scale' not in head_pos:
                 # By default, fit electrodes inside the head circle
                 head_pos['scale'] = 1.0 / (pos.max(axis=0) - pos.min(axis=0))
@@ -321,18 +321,28 @@ def _check_outlines(pos, outlines, head_pos=None):
                 # this number was empirically determined (seems to work well)
                 head_pos['scale'] = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
             pos *= head_pos['scale']
-            outlines_dict['autoshrink'] = True
             outlines_dict['mask_pos'] = head_x, head_y
-            outlines_dict['clip_radius'] = (0.5, 0.5)
+            if isinstance(outlines, np.ndarray):
+                outlines_dict['autoshrink'] = False
+                outlines_dict['clip_radius'] = outlines
+                x_scale = np.max(outlines_dict['head'][0]) / outlines[0]
+                y_scale = np.max(outlines_dict['head'][1]) / outlines[1]
+                for key in ['head', 'nose', 'ear_left', 'ear_right']:
+                    value = outlines_dict[key]
+                    value = (value[0] / x_scale, value[1] / y_scale)
+                    outlines_dict[key] = value
+            else:
+                outlines_dict['autoshrink'] = True
+                outlines_dict['clip_radius'] = (0.5, 0.5)
 
         outlines = outlines_dict
 
     elif isinstance(outlines, dict):
         if 'mask_pos' not in outlines:
-            raise ValueError('You must specify the coordinates of the image'
-                             'mask')
+            raise ValueError('You must specify the coordinates of the image '
+                             'mask.')
     else:
-        raise ValueError('Invalid value for `outlines')
+        raise ValueError('Invalid value for `outlines`.')
 
     return pos, outlines
 
@@ -1732,13 +1742,16 @@ def plot_psds_topomap(
     return fig
 
 
-def plot_layout(layout, show=True):
+def plot_layout(layout, picks=None, show=True):
     """Plot the sensor positions.
 
     Parameters
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
+    picks : array-like
+        Indices of the channels to show. If None (default), all the channels
+        are shown.
     show : bool
         Show figure if True. Defaults to True.
 
@@ -1761,7 +1774,12 @@ def plot_layout(layout, show=True):
     pos = [(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos]
     pos, outlines = _check_outlines(pos, 'head')
     _draw_outlines(ax, outlines)
-    for ii, (this_pos, ch_id) in enumerate(zip(pos, layout.names)):
+    if picks is None:
+        names = layout.names
+    else:
+        pos = pos[picks]
+        names = np.array(layout.names)[picks]
+    for ii, (this_pos, ch_id) in enumerate(zip(pos, names)):
         ax.annotate(ch_id, xy=this_pos[:2], horizontalalignment='center',
                     verticalalignment='center', size='x-small')
     plt_show(show)
