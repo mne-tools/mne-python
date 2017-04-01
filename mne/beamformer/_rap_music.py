@@ -136,8 +136,9 @@ def _apply_rap_music(data, info, times, forward, noise_cov, nave, aspect_kind,
     explained_data = np.dot(gain_dip, sol)
     residual = data - np.dot(whitener, explained_data)
     gof = 1. - np.sum(residual ** 2, axis=0) / np.sum(data ** 2, axis=0)
-    return _make_dipoles(data, info, times, poss, oris, sol, gof, nave, aspect_kind, first,
-                         last, comment, verbose), explained_data
+    return _make_dipoles(data, info, times, poss, oris, sol, gof, nave,
+                         aspect_kind, first, last, comment, verbose),
+    explained_data
 
 
 def _make_dipoles(data, info, times, poss, oris, sol, gof, nave, aspect_kind,
@@ -183,8 +184,6 @@ def _make_dipoles(data, info, times, poss, oris, sol, gof, nave, aspect_kind,
 
     dipoles = []
     for i_dip in range(poss.shape[0]):
-        i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
         dipoles.append(DipoleFixed(info, data, times, nave, aspect_kind,
                                    first, last, comment, verbose=verbose))
 
