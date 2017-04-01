@@ -27,14 +27,15 @@ same type of filter is used across all bands).
 
 References
 ----------
-.. [1]_ Hari R. and Salmelin R. Human cortical oscillations: a neuromagnetic
-        view through the skull (1997). Trends in Neuroscience 20 (1),
-        pp. 44-49.
-.. [2]_ Engemann D. and Gramfort A. (2015) Automated model selection in
-        covariance estimation and spatial whitening of MEG and EEG signals,
-        vol. 108, 328-342, NeuroImage.
-.. [3]_ Efron B. and Hastie T. Computer Age Statistical Inference (2016).
-        Cambrdige University Press, Chapter 11.2.
+
+.. [1] Hari R. and Salmelin R. Human cortical oscillations: a neuromagnetic
+       view through the skull (1997). Trends in Neuroscience 20 (1),
+       pp. 44-49.
+.. [2] Engemann D. and Gramfort A. (2015) Automated model selection in
+       covariance estimation and spatial whitening of MEG and EEG signals,
+       vol. 108, 328-342, NeuroImage.
+.. [3] Efron B. and Hastie T. Computer Age Statistical Inference (2016).
+       Cambrdige University Press, Chapter 11.2.
 """
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #
