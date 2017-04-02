@@ -1,8 +1,8 @@
 .. _cookbook:
 
-========
-Cookbook
-========
+===========================
+A standard MEG/EEG workflow
+===========================
 
 .. contents:: Contents
    :local:
