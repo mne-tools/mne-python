@@ -376,9 +376,9 @@ def test_get_phantom_dipoles():
 
 @testing.requires_testing_data
 def test_repr_dipoles_fixed():
-    """Test IO for """
+    """Test IO for DipoleFixed"""
     cond = 'Right Auditory'
-    ave = read_evokeds(fname_raw, condition=cond, baseline=(None, 0))
+    ave = read_evokeds(fname_evo, condition=cond, baseline=(None, 0))
     fwd = read_forward_solution(fname_fwd, surf_ori=True,
                                 force_fixed=False)
     cov = read_cov(fname_cov)
