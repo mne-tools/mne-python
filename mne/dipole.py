@@ -375,6 +375,12 @@ class DipoleFixed(object):
         self.data = data
         self.verbose = verbose
 
+    def __repr__(self):
+        s = "n_times : %s" % len(self.times)
+        s += ", tmin : %s" % np.min(self.times)
+        s += ", tmax : %s" % np.max(self.times)
+        return "<DipoleFixed  |  %s>" % s
+
     @property
     def ch_names(self):
         """Channel names."""
