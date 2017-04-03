@@ -2092,3 +2092,5 @@ of commits):
 .. _Matt Boggess: https://github.com/mattboggess
 
 .. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
+
+.. _Laura Gwilliams: http://lauragwilliams.github.io
