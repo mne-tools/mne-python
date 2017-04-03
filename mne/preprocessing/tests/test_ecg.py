@@ -16,7 +16,8 @@ proj_fname = op.join(data_path, 'test-proj.fif')
 
 def test_find_ecg():
     """Test find ECG peaks."""
-    raw = read_raw_fif(raw_fname)
+    # Test if ECG analysis will work on data that is not preloaded
+    raw = read_raw_fif(raw_fname, preload=False)
 
     # once with mag-trick
     # once with characteristic channel
@@ -33,7 +34,10 @@ def test_find_ecg():
         eog=False, ecg=True, emg=False, ref_meg=False,
         exclude='bads')
 
-    raw.load_data()
+    # There should be no ECG channels, or else preloading will not be
+    # tested
+    assert_true('ecg' not in raw)
+
     ecg_epochs = create_ecg_epochs(raw, picks=picks, keep_ecg=True)
     assert_equal(len(ecg_epochs.events), n_events)
     assert_true('ECG-SYN' not in raw.ch_names)
@@ -54,5 +58,6 @@ def test_find_ecg():
         raw.set_channel_types({'MEG 2641': 'ecg'})
     assert_true(len(w) == 1 and 'unit for channel' in str(w[0].message))
     create_ecg_epochs(raw)
+
 
 run_tests_if_main()
