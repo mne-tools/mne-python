@@ -28,7 +28,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
-                    _change_channel_group, _plot_annotations)
+                    _change_channel_group, _plot_annotations, _setup_butterfly)
 from .evoked import _plot_lines
 
 
@@ -147,8 +147,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         channels by the positions of the sensors. 'selection' and 'position'
         modes allow butterfly mode (press 'b') and custom selections by using
         lasso selector on the topomap. Pressing ``ctrl`` key while selecting
-        allows appending to the current selection. If array, only the channels
-        in the array are plotted in the given order. Defaults to 'type'.
+        allows appending to the current selection. 'butterfly' is equal to
+        'position', but the plotter is started in butterfly mode. If array,
+        only the channels in the array are plotted in the given order. Defaults
+        to 'type'.
     show_options : bool
         If True, a dialog for options related to projection is shown.
     title : str | None
@@ -294,7 +296,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if isinstance(order, string_types):
         if order == 'original':
             inds = inds[reord]
-        elif order in ['selection', 'position']:
+        elif order in ['selection', 'position', 'butterfly']:
             selections, fig_selection = _setup_browser_selection(raw, order)
         elif order != 'type':
             raise ValueError('Unknown order type %s' % order)
@@ -325,7 +327,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False)
 
-    if isinstance(order, string_types) and order in ['selection', 'position']:
+    if isinstance(order, string_types) and order in ['selection', 'position',
+                                                     'butterfly']:
         params['fig_selection'] = fig_selection
         params['selections'] = selections
         params['radio_clicked'] = partial(_radio_clicked, params=params)
@@ -390,7 +393,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     # initialize the first selection set
-    if isinstance(order, string_types) and order in ['selection', 'position']:
+    if isinstance(order, string_types) and order in ['selection', 'position',
+                                                     'butterfly']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
         callback_selection_key = partial(_selection_key_press, params=params)
         callback_selection_scroll = partial(_selection_scroll, params=params)
@@ -400,6 +404,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                                    callback_selection_key)
         params['fig_selection'].canvas.mpl_connect('scroll_event',
                                                    callback_selection_scroll)
+        if order == 'butterfly':
+            _setup_butterfly(params)
 
     try:
         plt_show(show, block=block)
@@ -1048,9 +1054,10 @@ def _setup_browser_selection(raw, kind, selector=True):
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
-    if kind in ('position'):
+    if kind in ('position', 'butterfly'):
         order = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
+        kind = 'position'
     elif 'selection':
         from ..io import RawFIF, RawArray
         if not isinstance(raw, (RawFIF, RawArray)):

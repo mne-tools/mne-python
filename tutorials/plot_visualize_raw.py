@@ -70,8 +70,10 @@ raw.plot(block=True)
 # grouped by sensor positions to 8 evenly sized regions. Notice that for this
 # to work effectively, all the data channels in the channel array must be
 # present. The ``order`` parameter can also be passed as an array of ints
-# (picks) to plot the channels in the given order.
-raw.plot(order='selection')
+# (picks) to plot the channels in the given order. Here we use the butterfly
+# mode which groups the channels the same way as the position mode. To toggle
+# between these modes, press 'b' key when the plotter window is active.
+raw.plot(order='butterfly')
 
 ###############################################################################
 # We read the events from a file and passed it as a parameter when calling the
