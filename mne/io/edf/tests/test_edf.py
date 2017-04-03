@@ -21,7 +21,7 @@ import numpy as np
 from mne import pick_types
 from mne.datasets import testing
 from mne.externals.six import iterbytes
-from mne.utils import run_tests_if_main, requires_pandas
+from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _parse_tal_channel
@@ -120,6 +120,19 @@ def test_edf_data():
     events[1::2, [0, 1]] = offsets
 
     assert_array_equal(edf_events, events)
+
+    # Test with number of records not in header (-1).
+    tempdir = _TempDir()
+    broken_fname = op.join(tempdir, 'broken.edf')
+    with open(edf_path, 'rb') as fid_in:
+        fid_in.seek(0, 2)
+        n_bytes = fid_in.tell()
+        fid_in.seek(0, 0)
+        bytes = fid_in.read(int(n_bytes * 0.4))
+    with open(broken_fname, 'wb') as fid_out:
+        bytes = bytes[:236] + '-1      ' + bytes[244:]
+        fid_out.write(bytes)
+    read_raw_edf(broken_fname, preload=True)
 
 
 @testing.requires_testing_data
