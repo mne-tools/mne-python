@@ -26,7 +26,6 @@ from mne.io import read_raw_fif, read_raw_ctf
 from mne.surface import _compute_nearest
 from mne.bem import _bem_find_surface, read_bem_solution
 from mne.transforms import apply_trans, _get_trans
-from mne.beamformer import rap_music
 
 warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
@@ -337,6 +336,9 @@ def test_accuracy():
 def test_dipole_fixed():
     """Test reading a fixed-position dipole (from Xfit)."""
     dip = read_dipole(fname_xfit_dip)
+    # print the representation of the objet DipoleFixed
+    print(dip)
+
     _check_roundtrip_fixed(dip)
     with warnings.catch_warnings(record=True) as w:  # unused fields
         dip_txt = read_dipole(fname_xfit_dip_txt)
@@ -372,20 +374,6 @@ def test_get_phantom_dipoles():
         pos, ori = get_phantom_dipoles(kind)
         assert_equal(pos.shape, (32, 3))
         assert_equal(ori.shape, (32, 3))
-
-
-@testing.requires_testing_data
-def test_repr_dipoles_fixed():
-    """Test IO for DipoleFixed"""
-    cond = 'Right Auditory'
-    ave = read_evokeds(fname_evo, condition=cond, baseline=(None, 0))
-    fwd = read_forward_solution(fname_fwd, surf_ori=True,
-                                force_fixed=False)
-    cov = read_cov(fname_cov)
-    dipoles, residual = rap_music(ave, fwd, cov, n_dipoles=2,
-                                  return_residual=True, verbose=False)
-    for dipole in dipoles:
-        print(dipole)
 
 
 run_tests_if_main(False)
