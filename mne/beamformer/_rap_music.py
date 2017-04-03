@@ -171,10 +171,11 @@ def _make_dipoles(data, info, times, poss, oris, sol, gof, nave, comment,
     first = int(tmp[0])
     last = int(tmp[-1])
     for i_dip in range(poss.shape[0]):
-        # i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        # i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
+        i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
+        i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
         dipoles.append(DipoleFixed(info, data, times, nave, aspect_kind,
-                                   first, last, comment))
+                                   first, last, comment, i_pos, sol[i_dip],
+                                   i_ori, gof))
 
     return dipoles
 
@@ -269,13 +270,10 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     comment = evoked.comment
 
     picks = _setup_picks(picks, info, forward, noise_cov)
-
     data = data[picks]
-
     dipoles, explained_data = _apply_rap_music(data, info, times, forward,
                                                noise_cov, nave, comment,
                                                aspect_kind, n_dipoles, picks)
-
     if return_residual:
         residual = evoked.copy()
         selection = [info['ch_names'][p] for p in picks]

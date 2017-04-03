@@ -346,6 +346,14 @@ class DipoleFixed(object):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    pos : array, shape (n_dipoles, 3)
+        The dipoles positions (m) in head coordinates.
+    amplitude : array, shape (n_dipoles,)
+        The amplitude of the dipoles (Am).
+    ori : array, shape (n_dipoles, 3)
+        The dipole orientations (normalized to unit length).
+    gof : array, shape (n_dipoles,)
+        The goodness of fit.
 
     See Also
     --------
@@ -363,7 +371,8 @@ class DipoleFixed(object):
 
     @verbose
     def __init__(self, info, data, times, nave, aspect_kind, first, last,
-                 comment, verbose=None):  # noqa: D102
+                 comment, pos=None, amplitude=None, ori=None,
+                 gof=None, verbose=None):  # noqa: D102
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind
@@ -373,6 +382,10 @@ class DipoleFixed(object):
         self.comment = comment
         self.times = times
         self.data = data
+        self.pos = pos
+        self.amplitude = amplitude
+        self.ori = ori
+        self.gof = gof
         self.verbose = verbose
 
     @property
