@@ -227,7 +227,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
         counter = 0
         good = True
         for k, kn, size, pos in zip(kinds[:-1], kinds[1:], sizes, poss):
-            if k != tag_id:
+            if not tag_found and k != tag_id:
                 continue
             tag = Tag(k, size, 0, pos)
             if read_limit is None or size <= read_limit:
