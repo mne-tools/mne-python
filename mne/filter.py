@@ -373,6 +373,7 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
     if fir_design == 'firwin2':
         from scipy.signal import firwin2 as fir_design
     else:
+        assert fir_design == 'firwin'
         fir_design = partial(_firwin_design, sfreq=sfreq)
 
     # issue a warning if attenuation is less than this
@@ -1041,8 +1042,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
             l_freq = None
     iir_params, method = _check_method(method, iir_params)
     if l_freq is None and h_freq is None:
-        data, sfreq, _, _, _, _, filter_length, phase, fir_window = \
-            _triage_filter_params(
+        data, sfreq, _, _, _, _, filter_length, phase, fir_window, \
+            fir_design = _triage_filter_params(
                 data, sfreq, None, None, None, None,
                 filter_length, method, phase, fir_window, fir_design)
         if method == 'iir':
@@ -1053,8 +1054,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
             gain = [1., 1.]
     if l_freq is None and h_freq is not None:
         logger.info('Setting up low-pass filter at %0.2g Hz' % (h_freq,))
-        data, sfreq, _, f_p, _, f_s, filter_length, phase, fir_window = \
-            _triage_filter_params(
+        data, sfreq, _, f_p, _, f_s, filter_length, phase, fir_window, \
+            fir_design = _triage_filter_params(
                 data, sfreq, None, h_freq, None, h_trans_bandwidth,
                 filter_length, method, phase, fir_window, fir_design)
         if method == 'iir':
@@ -1067,8 +1068,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 gain += [0]
     elif l_freq is not None and h_freq is None:
         logger.info('Setting up high-pass filter at %0.2g Hz' % (l_freq,))
-        data, sfreq, pass_, _, stop, _, filter_length, phase, fir_window = \
-            _triage_filter_params(
+        data, sfreq, pass_, _, stop, _, filter_length, phase, fir_window, \
+            fir_design = _triage_filter_params(
                 data, sfreq, l_freq, None, l_trans_bandwidth, None,
                 filter_length, method, phase, fir_window, fir_design)
         if method == 'iir':
@@ -1085,7 +1086,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
             logger.info('Setting up band-pass filter from %0.2g - %0.2g Hz'
                         % (l_freq, h_freq))
             data, sfreq, f_p1, f_p2, f_s1, f_s2, filter_length, phase, \
-                fir_window = _triage_filter_params(
+                fir_window, fir_design = _triage_filter_params(
                     data, sfreq, l_freq, h_freq, l_trans_bandwidth,
                     h_trans_bandwidth, filter_length, method, phase,
                     fir_window, fir_design)
@@ -1112,7 +1113,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
             logger.info(msg)
             # Note: order of outputs is intentionally switched here!
             data, sfreq, f_s1, f_s2, f_p1, f_p2, filter_length, phase, \
-                fir_window = _triage_filter_params(
+                fir_window, fir_design = _triage_filter_params(
                     data, sfreq, h_freq, l_freq, h_trans_bandwidth,
                     l_trans_bandwidth, filter_length, method, phase,
                     fir_window, fir_design, bands='arr', reverse=True)
@@ -1823,7 +1824,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
              'longer signal.' % (filter_length, len_x))
     logger.debug('Using filter length: %s' % filter_length)
     return (x, sfreq, l_freq, h_freq, l_stop, h_stop, filter_length, phase,
-            fir_window)
+            fir_window, fir_design)
 
 
 class FilterMixin(object):

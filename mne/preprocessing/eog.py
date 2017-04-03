@@ -71,7 +71,8 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     fmax = np.minimum(45, sampling_rate / 2.0 - 0.75)  # protect Nyquist
     filteog = np.array([filter_data(
         x, sampling_rate, 2, fmax, None, filter_length, 0.5, 0.5,
-        phase='zero-double', fir_window='hann') for x in eog])
+        phase='zero-double', fir_window='hann', fir_design='firwin2')
+        for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))
 
     indexmax = np.argmax(temp)
@@ -79,7 +80,8 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     # easier to detect peaks with filtering.
     filteog = filter_data(
         eog[indexmax], sampling_rate, l_freq, h_freq, None,
-        filter_length, 0.5, 0.5, phase='zero-double', fir_window='hann')
+        filter_length, 0.5, 0.5, phase='zero-double', fir_window='hann',
+        fir_design='firwin2')
 
     # detecting eog blinks and generating event file
 

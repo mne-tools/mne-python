@@ -28,7 +28,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 45, n_jobs=1, l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-           filter_length='10s', phase='zero-double')
+           filter_length='10s', phase='zero-double', fir_design='firwin2')
 raw.annotations = mne.Annotations([1], [10], 'BAD')
 raw.plot(block=True)
 

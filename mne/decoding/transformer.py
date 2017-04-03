@@ -806,7 +806,8 @@ class TemporalFilter(TransformerMixin):
         shape = X.shape
         X = X.reshape(-1, shape[-1])
         (X, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
-         self.h_trans_bandwidth, self.filter_length, _, self.fir_window) = \
+         self.h_trans_bandwidth, self.filter_length, _, self.fir_window,
+         self.fir_design) = \
             _triage_filter_params(X, self.sfreq, self.l_freq, self.h_freq,
                                   self.l_trans_bandwidth,
                                   self.h_trans_bandwidth, self.filter_length,
@@ -819,6 +820,6 @@ class TemporalFilter(TransformerMixin):
                         h_trans_bandwidth=self.h_trans_bandwidth,
                         n_jobs=self.n_jobs, method=self.method,
                         iir_params=self.iir_params, copy=False,
-                        fir_window=self.fir_window,
+                        fir_window=self.fir_window, fir_design=self.fir_design,
                         verbose=self.verbose)
         return X.reshape(shape)

@@ -11,10 +11,6 @@ from mne import SourceEstimate
 from mne.utils import run_tests_if_main, slow_test
 from mne.filter import filter_data
 
-trans_bandwidth = 2.5
-filt_kwargs = dict(filter_length='auto', fir_window='hamming', phase='zero',
-                   l_trans_bandwidth=trans_bandwidth,
-                   h_trans_bandwidth=trans_bandwidth)
 warnings.simplefilter('always')
 
 
@@ -39,7 +35,8 @@ def test_spectral_connectivity():
     """Test frequency-domain connectivity methods"""
     # Use a case known to have no spurious correlations (it would bad if
     # nosetests could randomly fail):
-    np.random.seed(0)
+    rng = np.random.RandomState(0)
+    trans_bandwidth = 2.
 
     sfreq = 50.
     n_signals = 3
@@ -48,15 +45,18 @@ def test_spectral_connectivity():
 
     tmin = 0.
     tmax = (n_times - 1) / sfreq
-    data = np.random.randn(n_epochs, n_signals, n_times)
+    data = rng.randn(n_signals, n_epochs * n_times)
     times_data = np.linspace(tmin, tmax, n_times)
     # simulate connectivity from 5Hz..15Hz
     fstart, fend = 5.0, 15.0
-    for i in range(n_epochs):
-        data[i, 1, :] = filter_data(data[i, 0, :], sfreq, fstart, fend,
-                                    **filt_kwargs)
-        # add some noise, so the spectrum is not exactly zero
-        data[i, 1, :] += 1e-2 * np.random.randn(n_times)
+    data[1, :] = filter_data(data[0, :], sfreq, fstart, fend,
+                             filter_length='auto', fir_design='firwin2',
+                             l_trans_bandwidth=trans_bandwidth,
+                             h_trans_bandwidth=trans_bandwidth)
+    # add some noise, so the spectrum is not exactly zero
+    data[1, :] += 1e-2 * rng.randn(n_times * n_epochs)
+    data = data.reshape(n_signals, n_epochs, n_times)
+    data = np.transpose(data, [1, 0, 2])
 
     # First we test some invalid parameters:
     assert_raises(ValueError, spectral_connectivity, data, method='notamethod')
@@ -113,53 +113,40 @@ def test_spectral_connectivity():
                 if mode == 'multitaper':
                     upper_t = 0.95
                     lower_t = 0.5
-                elif mode == 'fourier':
+                else:  # mode == 'fourier' or mode == 'cwt_morlet'
                     # other estimates have higher variance
                     upper_t = 0.8
                     lower_t = 0.75
-                else:  # cwt_morlet
-                    upper_t = 0.64
-                    lower_t = 0.63
 
                 # test the simulated signal
+                gidx = np.searchsorted(freqs, (fstart, fend))
+                bidx = np.searchsorted(freqs,
+                                       (fstart - trans_bandwidth * 2,
+                                        fend + trans_bandwidth * 2))
                 if method == 'coh':
-                    idx = np.searchsorted(freqs, (fstart + trans_bandwidth,
-                                                  fend - trans_bandwidth))
+                    assert_true(np.all(con[1, 0, gidx[0]:gidx[1]] > upper_t),
+                                con[1, 0, gidx[0]:gidx[1]].min())
                     # we see something for zero-lag
-                    assert_true(np.all(con[1, 0, idx[0]:idx[1]] > upper_t),
-                                con[1, 0, idx[0]:idx[1]].min())
-
-                    if mode != 'cwt_morlet':
-                        idx = np.searchsorted(freqs,
-                                              (fstart - trans_bandwidth * 2,
-                                               fend + trans_bandwidth * 2))
-                        assert_true(np.all(con[1, 0, :idx[0]] < lower_t))
-                        assert_true(np.all(con[1, 0, idx[1]:] < lower_t),
-                                    con[1, 0, idx[1:]].max())
+                    assert_true(np.all(con[1, 0, :bidx[0]] < lower_t))
+                    assert_true(np.all(con[1, 0, bidx[1]:] < lower_t),
+                                con[1, 0, bidx[1:]].max())
                 elif method == 'cohy':
-                    idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                     # imaginary coh will be zero
-                    check = np.imag(con[1, 0, idx[0]:idx[1]])
+                    check = np.imag(con[1, 0, gidx[0]:gidx[1]])
                     assert_true(np.all(check < lower_t), check.max())
                     # we see something for zero-lag
-                    assert_true(np.all(np.abs(con[1, 0, idx[0]:idx[1]]) >
+                    assert_true(np.all(np.abs(con[1, 0, gidx[0]:gidx[1]]) >
                                 upper_t))
-
-                    idx = np.searchsorted(freqs, (fstart - trans_bandwidth * 2,
-                                                  fend + trans_bandwidth * 2))
-                    if mode != 'cwt_morlet':
-                        assert_true(np.all(np.abs(con[1, 0, :idx[0]]) <
-                                    lower_t))
-                        assert_true(np.all(np.abs(con[1, 0, idx[1]:]) <
-                                    lower_t))
+                    assert_true(np.all(np.abs(con[1, 0, :bidx[0]]) <
+                                lower_t))
+                    assert_true(np.all(np.abs(con[1, 0, bidx[1]:]) <
+                                lower_t))
                 elif method == 'imcoh':
-                    idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                     # imaginary coh will be zero
-                    assert_true(np.all(con[1, 0, idx[0]:idx[1]] < lower_t))
-                    idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
-                    assert_true(np.all(con[1, 0, :idx[0]] < lower_t))
-                    assert_true(np.all(con[1, 0, idx[1]:] < lower_t),
-                                con[1, 0, idx[1]:].max())
+                    assert_true(np.all(con[1, 0, gidx[0]:gidx[1]] < lower_t))
+                    assert_true(np.all(con[1, 0, :bidx[0]] < lower_t))
+                    assert_true(np.all(con[1, 0, bidx[1]:] < lower_t),
+                                con[1, 0, bidx[1]:].max())
 
                 # compute same connections using indices and 2 jobs
                 indices = np.tril_indices(n_signals, -1)

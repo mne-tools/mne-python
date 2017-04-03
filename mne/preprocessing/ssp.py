@@ -183,7 +183,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
                n_jobs=n_jobs, method=filter_method, iir_params=iir_params,
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-               phase='zero-double')
+               phase='zero-double', fir_design='firwin2')
 
     epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
                     picks=picks, reject=reject, flat=flat, proj=True)
