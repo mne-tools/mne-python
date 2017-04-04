@@ -325,8 +325,10 @@ def test_chpi_subtraction():
     """Test subtraction of cHPI signals."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
     raw.info['bads'] = ['MEG0111']
+    raw.del_proj()
     with catch_logging() as log:
         filter_chpi(raw, include_line=False, verbose=True)
+    assert_true('No average EEG' not in log.getvalue())
     assert_true('5 cHPI' in log.getvalue())
     # MaxFilter doesn't do quite as well as our algorithm with the last bit
     raw.crop(0, 16)
