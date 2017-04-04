@@ -380,16 +380,17 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         fid.read(32 * nchan).decode()  # reserved
         assert fid.tell() == header_nbytes
 
-        if n_records == -1:
-            warn('Unable to read the number of records from the header '
-                 '(perhaps the recording was not stopped before exiting). '
-                 'Inferring from the file size.')
-            fid.seek(0, 2)
-            n_bytes = fid.tell()
-            n_data_bytes = n_bytes - header_nbytes
-            total_samps = (n_data_bytes // 3 if subtype == '24BIT'
-                           else n_data_bytes // 2)
-            edf_info['n_records'] = n_records = total_samps // np.sum(n_samps)
+        fid.seek(0, 2)
+        n_bytes = fid.tell()
+        n_data_bytes = n_bytes - header_nbytes
+        total_samps = (n_data_bytes // 3 if subtype == '24BIT'
+                       else n_data_bytes // 2)
+        read_records = total_samps // np.sum(n_samps)
+        if n_records != read_records:
+            warn('Number of records from the header does not match the file '
+                 'size (perhaps the recording was not stopped before exiting).'
+                 ' Inferring from the file size.')
+            edf_info['n_records'] = n_records = read_records
 
     physical_ranges = physical_max - physical_min
     cals = digital_max - digital_min
