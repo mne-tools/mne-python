@@ -57,6 +57,8 @@ Here are some steps to get you started.
         <div id="collapse_intro" class="panel-collapse collapse">
           <div class="panel-body">
 
+**Tutorials**
+
 .. toctree::
     :maxdepth: 1
 
@@ -98,63 +100,8 @@ Here are some steps to get you started.
     auto_tutorials/plot_creating_data_structures.rst
     auto_tutorials/plot_info.rst
     auto_tutorials/plot_ecog.rst
-    manual/io.rst
 
-.. raw:: html
-
-          </div>
-        </div>
-      </div>
-
-
-.. raw:: html
-
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse11">Datasets and Other Software</a>
-          </h4>
-        </div>
-
-        <div id="collapse11" class="panel-collapse collapse">
-          <div class="panel-body">
-
-**Datasets**
-
-.. toctree::
-    :maxdepth: 1
-
-    manual/io.rst
-    manual/datasets_index.rst
-    auto_tutorials/plot_brainstorm_auditory.rst
-    auto_tutorials/plot_brainstorm_phantom_ctf.rst
-    auto_tutorials/plot_brainstorm_phantom_elekta.rst
-
-**MNE-C**
-
-.. toctree::
-    :maxdepth: 1
-
-    tutorials/mne_c.rst
-    tutorials/command_line.rst
-    manual/c_reference.rst
-    manual/gui/analyze.rst
-    manual/gui/browse.rst
-    manual/appendix/bem_model.rst
-    manual/appendix/c_misc.rst
-    manual/matlab.rst
-    generated/commands.rst
-    tutorials/mne_cpp.rst
-
-**Non-python MNE**
-
-.. toctree::
-    :maxdepth: 1
-
-    manual/matlab.rst
-    generated/commands.rst
-    tutorials/mne_cpp.rst
-
+* :ref:`ch_convert`
 
 .. raw:: html
 
@@ -174,6 +121,8 @@ Here are some steps to get you started.
 
         <div id="collapse2" class="panel-collapse collapse">
           <div class="panel-body">
+
+**Tutorials**
 
 .. toctree::
     :maxdepth: 1
@@ -241,6 +190,8 @@ Here are some steps to get you started.
 
         <div id="collapse6" class="panel-collapse collapse">
           <div class="panel-body">
+
+**Tutorials**
 
 .. toctree::
     :maxdepth: 1
@@ -346,19 +297,74 @@ Here are some steps to get you started.
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse9">Machine Learnin (Decoding, Encoding, MVPA)</a>
+            <a data-toggle="collapse" href="#collapse9">Machine Learning (Decoding, Encoding, MVPA)</a>
           </h4>
         </div>
 
         <div id="collapse9" class="panel-collapse collapse">
           <div class="panel-body">
 
+* :ref:`An introduction to decoding with MNE-python <decoding>`
+
 .. toctree::
     :maxdepth: 1
 
-    manual/decoding.rst
     auto_tutorials/plot_sensors_decoding.rst
     auto_tutorials/plot_receptive_field.rst
+
+
+.. raw:: html
+
+          </div>
+        </div>
+      </div>
+
+
+.. raw:: html
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <a data-toggle="collapse" href="#collapse11">Datasets and Other Software</a>
+          </h4>
+        </div>
+
+        <div id="collapse11" class="panel-collapse collapse">
+          <div class="panel-body">
+
+**Datasets**
+
+* :ref:`Importing and exporting data with MNE <ch_convert>`
+* :ref:`Datasets in MNE <datasets>`
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_tutorials/plot_brainstorm_auditory.rst
+    auto_tutorials/plot_brainstorm_phantom_ctf.rst
+    auto_tutorials/plot_brainstorm_phantom_elekta.rst
+
+**MNE-C**
+
+.. toctree::
+    :maxdepth: 1
+
+    tutorials/mne_c.rst
+    tutorials/command_line.rst
+    manual/c_reference.rst
+    manual/gui/analyze.rst
+    manual/gui/browse.rst
+    manual/appendix/bem_model.rst
+    manual/appendix/c_misc.rst
+
+**Non-python MNE**
+
+.. toctree::
+    :maxdepth: 1
+
+    manual/matlab.rst
+    generated/commands.rst
+    tutorials/mne_cpp.rst
 
 
 .. raw:: html
