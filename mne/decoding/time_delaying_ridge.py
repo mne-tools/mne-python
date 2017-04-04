@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """TimeDelayingRidge class."""
-# Authors: Gael Varoquaux <gael.varoquaux@normalesup.org>
-#          Romain Trachel <trachelr@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Jean-Remi King <jeanremi.king@gmail.com>
+# Authors: Eric Larson <larson.eric.d@gmail.com>
+#          Ross Maddox <ross.maddox@rochester.edu>
 #
 # License: BSD (3-clause)
+
+import warnings
 
 import numpy as np
 
@@ -37,7 +37,7 @@ def _compute_corrs(X, y, smin, smax, fit_intercept):
             # This is equivalent to:
             # ac_temp = np.correlate(X[:, ch0], X[:, ch1], mode='full')
             # ac_temp = np.roll(ac_temp_2, X.shape[0])
-            ac_temp = np.fft.irfft(X_fft[ch0] * np.conj(X_fft[ch1]), n_fft)
+            ac_temp = np.fft.irfft(X_fft[ch0] * X_fft[ch1].conj(), n_fft)
             ac[ch0, ch1] = np.concatenate((ac_temp[-len_trf + 1:],
                                            ac_temp[:len_trf]))
             if ch0 != ch1:
@@ -81,8 +81,17 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
         args = [reg] * n_ch_x
         reg = linalg.block_diag(*args)
     mat = x_xt + alpha * reg
-    w = linalg.lstsq(mat, x_y.T, lapack_driver='gelsy')[0].T
-    w = w.reshape([n_ch_out, n_ch_in, n_trf])
+    # From sklearn
+    try:
+        # Note: we must use overwrite_a=False in order to be able to
+        #       use the fall-back solution below in case a LinAlgError
+        #       is raised
+        w = linalg.solve(mat, x_y.T, sym_pos=True, overwrite_a=False)
+    except np.linalg.LinAlgError:
+        warnings.warn('Singular matrix in solving dual problem. Using '
+                      'least-squares solution instead.')
+        w = linalg.lstsq(mat, x_y.T, lapack_driver='gelsy')[0]
+    w = w.T.reshape([n_ch_out, n_ch_in, n_trf])
     return w
 
 
@@ -109,16 +118,19 @@ class TimeDelayingRidge(BaseEstimator):
     Parameters
     ----------
     smin : int
-        Minimum sample number (must be < 0).
-    smax : float
-        Maximum time used to predict the data.
+        Minimum sample number.
+    smax : int
+        Maximum sample number.
     alpha : float
         The ridge (or laplacian) regularization.
     reg_type : str
         Can be "ridge" (default) or "laplacian".
+    fit_intercept : bool
+        If True (default), the sample mean is removed before fitting.
     """
+
     def __init__(self, smin, smax, alpha=0., reg_type='ridge',
-                 fit_intercept=True):
+                 fit_intercept=True):  # noqa: D102
         assert smin <= smax
         self._smin = -smax
         self._smax = -smin + 1

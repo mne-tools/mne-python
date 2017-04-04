@@ -177,5 +177,26 @@ def test_receptive_field_fast():
                 assert_allclose(model.coef_[0], expected, atol=1e-2)
                 p = model.predict(x[:, np.newaxis])[:, 0]
                 assert_allclose(y, p, atol=5e-2)
+    # multidimensional
+    x = rng.randn(1000, 3)
+    y = np.zeros((1000, 2))
+    slim = [-5, 0]
+    for ii in range(1, 5):
+        y[ii:, ii % 2] += (-1) ** ii * ii * x[:-ii, ii % 3]
+    expected = [
+        [[0, 0, 0, 0, 0, 0],
+         [0, 4, 0, 0, 0, 0],
+         [0, 0, 0, 2, 0, 0]],
+        [[0, 0, -3, 0, 0, 0],
+         [0, 0, 0, 0, -1, 0],
+         [0, 0, 0, 0, 0, 0]],
+    ]
+    for estimator in (Ridge(alpha=0.), 0.):
+        model = ReceptiveField(slim[0], slim[1], 1.,
+                               estimator=estimator)
+        model.fit(x, y)
+        assert_array_equal(model.delays_,
+                           np.arange(slim[0], slim[1] + 1))
+        assert_allclose(model.coef_, expected, atol=1e-1)
 
 run_tests_if_main()
