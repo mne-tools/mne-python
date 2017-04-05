@@ -169,7 +169,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
     if colorbar:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        ax = plt.axes([0.015, 0.025, 1.05, .8], facecolor=fig_facecolor)
+        ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg=fig_facecolor)
         cb = fig.colorbar(sm, ax=ax)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
         plt.setp(cb_yticks, color=font_color)
