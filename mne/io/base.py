@@ -1189,7 +1189,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         fir_design : str
             Can be "firwin" (default in 0.16) to use
             :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-            before) to use :func:`scipy.signal.firwin2`.
+            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+            time-domain design technique that generally gives improved
+            attenuation using fewer samples than "firwin2".
 
             ..versionadded:: 0.15
         verbose : bool, str, int, or None
@@ -1334,7 +1336,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         fir_design : str
             Can be "firwin" (default in 0.16) to use
             :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-            before) to use :func:`scipy.signal.firwin2`.
+            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+            time-domain design technique that generally gives improved
+            attenuation using fewer samples than "firwin2".
 
             ..versionadded:: 0.15
         verbose : bool, str, int, or None

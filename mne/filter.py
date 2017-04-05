@@ -813,9 +813,11 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
         .. versionadded:: 0.13
     fir_design : str
-        Can be "firwin" (default in 0.16) to use :func:`scipy.signal.firwin`,
-        or "firwin2" (default in 0.15 and before) to use
-        :func:`scipy.signal.firwin2`.
+        Can be "firwin" (default in 0.16) to use
+        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+        time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
     verbose : bool, str, int, or None
@@ -935,9 +937,11 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
         .. versionadded:: 0.13
     fir_design : str
-        Can be "firwin" (default in 0.16) to use :func:`scipy.signal.firwin`,
-        or "firwin2" (default in 0.15 and before) to use
-        :func:`scipy.signal.firwin2`.
+        Can be "firwin" (default in 0.16) to use
+        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+        time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
     verbose : bool, str, int, or None
@@ -1233,9 +1237,11 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         .. versionadded:: 0.13
 
     fir_design : str
-        Can be "firwin" (default in 0.16) to use :func:`scipy.signal.firwin`,
-        or "firwin2" (default in 0.15 and before) to use
-        :func:`scipy.signal.firwin2`.
+        Can be "firwin" (default in 0.16) to use
+        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+        time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
 
