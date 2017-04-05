@@ -87,7 +87,12 @@ def _get_info(eeg, montage, eog=()):
         err_ch_set = set()
         for chanloc in eeg.chanlocs:
             ch_names.append(chanloc.labels)
-            if chanloc.type in _kind_dict:
+            if not isinstance(chanloc.type, string_types):
+                msg = "'{}' must use a string variable for its "
+                msg += "channel type. A TypeError will be thrown."
+                warn (msg.format(chanloc.labels))
+                ch_types.append(chanloc.type)
+            elif chanloc.type in _kind_dict:
                 ch_types.append(chanloc.type)
             else:
                 if not err_mesg_shown:
@@ -95,9 +100,9 @@ def _get_info(eeg, montage, eog=()):
                     warn (msg.format(list(_kind_dict.keys())))
                     err_mesg_shown = True
                 if chanloc.type not in err_ch_set:
-                    msg = "'{}' is not a recognized channel type."
-                    msg += " It will be replaced with 'misc'"
-                    warn (msg.format(chanloc.type))
+                    msg = "'{}' is not a recognized channel type "
+                    msg += "for {}. It will be replaced with 'misc'"
+                    warn (msg.format(chanloc.type, chanloc.labels))
                     err_ch_set.add(chanloc.type)
                 ch_types.append('misc')
                 
