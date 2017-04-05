@@ -381,7 +381,8 @@ def test_reg_pinv():
     # create rank-deficient array
     a = np.array([[1., 0., 1.], [0., 1., 0.], [1., 0., 1.]])
 
-    # Test if rank-deficient matrix without regularization throws specific warning
+    # Test if rank-deficient matrix without regularization throws
+    # specific warning
     with warnings.catch_warnings(record=True) as w:
         _reg_pinv(a, reg=0.)
     assert_true(any('deficient' in str(ww.message) for ww in w))

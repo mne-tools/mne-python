@@ -24,9 +24,12 @@ from ..externals import six
 
 def _reg_pinv(x, reg):
     """Compute a regularized pseudoinverse of a square array."""
-    covrank = estimate_rank(x, tol='auto', norm=False, return_singular=False)
-    if covrank < x.shape[0] and reg == 0.:
-        warn('Covariance matrix is rank-deficient, but no regularization is done.')
+    if reg == 0:
+        covrank = estimate_rank(x, tol='auto', norm=False,
+                                return_singular=False)
+        if covrank < x.shape[0]:
+            warn('Covariance matrix is rank-deficient, but no regularization '
+                 'is done.')
 
     # This adds it to the diagonal without using np.eye
     d = reg * np.trace(x) / len(x)
