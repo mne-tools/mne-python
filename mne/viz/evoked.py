@@ -158,7 +158,7 @@ def _rgb(x, y, z):
 
 def _plot_legend(pos, colors, axis, bads, outlines, loc):
     """Plot color/channel legends for butterfly plots with spatial colors."""
-    from mpl_toolkits.axes_grid.inset_locator import inset_axes
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=loc)

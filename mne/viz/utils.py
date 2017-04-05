@@ -18,6 +18,7 @@ import numpy as np
 from copy import deepcopy
 from distutils.version import LooseVersion
 from itertools import cycle
+from warnings import catch_warnings
 
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
@@ -91,7 +92,11 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
 
     fig.canvas.draw()
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
-        fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+        with catch_warnings(record=True) as ws:
+            fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+        for msg in [w.get_message() for w in ws]:
+            if not msg.startswith('This figure includes Axes'):
+                warn(msg)
     except Exception:
         try:
             fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
