@@ -23,6 +23,28 @@ event_id = dict(aud_l=1, vis_l=3)
 start, stop = 0, 8
 
 
+def simulate_data(target, n_trials=100, n_channels=3, random_state=42):
+    """Simulate data according to an instantaneous mixin model.
+
+    Data are simulated in the statistical source space, where one source is
+    modulated according to a target variable, before being mixed with a
+    random mixing matrix.
+    """
+    rs = np.random.RandomState(random_state)
+
+    # generate a orthogonal mixin matrix
+    mixing_mat = rs.randn(n_channels, n_channels)
+    _, mixing_mat = np.linalg.eigh(np.dot(mixing_mat.T, mixing_mat))
+
+    S = rs.randn(n_trials, n_channels, 50)
+    S[:, 0] *= np.atleast_2d(np.sqrt(target)).T
+    S[:, 1:] *= 0.01  # less noise
+
+    X = np.dot(mixing_mat, S).transpose((1, 0, 2))
+
+    return X, mixing_mat
+
+
 @slow_test
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
@@ -132,6 +154,22 @@ def test_csp():
     feature_shape = [len(epochs_data), n_components, epochs_data.shape[2]]
     assert_array_equal(Xt.shape, feature_shape)
 
+    # Check mixing matrix on simulated data
+    y = np.array([100] * 50 + [1] * 50)
+    X, A = simulate_data(y)
+
+    # fit spoc
+    csp = CSP(n_components=3)
+    csp.fit(X, y)
+
+    # get the patterns and normalize them
+    patterns = csp.patterns_.T
+    patterns = patterns / np.apply_along_axis(np.linalg.norm, 0, patterns)
+
+    # check the last patterns match the mixing matrix
+    # the sign might change
+    assert_true(np.allclose(np.abs(patterns[:, -1]), np.abs(A[:, 0]), 1e-2))
+
 
 @requires_sklearn
 def test_regularized_csp():
@@ -223,3 +261,19 @@ def test_spoc():
 
     # Check that doesn't take CSP-spcific input
     assert_raises(TypeError, SPoC, cov_est='epoch')
+
+    # Check mixing matrix on simulated data
+    rs = np.random.RandomState(42)
+    y = rs.rand(100) * 50 + 1
+    X, A = simulate_data(y)
+
+    # fit spoc
+    spoc = SPoC(n_components=3)
+    spoc.fit(X, y)
+
+    # get the patterns and normalize them
+    patterns = spoc.patterns_.T
+    patterns = patterns / np.apply_along_axis(np.linalg.norm, 0, patterns)
+
+    # check the first patterns match the mixing matrix
+    assert_true(np.allclose(np.abs(patterns[:, 0]), np.abs(A[:, 0]), 1e-2))
