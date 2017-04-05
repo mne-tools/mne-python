@@ -54,7 +54,8 @@ raw.filter(15., 30., method='iir')
 events = mne.make_fixed_length_events(raw, id=1, duration=.250)
 
 # Epoch length is 1.5 second
-meg_epochs = Epochs(raw, events, tmin=0., tmax=1.500, baseline=None, detrend=1)
+meg_epochs = Epochs(raw, events, tmin=0., tmax=1.500, baseline=None,
+                    detrend=1, decim=8)
 emg_epochs = Epochs(emg, events, tmin=0., tmax=1.500, baseline=None)
 
 # Prepare classification
