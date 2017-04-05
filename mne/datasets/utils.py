@@ -275,8 +275,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         multimodal='https://ndownloader.figshare.com/files/5999598',
         visual_92_categories='https://mne-tools.s3.amazonaws.com/datasets/%s',
         mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/%s",
-        fieldtrip_cmc=
-            "ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/tutorial/%s"
+        fieldtrip_cmc='ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/'
+                      'tutorial/%s'
     )
     hashes = dict(
         brainstorm=None,
