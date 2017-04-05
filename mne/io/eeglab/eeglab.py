@@ -92,12 +92,12 @@ def _get_info(eeg, montage, eog=()):
             else:
                 if not err_mesg_shown:
                     msg = "Valid channel types are:\n{}\n"
-                    print (msg.format(list(_kind_dict.keys())))
+                    warn (msg.format(list(_kind_dict.keys())))
                     err_mesg_shown = True
                 if chanloc.type not in err_ch_set:
                     msg = "'{}' is not a recognized channel type."
                     msg += " It will be replaced with 'misc'"
-                    print (msg.format(chanloc.type))
+                    warn (msg.format(chanloc.type))
                     err_ch_set.add(chanloc.type)
                 ch_types.append('misc')
                 
@@ -109,8 +109,7 @@ def _get_info(eeg, montage, eog=()):
                 if not np.any(np.isnan(locs)):
                     pos_ch_names.append(chanloc.labels)
                     pos.append(locs)
-        if err_ch_set != set():
-            print('\n')
+
         n_channels_with_pos = len(pos_ch_names)
         info = create_info(ch_names, eeg.srate, ch_types=ch_types)
         if n_channels_with_pos > 0:
