@@ -24,9 +24,13 @@ Changelog
 
     - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
 
+    - Add :func:`mne.decoding.cross_val_multiscore` to allow scoring of multiple tasks, typically used with :class:`mne.decoding.SlidingEstimator`, by `Jean-Remi King`_
+
     - Add :class:`mne.decoding.ReceptiveField` module for modeling electrode response to input features by `Chris Holdgraf`_
 
     - Add new :mod:`mne.datasets.mtrf` dataset by `Chris Holdgraf`_
+
+    - Add example of time-frequency decoding with CSP by `Laura Gwilliams`_
 
 BUG
 ~~~
@@ -36,7 +40,13 @@ BUG
 API
 ~~~
 
-    - ...
+    - Make the goodness of fit (GOF) of the dipoles returned by :func:`mne.beamformer.rap_music` consistent with the GOF of dipoles returned by :func:`mne.fit_dipole` by `Alex Gramfort`_.
+
+    - :class:`mne.decoding.SlidingEstimator` will now replace ``mne.decoding.TimeDecoding`` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alex Gramfort`_
+
+    - :class:`mne.decoding.GeneralizingEstimator` will now replace ``mne.decoding.GeneralizationAcrossTime`` to make it generic and fully compatible with scikit-learn, by `Jean-Remi King`_ and `Alex Gramfort`_
+
+    - ``mne.viz.decoding.plot_gat_times``, ``mne.viz.decoding.plot_gat_matrix`` are now deprecated. Use matplotlib instead as shown in the examples, by `Jean-Remi King`_ and `Alex Gramfort`_
 
 
 .. _changes_0_14:
@@ -46,8 +56,6 @@ Version 0.14
 
 Changelog
 ~~~~~~~~~
-
-    - Add example of time-frequency decoding with CSP by `Laura Gwilliams`_
 
     - Automatically create a legend in :func:`mne.viz.evoked.plot_evoked_topo` by `Jussi Nurminen`_
 
@@ -2084,3 +2092,5 @@ of commits):
 .. _Matt Boggess: https://github.com/mattboggess
 
 .. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
+
+.. _Laura Gwilliams: http://lauragwilliams.github.io

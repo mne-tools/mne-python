@@ -5,9 +5,10 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true, assert_equal, assert_raises
-from ...utils import requires_sklearn_0_15
-from ..base import _get_inverse_funcs, LinearModel, get_coef
-from ..search_light import _SearchLight
+from mne.utils import requires_sklearn_0_15
+from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
+                               cross_val_multiscore)
+from mne.decoding.search_light import SlidingEstimator
 
 
 @requires_sklearn_0_15
@@ -104,7 +105,7 @@ def test_get_coef():
     n_samples, n_features, n_times = 20, 3, 5
     y = np.arange(n_samples) % 2
     X = np.random.rand(n_samples, n_features, n_times)
-    clf = _SearchLight(make_pipeline(StandardScaler(), LinearModel()))
+    clf = SlidingEstimator(make_pipeline(StandardScaler(), LinearModel()))
     clf.fit(X, y)
     for inverse in (True, False):
         patterns = get_coef(clf, 'patterns_', inverse)
@@ -113,7 +114,7 @@ def test_get_coef():
                            [n_features, n_times])
     for t in [0, 1]:
         assert_array_equal(get_coef(clf.estimators_[t], 'filters_', False),
-                           filters[t])
+                           filters[:, t])
 
 
 @requires_sklearn_0_15
@@ -127,3 +128,47 @@ def test_linearmodel():
     assert_equal(clf.filters_.shape, (3,))
     assert_equal(clf.patterns_.shape, (3,))
     assert_raises(ValueError, clf.fit, np.random.rand(20, 3, 2), y)
+
+
+@requires_sklearn_0_15
+def test_cross_val_multiscore():
+    """Test cross_val_multiscore for computing scores on decoding over time.
+    """
+    from sklearn.model_selection import KFold, cross_val_score
+    from sklearn.linear_model import LogisticRegression
+
+    # compare to cross-val-score
+    X = np.random.rand(20, 3)
+    y = np.arange(20) % 2
+    clf = LogisticRegression()
+    cv = KFold(2, random_state=0)
+    assert_array_equal(cross_val_score(clf, X, y, cv=cv),
+                       cross_val_multiscore(clf, X, y, cv=cv))
+
+    # Test with search light
+    X = np.random.rand(20, 4, 3)
+    y = np.arange(20) % 2
+    clf = SlidingEstimator(LogisticRegression(), scoring='accuracy')
+    scores_acc = cross_val_multiscore(clf, X, y, cv=cv)
+    assert_array_equal(np.shape(scores_acc), [2, 3])
+
+    # check values
+    scores_acc_manual = list()
+    for train, test in cv.split(X, y):
+        clf.fit(X[train], y[train])
+        scores_acc_manual.append(clf.score(X[test], y[test]))
+    assert_array_equal(scores_acc, scores_acc_manual)
+
+    # check scoring metric
+    # raise an error if scoring is defined at cross-val-score level and
+    # search light, because search light does not return a 1-dimensional
+    # prediction.
+    assert_raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv,
+                  scoring='roc_auc')
+    clf = SlidingEstimator(LogisticRegression(), scoring='roc_auc')
+    scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=1)
+    scores_auc_manual = list()
+    for train, test in cv.split(X, y):
+        clf.fit(X[train], y[train])
+        scores_auc_manual.append(clf.score(X[test], y[test]))
+    assert_array_equal(scores_auc, scores_auc_manual)

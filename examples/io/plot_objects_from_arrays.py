@@ -145,11 +145,11 @@ title = seg.file_origin
 
 ch_names = list()
 data = list()
-for asig in seg.analogsignals:
+for ai, asig in enumerate(seg.analogsignals):
     # Since the data does not contain channel names, channel indices are used.
-    ch_names.append(str(asig.channel_index))
-    asig = asig.rescale('V').magnitude
-    data.append(asig)
+    ch_names.append('Neo %02d' % (ai + 1,))
+    data.append(asig.rescale('V').magnitude[:, 0])
+data = np.array(data, float)
 
 sfreq = int(seg.analogsignals[0].sampling_rate.magnitude)
 

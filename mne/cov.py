@@ -1332,10 +1332,11 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
         eig[out_eeg_idx], eigvec[np.ix_(out_eeg_idx, out_eeg_idx)], = \
             _get_ch_whitener(C_eeg, False, 'EEG', rank_eeg)
-    if _needs_eeg_average_ref_proj(info):
-        warn('No average EEG reference present in info["projs"], covariance '
-             'may be adversely affected. Consider recomputing covariance using'
-             ' a raw file with an average eeg reference projector added.')
+        if _needs_eeg_average_ref_proj(info):
+            warn('No average EEG reference present in info["projs"], '
+                 'covariance may be adversely affected. Consider recomputing '
+                 'covariance using with an average eeg reference projector '
+                 'added.')
     noise_cov = noise_cov.copy()
     noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
                      diag=False, names=ch_names)

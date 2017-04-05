@@ -305,6 +305,9 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
         return_ecg=True, verbose=verbose)
 
+    # Load raw data so that add_channels works
+    raw.load_data()
+
     if not has_ecg:
         ecg_raw = RawArray(
             ecg[None],
