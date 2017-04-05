@@ -2174,7 +2174,8 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
         logger.info('... filtering ICA sources')
         # use FIR here, steeper is better
         kw = dict(phase='zero-double', filter_length='10s', fir_window='hann',
-                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5)
+                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+                  fir_design='firwin2')
         sources = filter_data(sources, ica.info['sfreq'], l_freq, h_freq, **kw)
         logger.info('... filtering target')
         target = filter_data(target, ica.info['sfreq'], l_freq, h_freq, **kw)
