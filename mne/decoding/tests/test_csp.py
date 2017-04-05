@@ -33,8 +33,7 @@ def simulate_data(target, n_trials=100, n_channels=3, random_state=42):
     rs = np.random.RandomState(random_state)
 
     # generate a orthogonal mixin matrix
-    mixing_mat = rs.randn(n_channels, n_channels)
-    _, mixing_mat = np.linalg.eigh(np.dot(mixing_mat.T, mixing_mat))
+    mixing_mat = np.linalg.svd(rs.randn(n_channels, n_channels))[0]
 
     S = rs.randn(n_trials, n_channels, 50)
     S[:, 0] *= np.atleast_2d(np.sqrt(target)).T
@@ -163,8 +162,8 @@ def test_csp():
     csp.fit(X, y)
 
     # get the patterns and normalize them
-    patterns = csp.patterns_.T
-    patterns = patterns / np.apply_along_axis(np.linalg.norm, 0, patterns)
+    patterns = csp.patterns_.copy().T
+    patterns /= np.linalg.norm(patterns, axis=0, keepdims=True)
 
     # check the last patterns match the mixing matrix
     # the sign might change
@@ -272,8 +271,8 @@ def test_spoc():
     spoc.fit(X, y)
 
     # get the patterns and normalize them
-    patterns = spoc.patterns_.T
-    patterns = patterns / np.apply_along_axis(np.linalg.norm, 0, patterns)
+    patterns = spoc.patterns_.copy().T
+    patterns /= np.linalg.norm(patterns, axis=0, keepdims=True)
 
     # check the first patterns match the mixing matrix
     assert_true(np.allclose(np.abs(patterns[:, 0]), np.abs(A[:, 0]), 1e-2))
