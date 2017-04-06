@@ -5,7 +5,7 @@
 
 import os.path as op
 
-from nose.tools import assert_true, assert_raises, assert_equal
+from nose.tools import assert_true, assert_raises, assert_equal, assert_greater
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -23,7 +23,7 @@ event_id = dict(aud_l=1, vis_l=3)
 start, stop = 0, 8
 
 
-def simulate_data(target, n_trials=100, n_channels=3, random_state=42):
+def simulate_data(target, n_trials=100, n_channels=10, random_state=42):
     """Simulate data according to an instantaneous mixin model.
 
     Data are simulated in the statistical source space, where one source is
@@ -100,15 +100,6 @@ def test_csp():
     for plot in (csp.plot_patterns, csp.plot_filters):
         plot(epochs.info, components=components, res=12, show=False, cmap=cmap)
 
-    # Test covariance estimation methods (results should be roughly equal)
-    np.random.seed(0)
-    csp_epochs = CSP(cov_est="epoch")
-    csp_epochs.fit(epochs_data, y)
-    for attr in ('filters_', 'patterns_'):
-        corr = np.corrcoef(getattr(csp, attr).ravel(),
-                           getattr(csp_epochs, attr).ravel())[0, 1]
-        assert_true(corr >= 0.94)
-
     # Test with more than 2 classes
     epochs = Epochs(raw, events, tmin=tmin, tmax=tmax, picks=picks,
                     event_id=dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4),
@@ -157,17 +148,24 @@ def test_csp():
     y = np.array([100] * 50 + [1] * 50)
     X, A = simulate_data(y)
 
-    # fit spoc
-    csp = CSP(n_components=3)
-    csp.fit(X, y)
+    for cov_est in ['concat', 'epoch']:
+        # fit csp
+        csp = CSP(n_components=1, cov_est=cov_est)
+        csp.fit(X, y)
 
-    # get the patterns and normalize them
-    patterns = csp.patterns_.copy().T
-    patterns /= np.linalg.norm(patterns, axis=0, keepdims=True)
+        # get the patterns and normalize them
+        patterns = csp.patterns_.copy().T
+        patterns /= np.linalg.norm(patterns, axis=0, keepdims=True)
 
-    # check the last patterns match the mixing matrix
-    # the sign might change
-    assert_true(np.allclose(np.abs(patterns[:, -1]), np.abs(A[:, 0]), 1e-2))
+        # check the first pattern match the mixing matrix
+        # the sign might change
+        corr = np.abs(np.corrcoef(patterns[:, 0], A[:, 0])[0, 1])
+        assert_greater(np.abs(corr), 0.99)
+
+        # check output
+        out = csp.transform(X)
+        corr = np.abs(np.corrcoef(out[:, 0], y)[0, 1])
+        assert_greater(np.abs(corr), 0.95)
 
 
 @requires_sklearn
@@ -267,7 +265,7 @@ def test_spoc():
     X, A = simulate_data(y)
 
     # fit spoc
-    spoc = SPoC(n_components=3)
+    spoc = SPoC(n_components=1)
     spoc.fit(X, y)
 
     # get the patterns and normalize them
@@ -275,4 +273,10 @@ def test_spoc():
     patterns /= np.linalg.norm(patterns, axis=0, keepdims=True)
 
     # check the first patterns match the mixing matrix
-    assert_true(np.allclose(np.abs(patterns[:, 0]), np.abs(A[:, 0]), 1e-2))
+    corr = np.abs(np.corrcoef(patterns[:, 0], A[:, 0])[0, 1])
+    assert_greater(np.abs(corr), 0.99)
+
+    # check output
+    out = spoc.transform(X)
+    corr = np.abs(np.corrcoef(out[:, 0], y)[0, 1])
+    assert_greater(np.abs(corr), 0.85)

@@ -171,7 +171,7 @@ class CSP(TransformerMixin, BaseEstimator):
                 weight = len(class_)
 
             # normalize by trace and stack
-            covs[class_idx] = cov / np.trace(cov)
+            covs[class_idx] = cov
             sample_weights.append(weight)
 
         if n_classes == 2:
