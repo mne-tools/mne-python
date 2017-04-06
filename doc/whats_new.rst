@@ -46,6 +46,8 @@ BUG
 
     - :meth:`mne.concatenate_epochs` now maintains the relative position of events during concatenation by `Alexandre Barachant`_
 
+    - Fix writing of raw files with empty set of annotations by `Jaakko Leppakangas`_
+
 API
 ~~~
 

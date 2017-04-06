@@ -1585,10 +1585,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             annotations.onset -= tmin
             BaseRaw.annotations.fset(self, annotations, emit_warning=False)
 
-            # If all annotations are outside the data range, we set them to
-            # None. Otherwise this causes problems when saving and reading.
-            if len(self.annotations.onset) == 0:
-                self.annotations = None
         return self
 
     @verbose
@@ -2297,7 +2293,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     # Annotations
     #
-    if annotations is not None:
+    if annotations is not None and len(annotations.onset) > 0:
         start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
         write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, annotations.onset)
         write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
