@@ -22,8 +22,8 @@ Here are some steps to get you started.
 - For details about specific functions and classes: :ref:`api_reference`
 - For a high-level view of analysis pipelines and workflows in MNE-python,
   see the :ref:`cookbook`.
-- Click one of the headers below for a more detailed description of various
-  analysis workflows in MNE-python.
+
+**Click one of the headers below to see what you can do in MNE-python.**
 
 .. raw:: html
 
@@ -57,17 +57,10 @@ Here are some steps to get you started.
         <div id="collapse_intro" class="panel-collapse collapse">
           <div class="panel-body">
 
-**Tutorials**
-
-.. toctree::
-    :maxdepth: 1
-
-    auto_tutorials/plot_python_intro.rst
-    tutorials/seven_stories_about_mne.rst
-    auto_tutorials/plot_introduction.rst 
-    auto_tutorials/plot_configuration.rst 
-
-* :ref:`cookbook`       
+* `Introduction to Python <auto_tutorials/plot_python_intro.rst>`_
+* `Seven highlights of MNE <tutorials/seven_stories_about_mne.rst>`_
+* `Analysis workflows in MNE <manual/cookbook.html>`_
+* `Configuring MNE-python <auto_tutorials/plot_configuration.rst>`_      
 
 .. raw:: html
 
@@ -81,27 +74,32 @@ Here are some steps to get you started.
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse5">
+            <a data-toggle="collapse" href="#collapse_data">
               Data Structures and Containers
             </a>
           </h4>
         </div>
 
-        <div id="collapse5" class="panel-collapse collapse">
+        <div id="collapse_data" class="panel-collapse collapse">
           <div class="panel-body">
+
+**Tutorials**
+
+* `Creating data structures <auto_tutorials/plot_creating_data_structures.rst>`_
+* `Importing data <manual/io.html>`_
+* `Modifying data in place <auto_tutorials≤/plot_modifying_data_inplace.rst>`_
+* `Working with ECoG data in MNE <auto_tutorials/plot_ecog.rst>`_
+
+**Data Structures in MNE**
 
 .. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_object_raw.rst
-    auto_tutorials/plot_modifying_data_inplace.rst
     auto_tutorials/plot_object_epochs.rst
     auto_tutorials/plot_object_evoked.rst
-    auto_tutorials/plot_creating_data_structures.rst
     auto_tutorials/plot_info.rst
-    auto_tutorials/plot_ecog.rst
 
-* :ref:`ch_convert`
 
 .. raw:: html
 
@@ -115,11 +113,11 @@ Here are some steps to get you started.
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse2">Preprocessing and Filtering</a>
+            <a data-toggle="collapse" href="#collapse_pre">Preprocessing and Filtering</a>
           </h4>
         </div>
 
-        <div id="collapse2" class="panel-collapse collapse">
+        <div id="collapse_pre" class="panel-collapse collapse">
           <div class="panel-body">
 
 **Tutorials**
@@ -157,16 +155,44 @@ Here are some steps to get you started.
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse3">Sensor-level analysis</a>
+            <a data-toggle="collapse" href="#collapse_viz">Visualization and Reporting</a>
           </h4>
         </div>
 
-        <div id="collapse3" class="panel-collapse collapse">
+        <div id="collapse_viz" class="panel-collapse collapse">
           <div class="panel-body">
 
 .. toctree::
     :maxdepth: 1
 
+    auto_tutorials/plot_visualize_raw.rst
+    auto_tutorials/plot_visualize_epochs.rst
+    auto_tutorials/plot_visualize_evoked.rst
+    tutorials/report.rst
+
+.. raw:: html
+
+          </div>
+        </div>
+      </div>
+
+
+.. raw:: html
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <a data-toggle="collapse" href="#collapse_analysis">Time- and frequency-domain analyses</a>
+          </h4>
+        </div>
+
+        <div id="collapse_analysis" class="panel-collapse collapse">
+          <div class="panel-body">
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_tutorials/plot_introduction.rst
     auto_tutorials/plot_epoching_and_averaging.rst
     auto_tutorials/plot_eeg_erp.rst
     auto_tutorials/plot_sensors_time_frequency.rst
@@ -210,33 +236,6 @@ Here are some steps to get you started.
     manual/source_localization/forward.rst
     manual/source_localization/inverse.rst
     manual/source_localization/morph.rst
-
-.. raw:: html
-
-          </div>
-        </div>
-      </div>
-
-
-.. raw:: html
-
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse4">Visualization and Reporting</a>
-          </h4>
-        </div>
-
-        <div id="collapse4" class="panel-collapse collapse">
-          <div class="panel-body">
-
-.. toctree::
-    :maxdepth: 1
-
-    auto_tutorials/plot_visualize_raw.rst
-    auto_tutorials/plot_visualize_epochs.rst
-    auto_tutorials/plot_visualize_evoked.rst
-    tutorials/report.rst
 
 .. raw:: html
 
@@ -304,14 +303,14 @@ Here are some steps to get you started.
         <div id="collapse9" class="panel-collapse collapse">
           <div class="panel-body">
 
-* :ref:`An introduction to decoding with MNE-python <decoding>`
+**Decoding**
 
-.. toctree::
-    :maxdepth: 1
+* `An introduction to decoding with MNE-python <manual/decoding.html>`_
+* `Decoding sensor space data <auto_tutorials/plot_sensors_decoding.html>`_
 
-    auto_tutorials/plot_sensors_decoding.rst
-    auto_tutorials/plot_receptive_field.rst
+**Encoding**
 
+* `Spectro-temporal receptive field modeling on continuous data <auto_tutorials/plot_receptive_field.html>`_
 
 .. raw:: html
 
@@ -332,10 +331,12 @@ Here are some steps to get you started.
         <div id="collapse11" class="panel-collapse collapse">
           <div class="panel-body">
 
-**Datasets**
+**Datasets - Background**
 
-* :ref:`Importing and exporting data with MNE <ch_convert>`
-* :ref:`Datasets in MNE <datasets>`
+* `Importing and exporting data with MNE <manual/io.html>`_
+* `Datasets in MNE <manual/datasets_index.html>`_
+
+**Datasets - Tutorials**
 
 .. toctree::
     :maxdepth: 1
@@ -363,7 +364,6 @@ Here are some steps to get you started.
     :maxdepth: 1
 
     manual/matlab.rst
-    generated/commands.rst
     tutorials/mne_cpp.rst
 
 
@@ -395,6 +395,7 @@ Here are some steps to get you started.
     manual/memory.rst
     manual/pitfalls.rst
     tutorials/advanced_setup.rst
+    generated/commands.rst
 
 .. raw:: html
 
