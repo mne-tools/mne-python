@@ -1,12 +1,16 @@
 """
-=========================================================================
-Decoding sensor space data with generalization across frequency
-=========================================================================
+=============================================================================
+Decoding sensor space data with generalization across time in alpha frequency
+=============================================================================
 
 This example runs a variant of the temporal generalization analysis described
-in [1]_ in the frequency domain. A motor Imagery dataset from the BCI
-competition IV is used [2]_. Epochs are transformed in the frequency domain
-with a PSD estimation and the generalization across frequency is studied.
+in [1]_ in the power domain (alpha band). The motor Imagery dataset from the
+BCI competition IV-2a is used [2]_. Data are filtered in the alpha frequency
+band, and log-power is estimated using a sliding window befor being fed to the
+GeneralizationAcrossTime object.
+
+We observe a constant generalization in the patter during the duration of the
+movement, suggesting a maintained induced activity during the task.
 
 References
 ----------
@@ -25,9 +29,8 @@ import numpy as np
 
 import mne
 from mne.datasets import bnci
-from mne.decoding import GeneralizationAcrossTime, PSDEstimator
+from mne.decoding import GeneralizationAcrossTime
 
-from matplotlib import pyplot as plt
 from sklearn.metrics import roc_auc_score
 print(__doc__)
 
@@ -37,8 +40,12 @@ print(__doc__)
 raws, event_id = bnci.load_data(subject=1, dataset='001-2014', verbose=False)
 
 event_id = {'right hand': 2, 'feet': 3}
-fmin = 1
-fmax = 40
+
+tmin = 0
+tmax = 7.5
+
+for raw in raws:
+    raw.filter(8, 15)
 
 # training data
 # find events
@@ -46,31 +53,45 @@ events = mne.find_events(raws[0])
 
 picks = mne.pick_types(raws[0].info, eeg=True)
 
-epochs_tr = mne.Epochs(raws[0], events, event_id, 3.5, 5.5, proj=False,
-                       add_eeg_ref=False,
+epochs_tr = mne.Epochs(raws[0], events, event_id, tmin=tmin, tmax=tmax,
+                       add_eeg_ref=False, proj=False,
                        picks=picks, baseline=None, preload=True,
                        reject=None, verbose=False)
 
-# PSD are estimated and injected in an epoch object to be compatible with
-# the GeneralizationAcrossTime object. Instead of time, frequency will be used.
-psd = PSDEstimator(sfreq=epochs_tr.info['sfreq'], fmin=fmin, fmax=fmax)
-powers = psd.transform(epochs_tr.get_data())
+# Estimates log power using a sliding window
+window = 0.5
+step = 0.1
+sfreq = epochs_tr.info['sfreq']
+X = epochs_tr.get_data()
+times = np.arange(tmin, tmax - window,  step)
+powers = np.zeros((X.shape[0], X.shape[1], len(times)))
+for ii, tstart in enumerate(times):
+    tend = tstart + window
+    sl = slice(int(tstart * sfreq), int(tend * sfreq))
+    powers[..., ii] = np.log(X[..., sl].var(2))
+
 
 powers_tr = mne.EpochsArray(powers, epochs_tr.info, events=epochs_tr.events)
-powers_tr.times = np.linspace(fmin, fmax, powers.shape[-1])
+powers_tr.times = times
 y_tr = powers_tr.events[:, -1]
 
 # test data
 events = mne.find_events(raws[1])
 
-epochs_te = mne.Epochs(raws[1], events, event_id, 3.5, 5.5, proj=False,
-                       add_eeg_ref=False,
+epochs_te = mne.Epochs(raws[1], events, event_id, tmin=tmin, tmax=tmax,
+                       add_eeg_ref=False, proj=False,
                        picks=picks, baseline=None, preload=True,
                        reject=None, verbose=False)
 
-powers = psd.transform(epochs_te.get_data())
+X = epochs_te.get_data()
+powers = np.zeros((X.shape[0], X.shape[1], len(times)))
+for ii, tstart in enumerate(times):
+    tend = tstart + window
+    sl = slice(int(tstart * sfreq), int(tend * sfreq))
+    powers[..., ii] = np.log(X[..., sl].var(2))
+
 powers_te = mne.EpochsArray(powers, epochs_te.info, events=epochs_te.events)
-powers_te.times = np.linspace(fmin, fmax, powers.shape[-1])
+powers_te.times = times
 y_te = powers_te.events[:, -1]
 
 
@@ -85,7 +106,4 @@ gat = GeneralizationAcrossTime(predict_mode='mean-prediction',
 gat.fit(powers_tr, y=y_tr)
 gat.score(powers_te, y=y_te)
 
-gat.plot(title="Frequency Generalization", show=False)
-plt.xlabel('Training Frequency (Hz)')
-plt.ylabel('Test Frequency (Hz)')
-plt.show()
+gat.plot(title="Time Generalization in alpha band", vmin=0, vmax=1)
