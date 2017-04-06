@@ -596,8 +596,8 @@ def _plot_raw_time(value, params):
 def _radio_clicked(label, params):
     """Handle radio buttons in selection dialog."""
     from .evoked import _rgb
-    params['butterfly'] = False  # force butterfly mode off
-    params['ax_vscroll'].set_visible(True)
+
+    # First the selection dialog.
     labels = [l._text for l in params['fig_selection'].radio.labels]
     idx = labels.index(label)
     params['fig_selection'].radio._active_idx = idx
@@ -618,6 +618,10 @@ def _radio_clicked(label, params):
     ax_topo.collections[0]._facecolors = colors
     params['fig_selection'].canvas.draw()
 
+    if params['butterfly']:
+        return
+    # Then the plotting window.
+    params['ax_vscroll'].set_visible(True)
     nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
     params['vsel_patch'].set_y(nchan)
     n_channels = len(channels)
@@ -1966,14 +1970,14 @@ def _annotation_radio_clicked(label, radio, selector):
 
 def _setup_butterfly(params):
     """Set butterfly view of raw plotter."""
+    from .raw import _setup_browser_selection
     if 'ica' in params:
         return
     butterfly = not params['butterfly']
     ax = params['ax']
+    params['butterfly'] = butterfly
 
     if butterfly:
-        from ..selection import _SELECTIONS
-        from .raw import _setup_browser_selection
         if 'selections' not in params:
             params['prev_inds'] = params['inds'].copy()
             selections = _setup_browser_selection(params['raw'], 'position',
@@ -2000,7 +2004,7 @@ def _setup_butterfly(params):
 
         params['offsets'] = offsets
         params['inds'] = np.arange(len(offsets))
-        ax.set_yticklabels([''] + selections, color='black')
+        ax.set_yticklabels([''] + selections, color='black', rotation=45)
     else:
         if 'fig_selection' not in params:
             params.pop('selections')
@@ -2010,10 +2014,11 @@ def _setup_butterfly(params):
                 params['lines'][idx].set_ydata([])
         _setup_browser_offsets(params, params['n_channels'])
         if 'fig_selection' in params:
-            _set_radio_button(0, params)
+            radio = params['fig_selection'].radio
+            active_idx = _get_active_radiobutton(radio)
+            _radio_clicked(radio.labels[active_idx]._text, params)
 
     params['ax_vscroll'].set_visible(not butterfly)
-    params['butterfly'] = butterfly
     params['plot_fun']()
 
 

@@ -111,7 +111,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         ``raw.first_samp``.
     n_channels : int
         Number of channels to plot at once. Defaults to 20. Has no effect if
-        ``order`` is 'position' or 'selection'.
+        ``order`` is 'position', 'selection' or 'butterfly'.
     bgcolor : color object
         Color of the background.
     color : dict | color object | None
@@ -741,6 +741,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     if size is not None:
         size = size.split(',')
         size = tuple([float(s) for s in size])
+        size = tuple([float(s) for s in size])
 
     fig = figure_nobar(facecolor=bgcolor, figsize=size)
     fig.canvas.set_window_title('mne_browse_raw')
@@ -937,7 +938,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                           params['times'][0] + params['first_time'] +
                           params['duration'], False)
     if not params['butterfly']:
-        params['ax'].set_yticklabels(tick_list)
+        params['ax'].set_yticklabels(tick_list, rotation=0)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
