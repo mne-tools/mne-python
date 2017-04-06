@@ -62,7 +62,7 @@ def _compute_corrs(X, y, smin, smax, fit_intercept):
 def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     """Fit the model using correlation matrices."""
     from scipy import linalg
-    known_types = ('ridge', 'laplacian')
+    known_types = ('ridge', 'quadratic')
     if reg_type not in known_types:
         raise ValueError('reg_type must be one of %s, got %s'
                          % (known_types, reg_type))
@@ -73,7 +73,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     n_trf = x_y.shape[1] // n_ch_x
     if reg_type == 'ridge':
         reg = np.eye(x_xt.shape[0])
-    else:  # if reg_type == 'laplacian':
+    else:  # if reg_type == 'quadtratic':
         reg = np.eye(n_trf)
         reg.flat[reg.shape[0] + 1:-reg.shape[0] - 1:reg.shape[0] + 1] = 2
         reg.flat[1::reg.shape[0] + 1] = -1
@@ -117,26 +117,55 @@ class TimeDelayingRidge(BaseEstimator):
 
     Parameters
     ----------
-    smin : int
-        Minimum sample number.
-    smax : int
-        Maximum sample number.
+    tmin : int | float
+        The starting lag, in seconds (or samples if ``sfreq`` == 1).
+        Negative values correspond to times in the past.
+    tmax : int | float
+        The ending lag, in seconds (or samples if ``sfreq`` == 1).
+        Positive values correspond to times in the future.
+        Must be >= tmin.
+    sfreq : float
+        The sampling frequency used to convert times into samples.
     alpha : float
-        The ridge (or laplacian) regularization.
+        The ridge (or quadtratic) regularization.
     reg_type : str
-        Can be "ridge" (default) or "laplacian".
+        Can be "ridge" (default) or "quadtratic".
     fit_intercept : bool
         If True (default), the sample mean is removed before fitting.
+
+    Notes
+    -----
+    This class is meant to be used with :class:`mne.decoding.ReceptiveField`
+    by only implicitly doing the time delaying. For reasonable receptive
+    field and input signal sizes, it should be more CPU and memory
+    efficient by using frequency-domain methods (FFTs) to compute the
+    auto- and cross-correlations.
+
+    See Also
+    --------
+    mne.decoding.ReceptiveField
     """
 
-    def __init__(self, smin, smax, alpha=0., reg_type='ridge',
+    def __init__(self, tmin, tmax, sfreq, alpha=0., reg_type='ridge',
                  fit_intercept=True):  # noqa: D102
-        assert smin <= smax
-        self._smin = -smax
-        self._smax = -smin + 1
-        self._alpha = float(alpha)
-        self._reg_type = reg_type
-        self._fit_intercept = fit_intercept
+        if tmin > tmax:
+            raise ValueError('tmin must be <= tmax, got %s and %s'
+                             % (tmin, tmax))
+        self.tmin = float(tmin)
+        self.tmax = float(tmax)
+        self.sfreq = float(sfreq)
+        self.alpha = float(alpha)
+        self.reg_type = reg_type
+        self.fit_intercept = fit_intercept
+        self._estimator_type = "regressor"
+
+    @property
+    def _smin(self):
+        return int(round(-self.tmax * self.sfreq))
+
+    @property
+    def _smax(self):
+        return int(round(-self.tmin * self.sfreq)) + 1
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
@@ -150,16 +179,16 @@ class TimeDelayingRidge(BaseEstimator):
 
         Returns
         -------
-        self : instance of LinearModel
+        self : instance of TimeDelayingRidge
             Returns the modified instance.
         """
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
         x_xt, x_y, n_ch_x = _compute_corrs(X, y, self._smin, self._smax,
-                                           self._fit_intercept)
+                                           self.fit_intercept)
         self.coef_ = _fit_corrs(x_xt, x_y, n_ch_x,
-                                self._reg_type, self._alpha, n_ch_x)
+                                self.reg_type, self.alpha, n_ch_x)
         self.coef_ = self.coef_[..., ::-1]
         return self
 
@@ -177,10 +206,11 @@ class TimeDelayingRidge(BaseEstimator):
             The predicted response.
         """
         out = np.zeros((X.shape[0], self.coef_.shape[0]))
-        offset = max(self._smin, 0)
+        smin = self._smin
+        offset = max(smin, 0)
         for oi in range(self.coef_.shape[0]):
             for fi in range(self.coef_.shape[1]):
                 temp = np.convolve(X[:, fi], self.coef_[oi, fi][::-1])
-                temp = temp[max(-self._smin, 0):][:len(out) - offset]
+                temp = temp[max(-smin, 0):][:len(out) - offset]
                 out[offset:len(temp) + offset, oi] += temp
         return out

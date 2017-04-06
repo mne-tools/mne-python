@@ -21,10 +21,10 @@ class ReceptiveField(BaseEstimator):
 
     Parameters
     ----------
-    tmin : int | float
+    tmin : float
         The starting lag, in seconds (or samples if ``sfreq`` == 1).
         Negative values correspond to times in the past.
-    tmax : int | float
+    tmax : float
         The ending lag, in seconds (or samples if ``sfreq`` == 1).
         Positive values correspond to times in the future.
         Must be >= tmin.
@@ -110,6 +110,25 @@ class ReceptiveField(BaseEstimator):
             s += "scored (%s)" % self.scoring
         return "<ReceptiveField  |  %s>" % s
 
+    def _delay_and_reshape(self, X, y=None, remove=True):
+        """Delay and reshape the variables."""
+        if not isinstance(self.estimator_, TimeDelayingRidge):
+            # X is now shape (n_times, n_epochs, n_feats, n_delays)
+            X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
+                                       newaxis=X.ndim)
+            # Remove timepoints that don't have lag data after delaying
+            if remove:
+                X_del = X_del[self.keep_samples_]
+                y = y[self.keep_samples_]
+        else:
+            X_del = X[..., np.newaxis]
+
+        X_del = _reshape_for_est(X_del)
+        # Concat times + epochs
+        if y is not None:
+            y = y.reshape(-1, y.shape[-1], order='F')
+        return X_del, y
+
     def fit(self, X, y):
         """Fit a receptive field model.
 
@@ -135,8 +154,7 @@ class ReceptiveField(BaseEstimator):
         self.keep_samples_ = _delays_to_slice(self.delays_)
 
         if isinstance(self.estimator, numbers.Real):
-            estimator = TimeDelayingRidge(self.delays_[0],
-                                          self.delays_[-1],
+            estimator = TimeDelayingRidge(self.tmin, self.tmax, self.sfreq,
                                           alpha=self.estimator)
         elif is_regressor(self.estimator):
             estimator = clone(self.estimator)
@@ -150,7 +168,6 @@ class ReceptiveField(BaseEstimator):
 
         # Create input features
         n_times, n_epochs, n_feats = X.shape
-        n_outputs = y.shape[2]
 
         # Update feature names if we have none
         if self.feature_names is None:
@@ -160,25 +177,11 @@ class ReceptiveField(BaseEstimator):
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 
         # Create input features
-        if not isinstance(self.estimator_, TimeDelayingRidge):
-            # X is now shape (n_times, n_epochs, n_feats, n_delays)
-            X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
-                                       newaxis=X.ndim)
-            # Remove timepoints that don't have lag data after delaying
-            X_del = X_del[self.keep_samples_]
-            y = y[self.keep_samples_]
-        else:
-            X_del = X[..., np.newaxis]
-
-        X_del = _reshape_for_est(X_del)
-
-        # Concat times + epochs
-        y = y.reshape(-1, n_outputs, order='F')
-
+        X_del, y = self._delay_and_reshape(X, y)
         self.estimator_.fit(X_del, y)
 
         coefs = get_coef(self.estimator_, 'coef_')
-        coefs = coefs.reshape([n_outputs, n_feats, len(self.delays_)])
+        coefs = coefs.reshape([-1, n_feats, len(self.delays_)])
         if len(coefs) == 1:
             # Remove a singleton first dimension if only 1 output
             coefs = coefs[0]
@@ -201,14 +204,7 @@ class ReceptiveField(BaseEstimator):
         if not hasattr(self, 'delays_'):
             raise ValueError('Estimator has not been fit yet.')
         X, _ = self._check_dimensions(X, None, predict=True)
-        if not isinstance(self.estimator_, TimeDelayingRidge):
-            X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
-                                       newaxis=X.ndim)
-        else:
-            X_del = X[..., np.newaxis]
-        # Convert nans to 0 since scikit-learn will error otherwise
-        X_del[np.isnan(X_del)] = 0
-        X_del = _reshape_for_est(X_del)
+        X_del, _ = self._delay_and_reshape(X, remove=False)
         y_pred = self.estimator_.predict(X_del)
         return y_pred
 
@@ -273,7 +269,7 @@ class ReceptiveField(BaseEstimator):
                 y = y[:, :, np.newaxis]  # Add an outputs dim
             elif y.ndim != 3:
                 raise ValueError('If X has 3 dimensions, '
-                                 'y must be at least 2 dimensions')
+                                 'y must have 2 or 3 dimensions')
         else:
             raise ValueError('X must be of shape '
                              '(n_times[, n_epochs], n_features)')

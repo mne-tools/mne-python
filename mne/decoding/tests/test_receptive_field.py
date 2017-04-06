@@ -181,6 +181,9 @@ def test_receptive_field_fast():
     x = rng.randn(1000, 3)
     y = np.zeros((1000, 2))
     slim = [-5, 0]
+    # This is a weird assignment, but it's just a way to distribute some
+    # unique values at various delays, and "expected" explains how they
+    # should appear in the resulting RF
     for ii in range(1, 5):
         y[ii:, ii % 2] += (-1) ** ii * ii * x[:-ii, ii % 3]
     expected = [
