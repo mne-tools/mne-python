@@ -769,7 +769,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       image_interp=image_interp, show=show)[0]
     if colorbar:
         import matplotlib.pyplot as plt
-        from mpl_toolkits.axes_grid import make_axes_locatable
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
         divider = make_axes_locatable(axes)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
@@ -871,7 +871,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid import make_axes_locatable
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
     from ..channels import _get_ch_type
 
     if picks is None:  # plot components by sets of 20
