@@ -170,7 +170,13 @@ class CSP(TransformerMixin, BaseEstimator):
                 cov /= len(class_)
                 weight = len(class_)
 
-            # normalize by trace and stack
+            # Append covariance matrix and weight. Prior to version 0.15,
+            # trace normalization was applied, but was breaking results for
+            # some usecases by chaging the apparent ranking of patterns.
+            # Trace normalization of the covariance matrix was removed without
+            # signigificant effect on patterns or performances.
+            # If the user interested in this feature, we suggest trace
+            # normalization of the epochs prior to the CSP.
             covs[class_idx] = cov
             sample_weights.append(weight)
 
