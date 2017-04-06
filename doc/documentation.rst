@@ -1,9 +1,9 @@
 :orphan:
 
-.. _guide:
+.. _documentation:
 
-A Guide to MNE-python
-=====================
+Documentation
+=============
 
 This is a collection of tutorials to guide you through the process
 of working with your data using MNE. It also serves as a high-level guide
