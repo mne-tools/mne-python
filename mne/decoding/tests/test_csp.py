@@ -153,13 +153,9 @@ def test_csp():
         csp = CSP(n_components=1, cov_est=cov_est)
         csp.fit(X, y)
 
-        # get the patterns and normalize them
-        patterns = csp.patterns_.copy().T
-        patterns /= np.linalg.norm(patterns, axis=0, keepdims=True)
-
         # check the first pattern match the mixing matrix
         # the sign might change
-        corr = np.abs(np.corrcoef(patterns[:, 0], A[:, 0])[0, 1])
+        corr = np.abs(np.corrcoef(csp.patterns_[0, :].T, A[:, 0])[0, 1])
         assert_greater(np.abs(corr), 0.99)
 
         # check output
@@ -268,12 +264,8 @@ def test_spoc():
     spoc = SPoC(n_components=1)
     spoc.fit(X, y)
 
-    # get the patterns and normalize them
-    patterns = spoc.patterns_.copy().T
-    patterns /= np.linalg.norm(patterns, axis=0, keepdims=True)
-
     # check the first patterns match the mixing matrix
-    corr = np.abs(np.corrcoef(patterns[:, 0], A[:, 0])[0, 1])
+    corr = np.abs(np.corrcoef(spoc.patterns_[0, :].T, A[:, 0])[0, 1])
     assert_greater(np.abs(corr), 0.99)
 
     # check output
