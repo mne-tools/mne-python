@@ -156,7 +156,7 @@ html_theme_options = {
         ("Documentation", "documentation"),
         ("API", "python_reference"),
         ("Examples", "auto_examples/index"),
-        ("Contribute", "contribute_to_mne"),
+        ("Contribute", "contributing"),
     ],
     }
 

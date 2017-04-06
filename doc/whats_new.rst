@@ -69,7 +69,9 @@ Version 0.14
 Changelog
 ~~~~~~~~~
 
-    - Automatically create a legend in :func:`mne.viz.evoked.plot_evoked_topo` by `Jussi Nurminen`_
+    - Add example of time-frequency decoding with CSP by `Laura Gwilliams`_
+
+    - Automatically create a legend in :func:`mne.viz.plot_evoked_topo` by `Jussi Nurminen`_
 
     - Add I/O support for Artemis123 infant/toddler MEG data by `Luke Bloy`_
 

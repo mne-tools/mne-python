@@ -5,7 +5,7 @@
 .. _using_github:
 
 Using GitHub to make a Pull Request
------------------------------------
+===================================
 
 Any contributions to MNE, whether bug fixes,
 improvements to the documentation, or new functionality, can be done via

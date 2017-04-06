@@ -869,6 +869,8 @@ Functions:
    dics_epochs
    dics_source_power
    rap_music
+   tf_dics
+   tf_lcmv
 
 :py:mod:`mne`:
 

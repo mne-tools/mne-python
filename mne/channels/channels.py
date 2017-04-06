@@ -276,7 +276,7 @@ class SetChannelsMixin(object):
         .. note:: In case of average reference (ref_channels=None), the
                   reference is added as an SSP projector and it is not applied
                   automatically. For it to take effect, apply with method
-                  :meth:`apply_proj <mne.io.proj.ProjMixin.apply_proj>`.
+                  :meth:`apply_proj <mne.io.Raw.apply_proj>`.
                   For custom reference (ref_channel is not None), this method
                   operates in place.
 

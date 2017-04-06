@@ -219,7 +219,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
         over the stcs without having to keep them all in memory.
     real_filter : bool
         If True, take only the real part of the cross-spectral-density matrices
-        to compute real filters as in [2]_. Default is False.
+        to compute real filters as in [1]_. Default is False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -232,6 +232,12 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
     See Also
     --------
     dics
+
+    References
+    ----------
+    .. [1] Hipp JF, Engel AK, Siegel M (2011) Oscillatory Synchronization
+           in Large-Scale Cortical Networks Predicts Perception.
+           Neuron 69:387-396.
     """
     _check_reference(epochs)
 

@@ -69,7 +69,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args):
 class Scaler(TransformerMixin, BaseEstimator):
     u"""Standardize channel data.
 
-    This class scales data for each channel. It differs from scikit-learn_
+    This class scales data for each channel. It differs from scikit-learn
     classes (e.g., :class:`sklearn.preprocessing.StandardScaler`) in that
     it scales each *channel* by estimating μ and σ using data from all
     time points and epochs, as opposed to standardizing each *feature*
@@ -353,7 +353,7 @@ class PSDEstimator(TransformerMixin):
 
     See Also
     --------
-    psd_multitaper
+    mne.time_frequency.psd_multitaper
     """
 
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
