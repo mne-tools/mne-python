@@ -10,6 +10,7 @@ of working with your data using MNE. It also serves as a high-level guide
 for many of the tools and techniques available to you with MNE. You can find
 each step of the processing pipeline, and re-run the Python code by copy-paste.
 
+
 **Getting Started**
 
 Here are some steps to get you started.
@@ -22,6 +23,8 @@ Here are some steps to get you started.
 - For details about specific functions and classes: :ref:`api_reference`
 - For a high-level view of analysis pipelines and workflows in MNE-python,
   see the :ref:`cookbook`.
+- You can also check out the :ref:`faq` for common questions.
+
 
 **Click one of the headers below to see what you can do in MNE-python.**
 
