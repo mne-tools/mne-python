@@ -220,6 +220,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
+        'hf_sef': 'MNE_DATASETS_HF_SEF_PATH',
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
         'mtrf': 'MNE_DATASETS_MTRF_PATH'
     }[name]
@@ -239,6 +240,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         spm='MNE-spm-face.tar.gz',
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
         multimodal='MNE-multimodal-data.tar.gz',
+        hf_sef='hf_sef_meg.tar.gz',
         fake='foo.tgz',
         visual_92_categories='MNE-visual_92_categories.tar.gz',
         mtrf='mTRF_1.5.zip'
@@ -253,6 +255,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='MNE-sample-data',
         somato='MNE-somato-data',
         multimodal='MNE-multimodal-data',
+        hf_sef='MNE-hf-sef-data',
         spm='MNE-spm-face',
         testing='MNE-testing-data',
         visual_92_categories='MNE-visual_92_categories-data',
@@ -270,6 +273,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
+        hf_sef='https://zenodo.org/record/495393/files/hf_sef_meg.tar.gz',
         visual_92_categories='https://mne-tools.s3.amazonaws.com/datasets/%s',
         mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/%s"
     )
@@ -282,6 +286,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         spm='f61041e3f3f2ba0def8a2ca71592cc41',
         testing='037711ea367c610bd673c11b9b2325ca',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
+        hf_sef='3c9c5ba590e00586812dd8dca73e2fc3',
         visual_92_categories='46c7e590f4a48596441ce001595d5e58',
         mtrf='273a390ebbc48da2c3184b01a82e4636',
     )
@@ -437,12 +442,13 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal, mtrf)
+                   eegbci, multimodal, hf_sef, mtrf)
     sample.data_path()
     testing.data_path()
     misc.data_path()
     spm_face.data_path()
     somato.data_path()
+    hf_sef.data_path()
     multimodal.data_path()
     mtrf.data_path()
     sys.argv += ['--accept-brainstorm-license']
