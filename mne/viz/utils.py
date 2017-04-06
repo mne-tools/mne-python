@@ -2004,7 +2004,8 @@ def _setup_butterfly(params):
 
         params['offsets'] = offsets
         params['inds'] = np.arange(len(offsets))
-        ax.set_yticklabels([''] + selections, color='black', rotation=45)
+        ax.set_yticklabels([''] + selections, color='black', rotation=45,
+                           va='top')
     else:
         if 'fig_selection' not in params:
             params.pop('selections')
