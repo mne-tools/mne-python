@@ -137,6 +137,30 @@ with:
 
 Consult the `sphinx gallery documentation`_ for more details.
 
+Deprecating
+-----------
+If you need to deprecate a function or a class, use the ``@deprecated`` decorator.
+
+.. code-block:: python
+
+    from mne.utils import deprecated
+
+    @deprecated('my_function will be deprecated in 0.XX, please use my_new_function instead.')
+    def my_function():
+       return 'foo'
+
+If you need to deprecate a parameter, use the mne warning function.
+
+.. code-block:: python
+
+    from mne.utils import warn
+
+    def my_function(my_param=None):
+       warn('my_param will be deprecated in 0.XX.', DeprecationWarning)
+       return 'foo'
+
+
+
 Profiling
 ---------
 To learn more about profiling python codes please see `the scikit learn profiling site <http://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
