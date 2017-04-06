@@ -35,6 +35,8 @@ Changelog
 
     - Add Fieldtrip's electromyogram dataset, by `Alexandre Barachant`_
 
+    - Add ``reject_by_annotation`` option to :func:`mne.preprocessing.find_eog_events` (which is also utilised by :func:`mne.preprocessing.create_eog_epochs`) to omit data that is annotated as bad by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
