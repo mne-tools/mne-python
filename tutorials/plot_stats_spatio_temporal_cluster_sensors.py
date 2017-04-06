@@ -40,8 +40,7 @@ tmax = 0.5
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 30, l_trans_bandwidth='auto', h_trans_bandwidth='auto',
-           filter_length='auto', phase='zero')
+raw.filter(1, 30, fir_design='firwin')
 events = mne.read_events(event_fname)
 
 ###############################################################################

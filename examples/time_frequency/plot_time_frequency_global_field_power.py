@@ -81,7 +81,8 @@ for band, fmin, fmax in iter_freqs:
     # bandpass filter and compute Hilbert
     raw.filter(fmin, fmax, n_jobs=1,  # use more jobs to speed up.
                l_trans_bandwidth=1,  # make sure filter params are the same
-               h_trans_bandwidth=1)  # in each band and skip "auto" option.
+               h_trans_bandwidth=1,  # in each band and skip "auto" option.
+               fir_design='firwin')
     raw.apply_hilbert(n_jobs=1, envelope=False)
 
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=baseline,

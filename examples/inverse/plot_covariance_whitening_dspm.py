@@ -57,7 +57,7 @@ raw = io.read_raw_ctf(raw_fname % 1)  # Take first run
 raw = raw.crop(0, 150.).load_data().resample(60, npad='auto')
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
-raw.filter(1, None, n_jobs=1)
+raw.filter(1, None, n_jobs=1, fir_design='firwin')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
 

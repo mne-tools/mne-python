@@ -77,7 +77,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
 
     # Apply band-pass filter to isolate the specified frequencies
-    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1)
+    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin')
 
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,

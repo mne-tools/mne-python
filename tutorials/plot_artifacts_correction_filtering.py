@@ -65,8 +65,7 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 # noise you can simply low pass filter the data.
 
 # low pass filtering below 50 Hz
-raw.filter(None, 50., h_trans_bandwidth='auto', filter_length='auto',
-           phase='zero')
+raw.filter(None, 50., fir_design='firwin')
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 ###############################################################################
@@ -79,8 +78,7 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 #              (see examples in :ref:`tut_filtering_hp_problems`),
 #              so apply high-pass filters with caution.
 
-raw.filter(1., None, l_trans_bandwidth='auto', filter_length='auto',
-           phase='zero')
+raw.filter(1., None, fir_design='firwin')
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 
@@ -89,8 +87,7 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 # a so-called *band-pass* filter by running the following:
 
 # band-pass filtering in the range 1 Hz - 50 Hz
-raw.filter(1, 50., l_trans_bandwidth='auto', h_trans_bandwidth='auto',
-           filter_length='auto', phase='zero')
+raw.filter(1, 50., fir_design='firwin')
 
 ###############################################################################
 # Downsampling and decimation

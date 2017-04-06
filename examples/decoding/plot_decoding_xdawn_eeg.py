@@ -52,7 +52,7 @@ event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 20)
+raw.filter(1, 20, fir_design='firwin')
 events = read_events(event_fname)
 
 picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
