@@ -255,31 +255,31 @@ def _get_artemis123_info(fname, pos_fname=None):
     # always on or always off.
     # hpi_sub['event_channel'] = ???
     hpi_sub['hpi_coils'] = [dict(), dict(), dict(), dict()]
+    hpi_coils = [dict(), dict(), dict(), dict()]
+    drive_channels = ['MIO_001', 'MIO_003', 'MIO_009', 'MIO_011']
+    key_base = 'Head Tracking %s %d'
+
+    # set default HPI frequencies
+    if info['sfreq'] == 1000:
+        default_freqs = [140, 150, 160, 40]
+    else:
+        default_freqs = [700, 750, 800, 40]
+
     for i in range(4):
-        k = 'Head Tracking Channel %d' % (i + 1)
-        if (header_info[k] == 'OFF'):
+        # build coil structure
+        hpi_coils[i]['number'] = i + 1
+        hpi_coils[i]['drive_chan'] = drive_channels[i]
+        this_freq = header_info.pop(key_base % ('Frequency', i + 1),
+                                    default_freqs[i])
+        hpi_coils[i]['coil_freq'] = this_freq
+
+        # check if coil is on
+        if header_info[key_base % ('Channel', i + 1)] == 'OFF':
             hpi_sub['hpi_coils'][i]['event_bits'] = [0]
         else:
             hpi_sub['hpi_coils'][i]['event_bits'] = [256]
+
     info['hpi_subsystem'] = hpi_sub
-
-    # hpi coils
-    hpi_coils = [dict(), dict(), dict()]
-    hpi_coils[0] = dict()
-    hpi_coils[0]['number'] = 1
-    hpi_coils[0]['coil_freq'] = 700
-    hpi_coils[0]['drive_chan'] = 'MIO_001'
-
-    hpi_coils[1] = dict()
-    hpi_coils[1]['number'] = 2
-    hpi_coils[1]['coil_freq'] = 750
-    hpi_coils[1]['drive_chan'] = 'MIO_003'
-
-    hpi_coils[2] = dict()
-    hpi_coils[2]['number'] = 3
-    hpi_coils[2]['coil_freq'] = 800
-    hpi_coils[2]['drive_chan'] = 'MIO_009'
-
     info['hpi_meas'] = [{'hpi_coils': hpi_coils}]
 
     # read in digitized points if supplied
@@ -329,7 +329,8 @@ class RawArtemis123(BaseRaw):
 
         info, header_info = _get_artemis123_info(input_fname,
                                                  pos_fname=pos_fname)
-        last_samps = [header_info['num_samples'] - 1]
+
+        last_samps = [header_info.get('num_samples', 1) - 1]
 
         super(RawArtemis123, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
@@ -346,7 +347,7 @@ class RawArtemis123(BaseRaw):
                      'head localization')
             else:
                 # Localized HPIs using the 1st seconds of data.
-                hpi_dev, hpi_g = _fit_device_hpi_positions(self, t_win=[0, 1])
+                hpi_dev, hpi_g = _fit_device_hpi_positions(self, t_win=[0, 0.25])
                 if pos_fname is not None:
                     # Digitized HPI points are needed.
                     hpi_head = np.array([d['r']
