@@ -49,7 +49,10 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     eog_inds = _get_eog_channel_index(ch_name, raw)
     logger.info('EOG channel index for this subject is: %s' % eog_inds)
 
-    eog, _ = raw[eog_inds, :]
+    # Reject bad segments.
+    eog, times = raw.get_data(picks=eog_inds, reject_by_annotation='omit',
+                              return_times=True)
+    times = times * raw.info['sfreq'] + raw.first_samp
 
     eog_events = _find_eog_events(eog, event_id=event_id, l_freq=l_freq,
                                   h_freq=h_freq,
@@ -57,7 +60,8 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                                   first_samp=raw.first_samp,
                                   filter_length=filter_length,
                                   tstart=tstart)
-
+    # Map times to corresponding samples.
+    eog_events[:, 0] = times[eog_events[:, 0] - raw.first_samp]
     return eog_events
 
 
