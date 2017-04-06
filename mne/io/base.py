@@ -658,7 +658,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return tuple(self._filenames)
 
     @annotations.setter
-    def annotations(self, annotations):
+    def annotations(self, annotations, emit_warning=True):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -667,6 +667,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         annotations : Instance of mne.Annotations
             Annotations to set.
+        emit_warning : bool
+            Whether to emit warnings when limiting or omitting annotations.
         """
         if annotations is not None:
             if not isinstance(annotations, Annotations):
@@ -684,30 +686,35 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 offset = 0
             omit_ind = list()
+            omitted = limited = 0
             for ind, onset in enumerate(annotations.onset):
                 onset += offset
                 if onset > self.times[-1]:
-                    warn('Omitting annotation outside data range.')
+                    omitted += 1
                     omit_ind.append(ind)
                 elif onset < self.times[0]:
                     if onset + annotations.duration[ind] < self.times[0]:
-                        warn('Omitting annotation outside data range.')
+                        omitted += 1
                         omit_ind.append(ind)
                     else:
-                        warn('Annotation starting outside the data range. '
-                             'Limiting to the start of data.')
+                        limited += 1
                         duration = annotations.duration[ind] + onset
                         annotations.duration[ind] = duration
                         annotations.onset[ind] = self.times[0] - offset
                 elif onset + annotations.duration[ind] > self.times[-1]:
-                    warn('Annotation expanding outside the data range. '
-                         'Limiting to the end of data.')
+                    limited += 1
                     annotations.duration[ind] = self.times[-1] - onset
             annotations.onset = np.delete(annotations.onset, omit_ind)
             annotations.duration = np.delete(annotations.duration, omit_ind)
             annotations.description = np.delete(annotations.description,
                                                 omit_ind)
-
+            if emit_warning:
+                if omitted > 0:
+                    warn('Omitted %s annotation(s) that were outside data '
+                         'range.' % omitted)
+                if limited > 0:
+                    warn('Limited %s annotation(s) that were expanding '
+                         'outside the data range.' % limited)
         self._annotations = annotations
 
     def __del__(self):  # noqa: D105
@@ -1576,7 +1583,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if self.annotations is not None:
             annotations = self.annotations
             annotations.onset -= tmin
-            self.annotations = annotations
+            BaseRaw.annotations.fset(self, annotations, emit_warning=False)
 
             # If all annotations are outside the data range, we set them to
             # None. Otherwise this causes problems when saving and reading.
