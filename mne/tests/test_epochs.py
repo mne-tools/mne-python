@@ -2049,6 +2049,14 @@ def test_concatenate_epochs():
     epochs2.event_id = dict(a=2)
     assert_raises(ValueError, concatenate_epochs, [epochs1, epochs2])
 
+    # check events are shifted, but relative position are equal
+    epochs_list = [epochs.copy() for ii in range(3)]
+    epochs_cat = concatenate_epochs(epochs_list)
+    for ii in range(3):
+        evs = epochs_cat.events[ii * len(epochs):(ii + 1) * len(epochs)]
+        rel_pos = epochs_list[0].events[:, 0] - evs[:, 0]
+        assert_true(sum(rel_pos - rel_pos[0]) == 0)
+
 
 def test_add_channels():
     """Test epoch splitting / re-appending channel types."""
