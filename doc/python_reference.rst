@@ -356,6 +356,20 @@ Datasets
 
    data_path
 
+:py:mod:`mne.datasets.hf_sef`:
+
+.. automodule:: mne.datasets.hf_sef
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.datasets.hf_sef
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   data_path
+
 :py:mod:`mne.datasets.visual_92_categories`:
 
 .. automodule:: mne.datasets.visual_92_categories
