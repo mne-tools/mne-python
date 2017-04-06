@@ -15,6 +15,7 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
+from ..utils import warn
 
 
 class CSP(TransformerMixin, BaseEstimator):
@@ -80,7 +81,7 @@ class CSP(TransformerMixin, BaseEstimator):
     """
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
-                 transform_into='average_power'):
+                 transform_into='average_power', norm_trace=None):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
@@ -119,6 +120,15 @@ class CSP(TransformerMixin, BaseEstimator):
                 raise ValueError('log must be a None if transform_into == '
                                  '"csp_space".')
         self.log = log
+        if norm_trace is None:
+            norm_trace = True
+            warn("new_param defaults to True in 0.15, but will change to False"
+                 " in 0.16. Set it explicitly to avoid this warning.",
+                 DeprecationWarning)
+
+        if not isinstance(norm_trace, bool):
+            raise ValueError('norm_trace must be a bool.')
+        self.norm_trace = norm_trace
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
@@ -170,14 +180,17 @@ class CSP(TransformerMixin, BaseEstimator):
                 cov /= len(class_)
                 weight = len(class_)
 
-            # Append covariance matrix and weight. Prior to version 0.15,
-            # trace normalization was applied, but was breaking results for
-            # some usecases by chaging the apparent ranking of patterns.
-            # Trace normalization of the covariance matrix was removed without
-            # signigificant effect on patterns or performances.
-            # If the user interested in this feature, we suggest trace
-            # normalization of the epochs prior to the CSP.
             covs[class_idx] = cov
+            if self.norm_trace:
+                # Append covariance matrix and weight. Prior to version 0.15,
+                # trace normalization was applied, but was breaking results for
+                # some usecases by chaging the apparent ranking of patterns.
+                # Trace normalization of the covariance matrix was removed
+                # without signigificant effect on patterns or performances.
+                # If the user interested in this feature, we suggest trace
+                # normalization of the epochs prior to the CSP.
+                covs[class_idx] /= np.trace(cov)
+
             sample_weights.append(weight)
 
         if n_classes == 2:
@@ -225,7 +238,7 @@ class CSP(TransformerMixin, BaseEstimator):
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
 
         # compute features (mean band power)
-        X = (X ** 2).mean(axis=-1)
+        X = (X ** 2).mean(axis=2)
 
         # To standardize features
         self.mean_ = X.mean(axis=0)
@@ -722,12 +735,13 @@ class SPoC(CSP):
                  transform_into='average_power'):
         """Init of SPoC."""
         super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
-                                   cov_est="epoch",
+                                   cov_est="epoch", norm_trace=False,
                                    transform_into=transform_into)
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
         # concatenation of all epochs from the same class.
         delattr(self, 'cov_est')
+        delattr(self, 'norm_trace')
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.

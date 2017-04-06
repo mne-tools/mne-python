@@ -1,5 +1,7 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Romain Trachel <trachelr@gmail.com>
+#         Alexandre Barachant <alexandre.barachant@gmail.com>
+#         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -61,21 +63,23 @@ def test_csp():
     y = epochs.events[:, -1]
 
     # Init
-    assert_raises(ValueError, CSP, n_components='foo')
+    assert_raises(ValueError, CSP, n_components='foo', norm_trace=False)
     for reg in ['foo', -0.1, 1.1]:
-        assert_raises(ValueError, CSP, reg=reg)
+        assert_raises(ValueError, CSP, reg=reg, norm_trace=False)
     for reg in ['oas', 'ledoit_wolf', 0, 0.5, 1.]:
-        CSP(reg=reg)
+        CSP(reg=reg, norm_trace=False)
     for cov_est in ['foo', None]:
-        assert_raises(ValueError, CSP, cov_est=cov_est)
+        assert_raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
+    assert_raises(ValueError, CSP, norm_trace='foo')
     for cov_est in ['concat', 'epoch']:
-        CSP(cov_est=cov_est)
+        CSP(cov_est=cov_est, norm_trace=False)
 
     n_components = 3
-    csp = CSP(n_components=n_components)
-
     # Fit
-    csp.fit(epochs_data, epochs.events[:, -1])
+    for norm_trace in [True, False]:
+        csp = CSP(n_components=n_components, norm_trace=norm_trace)
+        csp.fit(epochs_data, epochs.events[:, -1])
+
     assert_equal(len(csp.mean_), n_components)
     assert_equal(len(csp.std_), n_components)
 
@@ -109,7 +113,7 @@ def test_csp():
 
     n_channels = epochs_data.shape[1]
     for cov_est in ['concat', 'epoch']:
-        csp = CSP(n_components=n_components, cov_est=cov_est)
+        csp = CSP(n_components=n_components, cov_est=cov_est, norm_trace=False)
         csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
         assert_equal(len(csp._classes), 4)
         assert_array_equal(csp.filters_.shape, [n_channels, n_channels])
@@ -121,7 +125,7 @@ def test_csp():
     feature_shape = [len(epochs_data), n_components]
     X_trans = dict()
     for log in (None, True, False):
-        csp = CSP(n_components=n_components, log=log)
+        csp = CSP(n_components=n_components, log=log, norm_trace=False)
         assert_true(csp.log is log)
         Xt = csp.fit_transform(epochs_data, epochs.events[:, 2])
         assert_array_equal(Xt.shape, feature_shape)
@@ -134,12 +138,14 @@ def test_csp():
     assert_raises(ValueError, CSP, transform_into='average_power', log='foo')
 
     # Test csp space transform
-    csp = CSP(transform_into='csp_space')
+    csp = CSP(transform_into='csp_space', norm_trace=False)
     assert_true(csp.transform_into == 'csp_space')
     for log in ('foo', True, False):
-        assert_raises(ValueError, CSP, transform_into='csp_space', log=log)
+        assert_raises(ValueError, CSP, transform_into='csp_space', log=log,
+                      norm_trace=False)
     n_components = 2
-    csp = CSP(n_components=n_components, transform_into='csp_space')
+    csp = CSP(n_components=n_components, transform_into='csp_space',
+              norm_trace=False)
     Xt = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
     feature_shape = [len(epochs_data), n_components, epochs_data.shape[2]]
     assert_array_equal(Xt.shape, feature_shape)
@@ -150,7 +156,7 @@ def test_csp():
 
     for cov_est in ['concat', 'epoch']:
         # fit csp
-        csp = CSP(n_components=1, cov_est=cov_est)
+        csp = CSP(n_components=1, cov_est=cov_est, norm_trace=False)
         csp.fit(X, y)
 
         # check the first pattern match the mixing matrix
@@ -180,7 +186,7 @@ def test_regularized_csp():
     n_components = 3
     reg_cov = [None, 0.05, 'ledoit_wolf', 'oas']
     for reg in reg_cov:
-        csp = CSP(n_components=n_components, reg=reg)
+        csp = CSP(n_components=n_components, reg=reg, norm_trace=False)
         csp.fit(epochs_data, epochs.events[:, -1])
         y = epochs.events[:, -1]
         X = csp.fit_transform(epochs_data, y)
@@ -206,7 +212,7 @@ def test_csp_pipeline():
     """
     from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
-    csp = CSP(reg=1)
+    csp = CSP(reg=1, norm_trace=False)
     svc = SVC()
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
     pipe.set_params(CSP__reg=0.2)
