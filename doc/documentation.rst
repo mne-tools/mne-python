@@ -120,21 +120,7 @@ See the links below for an introduction to MNE-python, or click one of the secti
     auto_tutorials/plot_modifying_data_inplace.rst
     auto_tutorials/plot_ecog.rst
     manual/memory.rst
-
-**Working with public datasets**
-
-.. toctree::
-    :maxdepth: 1
-
-    manual/datasets_index.rst
-    auto_tutorials/plot_brainstorm_auditory.rst
-    auto_tutorials/plot_brainstorm_phantom_ctf.rst
-    auto_tutorials/plot_brainstorm_phantom_elekta.rst
-    auto_examples/datasets/plot_brainstorm_data.rst
-    auto_examples/datasets/plot_megsim_data.rst
-    auto_examples/datasets/plot_megsim_data_single_trial.rst
-    auto_examples/datasets/plot_spm_faces_dataset.rst
-
+    
 .. raw:: html
 
   <details class="example_details">
@@ -154,6 +140,21 @@ See the links below for an introduction to MNE-python, or click one of the secti
 .. raw:: html
     
     </details>
+
+**Working with public datasets**
+
+.. toctree::
+    :maxdepth: 1
+
+    manual/datasets_index.rst
+    auto_tutorials/plot_brainstorm_auditory.rst
+    auto_tutorials/plot_brainstorm_phantom_ctf.rst
+    auto_tutorials/plot_brainstorm_phantom_elekta.rst
+    auto_examples/datasets/plot_brainstorm_data.rst
+    auto_examples/datasets/plot_megsim_data.rst
+    auto_examples/datasets/plot_megsim_data_single_trial.rst
+    auto_examples/datasets/plot_spm_faces_dataset.rst
+
 .. raw:: html
 
           </div>
