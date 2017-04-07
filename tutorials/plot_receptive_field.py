@@ -307,6 +307,15 @@ for ii, alpha in enumerate(alphas):
 
 ix_best_alpha = np.argmax(scores)
 
+###############################################################################
+# Compare model performance
+# -------------------------
+# Below we visualize the model performance of each regularization method
+# (ridge vs. quadratic) for different levels of alpha. As you can see, the
+# quadratic method performs better in general, because it imposes a smoothness
+# constraint along the time dimension of the coefficients. This matches
+# the "true" receptive field structure and results in a better model fit.
+
 fig = plt.figure(figsize=(20, 4))
 ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
 ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
