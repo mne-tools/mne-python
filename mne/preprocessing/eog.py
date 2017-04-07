@@ -37,7 +37,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     tstart : float
         Start detection after tstart seconds.
     reject_by_annotation : bool
-        Whether to omit data in that is annotated as bad.
+        Whether to omit data that is annotated as bad.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -52,7 +52,9 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     logger.info('EOG channel index for this subject is: %s' % eog_inds)
 
     # Reject bad segments.
-    eog, times = raw.get_data(picks=eog_inds, reject_by_annotation='omit',
+    reject_by_annotation = 'omit' if reject_by_annotation else None
+    eog, times = raw.get_data(picks=eog_inds,
+                              reject_by_annotation=reject_by_annotation,
                               return_times=True)
     times = times * raw.info['sfreq'] + raw.first_samp
 
@@ -63,7 +65,8 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                                   filter_length=filter_length,
                                   tstart=tstart)
     # Map times to corresponding samples.
-    eog_events[:, 0] = np.round(times[eog_events[:, 0] - raw.first_samp])
+    eog_events[:, 0] = np.round(times[eog_events[:, 0] -
+                                      raw.first_samp]).astype(int)
     return eog_events
 
 
