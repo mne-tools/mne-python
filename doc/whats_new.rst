@@ -31,12 +31,18 @@ Changelog
 
     - Add example of time-frequency decoding with CSP by `Laura Gwilliams`_
 
+    - Add :class:`mne.decoding.SPoC` to fit and apply spatial filters based on continuous target variables, by `Jean-Remi King`_ and `Alexandre Barachant`_
+
+    - Add Fieldtrip's electromyogram dataset, by `Alexandre Barachant`_
+
 BUG
 ~~~
 
     - Fix unit scaling when reading in EGI digitization files using :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
     - Fix ``picks`` default in :meth:`mne.io.Raw.filter` to include ``ref_meg`` channels by default by `Eric Larson`_
+
+    - Fix :class:`mne.decoding.CSP` order of spatial filter in ``patterns_`` by `Alexandre Barachant`_
 
     - :meth:`mne.concatenate_epochs` now maintains the relative position of events during concatenation by `Alexandre Barachant`_
 
@@ -53,6 +59,7 @@ API
 
     - ``mne.viz.decoding.plot_gat_times``, ``mne.viz.decoding.plot_gat_matrix`` are now deprecated. Use matplotlib instead as shown in the examples, by `Jean-Remi King`_ and `Alex Gramfort`_
 
+    - Add ``norm_trace`` parameter to control single-epoch covariance normalization in :class:mne.decoding.CSP, by `Jean-Remi King`_
 
 .. _changes_0_14:
 
