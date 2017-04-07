@@ -2054,7 +2054,7 @@ def test_concatenate_epochs():
     epochs_cat = concatenate_epochs(epochs_list)
     for ii in range(3):
         evs = epochs_cat.events[ii * len(epochs):(ii + 1) * len(epochs)]
-        rel_pos = epochs_list[0].events[:, 0] - evs[:, 0]
+        rel_pos = epochs_list[ii].events[:, 0] - evs[:, 0]
         assert_true(sum(rel_pos - rel_pos[0]) == 0)
 
 
