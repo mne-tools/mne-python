@@ -44,6 +44,8 @@ BUG
 
     - Fix :class:`mne.decoding.CSP` order of spatial filter in ``patterns_`` by `Alexandre Barachant`_
 
+    - :meth:`mne.concatenate_epochs` now maintains the relative position of events during concatenation by `Alexandre Barachant`_
+
 API
 ~~~
 
