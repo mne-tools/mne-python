@@ -81,22 +81,22 @@ sfreq /= n_decim
 # We'll simulate a linear receptive field for a theoretical neural signal. This
 # defines how the signal will respond to power in this receptive field space.
 n_freqs = 16
-tmin, tmax = -.4, 0.
+tmin, tmax = -.4, 0.1
 
 # To simulate the data we'll create explicit delays here
 delays_samp = np.arange(np.round(tmin * sfreq),
                         np.round(tmax * sfreq) + 1).astype(int)
 delays_sec = delays_samp / sfreq
-freqs = np.logspace(2, np.log10(5000), n_freqs)
+freqs = np.linspace(50, 5000, n_freqs)
 grid = np.array(np.meshgrid(delays_sec, freqs))
 
 # We need data to be shaped as n_epochs, n_features, n_times, so swap axes here
 grid = grid.swapaxes(0, -1).swapaxes(0, 1)
 
 # Simulate a temporal receptive field with a Gabor filter
-means_high = [-.1, 1000]
-means_low = [-.15, 2000]
-cov = [[.0005, 0], [0, 200000]]
+means_high = [-.1, 500]
+means_low = [-.2, 2500]
+cov = [[.001, 0], [0, 500000]]
 gauss_high = multivariate_normal.pdf(grid, means_high, cov)
 gauss_low = -1 * multivariate_normal.pdf(grid, means_low, cov)
 weights = gauss_high + gauss_low  # Combine to create the "true" STRF
@@ -125,7 +125,7 @@ mne.viz.tight_layout()
 # information.
 
 # Reshape audio to split into epochs, then make epochs the first dimension.
-n_epochs, n_seconds = 30, 3
+n_epochs, n_seconds = 16, 5
 audio = audio[:, :int(n_seconds * sfreq * n_epochs)]
 X = audio.reshape([n_freqs, n_epochs, -1]).swapaxes(0, 1)
 n_times = X.shape[-1]
@@ -159,7 +159,7 @@ weights_sim = weights.ravel()
 y = np.zeros((n_epochs, n_times))
 for ii, iep in enumerate(X_del):
     # Simulate this epoch and add random noise
-    noise_amp = .001
+    noise_amp = .002
     y[ii] = np.dot(weights_sim, iep) + noise_amp * rng.randn(n_times)
 
 # Plot the first 2 trials of audio and the simulated electrode activity
@@ -186,7 +186,7 @@ mne.viz.tight_layout()
 # inputs and outputs.
 
 # Create training and testing data
-train, test = np.arange(20), 21
+train, test = np.arange(n_epochs - 1), n_epochs - 1
 X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
 X_train, X_test, y_train, y_test = [np.rollaxis(ii, -1, 0) for ii in
                                     (X_train, X_test, y_train, y_test)]
@@ -247,7 +247,7 @@ fig = plt.figure(figsize=(20, 4))
 ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
 ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
 ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
-            (ix_best_alpha - 1, scores[ix_best_alpha] - .005),
+            (ix_best_alpha - 1, scores[ix_best_alpha] - .01),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
 ax.set(xlabel="Ridge regularization value", ylabel="Score ($R^2$)",
@@ -268,14 +268,14 @@ mne.viz.tight_layout()
 # Using different regularization types
 # ------------------------------------
 # In addition to the standard ridge regularization, the
-# :class:`mne.decoding.TimeDelayingRidge` class also exposes quadtratic
+# :class:`mne.decoding.TimeDelayingRidge` class also exposes quadratic
 # regularization term as:
 #
 # .. math::
 #    \left[\begin{matrix}
 #         1 & -1 &   &   & & \\
-#        -1 &  2 & 1 &   & & \\
-#           & -1 & 2 & 1 & & \\
+#        -1 &  2 & -1 &   & & \\
+#           & -1 & 2 & -1 & & \\
 #           & & \ddots & \ddots & \ddots & \\
 #           & & & -1 & 2 & -1 \\
 #           & & &    & -1 & 1\end{matrix}\right]
@@ -310,10 +310,10 @@ fig = plt.figure(figsize=(20, 4))
 ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
 ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
 ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
-            (ix_best_alpha - 1, scores[ix_best_alpha] - .005),
+            (ix_best_alpha - 1, scores[ix_best_alpha] - .01),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
-ax.set(xlabel="Quadtratic regularization value", ylabel="Score ($R^2$)",
+ax.set(xlabel="Quadratic regularization value", ylabel="Score ($R^2$)",
        xlim=[-.4, len(alphas) - .6])
 mne.viz.tight_layout()
 

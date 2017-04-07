@@ -11,6 +11,7 @@ import numpy as np
 
 from .base import BaseEstimator
 from ..filter import next_fast_len
+from ..externals.six import string_types
 
 
 def _compute_corrs(X, y, smin, smax, fit_intercept):
@@ -63,23 +64,37 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     """Fit the model using correlation matrices."""
     from scipy import linalg
     known_types = ('ridge', 'quadratic')
-    if reg_type not in known_types:
-        raise ValueError('reg_type must be one of %s, got %s'
-                         % (known_types, reg_type))
+    if isinstance(reg_type, string_types):
+        reg_type = (reg_type,) * 2
+    if len(reg_type) != 2:
+        raise ValueError('reg_type must have two elements, got %s'
+                         % (len(reg_type),))
+    for r in reg_type:
+        if r not in known_types:
+            raise ValueError('reg_type entries must be one of %s, got %s'
+                             % (known_types, r))
 
     # do the regularized solving
     n_ch_out = x_y.shape[0]
     assert x_y.shape[1] % n_ch_x == 0
     n_trf = x_y.shape[1] // n_ch_x
-    if reg_type == 'ridge':
-        reg = np.eye(x_xt.shape[0])
-    else:  # if reg_type == 'quadtratic':
-        reg = np.eye(n_trf)
-        reg.flat[reg.shape[0] + 1:-reg.shape[0] - 1:reg.shape[0] + 1] = 2
-        reg.flat[1::reg.shape[0] + 1] = -1
-        reg.flat[reg.shape[0]::reg.shape[0] + 1] = -1
-        args = [reg] * n_ch_x
-        reg = linalg.block_diag(*args)
+
+    # regularize time
+    reg = np.eye(n_trf)
+    if reg_type[0] == 'quadratic':
+        reg.flat[1::reg.shape[0] + 1] += -1
+        reg.flat[reg.shape[0] + 1:-reg.shape[0] - 1:reg.shape[0] + 1] += 1
+        reg.flat[reg.shape[0]::reg.shape[0] + 1] += -1
+    args = [reg] * n_ch_x
+    reg = linalg.block_diag(*args)
+
+    # regularize features
+    if reg_type[1] == 'quadratic':
+        row_offset = n_trf * n_trf * n_ch_x
+        reg.flat[n_trf::n_trf * n_ch_x + 1] += -1
+        reg.flat[row_offset + n_trf:-row_offset:n_trf * n_ch_x + 1] += 1
+        reg.flat[n_trf * n_trf * n_ch_x::n_trf * n_ch_x + 1] += -1
+
     mat = x_xt + alpha * reg
     # From sklearn
     try:
@@ -127,9 +142,11 @@ class TimeDelayingRidge(BaseEstimator):
     sfreq : float
         The sampling frequency used to convert times into samples.
     alpha : float
-        The ridge (or quadtratic) regularization.
-    reg_type : str
-        Can be "ridge" (default) or "quadtratic".
+        The ridge (or quadratic) regularization factor.
+    reg_type : str | list
+        Can be "ridge" (default) or "quadratic".
+        Can also be a 2-element list specifying how to regularize in time
+        and across adjacent features.
     fit_intercept : bool
         If True (default), the sample mean is removed before fitting.
 

@@ -167,7 +167,8 @@ def test_receptive_field_fast():
             y[:-delay] = x[delay:]
             slims += [(1, 2)]
         for slim in slims:
-            for estimator in (Ridge(alpha=0.), 0.):
+            tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'quadratic')
+            for estimator in (Ridge(alpha=0.), 0., 0.1, tdr):
                 model = ReceptiveField(slim[0], slim[1], 1.,
                                        estimator=estimator)
                 model.fit(x[:, np.newaxis], y)
@@ -194,12 +195,19 @@ def test_receptive_field_fast():
          [0, 0, 0, 0, -1, 0],
          [0, 0, 0, 0, 0, 0]],
     ]
-    for estimator in (Ridge(alpha=0.), 0.):
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'quadratic')
+    for estimator in (Ridge(alpha=0.), 0., 0.01, tdr):
         model = ReceptiveField(slim[0], slim[1], 1.,
                                estimator=estimator)
         model.fit(x, y)
         assert_array_equal(model.delays_,
                            np.arange(slim[0], slim[1] + 1))
         assert_allclose(model.coef_, expected, atol=1e-1)
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type='foo')
+    model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
+    assert_raises(ValueError, model.fit, x, y)
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type=['quadratic'])
+    model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
+    assert_raises(ValueError, model.fit, x, y)
 
 run_tests_if_main()
