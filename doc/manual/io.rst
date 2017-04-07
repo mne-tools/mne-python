@@ -5,6 +5,13 @@
 
 .. _ch_convert:
 
+Importing data into MNE
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This guide covers how to import data into MNE python. It includes instructions
+for importing from common recording equipment in MEG and EEG, as well as how
+to import raw data from numpy arrays.
+
 Importing MEG data
 ##################
 
