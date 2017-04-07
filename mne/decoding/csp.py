@@ -50,6 +50,12 @@ class CSP(TransformerMixin, BaseEstimator):
         If 'average_power' then self.transform will return the average power of
         each spatial filter. If 'csp_space' self.transform will return the data
         in CSP space. Defaults to 'average_power'.
+    norm_trace : bool
+        Normalize class covariance by its trace. Defaults to True. Trace
+        normalization is a step of the original CSP algorithm [1]_ to eliminate
+        magnitude variations in the EEG between individuals. It is not applied
+        in more recent work [2]_, [3]_ and can have a negative impact on
+        patterns ordering.
 
     Attributes
     ----------
