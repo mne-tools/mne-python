@@ -30,8 +30,9 @@ from mne.stats.regression import linear_regression_raw
 # Load and preprocess data
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.io.read_raw_fif(raw_fname, preload=True).pick_types(
-    meg='grad', stim=True, eeg=False).filter(1, None)  # high-pass
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw.pick_types(meg='grad', stim=True, eeg=False)
+raw.filter(1, None, fir_design='firwin')  # high-pass
 
 # Set up events
 events = mne.find_events(raw)

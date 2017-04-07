@@ -35,7 +35,7 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 # The subsequent decoding analyses only capture evoked responses, so we can
 # low-pass the MEG data.
-raw.filter(None, 40.)
+raw.filter(None, 40., fir_design='firwin')
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
