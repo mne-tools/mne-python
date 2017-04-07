@@ -292,6 +292,7 @@ mne.viz.tight_layout()
 #
 
 alphas = np.logspace(-4, 0, 10)
+old_scores = scores
 scores = np.zeros_like(alphas)
 models = []
 for ii, alpha in enumerate(alphas):
@@ -309,8 +310,12 @@ ix_best_alpha = np.argmax(scores)
 fig = plt.figure(figsize=(20, 4))
 ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
 ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
+ax.plot(np.arange(len(alphas)), old_scores, marker='o', color='0.5', ls=':')
 ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
-            (ix_best_alpha - 1, scores[ix_best_alpha] - .01),
+            (ix_best_alpha - 0.8, scores[ix_best_alpha] - .01),
+            arrowprops={'arrowstyle': '->'})
+ax.annotate('Ridge regularization', (ix_best_alpha, old_scores[ix_best_alpha]),
+            (ix_best_alpha - 0.5, old_scores[ix_best_alpha] - .02),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
 ax.set(xlabel="Quadratic regularization value", ylabel="Score ($R^2$)",
