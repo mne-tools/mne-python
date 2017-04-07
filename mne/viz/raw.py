@@ -863,7 +863,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             # do NOT operate in-place lest this get screwed up
             this_data = params['data'][inds[ch_ind]] * params['scale_factor']
             this_color = bad_color if ch_name in info['bads'] else color
-            this_z = 0 if ch_name in info['bads'] else 1
+
             if isinstance(this_color, dict):
                 this_color = this_color[params['types'][inds[ch_ind]]]
 
@@ -871,14 +871,20 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             lines[ii].set_ydata(offset - this_data)
             lines[ii].set_xdata(params['times'] + params['first_time'])
             lines[ii].set_color(this_color)
-            lines[ii].set_zorder(this_z)
             vars(lines[ii])['ch_name'] = ch_name
             vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]
-
-            if not params['butterfly']:
+            this_z = 0 if ch_name in info['bads'] else 1
+            if params['butterfly']:
+                if ch_name not in info['bads']:
+                    if params['types'][ii] == 'mag':
+                        this_z = 3
+                    elif params['types'][ii] == 'grad':
+                        this_z = 2
+            else:
                 # set label color
                 this_color = bad_color if ch_name in info['bads'] else 'black'
                 labels[ii].set_color(this_color)
+            lines[ii].set_zorder(this_z)
         else:
             # "remove" lines
             lines[ii].set_xdata([])
