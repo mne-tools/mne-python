@@ -22,7 +22,15 @@ Documentation
     .panel {
         margin-bottom: 3px;
     }
+
+    .example_details {
+        padding-left: 20px;
+        margin-bottom: 10px;
+    }
+
     </style>
+
+See the links below for an introduction to MNE-python, or click one of the sections on this page to see more tutorials, examples, and information about the things you can do.
 
 .. raw:: html
 
@@ -34,7 +42,7 @@ Documentation
           </h4>
         </div>
 
-        <div id="collapse_intro" class="panel-collapse collapse">
+        <div id="collapse_intro" class="panel-collapse collapse in">
           <div class="panel-body">
 
 **Getting started**
@@ -127,7 +135,10 @@ Documentation
     auto_examples/datasets/plot_megsim_data_single_trial.rst
     auto_examples/datasets/plot_spm_faces_dataset.rst
 
-**Examples**
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Examples</strong></summary>
 
 .. toctree::
     :maxdepth: 1
@@ -140,6 +151,9 @@ Documentation
     auto_examples/io/plot_read_evoked.rst
     auto_examples/io/plot_read_noise_covariance_matrix.rst
 
+.. raw:: html
+    
+    </details>
 .. raw:: html
 
           </div>
@@ -179,7 +193,10 @@ Documentation
     auto_tutorials/plot_artifacts_correction_ica.rst
     auto_tutorials/plot_artifacts_correction_maxwell_filtering.rst
 
-**Examples**
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Examples</strong></summary>
 
 .. toctree::
     :maxdepth: 1
@@ -197,6 +214,10 @@ Documentation
     auto_examples/preprocessing/plot_shift_evoked.rst
     auto_examples/preprocessing/plot_virtual_evoked.rst
     auto_examples/preprocessing/plot_xdawn_denoising.rst
+
+.. raw:: html
+
+    </details>
 
 .. raw:: html
 
@@ -222,7 +243,10 @@ Documentation
     auto_tutorials/plot_visualize_evoked.rst
     tutorials/report.rst
 
-**Examples**
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Examples</strong></summary>
 
 .. toctree::
     :maxdepth: 1
@@ -242,6 +266,9 @@ Documentation
 
 .. raw:: html
 
+    </details>
+.. raw:: html
+
           </div>
         </div>
       </div>
@@ -256,6 +283,8 @@ Documentation
         <div id="collapse_analysis" class="panel-collapse collapse">
           <div class="panel-body">
 
+**Tutorials**
+
 .. toctree::
     :maxdepth: 1
 
@@ -265,7 +294,13 @@ Documentation
     auto_tutorials/plot_sensors_time_frequency.rst
     manual/time_frequency.rst
 
-**Examples**
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Examples</strong></summary>
+
+.. toctree::
+    :maxdepth: 1
 
     auto_examples/time_frequency/plot_compute_raw_data_spectrum.rst
     auto_examples/time_frequency/plot_compute_source_psd_epochs.rst
@@ -275,6 +310,10 @@ Documentation
     auto_examples/time_frequency/plot_temporal_whitening.rst
     auto_examples/time_frequency/plot_time_frequency_global_field_power.rst
     auto_examples/time_frequency/plot_time_frequency_simulated.rst
+
+.. raw:: html
+
+  </details>
 
 .. raw:: html
 
@@ -312,7 +351,10 @@ Documentation
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_point_spread.rst
 
-**Forward examples**
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Forward examples</strong></summary>
 
 .. toctree::
     :maxdepth: 1
@@ -323,7 +365,14 @@ Documentation
     auto_examples/forward/plot_read_bem_surfaces.rst
     auto_examples/forward/plot_source_space_morphing.rst
 
-**Inverse examples**
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Inverse examples</strong></summary>
 
 .. toctree::
     :maxdepth: 1
@@ -355,7 +404,14 @@ Documentation
     auto_examples/inverse/plot_tf_lcmv.rst
     auto_examples/inverse/plot_time_frequency_mixed_norm_inverse.rst
 
-**Simulation examples**
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Simulation examples</strong></summary>
 
 .. toctree::
     :maxdepth: 1
@@ -363,6 +419,9 @@ Documentation
     auto_examples/simulation/plot_simulate_evoked_data.rst
     auto_examples/simulation/plot_simulate_raw_data.rst
 
+.. raw:: html
+
+    </details>
 
 .. raw:: html
 
@@ -397,11 +456,24 @@ Documentation
     auto_tutorials/plot_stats_spatio_temporal_cluster_sensors.rst
     auto_tutorials/plot_stats_cluster_1samp_test_time_frequency.rst
     auto_tutorials/plot_stats_cluster_time_frequency.rst
+
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Examples</strong></summary>
+
+.. toctree::
+    :maxdepth: 1
+
     auto_examples/stats/plot_fdr_stats_evoked.rst
     auto_examples/stats/plot_cluster_stats_evoked.rst
     auto_examples/stats/plot_sensor_permutation_test.rst
     auto_examples/stats/plot_sensor_regression.rst
     auto_examples/stats/plot_linear_regression_raw.rst
+
+.. raw:: html
+
+    </details>
 
 **Source Space**
 
@@ -436,6 +508,15 @@ Documentation
 
     manual/decoding.rst
     auto_tutorials/plot_sensors_decoding.rst
+
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Examples</strong></summary>
+
+.. toctree::
+    :maxdepth: 1
+
     auto_examples/decoding/decoding_rsa.rst
     auto_examples/decoding/plot_decoding_csp_eeg.rst
     auto_examples/decoding/plot_decoding_csp_space.rst
@@ -447,13 +528,29 @@ Documentation
     auto_examples/decoding/plot_ems_filtering.rst
     auto_examples/decoding/plot_linear_model_patterns.rst
 
+.. raw:: html
+
+    </details>
+
 **Encoding**
 
 .. toctree::
     :maxdepth: 1
 
     auto_tutorials/plot_receptive_field.rst
+
+.. raw:: html
+
+  <details class="example_details">
+  <summary><strong>Examples</strong></summary>
+
+.. toctree::
+    :maxdepth: 1
+
     auto_examples/decoding/plot_receptive_field.rst
+
+.. raw:: html
+    </details>
 
 .. raw:: html
 
@@ -470,6 +567,8 @@ Documentation
         </div>
         <div id="collapse_conn" class="panel-collapse collapse">
           <div class="panel-body">
+
+**Examples**
 
 .. toctree::
     :maxdepth: 1
@@ -497,6 +596,8 @@ Documentation
         </div>
         <div id="collapse_real" class="panel-collapse collapse">
           <div class="panel-body">
+
+**Examples**
 
 .. toctree::
     :maxdepth: 1
