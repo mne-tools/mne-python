@@ -1,7 +1,7 @@
 """
-==========================
-Decoding sensor space data
-==========================
+=================================
+Decoding sensor space data (MVPA)
+=================================
 
 Decoding, a.k.a MVPA or supervised machine learning applied to MEG
 data in sensor space. Here the classifier is applied to every time

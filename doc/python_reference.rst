@@ -1130,6 +1130,7 @@ Functions that assist with decoding and model fitting:
    :template: function.rst
 
    compute_ems
+   cross_val_multiscore
    get_coef
 
 Realtime

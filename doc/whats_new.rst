@@ -204,7 +204,7 @@ BUG
 
     - :class:`mne.decoding.Scaler` now scales each channel independently using data from all time points (epochs and times) instead of scaling all channels for each time point. It also now accepts parameter ``scalings`` to determine the data scaling method (default is ``None`` to use static channel-type-based scaling), by `Asish Panda`_, `Jean-Remi King`_, and `Eric Larson`_
 
-    - Raise error if the cv parameter of :class:`mne.decoding.GeneralizationAcrossTime` and :class:`mne.decoding.TimeDecoding` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
+    - Raise error if the cv parameter of ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` is not a partition and the predict_mode is "cross-validation" by `Jean-Remi King`_
 
     - Fix bug in :func:`mne.io.read_raw_edf` when ``preload=False`` and channels have different sampling rates by `Jaakko Leppakangas`_
 
@@ -536,9 +536,9 @@ Changelog
 
     - Add system config utility :func:`mne.sys_info` by `Eric Larson`_
 
-    - Automatic cross-validation and scoring metrics in :func:`mne.decoding.GeneralizationAcrossTime`, by `Jean-Remi King`_
+    - Automatic cross-validation and scoring metrics in ``mne.decoding.GeneralizationAcrossTime``, by `Jean-Remi King`_
 
-    - :func:`mne.decoding.GeneralizationAcrossTime` accepts non-deterministic cross-validations, by `Jean-Remi King`_
+    - ``mne.decoding.GeneralizationAcrossTime`` accepts non-deterministic cross-validations, by `Jean-Remi King`_
 
     - Add plotting RMS of gradiometer pairs in :func:`mne.viz.plot_evoked_topo` by `Jaakko Leppakangas`_
 
@@ -550,7 +550,7 @@ Changelog
 
     - Add reading and estimation of fixed-position dipole time courses (similar to Elekta ``xfit``) using :func:`mne.read_dipole` and :func:`mne.fit_dipole` by `Eric Larson`_.
 
-    - Accept :class:`mne.decoding.GeneralizationAcrossTime`'s ``scorer`` parameter to be a string that refers to a scikit-learn_ metric scorer by `Asish Panda`_.
+    - Accept ``mne.decoding.GeneralizationAcrossTime``'s ``scorer`` parameter to be a string that refers to a scikit-learn_ metric scorer by `Asish Panda`_.
 
     - Add method :func:`mne.Epochs.plot_image` calling :func:`mne.viz.plot_epochs_image` for better usability by `Asish Panda`_.
 
@@ -591,7 +591,7 @@ BUG
 
     - MEG projectors are removed after Maxwell filtering by `Eric Larson`_
 
-    - Fix :func:`mne.decoding.TimeDecoding` to allow specifying ``clf`` by `Jean-Remi King`_
+    - Fix ``mne.decoding.TimeDecoding`` to allow specifying ``clf`` by `Jean-Remi King`_
 
     - Fix bug with units (uV) in 'Brain Vision Data Exchange Header File Version 1.0' by `Federico Raimondo`_
 
@@ -599,7 +599,7 @@ BUG
 
     - Fix bug in rank calculation of ``mne.utils.estimate_rank``, :func:`mne.io.Raw.estimate_rank`, and covariance functions where the tolerance was set to slightly too small a value, new 'auto' mode uses values from ``scipy.linalg.orth`` by `Eric Larson`_.
 
-    - Fix bug when specifying irregular ``train_times['slices']`` in :func:`mne.decoding.GeneralizationAcrossTime`, by `Jean-Remi King`_
+    - Fix bug when specifying irregular ``train_times['slices']`` in ``mne.decoding.GeneralizationAcrossTime``, by `Jean-Remi King`_
 
     - Fix colorbar range on norm data by `Jaakko Leppakangas`_
 
@@ -641,7 +641,7 @@ BUG
 
     - Fix bug in :func:`mne.compute_raw_covariance` where rejection by non-data channels (e.g. EOG) was not done properly by `Eric Larson`_.
 
-    - Change default scoring method of :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` to estimate the scores within the cross-validation as in scikit-learn_ as opposed to across all cross-validated ``y_pred``. The method can be changed with the ``score_mode`` parameter by `Jean-Remi King`_
+    - Change default scoring method of ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` to estimate the scores within the cross-validation as in scikit-learn_ as opposed to across all cross-validated ``y_pred``. The method can be changed with the ``score_mode`` parameter by `Jean-Remi King`_
 
     - Fix bug in :func:`mne.io.Raw.save` where, in rare cases, automatically split files could end up writing an extra empty file that wouldn't be read properly by `Eric Larson`_
 
@@ -660,7 +660,7 @@ API
 
     - Deprecated function ``mne.time_frequency.multitaper_psd`` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
 
-    - The ``y_pred`` attribute in :func:`mne.decoding.GeneralizationAcrossTime` and :func:`mne.decoding.TimeDecoding` is now a numpy array, by `Jean-Remi King`_
+    - The ``y_pred`` attribute in ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` is now a numpy array, by `Jean-Remi King`_
 
     - The :func:`mne.bem.fit_sphere_to_headshape` function now default to ``dig_kinds='auto'`` which will use extra digitization points, falling back to extra plus eeg digitization points if there not enough extra points are available.
 
@@ -760,7 +760,7 @@ Changelog
 
     - Add support for Brainvision v2 in :func:`mne.io.read_raw_brainvision` by `Teon Brooks`_
 
-    - Improve speed of generalization across time :class:`mne.decoding.GeneralizationAcrossTime` decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
+    - Improve speed of generalization across time ``mne.decoding.GeneralizationAcrossTime`` decoding up to a factor of seven by `Jean-Remi King`_ and `Federico Raimondo`_ and `Denis Engemann`_.
 
     - Add the explained variance for each principal component, ``explained_var``, key to the :class:`mne.Projection` by `Teon Brooks`_
 
@@ -775,7 +775,7 @@ BUG
 
     - Added safeguards against ``None`` and negative values in reject and flat parameters in :class:`mne.Epochs` by `Eric Larson`_
 
-    - Fix train and test time window-length in :class:`mne.decoding.GeneralizationAcrossTime` by `Jean-Remi King`_
+    - Fix train and test time window-length in ``mne.decoding.GeneralizationAcrossTime`` by `Jean-Remi King`_
 
     - Added lower bound in :func:`mne.stats.linear_regression` on p-values ``p_val`` (and resulting ``mlog10_p_val``) using double floating point arithmetic limits by `Eric Larson`_
 
@@ -845,7 +845,7 @@ Changelog
 
     - Add ICA plotters for raw and epoch components by `Jaakko Leppakangas`_
 
-    - Add new object :class:`mne.decoding.TimeDecoding` for decoding sensors' evoked response across time by `Jean-Remi King`_
+    - Add new object ``mne.decoding.TimeDecoding`` for decoding sensors' evoked response across time by `Jean-Remi King`_
 
     - Add command ``mne freeview_bem_surfaces`` to quickly check BEM surfaces with Freeview by `Alex Gramfort`_.
 

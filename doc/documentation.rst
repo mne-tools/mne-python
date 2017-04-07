@@ -96,10 +96,10 @@ Documentation
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse12">Data I/O and datasets</a>
+            <a data-toggle="collapse" href="#collapse_datasets">Data I/O and datasets</a>
           </h4>
         </div>
-        <div id="collapse12" class="panel-collapse collapse">
+        <div id="collapse_datasets" class="panel-collapse collapse">
           <div class="panel-body">
 
 **Getting your data into MNE**
@@ -122,6 +122,23 @@ Documentation
     auto_tutorials/plot_brainstorm_auditory.rst
     auto_tutorials/plot_brainstorm_phantom_ctf.rst
     auto_tutorials/plot_brainstorm_phantom_elekta.rst
+    auto_examples/datasets/plot_brainstorm_data.rst
+    auto_examples/datasets/plot_megsim_data.rst
+    auto_examples/datasets/plot_megsim_data_single_trial.rst
+    auto_examples/datasets/plot_spm_faces_dataset.rst
+
+**Examples**
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_examples/io/plot_elekta_epochs.rst
+    auto_examples/io/plot_objects_from_arrays.rst
+    auto_examples/io/plot_read_and_write_raw_data.rst
+    auto_examples/io/plot_read_epochs.rst
+    auto_examples/io/plot_read_events.rst
+    auto_examples/io/plot_read_evoked.rst
+    auto_examples/io/plot_read_noise_covariance_matrix.rst
 
 .. raw:: html
 
@@ -162,6 +179,25 @@ Documentation
     auto_tutorials/plot_artifacts_correction_ica.rst
     auto_tutorials/plot_artifacts_correction_maxwell_filtering.rst
 
+**Examples**
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_examples/preprocessing/plot_define_target_events.rst
+    auto_examples/preprocessing/plot_eog_artifact_histogram.rst
+    auto_examples/preprocessing/plot_find_ecg_artifacts.rst
+    auto_examples/preprocessing/plot_find_eog_artifacts.rst
+    auto_examples/preprocessing/plot_head_positions.rst
+    auto_examples/preprocessing/plot_interpolate_bad_channels.rst
+    auto_examples/preprocessing/plot_movement_compensation.rst
+    auto_examples/preprocessing/plot_rereference_eeg.rst
+    auto_examples/preprocessing/plot_resample.rst
+    auto_examples/preprocessing/plot_run_ica.rst
+    auto_examples/preprocessing/plot_shift_evoked.rst
+    auto_examples/preprocessing/plot_virtual_evoked.rst
+    auto_examples/preprocessing/plot_xdawn_denoising.rst
+
 .. raw:: html
 
           </div>
@@ -185,6 +221,24 @@ Documentation
     auto_tutorials/plot_visualize_epochs.rst
     auto_tutorials/plot_visualize_evoked.rst
     tutorials/report.rst
+
+**Examples**
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_examples/visualization/make_report.rst
+    auto_examples/visualization/plot_3d_to_2d.rst
+    auto_examples/visualization/plot_channel_epochs_image.rst
+    auto_examples/visualization/plot_eeg_on_scalp.rst
+    auto_examples/visualization/plot_evoked_topomap.rst
+    auto_examples/visualization/plot_evoked_whitening.rst
+    auto_examples/visualization/plot_meg_sensors.rst
+    auto_examples/visualization/plot_parcellation.rst
+    auto_examples/visualization/plot_sensor_noise_level.rst
+    auto_examples/visualization/plot_ssp_projs_sensitivity_map.rst
+    auto_examples/visualization/plot_topo_compare_conditions.rst
+    auto_examples/visualization/plot_topo_customized.rst
 
 .. raw:: html
 
@@ -211,6 +265,17 @@ Documentation
     auto_tutorials/plot_sensors_time_frequency.rst
     manual/time_frequency.rst
 
+**Examples**
+
+    auto_examples/time_frequency/plot_compute_raw_data_spectrum.rst
+    auto_examples/time_frequency/plot_compute_source_psd_epochs.rst
+    auto_examples/time_frequency/plot_source_label_time_frequency.rst
+    auto_examples/time_frequency/plot_source_power_spectrum.rst
+    auto_examples/time_frequency/plot_source_space_time_frequency.rst
+    auto_examples/time_frequency/plot_temporal_whitening.rst
+    auto_examples/time_frequency/plot_time_frequency_global_field_power.rst
+    auto_examples/time_frequency/plot_time_frequency_simulated.rst
+
 .. raw:: html
 
           </div>
@@ -221,10 +286,10 @@ Documentation
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse6">Source-level analysis</a>
+            <a data-toggle="collapse" href="#collapse_source">Source-level analysis</a>
           </h4>
         </div>
-        <div id="collapse6" class="panel-collapse collapse">
+        <div id="collapse_source" class="panel-collapse collapse">
           <div class="panel-body">
 
 **Background**
@@ -247,6 +312,58 @@ Documentation
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_point_spread.rst
 
+**Forward examples**
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_examples/forward/plot_decimate_head_surface.rst
+    auto_examples/forward/plot_forward_sensitivity_maps.rst
+    auto_examples/forward/plot_left_cerebellum_volume_source.rst
+    auto_examples/forward/plot_read_bem_surfaces.rst
+    auto_examples/forward/plot_source_space_morphing.rst
+
+**Inverse examples**
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_examples/inverse/plot_compute_mne_inverse_epochs_in_label.rst
+    auto_examples/inverse/plot_compute_mne_inverse_raw_in_label.rst
+    auto_examples/inverse/plot_compute_mne_inverse_volume.rst
+    auto_examples/inverse/plot_covariance_whitening_dspm.rst
+    auto_examples/inverse/plot_custom_inverse_solver.rst
+    auto_examples/inverse/plot_dics_beamformer.rst
+    auto_examples/inverse/plot_dics_source_power.rst
+    auto_examples/inverse/plot_gamma_map_inverse.rst
+    auto_examples/inverse/plot_label_activation_from_stc.rst
+    auto_examples/inverse/plot_label_from_stc.rst
+    auto_examples/inverse/plot_label_source_activations.rst
+    auto_examples/inverse/plot_lcmv_beamformer.rst
+    auto_examples/inverse/plot_lcmv_beamformer_volume.rst
+    auto_examples/inverse/plot_mixed_source_space_inverse.rst
+    auto_examples/inverse/plot_mixed_norm_inverse.rst
+    auto_examples/inverse/plot_mne_crosstalk_function.rst
+    auto_examples/inverse/plot_mne_point_spread_function.rst
+    auto_examples/inverse/plot_morph_data.rst
+    auto_examples/inverse/plot_rap_music.rst
+    auto_examples/inverse/plot_read_stc.rst
+    auto_examples/inverse/plot_read_inverse.rst
+    auto_examples/inverse/plot_read_source_space.rst
+    auto_examples/inverse/plot_snr_estimate.rst
+    auto_examples/inverse/plot_tf_dics.rst
+    auto_examples/inverse/plot_tf_lcmv.rst
+    auto_examples/inverse/plot_time_frequency_mixed_norm_inverse.rst
+
+**Simulation examples**
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_examples/simulation/plot_simulate_evoked_data.rst
+    auto_examples/simulation/plot_simulate_raw_data.rst
+
+
 .. raw:: html
 
           </div>
@@ -257,10 +374,10 @@ Documentation
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse7">Statistics in sensor- and source-space</a>
+            <a data-toggle="collapse" href="#collapse_stats">Statistics in sensor- and source-space</a>
           </h4>
         </div>
-        <div id="collapse7" class="panel-collapse collapse">
+        <div id="collapse_stats" class="panel-collapse collapse">
           <div class="panel-body">
 
 
@@ -280,6 +397,11 @@ Documentation
     auto_tutorials/plot_stats_spatio_temporal_cluster_sensors.rst
     auto_tutorials/plot_stats_cluster_1samp_test_time_frequency.rst
     auto_tutorials/plot_stats_cluster_time_frequency.rst
+    auto_examples/stats/plot_fdr_stats_evoked.rst
+    auto_examples/stats/plot_cluster_stats_evoked.rst
+    auto_examples/stats/plot_sensor_permutation_test.rst
+    auto_examples/stats/plot_sensor_regression.rst
+    auto_examples/stats/plot_linear_regression_raw.rst
 
 **Source Space**
 
@@ -301,10 +423,10 @@ Documentation
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse9">Machine learning (decoding, encoding, MVPA)</a>
+            <a data-toggle="collapse" href="#collapse_ml">Machine learning (decoding, encoding, MVPA)</a>
           </h4>
         </div>
-        <div id="collapse9" class="panel-collapse collapse">
+        <div id="collapse_ml" class="panel-collapse collapse">
           <div class="panel-body">
 
 **Decoding**
@@ -314,6 +436,16 @@ Documentation
 
     manual/decoding.rst
     auto_tutorials/plot_sensors_decoding.rst
+    auto_examples/decoding/decoding_rsa.rst
+    auto_examples/decoding/plot_decoding_csp_eeg.rst
+    auto_examples/decoding/plot_decoding_csp_space.rst
+    auto_examples/decoding/plot_decoding_csp_timefreq.rst
+    auto_examples/decoding/plot_decoding_spatio_temporal_source.rst
+    auto_examples/decoding/plot_decoding_time_generalization_conditions.rst
+    auto_examples/decoding/plot_decoding_unsupervised_spatial_filter.rst
+    auto_examples/decoding/plot_decoding_xdawn_eeg.rst
+    auto_examples/decoding/plot_ems_filtering.rst
+    auto_examples/decoding/plot_linear_model_patterns.rst
 
 **Encoding**
 
@@ -321,6 +453,60 @@ Documentation
     :maxdepth: 1
 
     auto_tutorials/plot_receptive_field.rst
+    auto_examples/decoding/plot_receptive_field.rst
+
+.. raw:: html
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <a data-toggle="collapse" href="#collapse_conn">Connectivity</a>
+          </h4>
+        </div>
+        <div id="collapse_conn" class="panel-collapse collapse">
+          <div class="panel-body">
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_examples/connectivity/plot_cwt_sensor_connectivity.rst
+    auto_examples/connectivity/plot_mixed_source_space_connectity.rst
+    auto_examples/connectivity/plot_mne_inverse_coherence_epochs.rst
+    auto_examples/connectivity/plot_mne_inverse_connectivity_spectrum.rst
+    auto_examples/connectivity/plot_mne_inverse_label_connectivity.rst
+    auto_examples/connectivity/plot_mne_inverse_psi_visual.rst
+    auto_examples/connectivity/plot_sensor_connectivity.rst
+
+.. raw:: html
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <a data-toggle="collapse" href="#collapse_real">Realtime</a>
+          </h4>
+        </div>
+        <div id="collapse_real" class="panel-collapse collapse">
+          <div class="panel-body">
+
+.. toctree::
+    :maxdepth: 1
+
+    auto_examples/realtime/ftclient_rt_average.rst
+    auto_examples/realtime/ftclient_rt_compute_psd.rst
+    auto_examples/realtime/plot_compute_rt_average.rst
+    auto_examples/realtime/plot_compute_rt_decoder.rst
+    auto_examples/realtime/rt_feedback_client.rst
+    auto_examples/realtime/rt_feedback_server.rst
 
 .. raw:: html
 
@@ -331,10 +517,10 @@ Documentation
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse11">MNE-C and MNE-MATLAB</a>
+            <a data-toggle="collapse" href="#collapse_c">MNE-C and MNE-MATLAB</a>
           </h4>
         </div>
-        <div id="collapse11" class="panel-collapse collapse">
+        <div id="collapse_c" class="panel-collapse collapse">
           <div class="panel-body">
 
 **MNE-C**
@@ -367,11 +553,11 @@ Documentation
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse_misc">Contributing</a>
+            <a data-toggle="collapse" href="#collapse_contributing">Contributing</a>
           </h4>
         </div>
 
-        <div id="collapse_misc" class="panel-collapse collapse">
+        <div id="collapse_contributing" class="panel-collapse collapse">
           <div class="panel-body">
 
 .. toctree::
