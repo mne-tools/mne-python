@@ -168,7 +168,7 @@ transferring a trained model to a distinct learning problem, where the problems
 correspond to decoding the patterns of brain activity recorded at distinct time
 instants.
 
-The object to for Temporal Generalization is
+The object for Temporal Generalization is
 :class:`decoding.GeneralizingEstimator`. It expects as input :math:`X` and
 :math:`y` (similarly to :class:`decoding.SlidingEstimator`) but, when generate
 predictions from each model for all time instants. The class
