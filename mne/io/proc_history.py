@@ -338,7 +338,7 @@ def get_rank_sss(inst):
         if len(max_info['sss_info']) > 0:
             max_infos.append(max_info)
     if len(max_info) > 1:
-        logger.info('found multiple SSS records. Using then first')
+        logger.info('found multiple SSS records. Using the first.')
     elif len(max_info) == 0:
         raise ValueError(
             'Did not find any SSS record. You should use data-based '
