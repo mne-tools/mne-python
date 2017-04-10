@@ -39,13 +39,13 @@ class ReceptiveField(BaseEstimator):
         float is passed, it will be interpreted as the `alpha` parameter
         to be passed to a Ridge regression model. If `None`, then a Ridge
         regression model with an alpha of 0 will be used.
+    fit_intercept : bool
+        If True (default), the sample mean is removed before fitting.
+        Ignored if ``estimator`` is a :class:`sklearn.base.BaseEstimator`.
     scoring : ['r2', 'corrcoef']
         Defines how predictions will be scored. Currently must be one of
         'r2' (coefficient of determination) or 'corrcoef' (the correlation
         coefficient).
-    fit_intercept : bool
-        If True (default), the sample mean is removed before fitting.
-        Ignored if ``estimator`` is a :class:`sklearn.base.BaseEstimator`.
 
     Attributes
     ----------
