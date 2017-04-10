@@ -145,7 +145,8 @@ def test_receptive_field():
     # Need 2D input
     assert_raises(ValueError, _SCORERS['corrcoef'], y.squeeze(), y_pred)
     # Need correct scorers
-    assert_raises(ValueError, ReceptiveField, tmin, tmax, 1, scoring='foo')
+    rf = ReceptiveField(tmin, tmax, 1., scoring='foo')
+    assert_raises(ValueError, rf.fit, X, y)
 
 
 @requires_sklearn_0_15
@@ -167,7 +168,8 @@ def test_receptive_field_fast():
             y[:-delay] = x[delay:]
             slims += [(1, 2)]
         for slim in slims:
-            tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'quadratic')
+            tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'quadratic',
+                                    fit_intercept=False)
             for estimator in (Ridge(alpha=0.), 0., 0.1, tdr):
                 model = ReceptiveField(slim[0], slim[1], 1.,
                                        estimator=estimator)
@@ -209,5 +211,27 @@ def test_receptive_field_fast():
     tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type=['quadratic'])
     model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
     assert_raises(ValueError, model.fit, x, y)
+    # Now check the intercept_
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.)
+    tdr_no = TimeDelayingRidge(slim[0], slim[1], 1., 0., fit_intercept=False)
+    for estimator in (Ridge(alpha=0.), tdr,
+                      Ridge(alpha=0., fit_intercept=False), tdr_no):
+        x -= np.mean(x, axis=0)
+        y -= np.mean(y, axis=0)
+        model = ReceptiveField(slim[0], slim[1], 1., estimator=estimator)
+        model.fit(x, y)
+        assert_allclose(model.estimator_.intercept_, 0., atol=1e-2)
+        assert_allclose(model.coef_, expected, atol=1e-1)
+        x += 1e3
+        model.fit(x, y)
+        if estimator.fit_intercept:
+            val, itol, ctol = [-6000, 4000], 20., 1e-1
+        else:
+            val, itol, ctol = 0., 0., 2.  # much worse
+        assert_allclose(model.estimator_.intercept_, val, atol=itol)
+        assert_allclose(model.coef_, expected, atol=ctol)
+        model = ReceptiveField(slim[0], slim[1], 1., fit_intercept=False)
+        model.fit(x, y)
+        assert_allclose(model.estimator_.intercept_, 0., atol=1e-7)
 
 run_tests_if_main()

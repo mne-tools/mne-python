@@ -14,18 +14,13 @@ from ..filter import next_fast_len
 from ..externals.six import string_types
 
 
-def _compute_corrs(X, y, smin, smax, fit_intercept):
+def _compute_corrs(X, y, smin, smax):
     """Compute the auto- and cross-correlations."""
     len_trf = smax - smin
     len_x, n_ch_x = X.shape
     len_y, n_ch_y = y.shape
     assert len_x == len_y
 
-    if fit_intercept:
-        # We could do this in the Fourier domain, too, but it should
-        # be a bit cleaner numerically do do it here.
-        X = X - np.mean(X, axis=0, keepdims=True)
-        y = y - np.mean(y, axis=0, keepdims=True)
     n_fft = next_fast_len(X.shape[0] + max(smax, 0) - min(smin, 0) - 1)
     X_fft = np.fft.rfft(X.T, n_fft)
     y_fft = np.fft.rfft(y.T, n_fft)
@@ -163,6 +158,8 @@ class TimeDelayingRidge(BaseEstimator):
     mne.decoding.ReceptiveField
     """
 
+    _estimator_type = "regressor"
+
     def __init__(self, tmin, tmax, sfreq, alpha=0., reg_type='ridge',
                  fit_intercept=True):  # noqa: D102
         if tmin > tmax:
@@ -174,7 +171,6 @@ class TimeDelayingRidge(BaseEstimator):
         self.alpha = float(alpha)
         self.reg_type = reg_type
         self.fit_intercept = fit_intercept
-        self._estimator_type = "regressor"
 
     @property
     def _smin(self):
@@ -202,11 +198,24 @@ class TimeDelayingRidge(BaseEstimator):
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
-        x_xt, x_y, n_ch_x = _compute_corrs(X, y, self._smin, self._smax,
-                                           self.fit_intercept)
+        if self.fit_intercept:
+            # We could do this in the Fourier domain, too, but it should
+            # be a bit cleaner numerically to do it here.
+            X_offset = np.mean(X, axis=0)
+            X = X - X_offset
+            y_offset = np.mean(y, axis=0)
+            y = y - y_offset
+        else:
+            X_offset = y_offset = 0.
+        x_xt, x_y, n_ch_x = _compute_corrs(X, y, self._smin, self._smax)
         self.coef_ = _fit_corrs(x_xt, x_y, n_ch_x,
                                 self.reg_type, self.alpha, n_ch_x)
         self.coef_ = self.coef_[..., ::-1]
+        # This is the sklearn formula from LinearModel (will be 0. for no fit)
+        if self.fit_intercept:
+            self.intercept_ = y_offset - np.dot(X_offset, self.coef_.sum(-1).T)
+        else:
+            self.intercept_ = 0.
         return self
 
     def predict(self, X):
@@ -230,4 +239,5 @@ class TimeDelayingRidge(BaseEstimator):
                 temp = np.convolve(X[:, fi], self.coef_[oi, fi][::-1])
                 temp = temp[max(-smin, 0):][:len(out) - offset]
                 out[offset:len(temp) + offset, oi] += temp
+        out += self.intercept_
         return out

@@ -43,6 +43,9 @@ class ReceptiveField(BaseEstimator):
         Defines how predictions will be scored. Currently must be one of
         'r2' (coefficient of determination) or 'corrcoef' (the correlation
         coefficient).
+    fit_intercept : bool
+        If True (default), the sample mean is removed before fitting.
+        Ignored if ``estimator`` is a :class:`sklearn.base.BaseEstimator`.
 
     Attributes
     ----------
@@ -79,16 +82,14 @@ class ReceptiveField(BaseEstimator):
            7, 13654 (2016). doi:10.1038/ncomms13654
     """
 
-    def __init__(self, tmin, tmax, sfreq, feature_names=None,
-                 estimator=None, scoring='r2'):  # noqa: D102
+    def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
+                 fit_intercept=True, scoring='r2'):  # noqa: D102
         self.feature_names = feature_names
         self.sfreq = float(sfreq)
         self.tmin = tmin
         self.tmax = tmax
         self.estimator = 0. if estimator is None else estimator
-        if scoring not in _SCORERS.keys():
-            raise ValueError('scoring must be one of %s, got'
-                             '%s ' % (_SCORERS.keys(), scoring))
+        self.fit_intercept = fit_intercept
         self.scoring = scoring
 
     def __repr__(self):  # noqa: D105
@@ -144,6 +145,9 @@ class ReceptiveField(BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
+        if self.scoring not in _SCORERS.keys():
+            raise ValueError('scoring must be one of %s, got'
+                             '%s ' % (sorted(_SCORERS.keys()), self.scoring))
         from sklearn.base import is_regressor, clone
         X, y = self._check_dimensions(X, y)
 
@@ -155,7 +159,8 @@ class ReceptiveField(BaseEstimator):
 
         if isinstance(self.estimator, numbers.Real):
             estimator = TimeDelayingRidge(self.tmin, self.tmax, self.sfreq,
-                                          alpha=self.estimator)
+                                          alpha=self.estimator,
+                                          fit_intercept=self.fit_intercept)
         elif is_regressor(self.estimator):
             estimator = clone(self.estimator)
         else:
