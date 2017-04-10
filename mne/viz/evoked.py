@@ -1464,7 +1464,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     times = example.times
     tmin, tmax = times[0], times[-1]
 
-    if isinstance(picks, int):
+    if isinstance(picks, (int, np.integer)):
         picks = [picks]
     elif len(picks) == 0:
         warn("No picks, plotting the GFP ...")

@@ -295,7 +295,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     else:
         event_color = copy.deepcopy(event_color)  # we might modify it
     for key in event_color:
-        if not isinstance(key, int):
+        if not isinstance(key, (int, np.integer)):
             raise TypeError('event_color key "%s" was a %s not an int'
                             % (key, type(key)))
         if key <= 0 and key != -1:

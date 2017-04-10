@@ -1741,7 +1741,7 @@ def _serialize(dict_, outer_sep=';', inner_sep=':'):
     for key, value in dict_.items():
         if callable(value):
             value = value.__name__
-        elif isinstance(value, int):
+        elif isinstance(value, (int, np.integer)):
             value = int(value)
         elif isinstance(value, dict):
             # py35 json does not support numpy int64
