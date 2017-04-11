@@ -10,7 +10,8 @@ from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
                        grand_average)
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
-                                    write_tfrs, combine_tfr, cwt, _compute_tfr)
+                                    write_tfrs, combine_tfr, cwt, _compute_tfr,
+                                    EpochsTFR)
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click
 from itertools import product
@@ -373,6 +374,14 @@ def test_io():
     assert_equal(tfr2.comment, tfr4.comment)
 
     assert_raises(ValueError, read_tfrs, fname, condition='nonono')
+
+    # Test save of EpochsTFR.
+    data = np.zeros((5, 3, 2, 3))
+    tfr = EpochsTFR(info, data=data, times=times, freqs=freqs,
+                    comment='test', method='crazy-tfr')
+    tfr.save(fname, True)
+    read_tfr = read_tfrs(fname)[0]
+    assert_array_equal(tfr.data, read_tfr.data)
 
 
 def test_plot():

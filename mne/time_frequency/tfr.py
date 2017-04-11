@@ -921,6 +921,18 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
                             copy=False)
         return self
 
+    def save(self, fname, overwrite=False):
+        """Save TFR object to hdf5 file.
+
+        Parameters
+        ----------
+        fname : str
+            The file name, which should end with -tfr.h5 .
+        overwrite : bool
+            If True, overwrite file (if it exists). Defaults to false
+        """
+        write_tfrs(fname, self, overwrite=overwrite)
+
 
 class AverageTFR(_BaseTFR):
     """Container for Time-Frequency data.
@@ -1442,18 +1454,6 @@ class AverageTFR(_BaseTFR):
         s += ', ~%s' % (sizeof_fmt(self._size),)
         return "<AverageTFR  |  %s>" % s
 
-    def save(self, fname, overwrite=False):
-        """Save TFR object to hdf5 file.
-
-        Parameters
-        ----------
-        fname : str
-            The file name, which should end with -tfr.h5 .
-        overwrite : bool
-            If True, overwrite file (if it exists). Defaults to false
-        """
-        write_tfrs(fname, self, overwrite=overwrite)
-
 
 class EpochsTFR(_BaseTFR):
     """Container for Time-Frequency data on epochs.
@@ -1722,10 +1722,11 @@ def write_tfrs(fname, tfr, overwrite=False):
 
 def _prepare_write_tfr(tfr, condition):
     """Aux function."""
-    return (condition, dict(times=tfr.times, freqs=tfr.freqs,
-                            data=tfr.data, info=tfr.info,
-                            nave=tfr.nave, comment=tfr.comment,
-                            method=tfr.method))
+    attributes = dict(times=tfr.times, freqs=tfr.freqs, data=tfr.data,
+                      info=tfr.info, comment=tfr.comment, method=tfr.method)
+    if hasattr(tfr, 'nave'):
+        attributes['nave'] = tfr.nave
+    return (condition, attributes)
 
 
 def read_tfrs(fname, condition=None):
@@ -1759,8 +1760,11 @@ def read_tfrs(fname, condition=None):
     tfr_data = read_hdf5(fname, title='mnepython')
     for k, tfr in tfr_data:
         tfr['info'] = Info(tfr['info'])
-
+    is_average = 'nave' in tfr
     if condition is not None:
+        if not is_average:
+            raise NotImplementedError('condition not supported when reading '
+                                      'EpochsTFR.')
         tfr_dict = dict(tfr_data)
         if condition not in tfr_dict:
             keys = ['%s' % k for k in tfr_dict]
@@ -1768,6 +1772,8 @@ def read_tfrs(fname, condition=None):
                              'The file contains "{1}""'
                              .format(condition, " or ".join(keys)))
         out = AverageTFR(**tfr_dict[condition])
-    else:
+    elif is_average:
         out = [AverageTFR(**d) for d in list(zip(*tfr_data))[1]]
+    else:
+        out = [EpochsTFR(**d) for d in list(zip(*tfr_data))[1]]
     return out
