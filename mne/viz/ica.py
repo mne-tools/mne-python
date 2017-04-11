@@ -8,6 +8,7 @@ from __future__ import print_function
 # License: Simplified BSD
 
 from functools import partial
+from numbers import Integral
 
 import numpy as np
 
@@ -199,7 +200,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # if no picks given - plot the first 5 components
     picks = list(range(min(5, ica.n_components_))) if picks is None else picks
-    picks = [picks] if isinstance(picks, int) else picks
+    picks = [picks] if isinstance(picks, Integral) else picks
     if axes is None:
         fig, axes = _create_properties_layout(figsize=figsize)
     else:

@@ -11,6 +11,7 @@ from __future__ import print_function
 import math
 import copy
 from functools import partial
+from numbers import Integral
 
 import numpy as np
 from scipy import linalg
@@ -2090,7 +2091,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
                                                         evoked.times[-1]))
     else:
         ax_line = None
-    if isinstance(frames, int):
+    if isinstance(frames, Integral):
         frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
     ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
     ax_cbar.set_title(_handle_default('units')[ch_type], fontsize=10)
@@ -2123,7 +2124,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
 def _set_contour_locator(vmin, vmax, contours):
     """Set correct contour levels."""
     locator = None
-    if isinstance(contours, int):
+    if isinstance(contours, Integral):
         from matplotlib import ticker
         # nbins = ticks - 1, since 2 of the ticks are vmin and vmax, the
         # correct number of bins is equal to contours + 1.

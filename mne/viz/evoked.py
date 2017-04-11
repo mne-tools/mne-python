@@ -12,6 +12,7 @@ from __future__ import print_function
 
 from functools import partial
 from copy import deepcopy
+from numbers import Integral
 
 import numpy as np
 
@@ -1457,7 +1458,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     times = example.times
     tmin, tmax = times[0], times[-1]
 
-    if isinstance(picks, int):
+    if isinstance(picks, Integral):
         picks = [picks]
     elif len(picks) == 0:
         warn("No picks, plotting the GFP ...")
