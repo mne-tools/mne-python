@@ -877,9 +877,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             if params['butterfly']:
                 if ch_name not in info['bads']:
                     if params['types'][ii] == 'mag':
-                        this_z = 3
-                    elif params['types'][ii] == 'grad':
                         this_z = 2
+                    elif params['types'][ii] == 'grad':
+                        this_z = 3
             else:
                 # set label color
                 this_color = bad_color if ch_name in info['bads'] else 'black'
