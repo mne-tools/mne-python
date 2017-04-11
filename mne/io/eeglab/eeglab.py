@@ -80,7 +80,7 @@ def _get_info(eeg, montage, eog=()):
                           for fld in pos_fields)
         get_pos = has_pos and montage is None
         pos_ch_names, ch_names, pos = list(), list(), list()
-        ch_types = list() 
+        ch_types = list()
         kind = 'user_defined'
         update_ch_names = False
         err_mesg_shown = False
@@ -93,7 +93,6 @@ def _get_info(eeg, montage, eog=()):
                 msg = "'{}' does not use a string variable for its "
                 msg += "channel type. 'eeg' will be assumed, since "
                 msg += "data is sourced from EEGLAB."
-                #warn (msg.format(chanloc.labels))
                 ch_types.append('eeg')
             elif chanloc.type in _kind_dict:
                 ch_types.append(chanloc.type)
@@ -108,7 +107,7 @@ def _get_info(eeg, montage, eog=()):
                     warn(msg.format(chanloc.type, chanloc.labels))
                     err_ch_set.add(chanloc.type)
                 ch_types.append('misc')
-                
+
             if get_pos:
                 loc_x = _to_loc(chanloc.X)
                 loc_y = _to_loc(chanloc.Y)
