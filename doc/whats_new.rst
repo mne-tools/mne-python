@@ -36,6 +36,7 @@ Changelog
     - Add Fieldtrip's electromyogram dataset, by `Alexandre Barachant`_
 
     - Add ``reject_by_annotation`` option to :func:`mne.preprocessing.find_eog_events` (which is also utilised by :func:`mne.preprocessing.create_eog_epochs`) to omit data that is annotated as bad by `Jaakko Leppakangas`_
+ 
 
 BUG
 ~~~
@@ -47,6 +48,7 @@ BUG
     - Fix :class:`mne.decoding.CSP` order of spatial filter in ``patterns_`` by `Alexandre Barachant`_
 
     - :meth:`mne.concatenate_epochs` now maintains the relative position of events during concatenation by `Alexandre Barachant`_
+    - Fix bug in script `mne make_scalp_surfaces` by `Denis Engemann`_ (this bug prevented creation of high-resolution meshes when they were absent in the first place.)
 
 API
 ~~~
