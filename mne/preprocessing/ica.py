@@ -7,6 +7,7 @@
 from inspect import isfunction
 from collections import namedtuple
 from copy import deepcopy
+from numbers import Integral
 
 import os
 import json
@@ -1741,7 +1742,7 @@ def _serialize(dict_, outer_sep=';', inner_sep=':'):
     for key, value in dict_.items():
         if callable(value):
             value = value.__name__
-        elif isinstance(value, int):
+        elif isinstance(value, Integral):
             value = int(value)
         elif isinstance(value, dict):
             # py35 json does not support numpy int64
