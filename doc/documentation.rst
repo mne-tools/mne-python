@@ -30,9 +30,9 @@ Documentation
 
     </style>
 
-This is where you can learn about all the things you can do with MNE. It contains **Background information** and **Tutorials** for taking a deep-dive into the techniques that MNE-python covers. You'll find practical information on how to use these methods with your data, and in many cases some high-level concepts underlying these methods.
+This is where you can learn about all the things you can do with MNE. It contains **background information** and **tutorials** for taking a deep-dive into the techniques that MNE-python covers. You'll find practical information on how to use these methods with your data, and in many cases some high-level concepts underlying these methods.
 
-There are also **Examples**, which contain a short use-case to highlight MNE-functionality and provide inspiration for the many things you can do with this package. You can also find a gallery of these examples in the `examples gallery <auto_examples/index.html>`_.
+There are also **examples**, which contain a short use-case to highlight MNE-functionality and provide inspiration for the many things you can do with this package. You can also find a gallery of these examples in the `examples gallery <auto_examples/index.html>`_.
 
 **See the links below for an introduction to MNE-python, or click one of the sections on this page to see more.**
 
