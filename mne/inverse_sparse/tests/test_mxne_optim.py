@@ -48,9 +48,10 @@ def test_l21_mxne():
         *args, active_set_size=None,
         debias=True, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_cd, active_set, _ = mixed_norm_solver(
+    X_hat_cd, active_set, _, gap_cd = mixed_norm_solver(
         *args, active_set_size=None,
-        debias=True, solver='cd')
+        debias=True, solver='cd', return_gap=True)
+    assert_array_less(gap_cd, 1e-8)
     assert_array_equal(np.where(active_set)[0], [0, 4])
     X_hat_bcd, active_set, E, gap_bcd = mixed_norm_solver(
         M, G, alpha, maxit=1000, tol=1e-8, active_set_size=None,
