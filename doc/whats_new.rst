@@ -27,6 +27,8 @@ Changelog
 
     - Add :class:`mne.decoding.ReceptiveField` module for modeling electrode response to input features by `Chris Holdgraf`_
 
+    - Add :class:`mne.decoding.TimeDelayingRidge` class, used by default by :class:`mne.decoding.ReceptiveField`, to speed up auto- and cross-correlation computations and enable Laplacian regularization by `Ross Maddox`_ and `Eric Larson`_
+
     - Add new :mod:`mne.datasets.mtrf` dataset by `Chris Holdgraf`_
 
     - Add example of time-frequency decoding with CSP by `Laura Gwilliams`_
@@ -2053,7 +2055,7 @@ of commits):
 
 .. _Chris Bailey: https://github.com/cjayb
 
-.. _Ross Maddox: http://faculty.washington.edu/rkmaddox/
+.. _Ross Maddox: https://www.urmc.rochester.edu/labs/maddox-lab.aspx
 
 .. _Alexandre Barachant: http://alexandre.barachant.org
 
