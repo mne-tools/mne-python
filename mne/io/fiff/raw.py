@@ -173,6 +173,8 @@ class Raw(BaseRaw):
                     tag = read_tag(fid, pos)
                     if kind == FIFF.FIFF_MNE_BASELINE_MIN:
                         onset = tag.data
+                        if onset is None:
+                            break  # bug in 0.14 wrote empty annotations
                     elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
                         duration = tag.data - onset
                     elif kind == FIFF.FIFF_COMMENT:
@@ -181,8 +183,9 @@ class Raw(BaseRaw):
                                        description]
                     elif kind == FIFF.FIFF_MEAS_DATE:
                         orig_time = float(tag.data)
-                annotations = Annotations(onset, duration, description,
-                                          orig_time)
+                if onset is not None:
+                    annotations = Annotations(onset, duration, description,
+                                              orig_time)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
