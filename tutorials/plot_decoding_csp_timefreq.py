@@ -28,7 +28,7 @@ from mne.time_frequency import AverageTFR
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import KFold, cross_val_score
-from sklearn.pipeline  import make_pipeline
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder
 
 ###############################################################################
@@ -89,7 +89,6 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
                     proj=False, baseline=None, preload=True)
     epochs.drop_bad()
-
     y = le.fit_transform(epochs.events[:, 2])
 
     X = epochs.get_data()
@@ -128,7 +127,6 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
                     proj=False, baseline=None, preload=True)
     epochs.drop_bad()
-
     y = le.fit_transform(epochs.events[:, 2])
 
     # Roll covariance, csp and lda over time
