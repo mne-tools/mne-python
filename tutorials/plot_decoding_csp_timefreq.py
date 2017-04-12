@@ -28,7 +28,8 @@ from mne.time_frequency import AverageTFR
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import KFold, cross_val_score
-from sklearn.pipeline import make_pipeline
+from sklearn.pipeline  import make_pipeline
+from sklearn.preprocessing import LabelEncoder
 
 ###############################################################################
 # Set parameters and read data
@@ -66,6 +67,9 @@ window_spacing = (n_cycles / np.max(freqs) / 2.)
 centered_w_times = np.arange(tmin, tmax, window_spacing)[1:]
 n_windows = len(centered_w_times)
 
+# Instantiate label encoder
+le = LabelEncoder()
+
 ###############################################################################
 # Loop through frequencies, apply classifier and save scores
 
@@ -85,9 +89,10 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
                     proj=False, baseline=None, preload=True)
     epochs.drop_bad()
-    y = epochs.events[:, 2] - 2
 
-    X = epochs.copy().get_data()
+    y = le.fit_transform(epochs.events[:, 2])
+
+    X = epochs.get_data()
 
     # Save mean scores over folds for each frequency and time window
     freq_scores[freq, ] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
@@ -123,7 +128,8 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
                     proj=False, baseline=None, preload=True)
     epochs.drop_bad()
-    y = epochs.events[:, 2] - 2
+
+    y = le.fit_transform(epochs.events[:, 2])
 
     # Roll covariance, csp and lda over time
     for t, w_time in enumerate(centered_w_times):
