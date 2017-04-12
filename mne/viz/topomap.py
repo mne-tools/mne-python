@@ -761,7 +761,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
 
     if merge_grads:
         from ..channels.layout import _merge_grad_data
-        data = _merge_grad_data(data)
+        data = _merge_grad_data(data.ravel())
     axes.set_title('IC #%03d' % idx, fontsize=12)
     vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
     im = plot_topomap(data.ravel(), pos, vmin=vmin_, vmax=vmax_,
