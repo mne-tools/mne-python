@@ -857,7 +857,7 @@ def _onclick_new_label(event, params):
 
 
 def _mouse_click(event, params):
-    """Handle vertical selection."""
+    """Handle mouse clicks."""
     if event.button not in (1, 3):
         return
     if event.button == 3:
@@ -875,7 +875,7 @@ def _mouse_click(event, params):
         params['plot_fun']()
         return
 
-    if event.inaxes is None:
+    if event.inaxes is None:  # check if channel label is clicked
         if params['n_channels'] > 100:
             return
         ax = params['ax']
@@ -885,7 +885,7 @@ def _mouse_click(event, params):
             return
         params['label_click_fun'](pos)
     # vertical scrollbar changed
-    if event.inaxes == params['ax_vscroll']:
+    elif event.inaxes == params['ax_vscroll']:
         if 'fig_selection' in params.keys():
             _handle_change_selection(event, params)
         else:

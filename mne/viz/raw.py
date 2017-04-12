@@ -147,7 +147,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         channels by the positions of the sensors. 'selection' and 'position'
         modes allow butterfly mode (press 'b') and custom selections by using
         lasso selector on the topomap. Pressing ``ctrl`` key while selecting
-        allows appending to the current selection. 'butterfly' is equal to
+        allows appending to the current selection. Channels marked as bad
+        appear with red edges on the topomap. 'butterfly' is equal to
         'position', but the plotter is started in butterfly mode. If array,
         only the channels in the array are plotted in the given order. Defaults
         to 'type'.
