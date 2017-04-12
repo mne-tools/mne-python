@@ -151,6 +151,7 @@ for ai, asig in enumerate(seg.analogsignals):
     # We need the ravel() here because Neo < 0.5 gave 1D, Neo 0.5 gives
     # 2D (but still a single channel).
     data.append(asig.rescale('V').magnitude.ravel())
+
 data = np.array(data, float)
 
 sfreq = int(seg.analogsignals[0].sampling_rate.magnitude)

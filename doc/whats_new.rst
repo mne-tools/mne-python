@@ -51,6 +51,8 @@ BUG
     - :meth:`mne.concatenate_epochs` now maintains the relative position of events during concatenation by `Alexandre Barachant`_
     - Fix bug in script `mne make_scalp_surfaces` by `Denis Engemann`_ (this bug prevented creation of high-resolution meshes when they were absent in the first place.)
 
+    - Fix writing of raw files with empty set of annotations by `Jaakko Leppakangas`_
+
 API
 ~~~
 
