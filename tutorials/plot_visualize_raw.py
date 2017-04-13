@@ -58,22 +58,23 @@ raw.plot(block=True)
 # .. warning:: Annotations are modified in-place immediately at run-time.
 #              Deleted annotations cannot be retrieved after deletion.
 #
-# The channels are sorted by channel type by default. You can use the ``order``
-# parameter of :func:`raw.plot <mne.io.Raw.plot>` to group the channels in a
-# different way. ``order='selection'`` uses the same channel groups as MNE-C's
-# mne_browse_raw (see :ref:`CACCJEJD`). The selections are defined in
-# ``mne-python/mne/data/mne_analyze.sel`` and by modifying the channels there,
-# you can define your own selection groups. Notice that this also affects the
-# selections returned by :func:`mne.read_selection`. By default the selections
-# only work for Neuromag data, but ``order='position'`` tries to mimic this
-# behavior for any data with sensor positions available. The channels are
-# grouped by sensor positions to 8 evenly sized regions. Notice that for this
-# to work effectively, all the data channels in the channel array must be
-# present. The ``order`` parameter can also be passed as an array of ints
-# (picks) to plot the channels in the given order. Here we use the butterfly
-# mode which groups the channels the same way as the position mode. To toggle
-# between these modes, press 'b' key when the plotter window is active.
-raw.plot(order='butterfly')
+# The channels are sorted by channel type by default. You can use the
+# ``group_by`` parameter of :func:`raw.plot <mne.io.Raw.plot>` to group the
+# channels in a different way. ``group_by='selection'`` uses the same channel
+# groups as MNE-C's mne_browse_raw (see :ref:`CACCJEJD`). The selections are
+# defined in ``mne-python/mne/data/mne_analyze.sel`` and by modifying the
+# channels there, you can define your own selection groups. Notice that this
+# also affects the selections returned by :func:`mne.read_selection`. By
+# default the selections only work for Neuromag data, but
+# ``group_by='position'`` tries to mimic this behavior for any data with sensor
+# positions available. The channels are grouped by sensor positions to 8 evenly
+# sized regions. Notice that for this to work effectively, all the data
+# channels in the channel array must be present. The ``order`` parameter allows
+# to use a customize the order (picks). Here we use the butterfly mode which
+# groups the channels the same way as the position mode. To toggle between
+# these modes, press 'b' key when the plotter window is active. Notice that
+# ``group_by`` also effects the channel groupings in butterfly mode.
+raw.plot(group_by='butterfly')
 
 ###############################################################################
 # We read the events from a file and passed it as a parameter when calling the
