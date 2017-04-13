@@ -1348,7 +1348,8 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
                          truncate_yaxis=True, ylim=dict(), invert_y=False,
-                         axes=None, title=None, show=True):
+                         axes=None, title=None, split_legend=False,
+                         sequential=False, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1432,6 +1433,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     title : None | str
         If str, will be plotted as figure title. If None, the channel
         names will be shown.
+    split_legend : bool
+        If True, the legend is split by linestyle and color.
+    sequential : bool
     show : bool
         If True, show the figure.
 
@@ -1599,16 +1603,43 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors))
 
+    if split_legend:
+        import matplotlib.lines as mlines
+        ls = list()
+        if not sequential:
+            for color in sorted(colors.keys()):
+                c = colors[color]
+                l = mlines.Line2D([], [], color=c, linestyle="-", label=color)
+                ls.append(l)
+
+        for style, s in linestyles.items():
+            l = mlines.Line2D([], [], color='k', linestyle=s, label=style)
+            ls.append(l)
+        print("ls: ", len(ls))
+
     if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
         # XXX should put a good list of default colors into defaults.py
-        colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
-                   '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
-        if len(conditions) > len(colors_):
-            msg = ("Trying to plot more than {0} conditions. We provide"
-                   "only {0} default colors. Please supply colors manually.")
-            raise ValueError(msg.format(len(colors_)))
-        colors = dict((condition, color) for condition, color
-                      in zip(conditions, colors_))
+        if isinstance(colors, string_types):
+            cmapper = getattr(plt.cm, colors, plt.cm.hot)
+            unique_sortkeys = {cond.split("/")[0] for cond in evokeds.keys()}
+            colors = cmapper(np.linspace(0, 1, len(unique_sortkeys)))
+            colors_ = {cond:color for cond, color in
+                      zip(sorted(unique_sortkeys), colors)}
+            colors = dict()
+            for cond in evokeds.keys():
+                for cond_number, color in colors_.items():
+                    if cond_number in cond:
+                        colors[cond] = color
+                        continue
+        else:
+            colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+                       '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
+            if len(conditions) > len(colors_):
+                msg = ("Trying to plot more than {0} conditions. We provide"
+                       "only {0} default colors. Please supply colors manually.")
+                raise ValueError(msg.format(len(colors_)))
+            colors = dict((condition, color) for condition, color
+                          in zip(conditions, colors_))
     else:
         colors = _setup_styles(conditions, colors, "color", "grey")
 
@@ -1723,7 +1754,39 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     axes.set_xlim(tmin, tmax)
 
     if len(conditions) > 1:
-        plt.legend(loc='best', ncol=1 + (len(conditions) // 5), frameon=True)
+        legend_params = dict(loc='best', frameon=True)
+        if split_legend:
+            plt.legend(handles=ls, ncol=1 + (len(ls) // 4), **legend_params)
+        else:
+            plt.legend(ncol=1 + (len(conditions) // 5), **legend_params)
+
+    if sequential and split_legend:
+        import matplotlib.colors as mcolors
+        import matplotlib.cm
+        import matplotlib as mpl
+
+        def make_number(word):
+            value =  ("".join([x for x in word if x in "1234567890."]))
+            return float(value) if "." in word else int(value)
+
+        colors_l = list(sorted(colors_.keys()))
+        numbers = [make_number(k) for k in colors_l]
+        colors_m = [colors_[k] for k in sorted(colors_.keys())]
+        l = plt.cm.jet.from_list(numbers + [numbers[-1] + 100],
+                                 colors_m + [colors_m[-1]])
+
+        norm = mpl.colors.BoundaryNorm(numbers + [numbers[-1] +1], l.N)
+        sm = matplotlib.cm.ScalarMappable(cmap=l, norm=norm
+                                         )
+        sm.set_array([make_number(k) for k in colors_l])
+
+        cbar = plt.colorbar(sm, ax=axes)
+        offset = np.diff(np.concatenate((numbers, [numbers[-1] + 1]))) / 2
+        cbar.set_ticks(np.array(numbers) + offset)
+        cbar.set_ticklabels(numbers)
+        cbar.set_label("".join([x for x in colors_l[0]
+                                if x not in "1234567890"]))
+
 
     plt_show(show)
     return fig
