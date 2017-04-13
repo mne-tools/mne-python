@@ -756,8 +756,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     else:
         image_mask = None
 
-    data = np.atleast_2d(data)
-    data = data[:, data_picks]
+    data = data[data_picks]
 
     if merge_grads:
         from ..channels.layout import _merge_grad_data
