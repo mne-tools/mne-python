@@ -149,6 +149,14 @@ def test_plot_ica_properties():
     assert_raises(ValueError, ica.plot_properties, epochs, axes='not axes')
     plt.close('all')
 
+    # Test merging grads.
+    raw = _get_raw(preload=True)
+    picks = pick_types(raw.info, meg='grad')[:10]
+    ica = ICA(n_components=2)
+    ica.fit(raw, picks=picks)
+    ica.plot_properties(raw)
+    plt.close('all')
+
 
 @requires_sklearn
 def test_plot_ica_sources():
