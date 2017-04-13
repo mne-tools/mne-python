@@ -375,7 +375,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         n_samps = np.array([int(fid.read(8).decode()) for ch
                             in channels])
         edf_info['n_samps'] = n_samps
-        n_samps = n_samps[include]
 
         fid.read(32 * nchan).decode()  # reserved
         assert fid.tell() == header_nbytes
@@ -392,6 +391,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                  ' Inferring from the file size.')
             edf_info['n_records'] = n_records = read_records
 
+    n_samps = n_samps[include]
     physical_ranges = physical_max - physical_min
     cals = digital_max - digital_min
 
