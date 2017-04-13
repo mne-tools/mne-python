@@ -148,7 +148,7 @@ def test_plot_raw():
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
         for group_by, order in zip(['position', 'selection'],
-                                   [range(len(raw.ch_names))[::-3],
+                                   [np.arange(len(raw.ch_names))[::-3],
                                     [1, 2, 4, 6]]):
             fig = raw.plot(group_by=group_by, order=order)
             x = fig.get_axes()[0].lines[1].get_xdata()[10]
