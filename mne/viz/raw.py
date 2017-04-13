@@ -310,7 +310,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if group_by in ['selection', 'position', 'butterfly']:
         selections, fig_selection = _setup_browser_selection(raw, group_by)
         selections = {k: np.intersect1d(v, inds) for k, v in
-                      selections.iteritems()}
+                      selections.items()}
     elif group_by == 'original':
         inds = inds[reord]
     elif group_by != 'type':
