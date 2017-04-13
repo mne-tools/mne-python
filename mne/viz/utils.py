@@ -1978,42 +1978,54 @@ def _setup_butterfly(params):
     params['butterfly'] = butterfly
 
     if butterfly:
-        if 'selections' not in params:
-            params['prev_inds'] = params['inds'].copy()
-            selections = _setup_browser_selection(params['raw'], 'position',
-                                                  selector=False)
-            params['selections'] = selections
-        selections = _SELECTIONS[1:] + ['Misc']  # Vertex not used
-        picks = list()
-        for selection in selections:
-            picks.append(params['selections'].get(selection, list()))
+        if params['group_by'] in ['type', 'original']:
+            eeg = 'seeg' if 'seeg' in params['types'] else 'eeg'
+            labels = ['grad', 'mag', eeg, 'eog', 'ecg', 'misc']
+            ticks = [5, 10, 15, 20, 25, 30]
+            offs = {l: t for (l, t) in zip(labels, ticks)}
+            inds = params['inds']
+            params['offsets'] = [offs.get(t, 30) for t in
+                                 np.array(params['types'])[inds]]
+            ax.set_yticks(ticks)
+            params['ax'].set_ylim(35, 0)
+            ax.set_yticklabels(labels)
+        else:
+            if 'selections' not in params:
+                params['prev_inds'] = params['inds'].copy()
+                selections = _setup_browser_selection(
+                    params['raw'], 'position', selector=False)
+                params['selections'] = selections
+            selections = _SELECTIONS[1:] + ['Misc']  # Vertex not used
+            if params['group_by'] == 'selection':
+                selections += _EEG_SELECTIONS
+            picks = list()
+            for selection in selections:
+                picks.append(params['selections'].get(selection, list()))
 
-        labels = ax.yaxis.get_ticklabels()
-        for label in labels:
-            label.set_visible(True)
-        ylim = (5. * len(picks), 0.)
-        ax.set_ylim(ylim)
-        offset = ylim[0] / (len(picks) + 1)
-        ticks = np.arange(0, ylim[0], offset)
-        ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
-        ax.set_yticks(ticks)
-        offsets = np.zeros(len(params['types']))
-        for group_idx, group in enumerate(picks):
-            for pick in group:
-                offsets[pick] = offset * (group_idx + 1)
+            labels = ax.yaxis.get_ticklabels()
+            for label in labels:
+                label.set_visible(True)
+            ylim = (5. * len(picks), 0.)
+            ax.set_ylim(ylim)
+            offset = ylim[0] / (len(picks) + 1)
+            ticks = np.arange(0, ylim[0], offset)
+            ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+            ax.set_yticks(ticks)
+            offsets = np.zeros(len(params['types']))
+            for group_idx, group in enumerate(picks):
+                for pick in group:
+                    offsets[pick] = offset * (group_idx + 1)
 
-        params['offsets'] = offsets
-        params['inds'] = np.arange(len(offsets))
-        ax.set_yticklabels([''] + selections, color='black', rotation=45,
-                           va='top')
+            params['offsets'] = offsets
+            params['inds'] = np.arange(len(offsets))
+            ax.set_yticklabels([''] + selections, color='black', rotation=45,
+                               va='top')
     else:
         if 'fig_selection' not in params:
-            params.pop('selections')
-            params['inds'] = params.pop('prev_inds')
             for idx in np.arange(params['n_channels'], len(params['lines'])):
                 params['lines'][idx].set_xdata([])
                 params['lines'][idx].set_ydata([])
-        _setup_browser_offsets(params, params['n_channels'])
+        _setup_browser_offsets(params, max([params['n_channels'], 1]))
         if 'fig_selection' in params:
             radio = params['fig_selection'].radio
             active_idx = _get_active_radiobutton(radio)

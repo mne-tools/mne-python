@@ -90,10 +90,10 @@ def _pick_bad_channels(event, params):
 
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
-             event_color='cyan', scalings=None, remove_dc=True, order='type',
+             event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
-             show_first_samp=False, proj=True):
+             show_first_samp=False, proj=True, group_by='type'):
     """Plot raw data.
 
     Parameters
@@ -140,18 +140,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     remove_dc : bool
         If True remove DC component when plotting data.
-    order : str | array of int
-        Order in which to plot data. 'type' groups by channel type, 'original'
-        plots in the order of ch_names, 'selection' uses Elekta's channel
-        groupings (only works for Neuromag data), 'position' groups the
-        channels by the positions of the sensors. 'selection' and 'position'
-        modes allow butterfly mode (press 'b') and custom selections by using
-        lasso selector on the topomap. Pressing ``ctrl`` key while selecting
-        allows appending to the current selection. Channels marked as bad
-        appear with red edges on the topomap. 'butterfly' is equal to
-        'position', but the plotter is started in butterfly mode. If array,
-        only the channels in the array are plotted in the given order. Defaults
-        to 'type'.
+    order : array of int | None
+        Order in which to plot data. If the array is shorter than the number of
+        channels, only the given channels are plotted. If None (default), all
+        channels are plotted.
     show_options : bool
         If True, a dialog for options related to projection is shown.
     title : str | None
@@ -186,6 +178,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Individual projectors can be enabled/disabled interactively (see
         Notes). This argument only affects the plot; use ``raw.apply_proj()``
         to modify the data stored in the Raw object.
+    group_by : str
+        How to group channels. 'type' groups by channel type, 'original'
+        plots in the order of ch_names, 'selection' uses Elekta's channel
+        groupings (only works for Neuromag data), 'position' groups the
+        channels by the positions of the sensors. 'selection' and 'position'
+        modes allow butterfly mode (press 'b') and custom selections by using
+        lasso selector on the topomap. Pressing ``ctrl`` key while selecting
+        allows appending to the current selection. Channels marked as bad
+        appear with red edges on the topomap. 'butterfly' is equal to
+        'position', but the plotter is started in butterfly mode. 'type' and
+        'original' groups the channels by type in butterfly mode.
 
     Returns
     -------
@@ -291,19 +294,27 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         raise RuntimeError('Some channels not classified, please report '
                            'this problem')
 
-    # put them back to original or modified order for natral plotting
+    # put them back to original or modified order for natural plotting
     reord = np.argsort(inds)
     types = [types[ri] for ri in reord]
     if isinstance(order, string_types):
-        if order == 'original':
-            inds = inds[reord]
-        elif order in ['selection', 'position', 'butterfly']:
-            selections, fig_selection = _setup_browser_selection(raw, order)
-        elif order != 'type':
-            raise ValueError('Unknown order type %s' % order)
+        group_by = order
+        warn('Using string order is deprecated and will not be allowed in '
+             '0.15. Use group_by instead.')
     elif isinstance(order, (np.ndarray, list)):
         # put back to original order first, then use new order
         inds = inds[reord][order]
+    elif order is not None:
+        raise ValueError('Unkown order type. Got %s.' % type(order))
+
+    if group_by in ['selection', 'position', 'butterfly']:
+        selections, fig_selection = _setup_browser_selection(raw, group_by)
+        selections = {k: np.intersect1d(v, inds) for k, v in
+                      selections.iteritems()}
+    elif group_by == 'original':
+        inds = inds[reord]
+    elif group_by != 'type':
+        raise ValueError('Unknown group_by type %s' % group_by)
 
     if not isinstance(event_color, dict):
         event_color = {-1: event_color}
@@ -326,10 +337,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_channels=n_channels, scalings=scalings, types=types,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
-                  first_time=first_time, added_label=list(), butterfly=False)
+                  first_time=first_time, added_label=list(), butterfly=False,
+                  group_by=group_by)
 
-    if isinstance(order, string_types) and order in ['selection', 'position',
-                                                     'butterfly']:
+    if group_by in ['selection', 'position', 'butterfly']:
         params['fig_selection'] = fig_selection
         params['selections'] = selections
         params['radio_clicked'] = partial(_radio_clicked, params=params)
@@ -394,8 +405,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     # initialize the first selection set
-    if isinstance(order, string_types) and order in ['selection', 'position',
-                                                     'butterfly']:
+    if group_by in ['selection', 'position', 'butterfly']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
         callback_selection_key = partial(_selection_key_press, params=params)
         callback_selection_scroll = partial(_selection_scroll, params=params)
@@ -405,7 +415,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                                    callback_selection_key)
         params['fig_selection'].canvas.mpl_connect('scroll_event',
                                                    callback_selection_scroll)
-        if order == 'butterfly':
+        if group_by == 'butterfly':
             _setup_butterfly(params)
 
     try:
@@ -826,7 +836,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
                 False)
 
-    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
+    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.1)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     params['fig_annotation'] = None
