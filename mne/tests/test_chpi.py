@@ -40,7 +40,8 @@ sss_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_sss.fif')
 sss_hpisubt_fname = op.join(data_path, 'SSS', 'test_move_anon_hpisubt_raw.fif')
 chpi5_fif_fname = op.join(data_path, 'SSS', 'chpi5_raw.fif')
 chpi5_pos_fname = op.join(data_path, 'SSS', 'chpi5_raw_mc.pos')
-ctf_chpi_fname = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
+ctf_chpi_fname = op.join(data_path, 'CTF', 'testdata_ctf_mc.ds')
+ctf_chpi_pos_fname = op.join(data_path, 'CTF', 'testdata_ctf_mc.pos')
 
 art_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
                     '-15h-44m-22s_Motion_Translation-z.bin')
@@ -417,20 +418,16 @@ def test_chpi_subtraction():
     assert_true('2 cHPI' in log.getvalue())
 
 
-<<<<<<< HEAD
-=======
 @testing.requires_testing_data
 def test_extract_head_pos_ctf():
     """Test extracting of cHPI positions from ctf data."""
     raw = read_raw_ctf(ctf_chpi_fname)
     quats = extract_head_pos_ctf(raw)
-    # TODO add regression test here
+    mc_quats = read_head_pos(ctf_chpi_pos_fname)
+    _assert_quats(quats, mc_quats, dist_tol=0.004, angle_tol=2.5)
 
     raw = read_raw_fif(ctf_fname)
     assert_raises(RuntimeError, extract_head_pos_ctf, raw)
 
-    # fail until there is a regression test
-    assert_true(False)
 
->>>>>>> ENH: extract pos from ctf
 run_tests_if_main()
