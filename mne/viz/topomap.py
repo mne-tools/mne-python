@@ -1499,19 +1499,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         n_fig_axes = max(nax, len(fig.get_axes()))
         cax = plt.subplot(1, n_fig_axes + 1, n_fig_axes + 1)
         # resize the colorbar (by default the color fills the whole axes)
-        cpos = cax.get_position()
-        if size <= 1:
-            cpos.x0 = 1 - (.7 + .1 / size) / n_fig_axes
-        cpos.x1 = cpos.x0 + .1 / n_fig_axes
-        cpos.y0 = .2
-        cpos.y1 = .7
-        cax.set_position(cpos)
+        _resize_cbar(cax, n_fig_axes, size)
         if unit is not None:
             cax.set_title(unit)
         cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
         cbar.set_ticks(cn.levels)
         cbar.ax.tick_params(labelsize=7)
-
         if cmap[1]:
             for im in images:
                 im.axes.CB = DraggableColorbar(cbar, im)
@@ -1529,6 +1522,17 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     return fig
 
 
+def _resize_cbar(cax, n_fig_axes, size=1):
+    """Resize colorbar."""
+    cpos = cax.get_position()
+    if size <= 1:
+        cpos.x0 = 1 - (.7 + .1 / size) / n_fig_axes
+    cpos.x1 = cpos.x0 + .1 / n_fig_axes
+    cpos.y0 = .2
+    cpos.y1 = .7
+    cax.set_position(cpos)
+
+
 def _slider_changed(val, ax, data, times, pos, scale, func, kwargs):
     """Handle selection in interactive topomap."""
     idx = np.argmin(np.abs(times - val))
@@ -1537,6 +1541,7 @@ def _slider_changed(val, ax, data, times, pos, scale, func, kwargs):
     im, _ = plot_topomap(data, pos, axes=ax, **kwargs)
     if hasattr(ax, 'CB'):
         ax.CB.mappable = im
+        _resize_cbar(ax.CB.cbar.ax, 2)
 
 
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
