@@ -202,7 +202,7 @@ def test_plot_raw_filtered():
     assert_raises(ValueError, raw.plot, clipping='foo')
     raw.plot(lowpass=1, clipping='transparent')
     raw.plot(highpass=1, clipping='clamp')
-    raw.plot(highpass=1, lowpass=2)
+    raw.plot(highpass=1, lowpass=2, butterfly=True)
 
 
 @requires_version('scipy', '0.12')

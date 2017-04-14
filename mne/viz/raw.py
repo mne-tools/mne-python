@@ -93,7 +93,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
-             show_first_samp=False, proj=True, group_by='type'):
+             show_first_samp=False, proj=True, group_by='type',
+             butterfly=False):
     """Plot raw data.
 
     Parameters
@@ -183,12 +184,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         plots in the order of ch_names, 'selection' uses Elekta's channel
         groupings (only works for Neuromag data), 'position' groups the
         channels by the positions of the sensors. 'selection' and 'position'
-        modes allow butterfly mode (press 'b') and custom selections by using
-        lasso selector on the topomap. Pressing ``ctrl`` key while selecting
-        allows appending to the current selection. Channels marked as bad
-        appear with red edges on the topomap. 'butterfly' is equal to
-        'position', but the plotter is started in butterfly mode. 'type' and
-        'original' groups the channels by type in butterfly mode.
+        modes allow custom selections by using lasso selector on the topomap.
+        Pressing ``ctrl`` key while selecting allows appending to the current
+        selection. Channels marked as bad appear with red edges on the topomap.
+        'type' and 'original' groups the channels by type in butterfly mode.
+    butterfly : bool
+        Whether to start in butterfly mode. Defaults to False.
 
     Returns
     -------
@@ -211,6 +212,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     enabling/disabling specific projectors individually. This provides a means
     of interactively observing how each projector would affect the raw data if
     it were applied.
+
+    Annotation mode is toggled by pressing 'a' and butterfly mode by pressing
+    'b'.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -307,12 +311,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     elif order is not None:
         raise ValueError('Unkown order type. Got %s.' % type(order))
 
-    if group_by in ['selection', 'position', 'butterfly']:
+    if group_by in ['selection', 'position']:
         selections, fig_selection = _setup_browser_selection(raw, group_by)
         selections = {k: np.intersect1d(v, inds) for k, v in
                       selections.items()}
     elif group_by == 'original':
-        inds = inds[reord]
+        inds = inds[reord[:len(order)]]
     elif group_by != 'type':
         raise ValueError('Unknown group_by type %s' % group_by)
 
@@ -338,9 +342,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False,
-                  group_by=group_by)
+                  group_by=group_by, orig_inds=inds.copy())
 
-    if group_by in ['selection', 'position', 'butterfly']:
+    if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
         params['selections'] = selections
         params['radio_clicked'] = partial(_radio_clicked, params=params)
@@ -405,7 +409,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     # initialize the first selection set
-    if group_by in ['selection', 'position', 'butterfly']:
+    if group_by in ['selection', 'position']:
         _radio_clicked(fig_selection.radio.labels[0]._text, params)
         callback_selection_key = partial(_selection_key_press, params=params)
         callback_selection_scroll = partial(_selection_scroll, params=params)
@@ -415,8 +419,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                                    callback_selection_key)
         params['fig_selection'].canvas.mpl_connect('scroll_event',
                                                    callback_selection_scroll)
-        if group_by == 'butterfly':
-            _setup_butterfly(params)
+    if butterfly:
+        _setup_butterfly(params)
 
     try:
         plt_show(show, block=block)
@@ -849,12 +853,15 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     lines = params['lines']
     info = params['info']
     inds = params['inds']
-    if params['butterfly']:
-        n_channels = len(inds)
+    butterfly = params['butterfly']
+    if butterfly:
+        n_channels = len(params['offsets'])
         ch_start = 0
+        offsets = params['offsets'][inds]
     else:
         n_channels = params['n_channels']
         ch_start = params['ch_start']
+        offsets = params['offsets']
     params['bad_color'] = bad_color
     labels = params['ax'].yaxis.get_ticklabels()
     # do the plotting
@@ -869,8 +876,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             # scale to fit
             ch_name = info['ch_names'][inds[ch_ind]]
             tick_list += [ch_name]
-            offset = params['offsets'][ii]
-
+            offset = offsets[ii]
             # do NOT operate in-place lest this get screwed up
             this_data = params['data'][inds[ch_ind]] * params['scale_factor']
             this_color = bad_color if ch_name in info['bads'] else color
@@ -878,19 +884,21 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             if isinstance(this_color, dict):
                 this_color = this_color[params['types'][inds[ch_ind]]]
 
-            # subtraction here gets corect orientation for flipped ylim
+            # subtraction here gets correct orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data)
             lines[ii].set_xdata(params['times'] + params['first_time'])
             lines[ii].set_color(this_color)
             vars(lines[ii])['ch_name'] = ch_name
             vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]
             this_z = 0 if ch_name in info['bads'] else 1
-            if params['butterfly']:
+            if butterfly:
                 if ch_name not in info['bads']:
                     if params['types'][ii] == 'mag':
                         this_z = 2
                     elif params['types'][ii] == 'grad':
                         this_z = 3
+                for label in labels:
+                    label.set_color('black')
             else:
                 # set label color
                 this_color = bad_color if ch_name in info['bads'] else 'black'
@@ -954,7 +962,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     params['ax'].set_xlim(params['times'][0] + params['first_time'],
                           params['times'][0] + params['first_time'] +
                           params['duration'], False)
-    if not params['butterfly']:
+    if not butterfly:
         params['ax'].set_yticklabels(tick_list, rotation=0)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
@@ -1072,7 +1080,7 @@ def _setup_browser_selection(raw, kind, selector=True):
     from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                              _divide_to_regions)
     from ..utils import _get_stim_channel
-    if kind in ('position', 'butterfly'):
+    if kind == 'position':
         order = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
         kind = 'position'

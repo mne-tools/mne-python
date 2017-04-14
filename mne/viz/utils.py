@@ -1976,7 +1976,6 @@ def _setup_butterfly(params):
     butterfly = not params['butterfly']
     ax = params['ax']
     params['butterfly'] = butterfly
-
     if butterfly:
         if params['group_by'] in ['type', 'original']:
             eeg = 'seeg' if 'seeg' in params['types'] else 'eeg'
@@ -1984,14 +1983,14 @@ def _setup_butterfly(params):
             ticks = [5, 10, 15, 20, 25, 30]
             offs = {l: t for (l, t) in zip(labels, ticks)}
             inds = params['inds']
-            params['offsets'] = [offs.get(t, 30) for t in
-                                 np.array(params['types'])[inds]]
+            params['offsets'] = np.zeros(len(params['types']))
+            for ind in inds:
+                params['offsets'][ind] = offs.get(params['types'][ind], 30)
             ax.set_yticks(ticks)
             params['ax'].set_ylim(35, 0)
             ax.set_yticklabels(labels)
         else:
             if 'selections' not in params:
-                params['prev_inds'] = params['inds'].copy()
                 selections = _setup_browser_selection(
                     params['raw'], 'position', selector=False)
                 params['selections'] = selections
@@ -2012,15 +2011,16 @@ def _setup_butterfly(params):
             ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
             ax.set_yticks(ticks)
             offsets = np.zeros(len(params['types']))
-            for group_idx, group in enumerate(picks):
-                for pick in group:
-                    offsets[pick] = offset * (group_idx + 1)
 
+            for group_idx, group in enumerate(picks):
+                for idx, pick in enumerate(group):
+                    offsets[pick] = offset * (group_idx + 1)
+            params['inds'] = params['orig_inds'].copy()
             params['offsets'] = offsets
-            params['inds'] = np.arange(len(offsets))
             ax.set_yticklabels([''] + selections, color='black', rotation=45,
                                va='top')
     else:
+        params['inds'] = params['orig_inds'].copy()
         if 'fig_selection' not in params:
             for idx in np.arange(params['n_channels'], len(params['lines'])):
                 params['lines'][idx].set_xdata([])
