@@ -167,15 +167,21 @@ def _get_hpi_info(info, verbose=None):
         hpi_pick = hpi_pick[0] if len(hpi_pick) > 0 else None
     else:
         hpi_pick = None  # there is no pick!
+
+    # grab codes indicating a coil is active
     hpi_on = [coil['event_bits'][0] for coil in hpi_sub['hpi_coils']]
     # not all HPI coils will actually be used
     hpi_on = np.array([hpi_on[hc['number'] - 1] for hc in hpi_coils])
-    assert len(hpi_coils) == len(hpi_on)
 
     # get frequencies
     hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
     logger.info('Using %s HPI coils: %s Hz'
                 % (len(hpi_freqs), ' '.join(str(int(s)) for s in hpi_freqs)))
+
+    # mask for coils that may be active
+    hpi_mask = np.array([event_bit != 0 for event_bit in hpi_on])
+    hpi_on = hpi_on[hpi_mask]
+    hpi_freqs = hpi_freqs[hpi_mask]
 
     return hpi_freqs,  hpi_pick, hpi_on
 
@@ -183,6 +189,9 @@ def _get_hpi_info(info, verbose=None):
 @verbose
 def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     """Get HPI fit locations from raw."""
+    if info['hpi_results'] is None:
+        raise RuntimeError('no initial cHPI head localization performed')
+
     hpi_result = info['hpi_results'][-1]
     hpi_coils = sorted(info['hpi_meas'][-1]['hpi_coils'],
                        key=lambda x: x['number'])  # ascending (info) order
@@ -519,10 +528,11 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     if sin_fit is None:
         return None
 
-    # 2. fit each HPI coil
+    # 2. fit each HPI coil if its turned on
     outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
                                  hpi['method'])
-            for f, pos in zip(sin_fit, initial_dev_rrs)]
+            for f, pos, on in zip(sin_fit, initial_dev_rrs, hpi['on'])
+            if on > 0]
 
     coil_dev_rrs = np.array([o[0] for o in outs])
     coil_g = np.array([o[0] for o in outs])

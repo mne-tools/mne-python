@@ -345,7 +345,7 @@ class RawArtemis123(BaseRaw):
                     n_hpis += 1
             if n_hpis < 3:
                 warn('%d HPIs active. At least 3 needed to perform' % n_hpis +
-                     'head localization')
+                     'head localization\n *NO* head localization performed')
             else:
                 # Localized HPIs using the 1st seconds of data.
                 hpi_dev, hpi_g = _fit_device_hpi_positions(self,

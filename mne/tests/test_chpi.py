@@ -11,7 +11,7 @@ import warnings
 
 from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
                  pick_info)
-from mne.io import read_raw_fif, read_info, RawArray
+from mne.io import read_raw_fif, read_raw_artemis123, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.chpi import (_calculate_chpi_positions,
                       head_pos_to_trans_rot_t, read_head_pos,
@@ -38,6 +38,11 @@ sss_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_sss.fif')
 sss_hpisubt_fname = op.join(data_path, 'SSS', 'test_move_anon_hpisubt_raw.fif')
 chpi5_fif_fname = op.join(data_path, 'SSS', 'chpi5_raw.fif')
 chpi5_pos_fname = op.join(data_path, 'SSS', 'chpi5_raw_mc.pos')
+
+art_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
+                    '-15h-44m-22s_Motion_Translation-z.bin')
+art_mc_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
+                       '-15h-44m-22s_Motion_Translation-z_mc.pos')
 
 warnings.simplefilter('always')
 
@@ -209,6 +214,13 @@ def test_calculate_chpi_positions():
     raw.info['lowpass'] /= 2.
     assert_raises_regex(RuntimeError, 'above the',
                         _calculate_chpi_positions, raw)
+
+    # test on 5k artemis data
+    raw = read_raw_artemis123(art_fname, preload=True)
+    mf_quats = read_head_pos(art_mc_fname)
+    with catch_logging() as log:
+        py_quats = _calculate_chpi_positions(raw, verbose='debug')
+    _assert_quats(py_quats, mf_quats, dist_tol=0.004, angle_tol=2.5)
 
 
 @testing.requires_testing_data

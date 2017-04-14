@@ -20,7 +20,7 @@ short_HPI_dip_fname = op.join(artemis123_dir,
                               'Artemis_Data_2017-04-04-15h-44m-' +
                               '22s_Motion_Translation-z.bin')
 
-dig_fname = op.join(artemis123_dir, 'Phantom_040417.pos')
+dig_fname = op.join(artemis123_dir, 'Phantom_040417_dig.pos')
 
 
 @testing.requires_testing_data
@@ -35,10 +35,10 @@ def test_data():
     # checked against matlab reader.
     assert_allclose(raw[meg_picks[12]][0][0][123], 3.072510659694672e-11)
 
-    # test with digitization
+    # test with head loc no digitization
     raw = read_raw_artemis123(short_HPI_dip_fname, head_loc=True)
 
-    # test with digitization
+    # test with head loc and digitization
     raw = read_raw_artemis123(short_HPI_dip_fname,  head_loc=True,
                               pos_fname=dig_fname)
 
