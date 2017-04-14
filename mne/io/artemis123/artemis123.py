@@ -133,7 +133,7 @@ def _get_artemis123_info(fname, pos_fname=None):
         warn('Non-Empty Filter histroy found, BUT is not supported' % k)
 
     # build mne info struct
-    info = _empty_info(float(header_info['Rate Out']))
+    info = _empty_info(float(header_info['DAQ Sample Rate']))
 
     # Attempt to get time/date from fname
     # Artemis123 files saved from the scanner observe the following
@@ -157,7 +157,6 @@ def _get_artemis123_info(fname, pos_fname=None):
         desc += '{} : {}\n'.format(k, header_info[k])
     desc += 'Comments : {}'.format(header_info['comments'])
 
-    info = _empty_info(float(header_info['Rate Out']))
     info.update({'meas_date': meas_date,
                  'description': desc, 'buffer_size_sec': 1.,
                  'subject_info': subject_info,

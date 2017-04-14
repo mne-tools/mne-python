@@ -511,6 +511,9 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     else:
         i_win = raw.time_as_index(t_win, use_rounding=True)
 
+    # clamp index windows
+    i_win = [max(i_win[0], 0), min(i_win[1], len(raw.times))]
+
     time_sl = slice(i_win[0], i_win[1])
 
     hpi = _setup_hpi_struct(raw.info, i_win[1] - i_win[0])
