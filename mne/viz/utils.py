@@ -1404,7 +1404,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
     edgecolors = np.repeat('black', len(colors))
     edgecolors[bads] = 'red'
     if ax is None:
-        fig = plt.figure()
+        fig = plt.figure(figsize=(max(plt.rcParams['figure.figsize']),) * 2)
         if pos.shape[1] == 3:
             Axes3D(fig)
             ax = fig.gca(projection='3d')
@@ -1422,8 +1422,8 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
         ax.elev = 0
     else:
         ax.text(0, 0, '', zorder=1)
-        ax.set_xticks([])
-        ax.set_yticks([])
+        # Equal aspect for 3D looks bad, so only use for 2D
+        ax.set(xticks=[], yticks=[], aspect='equal')
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                             hspace=None)
         if to_sphere:
