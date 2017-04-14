@@ -17,8 +17,7 @@ from mne import pick_types
 from mne.transforms import rot_to_quat, _angle_between_quats
 
 artemis123_dir = op.join(testing.data_path(download=False), 'ARTEMIS123')
-short_no_HPI_fname = op.join(artemis123_dir,
-                             'Artemis_Data_2016-11-03-15h-58m_test.bin')
+
 short_HPI_dip_fname = op.join(artemis123_dir,
                               'Artemis_Data_2017-04-04-15h-44m-' +
                               '22s_Motion_Translation-z.bin')
@@ -49,11 +48,12 @@ def test_data():
                      pos_fname=dig_fname)
 
     # test a random selected point
-    raw = read_raw_artemis123(short_no_HPI_fname, preload=True, head_loc=False)
+    raw = read_raw_artemis123(short_hpi_1kz_fname, preload=True,
+                              head_loc=False)
     meg_picks = pick_types(raw.info, meg=True, eeg=False)
 
     # checked against matlab reader.
-    assert_allclose(raw[meg_picks[12]][0][0][123], 3.072510659694672e-11)
+    assert_allclose(raw[meg_picks[12]][0][0][123], 1.08239606023e-11)
 
     dev_head_t_1 = np.array([[9.713e-01, 2.340e-01, -4.164e-02, 1.302e-04],
                              [-2.371e-01, 9.664e-01, -9.890e-02, 1.977e-03],
