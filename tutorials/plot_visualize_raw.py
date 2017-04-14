@@ -75,7 +75,7 @@ raw.plot(block=True)
 # between regular and butterfly modes, press 'b' key when the plotter window is
 # active. Notice that ``group_by`` also affects the channel groupings in
 # butterfly mode.
-raw.plot(butterfly=True)
+raw.plot(butterfly=True, group_by='position')
 
 ###############################################################################
 # We read the events from a file and passed it as a parameter when calling the
