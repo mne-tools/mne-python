@@ -155,7 +155,8 @@ def test_plot_topomap():
                           baseline=(None, 0), proj=False)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        fig1 = evoked.plot_topomap(.1, 'mag', proj='interactive', **fast_test)
+        fig1 = evoked.plot_topomap('interactive', 'mag', proj='interactive',
+                                   **fast_test)
     data_max = np.max(fig1.axes[0].images[0]._A)
     fig2 = plt.gcf()
     _fake_click(fig2, fig2.axes[0], (0.075, 0.775))  # toggle projector

@@ -1336,8 +1336,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
        The figure.
     """
     from ..channels import _get_ch_type
+    from ..channels.layout import _merge_grad_data
     ch_type = _get_ch_type(evoked, ch_type)
     import matplotlib.pyplot as plt
+    from matplotlib import gridspec
+    from matplotlib.widgets import Slider
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
 
     mask_params = _handle_default('mask_params', mask_params)
@@ -1356,6 +1359,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     evoked = evoked.copy().pick_channels(
         [evoked.ch_names[pick] for pick in picks])
 
+    interactive = times == 'interactive'
     if axes is not None:
         if isinstance(axes, plt.Axes):
             axes = [axes]
@@ -1371,14 +1375,22 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     nax = n_times + bool(colorbar)
     width = size * nax
     height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
+
+    cols = n_times + 1 if colorbar else n_times  # room for the colorbar
+    if interactive:
+        if axes is not None:
+            raise ValueError("User provided axes not allowed when "
+                             "times='interactive'.")
+        height_ratios = [5, 1]
+        rows = 2
+    else:
+        rows, height_ratios = 1, None
+    gs = gridspec.GridSpec(rows, cols, height_ratios=height_ratios)
     if axes is None:
         plt.figure(figsize=(width, height))
         axes = list()
         for ax_idx in range(len(times)):
-            if colorbar:  # Make room for the colorbar
-                axes.append(plt.subplot(1, n_times + 1, ax_idx + 1))
-            else:
-                axes.append(plt.subplot(1, n_times, ax_idx + 1))
+            axes.append(plt.subplot(gs[0]))
     elif colorbar:
         warn('Colorbar is drawn to the rightmost column of the figure. Be '
              'sure to provide enough space for it or turn it off with '
@@ -1428,7 +1440,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     data *= scale
     if merge_grads:
-        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
     images, contours_ = [], []
@@ -1455,15 +1466,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if not isinstance(contours, (list, np.ndarray)):
         _, contours = _set_contour_locator(vmin, vmax, contours)
 
+    kwargs = dict(vmin=vmin, vmax=vmax, sensors=sensors, res=res, names=names,
+                  show_names=show_names, cmap=cmap[0], mask_params=mask_params,
+                  outlines=outlines, image_mask=image_mask, contours=contours,
+                  image_interp=image_interp, show=False)
     for idx, time in enumerate(times):
-        tp, cn = plot_topomap(data[:, idx], pos, vmin=vmin, vmax=vmax,
-                              sensors=sensors, res=res, names=names,
-                              show_names=show_names, cmap=cmap[0],
+        tp, cn = plot_topomap(data[:, idx], pos, axes=axes[idx],
                               mask=mask_[:, idx] if mask is not None else None,
-                              mask_params=mask_params, axes=axes[idx],
-                              outlines=outlines, image_mask=image_mask,
-                              contours=contours, image_interp=image_interp,
-                              show=False)
+                              **kwargs)
 
         images.append(tp)
         if cn is not None:
@@ -1471,6 +1481,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         if time_format is not None:
             axes[idx].set_title(time_format % (time * scale_time))
 
+    if interactive:
+        axes.append(plt.subplot(gs[2]))
+        slider = Slider(axes[-1], 'Time', evoked.times[0], evoked.times[-1],
+                        times[0])
+        func = _merge_grad_data if merge_grads else lambda x: x
+        changed_callback = partial(_slider_changed, ax=axes[0],
+                                   data=evoked.data, times=evoked.times,
+                                   pos=pos, scale=scale, func=func,
+                                   kwargs=kwargs)
+        slider.on_changed(changed_callback)
     if title is not None:
         plt.suptitle(title, verticalalignment='top', size='x-large')
 
@@ -1507,6 +1527,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     plt_show(show)
     return fig
+
+
+def _slider_changed(val, ax, data, times, pos, scale, func, kwargs):
+    """Handle selection in interactive topomap."""
+    idx = np.argmin(np.abs(times - val))
+    data = func(data[:, idx]).ravel() * scale
+    ax.clear()
+    im, _ = plot_topomap(data, pos, axes=ax, **kwargs)
+    if hasattr(ax, 'CB'):
+        ax.CB.mappable = im
 
 
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,

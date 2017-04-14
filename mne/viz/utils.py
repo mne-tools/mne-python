@@ -1241,10 +1241,12 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
             if n_peaks is None:
                 n_peaks = min(5 if few else 10, len(use_times))
             use_times = np.linspace(inst.times[0], inst.times[-1], n_peaks)
+        elif use_times == 'interactive':
+            use_times = [np.max([0, inst.times[0]])]
         else:
             raise ValueError("Got an unrecognized method for `times`. Only "
-                             "'peaks' and 'auto' are supported (or directly "
-                             "passing numbers).")
+                             "'peaks', 'auto' and 'interactive' are supported "
+                             "(or directly passing numbers).")
     elif np.isscalar(use_times):
         use_times = [use_times]
 
