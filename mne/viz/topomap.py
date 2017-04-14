@@ -1765,12 +1765,11 @@ def plot_layout(layout, picks=None, show=True):
     .. versionadded:: 0.12.0
     """
     import matplotlib.pyplot as plt
-    fig = plt.figure()
+    fig = plt.figure(figsize=(max(plt.rcParams['figure.figsize']),) * 2)
     ax = fig.add_subplot(111)
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                         hspace=None)
-    ax.set_xticks([])
-    ax.set_yticks([])
+    ax.set(xticks=[], yticks=[], aspect='equal')
     pos = [(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos]
     pos, outlines = _check_outlines(pos, 'head')
     _draw_outlines(ax, outlines)
@@ -1782,6 +1781,7 @@ def plot_layout(layout, picks=None, show=True):
     for ii, (this_pos, ch_id) in enumerate(zip(pos, names)):
         ax.annotate(ch_id, xy=this_pos[:2], horizontalalignment='center',
                     verticalalignment='center', size='x-small')
+    tight_layout(fig=fig, pad=0, w_pad=0, h_pad=0)
     plt_show(show)
     return fig
 

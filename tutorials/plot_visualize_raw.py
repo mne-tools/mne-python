@@ -105,7 +105,7 @@ raw.plot_projs_topomap()
 raw.plot()
 
 ###############################################################################
-# Now click the `proj` button at the lower right corner of the browser
+# Now click the ``proj`` button at the lower right corner of the browser
 # window. A selection dialog should appear, where you can toggle the projectors
 # on and off. Notice that the first four are already applied to the data and
 # toggling them does not change the data. However the newly added projectors
@@ -115,9 +115,9 @@ raw.plot()
 # projectors.
 #
 # Raw container also lets us easily plot the power spectra over the raw data.
-# Here we plot the data using `spatial_colors` to map the line colors to
+# Here we plot the data using ``spatial_colors`` to map the line colors to
 # channel locations (default in versions >= 0.15.0). Other option is to use the
-# `average` (default in < 0.15.0). See the API documentation for more info.
+# ``average`` (default in < 0.15.0). See the API documentation for more info.
 raw.plot_psd(tmax=np.inf, average=False)
 
 ###############################################################################

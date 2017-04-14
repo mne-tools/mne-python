@@ -56,6 +56,8 @@ BUG
 
     - Fix bug in :meth:`mne.preprocessing.ICA.plot_properties` where merging gradiometers would fail by `Jaakko Leppakangas`_
 
+    - Fix :func:`mne.viz.plot_sensors` to maintain proper aspect ratio by `Eric Larson`_
+
 API
 ~~~
 
