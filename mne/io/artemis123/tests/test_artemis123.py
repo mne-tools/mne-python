@@ -16,6 +16,11 @@ from mne import pick_types
 artemis123_dir = op.join(testing.data_path(download=False), 'ARTEMIS123')
 short_no_HPI_fname = op.join(artemis123_dir,
                              'Artemis_Data_2016-11-03-15h-58m_test.bin')
+short_HPI_dip_fname = op.join(artemis123_dir,
+                              'Artemis_Data_2017-04-04-15h-44m-' +
+                              '22s_Motion_Translation-z.bin')
+
+dig_fname = op.join(artemis123_dir, 'Phantom_040417.pos')
 
 
 @testing.requires_testing_data
@@ -26,8 +31,16 @@ def test_data():
     # test a random selected point
     raw = read_raw_artemis123(short_no_HPI_fname, preload=True, head_loc=False)
     meg_picks = pick_types(raw.info, meg=True, eeg=False)
+
     # checked against matlab reader.
     assert_allclose(raw[meg_picks[12]][0][0][123], 3.072510659694672e-11)
+
+    # test with digitization
+    raw = read_raw_artemis123(short_HPI_dip_fname, head_loc=True)
+
+    # test with digitization
+    raw = read_raw_artemis123(short_HPI_dip_fname,  head_loc=True,
+                              pos_fname=dig_fname)
 
 
 def test_utils():

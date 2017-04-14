@@ -111,7 +111,7 @@ def _read_pos(fname):
                     lpa = np.array([float(p) for p in parts[-3:]]) / 100.
                 elif parts[0].lower() == 'right':
                     rpa = np.array([float(p) for p in parts[-3:]]) / 100.
-                elif parts[0].lower().startswith('hpi'):
+                elif 'hpi' in parts[0].lower():
                     if hpi is None:
                         hpi = list()
                     hpi.append(np.array([float(p) for p in parts[-3:]]) / 100.)

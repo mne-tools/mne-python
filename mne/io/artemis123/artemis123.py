@@ -336,6 +336,7 @@ class RawArtemis123(BaseRaw):
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format=np.float32,
             verbose=verbose)
+        self.info['hpi_results'] = []
 
         if head_loc:
             n_hpis = 0
@@ -347,7 +348,8 @@ class RawArtemis123(BaseRaw):
                      'head localization')
             else:
                 # Localized HPIs using the 1st seconds of data.
-                hpi_dev, hpi_g = _fit_device_hpi_positions(self, t_win=[0, 0.25])
+                hpi_dev, hpi_g = _fit_device_hpi_positions(self,
+                                                           t_win=[0, 0.25])
                 if pos_fname is not None:
                     # Digitized HPI points are needed.
                     hpi_head = np.array([d['r']
@@ -355,9 +357,11 @@ class RawArtemis123(BaseRaw):
                                          if d['kind'] == FIFF.FIFFV_POINT_HPI])
 
                     if (len(hpi_head) != len(hpi_dev)):
-                        raise RuntimeError("number of digitized (%d) and " +
-                                           "active (%d) HPI coils are " +
-                                           "not the same.")
+                        mesg = ("number of digitized (%d) and " +
+                                "active (%d) HPI coils are " +
+                                "not the same.")
+                        raise RuntimeError(mesg % (len(hpi_head),
+                                                   len(hpi_dev)))
 
                     head_to_dev_t, order = _fit_dev_head_trans(hpi_dev,
                                                                hpi_head)
@@ -387,13 +391,12 @@ class RawArtemis123(BaseRaw):
 
                     dig_dists = cdist(hpi_head, hpi_head)
                     dev_dists = cdist(hpi_dev, hpi_dev)
-
                     tmp_dists = np.abs(dig_dists - dev_dists)
                     hpi_result['dist_limit'] = tmp_dists.max() * 1.1
                     if hpi_result['dist_limit'] > 0.005:
                         warn('Large difference between digitized geometry' +
                              ' and HPI geometry. Max coil to coil difference' +
-                             'is %0.3f\n' % tmp_dists.max() +
+                             ' is %0.2f cm\n' % (100. * tmp_dists.max()) +
                              'beware of *POOR* head localization')
 
                     hpi_result['good_limit'] = 0.98
