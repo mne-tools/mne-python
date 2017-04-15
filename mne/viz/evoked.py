@@ -1790,8 +1790,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         cbar.set_ticklabels(numbers)
         cbar.set_label("".join([x for x in colors_l[0]
                                 if x not in "1234567890"]))
+        fig.cbar = cbar
 
     fig.ts_ax = axes
-    fig.cbar = cbar
     plt_show(show)
     return fig
