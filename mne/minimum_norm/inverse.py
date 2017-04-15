@@ -664,7 +664,8 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
             raise ValueError('Picking normal orientation can only be done '
                              'with a free orientation inverse operator.')
 
-        is_loose = 0 < inv['orient_prior']['data'][0] < 1
+        is_loose = (inv['orient_prior'] is not None and 
+                    0 < inv['orient_prior']['data'][0] < 1)
         if not is_loose:
             raise ValueError('Picking normal orientation can only be done '
                              'when working with loose orientations.')
