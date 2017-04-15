@@ -433,6 +433,7 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
 
     mchpi_data = np.tile(np.mean(meg_chpi_data, axis=1, keepdims=True),
                          (1, meg_chpi_data.shape[1]))
+    mchpi_data = mchpi_data.reshape(meg_chpi_data.shape)
     this_data = meg_chpi_data - mchpi_data
 
     # which HPI coils to use
