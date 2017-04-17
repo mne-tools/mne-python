@@ -1,43 +1,42 @@
-# Author: Mainak Jas
-#
+# Authors: Romain Trachel <trachelr@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
 # License: BSD (3-clause)
 
-import copy
 import re
-import threading
+import copy
 import time
-
+import threading
+import warnings
 import numpy as np
 
-from ..io import _empty_info
-from ..io.pick import pick_info
 from ..io.constants import FIFF
+from ..io.meas_info import _empty_info
+from ..io.pick import pick_info
 from ..epochs import EpochsArray
-from ..utils import logger, warn
-from ..externals.FieldTrip import Client as FtClient
+from ..utils import logger
+from ..externals.OpenBCI import OpenBCIBoard, OpenBCISample
 
 
-def _buffer_recv_worker(ft_client):
+def _buffer_recv_worker(client):
     """Worker thread that constantly receives buffers."""
+
     try:
-        for raw_buffer in ft_client.iter_raw_buffers():
-            ft_client._push_raw_buffer(raw_buffer)
+        for obci_sample in client.iter_obci_sample():
+            client._push_obci_sample(obci_sample)
     except RuntimeError as err:
         # something is wrong, the server stopped (or something)
-        ft_client._recv_thread = None
+        client._recv_thread = None
         print('Buffer receive thread stopped: %s' % err)
 
 
-class FieldTripClient(object):
-    """Realtime FieldTrip client.
+class OpenBCIClient(object):
+    """ Realtime OpenBCI client
 
     Parameters
     ----------
     info : dict | None
         The measurement info read in from a file. If None, it is guessed from
         the Fieldtrip Header object.
-    host : str
-        Hostname (or IP address) of the host where Fieldtrip buffer is running.
     port : int
         Port to use for the connection.
     wait_max : float
@@ -50,13 +49,10 @@ class FieldTripClient(object):
     buffer_size : int
         Size of each buffer in terms of number of samples.
     verbose : bool, str, int, or None
-        Log verbosity (see :func:`mne.verbose` and
-        :ref:`Logging documentation <tut_logging>` for more).
+        Log verbosity see mne.verbose.
     """
-
-    def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
-                 tmin=None, tmax=np.inf, buffer_size=1000,
-                 verbose=None):  # noqa: D102
+    def __init__(self, info=None, port=5000, wait_max=30,
+                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=True):
         self.verbose = verbose
 
         self.info = info
@@ -65,24 +61,21 @@ class FieldTripClient(object):
         self.tmax = tmax
         self.buffer_size = buffer_size
 
-        self.host = host
         self.port = port
 
         self._recv_thread = None
         self._recv_callbacks = list()
 
-    def __enter__(self):  # noqa: D105
-        # instantiate Fieldtrip client and connect
-        self.ft_client = FtClient()
+    def __enter__(self):
+        # instantiate OpenBCI client and connect
+        self.client = OpenBCIBoard(port=self.port, log=self.verbose)
 
-        # connect to FieldTrip buffer
-        logger.info("FieldTripClient: Waiting for server to start")
         start_time, current_time = time.time(), time.time()
         success = False
         while current_time < (start_time + self.wait_max):
             try:
-                self.ft_client.connect(self.host, self.port)
-                logger.info("FieldTripClient: Connected")
+                self.client.check_connection()
+                logger.info("OpenBCIClient: Connected")
                 success = True
                 break
             except:
@@ -90,55 +83,49 @@ class FieldTripClient(object):
                 time.sleep(0.1)
 
         if not success:
-            raise RuntimeError('Could not connect to FieldTrip Buffer')
+            raise RuntimeError('Could not connect to OpenBCI')
 
-        # retrieve header
-        logger.info("FieldTripClient: Retrieving header")
-        start_time, current_time = time.time(), time.time()
-        while current_time < (start_time + self.wait_max):
-            self.ft_header = self.ft_client.getHeader()
-            if self.ft_header is None:
-                current_time = time.time()
-                time.sleep(0.1)
-            else:
-                break
-
-        if self.ft_header is None:
-            raise RuntimeError('Failed to retrieve Fieldtrip header!')
-        else:
-            logger.info("FieldTripClient: Header retrieved")
+        self.sfreq = self.client.getSampleRate()
 
         self.info = self._guess_measurement_info()
-        self.ch_names = self.ft_header.labels
 
-        # find start and end samples
-
-        sfreq = self.info['sfreq']
-
-        if self.tmin is None:
-            self.tmin_samp = max(0, self.ft_header.nSamples - 1)
-        else:
-            self.tmin_samp = int(round(sfreq * self.tmin))
-
-        if self.tmax != np.inf:
-            self.tmax_samp = int(round(sfreq * self.tmax))
-        else:
-            self.tmax_samp = np.iinfo(np.uint32).max
-
+        self.client.ser.write('b')
+        self.client.streaming = True
+        self.client.check_connection()
         return self
 
-    def __exit__(self, type, value, traceback):  # noqa: D105
-        self.ft_client.disconnect()
+    def __exit__(self, type, value, traceback):
+        self.client.disconnect()
 
     def _guess_measurement_info(self):
-        """Create a minimal Info dictionary for epoching, averaging, etc."""
+        """
+        Creates a minimal Info dictionary required for epoching, averaging
+        et al.
+        """
+
         if self.info is None:
-            warn('Info dictionary not provided. Trying to guess it from '
-                 'FieldTrip Header object')
 
-            info = _empty_info(self.ft_header.fSample)  # create info
+            warnings.warn('Info dictionary not provided. Trying to guess it '
+                          'from OpenBCIBoard object')
 
-            # modify info attributes according to the FieldTrip Header object
+            info = _empty_info(self.sfreq)  # create info dictionary
+
+            # modify info attributes according to the OpenBCIBoard object
+            n_eeg = self.client.getNbEEGChannels()
+            n_aux = self.client.getNbAUXChannels()
+            # EEG + Auxiliary + 1 Stim channel
+            info['nchan'] = n_eeg + n_aux + 1
+            info['sfreq'] = self.client.getSampleRate()
+
+            # NEED TO BE CHECKED
+            # ch_names = ['Time']
+            ch_names = ['EEG%i' % i for i in range(1, n_eeg + 1)]
+            # adding auxiliary channels
+            ch_names += ['MISC%i' % i for i in range(1, n_aux + 1)]
+            # adding stimulation channel (for compatibility with RtEpochs)
+            ch_names += ['STIM0']
+            info['ch_names'] = ch_names
+
             info['comps'] = list()
             info['projs'] = list()
             info['bads'] = list()
@@ -146,10 +133,7 @@ class FieldTripClient(object):
             # channel dictionary list
             info['chs'] = []
 
-            # unrecognized channels
-            chs_unknown = []
-
-            for idx, ch in enumerate(self.ft_header.labels):
+            for idx, ch in enumerate(info['ch_names']):
                 this_info = dict()
 
                 this_info['scanno'] = idx
@@ -173,19 +157,13 @@ class FieldTripClient(object):
                     this_info['kind'] = FIFF.FIFFV_ECG_CH
                 elif ch.startswith('MISC'):
                     this_info['kind'] = FIFF.FIFFV_MISC_CH
-                elif ch.startswith('SYS'):
-                    this_info['kind'] = FIFF.FIFFV_SYST_CH
-                else:
-                    # cannot guess channel type, mark as MISC and warn later
-                    this_info['kind'] = FIFF.FIFFV_MISC_CH
-                    chs_unknown.append(ch)
 
                 # Fieldtrip already does calibration
                 this_info['range'] = 1.0
                 this_info['cal'] = 1.0
 
                 this_info['ch_name'] = ch
-                this_info['loc'] = np.zeros(12)
+                this_info['loc'] = None
 
                 if ch.startswith('EEG'):
                     this_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -205,13 +183,6 @@ class FieldTripClient(object):
                 this_info['unit_mul'] = 0
 
                 info['chs'].append(this_info)
-                info._update_redundant()
-                info._check_consistency()
-
-            if chs_unknown:
-                msg = ('Following channels in the FieldTrip header were '
-                       'unrecognized and marked as MISC: ')
-                warn(msg + ', '.join(chs_unknown))
 
         else:
 
@@ -230,7 +201,7 @@ class FieldTripClient(object):
         return info
 
     def get_measurement_info(self):
-        """Return the measurement info.
+        """Returns the measurement info.
 
         Returns
         -------
@@ -239,8 +210,8 @@ class FieldTripClient(object):
         """
         return self.info
 
-    def get_data_as_epoch(self, n_samples=1024, picks=None):
-        """Return last n_samples from current time.
+    def get_data_as_epoch(self, n_samples=256, picks=None):
+        """Returns last n_samples from current time.
 
         Parameters
         ----------
@@ -257,23 +228,35 @@ class FieldTripClient(object):
 
         See Also
         --------
-        mne.Epochs.iter_evoked
+        Epochs.iter_evoked
         """
-        ft_header = self.ft_client.getHeader()
-        last_samp = ft_header.nSamples - 1
-        start = last_samp - n_samples + 1
-        stop = last_samp
-        events = np.expand_dims(np.array([start, 1, 1]), axis=0)
+        # create the data
+        data = np.zeros([self.info['nchan'], n_samples])
+        n_eeg = self.client.getNbEEGChannels()
+        for i in range(n_samples):
+            sample = self.client._read_serial_binary()
+            if self.client.daisy:
+                # odd sample: daisy sample, save for later
+                if ~sample.id % 2:
+                    self.client.last_odd_sample = sample
+                    # even sample: concatenate and send if last sample was
+                    # the fist part, otherwise drop the packet
+                elif sample.id - 1 == self.client.last_odd_sample.id:
+                    # the aux data will be the average between the two samples,
+                    # as the channel samples themselves have been averaged by the board
+                    avg_aux_data = list((np.array(sample.aux_data) + np.array(self.client.last_odd_sample.aux_data))/2)
+                    sample = OpenBCISample(sample.id, sample.channel_data + self.client.last_odd_sample.channel_data, avg_aux_data)
+            # EEG data
+            data[:n_eeg, i] = sample.channel_data
+            # Auxiliary data
+            data[n_eeg:-1, i] = sample.aux_data
+            # TODO: Stimulation data (i.e. triggers)
 
-        # get the data
-        data = self.ft_client.getData([start, stop]).transpose()
-
+        events = np.expand_dims(np.array([0, 1, 1]), axis=0)
         # create epoch from data
         info = self.info
         if picks is not None:
-            info = pick_info(info, picks)
-        else:
-            picks = range(info['nchan'])
+            info = pick_info(info, picks, copy=True)
         epoch = EpochsArray(data[picks][np.newaxis], info, events)
 
         return epoch
@@ -291,7 +274,7 @@ class FieldTripClient(object):
             self._recv_callbacks.append(callback)
 
     def unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback.
+        """Unregister a raw buffer receive callback
 
         Parameters
         ----------
@@ -301,10 +284,10 @@ class FieldTripClient(object):
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)
 
-    def _push_raw_buffer(self, raw_buffer):
+    def _push_obci_sample(self, obci_sample):
         """Push raw buffer to clients using callbacks."""
         for callback in self._recv_callbacks:
-            callback(raw_buffer)
+            callback(obci_sample)
 
     def start_receive_thread(self, nchan):
         """Start the receive thread.
@@ -316,6 +299,7 @@ class FieldTripClient(object):
         nchan : int
             The number of channels in the data.
         """
+
         if self._recv_thread is None:
 
             self._recv_thread = threading.Thread(target=_buffer_recv_worker,
@@ -324,7 +308,7 @@ class FieldTripClient(object):
             self._recv_thread.start()
 
     def stop_receive_thread(self, stop_measurement=False):
-        """Stop the receive thread.
+        """Stop the receive thread
 
         Parameters
         ----------
@@ -335,25 +319,28 @@ class FieldTripClient(object):
             self._recv_thread.stop()
             self._recv_thread = None
 
-    def iter_raw_buffers(self):
-        """Return an iterator over raw buffers.
+    def iter_obci_sample(self):
+        """Return an iterator over OpenBCISample
 
         Returns
         -------
-        raw_buffer : generator
-            Generator for iteration over raw buffers.
+        sample : generator
+            Generator for iteration over OpenBCI samples.
         """
-        iter_times = zip(range(self.tmin_samp, self.tmax_samp,
-                               self.buffer_size),
-                         range(self.tmin_samp + self.buffer_size - 1,
-                               self.tmax_samp, self.buffer_size))
 
-        for ii, (start, stop) in enumerate(iter_times):
-            # wait for correct number of samples to be available
-            self.ft_client.wait(stop, np.iinfo(np.uint32).max,
-                                np.iinfo(np.uint32).max)
-
+        while True:
             # get the samples
-            raw_buffer = self.ft_client.getData([start, stop]).transpose()
+            sample = self.client._read_serial_binary()
+            if self.client.daisy:
+                # odd sample: daisy sample, save for later
+                if ~sample.id % 2:
+                    self.client.last_odd_sample = sample
+                    # even sample: concatenate and send if last sample was
+                    # the fist part, otherwise drop the packet
+                elif sample.id - 1 == self.client.last_odd_sample.id:
+                    # the aux data will be the average between the two samples,
+                    # as the channel samples themselves have been averaged by the board
+                    avg_aux_data = list((np.array(sample.aux_data) + np.array(self.client.last_odd_sample.aux_data))/2)
+                    sample = OpenBCISample(sample.id, sample.channel_data + self.client.last_odd_sample.channel_data, avg_aux_data)
 
-            yield raw_buffer
+            yield sample
