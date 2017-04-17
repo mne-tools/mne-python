@@ -13,7 +13,7 @@ from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
                  pick_info)
 from mne.io import read_raw_fif, read_raw_artemis123, read_info, RawArray
 from mne.io.constants import FIFF
-from mne.chpi import (_calculate_chpi_positions,
+from mne.chpi import (_calculate_chpi_positions, _calculate_chpi_coil_locs,
                       head_pos_to_trans_rot_t, read_head_pos,
                       write_head_pos, filter_chpi,
                       _get_hpi_info, _get_hpi_initial_fit)
@@ -332,6 +332,36 @@ def test_simulate_calculate_chpi_positions():
         raw, t_step_min=raw.info['sfreq'] * head_pos_sfreq_quotient,
         t_step_max=raw.info['sfreq'] * head_pos_sfreq_quotient, t_window=1.0)
     _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.)
+
+
+@testing.requires_testing_data
+def test_calculate_chpi_coil_locs():
+    """Test computing just cHPI locations."""
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
+    # This is a little hack (aliasing while decimating) to make it much faster
+    # for testing purposes only. We can relax this later if we find it breaks
+    # something.
+    raw_dec = _decimate_chpi(raw, 15)
+    times, cHPI_digs = _calculate_chpi_coil_locs(raw_dec, verbose='debug')
+
+    # spot check
+    assert_allclose(times[9], 9.9)
+    assert_allclose(cHPI_digs[9][2]['r'],
+                    [-0.01937833, 0.00346804, 0.06331209], atol=1e-3)
+    assert_allclose(cHPI_digs[9][2]['gof'], 0.9957976)
+
+    assert_allclose(cHPI_digs[9][4]['r'],
+                    [0.05442122, 0.00997692, 0.03721696],  atol=1e-3)
+    assert_allclose(cHPI_digs[9][4]['gof'], 0.075700080794629199)
+
+    # test on 5k artemis data
+    raw = read_raw_artemis123(art_fname, preload=True)
+    times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
+
+    assert_allclose(times[2], 2.9)
+    assert_allclose(cHPI_digs[2][0]['gof'], 0.9980471794552791)
+    assert_allclose(cHPI_digs[2][0]['r'],
+                    [-0.0157762, 0.06655744, 0.00545172],  atol=1e-3)
 
 
 @testing.requires_testing_data

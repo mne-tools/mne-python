@@ -767,6 +767,133 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
 
 @verbose
+def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
+                              t_window=0.2, dist_limit=0.005, gof_limit=0.98,
+                              verbose=None):
+    """Calculate locations of each cHPI coils over time.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Raw data with cHPI information.
+    t_step_min : float
+        Minimum time step to use. If correlations are sufficiently high,
+        t_step_max will be used.
+    t_step_max : float
+        Maximum time step to use.
+    t_window : float
+        Time window to use to estimate the head positions.
+    dist_limit : float
+        Minimum distance (m) to accept for coil position fitting.
+    gof_limit : float
+        Minimum goodness of fit to accept.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    time : ndarray, shape (N, 1)
+        The start time of each fitting interval
+    chpi_digs :ndarray, shape (N, 1)
+        Array of dig structures containing the cHPI locations. Includes
+        goodness of fit for each cHPI.
+
+    Notes
+    -----
+    The number of time points ``N`` will depend on the velocity of head
+    movements as well as ``t_step_max`` and ``t_step_min``.
+
+    See Also
+    --------
+    read_head_pos
+    write_head_pos
+    """
+    # extract initial geometry from info['hpi_results']
+    hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)
+
+    # extract hpi system information
+    hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])))
+
+    # move to device coords
+    head_dev_t = invert_transform(raw.info['dev_head_t'])['trans']
+    hpi_dig_dev_rrs = apply_trans(head_dev_t, hpi_dig_head_rrs)
+
+    # setup last iteration structure
+    last = dict(sin_fit=None, fit_time=t_step_min,
+                coil_dev_rrs=hpi_dig_dev_rrs)
+
+    t_begin = raw.times[0]
+    t_end = raw.times[-1]
+    fit_idxs = raw.time_as_index(np.arange(t_begin + t_window / 2., t_end,
+                                           t_step_min),
+                                 use_rounding=True)
+    times = []
+    chpi_digs = []
+    logger.info('Fitting up to %s time points (%0.1f sec duration)'
+                % (len(fit_idxs), t_end - t_begin))
+
+    hpi['n_freqs'] = len(hpi['freqs'])
+    for midpt in fit_idxs:
+        #
+        # 0. determine samples to fit.
+        #
+        fit_time = (midpt + raw.first_samp - hpi['n_window'] / 2.) /\
+            raw.info['sfreq']
+
+        time_sl = midpt - hpi['n_window'] // 2
+        time_sl = slice(max(time_sl, 0),
+                        min(time_sl + hpi['n_window'], len(raw.times)))
+
+        #
+        # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
+        #
+        sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
+
+        # skip this window if bad
+        # logging has already been done! Maybe turn this into an Exception
+        if sin_fit is None:
+            continue
+
+        # check if data has sufficiently changed
+        if last['sin_fit'] is not None:  # first iteration
+            corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
+            # check to see if we need to continue
+            if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \
+                    corr * corr > 0.98:
+                # don't need to refit data
+                continue
+
+        # update 'last' sin_fit *before* inplace sign mult
+        last['sin_fit'] = sin_fit.copy()
+
+        #
+        # 2. Fit magnetic dipole for each coil to obtain coil positions
+        #    in device coordinates
+        #
+        outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
+                                     hpi['method'])
+                for f, pos in zip(sin_fit, last['coil_dev_rrs'])]
+
+        dig = []
+        for idx, o in enumerate(outs):
+            dig.append({'r': o[0], 'ident': idx + 1,
+                        'kind': FIFF.FIFFV_POINT_HPI,
+                        'coord_frame': FIFF.FIFFV_COORD_DEVICE,
+                        'gof': o[1]})
+
+        this_coil_dev_rrs = np.array([o[0] for o in outs])
+
+        times.append(fit_time)
+        chpi_digs.append(dig)
+
+        last['fit_time'] = fit_time
+        last['coil_dev_rrs'] = this_coil_dev_rrs
+    logger.info('[done]')
+    return times, chpi_digs
+
+
+@verbose
 def filter_chpi(raw, include_line=True, verbose=None):
     """Remove cHPI and line noise from data.
 
