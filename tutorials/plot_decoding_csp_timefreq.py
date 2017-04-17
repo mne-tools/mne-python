@@ -27,7 +27,7 @@ from mne.decoding import CSP
 from mne.time_frequency import AverageTFR
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.model_selection import KFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import LabelEncoder
 
@@ -49,7 +49,7 @@ raw.pick_types(meg=False, eeg=True, stim=False, eog=False, exclude='bads')
 clf = make_pipeline(CSP(n_components=4, reg=None, log=True),
                     LinearDiscriminantAnalysis())
 n_splits = 5  # how many folds to use for cross-validation
-cv = KFold(n_splits=n_splits, shuffle=True)
+cv = StratifiedKFold(n_splits=n_splits, shuffle=True)
 
 # Classification & Time-frequency parameters
 tmin, tmax = -.200, 2.000
