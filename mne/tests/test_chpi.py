@@ -345,23 +345,23 @@ def test_calculate_chpi_coil_locs():
     times, cHPI_digs = _calculate_chpi_coil_locs(raw_dec, verbose='debug')
 
     # spot check
-    assert_allclose(times[9], 9.9)
+    assert_allclose(times[9], 9.9, atol=1e-3)
     assert_allclose(cHPI_digs[9][2]['r'],
                     [-0.01937833, 0.00346804, 0.06331209], atol=1e-3)
-    assert_allclose(cHPI_digs[9][2]['gof'], 0.9957976)
+    assert_allclose(cHPI_digs[9][2]['gof'], 0.9957976, atol=1e-3)
 
     assert_allclose(cHPI_digs[9][4]['r'],
-                    [0.05442122, 0.00997692, 0.03721696],  atol=1e-3)
-    assert_allclose(cHPI_digs[9][4]['gof'], 0.075700080794629199)
+                    [0.05442122, 0.00997692, 0.03721696], atol=1e-3)
+    assert_allclose(cHPI_digs[9][4]['gof'], 0.075700080794629199, atol=1e-3)
 
     # test on 5k artemis data
     raw = read_raw_artemis123(art_fname, preload=True)
     times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
 
-    assert_allclose(times[2], 2.9)
-    assert_allclose(cHPI_digs[2][0]['gof'], 0.9980471794552791)
+    assert_allclose(times[2], 2.9, atol=1e-3)
+    assert_allclose(cHPI_digs[2][0]['gof'], 0.9980471794552791, atol=1e-3)
     assert_allclose(cHPI_digs[2][0]['r'],
-                    [-0.0157762, 0.06655744, 0.00545172],  atol=1e-3)
+                    [-0.0157762, 0.06655744, 0.00545172], atol=1e-3)
 
 
 @testing.requires_testing_data
