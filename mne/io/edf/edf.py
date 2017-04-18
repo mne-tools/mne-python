@@ -119,8 +119,8 @@ class RawEDF(BaseRaw):
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
         cal = np.array([ch['cal'] for ch in self.info['chs']])
-        gains = np.atleast_2d(self._raw_extras[fi]['units'] *
-                              (physical_range / cal))
+        cal = (physical_range) / (cal)
+        gains = np.atleast_2d(self._raw_extras[fi]['units'] * (cal))
 
         # physical dimension in uV
         physical_min = np.atleast_2d(self._raw_extras[fi]['units'] *
@@ -131,6 +131,8 @@ class RawEDF(BaseRaw):
         if tal_channels is not None:
             for tal_channel in tal_channels:
                 offsets[tal_channel] = 0
+        # if stim_channel is not None:
+        #         offsets[stim_channel] = 0   ## not sure about this
 
         # This is needed to rearrange the indices to correspond to correct
         # chunks on the file if excluded channels exist:
@@ -159,6 +161,7 @@ class RawEDF(BaseRaw):
                 if len(np.unique(self._raw_extras[fi]['gdf_type_np'])) > 1:
                     raise("Multiple data type not supported")
                 gdftype = gdftype[0]
+
             else:
                 gdftype = None
 
@@ -210,6 +213,7 @@ class RawEDF(BaseRaw):
                                 ch_data, buf_len, n_samps[ci], npad=0, axis=-1)
                     assert ch_data.shape == (len(ch_data), buf_len)
                     data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
+
         data *= gains.T[sel]
         data += offsets[sel]
 
@@ -488,7 +492,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                 edf_info['nchan'] = nchan
 
                 channels = list(range(nchan))
-                ch_names = [fid.read(16).strip().decode() for ch in channels]
+                ch_names = [fid.read(16).strip('\x00').decode()
+                            for ch in channels]
                 [fid.read(80) for ch in channels]  # transducer
                 units = [fid.read(8).strip() for ch in channels]
                 edf_info['units'] = units
@@ -504,10 +509,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
 
                 ch_names = [ch_names[idx] for idx in include]
                 physical_min = np.array([np.fromstring(fid.read(8),
-                                                       np.float64)[0] for ch in channels])
+                                         np.float64)[0] for ch in channels])
                 edf_info['physical_min'] = physical_min
                 physical_max = np.array([np.fromstring(fid.read(8),
-                                                       np.float64)[0] for ch in channels])
+                                         np.float64)[0] for ch in channels])
                 digital_min = np.array([np.fromstring(fid.read(8), np.int64)[0]
                                         for ch in channels])
                 edf_info['digital_min'] = digital_min
@@ -534,8 +539,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                 assert fid.tell() == header_nbytes
 
                 # total number of byter for data
-                edf_info['bytes_tot'] = np.sum([__GDFTYP_BYTE[t] * n_samps[i]
-                                                for i, t in enumerate(edf_info['gdf_type'])])
+                edf_info['bytes_tot'] = np.sum([__GDFTYP_BYTE[t] * n_samps[i] \
+                    for i, t in enumerate(edf_info['gdf_type'])])
 
                 # EVENT TABLE
                 etp = header_nbytes + n_records * edf_info['bytes_tot']
@@ -617,11 +622,11 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                     loc['size'] = 29
                 loc['version'] = 0
                 loc['latitude'] = float(np.fromstring(rl[4:8],
-                                                      np.uint32).tolist()[0]) / 3600000
+                                        np.uint32).tolist()[0]) / 3600000
                 loc['longitude'] = float(np.fromstring(rl[8:12],
-                                                       np.uint32).tolist()[0]) / 3600000
+                                         np.uint32).tolist()[0]) / 3600000
                 loc['altitude'] = float(np.fromstring(rl[12:16],
-                                                      np.int32).tolist()[0]) / 100
+                                        np.int32).tolist()[0]) / 100
 
                 date = np.fromstring(fid.read(8), np.uint64).tolist()[0]
                 if date == 0:
@@ -630,8 +635,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                     date = datetime.datetime(1, 1, 1) + \
                         datetime.timedelta(date * pow(2, -32) - 367)
 
-                patient['birthday'] = np.fromstring(fid.read(8),
-                                                    np.uint64).tolist()[0]  # TODO
+                patient['birthday'] = np.fromstring(fid.read(8), \
+                    np.uint64).tolist()[0]  # TODO
                 # if patient['birthday'] != datetime.datetime(1,1,1,0,0):
                 #     today = datetime.datetime.today()
                 #     patient['age'] = today.year - patient['birthday'].year
@@ -672,9 +677,9 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                 fid.seek(2, 1)  # 2bytes reserved
 
                 # Channels (variable header)
-                # vh = fid.read(edf_info['header_nbytes']-256)
                 channels = list(range(nchan))
-                ch_names = [fid.read(16).strip().decode() for ch in channels]
+                ch_names = [fid.read(16).strip('\x00').decode()
+                            for ch in channels]
                 exclude = edf_info['exclude'] = \
                     [ch_names.index(idx) for idx in exclude]
 
@@ -710,10 +715,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
 
                 ch_names = [ch_names[idx] for idx in include]
                 physical_min = np.array([np.fromstring(fid.read(8),
-                                                       np.float64)[0] for ch in channels])
+                                         np.float64)[0] for ch in channels])
                 edf_info['physical_min'] = physical_min
                 physical_max = np.array([np.fromstring(fid.read(8),
-                                                       np.float64)[0] for ch in channels])
+                                         np.float64)[0] for ch in channels])
                 digital_min = np.array([np.fromstring(fid.read(8), np.int64)[0]
                                         for ch in channels])
                 edf_info['digital_min'] = digital_min
@@ -741,7 +746,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                 channel_xyz = [np.fromstring(fid.read(12), np.float32)[0]
                                for ch in channels]
                 channel_impedance = [pow(2, float(np.fromstring(fid.read(1),
-                                                                np.uint8)[0]) / 8) for ch in channels]
+                                     np.uint8)[0]) / 8) for ch in channels]
 
                 [fid.read(19) for ch in channels]  # reserved
 
@@ -750,14 +755,14 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                 assert fid.tell() == header_nbytes
 
                 # total number of bytes for data
-                edf_info['bytes_tot'] = np.sum([__GDFTYP_BYTE[t] * n_samps[i]
-                                                for i, t in enumerate(edf_info['gdf_type'])])
+                edf_info['bytes_tot'] = np.sum([__GDFTYP_BYTE[t] * n_samps[i] \
+                    for i, t in enumerate(edf_info['gdf_type'])])
 
                 # EVENT TABLE
                 etp = edf_info['data_offset'] + \
                     edf_info['n_records'] * edf_info['bytes_tot']
                 fid.seek(etp)  # skip data to go to event table
-                events = []
+                edf_info['events'] = events = []
                 etmode = fid.read(1)
                 if etmode != '':
                     etmode = np.fromstring(etmode, np.uint8).tolist()[0]
@@ -786,6 +791,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                     else:
                         DUR = np.zeros(N, dtype=np.np.uint32)
                         events.append([N, POS, TYP])
+
+                    edf_info['events'] = events
+                    info['events'] = np.c_[POS, DUR, TYP]
+
 
     n_samps = n_samps[include]
     physical_ranges = physical_max - physical_min
@@ -885,6 +894,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     info = _empty_info(sfreq)
     info['meas_date'] = calendar.timegm(date.utctimetuple())
     info['chs'] = chs
+    info['ch_names'] = ch_names
 
     # Filter settings
     if highpass.size == 0:
