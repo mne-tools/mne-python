@@ -58,6 +58,8 @@ BUG
 
     - Fix :func:`mne.viz.plot_sensors` to maintain proper aspect ratio by `Eric Larson`_
 
+    - Fix :func:`mne.viz.plot_topomap` to allow 0 contours by `Jaakko Leppakangas`_
+
 API
 ~~~
 

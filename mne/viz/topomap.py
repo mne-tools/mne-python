@@ -1407,7 +1407,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     vmax = np.max(vlims)
     cmap = _setup_cmap(cmap, n_axes=len(times), norm=vmin >= 0)
 
-    if not isinstance(contours, (list, np.ndarray)):
+    if not isinstance(contours, (list, np.ndarray)) and contours > 0:
         _, contours = _set_contour_locator(vmin, vmax, contours)
 
     for idx, time in enumerate(times):
