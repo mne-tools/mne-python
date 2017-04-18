@@ -1979,15 +1979,17 @@ def _setup_butterfly(params):
     if butterfly:
         if params['group_by'] in ['type', 'original']:
             eeg = 'seeg' if 'seeg' in params['types'] else 'eeg'
-            labels = ['grad', 'mag', eeg, 'eog', 'ecg', 'misc']
-            ticks = [5, 10, 15, 20, 25, 30]
+            labels = [t for t in ['grad', 'mag', eeg, 'eog', 'ecg']
+                      if t in params['types']] + ['misc']
+            ticks = np.arange(5, 5 * (len(labels) + 1), 5)
             offs = {l: t for (l, t) in zip(labels, ticks)}
             inds = params['inds']
             params['offsets'] = np.zeros(len(params['types']))
             for ind in inds:
-                params['offsets'][ind] = offs.get(params['types'][ind], 30)
+                params['offsets'][ind] = offs.get(params['types'][ind],
+                                                  5 * (len(labels)))
             ax.set_yticks(ticks)
-            params['ax'].set_ylim(35, 0)
+            params['ax'].set_ylim(5 * (len(labels) + 1), 0)
             ax.set_yticklabels(labels)
         else:
             if 'selections' not in params:

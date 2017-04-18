@@ -827,7 +827,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     vertline_color = (0., 0.75, 0.)
     params['ax_vertline'] = ax.plot([0, 0], ax.get_ylim(),
-                                    color=vertline_color, zorder=-1)[0]
+                                    color=vertline_color, zorder=4)[0]
     params['ax_vertline'].ch_name = ''
     params['vertline_t'] = ax_hscroll.text(params['first_time'], 1, '',
                                            color=vertline_color,
