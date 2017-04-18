@@ -12,7 +12,8 @@ import warnings
 from numpy.testing import assert_array_almost_equal
 import numpy as np
 
-from mne.io.gdf import read_raw_gdf
+from mne.io import read_raw_edf
+from mne.utils import run_tests_if_main
 from mne import pick_types
 
 warnings.simplefilter('always')
@@ -26,7 +27,7 @@ gdf_biosig_path = op.join(data_dir, 'test_gdf_biosig.npy')
 def test_gdf_data():
     """Test reading raw gdf files
     """
-    raw_py = read_raw_gdf(gdf_path, eog=None,
+    raw_py = read_raw_edf(gdf_path, eog=None,
                           misc=None, preload=True, stim_channel=None)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
@@ -38,3 +39,5 @@ def test_gdf_data():
 
     # Assert data are almost equal
     assert_array_almost_equal(data_py, data_biosig, 8)
+
+run_tests_if_main()
