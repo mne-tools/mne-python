@@ -119,15 +119,14 @@ class RawEDF(BaseRaw):
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
         cal = np.array([ch['cal'] for ch in self.info['chs']])
-        cal = (physical_range) / (cal)
-        gains = np.atleast_2d(self._raw_extras[fi]['units'] * (cal))
+        cal = np.atleast_2d((physical_range) / (cal)) # physical / digital
+        gains = np.atleast_2d(self._raw_extras[fi]['units'])
 
         # physical dimension in uV
-        physical_min = np.atleast_2d(self._raw_extras[fi]['units'] *
-                                     self._raw_extras[fi]['physical_min'])
+        physical_min = self._raw_extras[fi]['physical_min']
         digital_min = self._raw_extras[fi]['digital_min']
 
-        offsets = np.atleast_2d(physical_min - (digital_min * gains)).T
+        offsets = np.atleast_2d(physical_min - (digital_min * cal)).T
         if tal_channels is not None:
             for tal_channel in tal_channels:
                 offsets[tal_channel] = 0
@@ -214,8 +213,9 @@ class RawEDF(BaseRaw):
                     assert ch_data.shape == (len(ch_data), buf_len)
                     data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
 
-        data *= gains.T[sel]
-        data += offsets[sel]
+        data *= cal.T[sel] # scale
+        data += offsets[sel] # offset
+        data *= gains.T[sel] # apply units gain last
 
         # only try to read the stim channel if it's not None and it's
         # actually one of the requested channels
@@ -249,7 +249,7 @@ class RawEDF(BaseRaw):
             else:
                 # Allows support for up to 17-bit trigger values (2 ** 17 - 1)
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),
-                                      131071)
+                                      2**17 - 1)
                 data[stim_channel_idx, :] = stim
 
 
@@ -388,12 +388,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
             ch_names = [ch_names[idx] for idx in include]
             physical_min = np.array([float(fid.read(8).decode())
                                      for ch in channels])[include]
-            edf_info['physical_min'] = physical_min
             physical_max = np.array([float(fid.read(8).decode())
                                      for ch in channels])[include]
             digital_min = np.array([float(fid.read(8).decode())
                                     for ch in channels])[include]
-            edf_info['digital_min'] = digital_min
             digital_max = np.array([float(fid.read(8).decode())
                                     for ch in channels])[include]
             prefiltering = [fid.read(80).strip().decode()
@@ -402,6 +400,9 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                                  for filt in prefiltering])
             lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt)
                                 for filt in prefiltering])
+
+            edf_info['digital_min'] = digital_min
+            edf_info['physical_min'] = physical_min
 
             # number of samples per record
             n_samps = np.array([int(fid.read(8).decode()) for ch
@@ -508,22 +509,23 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                     include.append(i)
 
                 ch_names = [ch_names[idx] for idx in include]
-                physical_min = np.array([np.fromstring(fid.read(8),
-                                         np.float64)[0] for ch in channels])
-                edf_info['physical_min'] = physical_min
-                physical_max = np.array([np.fromstring(fid.read(8),
-                                         np.float64)[0] for ch in channels])
-                digital_min = np.array([np.fromstring(fid.read(8), np.int64)[0]
-                                        for ch in channels])
-                edf_info['digital_min'] = digital_min
-                digital_max = np.array([np.fromstring(fid.read(8), np.int64)[0]
-                                        for ch in channels])
+                physical_min = np.array([np.fromstring(fid.read(8), \
+                    np.float64)[0] for ch in channels])
+                physical_max = np.array([np.fromstring(fid.read(8), \
+                    np.float64)[0] for ch in channels])
+                digital_min = np.array([np.fromstring(fid.read(8), \
+                    np.int64)[0] for ch in channels])
+                digital_max = np.array([np.fromstring(fid.read(8), \
+                    np.int64)[0] for ch in channels])
                 prefiltering = [fid.read(80).strip().decode()
                                 for ch in channels][:-1]
                 highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
                                      for filt in prefiltering])
                 lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt)
                                     for filt in prefiltering])
+
+                edf_info['physical_min'] = physical_min
+                edf_info['digital_min'] = digital_min
 
                 # number of samples per record
                 n_samps = np.array([np.fromstring(fid.read(4), np.int32)[0]
@@ -656,8 +658,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                 patient['headsize'] = np.fromstring(fid.read(6), np.uint16)
                 patient['headsize'] = np.asarray(patient['headsize'],
                                                  np.float32)
-                patient['headsize'] = np.ma.masked_array(patient['headsize'],
-                                                         np.equal(patient['headsize'], 0), None).filled()
+                patient['headsize'] = np.ma.masked_array(patient['headsize'], \
+                    np.equal(patient['headsize'], 0), None).filled()
 
                 edf_info['ref'] = np.fromstring(fid.read(12), np.float32)
                 edf_info['gnd'] = np.fromstring(fid.read(12), np.float32)
@@ -716,14 +718,12 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                 ch_names = [ch_names[idx] for idx in include]
                 physical_min = np.array([np.fromstring(fid.read(8),
                                          np.float64)[0] for ch in channels])
-                edf_info['physical_min'] = physical_min
                 physical_max = np.array([np.fromstring(fid.read(8),
                                          np.float64)[0] for ch in channels])
-                digital_min = np.array([np.fromstring(fid.read(8), np.int64)[0]
-                                        for ch in channels])
-                edf_info['digital_min'] = digital_min
-                digital_max = np.array([np.fromstring(fid.read(8), np.int64)[0]
-                                        for ch in channels])
+                digital_min = np.array([np.fromstring(fid.read(8),
+                                        np.float64)[0] for ch in channels])
+                digital_max = np.array([np.fromstring(fid.read(8),
+                                        np.float64)[0] for ch in channels])
                 [fid.read(68).strip().decode() for ch in channels]  # obsolete
 
                 lowpass = np.array([np.fromstring(fid.read(4), np.float32)[0]
@@ -732,6 +732,9 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                                      for ch in channels])
                 notch = np.array([np.fromstring(fid.read(4), np.float32)[0]
                                   for ch in channels])
+
+                edf_info['physical_min'] = physical_min
+                edf_info['digital_min'] = digital_min
 
                 # number of samples per record
                 n_samps = np.array([np.fromstring(fid.read(4), np.int32)[0]
