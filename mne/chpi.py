@@ -311,7 +311,7 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
     return x, 1. - result / denom
 
 
-def _fit_dev_head_trans(dev_pnts, head_pnts):
+def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
     """Compute Device to Head transform allowing for permutiatons of points."""
     id_quat = np.concatenate([rot_to_quat(np.eye(3)), [0.0, 0.0, 0.0]])
     best_order = None
@@ -342,7 +342,9 @@ def _setup_hpi_struct(info, model_n_window,
 
     Returns
     -------
-    hpi - Dict
+    hpi : dict
+        Dictionary of parameters representing the cHPI system and needed to
+        perform head localization.
     """
     from .preprocessing.maxwell import _prep_mf_coils
 

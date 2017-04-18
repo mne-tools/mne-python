@@ -13,7 +13,7 @@ from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info, _make_dig_points
 from ..constants import FIFF
-from ...chpi import _fit_device_hpi_positions, _fit_dev_head_trans
+from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 
@@ -35,11 +35,12 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    pos_fname : str or None (defulat None)
+    pos_fname : str or None (default None)
         If not None, load digitized head points from this file
-    head_loc : bool (default False)
-        If True attempt to perform head localization using HPI coils. If no
-        HPI coils are in info['dig'] hpic coils are assumed to be in canonical
+    head_loc : bool (default True)
+        If True attempt to perform initial head localization (compute initial
+        evice to head coordinate transform) using HPI coils. If no
+        HPI coils are in info['dig'] hpi coils are assumed to be in canonical
         order of fiducial points (nas, rpa, lpa).
 
     Returns
@@ -320,8 +321,8 @@ class RawArtemis123(BaseRaw):
         if ext == '.txt':
             input_fname = fname + '.bin'
         elif ext != '.bin':
-            raise RuntimeError('Valid artemis123 files must end in \'txt\'' +
-                               ' or \'.bin\'.')
+            raise RuntimeError('Valid artemis123 files must end in "txt"' +
+                               ' or ".bin".')
 
         if not op.exists(input_fname):
             raise RuntimeError('%s - Not Found' % input_fname)
@@ -350,6 +351,10 @@ class RawArtemis123(BaseRaw):
                 hpi_dev, hpi_g = _fit_device_hpi_positions(self,
                                                            t_win=[0, 0.25])
                 if pos_fname is not None:
+                    logger.info('No Digitized cHPI locations found.\n' +
+                                'Assuming cHPIs are placed at cardinal ' +
+                                'fiducial locations. (Nasion, LPA, RPA')
+
                     # Digitized HPI points are needed.
                     hpi_head = np.array([d['r']
                                          for d in self.info.get('dig', [])
@@ -362,45 +367,19 @@ class RawArtemis123(BaseRaw):
                         raise RuntimeError(mesg % (len(hpi_head),
                                                    len(hpi_dev)))
 
-                    head_to_dev_t, order = _fit_dev_head_trans(hpi_dev,
-                                                               hpi_head)
+                    # compute initial head to dev transfor and hpi ordering
+                    head_to_dev_t, order = \
+                        _fit_coil_order_dev_head_trans(hpi_dev, hpi_head)
 
                     # set the device to head transform
                     self.info['dev_head_t'] = \
                         Transform(FIFF.FIFFV_COORD_DEVICE,
                                   FIFF.FIFFV_COORD_HEAD, head_to_dev_t)
 
-                    # fill in hpi_results
-                    hpi_result = dict()
-
-                    # add HPI points in device coords...
-                    dig = []
-                    for idx, point in enumerate(hpi_dev):
-                        dig.append({'r': point, 'ident': idx + 1,
-                                    'kind': FIFF.FIFFV_POINT_HPI,
-                                    'coord_frame': FIFF.FIFFV_COORD_DEVICE})
-                    hpi_result['dig_points'] = dig
-
-                    # attach Transform
-                    hpi_result['coord_trans'] = self.info['dev_head_t']
-
-                    # 1 based indexing
-                    hpi_result['order'] = order + 1
-                    hpi_result['used'] = np.arange(3) + 1
-
                     dig_dists = cdist(hpi_head, hpi_head)
                     dev_dists = cdist(hpi_dev, hpi_dev)
                     tmp_dists = np.abs(dig_dists - dev_dists)
-                    hpi_result['dist_limit'] = tmp_dists.max() * 1.1
-                    if hpi_result['dist_limit'] > 0.005:
-                        warn('Large difference between digitized geometry' +
-                             ' and HPI geometry. Max coil to coil difference' +
-                             ' is %0.2f cm\n' % (100. * tmp_dists.max()) +
-                             'beware of *POOR* head localization')
-
-                    hpi_result['good_limit'] = 0.98
-
-                    self.info['hpi_results'] = [hpi_result]
+                    dist_limit = tmp_dists.max() * 1.1
 
                 else:
                     logger.info('Assuming Cardinal HPIs')
@@ -420,29 +399,39 @@ class RawArtemis123(BaseRaw):
                     hpi = [nas, rpa, lpa]
                     self.info['dig'] = _make_dig_points(nasion=nas, lpa=lpa,
                                                         rpa=rpa, hpi=hpi)
+                    order = np.array([0, 1, 2])
+                    dist_limit = 0.005
 
-                    # fill in hpi_results
-                    hpi_result = dict()
+                # fill in hpi_results
+                hpi_result = dict()
 
-                    # add HPI points in device coords...
-                    dig = []
-                    for idx, point in enumerate(hpi_dev):
-                        dig.append({'r': point, 'ident': idx + 1,
-                                    'kind': FIFF.FIFFV_POINT_HPI,
-                                    'coord_frame': FIFF.FIFFV_COORD_DEVICE})
-                    hpi_result['dig_points'] = dig
+                # add HPI points in device coords...
+                dig = []
+                for idx, point in enumerate(hpi_dev):
+                    dig.append({'r': point, 'ident': idx + 1,
+                                'kind': FIFF.FIFFV_POINT_HPI,
+                                'coord_frame': FIFF.FIFFV_COORD_DEVICE})
+                hpi_result['dig_points'] = dig
 
-                    # attach Transform
-                    hpi_result['coord_trans'] = self.info['dev_head_t']
+                # attach Transform
+                hpi_result['coord_trans'] = self.info['dev_head_t']
 
-                    # 1 based indexing
-                    hpi_result['order'] = np.array([1, 2, 3])
-                    hpi_result['used'] = np.array([1, 2, 3])
+                # 1 based indexing
+                hpi_result['order'] = order + 1
+                hpi_result['used'] = np.arange(3) + 1
+                hpi_result['dist_limit'] = dist_limit
+                hpi_result['good_limit'] = 0.98
 
-                    hpi_result['dist_limit'] = 0.005
-                    hpi_result['good_limit'] = 0.98
+                # Warn for large discrepencies between digitized and fit
+                # cHPI locations
+                if hpi_result['dist_limit'] > 0.005:
+                    warn('Large difference between digitized geometry' +
+                         ' and HPI geometry. Max coil to coil difference' +
+                         ' is %0.2f cm\n' % (100. * tmp_dists.max()) +
+                         'beware of *POOR* head localization')
 
-                    self.info['hpi_results'] = [hpi_result]
+                # store it
+                self.info['hpi_results'] = [hpi_result]
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
