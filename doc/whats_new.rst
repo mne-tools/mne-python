@@ -39,6 +39,8 @@ Changelog
 
     - Add example for fast screening of event-related dynamics in frequency bands by `Denis Engemann`_
 
+    - Add :meth:`mne.time_frequency.EpochsTFR.save` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
