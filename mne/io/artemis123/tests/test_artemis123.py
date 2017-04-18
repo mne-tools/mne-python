@@ -49,7 +49,7 @@ def test_data():
 
     # test a random selected point
     raw = read_raw_artemis123(short_hpi_1kz_fname, preload=True,
-                              head_loc=False)
+                              add_head_trans=False)
     meg_picks = pick_types(raw.info, meg=True, eeg=False)
 
     # checked against matlab reader.
@@ -66,17 +66,17 @@ def test_data():
                              [0.0, 0.0, 0.0, 1.0]])
 
     # test with head loc no digitization
-    raw = read_raw_artemis123(short_HPI_dip_fname, head_loc=True)
+    raw = read_raw_artemis123(short_HPI_dip_fname, add_head_trans=True)
     _assert_trans(raw.info['dev_head_t']['trans'], dev_head_t_1)
     assert_equal(raw.info['sfreq'], 5000.0)
 
     # test with head loc and digitization
-    raw = read_raw_artemis123(short_HPI_dip_fname,  head_loc=True,
+    raw = read_raw_artemis123(short_HPI_dip_fname,  add_head_trans=True,
                               pos_fname=dig_fname)
     _assert_trans(raw.info['dev_head_t']['trans'], dev_head_t_1)
 
     # test 1kz hpi head loc (different freq)
-    raw = read_raw_artemis123(short_hpi_1kz_fname, head_loc=True)
+    raw = read_raw_artemis123(short_hpi_1kz_fname, add_head_trans=True)
     _assert_trans(raw.info['dev_head_t']['trans'], dev_head_t_2)
     assert_equal(raw.info['sfreq'], 1000.0)
 

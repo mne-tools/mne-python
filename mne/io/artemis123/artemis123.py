@@ -18,7 +18,7 @@ from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 
 def read_raw_artemis123(input_fname, preload=False, verbose=None,
-                        pos_fname=None, head_loc=True):
+                        pos_fname=None, add_head_trans=True):
     """Read Artemis123 data as raw object.
 
     Parameters
@@ -37,9 +37,9 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
         If not None, override default verbose level (see mne.verbose).
     pos_fname : str or None (default None)
         If not None, load digitized head points from this file
-    head_loc : bool (default True)
-        If True attempt to perform initial head localization (compute initial
-        evice to head coordinate transform) using HPI coils. If no
+    add_head_trans : bool (default True)
+        If True attempt to perform initial head localization. Compute initial
+        device to head coordinate transform using HPI coils. If no
         HPI coils are in info['dig'] hpi coils are assumed to be in canonical
         order of fiducial points (nas, rpa, lpa).
 
@@ -53,7 +53,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     return RawArtemis123(input_fname, preload=preload, verbose=verbose,
-                         pos_fname=pos_fname, head_loc=head_loc)
+                         pos_fname=pos_fname, add_head_trans=add_head_trans)
 
 
 def _get_artemis123_info(fname, pos_fname=None):
@@ -314,7 +314,7 @@ class RawArtemis123(BaseRaw):
     """
 
     def __init__(self, input_fname, preload=False, verbose=None,
-                 pos_fname=None, head_loc=True):  # noqa: D102
+                 pos_fname=None, add_head_trans=True):  # noqa: D102
         from scipy.spatial.distance import cdist
 
         fname, ext = op.splitext(input_fname)
@@ -338,7 +338,7 @@ class RawArtemis123(BaseRaw):
             verbose=verbose)
         self.info['hpi_results'] = []
 
-        if head_loc:
+        if add_head_trans:
             n_hpis = 0
             for d in info['hpi_subsystem']['hpi_coils']:
                 if d['event_bits'] == [256]:
