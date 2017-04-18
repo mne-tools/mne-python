@@ -1005,13 +1005,16 @@ def _plot_update_epochs_proj(params, bools=None):
         params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
                                    for ii in inds]
         params['proj_bools'] = bools
+    epochs = params['epochs']
+    n_epochs = params['n_epochs']
     params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
                                         verbose=False)
-
-    start = int(params['t_start'] / len(params['epochs'].times))
-    n_epochs = params['n_epochs']
+    start = int(params['t_start'] / len(epochs.times))
     end = start + n_epochs
-    data = np.concatenate(params['epochs'][start:end].get_data(), axis=1)
+    if epochs._data is None:
+        data = np.concatenate(epochs[start:end].get_data(), axis=1)
+    else:  # preloaded data
+        data = np.concatenate(epochs._data[start:end], axis=1)
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
     types = params['types']
