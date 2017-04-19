@@ -367,7 +367,7 @@ class RawArtemis123(BaseRaw):
                         raise RuntimeError(mesg % (len(hpi_head),
                                                    len(hpi_dev)))
 
-                    # compute initial head to dev transfor and hpi ordering
+                    # compute initial head to dev transform and hpi ordering
                     head_to_dev_t, order = \
                         _fit_coil_order_dev_head_trans(hpi_dev, hpi_head)
 

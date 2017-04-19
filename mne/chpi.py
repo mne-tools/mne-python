@@ -16,7 +16,7 @@ To fit head positions (continuously), the procedure using
     5. Use a linear model (DC + linear slope + sin + cos terms set up
        in ``_setup_hpi_struct``) to fit sinusoidal amplitudes to MEG
        channels. Use SVD to determine the phase/amplitude of the sinusoids.
-       This step is accomplished using using ``_fit_cHPI_amplitudes``
+       This step is accomplished using ``_fit_cHPI_amplitudes``
     6. If the amplitudes are 98% correlated with last position
        (and Δt < t_step_max), skip fitting.
     7. Fit magnetic dipoles using the amplitudes for each coil frequency
@@ -498,7 +498,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
         Raw data with cHPI information.
     t_win : list, shape (2)
         Time window to fit. If None entire data run is used.
-    initial_dev_rrs : ???
+    initial_dev_rrs : ndarry, shape (n_CHPI, 3) || None
         Initial guess on HPI locations. If None (0,0,0) is used for each hpi.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
