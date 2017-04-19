@@ -91,11 +91,14 @@ def _read_header(input_fname):
 def _read_events(input_fname, hdr, info):
     """Read events for the record.
 
-    in:
-        input_fname : str with the file path
-        hdr : dictionary with the headers get
-              by read_mff_header
-        info : header info array
+    Parameters
+    ----------
+    input_fname : str
+        The file path.
+    hdr : dict
+        Dictionary with the headers got from read_mff_header.
+    info : dict
+        Header info array.
     """
     mff_events, event_codes = read_mff_events(input_fname, hdr)
     info['n_events'] = len(event_codes)
@@ -104,24 +107,12 @@ def _read_events(input_fname, hdr, info):
                       info['n_segments'] * info['n_samples']])
     for n, event in enumerate(event_codes):
         for i in mff_events[event]:
-            events[n][i] = 1.4012984643248171e-45
+            if i > events.shape[1]:
+                warn('Event outside data range (%ss).' % (i /
+                                                          info['samp_rate']))
+                continue
+            events[n][i] = 2**n
     return events, info
-
-
-def _combine_triggers_mff(data, remapping=None):
-    """Combine binary triggers."""
-    new_trigger = np.zeros(data.shape[1])
-    if data.astype(bool).sum(axis=0).max() > 1:  # ensure no overlaps
-        logger.info('    Found multiple events at the same time '
-                    'sample. Cannot create trigger channel.')
-        return
-    if remapping is None:
-        remapping = np.arange(data) + 1
-    for d, event_id in zip(data, remapping):
-        idx = d.nonzero()
-        if np.any(idx):
-            new_trigger[idx] += event_id
-    return new_trigger
 
 
 @verbose
@@ -253,19 +244,16 @@ class RawMff(BaseRaw):
                 elif v is not None:
                     raise ValueError('`%s` must be None or of type list' % kk)
 
-            event_ids = np.arange(len(include_)) + 1
+            event_ids = np.nonzero(np.unique(egi_events))
             logger.info('    Synthesizing trigger channel "STI 014" ...')
             logger.info('    Excluding events {%s} ...' %
                         ", ".join([k for i, k in enumerate(event_codes)
                                    if i not in include_]))
-            self._new_trigger = _combine_triggers_mff(egi_events[include_],
-                                                      remapping=event_ids)
             self.event_id = dict(zip([e for e in event_codes if e in
                                       include_names], event_ids))
         else:
             # No events
             self.event_id = None
-            self._new_trigger = None
 
         info = _empty_info(egi_info['samp_rate'])
         info['buffer_size_sec'] = 1.  # reasonable default
@@ -278,8 +266,8 @@ class RawMff(BaseRaw):
         ch_names = ['EEG %03d' % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
-        if self._new_trigger is not None:
-            ch_names.append('STI 014')  # our new_trigger
+        if len(egi_events) > 0:
+            ch_names.append('STI 014')  # channel for combined events
         nchan = len(ch_names)
         cals = np.repeat(cal, nchan)
         ch_coil = FIFF.FIFFV_COIL_EEG
@@ -374,4 +362,7 @@ class RawMff(BaseRaw):
                 sample_start = sample_start + block_info['nsamples']
                 _mult_cal_one(data_view, block, idx, cals[:n_channels], mult)
 
-        data[n_channels:] = egi_events
+        # STI 014 is simply the sum of all event channels (powers of 2).
+        if len(egi_events) > 0:
+            egi_events = np.vstack([egi_events, np.sum(egi_events, axis=0)])
+            data[n_channels:] = egi_events
