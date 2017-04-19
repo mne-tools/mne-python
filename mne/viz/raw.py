@@ -384,7 +384,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     _layout_figure(params)
 
     # deal with projectors
-    if show_options is True:
+    if show_options:
         _toggle_options(None, params)
 
     callback_close = partial(_close_event, params=params)

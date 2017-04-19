@@ -402,7 +402,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     # change already-applied projectors to red
     for ii, p in enumerate(projs):
-        if p['active'] is True:
+        if p['active']:
             for x in proj_checks.lines[ii]:
                 x.set_color('r')
     # make minimal size
