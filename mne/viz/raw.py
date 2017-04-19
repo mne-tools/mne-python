@@ -178,6 +178,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         then excessive values are not shown, creating gaps in the traces.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
+    proj : bool
+        Whether to apply projectors prior to plotting. Individual projectors
+        can be enabled/disabled interactively (see Notes). Note also that this
+        argument only affects the plot; use ``raw.apply_proj()`` to modify the
+        data stored in the Raw object.
 
     Returns
     -------
@@ -194,6 +199,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     can be to toggled with f11 key. To mark or un-mark a channel as bad, click
     on the rather flat segments of a channel's time series. The changes will be
     reflected immediately in the raw object's ``raw.info['bads']`` entry.
+
+    If projectors are present, a button labelled "Proj" in the lower right
+    corner of the plot window opens a secondary control window, which allows
+    enabling/disabling specific projectors individually. This provides a means
+    of interactively observing how each projector would affect the raw data if
+    it were applied.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
