@@ -93,7 +93,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
-             show_first_samp=False):
+             show_first_samp=False, proj=True):
     """Plot raw data.
 
     Parameters
@@ -344,6 +344,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if len(raw.info['projs']) > 0 and not raw.proj:
         ax_button = plt.subplot2grid((10, 10), (9, 9))
         params['ax_button'] = ax_button
+        params['apply_proj'] = proj
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
         callback_option = partial(_toggle_options, params=params)
         opt_button.on_clicked(callback_option)

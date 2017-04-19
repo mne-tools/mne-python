@@ -252,7 +252,7 @@ def _toggle_proj(event, params):
             if not b and p['active']:
                 bools[bi] = True
     else:
-        bools = [True] * len(params['projs'])
+        bools = [params['apply_proj']] * len(params['projs'])
 
     compute_proj = False
     if 'proj_bools' not in params:
@@ -385,7 +385,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     labels = [p['desc'] for p in projs]
     actives = ([p['active'] for p in projs] if draw_current_state else
-               [True] * len(params['projs']))
+               [params['apply_proj']] * len(projs))
 
     width = max([len(p['desc']) for p in projs]) / 6.0 + 0.5
     height = len(projs) / 6.0 + 0.5
