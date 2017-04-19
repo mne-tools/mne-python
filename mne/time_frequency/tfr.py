@@ -1397,6 +1397,7 @@ class AverageTFR(_BaseTFR):
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. If colorbar=True, the ticks
             in colorbar correspond to the contour levels. Defaults to 6.
+
         Returns
         -------
         fig : matplotlib.figure.Figure
