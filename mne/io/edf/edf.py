@@ -72,7 +72,7 @@ class RawEDF(BaseRaw):
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
                  stim_channel=-1, annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None):  # noqa: D102
+                 preload=False, verbose=None, biosemi=False):  # noqa: D102
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,
@@ -84,12 +84,13 @@ class RawEDF(BaseRaw):
             warn("Stimulus Channel will not be annotated. Both 'annot' and "
                  "'annotmap' must be specified.")
 
+        self.biosemi = biosemi
+
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
         super(RawEDF, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[edf_info],
-            last_samps=last_samps, orig_format='int',
-            verbose=verbose)
+            last_samps=last_samps, orig_format='int', verbose=verbose)
 
         logger.info('Ready.')
 
@@ -104,7 +105,6 @@ class RawEDF(BaseRaw):
             raise NotImplementedError('mult is not supported yet')
         exclude = self._raw_extras[fi]['exclude']
         sel = np.arange(self.info['nchan'])[idx]
-
         n_samps = self._raw_extras[fi]['n_samps']
         buf_len = int(self._raw_extras[fi]['max_samp'])
         sfreq = self.info['sfreq']
@@ -115,6 +115,7 @@ class RawEDF(BaseRaw):
         annot = self._raw_extras[fi]['annot']
         annotmap = self._raw_extras[fi]['annotmap']
         subtype = self._raw_extras[fi]['subtype']
+        biosemi = self.biosemi
 
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
@@ -156,9 +157,9 @@ class RawEDF(BaseRaw):
 
             # Does not support multiple data type
             if subtype == 'GDF':
-                if len(np.unique([self._raw_extras[fi]['gdf_type']])) > 1:
+                if len(np.unique(self._raw_extras[fi]['gdftype'])) > 1:
                     raise("Multiple data type not supported")
-                gdftype = self._raw_extras[fi]['gdf_type_np'][0]
+                gdftype = self._raw_extras[fi]['gdftype_np'][0]
 
             else:
                 gdftype = None
@@ -246,9 +247,12 @@ class RawEDF(BaseRaw):
                     stim[n_start:n_stop] += evid
                 data[stim_channel_idx, :] = stim[start:stop]
             else:
-                # Allows support for up to 17-bit trigger values (2 ** 17 - 1)
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),
                                       2**17 - 1)
+
+                if biosemi:
+                    stim = stim >> 8  # not sure why but it works
+
                 data[stim_channel_idx, :] = stim
 
 
@@ -268,7 +272,7 @@ def _read_ch(fid, subtype, samp, data_size, gdftype=None):
     # GDF data
     elif subtype == 'GDF':
         ch_data = np.fromfile(fid, dtype=gdftype, count=samp)
-        ch_data = np.float64(ch_data)
+        # ch_data = ch_data.astype(np.float64)
 
     # EDF data: 16bit data
     else:
@@ -339,7 +343,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         edf_info['annotmap'] = None
     else:
         raise NotImplementedError(
-            'Only GDF, EDF, and BDF files are supported.')
+            'Only GDF, EDF, and BDF files are supported, got %s.' % ext)
 
     include = edf_info['include']
     ch_names = edf_info['ch_names']
@@ -607,26 +611,12 @@ def _read_gdf_header(fname, stim_channel, exclude):
 
         version = fid.read(8).decode()
 
-        __gdftyp_byte = (1, 1, 1, 2, 2, 4, 4, 8, 8, 4, 8, 0, 0, 0, 0, 0, 4, 8,
-                         16)
-        __gdftyp_np = [None]
-        __gdftyp_np.append(np.int8)
-        __gdftyp_np.append(np.uint8)
-        __gdftyp_np.append(np.int16)
-        __gdftyp_np.append(np.uint16)
-        __gdftyp_np.append(np.int32)
-        __gdftyp_np.append(np.uint32)
-        __gdftyp_np.append(np.int64)
-        __gdftyp_np.append(np.uint64)
-        __gdftyp_np.append(None)
-        __gdftyp_np.append(None)
-        __gdftyp_np.append(None)
-        __gdftyp_np.append(None)
-        __gdftyp_np.append(None)
-        __gdftyp_np.append(None)
-        __gdftyp_np.append(None)
-        __gdftyp_np.append(np.float32)
-        __gdftyp_np.append(np.float64)
+        gdftyp_np = (None, np.int8, np.uint8, np.int16, np.uint16, np.int32,
+                     np.uint32, np.int64, np.uint64, None, None, None, None,
+                     None, None, None, np.float32, np.float64)
+        gdftyp_byte = [np.dtype(x).itemsize if x is not None else 0
+                       for x in gdftyp_np]
+        assert sum(gdftyp_byte) == 42
 
         edf_info['type'] = edf_info['subtype'] = version[:3]
         edf_info['number'] = float(version[4:])
@@ -701,18 +691,18 @@ def _read_gdf_header(fname, stim_channel, exclude):
 
             # populate edf_info
             edf_info['bytes_tot'] = \
-                np.sum([__gdftyp_byte[t] * n_samps[i]     # total number of
+                np.sum([gdftyp_byte[t] * n_samps[i]     # total number of
                         for i, t in enumerate(gdftype)])  # bytes for data
             edf_info['ch_names'] = ch_names
             edf_info['data_offset'] = header_nbytes
-            edf_info['data_size'] = __gdftyp_byte[gdftype[0]]
+            edf_info['data_size'] = gdftyp_byte[gdftype[0]]
             edf_info['date'] = date
             edf_info['digital_max'] = digital_max
             edf_info['digital_min'] = digital_min
             edf_info['equipment'] = equipment
             edf_info['exclude'] = exclude
-            edf_info['gdf_type'] = gdftype
-            edf_info['gdf_type_np'] = [__gdftyp_np[t] for t in gdftype]
+            edf_info['gdftype'] = gdftype
+            edf_info['gdftype_np'] = [gdftyp_np[t] for t in gdftype]
             edf_info['highpass'] = highpass
             edf_info['hospital'] = hospital
             edf_info['include'] = include
@@ -762,9 +752,9 @@ def _read_gdf_header(fname, stim_channel, exclude):
         # ----------------------------------------------------------------------
         else:
             # FIXED HEADER
-            __handedness = ('Unknown', 'Right', 'Left', 'Equal')
-            __gender = ('Unknown', 'Male', 'Female')
-            __scale = ('Unknown', 'No', 'Yes', 'Corrected')
+            handedness = ('Unknown', 'Right', 'Left', 'Equal')
+            gender = ('Unknown', 'Male', 'Female')
+            scale = ('Unknown', 'No', 'Yes', 'Corrected')
 
             # date
             pid = fid.read(66).decode()
@@ -778,10 +768,10 @@ def _read_gdf_header(fname, stim_channel, exclude):
 
             # Smoking / Alcohol abuse / drug abuse / medication
             sadm = np.fromstring(fid.read(1), np.uint8).tolist()[0]
-            patient['smoking'] = __scale[sadm % 4]
-            patient['alcohol_abuse'] = __scale[(sadm >> 2) % 4]
-            patient['drug_abuse'] = __scale[(sadm >> 4) % 4]
-            patient['medication'] = __scale[(sadm >> 6) % 4]
+            patient['smoking'] = scale[sadm % 4]
+            patient['alcohol_abuse'] = scale[(sadm >> 2) % 4]
+            patient['drug_abuse'] = scale[(sadm >> 4) % 4]
+            patient['medication'] = scale[(sadm >> 6) % 4]
             patient['weight'] = \
                 np.fromstring(fid.read(1), np.uint8).tolist()[0]
             if patient['weight'] == 0 or patient['weight'] == 255:
@@ -793,9 +783,9 @@ def _read_gdf_header(fname, stim_channel, exclude):
 
             # Gender / Handedness / Visual Impairment
             ghi = np.fromstring(fid.read(1), np.uint8).tolist()[0]
-            patient['sex'] = __gender[ghi % 4]
-            patient['handedness'] = __handedness[(ghi >> 2) % 4]
-            patient['visual'] = __scale[(ghi >> 4) % 4]
+            patient['sex'] = gender[ghi % 4]
+            patient['handedness'] = handedness[(ghi >> 2) % 4]
+            patient['visual'] = scale[(ghi >> 4) % 4]
 
             fid.read(64)  # recording identification (unused here)
             rl = fid.read(16).decode()  # Recording location (Lat, Long, Alt)
@@ -886,7 +876,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             encoded as 4256 (Volt) + 19 (micro) = 4275. The code 512
             stands for dimensionless.
             """  # noqa
-            [fid.read(6) for ch in channels]  # phys_dim, obsolete
+            fid.seek(6 * len(channels), 1)  # phys_dim, obsolete
             units = [np.fromstring(fid.read(2), np.uint16)[0]
                      for ch in channels]
             include = list()
@@ -943,18 +933,18 @@ def _read_gdf_header(fname, stim_channel, exclude):
 
             # Populate edf_info
             edf_info['bytes_tot'] = \
-                np.sum([__gdftyp_byte[t] * n_samps[i]     # total number of
+                np.sum([gdftyp_byte[t] * n_samps[i]     # total number of
                         for i, t in enumerate(gdftype)])  # bytes for data
             edf_info['ch_names'] = ch_names
             edf_info['data_offset'] = header_nbytes
-            edf_info['data_size'] = __gdftyp_byte[gdftype[0]]
+            edf_info['data_size'] = gdftyp_byte[gdftype[0]]
             edf_info['date'] = date
             edf_info['digital_min'] = digital_min
             edf_info['digital_max'] = digital_max
             edf_info['equipment'] = equipment
             edf_info['exclude'] = exclude
-            edf_info['gdf_type'] = gdftype
-            edf_info['gdf_type_np'] = [__gdftyp_np[t] for t in gdftype]
+            edf_info['gdftype'] = gdftype
+            edf_info['gdftype_np'] = [gdftyp_np[t] for t in gdftype]
             edf_info['gnd'] = gnd
             edf_info['highpass'] = highpass
             edf_info['include'] = include
@@ -1054,7 +1044,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel=-1, annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None):
+                 preload=False, verbose=None, biosemi=False):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
     Parameters
@@ -1096,6 +1086,9 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    biosemi : bool (default False)
+        Set to True to when reading Biosemi data as GDF files, otherwise the
+        stimulus channel will not be properly parsed.
 
     Returns
     -------
@@ -1108,4 +1101,5 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     """
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  exclude=exclude, preload=preload, verbose=verbose)
+                  exclude=exclude, preload=preload, verbose=verbose,
+                  biosemi=False)
