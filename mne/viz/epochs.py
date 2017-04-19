@@ -1011,11 +1011,12 @@ def _plot_update_epochs_proj(params, bools=None):
                                         verbose=False)
     start = int(params['t_start'] / len(epochs.times))
     end = start + n_epochs
-    if epochs._data is None:
+    if epochs.preload:
+        data = np.concatenate(epochs.get_data()[start:end], axis=1)
+    else:
         # this is faster than epochs.get_data()[start:end] when not preloaded
         data = np.concatenate(epochs[start:end].get_data(), axis=1)
-    else:  # preloaded data
-        data = np.concatenate(epochs.get_data()[start:end], axis=1)
+
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
     types = params['types']
