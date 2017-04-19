@@ -1277,11 +1277,12 @@ class AverageTFR(_BaseTFR):
         return fig
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
-                     ch_type=None, baseline=None, mode='mean',
-                     layout=None, vmin=None, vmax=None, cmap=None,
-                     sensors=True, colorbar=True, unit=None, res=64, size=2,
+                     ch_type=None, baseline=None, mode='mean', layout=None,
+                     vmin=None, vmax=None, cmap=None, sensors=True,
+                     colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, outlines='head', head_pos=None):
+                     axes=None, show=True, outlines='head', head_pos=None,
+                     contours=6):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1389,7 +1390,13 @@ class AverageTFR(_BaseTFR):
             the head circle. If dict, can have entries 'center' (tuple) and
             'scale' (tuple) for what the center and scale of the head should be
             relative to the electrode locations.
-
+        contours : int | False | array of float | None
+            The number of contour lines to draw. If 0, no contours will be
+            drawn. When an integer, matplotlib ticker locator is used to find
+            suitable values for the contour thresholds (may sometimes be
+            inaccurate, use array for accuracy). If an array, the values
+            represent the levels for the contours. If colorbar=True, the ticks
+            in colorbar correspond to the contour levels. Defaults to 6.
         Returns
         -------
         fig : matplotlib.figure.Figure
@@ -1403,7 +1410,8 @@ class AverageTFR(_BaseTFR):
                                 unit=unit, res=res, size=size,
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
-                                outlines=outlines, head_pos=head_pos)
+                                outlines=outlines, head_pos=head_pos,
+                                contours=contours)
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""

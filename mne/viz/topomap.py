@@ -962,7 +962,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, outlines='head', head_pos=None):
+                     axes=None, show=True, outlines='head', head_pos=None,
+                     contours=6):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
     Parameters
@@ -1067,6 +1068,13 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
+    contours : int | False | array of float | None
+        The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. If colorbar=True, the ticks in colorbar correspond to the
+        contour levels. Defaults to 6.
 
     Returns
     -------
@@ -1114,13 +1122,17 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     cmap = _setup_cmap(cmap, norm=norm)
 
     if axes is None:
-        fig = plt.figure()
+        fig = plt.figure(figsize=(size, size))
         ax = fig.gca()
     else:
         fig = axes.figure
         ax = axes
 
     _hide_frame(ax)
+
+    locator = None
+    if not isinstance(contours, (list, np.ndarray)) and contours > 0:
+        locator, contours = _set_contour_locator(vmin, vmax, contours)
 
     if title is not None:
         ax.set_title(title)
@@ -1132,16 +1144,20 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axes=ax, cmap=cmap[0], image_interp='bilinear',
-                         contours=False, names=names, show_names=show_names,
+                         contours=contours, names=names, show_names=show_names,
                          show=False, onselect=selection_callback,
                          sensors=sensors, res=res, head_pos=head_pos,
                          outlines=outlines)
 
     if colorbar:
+        from matplotlib import ticker
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         cbar = plt.colorbar(im, cax=cax, format=cbar_fmt, cmap=cmap[0])
-        cbar.set_ticks((vmin, vmax))
+        if locator is None:
+            locator = ticker.MaxNLocator(nbins=5)
+        cbar.locator = locator
+        cbar.update_ticks()
         cbar.ax.tick_params(labelsize=12)
         unit = _handle_default('units', unit)['misc']
         cbar.ax.set_title(unit)
@@ -1265,10 +1281,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         Defaults to 'head'.
     contours : int | False | array of float | None
         The number of contour lines to draw. If 0, no contours will be drawn.
-        If an array, the values represent the levels for the contours. The
-        values are in uV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If colorbar=True, the ticks in colorbar correspond to the
-        contour levels.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. The values are in uV for EEG, fT for magnetometers and
+        fT/m for gradiometers. If colorbar=True, the ticks in colorbar
+        correspond to the contour levels.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
