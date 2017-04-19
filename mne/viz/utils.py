@@ -388,13 +388,18 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
                [params['apply_proj']] * len(projs))
 
     width = max([len(p['desc']) for p in projs]) / 6.0 + 0.5
-    height = len(projs) / 6.0 + 0.5
+    height = len(projs) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
     fig_proj.canvas.set_window_title('SSP projection vectors')
     params['fig_proj'] = fig_proj  # necessary for proper toggling
-    ax_temp = fig_proj.add_axes((0, 0, 1, 1), frameon=False)
+    ax_temp = fig_proj.add_axes((0, 0, 1, 0.8), frameon=False)
+    ax_temp.set_title('Projectors marked with "X" are active')
 
     proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
+    # make edges around checkbox areas
+    [rect.set_edgecolor('0.5') for rect in proj_checks.rectangles]
+    [rect.set_linewidth(1.) for rect in proj_checks.rectangles]
+
     # change already-applied projectors to red
     for ii, p in enumerate(projs):
         if p['active'] is True:
