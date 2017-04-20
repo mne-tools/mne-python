@@ -381,7 +381,7 @@ class RawEEGLAB(BaseRaw):
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""
-        if len(set(events[:, 0])) != len(set(events[:, 0])):
+        if len(set(events[:, 0])) != len(events[:, 0]):
             warn("Some events overlap/occur at the same time sample. The "
                  "resulting Raw object will contain the event information "
                  "in a stimulus channel. Stimulus channels can only carry "
@@ -585,7 +585,8 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info('Ready.')
 
 
-def read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
+def read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer',
+                       uint16_codec=None):
     r"""Create events array from EEGLAB structure.
 
     An event array is constructed by looking up events in the
@@ -623,6 +624,12 @@ def read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
         If the event is not in the ``event_id`` and calling ``event_id_func``
         on it results in a ``TypeError`` (e.g. if ``event_id_func`` is
         ``None``) or a ``ValueError``, the event is dropped.
+    uint16_codec : str | None
+        If your \*.set file contains non-ascii characters, sometimes reading
+        it may fail and give rise to error message stating that "buffer is
+        too small". ``uint16_codec`` allows to specify what codec (for example:
+        'latin1' or 'utf-8') should be used when reading character arrays and
+        can therefore help you solve this problem.
 
     Returns
     -------
@@ -642,6 +649,7 @@ def read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
         event_id = dict()
 
     if isinstance(eeg, string_types):
+        from scipy import io
         eeg = io.loadmat(eeg, struct_as_record=False, squeeze_me=True,
                          uint16_codec=uint16_codec)['EEG']
 
