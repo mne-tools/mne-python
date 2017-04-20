@@ -10,4 +10,5 @@ from .ems import compute_ems, EMS
 from .time_gen import GeneralizationAcrossTime, TimeDecoding
 from .time_frequency import TimeFrequency
 from .receptive_field import ReceptiveField
+from .time_delaying_ridge import TimeDelayingRidge
 from .search_light import SlidingEstimator, GeneralizingEstimator

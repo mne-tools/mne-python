@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 =====================================================================
 Spectro-temporal receptive field (STRF) estimation on continuous data
@@ -32,6 +33,11 @@ modeling with continuous inputs is described in:
 .. [4] Holdgraf, C. R. et al. Rapid tuning shifts in human auditory cortex
        enhance speech intelligibility. Nature Communications, 7, 13654 (2016).
        doi:10.1038/ncomms13654
+
+.. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A. & Lalor, E. C. (2016).
+       The Multivariate Temporal Response Function (mTRF) Toolbox:
+       A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
+       Frontiers in Human Neuroscience 10, 604. doi:10.3389/fnhum.2016.00604
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
@@ -41,12 +47,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne.decoding import ReceptiveField
+from mne.decoding import ReceptiveField, TimeDelayingRidge
 
 from scipy.stats import multivariate_normal
 from scipy.io import loadmat
 from sklearn.preprocessing import scale
-from sklearn.linear_model import Ridge
 rng = np.random.RandomState(1337)  # To make this example reproducible
 
 ###############################################################################
@@ -76,22 +81,22 @@ sfreq /= n_decim
 # We'll simulate a linear receptive field for a theoretical neural signal. This
 # defines how the signal will respond to power in this receptive field space.
 n_freqs = 16
-tmin, tmax = -.4, 0.
+tmin, tmax = -.4, 0.1
 
 # To simulate the data we'll create explicit delays here
 delays_samp = np.arange(np.round(tmin * sfreq),
                         np.round(tmax * sfreq) + 1).astype(int)
 delays_sec = delays_samp / sfreq
-freqs = np.logspace(2, np.log10(5000), n_freqs)
+freqs = np.linspace(50, 5000, n_freqs)
 grid = np.array(np.meshgrid(delays_sec, freqs))
 
 # We need data to be shaped as n_epochs, n_features, n_times, so swap axes here
 grid = grid.swapaxes(0, -1).swapaxes(0, 1)
 
 # Simulate a temporal receptive field with a Gabor filter
-means_high = [-.1, 1000]
-means_low = [-.15, 2000]
-cov = [[.0005, 0], [0, 200000]]
+means_high = [-.1, 500]
+means_low = [-.2, 2500]
+cov = [[.001, 0], [0, 500000]]
 gauss_high = multivariate_normal.pdf(grid, means_high, cov)
 gauss_low = -1 * multivariate_normal.pdf(grid, means_low, cov)
 weights = gauss_high + gauss_low  # Combine to create the "true" STRF
@@ -120,7 +125,7 @@ mne.viz.tight_layout()
 # information.
 
 # Reshape audio to split into epochs, then make epochs the first dimension.
-n_epochs, n_seconds = 30, 3
+n_epochs, n_seconds = 16, 5
 audio = audio[:, :int(n_seconds * sfreq * n_epochs)]
 X = audio.reshape([n_freqs, n_epochs, -1]).swapaxes(0, 1)
 n_times = X.shape[-1]
@@ -154,7 +159,7 @@ weights_sim = weights.ravel()
 y = np.zeros((n_epochs, n_times))
 for ii, iep in enumerate(X_del):
     # Simulate this epoch and add random noise
-    noise_amp = .0005
+    noise_amp = .002
     y[ii] = np.dot(weights_sim, iep) + noise_amp * rng.randn(n_times)
 
 # Plot the first 2 trials of audio and the simulated electrode activity
@@ -181,7 +186,7 @@ mne.viz.tight_layout()
 # inputs and outputs.
 
 # Create training and testing data
-train, test = np.arange(20), 21
+train, test = np.arange(n_epochs - 1), n_epochs - 1
 X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
 X_train, X_test, y_train, y_test = [np.rollaxis(ii, -1, 0) for ii in
                                     (X_train, X_test, y_train, y_test)]
@@ -190,7 +195,7 @@ alphas = np.logspace(-4, 0, 10)
 scores = np.zeros_like(alphas)
 models = []
 for ii, alpha in enumerate(alphas):
-    rf = ReceptiveField(tmin, tmax, sfreq, freqs, estimator=Ridge(alpha))
+    rf = ReceptiveField(tmin, tmax, sfreq, freqs, estimator=alpha)
     rf.fit(X_train, y_train)
 
     # Now make predictions about the model output, given input stimuli.
@@ -231,18 +236,18 @@ mne.viz.tight_layout()
 # ---------------------------------------
 #
 # Above we fit a :class:`mne.decoding.ReceptiveField` model for one of many
-# values for the "ridge" parameter. Here we will plot the model score as well
-# as the model coefficients for each value, in order to visualize how
-# coefficients change with different levels of regularization. These issues
-# as well as the STRF pipeline are described in detail in [1]_, [2]_, and
-# [4]_.
+# values for the ridge regularization parameter. Here we will plot the model
+# score as well as the model coefficients for each value, in order to
+# visualize how coefficients change with different levels of regularization.
+# These issues as well as the STRF pipeline are described in detail
+# in [1]_, [2]_, and [4]_.
 
 # Plot model score for each ridge parameter
 fig = plt.figure(figsize=(20, 4))
 ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
 ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
 ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
-            (ix_best_alpha - 1, scores[ix_best_alpha] - .005),
+            (ix_best_alpha - 1, scores[ix_best_alpha] - .01),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
 ax.set(xlabel="Ridge regularization value", ylabel="Score ($R^2$)",
@@ -257,6 +262,85 @@ for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
     plt.yticks([], [])
     plt.autoscale(tight=True)
 fig.suptitle('Model coefficients / scores for many ridge parameters', y=1)
+mne.viz.tight_layout()
+
+###############################################################################
+# Using different regularization types
+# ------------------------------------
+# In addition to the standard ridge regularization, the
+# :class:`mne.decoding.TimeDelayingRidge` class also exposes
+# `Laplacian <https://en.wikipedia.org/wiki/Laplacian_matrix>`_ regularization
+# term as:
+#
+# .. math::
+#    \left[\begin{matrix}
+#         1 & -1 &   &   & & \\
+#        -1 &  2 & -1 &   & & \\
+#           & -1 & 2 & -1 & & \\
+#           & & \ddots & \ddots & \ddots & \\
+#           & & & -1 & 2 & -1 \\
+#           & & &    & -1 & 1\end{matrix}\right]
+#
+# This imposes a smoothness constraint of nearby time samples. Quoting [5]_:
+#
+#    Tikhonov [identity] regularization (Equation 5) reduces overfitting by
+#    smoothing the TRF estimate in a way that is insensitive to
+#    the amplitude of the signal of interest. However, the Laplacian
+#    approach (Equation 6) reduces off-sample error whilst preserving
+#    signal amplitude (Lalor et al., 2006). As a result, this approach
+#    usually leads to an improved estimate of the system’s response (as
+#    indexed by MSE) compared to Tikhonov regularization.
+#
+
+alphas = np.logspace(-4, 0, 10)
+old_scores = scores
+scores = np.zeros_like(alphas)
+models = []
+for ii, alpha in enumerate(alphas):
+    estimator = TimeDelayingRidge(tmin, tmax, sfreq, reg_type='laplacian',
+                                  alpha=alpha)
+    rf = ReceptiveField(tmin, tmax, sfreq, freqs, estimator=estimator)
+    rf.fit(X_train, y_train)
+
+    # Now make predictions about the model output, given input stimuli.
+    scores[ii] = rf.score(X_test, y_test)
+    models.append(rf)
+
+ix_best_alpha = np.argmax(scores)
+
+###############################################################################
+# Compare model performance
+# -------------------------
+# Below we visualize the model performance of each regularization method
+# (ridge vs. Laplacian) for different levels of alpha. As you can see, the
+# Laplacian method performs better in general, because it imposes a smoothness
+# constraint along the time and feature dimensions of the coefficients.
+# This matches the "true" receptive field structure and results in a better
+# model fit.
+
+fig = plt.figure(figsize=(20, 4))
+ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
+ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
+ax.plot(np.arange(len(alphas)), old_scores, marker='o', color='0.5', ls=':')
+ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
+            (ix_best_alpha - 0.8, scores[ix_best_alpha] - .01),
+            arrowprops={'arrowstyle': '->'})
+ax.annotate('Ridge regularization', (ix_best_alpha, old_scores[ix_best_alpha]),
+            (ix_best_alpha - 0.5, old_scores[ix_best_alpha] - .02),
+            arrowprops={'arrowstyle': '->'})
+plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
+ax.set(xlabel="Laplacian regularization value", ylabel="Score ($R^2$)",
+       xlim=[-.4, len(alphas) - .6])
+mne.viz.tight_layout()
+
+# Plot the STRF of each ridge parameter
+for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
+    ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
+    ax.pcolormesh(times, rf.feature_names, rf.coef_, **kwargs)
+    plt.xticks([], [])
+    plt.yticks([], [])
+    plt.autoscale(tight=True)
+fig.suptitle('Model coefficients / scores for laplacian regularization', y=1)
 mne.viz.tight_layout()
 
 plt.show()

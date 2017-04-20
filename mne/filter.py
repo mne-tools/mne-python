@@ -101,7 +101,7 @@ def next_fast_len(target):
             # (quotient = ceil(target / p35))
             quotient = -(-target // p35)
 
-            p2 = 2 ** (quotient - 1).bit_length()
+            p2 = 2 ** int(quotient - 1).bit_length()
 
             N = p2 * p35
             if N == target:
