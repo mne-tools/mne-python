@@ -202,6 +202,7 @@ class RawEGI(BaseRaw):
 
         logger.info('    Assembling measurement info ...')
 
+        event_codes = []
         if egi_info['n_events'] > 0:
             event_codes = list(egi_info['event_codes'])
             if include is None:
