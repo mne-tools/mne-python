@@ -347,8 +347,8 @@ class RawEEGLAB(BaseRaw):
         info['chs'].append(stim_chan)
         info._update_redundant()
 
-        events = _read_eeglab_events(eeg, event_id=event_id,
-                                     event_id_func=event_id_func)
+        events = read_eeglab_events(eeg, event_id=event_id,
+                                    event_id_func=event_id_func)
         self._create_event_ch(events, n_samples=eeg.pnts)
 
         # read the data
@@ -381,6 +381,15 @@ class RawEEGLAB(BaseRaw):
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""
+        if len(set(events[:, 0])) != len(set(events[:, 0])):
+            warn("Some events overlap/occur at the same time sample. The "
+                 "resulting Raw object will contain the event information "
+                 "in a stimulus channel. Stimulus channels can only carry "
+                 "one event code per time point, so some events will be "
+                 "lost. You can use the function `mne.io.read_eeglab_events`"
+                 "to extract the full events array (which can then be "
+                 "passed to e.g. `mne.Epoch`."
+                )
         if n_samples is None:
             n_samples = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
@@ -576,18 +585,65 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info('Ready.')
 
 
-def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
-    """Create events array from EEGLAB structure.
+def read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
+    r"""Create events array from EEGLAB structure.
 
     An event array is constructed by looking up events in the
     event_id, trying to reduce them to their integer part otherwise, and
     entirely dropping them (with a warning) if this is impossible.
     Returns a 1x3 array of zeros if no events are found.
+
+    Usually, the EEGLAB readers will automatically construct event information
+    for you. However, the reader for continuous data stores event information
+    in the stimulus channel, which can only code one event per time sample.
+    Use this function if your EEGLAB file has events happening at the
+    same time (sample) point to manually create an events array.
+
+    Parameters
+    ----------
+    eeg : str | object
+        The EEGLAB object from which events are read in.
+        If str, path to the (EEGLAB) .set file.
+        Else, a MATLAB EEGLAB structure as read in by `scipy.io.loadmat`.
+    event_id : dict | None
+        The ids of the events to consider. If None (default), an empty dict is
+        used and ``event_id_func`` (see below) is called on every event value.
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel and only keys not in ``event_id`` will be handled by
+        ``event_id_func``. Keys are case-sensitive.
+        Example::
+
+            {'SyncStatus': 1; 'Pulse Artifact': 3}
+
+    event_id_func : None | str | callable
+        What to do for events not found in ``event_id``. Must take one ``str``
+        argument and return an ``int``. If string, must be 'strip-to-integer',
+        in which case it defaults to stripping event codes such as "D128" or
+        "S  1" of their non-integer parts and returns the integer.
+        If the event is not in the ``event_id`` and calling ``event_id_func``
+        on it results in a ``TypeError`` (e.g. if ``event_id_func`` is
+        ``None``) or a ``ValueError``, the event is dropped.
+
+    Returns
+    -------
+    events : array, shape = (n_events, 3)
+        All events that were found. The first column contains the event time
+        in samples and the third column contains the event id. The center
+        column is zero.
+
+    See Also
+    --------
+    find_events : Extract events from a stim channel. Note that stim channels
+        can only code for one event per time point.
     """
     if event_id_func is 'strip_to_integer':
         event_id_func = _strip_to_integer
     if event_id is None:
         event_id = dict()
+
+    if isinstance(eeg, string_types):
+        eeg = io.loadmat(eeg, struct_as_record=False, squeeze_me=True,
+                         uint16_codec=uint16_codec)['EEG']
 
     if isinstance(eeg.event, np.ndarray):
         types = [str(event.type) for event in eeg.event]

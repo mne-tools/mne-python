@@ -14,7 +14,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.eeglab.eeglab import _read_eeglab_events
+from mne.io.eeglab.eeglab import read_eeglab_events
 from mne.datasets import testing
 from mne.utils import _TempDir, run_tests_if_main, requires_version
 
@@ -77,9 +77,9 @@ def test_io_set():
                      squeeze_me=True)['EEG']
     for event in eeg.event:  # old version allows integer events
         event.type = 1
-    assert_equal(_read_eeglab_events(eeg)[-1, -1], 1)
+    assert_equal(read_eeglab_events(eeg)[-1, -1], 1)
     eeg.event = eeg.event[0]  # single event
-    assert_equal(_read_eeglab_events(eeg)[-1, -1], 1)
+    assert_equal(read_eeglab_events(eeg)[-1, -1], 1)
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -120,6 +120,29 @@ def test_io_set():
     event_id = {eeg.event[0].type: 1}
     read_raw_eeglab(input_fname=one_event_fname, montage=montage,
                     event_id=event_id, preload=True)
+
+    # test overlapping events
+    overlap_fname = op.join(temp_dir, 'test_overlap_event.set')
+    overlap_events = np.array([[1, 0, 1], [1, 0, 2]])
+    io.savemat(overlap_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': eeg.nbchan, 'data': 'test_overlap_event.fdt',
+                'epoch': eeg.epoch, 'event': overlap_events,
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    op.join(temp_dir, 'test_overlap_event.fdt'))
+    event_id = {'1':1, '2':2}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw = read_raw_eeglab(input_fname=overlap_fname,
+                              montage=montage, event_id=event_id,
+                              preload=True)
+    assert_equal(len(w), 0)  # one warning for the dropped event
+    events_stimchan = find_events(raw)
+    events_find_eeglab_events = read_eeglab_events(overlap_fname)
+    assert_true(len(events_stimchan == 1))
+    assert_array_equal(events_find_eeglab_events, overlap_events)
+    print("hui")
 
     # test reading file with one channel
     one_chan_fname = op.join(temp_dir, 'test_one_channel.set')
