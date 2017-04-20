@@ -252,8 +252,7 @@ def _toggle_proj(event, params):
             if not b and p['active']:
                 bools[bi] = True
     else:
-        proj = (True if 'apply_proj' not in params.keys() else
-                params['apply_proj'])
+        proj = params.get('apply_proj', True)
         bools = [proj] * len(params['projs'])
 
     compute_proj = False
@@ -389,7 +388,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     actives = ([p['active'] for p in projs] if draw_current_state else
                [params['apply_proj']] * len(projs))
 
-    width = max([len(p['desc']) for p in projs]) / 6.0 + 0.5
+    width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
     height = len(projs) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
     fig_proj.canvas.set_window_title('SSP projection vectors')
