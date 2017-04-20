@@ -180,7 +180,7 @@ def extract_head_pos_ctf(raw, gof_limit=0.98):
     Notes
     -----
     CTF continuous head monitoring stores the x,y,z location (m) of each chpi
-    coil as seperate channels in the dataset.
+    coil as separate channels in the dataset.
     HLC001[123]-* - nasion
     HLC002[123]-* - lpa
     HLC003[123]-* - rpa
@@ -214,17 +214,17 @@ def extract_head_pos_ctf(raw, gof_limit=0.98):
     # move to head coords
     chpi_locs_head = apply_trans(dev_head_t, chpi_locs_dev)
 
-    # find indicies where chpi locations change
-    indicies = [0]
-    indicies.extend(np.where(np.all(chpi_data[:, :-1] != chpi_data[:, 1:],
-                             axis=0))[0] + 1)
+    # find indices where chpi locations change
+    indices = [0]
+    indices.extend(np.where(np.all(chpi_data[:, :-1] != chpi_data[:, 1:],
+                            axis=0))[0] + 1)
 
     # initialized quaternion
     last_quat = np.concatenate([rot_to_quat(dev_head_t['trans'][:3, :3]),
                                 dev_head_t['trans'][:3, 3]])
 
     quats = []
-    for idx in indicies:
+    for idx in indices:
         # data in channels are in ctf device coordinates (cm)
         this_ctf_dev = chpi_data[:, idx].reshape(3, 3)  # m
 
