@@ -232,8 +232,7 @@ def extract_head_pos_ctf(raw, gof_limit=0.98):
         this_dev = apply_trans(ctf_dev_dev_t, this_ctf_dev)
 
         # fit quaternion
-        # this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head, last_quat)
-        this_quat, g = _fit_chpi_pos(this_dev, chpi_locs_head, last_quat)
+        this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head, last_quat)
         if g < gof_limit:
             raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
 
