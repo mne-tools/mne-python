@@ -337,6 +337,10 @@ class RawMff(BaseRaw):
         extra_samps = (start / block_info['nsamples'])
         beginning = extra_samps * block_size
         data_left += (data_offset - offset) / n_bytes - beginning
+        # STI 014 is simply the sum of all event channels (powers of 2).
+        if len(egi_events) > 0:
+            e_start = 0
+            egi_events = np.vstack([egi_events, np.sum(egi_events, axis=0)])
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             fid.seek(int(beginning * n_bytes + offset + extra_samps * n_bytes))
             # extract data in chunks
@@ -347,6 +351,7 @@ class RawMff(BaseRaw):
                 fid.seek(4, 1)
                 block = np.fromfile(fid, dtype, block_size)
                 block = block.reshape(n_channels, -1, order='C')
+
                 count = data_left - sample_start * n_channels
                 end = count / n_channels
                 if sample_start == 0:
@@ -355,14 +360,13 @@ class RawMff(BaseRaw):
                                       sample_start + block.shape[1])
                 elif count < block_size:
                     block = block[:, :end]
+                if len(egi_events) > 0:
+                    e_chs = egi_events[:, e_start:e_start + block.shape[1]]
+                    block = np.vstack([block, e_chs])
+                    e_start += block.shape[1]
                 if sample_start != 0:
                     sample_sl = slice(sample_start - s_offset,
                                       sample_start - s_offset + block.shape[1])
-                data_view = data[:n_channels, sample_sl]
+                data_view = data[:, sample_sl]
                 sample_start = sample_start + block_info['nsamples']
-                _mult_cal_one(data_view, block, idx, cals[:n_channels], mult)
-
-        # STI 014 is simply the sum of all event channels (powers of 2).
-        if len(egi_events) > 0:
-            egi_events = np.vstack([egi_events, np.sum(egi_events, axis=0)])
-            data[n_channels:] = egi_events
+                _mult_cal_one(data_view, block, idx, cals, mult)

@@ -15,7 +15,6 @@ from mne.io import read_raw_egi
 from mne.io import read_raw_egi_mff
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.egi.egi import _combine_triggers
-from mne.io.egi.egimff import _combine_triggers_mff
 from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -32,7 +31,7 @@ def test_io_egi_mff():
 
     with open(egi_mff_txt_fname) as fid:
         data = np.loadtxt(fid)
-    t = data[0]
+    # t = data[0]
     data = data[1:]
     data *= 1e-6
 
@@ -43,7 +42,7 @@ def test_io_egi_mff():
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
-        assert_true(msg in '%s' %w[0].message)
+        assert_true(msg in '%s' % w[0].message)
     data_read, t_read = raw[:129]
     # assert_allclose(t_read, t)
     # assert_allclose(data_read, data, atol=1e-10)
@@ -67,13 +66,6 @@ def test_io_egi_mff():
     assert_equal(np.unique(events[:, 1])[0], 0)
     assert_true(np.unique(events[:, 0])[0] != 0)
     assert_true(np.unique(events[:, 2])[0] != 0)
-    triggers = np.array([[0, 1, 1, 0], [0, 0, 1, 0]])
-
-    # test trigger functionality
-    triggers = np.array([[0, 1, 0, 0], [0, 0, 1, 0]])
-    events_ids = [12, 24]
-    new_trigger = _combine_triggers_mff(triggers, events_ids)
-    assert_array_equal(np.unique(new_trigger), np.unique([0, 12, 24]))
 
     assert_raises(ValueError, read_raw_egi_mff, egi_fname_mff, include=['Foo'],
                   preload=False)
@@ -83,8 +75,9 @@ def test_io_egi_mff():
         assert_true(k in raw.event_id)
         assert_true(raw.event_id[k] == ii)
 
+
 def test_io_egi():
-    """Test importing EGI simple binary files"""
+    """Test importing EGI simple binary files."""
     # test default
     with open(egi_txt_fname) as fid:
         data = np.loadtxt(fid)
