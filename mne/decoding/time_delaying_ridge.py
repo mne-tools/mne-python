@@ -58,7 +58,7 @@ def _compute_corrs(X, y, smin, smax):
 def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     """Fit the model using correlation matrices."""
     from scipy import linalg
-    known_types = ('ridge', 'quadratic')
+    known_types = ('ridge', 'laplacian')
     if isinstance(reg_type, string_types):
         reg_type = (reg_type,) * 2
     if len(reg_type) != 2:
@@ -76,7 +76,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
 
     # regularize time
     reg = np.eye(n_trf)
-    if reg_type[0] == 'quadratic':
+    if reg_type[0] == 'laplacian':
         reg.flat[1::reg.shape[0] + 1] += -1
         reg.flat[reg.shape[0] + 1:-reg.shape[0] - 1:reg.shape[0] + 1] += 1
         reg.flat[reg.shape[0]::reg.shape[0] + 1] += -1
@@ -84,7 +84,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     reg = linalg.block_diag(*args)
 
     # regularize features
-    if reg_type[1] == 'quadratic':
+    if reg_type[1] == 'laplacian':
         row_offset = n_trf * n_trf * n_ch_x
         reg.flat[n_trf::n_trf * n_ch_x + 1] += -1
         reg.flat[row_offset + n_trf:-row_offset:n_trf * n_ch_x + 1] += 1
@@ -137,9 +137,9 @@ class TimeDelayingRidge(BaseEstimator):
     sfreq : float
         The sampling frequency used to convert times into samples.
     alpha : float
-        The ridge (or quadratic) regularization factor.
+        The ridge (or laplacian) regularization factor.
     reg_type : str | list
-        Can be "ridge" (default) or "quadratic".
+        Can be "ridge" (default) or "laplacian".
         Can also be a 2-element list specifying how to regularize in time
         and across adjacent features.
     fit_intercept : bool

@@ -168,7 +168,7 @@ def test_receptive_field_fast():
             y[:-delay] = x[delay:]
             slims += [(1, 2)]
         for slim in slims:
-            tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'quadratic',
+            tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'laplacian',
                                     fit_intercept=False)
             for estimator in (Ridge(alpha=0.), 0., 0.1, tdr):
                 model = ReceptiveField(slim[0], slim[1], 1.,
@@ -197,7 +197,7 @@ def test_receptive_field_fast():
          [0, 0, 0, 0, -1, 0],
          [0, 0, 0, 0, 0, 0]],
     ]
-    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'quadratic')
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'laplacian')
     for estimator in (Ridge(alpha=0.), 0., 0.01, tdr):
         model = ReceptiveField(slim[0], slim[1], 1.,
                                estimator=estimator)
@@ -208,7 +208,7 @@ def test_receptive_field_fast():
     tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type='foo')
     model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
     assert_raises(ValueError, model.fit, x, y)
-    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type=['quadratic'])
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type=['laplacian'])
     model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
     assert_raises(ValueError, model.fit, x, y)
     # Now check the intercept_

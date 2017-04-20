@@ -268,8 +268,9 @@ mne.viz.tight_layout()
 # Using different regularization types
 # ------------------------------------
 # In addition to the standard ridge regularization, the
-# :class:`mne.decoding.TimeDelayingRidge` class also exposes quadratic
-# regularization term as:
+# :class:`mne.decoding.TimeDelayingRidge` class also exposes
+# `Laplacian <https://en.wikipedia.org/wiki/Laplacian_matrix>`_ regularization
+# term as:
 #
 # .. math::
 #    \left[\begin{matrix}
@@ -284,7 +285,7 @@ mne.viz.tight_layout()
 #
 #    Tikhonov [identity] regularization (Equation 5) reduces overfitting by
 #    smoothing the TRF estimate in a way that is insensitive to
-#    the amplitude of the signal of interest. However, the quadratic
+#    the amplitude of the signal of interest. However, the Laplacian
 #    approach (Equation 6) reduces off-sample error whilst preserving
 #    signal amplitude (Lalor et al., 2006). As a result, this approach
 #    usually leads to an improved estimate of the system’s response (as
@@ -296,7 +297,7 @@ old_scores = scores
 scores = np.zeros_like(alphas)
 models = []
 for ii, alpha in enumerate(alphas):
-    estimator = TimeDelayingRidge(tmin, tmax, sfreq, reg_type='quadratic',
+    estimator = TimeDelayingRidge(tmin, tmax, sfreq, reg_type='laplacian',
                                   alpha=alpha)
     rf = ReceptiveField(tmin, tmax, sfreq, freqs, estimator=estimator)
     rf.fit(X_train, y_train)
@@ -311,8 +312,8 @@ ix_best_alpha = np.argmax(scores)
 # Compare model performance
 # -------------------------
 # Below we visualize the model performance of each regularization method
-# (ridge vs. quadratic) for different levels of alpha. As you can see, the
-# quadratic method performs better in general, because it imposes a smoothness
+# (ridge vs. Laplacian) for different levels of alpha. As you can see, the
+# Laplacian method performs better in general, because it imposes a smoothness
 # constraint along the time and feature dimensions of the coefficients.
 # This matches the "true" receptive field structure and results in a better
 # model fit.
@@ -328,7 +329,7 @@ ax.annotate('Ridge regularization', (ix_best_alpha, old_scores[ix_best_alpha]),
             (ix_best_alpha - 0.5, old_scores[ix_best_alpha] - .02),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
-ax.set(xlabel="Quadratic regularization value", ylabel="Score ($R^2$)",
+ax.set(xlabel="Laplacian regularization value", ylabel="Score ($R^2$)",
        xlim=[-.4, len(alphas) - .6])
 mne.viz.tight_layout()
 
@@ -339,7 +340,7 @@ for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
     plt.xticks([], [])
     plt.yticks([], [])
     plt.autoscale(tight=True)
-fig.suptitle('Model coefficients / scores for quadtratic regularization', y=1)
+fig.suptitle('Model coefficients / scores for laplacian regularization', y=1)
 mne.viz.tight_layout()
 
 plt.show()
