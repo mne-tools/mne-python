@@ -338,7 +338,7 @@ class RawMff(BaseRaw):
         beginning = extra_samps * block_size
         data_left += (data_offset - offset) / n_bytes - beginning
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
-            fid.seek(beginning * n_bytes + offset + extra_samps * n_bytes)
+            fid.seek(int(beginning * n_bytes + offset + extra_samps * n_bytes))
             # extract data in chunks
             sample_start = 0
             # s_offset determines the offset inside the block in samples.

@@ -199,11 +199,9 @@ def _get_signal_nbin(filepath, signalnbin):
             nsamples = block['nsamples']
         else:
             raise NotImplementedError('Only continuos files are supported')
-        numblocks = int(l / blocksize)
+        numblocks = int(l // blocksize)
         samples_block = [nsamples]
         fid.seek(position + blocksize)
-        if (l / blocksize) - numblocks > 0:
-            numblocks = numblocks + 1
         for i in range(1, numblocks):
             version = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
             if version == 0:
