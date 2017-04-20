@@ -302,7 +302,6 @@ class RtEpochs(BaseEpochs):
         verbose = 'ERROR'
         sfreq = self.info['sfreq']
         n_samp = len(self._raw_times)
-
         # relative start and stop positions in samples
         tmin_samp = int(round(sfreq * self.tmin))
         tmax_samp = tmin_samp + n_samp
@@ -348,7 +347,6 @@ class RtEpochs(BaseEpochs):
             idx = np.where(buff_events[:, -1] == event_id)[0]
             events.extend(zip(list(buff_events[idx, 0]),
                               list(buff_events[idx, -1])))
-
         events.sort()
 
         event_backlog = list()

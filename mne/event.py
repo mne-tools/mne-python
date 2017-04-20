@@ -322,6 +322,8 @@ def write_events(filename, event_list):
 
 
 def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
+    data = np.append(np.array([0])[None, ...], data, axis=1)
+    first_samp -= 1
     changed = np.diff(data, axis=1) != 0
     idx = np.where(np.all(changed, axis=0))[0]
     if len(idx) == 0:
