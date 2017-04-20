@@ -252,7 +252,9 @@ def _toggle_proj(event, params):
             if not b and p['active']:
                 bools[bi] = True
     else:
-        bools = [params['apply_proj']] * len(params['projs'])
+        proj = (True if 'apply_proj' not in params.keys() else
+                params['apply_proj'])
+        bools = [proj] * len(params['projs'])
 
     compute_proj = False
     if 'proj_bools' not in params:
