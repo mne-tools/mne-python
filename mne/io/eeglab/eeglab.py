@@ -388,8 +388,7 @@ class RawEEGLAB(BaseRaw):
                  "one event code per time point, so some events will be "
                  "lost. You can use the function `mne.io.read_eeglab_events`"
                  "to extract the full events array (which can then be "
-                 "passed to e.g. `mne.Epoch`."
-                 )
+                 "passed to e.g. mne.Epochs.")
         if n_samples is None:
             n_samples = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
@@ -605,7 +604,8 @@ def read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer',
     eeg : str | object
         The EEGLAB object from which events are read in.
         If str, path to the (EEGLAB) .set file.
-        Else, a MATLAB EEGLAB structure as read in by scipy.io.loadmat.
+        Else, the "EEG" field of a MATLAB EEGLAB structure as read in by
+        scipy.io.loadmat.
     event_id : dict | None
         The ids of the events to consider. If None (default), an empty dict is
         used and ``event_id_func`` (see below) is called on every event value.
