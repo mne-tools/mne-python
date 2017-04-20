@@ -700,7 +700,9 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
     blit : bool
         Whether to use blit to optimize drawing. In general, it is recommended
         to use blit in combination with ``show=True``. If you intend to save
-        the animation it is better to disable blit. Defaults to True.
+        the animation it is better to disable blit. Blit is always disabled for
+        MacOSX backend and if matplotlib is in interactive mode. Defaults to
+        True.
     show : bool
         Whether to show the animation. Defaults to True.
 

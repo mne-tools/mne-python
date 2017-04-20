@@ -2050,8 +2050,9 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     blit : bool
         Whether to use blit to optimize drawing. In general, it is recommended
         to use blit in combination with ``show=True``. If you intend to save
-        the animation it is better to disable blit. For MacOSX blit is always
-        disabled. Defaults to True.
+        the animation it is better to disable blit. Blit is always disabled for
+        MacOSX backend and if matplotlib is in interactive mode. Defaults to
+        True.
     show : bool
         Whether to show the animation. Defaults to True.
 
@@ -2082,7 +2083,15 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         raise ValueError('All times must be inside the evoked time series.')
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
-    blit = False if plt.get_backend() == 'MacOSX' else blit
+    if blit:
+        if plt.isinteractive():
+            logger.info('blit not supported with matplotlib in interactive '
+                        'mode. Disabling blit.')
+            blit = False
+        elif plt.get_backend() == 'MacOSX':
+            logger.info('blit not supported for MacOSX backend. '
+                        'Disabling blit.')
+            blit = False
     picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
                                                              ch_type=ch_type,
                                                              layout=None)
