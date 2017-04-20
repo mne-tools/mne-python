@@ -180,9 +180,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         If True, show time axis relative to the ``raw.first_samp``.
     proj : bool
         Whether to apply projectors prior to plotting (default is ``True``).
-        Individual projectors can be enabled/disabled interactively (see Notes).
-        This argument only affects the plot; use ``raw.apply_proj()`` to modify
-        the data stored in the Raw object.
+        Individual projectors can be enabled/disabled interactively (see
+        Notes). This argument only affects the plot; use ``raw.apply_proj()``
+        to modify the data stored in the Raw object.
 
     Returns
     -------
