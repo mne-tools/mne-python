@@ -130,7 +130,7 @@ def test_io_set():
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     op.join(temp_dir, 'test_overlap_event.fdt'))
-    event_id = {'rt':1, 'square':2}
+    event_id = {'rt': 1, 'square': 2}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw = read_raw_eeglab(input_fname=overlap_fname,
