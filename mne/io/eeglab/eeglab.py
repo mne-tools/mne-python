@@ -602,7 +602,7 @@ def read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer',
 
     Parameters
     ----------
-    eeg : str | object
+    eeg : str | object
         The EEGLAB object from which events are read in.
         If str, path to the (EEGLAB) .set file.
         Else, a MATLAB EEGLAB structure as read in by scipy.io.loadmat.
