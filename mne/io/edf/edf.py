@@ -640,24 +640,24 @@ def _read_gdf_header(fname, stim_channel, exclude):
             except:
                 date = datetime.datetime(2000, 1, 1)
 
-            header_nbytes = np.fromstring(fid.read(8), np.int64)[0]
-            equipment = np.fromstring(fid.read(8), np.uint8)[0]
-            hospital = np.fromstring(fid.read(8), np.uint8)[0]
-            technician = np.fromstring(fid.read(8), np.uint8)[0]
+            header_nbytes = np.fromfile(fid, np.int64, 1)[0]
+            equipment = np.fromfile(fid, np.uint8, 8)[0]
+            hospital = np.fromfile(fid, np.uint8, 8)[0]
+            technician = np.fromfile(fid, np.uint8, 8)[0]
             fid.seek(20, 1)    # 20bytes reserved
 
-            n_records = np.fromstring(fid.read(8), np.int64)[0]
+            n_records = np.fromfile(fid, np.int64, 1)[0]
             # record length in seconds
-            record_length = np.fromstring(fid.read(8), np.uint32)
+            record_length = np.fromfile(fid, np.uint32, 2)
             if record_length[0] == 0:
                 record_length[0] = 1.
                 warn('Header information is incorrect for record length. '
                      'Default record length set to 1.')
-            nchan = np.fromstring(fid.read(4), np.uint32)[0]
+            nchan = np.fromfile(fid, np.uint32, 1)[0]
             channels = list(range(nchan))
             ch_names = [fid.read(16).decode().strip(' \x00')
                         for ch in channels]
-            [fid.read(80) for ch in channels]  # transducer
+            fid.seek(80 * len(channels), 1)  # transducer
             units = [fid.read(8).decode().strip(' \x00') for ch in channels]
 
             exclude = [ch_names.index(idx) for idx in exclude]
@@ -670,24 +670,22 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 include.append(i)
 
             ch_names = [ch_names[idx] for idx in include]
-            physical_min = np.array(
-                [np.fromstring(fid.read(8), np.float64)[0] for ch in channels])
-            physical_max = np.array(
-                [np.fromstring(fid.read(8), np.float64)[0] for ch in channels])
-            digital_min = np.array(
-                [np.fromstring(fid.read(8), np.int64)[0] for ch in channels])
-            digital_max = np.array(
-                [np.fromstring(fid.read(8), np.int64)[0] for ch in channels])
+            physical_min = np.fromfile(fid, np.float64, len(channels))
+            physical_max = np.fromfile(fid, np.float64, len(channels))
+            digital_min = np.fromfile(fid, np.int64, len(channels))
+            digital_max = np.fromfile(fid, np.int64, len(channels))
             prefiltering = [fid.read(80).decode().strip(' \x00')
                             for ch in channels][:-1]
             highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
                                  for filt in prefiltering])
             lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt)
                                 for filt in prefiltering])
-            n_samps = np.array([np.fromstring(fid.read(4), np.int32)[0]
-                                for ch in channels])  # n samples per record
-            gdftype = np.array([np.fromstring(fid.read(4), np.int32)[0]
-                                for ch in channels])  # channel data type
+
+            # n samples per record
+            n_samps = np.fromfile(fid, np.int32, len(channels))
+
+            # channel data type
+            gdftype = np.fromfile(fid, np.int32, len(channels))
 
             # populate edf_info
             edf_info['bytes_tot'] = \
@@ -717,7 +715,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             edf_info['technician'] = technician
             edf_info['units'] = units
 
-            fid.read(32 * edf_info['nchan']).decode()  # reserved
+            fid.seek(32 * edf_info['nchan'], 1)  # reserved
             assert fid.tell() == header_nbytes
 
             # Event table
@@ -727,19 +725,19 @@ def _read_gdf_header(fname, stim_channel, exclude):
             fid.seek(etp)
             etmode = fid.read(1).decode()
             if etmode != '':
-                etmode = np.fromstring(etmode, np.uint8).tolist()[0]
-                sr = np.fromstring(fid.read(3), np.uint8)
+                etmode = np.fromfile(fid, np.uint8, 1).tolist()
+                sr = np.fromfile(fid, np.uint8, 3)
                 event_sr = sr[0]
                 events = []
                 for i in range(1, len(sr)):
                     event_sr = event_sr + sr[i] * 256 ** i
-                n_events = np.fromstring(fid.read(4), np.uint32).tolist()[0]
-                pos = np.fromstring(fid.read(n_events * 4), np.uint32)
-                typ = np.fromstring(fid.read(n_events * 2), np.uint16)
+                n_events = np.fromfile(fid, np.uint32, 1)[0]
+                pos = np.fromfile(fid, np.uint32, n_events * 4)
+                typ = np.fromfile(fid, np.uint16, n_events * 2)
 
                 if etmode == 3:
-                    chn = np.fromstring(fid.read(n_events * 2), np.uint16)
-                    dur = np.fromstring(fid.read(n_events * 4), np.uint32)
+                    chn = np.fromfile(fid, np.uint16, n_events * 2)
+                    dur = np.fromfile(fid, np.uint32, n_events * 4)
                     events.append([n_events, pos, typ, chn, dur])
                 else:
                     dur = np.zeros(n_events, dtype=np.uint32)
@@ -767,29 +765,27 @@ def _read_gdf_header(fname, stim_channel, exclude):
             fid.seek(10, 1)  # 10bytes reserved
 
             # Smoking / Alcohol abuse / drug abuse / medication
-            sadm = np.fromstring(fid.read(1), np.uint8).tolist()[0]
+            sadm = np.fromfile(fid, np.uint8, 1)[0]
             patient['smoking'] = scale[sadm % 4]
             patient['alcohol_abuse'] = scale[(sadm >> 2) % 4]
             patient['drug_abuse'] = scale[(sadm >> 4) % 4]
             patient['medication'] = scale[(sadm >> 6) % 4]
-            patient['weight'] = \
-                np.fromstring(fid.read(1), np.uint8).tolist()[0]
+            patient['weight'] = np.fromfile(fid, np.uint8, 1)[0]
             if patient['weight'] == 0 or patient['weight'] == 255:
                 patient['weight'] = None
-            patient['height'] = \
-                np.fromstring(fid.read(1), np.uint8).tolist()[0]
+            patient['height'] = np.fromfile(fid, np.uint8, 1)[0]
             if patient['height'] == 0 or patient['height'] == 255:
                 patient['height'] = None
 
             # Gender / Handedness / Visual Impairment
-            ghi = np.fromstring(fid.read(1), np.uint8).tolist()[0]
+            ghi = np.fromfile(fid, np.uint8, 1)[0]
             patient['sex'] = gender[ghi % 4]
             patient['handedness'] = handedness[(ghi >> 2) % 4]
             patient['visual'] = scale[(ghi >> 4) % 4]
 
             fid.read(64)  # recording identification (unused here)
-            rl = fid.read(16).decode()  # Recording location (Lat, Long, Alt)
-            vhsv = np.fromstring(rl[0:4], np.uint8)
+            # rl = fid.read(16).decode()  # Recording location (Lat, Long, Alt)
+            vhsv = np.fromfile(fid, np.uint8, 4)
             loc = {}
             if vhsv[3] == 0:
                 loc['vertpre'] = 10 * int(vhsv[0] >> 4) + int(vhsv[0] % 16)
@@ -800,21 +796,20 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 loc['horzpre'] = 29
                 loc['size'] = 29
             loc['version'] = 0
-            loc['latitude'] = float(
-                np.fromstring(rl[4:8], np.uint32).tolist()[0]) / 3600000
-            loc['longitude'] = float(
-                np.fromstring(rl[8:12], np.uint32).tolist()[0]) / 3600000
-            loc['altitude'] = float(
-                np.fromstring(rl[12:16], np.int32).tolist()[0]) / 100
+            loc['latitude'] = \
+                float(np.fromfile(fid, np.uint32, 1)[0]) / 3600000
+            loc['longitude'] = \
+                float(np.fromfile(fid, np.uint32, 1)[0]) / 3600000
+            loc['altitude'] = float(np.fromfile(fid, np.int32, 1)[0]) / 100
 
-            date = np.fromstring(fid.read(8), np.uint64).tolist()[0]
+            date = np.fromfile(fid, np.uint64, 1)[0]
             if date == 0:
                 date = datetime.datetime(1, 1, 1)
             else:
                 date = datetime.datetime(1, 1, 1) + \
                     datetime.timedelta(date * pow(2, -32) - 367)
 
-            birthday = np.fromstring(fid.read(8), np.uint64).tolist()[0]
+            birthday = np.fromfile(fid, np.uint64, 1).tolist()[0]
             if birthday == 0:
                 birthday = datetime.datetime(1, 1, 1)
             else:
@@ -830,29 +825,28 @@ def _read_gdf_header(fname, stim_channel, exclude):
             else:
                 patient['age'] = None
 
-            header_nbytes = np.fromstring(fid.read(2),
-                                          np.uint16).tolist()[0] * 256
+            header_nbytes = np.fromfile(fid, np.uint16, 1)[0] * 256
 
             fid.seek(6, 1)  # 6 bytes reserved
-            equipment = np.fromstring(fid.read(8), np.uint8)
-            ip = np.fromstring(fid.read(6), np.uint8)
-            patient['headsize'] = np.fromstring(fid.read(6), np.uint16)
+            equipment = np.fromfile(fid, np.uint8, 8)
+            ip = np.fromfile(fid, np.uint8, 6)
+            patient['headsize'] = np.fromfile(fid, np.uint16, 3)
             patient['headsize'] = np.asarray(patient['headsize'], np.float32)
             patient['headsize'] = np.ma.masked_array(
                 patient['headsize'],
                 np.equal(patient['headsize'], 0), None).filled()
-            ref = np.fromstring(fid.read(12), np.float32)
-            gnd = np.fromstring(fid.read(12), np.float32)
-            n_records = np.fromstring(fid.read(8), np.int64).tolist()[0]
+            ref = np.fromfile(fid, np.float32, 3)
+            gnd = np.fromfile(fid, np.float32, 3)
+            n_records = np.fromfile(fid, np.int64, 1)[0]
 
             # record length in seconds
-            record_length = np.fromstring(fid.read(8), np.uint32)
+            record_length = np.fromfile(fid, np.uint32, 2)
             if record_length[0] == 0:
                 record_length[0] = 1.
                 warn('Header information is incorrect for record length. '
                      'Default record length set to 1.')
 
-            nchan = np.fromstring(fid.read(2), np.uint16).tolist()[0]
+            nchan = np.fromfile(fid, np.uint16, 1)[0]
             fid.seek(2, 1)  # 2bytes reserved
 
             # Channels (variable header)
@@ -861,7 +855,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                         for ch in channels]
             exclude = [ch_names.index(idx) for idx in exclude]
 
-            [fid.read(80).strip().decode() for ch in channels]
+            fid.seek(80 * len(channels), 1)  # reserved space
 
             """The Physical Dimensions are encoded with a 16 bit integer
             number, as a combination of 'unit code' + order of magnitude.
@@ -877,8 +871,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             stands for dimensionless.
             """  # noqa
             fid.seek(6 * len(channels), 1)  # phys_dim, obsolete
-            units = [np.fromstring(fid.read(2), np.uint16)[0]
-                     for ch in channels]
+            units = np.fromfile(fid, np.uint16, len(channels)).tolist()
             include = list()
             for i, unit in enumerate(units):
                 if unit == 4275:  # microvolts
@@ -892,40 +885,30 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 include.append(i)
 
             ch_names = [ch_names[idx] for idx in include]
-            physical_min = np.array(
-                [np.fromstring(fid.read(8), np.float64)[0] for ch in channels])
-            physical_max = np.array(
-                [np.fromstring(fid.read(8), np.float64)[0] for ch in channels])
-            digital_min = np.array(
-                [np.fromstring(fid.read(8), np.float64)[0] for ch in channels])
-            digital_max = np.array(
-                [np.fromstring(fid.read(8), np.float64)[0] for ch in channels])
+            physical_min = np.fromfile(fid, np.float64, len(channels))
+            physical_max = np.fromfile(fid, np.float64, len(channels))
+            digital_min = np.fromfile(fid, np.float64, len(channels))
+            digital_max = np.fromfile(fid, np.float64, len(channels))
 
-            [fid.read(68).strip().decode() for ch in channels]  # obsolete
+            fid.seek(68 * len(channels), 1)  # obsolete
 
-            lowpass = np.array([np.fromstring(fid.read(4), np.float32)[0]
-                                for ch in channels])
-            highpass = np.array([np.fromstring(fid.read(4), np.float32)[0]
-                                 for ch in channels])
-            notch = np.array([np.fromstring(fid.read(4), np.float32)[0]
-                              for ch in channels])
+            lowpass = np.fromfile(fid, np.float32, len(channels))
+            highpass = np.fromfile(fid, np.float32,  len(channels))
+            notch = np.fromfile(fid, np.float32, len(channels))
 
             # number of samples per record
-            n_samps = np.array([np.fromstring(fid.read(4), np.int32)[0]
-                                for ch in channels])
+            n_samps = np.fromfile(fid, np.int32, len(channels))
 
             # data type
-            gdftype = np.array([np.fromstring(fid.read(4), np.int32)[0]
-                                for ch in channels])
+            gdftype = np.fromfile(fid, np.int32, len(channels))
 
             channel = {}
-            channel['xyz'] = [np.fromstring(fid.read(12), np.float32)[0]
+            channel['xyz'] = [np.fromfile(fid, np.float32, 3)[0]
                               for ch in channels]
-            channel['impedance'] = [
-                pow(2, float(np.fromstring(fid.read(1), np.uint8)[0]) / 8)
-                for ch in channels]
+            impedance = np.fromfile(fid, np.uint8, len(channels))
+            channel['impedance'] = pow(2, impedance.astype(float) / 8)
 
-            [fid.read(19) for ch in channels]  # reserved
+            fid.seek(19 * len(channels), 1)  # reserved
 
             print(fid.tell())
             print(header_nbytes)
@@ -971,29 +954,27 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 etmode = np.fromstring(etmode, np.uint8).tolist()[0]
 
                 if edf_info['number'] < 1.94:
-                    sr = np.fromstring(fid.read(3), np.uint8)
+                    sr = np.fromfile(fid, np.uint8, 3)
                     event_sr = sr[0]
                     for i in range(1, len(sr)):
                         event_sr = event_sr + sr[i] * 2**i
-                    n_events = np.fromstring(fid.read(4),
-                                             np.uint32).tolist()[0]
+                    n_events = np.fromfile(fid, np.uint32, 1)[0]
                 else:
-                    ne = np.fromstring(fid.read(3), np.uint8)
+                    ne = np.fromfile(fid, np.uint8, 3)
                     n_events = ne[0]
                     for i in range(1, len(ne)):
                         n_events = n_events + ne[i] * 2**i
-                    event_sr = np.fromstring(fid.read(4),
-                                             np.float32).tolist()[0]
+                    event_sr = np.fromfile(fid, np.float32, 1)[0]
 
-                pos = np.fromstring(fid.read(n_events * 4), np.uint32)
-                typ = np.fromstring(fid.read(n_events * 2), np.uint16)
+                pos = np.fromfile(fid, np.uint32, n_events * 4)
+                typ = np.fromfile(fid, np.uint16, n_events * 2)
 
                 if etmode == 3:
-                    chn = np.fromstring(fid.read(n_events * 2), np.uint16)
-                    dur = np.fromstring(fid.read(n_events * 4), np.uint32)
+                    chn = np.fromfile(fid, np.uint16, n_events * 2)
+                    dur = np.fromfile(fid, np.uint32, n_events * 4)
                     events.append([n_events, pos, typ, chn, dur])
                 else:
-                    dur = np.zeros(n_events, dtype=np.np.uint32)
+                    dur = np.zeros(n_events, dtype=np.uint32)
                     events.append([n_events, pos, typ])
 
                 edf_info['events'] = events
@@ -1102,4 +1083,4 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
                   exclude=exclude, preload=preload, verbose=verbose,
-                  biosemi=False)
+                  biosemi=biosemi)
