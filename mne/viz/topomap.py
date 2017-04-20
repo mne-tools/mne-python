@@ -170,8 +170,12 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    contours : int | False | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -470,11 +474,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     image_mask : ndarray of bool, shape (res, res) | None
         The image mask to cover the interpolated surface. If None, it will be
         computed from the outline.
-    contours : int | False | array of float | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         If an array, the values represent the levels for the contours. The
         values are in uV for EEG, fT for magnetometers and fT/m for
-        gradiometers.
+        gradiometers. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -500,6 +504,10 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
+    if contours is None or contours is False:
+        warn('Using %s as contours is deprecated and will not be allowed in '
+             '0.16. Use 0 instead.' % str(contours))
+        contours = 0
     data = np.asarray(data)
     logger.debug('Plotting topomap for data shape %s' % (data.shape,))
 
@@ -619,11 +627,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     no_contours = False
     if isinstance(contours, (np.ndarray, list)):
         pass  # contours precomputed
-    elif contours in (False, None):
+    elif contours == 0:
         contours, no_contours = 1, True
     cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
                       linewidths=linewidth)
-    if no_contours is True:
+    if no_contours:
         for col in cont.collections:
             col.set_visible(False)
 
@@ -847,8 +855,12 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    contours : int | False | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -1068,7 +1080,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
-    contours : int | False | array of float | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         When an integer, matplotlib ticker locator is used to find suitable
         values for the contour thresholds (may sometimes be inaccurate, use
@@ -1131,7 +1143,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     _hide_frame(ax)
 
     locator = None
-    if not isinstance(contours, (list, np.ndarray)) and contours > 0:
+    if not isinstance(contours, (list, np.ndarray)):
         locator, contours = _set_contour_locator(vmin, vmax, contours)
 
     if title is not None:
@@ -1279,14 +1291,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    contours : int | False | array of float | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         When an integer, matplotlib ticker locator is used to find suitable
         values for the contour thresholds (may sometimes be inaccurate, use
         array for accuracy). If an array, the values represent the levels for
         the contours. The values are in uV for EEG, fT for magnetometers and
         fT/m for gradiometers. If colorbar=True, the ticks in colorbar
-        correspond to the contour levels.
+        correspond to the contour levels. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -1425,7 +1437,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     vmax = np.max(vlims)
     cmap = _setup_cmap(cmap, n_axes=len(times), norm=vmin >= 0)
 
-    if not isinstance(contours, (list, np.ndarray)) and contours > 0:
+    if not isinstance(contours, (list, np.ndarray)):
         _, contours = _set_contour_locator(vmin, vmax, contours)
 
     for idx, time in enumerate(times):
@@ -2149,7 +2161,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
 def _set_contour_locator(vmin, vmax, contours):
     """Set correct contour levels."""
     locator = None
-    if isinstance(contours, Integral):
+    if isinstance(contours, Integral) and contours > 0:
         from matplotlib import ticker
         # nbins = ticks - 1, since 2 of the ticks are vmin and vmax, the
         # correct number of bins is equal to contours + 1.

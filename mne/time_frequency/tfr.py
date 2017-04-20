@@ -1390,7 +1390,7 @@ class AverageTFR(_BaseTFR):
             the head circle. If dict, can have entries 'center' (tuple) and
             'scale' (tuple) for what the center and scale of the head should be
             relative to the electrode locations.
-        contours : int | False | array of float | None
+        contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
             suitable values for the contour thresholds (may sometimes be

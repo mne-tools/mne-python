@@ -1233,7 +1233,10 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     norm = ch_type == 'grad'
     vmin = 0 if norm else vmin
     vmin, vmax = _setup_vmin_vmax(evoked.data, vmin, vmax, norm)
-    locator, contours = _set_contour_locator(vmin, vmax, contours)
+    if not isinstance(contours, (list, np.ndarray)):
+        locator, contours = _set_contour_locator(vmin, vmax, contours)
+    else:
+        locator = None
 
     topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
                              k not in ['times', 'axes', 'show', 'colorbar'])
@@ -1246,9 +1249,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args.get('colorbar', True):
         from matplotlib import ticker
         cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
-        if locator is None:
-            locator = ticker.MaxNLocator(nbins=5)
-        cbar.locator = locator
+        if isinstance(contours, (list, np.ndarray)):
+            cbar.set_ticks(contours)
+        else:
+            if locator is None:
+                locator = ticker.MaxNLocator(nbins=5)
+            cbar.locator = locator
         cbar.update_ticks()
 
     plt.subplots_adjust(left=.1, right=.93, bottom=.14,

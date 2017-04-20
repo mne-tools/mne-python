@@ -398,9 +398,12 @@ class CSP(TransformerMixin, BaseEstimator):
             for advanced masking options, either directly or as a function that
             returns patches (required for multi-axis plots). If None, nothing
             will be drawn. Defaults to 'head'.
-        contours : int | False | None
-            The number of contour lines to draw.
-            If 0, no contours will be drawn.
+        contours : int | array of float
+            The number of contour lines to draw. If 0, no contours will be
+            drawn. When an integer, matplotlib ticker locator is used to find
+            suitable values for the contour thresholds (may sometimes be
+            inaccurate, use array for accuracy). If an array, the values
+            represent the levels for the contours. Defaults to 6.
         image_interp : str
             The image interpolation to be used.
             All matplotlib options are accepted.
@@ -553,9 +556,12 @@ class CSP(TransformerMixin, BaseEstimator):
             for advanced masking options, either directly or as a function that
             returns patches (required for multi-axis plots). If None, nothing
             will be drawn. Defaults to 'head'.
-        contours : int | False | None
-            The number of contour lines to draw.
-            If 0, no contours will be drawn.
+        contours : int | array of float
+            The number of contour lines to draw. If 0, no contours will be
+            drawn. When an integer, matplotlib ticker locator is used to find
+            suitable values for the contour thresholds (may sometimes be
+            inaccurate, use array for accuracy). If an array, the values
+            represent the levels for the contours. Defaults to 6.
         image_interp : str
             The image interpolation to be used.
             All matplotlib options are accepted.
