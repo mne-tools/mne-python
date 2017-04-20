@@ -170,8 +170,12 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    contours : int | False | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -470,11 +474,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     image_mask : ndarray of bool, shape (res, res) | None
         The image mask to cover the interpolated surface. If None, it will be
         computed from the outline.
-    contours : int | False | array of float | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         If an array, the values represent the levels for the contours. The
         values are in uV for EEG, fT for magnetometers and fT/m for
-        gradiometers.
+        gradiometers. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -500,6 +504,10 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
 
+    if contours is None or contours is False:
+        warn('Using %s as contours is deprecated and will not be allowed in '
+             '0.16. Use 0 instead.' % str(contours), DeprecationWarning)
+        contours = 0
     data = np.asarray(data)
     logger.debug('Plotting topomap for data shape %s' % (data.shape,))
 
@@ -619,11 +627,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     no_contours = False
     if isinstance(contours, (np.ndarray, list)):
         pass  # contours precomputed
-    elif contours in (False, None):
+    elif contours == 0:
         contours, no_contours = 1, True
     cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
                       linewidths=linewidth)
-    if no_contours is True:
+    if no_contours:
         for col in cont.collections:
             col.set_visible(False)
 
@@ -847,8 +855,12 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    contours : int | False | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -962,7 +974,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, outlines='head', head_pos=None):
+                     axes=None, show=True, outlines='head', head_pos=None,
+                     contours=6):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
     Parameters
@@ -1067,6 +1080,13 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
+    contours : int | array of float
+        The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. If colorbar=True, the ticks in colorbar correspond to the
+        contour levels. Defaults to 6.
 
     Returns
     -------
@@ -1114,13 +1134,17 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     cmap = _setup_cmap(cmap, norm=norm)
 
     if axes is None:
-        fig = plt.figure()
+        fig = plt.figure(figsize=(size, size))
         ax = fig.gca()
     else:
         fig = axes.figure
         ax = axes
 
     _hide_frame(ax)
+
+    locator = None
+    if not isinstance(contours, (list, np.ndarray)):
+        locator, contours = _set_contour_locator(vmin, vmax, contours)
 
     if title is not None:
         ax.set_title(title)
@@ -1132,16 +1156,20 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axes=ax, cmap=cmap[0], image_interp='bilinear',
-                         contours=False, names=names, show_names=show_names,
+                         contours=contours, names=names, show_names=show_names,
                          show=False, onselect=selection_callback,
                          sensors=sensors, res=res, head_pos=head_pos,
                          outlines=outlines)
 
     if colorbar:
+        from matplotlib import ticker
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         cbar = plt.colorbar(im, cax=cax, format=cbar_fmt, cmap=cmap[0])
-        cbar.set_ticks((vmin, vmax))
+        if locator is None:
+            locator = ticker.MaxNLocator(nbins=5)
+        cbar.locator = locator
+        cbar.update_ticks()
         cbar.ax.tick_params(labelsize=12)
         unit = _handle_default('units', unit)['misc']
         cbar.ax.set_title(unit)
@@ -1263,12 +1291,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    contours : int | False | array of float | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
-        If an array, the values represent the levels for the contours. The
-        values are in uV for EEG, fT for magnetometers and fT/m for
-        gradiometers. If colorbar=True, the ticks in colorbar correspond to the
-        contour levels.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. The values are in uV for EEG, fT for magnetometers and
+        fT/m for gradiometers. If colorbar=True, the ticks in colorbar
+        correspond to the contour levels. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
@@ -2131,7 +2161,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
 def _set_contour_locator(vmin, vmax, contours):
     """Set correct contour levels."""
     locator = None
-    if isinstance(contours, Integral):
+    if isinstance(contours, Integral) and contours > 0:
         from matplotlib import ticker
         # nbins = ticks - 1, since 2 of the ticks are vmin and vmax, the
         # correct number of bins is equal to contours + 1.
