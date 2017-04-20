@@ -506,7 +506,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     if contours is None or contours is False:
         warn('Using %s as contours is deprecated and will not be allowed in '
-             '0.16. Use 0 instead.' % str(contours))
+             '0.16. Use 0 instead.' % str(contours), DeprecationWarning)
         contours = 0
     data = np.asarray(data)
     logger.debug('Plotting topomap for data shape %s' % (data.shape,))
