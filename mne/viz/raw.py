@@ -453,7 +453,7 @@ def _close_event(event, params):
     import matplotlib.pyplot as plt
     if 'fig_selection' in params:
         plt.close(params['fig_selection'])
-    if 'fig_annotation' is not None:
+    if params['fig_annotation'] is not None:
         plt.close(params['fig_annotation'])
     plt.close(params['fig'])
 

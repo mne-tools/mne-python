@@ -178,7 +178,13 @@ def test_plot_raw():
                                          dtype=np.int32)
         raw.annotations = Annotations([1 + raw.first_samp / raw.info['sfreq']],
                                       [5], ['bad'])
-        raw.plot()
+        raw.plot(group_by='position', order=np.arange(8))
+        for fig_num in plt.get_fignums():
+            fig = plt.figure(fig_num)
+            if hasattr(fig, 'radio'):  # Get access to selection fig.
+                break
+        for key in ['down', 'up', 'escape']:
+            fig.canvas.key_press_event(key)
         plt.close('all')
 
 
