@@ -2,6 +2,7 @@
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Martin Billinger <martin.billinger@tugraz.at>
+#          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
 # License: BSD (3-clause)
 
@@ -351,6 +352,11 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     nchan = edf_info['nchan']
     physical_ranges = edf_info['physical_max'] - edf_info['physical_min']
     cals = edf_info['digital_max'] - edf_info['digital_min']
+    if np.any(~np.isfinite(cals)):
+        idx = np.where(~np.isfinite(cals))[0]
+        warn('Scaling factor is not defined in following channels:\n' +
+             str(idx).strip('[]'))
+        cals[idx] = 1
 
     # Annotations
     tal_ch_name = 'EDF Annotations'
@@ -872,6 +878,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             """  # noqa
             fid.seek(6 * len(channels), 1)  # phys_dim, obsolete
             units = np.fromfile(fid, np.uint16, len(channels)).tolist()
+            unitcodes = np.array(units[:])
             include = list()
             for i, unit in enumerate(units):
                 if unit == 4275:  # microvolts
@@ -905,10 +912,23 @@ def _read_gdf_header(fname, stim_channel, exclude):
             channel = {}
             channel['xyz'] = [np.fromfile(fid, np.float32, 3)[0]
                               for ch in channels]
-            impedance = np.fromfile(fid, np.uint8, len(channels))
-            channel['impedance'] = pow(2, impedance.astype(float) / 8)
 
-            fid.seek(19 * len(channels), 1)  # reserved
+            if edf_info['number'] < 2.19:
+                impedance = np.fromfile(fid, np.uint8, len(channels))
+                channel['impedance'] = pow(2, impedance.astype(float) / 8)
+                fid.seek(19 * len(channels), 1)  # reserved
+            else:
+                tmp = np.fromfile(fid, np.float32, 5 * len(channels))
+                tmp = tmp[::5]
+                fZ = tmp[:]
+                impedance = tmp[:]
+                # channels with no voltage (code 4256) data
+                ch = [unitcodes & 65504 != 4256][0]
+                impedance[np.where(ch)] = None
+
+                # channel with no impedance (code 4288) data
+                ch = [unitcodes & 65504 != 4288][0]
+                fZ[np.where(ch)[0]] = None
 
             print(fid.tell())
             print(header_nbytes)
@@ -931,6 +951,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             edf_info['gnd'] = gnd
             edf_info['highpass'] = highpass
             edf_info['include'] = include
+            edf_info['impedance'] = impedance
             edf_info['ipaddr'] = ip
             edf_info['lowpass'] = lowpass
             edf_info['n_records'] = n_records
