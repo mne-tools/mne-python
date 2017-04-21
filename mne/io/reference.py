@@ -10,9 +10,43 @@ from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
 from .base import BaseRaw
+from .meas_info import create_info
+from . import RawArray
 from ..evoked import Evoked
-from ..epochs import BaseEpochs
+from ..epochs import BaseEpochs, EpochsArray, EvokedArray
 from ..utils import logger, warn, verbose
+
+
+def _copy_channel(inst, ch_name, new_ch_name):
+    """ Adds a copy of the channel specified by ch_name.
+    Input data can be in the form of Raw, Epochs or Evoked.
+
+    Parameters
+    ----------
+    inst : instance of Raw | Epochs | Evoked
+        Data containing the EEG channels
+    ch_name : str
+        Name of the channel to copy.
+    new_ch_name : str
+        Name given to the copy of the channel.
+
+    Returns
+    -------
+    inst : instance of Raw | Epochs | Evoked
+        The data with a copy of a given channel.
+    """
+    idx_ch = inst.ch_names.index(ch_name)
+    data = inst._data
+    data_ch = data[..., idx_ch, :].reshape((1, data.shape[-1]))
+    new_ch_info = create_info([new_ch_name], inst.info['sfreq'], ['eeg'])
+    if issubclass(type(inst), BaseRaw):
+        new_ch = RawArray(data_ch, new_ch_info, verbose=0)
+    elif issubclass(type(inst), BaseEpochs):
+        new_ch = EpochsArray(data_ch, new_ch_info, verbose=0)
+    else:
+        new_ch = EvokedArray(data_ch, new_ch_info, verbose=0)
+    inst.add_channels([new_ch], force_update_info=True)
+    return inst
 
 
 def _apply_reference(inst, ref_from, ref_to=None):
@@ -361,7 +395,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
 
 
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
-                          copy=True):
+                          copy=True, remove_channels=False):
     """Rereference selected channels using a bipolar referencing scheme.
 
     A bipolar reference takes the difference between two channels (the anode
@@ -396,6 +430,9 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     copy : bool
         Whether to operate on a copy of the data (True) or modify it in-place
         (False). Defaults to True.
+    remove_channels : bool
+        If True, the channels used as anode and cathode are removed from the
+        instance. Defaults to False.
 
     Returns
     -------
@@ -468,14 +505,17 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Perform bipolar referencing
     for an, ca, name, info in zip(anode, cathode, ch_name, new_ch_info):
-        _apply_reference(inst, [ca], [an])
-        an_idx = inst.ch_names.index(an)
+        _copy_channel(inst, an, name)
+        an_idx = inst.ch_names.index(name)
+        _apply_reference(inst, [ca], [name])
+        info['ch_name'] = name
         inst.info['chs'][an_idx] = info
-        inst.info['chs'][an_idx]['ch_name'] = name
         logger.info('Bipolar channel added as "%s".' % name)
         inst.info._update_redundant()
 
-    # Drop cathode channels
-    inst.drop_channels(cathode)
+    # Drop anode and cathode channels
+    if remove_channels:
+        to_remove = anode + cathode
+        inst.drop_channels(to_remove)
 
     return inst
