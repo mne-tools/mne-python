@@ -6,7 +6,6 @@ import numpy as np
 def _get_signal_bl(filepath):
     pib_signal_file, list_infofile = _get_signalfname(filepath, 'PNSData')
     eeg_info = _get_signal_nbin(filepath, pib_signal_file[0])
-    # All the files should be the same parameters, i guess
     if pib_signal_file == []:
         pib_info = dict(nC=0,
                         sampRate=0,
@@ -159,7 +158,7 @@ def _get_ep_inf(filepath, samprate):
                         filename = None
                         if adata.firstChild is not None:
                             if akey.firstChild.data.encode() == 'subj':
-                                subject = adata.firstChild.data   # .encode()
+                                subject = adata.firstChild.data
                             elif akey.firstChild.data.encode() == 'FILE':
                                 filename = adata.firstChild.data.encode()
                         epochsubjects[segind[0]] = subject
@@ -187,13 +186,13 @@ def _get_ep_inf(filepath, samprate):
 
 def _get_signal_nbin(filepath, signalnbin):
     import numpy as np
-
-    binfile = filepath + '/' + signalnbin
+    import os
+    binfile = os.path.join(filepath, signalnbin)
     with open(binfile, 'rb') as fid:
         data = fid.read()
         fid.seek(0, 0)
         version = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
-        if version != 0:     # siempre el primer valor version es 1?
+        if version != 0:
             block = _block_r(fid)
             blocksize = block['blocksize']
             position = block['position']
@@ -246,75 +245,16 @@ def _get_signalfname(filepath, infontype):
     return signalfile, infofiles
 
 
-#  --------------------------------------------------------------------------
-#  infoNType ='EEG' 'PNSData' 'Spectral' 'sourceData' 'JTF' 'TValues' 'Filter'
-#  _u2sample.py
-#  Python File
-#  author Jasmine Song
-#  date 7/21/2014
-#  Copyright 2014 EGI. All rights reserved.
-#  Support routine for MFF Python code. Not intended to be called directly.
-#
-#  Converts from nanoseconds to samples, given the sampling rate.
-##
-
 def _u2sample(microsecs, samprate):
     import numpy as np
-
     sampduration = 1000000. / samprate
     samplenum = np.float(microsecs) / sampduration
     reminder = np.float(microsecs) % sampduration
     samplenum = np.fix(samplenum)
-#    out = {'sampleNum':sampleNum, 'remainder':remainder}
     out = [samplenum, reminder]
     return out
-#  function [sampleNum, remainder] = _u2sample(microsecs, sampRate)
-#  microsecs = double(microsecs);
-#  sampDuration = 1000000/sampRate;
-#  sampleNum = microsecs/sampDuration;
-#  remainder = uint64(rem(microsecs, sampDuration));
-#  sampleNum = fix(sampleNum);
 
 
-def _read_signaln(filepath, nbinfile, blocksinepoch):
-    """Read data signal."""
-    import numpy as np
-
-    binfile = filepath + '/' + nbinfile
-    with open(binfile, 'rb') as fid:
-        fid.seek(0, 0)
-        position = fid.tell()
-        datalist = []
-        blocki = 0
-        for b in range(len(blocksinepoch)):
-            version = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
-            if version != 0:
-                block = _block_r(fid)
-                blocksize = block['blocksize']
-                nsamples = block['nsamples']
-                nc = block['nc']
-                hl = block['hl']
-                if blocki in blocksinepoch:
-                    data1 = np.fromfile(fid, dtype=np.dtype('f4'), count=hl)
-                    data1 = data1.reshape((nc, nsamples))
-                    datalist.append(data1)
-                else:
-                    position = fid.tell()
-                    fid.seek(position + blocksize)
-            else:
-                if blocki in blocksinepoch:
-                    data1 = np.fromfile(fid, dtype=np.dtype('f4'), count=hl)
-                    data1 = data1.reshape((nc, nsamples))
-                    datalist.append(data1)
-                else:
-                    position = fid.tell()
-                    fid.seek(position + blocksize)
-            blocki = blocki + 1
-    return datalist
-
-
-# sampleNum = 700000
-# blockNumSamps = summaryInfo['blockNumSamps']
 def _bls2blns(n_samples, bn_sample):
     blockn = 0
     #  blockNumSamps(blockNum)

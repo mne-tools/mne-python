@@ -13,96 +13,12 @@ import dateutil.parser
 import numpy as np
 
 from .events import _read_events
-from .general import (_block_r, _bls2blns, _read_signaln, _get_gains,
-                      _get_signal_bl, _get_ep_inf, _extract)
+from .general import (_block_r, _get_signal_bl, _get_ep_inf, _extract)
 from ..base import BaseRaw, _check_update_montage
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..utils import _create_chs
 from ...utils import verbose, logger, warn
-
-
-def _read_mff_data(filepath, indtype, startind, lastind, hdr):
-    """Load the data in a list.
-
-    Parameters
-    ----------
-    filepath : str
-        Path to the data file.
-    indtype : str
-        Type of data. Must be "sample" or "epoch".
-    startind : int
-        The start index.
-    lastind : int
-        The last index.
-    hdr : array
-        The header array from _read_mff_header.
-    """
-    suminfo = hdr['orig']
-    blockns = suminfo['blockNumSamps']
-    if len(suminfo['infoFile']) == 1:
-        info_fp = os.path.join(filepath, suminfo['infoFile'][0])
-        gains = _get_gains(info_fp)
-    else:
-        print('Multisubject not suported')
-    if indtype == 'sample':
-        st_blockn, st_sample = _bls2blns(startind - 1, blockns)
-        ls_blockn, ls_sample = _bls2blns(lastind, blockns)
-        blocksinepoch = range(st_blockn, ls_blockn + 1)
-    elif indtype == 'epoch':
-        blocksinepoch = []
-        for i in range(startind - 1, lastind):
-            blocksind = range(suminfo['epochFirstBlocks'][i] - 1,
-                              suminfo['epochLastBlocks'][i])
-            blocksinepoch.extend(blocksind)
-    else:
-        raise NameError("Indtype must to be either 'epoch' or 'sample'")
-
-    dataeeg = _read_signaln(filepath, suminfo['eegFilename'][0], blocksinepoch)
-    if suminfo['pibFilename'] != []:
-        datapib = _read_signaln(filepath,
-                                suminfo['pibFilename'][0],
-                                blocksinepoch)
-        datalist = []
-        for i in range(len(dataeeg)):
-            datai = np.concatenate((dataeeg[i], datapib[i]), axis=0)
-            datalist.append(datai)
-    else:
-        datalist = dataeeg
-
-    if indtype == 'sample':
-        if st_blockn == ls_blockn:
-            data = datalist[0][:, st_sample:ls_sample]
-        elif ls_blockn - st_blockn == 1:
-            datalists = datalist[0][:, st_sample:]
-            datalistl = datalist[1][:, :ls_sample]
-            data = np.concatenate((datalists, datalistl), axis=1)
-        else:
-            datalists = datalist[0][:, st_sample:]
-            for j in range(1, len(datalist) - 1):
-                datalistj = datalist[j]
-                datalists = np.concatenate((datalists, datalistj), axis=1)
-            datalistl = datalist[-1][:, :ls_sample]
-            data = np.concatenate((datalists, datalistl), axis=1)
-    elif indtype == 'epoch':
-        if len(datalist) > 1:
-            if len(set(blockns)) > 1:
-                data = datalist[0]
-                for j in range(1, len(datalist)):
-                    datalistj = datalist[j]
-                    data = np.concatenate((data, datalistj), axis=1)
-            else:
-                data = np.zeros((datalist[0].shape[0],
-                                 datalist[0].shape[1],
-                                 len(datalist)))
-                for j in range(len(datalist)):
-                    data[:, :, j] = datalist[j]
-        else:
-            data = datalist[0]
-    if 'gcal' in gains:
-        for f in range(data.shape[1]):
-            data[:, f] = data[:, f] * gains['gcal']  # Check the speed
-    return data
 
 
 def _read_mff_header(filepath):
@@ -250,18 +166,11 @@ def _read_header(input_fname):
     mff_hdr = _read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
-
-    # if version > 6 & ~np.bitwise_and(version, 6):
-    #    version = version.byteswap().astype(np.uint32)
-    # else:
-    #    ValueError('Watchout. This does not seem to be a simple '
-    #               'binary EGI file.')
-
     time_n = dateutil.parser.parse(mff_hdr['date'])
-    info = dict(   # leer del info.xml desde read_mff_header
-        version=version,  # duda
-        year=int(time_n.strftime('%Y')),           # duda
-        month=int(time_n.strftime('%m')),          # duda
+    info = dict(
+        version=version,
+        year=int(time_n.strftime('%Y')),
+        month=int(time_n.strftime('%m')),
         day=int(time_n.strftime('%d')),
         hour=int(time_n.strftime('%H')),
         minute=int(time_n.strftime('%M')),
@@ -269,12 +178,11 @@ def _read_header(input_fname):
         millisecond=int(time_n.strftime('%f')),
         samp_rate=mff_hdr['Fs'],
         n_channels=mff_hdr['nChans'],
-        gain=0,           # duda
-        bits=0,           # duda
-        value_range=0)    # duda
+        gain=0,
+        bits=0,
+        value_range=0)
     unsegmented = 1 if mff_hdr['nTrials'] == 1 else 0
     precision = 4
-    # np.bitwise_and(version,6)
     if precision == 0:
         RuntimeError('Floating point precision is undefined.')
     if unsegmented:
@@ -298,7 +206,7 @@ def _read_header(input_fname):
 
 @verbose
 def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
-                     include=None, exclude=None, preload=False, kind='raw',
+                     include=None, exclude=None, preload=False,
                      verbose=None):
     """Read EGI mff binary as raw object.
 
@@ -359,8 +267,8 @@ def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawMff(input_fname, montage, eog, misc, include, exclude, preload,
-                  kind, verbose)
+    return RawMff(input_fname, montage, eog, misc, include, exclude,
+                  preload, verbose)
 
 
 class RawMff(BaseRaw):
@@ -368,8 +276,7 @@ class RawMff(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=False, kind='raw',
-                 verbose=None):
+                 include=None, exclude=None, preload=False, verbose=None):
         """Init the RawMff class."""
         if eog is None:
             eog = []
@@ -385,8 +292,6 @@ class RawMff(BaseRaw):
             cal = 1e-6
 
         logger.info('    Assembling measurement info ...')
-
-        # from here is the same that the raw egi reader
         if egi_info['n_events'] > 0:
             event_codes = list(egi_info['event_codes'])
             if include is None:
@@ -435,7 +340,6 @@ class RawMff(BaseRaw):
 
         info = _empty_info(egi_info['samp_rate'])
         info['buffer_size_sec'] = 1.  # reasonable default
-        # info['filename'] = input_fname
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])
@@ -463,34 +367,13 @@ class RawMff(BaseRaw):
         _check_update_montage(info, montage)
         file_bin = input_fname + '/' + egi_hdr['orig']['eegFilename'][0]
 
-        if kind == 'epoch':
-            data = _read_mff_data(input_fname, 'epoch', 1, egi_hdr['nTrials'],
-                                  egi_hdr)
-            data *= cal
-            if self._new_trigger is not None:
-                sti = self._new_trigger.reshape((1, len(self._new_trigger)))
-                data = np.concatenate((data, egi_events, sti), axis=0)
-            else:
-                data = np.concatenate((data, egi_events), axis=0)
-            dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
-            data = np.asanyarray(data, dtype=dtype)
-            if len(data) != len(info['ch_names']):
-                raise ValueError('len(data) does not match '
-                                 'len(info["ch_names"])')
-            logger.info('Creating RawArray with %s data, n_channels=%s, '
-                        'n_times=%s' % (dtype.__name__, data.shape[0],
-                                        data.shape[1]))
-        elif kind == 'raw':
-            with open(file_bin, 'rb') as fid:
-                block_info = _block_r(fid)
-            egi_info['block_info'] = block_info
-            egi_info['egi_events'] = egi_events
+        with open(file_bin, 'rb') as fid:
+            block_info = _block_r(fid)
+        egi_info['block_info'] = block_info
+        egi_info['egi_events'] = egi_events
 
-            self._filenames = [file_bin]
-            self._raw_extras = [egi_info]
-        else:
-            raise ValueError("kind must be 'raw' or 'epoch'. Got %s." % kind)
-
+        self._filenames = [file_bin]
+        self._raw_extras = [egi_info]
         super(RawMff, self).__init__(
             info, preload=preload, orig_format=egi_info['orig_format'],
             filenames=[file_bin], last_samps=[egi_info['n_samples'] - 1],
