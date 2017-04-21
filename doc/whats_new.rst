@@ -27,6 +27,8 @@ Changelog
 
     - Add :class:`mne.decoding.ReceptiveField` module for modeling electrode response to input features by `Chris Holdgraf`_
 
+    - Add :class:`mne.decoding.TimeDelayingRidge` class, used by default by :class:`mne.decoding.ReceptiveField`, to speed up auto- and cross-correlation computations and enable Laplacian regularization by `Ross Maddox`_ and `Eric Larson`_
+
     - Add new :mod:`mne.datasets.mtrf` dataset by `Chris Holdgraf`_
 
     - Add example of time-frequency decoding with CSP by `Laura Gwilliams`_
@@ -38,6 +40,8 @@ Changelog
     - Add ``reject_by_annotation`` option to :func:`mne.preprocessing.find_eog_events` (which is also utilised by :func:`mne.preprocessing.create_eog_epochs`) to omit data that is annotated as bad by `Jaakko Leppakangas`_
 
     - Add example for fast screening of event-related dynamics in frequency bands by `Denis Engemann`_
+
+    - Add :meth:`mne.time_frequency.EpochsTFR.save` by `Jaakko Leppakangas`_
 
 BUG
 ~~~
@@ -58,6 +62,8 @@ BUG
 
     - Fix :func:`mne.viz.plot_sensors` to maintain proper aspect ratio by `Eric Larson`_
 
+    - Fix :func:`mne.viz.plot_topomap` to allow 0 contours by `Jaakko Leppakangas`_
+
 API
 ~~~
 
@@ -72,6 +78,8 @@ API
     - ``mne.viz.decoding.plot_gat_times``, ``mne.viz.decoding.plot_gat_matrix`` are now deprecated. Use matplotlib instead as shown in the examples, by `Jean-Remi King`_ and `Alex Gramfort`_
 
     - Add ``norm_trace`` parameter to control single-epoch covariance normalization in :class:mne.decoding.CSP, by `Jean-Remi King`_
+
+    - Allow passing a list of channel names as ``show_names`` in function  :func:`mne.viz.plot_sensors` and methods :meth:`mne.Evoked.plot_sensors`, :meth:`mne.Epochs.plot_sensors` and :meth:`mne.io.Raw.plot_sensors` to show only a subset of channel names by `Jaakko Leppakangas`_
 
 .. _changes_0_14:
 
@@ -2047,7 +2055,7 @@ of commits):
 
 .. _Chris Bailey: https://github.com/cjayb
 
-.. _Ross Maddox: http://faculty.washington.edu/rkmaddox/
+.. _Ross Maddox: https://www.urmc.rochester.edu/labs/maddox-lab.aspx
 
 .. _Alexandre Barachant: http://alexandre.barachant.org
 

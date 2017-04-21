@@ -17,7 +17,8 @@ from ..source_estimate import VolSourceEstimate
 from ..cov import make_ad_hoc_cov, read_cov
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, BaseRaw
-from ..chpi import read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info
+from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
+                    _get_hpi_initial_fit)
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _stc_src_sel, convert_forward_solution,
@@ -265,7 +266,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     ecg = ecg and len(meg_picks) > 0
     chpi = chpi and len(meg_picks) > 0
     if chpi:
-        hpi_freqs, hpi_rrs, hpi_pick, hpi_ons = _get_hpi_info(info)[:4]
+        hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info)
+        hpi_rrs = _get_hpi_initial_fit(info)
         hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
                                            axis=1))[:, np.newaxis]
         # turn on cHPI in file

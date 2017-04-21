@@ -244,7 +244,8 @@ def test_plot_sensors():
     raw = _get_raw()
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
-    raw.plot_sensors('topomap', ch_type='mag')
+    raw.plot_sensors('topomap', ch_type='mag',
+                     show_names=['MEG 0111', 'MEG 0131'])
     ax = plt.subplot(111)
     raw.plot_sensors(ch_groups='position', axes=ax)
     raw.plot_sensors(ch_groups='selection', to_sphere=False)

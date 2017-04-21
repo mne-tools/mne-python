@@ -86,7 +86,7 @@ def test_plot_topo():
         return list(range(d.shape[0]))
     ts_args = dict(spatial_colors=True, zorder=return_inds)
     evoked.plot_joint(title='test', ts_args=ts_args,
-                      topomap_args=dict(colorbar=True, times=[0.]))
+                      topomap_args=dict(colorbar=True, times=[0.], contours=3))
 
     warnings.simplefilter('always', UserWarning)
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])

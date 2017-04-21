@@ -252,7 +252,8 @@ def _toggle_proj(event, params):
             if not b and p['active']:
                 bools[bi] = True
     else:
-        bools = [True] * len(params['projs'])
+        proj = params.get('apply_proj', True)
+        bools = [proj] * len(params['projs'])
 
     compute_proj = False
     if 'proj_bools' not in params:
@@ -385,19 +386,24 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     labels = [p['desc'] for p in projs]
     actives = ([p['active'] for p in projs] if draw_current_state else
-               [True] * len(params['projs']))
+               [params['apply_proj']] * len(projs))
 
-    width = max([len(p['desc']) for p in projs]) / 6.0 + 0.5
-    height = len(projs) / 6.0 + 0.5
+    width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
+    height = len(projs) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
     fig_proj.canvas.set_window_title('SSP projection vectors')
     params['fig_proj'] = fig_proj  # necessary for proper toggling
-    ax_temp = fig_proj.add_axes((0, 0, 1, 1), frameon=False)
+    ax_temp = fig_proj.add_axes((0, 0, 1, 0.8), frameon=False)
+    ax_temp.set_title('Projectors marked with "X" are active')
 
     proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
+    # make edges around checkbox areas
+    [rect.set_edgecolor('0.5') for rect in proj_checks.rectangles]
+    [rect.set_linewidth(1.) for rect in proj_checks.rectangles]
+
     # change already-applied projectors to red
     for ii, p in enumerate(projs):
-        if p['active'] is True:
+        if p['active']:
             for x in proj_checks.lines[ii]:
                 x.set_color('r')
     # make minimal size
@@ -1235,8 +1241,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%s)' % ch_type``.
-    show_names : bool
-        Whether to display all channel names. Defaults to False.
+    show_names : bool | array of str
+        Whether to display all channel names. If an array, only the channel
+        names in the array are shown. Defaults to False.
     ch_groups : 'position' | array of shape (ch_groups, picks) | None
         Channel groups for coloring the sensors. If None (default), default
         coloring scheme is used. If 'position', the sensors are divided
@@ -1442,7 +1449,11 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
 
     connect_picker = True
     if show_names:
-        for idx in range(len(pos)):
+        if isinstance(show_names, (list, np.ndarray)):  # only given channels
+            indices = [list(ch_names).index(name) for name in show_names]
+        else:  # all channels
+            indices = range(len(pos))
+        for idx in indices:
             this_pos = pos[idx]
             if pos.shape[1] == 3:
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])

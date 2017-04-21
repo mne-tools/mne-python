@@ -1116,6 +1116,7 @@ Classes:
    UnsupervisedSpatialFilter
    Vectorizer
    ReceptiveField
+   TimeDelayingRidge
    SlidingEstimator
    GeneralizingEstimator
 

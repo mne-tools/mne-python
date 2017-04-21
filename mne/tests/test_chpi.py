@@ -11,11 +11,12 @@ import warnings
 
 from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
                  pick_info)
-from mne.io import read_raw_fif, read_info, RawArray
+from mne.io import read_raw_fif, read_raw_artemis123, read_info, RawArray
 from mne.io.constants import FIFF
-from mne.chpi import (_calculate_chpi_positions,
+from mne.chpi import (_calculate_chpi_positions, _calculate_chpi_coil_locs,
                       head_pos_to_trans_rot_t, read_head_pos,
-                      write_head_pos, filter_chpi, _get_hpi_info)
+                      write_head_pos, filter_chpi,
+                      _get_hpi_info, _get_hpi_initial_fit)
 from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.simulation import simulate_raw
@@ -38,6 +39,11 @@ sss_hpisubt_fname = op.join(data_path, 'SSS', 'test_move_anon_hpisubt_raw.fif')
 chpi5_fif_fname = op.join(data_path, 'SSS', 'chpi5_raw.fif')
 chpi5_pos_fname = op.join(data_path, 'SSS', 'chpi5_raw_mc.pos')
 
+art_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
+                    '-15h-44m-22s_Motion_Translation-z.bin')
+art_mc_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
+                       '-15h-44m-22s_Motion_Translation-z_mc.pos')
+
 warnings.simplefilter('always')
 
 
@@ -46,8 +52,8 @@ def test_chpi_adjust():
     """Test cHPI logging and adjustment."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     with catch_logging() as log:
-        _get_hpi_info(raw.info, adjust=True, verbose='debug')
-
+        _get_hpi_initial_fit(raw.info, adjust=True, verbose='debug')
+        _get_hpi_info(raw.info, verbose='debug')
     # Ran MaxFilter (with -list, -v, -movecomp, etc.), and got:
     msg = ['HPIFIT: 5 coils digitized in order 5 1 4 3 2',
            'HPIFIT: 3 coils accepted: 1 2 4',
@@ -74,7 +80,8 @@ def test_chpi_adjust():
         'Note: HPI coil 3 isotrak is adjusted by 5.3 mm!',
         'Note: HPI coil 5 isotrak is adjusted by 3.2 mm!'] + msg[-2:]
     with catch_logging() as log:
-        _get_hpi_info(raw.info, adjust=True, verbose='debug')
+        _get_hpi_initial_fit(raw.info, adjust=True, verbose='debug')
+        _get_hpi_info(raw.info, verbose='debug')
     log = log.getvalue().splitlines()
     assert_true(set(log) == set(msg), '\n' + '\n'.join(set(msg) - set(log)))
 
@@ -208,6 +215,13 @@ def test_calculate_chpi_positions():
     assert_raises_regex(RuntimeError, 'above the',
                         _calculate_chpi_positions, raw)
 
+    # test on 5k artemis data
+    raw = read_raw_artemis123(art_fname, preload=True)
+    mf_quats = read_head_pos(art_mc_fname)
+    with catch_logging() as log:
+        py_quats = _calculate_chpi_positions(raw, verbose='debug')
+    _assert_quats(py_quats, mf_quats, dist_tol=0.004, angle_tol=2.5)
+
 
 @testing.requires_testing_data
 def test_calculate_chpi_positions_on_chpi5_in_one_second_steps():
@@ -318,6 +332,36 @@ def test_simulate_calculate_chpi_positions():
         raw, t_step_min=raw.info['sfreq'] * head_pos_sfreq_quotient,
         t_step_max=raw.info['sfreq'] * head_pos_sfreq_quotient, t_window=1.0)
     _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.)
+
+
+@testing.requires_testing_data
+def test_calculate_chpi_coil_locs():
+    """Test computing just cHPI locations."""
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
+    # This is a little hack (aliasing while decimating) to make it much faster
+    # for testing purposes only. We can relax this later if we find it breaks
+    # something.
+    raw_dec = _decimate_chpi(raw, 15)
+    times, cHPI_digs = _calculate_chpi_coil_locs(raw_dec, verbose='debug')
+
+    # spot check
+    assert_allclose(times[9], 9.9, atol=1e-3)
+    assert_allclose(cHPI_digs[9][2]['r'],
+                    [-0.01937833, 0.00346804, 0.06331209], atol=1e-3)
+    assert_allclose(cHPI_digs[9][2]['gof'], 0.9957976, atol=1e-3)
+
+    assert_allclose(cHPI_digs[9][4]['r'],
+                    [0.05442122, 0.00997692, 0.03721696], atol=1e-3)
+    assert_allclose(cHPI_digs[9][4]['gof'], 0.075700080794629199, atol=1e-3)
+
+    # test on 5k artemis data
+    raw = read_raw_artemis123(art_fname, preload=True)
+    times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
+
+    assert_allclose(times[2], 2.9, atol=1e-3)
+    assert_allclose(cHPI_digs[2][0]['gof'], 0.9980471794552791, atol=1e-3)
+    assert_allclose(cHPI_digs[2][0]['r'],
+                    [-0.0157762, 0.06655744, 0.00545172], atol=1e-3)
 
 
 @testing.requires_testing_data
