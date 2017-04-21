@@ -252,7 +252,8 @@ def _toggle_proj(event, params):
             if not b and p['active']:
                 bools[bi] = True
     else:
-        bools = [True] * len(params['projs'])
+        proj = params.get('apply_proj', True)
+        bools = [proj] * len(params['projs'])
 
     compute_proj = False
     if 'proj_bools' not in params:
@@ -385,19 +386,24 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     labels = [p['desc'] for p in projs]
     actives = ([p['active'] for p in projs] if draw_current_state else
-               [True] * len(params['projs']))
+               [params['apply_proj']] * len(projs))
 
-    width = max([len(p['desc']) for p in projs]) / 6.0 + 0.5
-    height = len(projs) / 6.0 + 0.5
+    width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
+    height = len(projs) / 6.0 + 1.5
     fig_proj = figure_nobar(figsize=(width, height))
     fig_proj.canvas.set_window_title('SSP projection vectors')
     params['fig_proj'] = fig_proj  # necessary for proper toggling
-    ax_temp = fig_proj.add_axes((0, 0, 1, 1), frameon=False)
+    ax_temp = fig_proj.add_axes((0, 0, 1, 0.8), frameon=False)
+    ax_temp.set_title('Projectors marked with "X" are active')
 
     proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
+    # make edges around checkbox areas
+    [rect.set_edgecolor('0.5') for rect in proj_checks.rectangles]
+    [rect.set_linewidth(1.) for rect in proj_checks.rectangles]
+
     # change already-applied projectors to red
     for ii, p in enumerate(projs):
-        if p['active'] is True:
+        if p['active']:
             for x in proj_checks.lines[ii]:
                 x.set_color('r')
     # make minimal size

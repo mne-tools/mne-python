@@ -1725,11 +1725,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              event_color='cyan', scalings=None, remove_dc=True, order='type',
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
-             show_first_samp=False):
+             show_first_samp=False, proj=True):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
-                        lowpass, filtorder, clipping, show_first_samp)
+                        lowpass, filtorder, clipping, show_first_samp, proj)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
