@@ -511,9 +511,9 @@ class RawMff(BaseRaw):
         data_left = (stop - start) * n_channels
 
         egi_events = egi_info['egi_events'][:, start:stop]
-        extra_samps = (start / block_info['nsamples'])
+        extra_samps = (start // block_info['nsamples'])
         beginning = extra_samps * block_size
-        data_left += (data_offset - offset) / n_bytes - beginning
+        data_left += (data_offset - offset) // n_bytes - beginning
         # STI 014 is simply the sum of all event channels (powers of 2).
         if len(egi_events) > 0:
             e_start = 0
@@ -523,14 +523,27 @@ class RawMff(BaseRaw):
             # extract data in chunks
             sample_start = 0
             # s_offset determines the offset inside the block in samples.
-            s_offset = (data_offset / n_bytes - beginning) / n_channels
+            s_offset = (data_offset // n_bytes - beginning) / n_channels
             while sample_start * n_channels < data_left:
-                fid.seek(4, 1)
+                flag = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
+                while flag == 1:  # meta data
+                    # Meta data consists of:
+                    # * 2 bytes of unkown
+                    # * 1 byte of n_channels
+                    # * n_channels bytes of offsets
+                    # * n_channels bytes of unknown
+                    # * 1 byte of flag (1 for meta data, 0 for data)
+                    fid.seek(8, 1)
+                    n_channels = np.fromfile(fid, dtype=np.dtype('i4'),
+                                             count=1)[0]
+                    fid.seek(2 * n_bytes * n_channels, 1)
+                    flag = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
+
                 block = np.fromfile(fid, dtype, block_size)
                 block = block.reshape(n_channels, -1, order='C')
 
                 count = data_left - sample_start * n_channels
-                end = count / n_channels
+                end = count // n_channels + 2
                 if sample_start == 0:
                     block = block[:, s_offset:end]
                     sample_sl = slice(sample_start,

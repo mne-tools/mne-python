@@ -2,6 +2,7 @@
 
 import numpy as np
 
+
 def _get_signal_bl(filepath):
     pib_signal_file, list_infofile = _get_signalfname(filepath, 'PNSData')
     eeg_info = _get_signal_nbin(filepath, pib_signal_file[0])
@@ -189,8 +190,7 @@ def _get_signal_nbin(filepath, signalnbin):
 
     binfile = filepath + '/' + signalnbin
     with open(binfile, 'rb') as fid:
-        s = fid.read()
-        l = len(s)
+        data = fid.read()
         fid.seek(0, 0)
         version = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
         if version != 0:     # siempre el primer valor version es 1?
@@ -200,9 +200,11 @@ def _get_signal_nbin(filepath, signalnbin):
             nsamples = block['nsamples']
         else:
             raise NotImplementedError('Only continuos files are supported')
-        numblocks = int(l // blocksize)
+        numblocks = int(len(data) // float(blocksize))
         samples_block = [nsamples]
         fid.seek(position + blocksize)
+        if (len(data) / float(blocksize)) - numblocks > 0:
+            numblocks = numblocks + 1
         for i in range(1, numblocks):
             version = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
             if version == 0:
