@@ -28,25 +28,16 @@ egi_mff_txt_fname = op.join(base_dir, 'test_mff.txt')
 
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files"""
-
-    with open(egi_mff_txt_fname) as fid:
-        data = np.loadtxt(fid)
-    # t = data[0]
-    data = data[1:]
-    data *= 1e-6
-
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw = read_raw_egi_mff(egi_fname_mff, include=None)
         assert_true('RawMff' in repr(raw))
-        assert_equal(len(w), 1)
-        assert_true(w[0].category == RuntimeWarning)
-        msg = 'Did not find any event code with more than one event.'
+        assert_equal(len(w), 2)
+        assert_true(w[0].category == UserWarning)
+        # msg = 'Did not find any event code with more than one event.'
+        msg = 'Event outside data range'
         assert_true(msg in '%s' % w[0].message)
-    data_read, t_read = raw[:129]
-    # assert_allclose(t_read, t)
-    # assert_allclose(data_read, data, atol=1e-10)
-    print('include todos los canales')
+
     include = ['DIN1', 'DIN2', 'DIN3', 'DIN4',
                'DIN5', 'DIN7']
     with warnings.catch_warnings(record=True):

@@ -1,5 +1,6 @@
 """General functions."""
 
+import numpy as np
 
 def _get_signal_bl(filepath):
     pib_signal_file, list_infofile = _get_signalfname(filepath, 'PNSData')
@@ -97,8 +98,8 @@ def _get_ep_inf(filepath, samprate):
         epochlabels[p] = 'epoch'
     epochtype = 'cnt'
     totalnumsegs = 0
-    #  -------------------------------------------------------------------
-    categfile = filepath + '/categories.xml'
+
+    categfile = os.path.join(filepath, 'categories.xml')
     if os.path.isfile(categfile):
         epochtype = 'seg'
         categlist = parse(categfile)
@@ -327,7 +328,6 @@ def _bls2blns(n_samples, bn_sample):
 
 
 def _block_r(fid):
-    import numpy as np
     fid.seek(4)
     headersize = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
     blocksize = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]

@@ -5,21 +5,229 @@ Created on Fri Jan 13 11:01:39 2017.
 @author: ramonapariciog
 """
 import datetime
-import dateutil.parser
+import os
 import time
 
+from xml.dom.minidom import parse
+import dateutil.parser
 import numpy as np
 
-from .source.header import read_mff_header
-from .source.data import read_mff_data
-from .source.general import _block_r
-from .source.events import read_mff_events
-
+from .events import _read_events
+from .general import (_block_r, _bls2blns, _read_signaln, _get_gains,
+                      _get_signal_bl, _get_ep_inf, _extract)
 from ..base import BaseRaw, _check_update_montage
-from ..utils import _create_chs
-from ..meas_info import _empty_info
 from ..constants import FIFF
+from ..meas_info import _empty_info
+from ..utils import _create_chs
 from ...utils import verbose, logger, warn
+
+
+def _read_mff_data(filepath, indtype, startind, lastind, hdr):
+    """Load the data in a list.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to the data file.
+    indtype : str
+        Type of data. Must be "sample" or "epoch".
+    startind : int
+        The start index.
+    lastind : int
+        The last index.
+    hdr : array
+        The header array from _read_mff_header.
+    """
+    suminfo = hdr['orig']
+    blockns = suminfo['blockNumSamps']
+    if len(suminfo['infoFile']) == 1:
+        info_fp = os.path.join(filepath, suminfo['infoFile'][0])
+        gains = _get_gains(info_fp)
+    else:
+        print('Multisubject not suported')
+    if indtype == 'sample':
+        st_blockn, st_sample = _bls2blns(startind - 1, blockns)
+        ls_blockn, ls_sample = _bls2blns(lastind, blockns)
+        blocksinepoch = range(st_blockn, ls_blockn + 1)
+    elif indtype == 'epoch':
+        blocksinepoch = []
+        for i in range(startind - 1, lastind):
+            blocksind = range(suminfo['epochFirstBlocks'][i] - 1,
+                              suminfo['epochLastBlocks'][i])
+            blocksinepoch.extend(blocksind)
+    else:
+        raise NameError("Indtype must to be either 'epoch' or 'sample'")
+
+    dataeeg = _read_signaln(filepath, suminfo['eegFilename'][0], blocksinepoch)
+    if suminfo['pibFilename'] != []:
+        datapib = _read_signaln(filepath,
+                                suminfo['pibFilename'][0],
+                                blocksinepoch)
+        datalist = []
+        for i in range(len(dataeeg)):
+            datai = np.concatenate((dataeeg[i], datapib[i]), axis=0)
+            datalist.append(datai)
+    else:
+        datalist = dataeeg
+
+    if indtype == 'sample':
+        if st_blockn == ls_blockn:
+            data = datalist[0][:, st_sample:ls_sample]
+        elif ls_blockn - st_blockn == 1:
+            datalists = datalist[0][:, st_sample:]
+            datalistl = datalist[1][:, :ls_sample]
+            data = np.concatenate((datalists, datalistl), axis=1)
+        else:
+            datalists = datalist[0][:, st_sample:]
+            for j in range(1, len(datalist) - 1):
+                datalistj = datalist[j]
+                datalists = np.concatenate((datalists, datalistj), axis=1)
+            datalistl = datalist[-1][:, :ls_sample]
+            data = np.concatenate((datalists, datalistl), axis=1)
+    elif indtype == 'epoch':
+        if len(datalist) > 1:
+            if len(set(blockns)) > 1:
+                data = datalist[0]
+                for j in range(1, len(datalist)):
+                    datalistj = datalist[j]
+                    data = np.concatenate((data, datalistj), axis=1)
+            else:
+                data = np.zeros((datalist[0].shape[0],
+                                 datalist[0].shape[1],
+                                 len(datalist)))
+                for j in range(len(datalist)):
+                    data[:, :, j] = datalist[j]
+        else:
+            data = datalist[0]
+    if 'gcal' in gains:
+        for f in range(data.shape[1]):
+            data[:, f] = data[:, f] * gains['gcal']  # Check the speed
+    return data
+
+
+def _read_mff_header(filepath):
+    """Header reader Function.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to the file.
+    """
+    signal_blocks = _get_signal_bl(filepath)
+    samprate = signal_blocks['sampRate']
+    numblocks = signal_blocks['blocks']
+    blocknumsamps = np.array(signal_blocks['binObj'])
+
+    pibhasref = False
+    pibnchans = 0
+    if signal_blocks['pibSignalFile'] != []:
+        pnssetfile = filepath + '/pnsSet.xml'
+        pnssetobj = parse(pnssetfile)
+        pnssensors = pnssetobj.getElementsByTagName('sensor')
+        pibnchans = pnssensors.length
+        if signal_blocks['npibChan'] - pibnchans == 1:
+            pibhasref = True
+
+    epoch_info = _get_ep_inf(filepath, samprate)
+
+    blockbeginsamps = np.zeros((numblocks), dtype='i8')
+    for x in range(0, (numblocks - 1)):
+        blockbeginsamps[x + 1] = blockbeginsamps[x] + blocknumsamps[x]
+
+    summaryinfo = dict(blocks=signal_blocks['blocks'],
+                       eegFilename=signal_blocks['eegFile'],
+                       infoFile=signal_blocks['infoFile'],
+                       sampRate=signal_blocks['sampRate'],
+                       nChans=signal_blocks['nChan'],
+                       pibBinObj=signal_blocks['pibBinObj'],
+                       pibBlocks=signal_blocks['pibBlocks'],
+                       pibFilename=signal_blocks['pibSignalFile'],
+                       pibNChans=pibnchans,
+                       pibHasRef=pibhasref,
+                       epochType=epoch_info['epochType'],
+                       epochBeginSamps=epoch_info['epochBeginSamps'],
+                       epochNumSamps=epoch_info['epochNumSamps'],
+                       epochFirstBlocks=epoch_info['epochFirstBlocks'],
+                       epochLastBlocks=epoch_info['epochLastBlocks'],
+                       epochLabels=epoch_info['epochLabels'],
+                       epochTime0=epoch_info['epochTime0'],
+                       multiSubj=epoch_info['multiSubj'],
+                       epochSubjects=epoch_info['epochSubjects'],
+                       epochFilenames=epoch_info['epochFilenames'],
+                       epochSegStatus=epoch_info['epochSegStatus'],
+                       blockBeginSamps=blockbeginsamps,
+                       blockNumSamps=blocknumsamps)
+
+    # Pull header info from the summary info.
+    nsamplespre = 0
+    if summaryinfo['epochType'] == 'seg':
+        nsamples = summaryinfo['epochNumSamps'][0]
+        ntrials = len(summaryinfo['epochNumSamps'])
+
+        # if Time0 is the same for all segments...
+        if len(set(summaryinfo['epochTime0'])) == 1:
+            nsamplespre = summaryinfo['epochTime0'][0]
+    else:
+        nsamples = sum(summaryinfo['blockNumSamps'])
+        ntrials = 1
+
+    # Add the sensor info.
+    sensor_layout_file = filepath + '/sensorLayout.xml'
+    sensor_layout_obj = parse(sensor_layout_file)
+    sensors = sensor_layout_obj.getElementsByTagName('sensor')
+    label = []
+    chantype = []
+    chanunit = []
+    tmp_label = []
+    n_chans = 0
+    for sensor in sensors:
+        sensortype = int(sensor.getElementsByTagName('type')[0]
+                         .firstChild.data)
+        if sensortype == 0 or sensortype == 1:
+            if sensor.getElementsByTagName('name')[0].firstChild is None:
+                sn = sensor.getElementsByTagName('number')[0].firstChild.data
+                sn = sn.encode()
+                tmp_label = 'E' + sn.decode()
+            else:
+                sn = sensor.getElementsByTagName('name')[0].firstChild.data
+                sn = sn.encode()
+                tmp_label = sn.decode()
+            label.append(tmp_label)
+            chantype.append('eeg')
+            chanunit.append('uV')
+            n_chans = n_chans + 1
+    if n_chans != summaryinfo['nChans']:
+        print("Error. Should never occur.")
+
+    if summaryinfo['pibNChans'] > 0:
+        pns_set_file = filepath + '/pnsSet.xml'
+        pns_set_obj = parse(pns_set_file)
+        pns_sensors = pns_set_obj.getElementsByTagName('sensor')
+        for p in range(summaryinfo['pibNChans']):
+            tmp_label = 'pib' + str(p + 1)
+            label.append(tmp_label)
+            pns_sensor_obj = pns_sensors[p]
+            chantype.append(pns_sensor_obj.getElementsByTagName('name')[0]
+                            .firstChild.data.encode())
+            chanunit.append(pns_sensor_obj.getElementsByTagName('unit')[0]
+                            .firstChild.data.encode())
+
+    n_chans = n_chans + summaryinfo['pibNChans']
+    info_filepath = filepath + "/" + "info.xml"  # add with filepath
+    tags = ['mffVersion', 'recordTime']
+    version_and_date = _extract(tags, filepath=info_filepath)
+    header = dict(Fs=summaryinfo['sampRate'],
+                  version=version_and_date['mffVersion'][0],
+                  date=version_and_date['recordTime'][0],
+                  nChans=n_chans,
+                  nSamplesPre=nsamplespre,
+                  nSamples=nsamples,
+                  nTrials=ntrials,
+                  label=label,
+                  chantype=chantype,
+                  chanunit=chanunit,
+                  orig=summaryinfo)
+    return header
 
 
 def _read_header(input_fname):
@@ -31,15 +239,15 @@ def _read_header(input_fname):
         Path for the file
 
     Returns
-    ------------------------
-    info : dictionary
+    -------
+    info : dict
         Set with main headers.
-    mff_hdr : dictionary
+    mff_hdr : dict
         Headers.
-    mff_events : dictionary.
+    mff_events : dict
         Events.
     """
-    mff_hdr = read_mff_header(input_fname)
+    mff_hdr = _read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
 
@@ -86,33 +294,6 @@ def _read_header(input_fname):
                                           6: ('>f8', 'double')}[precision]
     info['dtype'] = np.dtype(info['dtype'])
     return info, mff_hdr
-
-
-def _read_events(input_fname, hdr, info):
-    """Read events for the record.
-
-    Parameters
-    ----------
-    input_fname : str
-        The file path.
-    hdr : dict
-        Dictionary with the headers got from read_mff_header.
-    info : dict
-        Header info array.
-    """
-    mff_events, event_codes = read_mff_events(input_fname, hdr)
-    info['n_events'] = len(event_codes)
-    info['event_codes'] = np.asarray(event_codes).astype('<U4')
-    events = np.zeros([info['n_events'],
-                      info['n_segments'] * info['n_samples']])
-    for n, event in enumerate(event_codes):
-        for i in mff_events[event]:
-            if i > events.shape[1]:
-                warn('Event outside data range (%ss).' % (i /
-                                                          info['samp_rate']))
-                continue
-            events[n][i] = 2**n
-    return events, info
 
 
 @verbose
@@ -189,7 +370,7 @@ class RawMff(BaseRaw):
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
                  include=None, exclude=None, preload=False, kind='raw',
                  verbose=None):
-        """Init for the RawMff class."""
+        """Init the RawMff class."""
         if eog is None:
             eog = []
         if misc is None:
@@ -203,12 +384,9 @@ class RawMff(BaseRaw):
         else:
             cal = 1e-6
 
-        # duda
-
         logger.info('    Assembling measurement info ...')
 
         # from here is the same that the raw egi reader
-
         if egi_info['n_events'] > 0:
             event_codes = list(egi_info['event_codes'])
             if include is None:
@@ -244,7 +422,7 @@ class RawMff(BaseRaw):
                 elif v is not None:
                     raise ValueError('`%s` must be None or of type list' % kk)
 
-            event_ids = np.nonzero(np.unique(egi_events))
+            event_ids, = np.nonzero(np.unique(egi_events))
             logger.info('    Synthesizing trigger channel "STI 014" ...')
             logger.info('    Excluding events {%s} ...' %
                         ", ".join([k for i, k in enumerate(event_codes)
@@ -286,9 +464,8 @@ class RawMff(BaseRaw):
         file_bin = input_fname + '/' + egi_hdr['orig']['eegFilename'][0]
 
         if kind == 'epoch':
-            data = read_mff_data(input_fname,
-                                 'epoch', 1, egi_hdr['nTrials'],
-                                 egi_hdr)
+            data = _read_mff_data(input_fname, 'epoch', 1, egi_hdr['nTrials'],
+                                  egi_hdr)
             data *= cal
             if self._new_trigger is not None:
                 sti = self._new_trigger.reshape((1, len(self._new_trigger)))

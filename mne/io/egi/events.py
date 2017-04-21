@@ -3,14 +3,40 @@
 from datetime import datetime
 from glob import glob
 from os.path import basename, join, splitext
+from warnings import warn
+
 from xml.etree.ElementTree import parse
-from numpy import fix
+import numpy as np
 
 
-# shorttime = lambda x: x[:26] + x[29:32] + x[33:]
+def _read_events(input_fname, hdr, info):
+    """Read events for the record.
+
+    Parameters
+    ----------
+    input_fname : str
+        The file path.
+    hdr : dict
+        Dictionary with the headers got from read_mff_header.
+    info : dict
+        Header info array.
+    """
+    mff_events, event_codes = _read_mff_events(input_fname, hdr)
+    info['n_events'] = len(event_codes)
+    info['event_codes'] = np.asarray(event_codes).astype('<U4')
+    events = np.zeros([info['n_events'],
+                      info['n_segments'] * info['n_samples']])
+    for n, event in enumerate(event_codes):
+        for i in mff_events[event]:
+            if i > events.shape[1]:
+                warn('Event outside data range (%ss).' % (i /
+                                                          info['samp_rate']))
+                continue
+            events[n][i] = 2**n
+    return events, info
 
 
-def read_mff_events(filename, header):
+def _read_mff_events(filename, header):
     """Function for extract the events.
 
     Parameters:
@@ -38,7 +64,7 @@ def read_mff_events(filename, header):
                 code.append(event['code'])
             marker = {'name': event['code'],
                       'start': start,
-                      'start_sample': int(fix(start * header['Fs'])),
+                      'start_sample': int(np.fix(start * header['Fs'])),
                       'end': start + float(event['duration']) / 1e9,
                       'chan': None,
                       }
