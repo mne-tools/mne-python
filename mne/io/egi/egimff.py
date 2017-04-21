@@ -528,15 +528,22 @@ class RawMff(BaseRaw):
                 flag = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
                 while flag == 1:  # meta data
                     # Meta data consists of:
-                    # * 2 bytes of unkown
+                    # * 1 bytes of header size
+                    # * 1 bytes of block size
                     # * 1 byte of n_channels
                     # * n_channels bytes of offsets
-                    # * n_channels bytes of unknown
+                    # * n_channels bytes of sigfreqs?
                     # * 1 byte of flag (1 for meta data, 0 for data)
-                    fid.seek(8, 1)
+                    headersize = np.fromfile(fid, dtype=np.dtype('i4'),
+                                             count=1)[0]
+                    blocksize = np.fromfile(fid, dtype=np.dtype('i4'),
+                                            count=1)[0]
                     n_channels = np.fromfile(fid, dtype=np.dtype('i4'),
                                              count=1)[0]
-                    fid.seek(2 * n_bytes * n_channels, 1)
+                    offsets = np.fromfile(fid, dtype=np.dtype('i4'),
+                                          count=n_channels)
+                    sigfreqs = np.fromfile(fid, dtype=np.dtype('i4'),
+                                           count=n_channels)
                     flag = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
 
                 block = np.fromfile(fid, dtype, block_size)
