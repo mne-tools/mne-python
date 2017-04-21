@@ -466,8 +466,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
              'setting will be stored.')
     if lowpass.size == 0:
         info['sfreq'] / 2.
-        warn('Lowpass info could not be found. Setting it at half the '
-             'sampling rate')
+        logger.info('Lowpass info could not be found. Setting it at half the '
+                    'sampling rate')
     elif all(lowpass):
         if lowpass[0] == 'NaN':
             pass  # Placeholder for future use. Lowpass set in _empty_info.

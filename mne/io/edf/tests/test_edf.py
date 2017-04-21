@@ -175,8 +175,8 @@ def test_stim_channel():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw = read_raw_edf(edf_stim_resamp_path, verbose=True)
-    assert_equal(len(w), 2)
-    assert_true('Events may jitter' in str(w[1].message))
+    assert_equal(len(w), 1)
+    assert_true('Events may jitter' in str(w[0].message))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw[:]
