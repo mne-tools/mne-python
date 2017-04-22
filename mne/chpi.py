@@ -159,8 +159,8 @@ def _apply_quat(quat, pts, move=True):
     return(apply_trans(trans, pts, move=move))
 
 
-def extract_head_pos_ctf(raw, gof_limit=0.98):
-    """Extract MaxFilter-formatted head position parameters from ctf dataset.
+def _calculate_head_pos_ctf(raw, gof_limit=0.98):
+    r"""Extract head position parameters from ctf dataset.
 
     Parameters
     ----------
@@ -174,26 +174,30 @@ def extract_head_pos_ctf(raw, gof_limit=0.98):
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.
 
-    See Also
-    --------
-
     Notes
     -----
     CTF continuous head monitoring stores the x,y,z location (m) of each chpi
     coil as separate channels in the dataset.
-    HLC001[123]-* - nasion
-    HLC002[123]-* - lpa
-    HLC003[123]-* - rpa
+    HLC001[123]-\\* - nasion
+    HLC002[123]-\\* - lpa
+    HLC003[123]-\\* - rpa
     """
-    # make picks to match order of dig cardinial ident codes.
-    # LPA, NAS, RPA
-    hpi_picks = []
-    for i in [2, 1, 3]:
-        hpi_picks.extend(pick_channels_regexp(raw.info['ch_names'],
-                                              'HLC00%d[123]-.*' % i))
+    # Pick channels cooresponding to the cHPI positions
+    hpi_picks = pick_channels_regexp(raw.info['ch_names'],
+                                     'HLC00[123][123]-.*')
+
     # make sure we get 9 channels
     if len(hpi_picks) != 9:
         raise RuntimeError('Could not find all 9 cHPI channels')
+
+    # get indices in alphabetical order
+    sorted_picks = np.array(sorted(hpi_picks,
+                                   key=lambda k: raw.info['ch_names'][k]))
+
+    # make picks to match order of dig cardinial ident codes.
+    # LPA (HPIC002[123]-*), NAS(HPIC001[123]-*), RPA(HPIC003[123]-*)
+    hpi_picks = sorted_picks[[3, 4, 5, 0, 1, 2, 6, 7, 8]]
+    del sorted_picks
 
     # process the entire run
     time_sl = slice(0, len(raw.times))
