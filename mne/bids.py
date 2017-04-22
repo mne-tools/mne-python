@@ -3,12 +3,25 @@
 #
 # License: BSD (3-clause)
 
+import errno
+import os
+import os.path as op
 import pandas as pd
 
 import mne
 from mne.io.pick import channel_type
 
 from datetime import datetime
+
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 
 def channel_tsv(raw, fname):
@@ -66,19 +79,32 @@ def scans_tsv(raw, fname):
     df.to_csv(fname, sep='\t', index=False)
 
 
-def folder_to_bids(path):
-    """Walk over a folder of raw files and create bids compatible folder."""
-    subject = '01'
-    run = '01'
-    task = 'audiovisual'
+def folder_to_bids(input_path, output_path, fnames, subject, run, task):
+    """Walk over a folder of files and create bids compatible folder."""
 
-    events_fname = "sample_audvis_raw-eve.fif"
-    raw_fname = "sub-01_task-audiovisual_run-01_meg.fif"
-    events = mne.read_events(events_fname).astype(int)
-    raw = mne.io.read_raw_fif(raw_fname)
+    meg_path = op.join(output_path, 'sub-%s' % subject, 'MEG')
+    if not op.exists(output_path):
+        os.mkdir(output_path)
+        if not op.exists(meg_path):
+            mkdir_p(meg_path)
 
-    channel_tsv(raw, 'sub-%s_task-%s_run-%s_channel.tsv'
-                % (subject, task, run))
-    events_tsv(raw, events, 'sub-%s_task-%s_run-%s_events.tsv'
-               % (subject, task, run))
-    scans_tsv(raw, 'sub-%s_scans.tsv' % subject)
+    for key in fnames:
+        fnames[key] = op.join(input_path, fnames[key])
+
+    events = mne.read_events(fnames['events']).astype(int)
+    raw = mne.io.read_raw_fif(fnames['raw'])
+
+    # save stuff
+    channels_fname = op.join(meg_path, 'sub-%s_task-%s_run-%s_channel.tsv'
+                             % (subject, task, run))
+    channel_tsv(raw, channels_fname)
+
+    events_fname = op.join(meg_path, 'sub-%s_task-%s_run-%s_channel.tsv'
+                           % (subject, task, run))
+    events_tsv(raw, events, events_fname)
+
+    scans_tsv(raw, op.join(meg_path, 'sub-%s_scans.tsv' % subject))
+
+    raw_fname = op.join(meg_path,
+                        'sub-%s_task-%s_run-%s_meg.fif' % (subject, task, run))
+    raw.save(raw_fname)
