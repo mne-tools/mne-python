@@ -389,7 +389,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
 
 
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
-                          copy=True, remove_channels=False):
+                          copy=True, remove_channels=True):
     """Rereference selected channels using a bipolar referencing scheme.
 
     A bipolar reference takes the difference between two channels (the anode
@@ -426,7 +426,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         (False). Defaults to True.
     remove_channels : bool
         If True, the channels used as anode and cathode are removed from the
-        instance. Defaults to False.
+        instance. Defaults to True.
 
     Returns
     -------
