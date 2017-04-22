@@ -15,7 +15,7 @@ your existing files into a BIDS-compatible folder.
 
 import os.path as op
 from mne.datasets import sample
-from mne.bids import folder_to_bids
+from mne.io import folder_to_bids
 
 data_path = sample.data_path()
 
