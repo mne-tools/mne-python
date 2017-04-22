@@ -14,7 +14,7 @@ from mne.io.pick import channel_type
 from datetime import datetime
 
 
-def mkdir_p(path):
+def _mkdir_p(path):
     try:
         os.makedirs(path)
     except OSError as exc:  # Python >2.5
@@ -24,7 +24,7 @@ def mkdir_p(path):
             raise
 
 
-def channel_tsv(raw, fname):
+def _channel_tsv(raw, fname):
     """Create channel tsv."""
 
     map_chs = dict(grad='MEG', mag='MEG', stim='TRIG', eeg='EEG',
@@ -50,7 +50,7 @@ def channel_tsv(raw, fname):
     df.to_csv(fname, sep='\t', index=False)
 
 
-def events_tsv(raw, events, fname):
+def _events_tsv(raw, events, fname):
     """Create tsv file for events."""
 
     event_id = {'Auditory/Left': 1, 'Auditory/Right': 2, 'Visual/Left': 3,
@@ -65,7 +65,7 @@ def events_tsv(raw, events, fname):
     df.to_csv(fname, sep='\t', index=False)
 
 
-def scans_tsv(raw, fname):
+def _scans_tsv(raw, fname):
     """Create tsv file for scans."""
 
     acq_time = datetime.fromtimestamp(raw.info['meas_date'][0]
@@ -80,13 +80,29 @@ def scans_tsv(raw, fname):
 
 
 def folder_to_bids(input_path, output_path, fnames, subject, run, task):
-    """Walk over a folder of files and create bids compatible folder."""
+    """Walk over a folder of files and create bids compatible folder.
+
+    Parameters
+    ----------
+    input_path : str
+        The path to the folder from which to read files
+    output_path : str
+        The path of the BIDS compatible folder
+    fnames : dict
+        Dictionary of filenames. Valid keys are 'events' and 'raw'.
+    subject : str
+        The subject name in BIDS compatible format (01, 02, etc.)
+    run : str
+        The run number in BIDS compatible format.
+    task : str
+        The task name.
+    """
 
     meg_path = op.join(output_path, 'sub-%s' % subject, 'MEG')
     if not op.exists(output_path):
         os.mkdir(output_path)
         if not op.exists(meg_path):
-            mkdir_p(meg_path)
+            _mkdir_p(meg_path)
 
     for key in fnames:
         fnames[key] = op.join(input_path, fnames[key])
@@ -97,13 +113,13 @@ def folder_to_bids(input_path, output_path, fnames, subject, run, task):
     # save stuff
     channels_fname = op.join(meg_path, 'sub-%s_task-%s_run-%s_channel.tsv'
                              % (subject, task, run))
-    channel_tsv(raw, channels_fname)
+    _channel_tsv(raw, channels_fname)
 
     events_fname = op.join(meg_path, 'sub-%s_task-%s_run-%s_channel.tsv'
                            % (subject, task, run))
-    events_tsv(raw, events, events_fname)
+    _events_tsv(raw, events, events_fname)
 
-    scans_tsv(raw, op.join(meg_path, 'sub-%s_scans.tsv' % subject))
+    _scans_tsv(raw, op.join(meg_path, 'sub-%s_scans.tsv' % subject))
 
     raw_fname = op.join(meg_path,
                         'sub-%s_task-%s_run-%s_meg.fif' % (subject, task, run))
