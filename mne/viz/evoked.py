@@ -1110,7 +1110,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     title : str | None
         The title. If `None`, suppress printing channel type. Defaults to ''.
     picks : array-like of int | None
-        The indices of channels to plot. If None show all. Defaults to None.
+        The indices of channels to plot. If `None` show all. Defaults to None.
     exclude : None | list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded. Defaults to None.
@@ -1118,16 +1118,16 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         Show figure if True. Defaults to True.
     ts_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot` to
-        style the butterfly plot. `axes` and `show` are ignored.
-        If `spatial_colors` is not in this dict, `spatial_colors=True`,
-        and (if it is not in the dict) `zorder='std'` will be passed.
-        Defaults to ``None``.
+        style the butterfly plot. If `spatial_colors` is not in this dict,
+        `spatial_colors=True`, and (if it is not in the dict) `zorder='std'`
+        will be passed. `axes`, `show`, `exclude` are illegal.
+        If `None`, no customizable arguments will be passed. 
+        Defaults to `None`.
     topomap_args : None | dict
-        A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
-        to style the topomaps. `axes` and `show` are ignored. If `times`
-        is not in this dict, automatic peak detection is used. Beyond that,
-        if ``None`, no customizable arguments will be passed.
-        Defaults to ``None``.
+        A dict of `kwargs` that are forwarded to `evoked.plot_topomap` to
+        style the topomaps. `axes`, `show`, `times`, `colorbar``are illegal.
+        If `None`, no customizable arguments will be passed. 
+        Defaults to `None`.
 
     Returns
     -------
@@ -1147,6 +1147,11 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args is None:
         topomap_args = dict()
 
+    for args in (ts_args, topomap_args):
+        if any((x in args for x in {"axes", "show", 'colorbar', 'exclude'})):
+            raise ValueError("Don't pass any of {} as '{}'.".format(
+                str(arg_dict), ", ".join(list(illegal_args))))
+
     # channel selection
     # simply create a new evoked object(s) with the desired channel selection
     evoked = evoked.copy()
@@ -1165,7 +1170,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         evoked.drop_channels(exclude)
 
     info = evoked.info
-    data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr']
+    data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
     ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
 
     # if multiple sensor types: one plot per channel type, recursive call
@@ -1195,17 +1200,13 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # butterfly/time series plot
     # most of this code is about passing defaults on demand
     ts_ax = fig.add_subplot(212)
-    ts_args_pass = dict((k, v) for k, v in ts_args.items() if k not in
-                        ['axes', 'show', 'colorbar', 'set_tight_layout'])
     ts_args_def = dict(picks=None, unit=True, ylim=None, xlim='tight',
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,
                        spatial_colors=True, zorder='std')
-    for key in ts_args_def:
-        if key not in ts_args:
-            ts_args_pass[key] = ts_args_def[key]
+    ts_args_def.update(ts_args)
     _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
-                 exclude=[], set_tight_layout=False, **ts_args_pass)
+                 exclude=[], set_tight_layout=False, **ts_args_def)
 
     # handle title
     # we use a new axis for the title to handle scaling of plots
@@ -1238,10 +1239,8 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     else:
         locator = None
 
-    topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
-                             k not in ['times', 'axes', 'show', 'colorbar'])
-    topomap_args_pass['outlines'] = (topomap_args['outlines'] if 'outlines'
-                                     in topomap_args else 'skirt')
+    topomap_args_pass = topomap_args.copy()
+    topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
     topomap_args_pass['contours'] = contours
     evoked.plot_topomap(times=times, axes=map_ax, show=False, colorbar=False,
                         **topomap_args_pass)
