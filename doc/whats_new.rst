@@ -64,6 +64,10 @@ BUG
 
     - Fix :func:`mne.viz.plot_topomap` to allow 0 contours by `Jaakko Leppakangas`_
 
+    - Fix :func:`mne.viz.plot_topomap` to allow 0 contours by `Jaakko Leppakangas`_
+
+    - Fix :meth:`raw.set_bipolar_reference` to support duplicates in anodes by `Jean-Baptiste Schiratti`_ and `Alex Gramfort`_
+
 API
 ~~~
 

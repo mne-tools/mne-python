@@ -18,7 +18,7 @@ from ..utils import logger, warn, verbose
 
 
 def _copy_channel(inst, ch_name, new_ch_name):
-    """Adds a copy of a channel specified by ch_name.
+    """Add a copy of a channel specified by ch_name.
 
     Input data can be in the form of Raw, Epochs or Evoked.
 
