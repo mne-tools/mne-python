@@ -1119,6 +1119,21 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     evoked : Evoked
         Evoked object with computed sensor space data.
 
+    Examples
+    --------
+
+    To extract the numpy array containing the forward operator corresponding to
+    the source space `fwd['src']` we can use the following:
+    >>> fwd_fixed = mne.convert_forward_solution(fwd, surf_ori=True,
+    >>>                                          force_fixed=True)
+    >>> fwd_fixed['sol']['data']
+    
+    This is equivalent to the following code that explicitly applies the
+    forward operator to a source space composed of the identity operator:
+    >>> verts = [s['vertno'] for s in fwd['src']]
+    >>> se = SourceEstimate(np.eye(sum(len(v) for v in verts))
+    >>> apply_forward(, verts, 0, 1)).data
+
     See Also
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
