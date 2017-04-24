@@ -1125,7 +1125,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         Defaults to `None`.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot_topomap` to
-        style the topomaps. `axes`, `show`, `times`, `colorbar``are illegal.
+        style the topomaps. `axes`, `show`, `times`, `colorbar` are illegal.
         If `None`, no customizable arguments will be passed.
         Defaults to `None`.
 
@@ -1147,11 +1147,11 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args is None:
         topomap_args = dict()
 
-    illegal_args = {"axes", "show", 'colorbar', 'times', 'exclude'}
+    illegal_args = {"axes", "show", 'times', 'exclude'}
     for args in (ts_args, topomap_args):
         if any((x in args for x in illegal_args)):
-            raise ValueError("Don't pass any of {} as '{}'.".format(
-                str(args), ", ".join(list(illegal_args))))
+            raise ValueError("Don't pass any of {} as *_args.".format(
+                ", ".join(list(illegal_args))))
 
     # channel selection
     # simply create a new evoked object(s) with the desired channel selection
