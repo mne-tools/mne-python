@@ -138,9 +138,9 @@ def test_io_set():
                               preload=True)
     assert_equal(len(w), 1)  # one warning for the dropped event
     events_stimchan = find_events(raw)
-    events_find_eeglab_events = read_eeglab_events(overlap_fname, event_id)
+    events_read_events_eeglab = read_events_eeglab(overlap_fname, event_id)
     assert_true(len(events_stimchan) == 1)
-    assert_true(len(events_find_eeglab_events) == 2)
+    assert_true(len(events_read_events_eeglab) == 2)
 
     # test reading file with one channel
     one_chan_fname = op.join(temp_dir, 'test_one_channel.set')
