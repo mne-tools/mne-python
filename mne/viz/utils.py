@@ -388,7 +388,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     labels = [p['desc'] for p in projs]
     actives = ([p['active'] for p in projs] if draw_current_state else
-               [params['apply_proj']] * len(projs))
+               params.get('proj_bools', [params['apply_proj']] * len(projs)))
 
     width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
     height = len(projs) / 6.0 + 1.5
@@ -413,6 +413,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     proj_checks.on_clicked(partial(_toggle_proj, params=params))
     params['proj_checks'] = proj_checks
+    fig_proj.canvas.mpl_connect('key_press_event', _key_press)
 
     # this should work for non-test cases
     try:
@@ -997,6 +998,7 @@ def _onclick_help(event, params):
 
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
+    params['fig_help'] = fig_help
     ax = plt.subplot2grid((8, 5), (0, 0), colspan=5)
     ax.set_title('Keyboard shortcuts')
     plt.axis('off')
@@ -1010,6 +1012,8 @@ def _onclick_help(event, params):
     plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
     plt.axis('off')
 
+    fig_help.canvas.mpl_connect('key_press_event', _key_press)
+
     tight_layout(fig=fig_help)
     # this should work for non-test cases
     try:
@@ -1017,6 +1021,13 @@ def _onclick_help(event, params):
         fig_help.show(warn=False)
     except Exception:
         pass
+
+
+def _key_press(event):
+    """Handle key press in dialog."""
+    import matplotlib.pyplot as plt
+    if event.key == 'escape':
+        plt.close(event.canvas.figure)
 
 
 def _setup_browser_offsets(params, n_channels):
@@ -1977,13 +1988,15 @@ def _setup_butterfly(params):
     ax = params['ax']
     params['butterfly'] = butterfly
     if butterfly:
+        types = np.array(params['types'])[params['orig_inds']]
         if params['group_by'] in ['type', 'original']:
-            eeg = 'seeg' if 'seeg' in params['types'] else 'eeg'
+            inds = params['inds']
+            eeg = 'seeg' if 'seeg' in types else 'eeg'
             labels = [t for t in ['grad', 'mag', eeg, 'eog', 'ecg']
-                      if t in params['types']] + ['misc']
+                      if t in types] + ['misc']
             ticks = np.arange(5, 5 * (len(labels) + 1), 5)
             offs = {l: t for (l, t) in zip(labels, ticks)}
-            inds = params['inds']
+
             params['offsets'] = np.zeros(len(params['types']))
             for ind in inds:
                 params['offsets'][ind] = offs.get(params['types'][ind],
@@ -1997,7 +2010,7 @@ def _setup_butterfly(params):
                     params['raw'], 'position', selector=False)
                 params['selections'] = selections
             selections = _SELECTIONS[1:] + ['Misc']  # Vertex not used
-            if params['group_by'] == 'selection':
+            if params['group_by'] == 'selection' and 'eeg' in types:
                 selections += _EEG_SELECTIONS
             picks = list()
             for selection in selections:
