@@ -22,7 +22,7 @@ from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax)
-from ..utils import logger, _clean_names, warn, _pl
+from ..utils import logger, _clean_names, warn, _pl, _strip_to_number
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -1647,8 +1647,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                                     for cond in evokeds.keys()})
             unique_sortkeys.sort(key=make_number)
             the_colors = cmapper(np.linspace(0, 1, len(unique_sortkeys)))
-            colors_ = {cond:color for cond, color in
-                      zip(unique_sortkeys, the_colors)}
+            colors_ = {cond: color for cond, color in
+                       zip(unique_sortkeys, the_colors)}
             colors = dict()
             for cond in evokeds.keys():
                 for cond_number, color in colors_.items():
@@ -1656,12 +1656,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                         colors[cond] = color
                         continue
         else:  # default colors from M Waskom's Seaborn
-               # XXX should put a good list of default colors into defaults.py
+            # XXX should put a good list of default colors into defaults.py
             colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
                        '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
             if len(conditions) > len(colors_):
                 msg = ("Trying to plot more than {0} conditions. We provide"
-                       "only {0} default colors. Please supply colors manually.")
+                       "only {0} default colors. Supply colors manually.")
                 raise ValueError(msg.format(len(colors_)))
             colors = dict((condition, color) for condition, color
                           in zip(conditions, colors_))
@@ -1781,14 +1781,13 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if len(conditions) > 1:
         legend_params = dict(loc='best', frameon=True)
         if split_legend:
-            if len(ls) > 1:
-                plt.legend(handles=legend_lines, ncol=1 + (len(ls) // 4),
-                           **legend_params)
+            if len(legend_lines) > 1:
+                plt.legend(handles=legend_lines,
+                           ncol=1 + (len(legend_lines) // 4), **legend_params)
         else:
             plt.legend(ncol=1 + (len(conditions) // 5), **legend_params)
 
     if sequential and split_legend:
-        import matplotlib.colors as mcolors
         import matplotlib as mpl
 
         numbers = sorted([make_number(k) for k in colors_])
@@ -1798,7 +1797,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         l = plt.cm.jet.from_list(numbers + [numbers[-1] + 100],
                                  colors_m + [colors_m[-1]])
 
-        norm = mpl.colors.BoundaryNorm(numbers + [numbers[-1] +1], l.N)
+        norm = mpl.colors.BoundaryNorm(numbers + [numbers[-1] + 1], l.N)
         sm = plt.cm.ScalarMappable(cmap=l, norm=norm)
         sm.set_array([make_number(k) for k in colors_l])
 
