@@ -9,11 +9,11 @@ from functools import partial
 import numpy as np
 
 from ..utils import (_read_segments_file, _find_channels,
-                     _synthesize_stim_channel, _strip_to_number)
+                     _synthesize_stim_channel)
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
-from ...utils import logger, verbose, check_version, warn
+from ...utils import logger, verbose, check_version, warn, _strip_to_number
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events

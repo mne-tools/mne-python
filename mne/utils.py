@@ -1172,8 +1172,8 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
 
-    Returns
     -------
+    Returns
     stdout : str
         Stdout returned by the process.
     stderr : str
