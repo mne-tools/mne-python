@@ -77,7 +77,11 @@ def check_parameters_match(func, doc=None):
 
     if doc is None:
         with warnings.catch_warnings(record=True) as w:
-            doc = docscrape.FunctionDoc(func)
+            try:
+                doc = docscrape.FunctionDoc(func)
+            except Exception as exp:
+                incorrect += [name_ + ' parsing error: ' + str(exp)]
+                return incorrect
         if len(w):
             raise RuntimeError('Error for %s:\n%s' % (name_, w[0]))
     # check set
