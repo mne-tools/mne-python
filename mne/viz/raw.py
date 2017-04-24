@@ -144,7 +144,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     order : array of int | None
         Order in which to plot data. If the array is shorter than the number of
         channels, only the given channels are plotted. If None (default), all
-        channels are plotted.
+        channels are plotted. If ``group_by`` is ``'position'`` or
+        ``'selection'``, the ``order`` parameter is used only for selecting the
+        channels to be plotted.
     show_options : bool
         If True, a dialog for options related to projection is shown.
     title : str | None
@@ -180,14 +182,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Notes). This argument only affects the plot; use ``raw.apply_proj()``
         to modify the data stored in the Raw object.
     group_by : str
-        How to group channels. 'type' groups by channel type, 'original'
-        plots in the order of ch_names, 'selection' uses Elekta's channel
-        groupings (only works for Neuromag data), 'position' groups the
-        channels by the positions of the sensors. 'selection' and 'position'
-        modes allow custom selections by using lasso selector on the topomap.
-        Pressing ``ctrl`` key while selecting allows appending to the current
-        selection. Channels marked as bad appear with red edges on the topomap.
-        'type' and 'original' groups the channels by type in butterfly mode.
+        How to group channels. ``'type'`` groups by channel type,
+        ``'original'`` plots in the order of ch_names, ``'selection'`` uses
+        Elekta's channel groupings (only works for Neuromag data),
+        ``'position'`` groups the channels by the positions of the sensors.
+        ``'selection'`` and ``'position'`` modes allow custom selections by
+        using lasso selector on the topomap. Pressing ``ctrl`` key while
+        selecting allows appending to the current selection. Channels marked as
+        bad appear with red edges on the topomap. ``'type'`` and ``'original'``
+        groups the channels by type in butterfly mode whereas ``'selection'``
+        and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
+        modes are overrided with ``order`` keyword.
     butterfly : bool
         Whether to start in butterfly mode. Defaults to False.
 
@@ -304,7 +309,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     if isinstance(order, string_types):
         group_by = order
         warn('Using string order is deprecated and will not be allowed in '
-             '0.15. Use group_by instead.')
+             '0.16. Use group_by instead.')
     elif isinstance(order, (np.ndarray, list)):
         # put back to original order first, then use new order
         inds = inds[reord][order]
@@ -316,7 +321,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         selections = {k: np.intersect1d(v, inds) for k, v in
                       selections.items()}
     elif group_by == 'original':
-        inds = inds[reord[:len(order)]]
+        if order is None:
+            order = np.arange(len(inds))
+            inds = inds[reord[:len(order)]]
     elif group_by != 'type':
         raise ValueError('Unknown group_by type %s' % group_by)
 

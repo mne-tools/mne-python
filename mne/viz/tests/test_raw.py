@@ -104,7 +104,8 @@ def test_plot_raw():
     events = _get_events()
     plt.close('all')  # ensure all are closed
     with warnings.catch_warnings(record=True):
-        fig = raw.plot(events=events, show_options=True)
+        fig = raw.plot(events=events, show_options=True, order=[1, 7, 3],
+                       group_by='original')
         # test mouse clicks
         x = fig.get_axes()[0].lines[1].get_xdata().mean()
         y = fig.get_axes()[0].lines[1].get_ydata().mean()
