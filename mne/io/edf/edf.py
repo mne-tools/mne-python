@@ -132,8 +132,6 @@ class RawEDF(BaseRaw):
         if tal_channels is not None:
             for tal_channel in tal_channels:
                 offsets[tal_channel] = 0
-        # if stim_channel is not None:
-        #         offsets[stim_channel] = 0   ## not sure about this
 
         # This is needed to rearrange the indices to correspond to correct
         # chunks on the file if excluded channels exist:
@@ -358,6 +356,10 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
              str(idx).strip('[]'))
         cals[idx] = 1
 
+    # Check that stimulus channel exists in dataset
+    if stim_channel is not None:
+        stim_channel = _check_stim_channel(stim_channel, ch_names, include)
+
     # Annotations
     tal_ch_name = 'EDF Annotations'
     tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
@@ -377,8 +379,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
                                    ' parsed completely on loading.'
                                    ' You must set preload parameter to True.'))
-    if stim_channel == -1:
-        stim_channel = len(include) - 1
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
@@ -1040,6 +1040,29 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     stim_channel = np.zeros(data_length)
     for time, trigger in zip(times, triggers):
         stim_channel[time] = trigger
+
+    return stim_channel
+
+
+def _check_stim_channel(stim_channel, ch_names, include):
+    """Check that the stimulus channel exists in the current datafile."""
+    if isinstance(stim_channel, str):
+        if stim_channel not in ch_names:
+            err = 'Could not find a channel named "{}" in datafile.' \
+                  .format(stim_channel)
+            casematch = [ch for ch in ch_names
+                         if stim_channel.lower().replace(' ', '') ==
+                         ch.lower().replace(' ', '')]
+            if casematch:
+                    err += ' Closest match is "{}".'.format(casematch[0])
+            raise ValueError(err)
+    else:
+        if stim_channel == -1:
+            stim_channel = len(include) - 1
+        elif stim_channel > len(ch_names):
+            raise ValueError('Requested stim_channel index ({}) exceeds total '
+                             'number of channels in datafile ({})'
+                             .format(stim_channel, len(ch_names)))
 
     return stim_channel
 
