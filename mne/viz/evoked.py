@@ -1150,7 +1150,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     for args in (ts_args, topomap_args):
         if any((x in args for x in {"axes", "show", 'colorbar', 'exclude'})):
             raise ValueError("Don't pass any of {} as '{}'.".format(
-                str(arg_dict), ", ".join(list(illegal_args))))
+                str(args), ", ".join(list(illegal_args))))
 
     # channel selection
     # simply create a new evoked object(s) with the desired channel selection
