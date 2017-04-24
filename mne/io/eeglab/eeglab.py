@@ -386,7 +386,7 @@ class RawEEGLAB(BaseRaw):
                  "resulting Raw object will contain the event information "
                  "in a stimulus channel. Stimulus channels can only carry "
                  "one event code per time point, so some events will be "
-                 "lost. You can use the function `read_events_eeglab` "
+                 "lost. You can use `mne.io.eeglab.read_events_eeglab` "
                  "to extract the full events array (which can then be "
                  "passed to e.g. mne.Epochs.")
         if n_samples is None:
