@@ -30,7 +30,7 @@ def _read_events(input_fname, hdr, info):
         for i in mff_events[event]:
             if i > events.shape[1]:
                 warn('Event outside data range (%ss).' % (i /
-                                                          info['samp_rate']))
+                                                          info['sfreq']))
                 continue
             events[n][i] = 2**n
     return events, info
@@ -64,7 +64,7 @@ def _read_mff_events(filename, header):
                 code.append(event['code'])
             marker = {'name': event['code'],
                       'start': start,
-                      'start_sample': int(np.fix(start * header['Fs'])),
+                      'start_sample': int(np.fix(start * header['sfreq'])),
                       'end': start + float(event['duration']) / 1e9,
                       'chan': None,
                       }

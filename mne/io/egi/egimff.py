@@ -13,7 +13,8 @@ import dateutil.parser
 import numpy as np
 
 from .events import _read_events
-from .general import (_block_r, _get_signal_bl, _get_ep_inf, _extract)
+from .general import (_block_r, _get_signalfname, _get_ep_inf, _extract,
+                      _get_blocks)
 from ..base import BaseRaw, _check_update_montage
 from ..constants import FIFF
 from ..meas_info import _empty_info
@@ -29,62 +30,36 @@ def _read_mff_header(filepath):
     filepath : str
         Path to the file.
     """
-    signal_blocks = _get_signal_bl(filepath)
-    samprate = signal_blocks['sampRate']
-    numblocks = signal_blocks['blocks']
-    blocknumsamps = np.array(signal_blocks['binObj'])
+    eeg_file = _get_signalfname(filepath, 'PNSData')[0][0]
+    fname = os.path.join(filepath, eeg_file)
+    signal_blocks = _get_blocks(fname)
+    sfreq = signal_blocks['sfreq']
+    blocknumsamps = np.sum(signal_blocks['blockNumSamps'])
 
     pibhasref = False
     pibnchans = 0
-    if signal_blocks['pibSignalFile'] != []:
-        pnssetfile = filepath + '/pnsSet.xml'
-        pnssetobj = parse(pnssetfile)
-        pnssensors = pnssetobj.getElementsByTagName('sensor')
-        pibnchans = pnssensors.length
-        if signal_blocks['npibChan'] - pibnchans == 1:
-            pibhasref = True
 
-    epoch_info = _get_ep_inf(filepath, samprate)
+    epoch_info = _get_ep_inf(filepath, sfreq)
 
-    blockbeginsamps = np.zeros((numblocks), dtype='i8')
-    for x in range(0, (numblocks - 1)):
-        blockbeginsamps[x + 1] = blockbeginsamps[x] + blocknumsamps[x]
-
-    summaryinfo = dict(blocks=signal_blocks['blocks'],
-                       eegFilename=signal_blocks['eegFile'],
-                       infoFile=signal_blocks['infoFile'],
-                       sampRate=signal_blocks['sampRate'],
-                       nChans=signal_blocks['nChan'],
-                       pibBinObj=signal_blocks['pibBinObj'],
-                       pibBlocks=signal_blocks['pibBlocks'],
-                       pibFilename=signal_blocks['pibSignalFile'],
+    summaryinfo = dict(n_blocks=signal_blocks['n_blocks'],
+                       eegFilename=eeg_file,
+                       sfreq=signal_blocks['sfreq'],
+                       n_channels=signal_blocks['n_channels'],
                        pibNChans=pibnchans,
                        pibHasRef=pibhasref,
-                       epochType=epoch_info['epochType'],
-                       epochBeginSamps=epoch_info['epochBeginSamps'],
-                       epochNumSamps=epoch_info['epochNumSamps'],
-                       epochFirstBlocks=epoch_info['epochFirstBlocks'],
-                       epochLastBlocks=epoch_info['epochLastBlocks'],
-                       epochLabels=epoch_info['epochLabels'],
-                       epochTime0=epoch_info['epochTime0'],
-                       multiSubj=epoch_info['multiSubj'],
-                       epochSubjects=epoch_info['epochSubjects'],
-                       epochFilenames=epoch_info['epochFilenames'],
-                       epochSegStatus=epoch_info['epochSegStatus'],
-                       blockBeginSamps=blockbeginsamps,
                        blockNumSamps=blocknumsamps)
 
     # Pull header info from the summary info.
     nsamplespre = 0
-    if summaryinfo['epochType'] == 'seg':
-        nsamples = summaryinfo['epochNumSamps'][0]
-        ntrials = len(summaryinfo['epochNumSamps'])
+    if epoch_info['epochType'] == 'seg':
+        nsamples = epoch_info['epochNumSamps'][0]
+        ntrials = len(epoch_info['epochNumSamps'])
 
         # if Time0 is the same for all segments...
-        if len(set(summaryinfo['epochTime0'])) == 1:
-            nsamplespre = summaryinfo['epochTime0'][0]
+        if len(set(epoch_info['epochTime0'])) == 1:
+            nsamplespre = epoch_info['epochTime0'][0]
     else:
-        nsamples = sum(summaryinfo['blockNumSamps'])
+        nsamples = np.sum(summaryinfo['blockNumSamps'])
         ntrials = 1
 
     # Add the sensor info.
@@ -112,7 +87,7 @@ def _read_mff_header(filepath):
             chantype.append('eeg')
             chanunit.append('uV')
             n_chans = n_chans + 1
-    if n_chans != summaryinfo['nChans']:
+    if n_chans != summaryinfo['n_channels']:
         print("Error. Should never occur.")
 
     if summaryinfo['pibNChans'] > 0:
@@ -132,10 +107,10 @@ def _read_mff_header(filepath):
     info_filepath = filepath + "/" + "info.xml"  # add with filepath
     tags = ['mffVersion', 'recordTime']
     version_and_date = _extract(tags, filepath=info_filepath)
-    header = dict(Fs=summaryinfo['sampRate'],
+    header = dict(sfreq=summaryinfo['sfreq'],
                   version=version_and_date['mffVersion'][0],
                   date=version_and_date['recordTime'][0],
-                  nChans=n_chans,
+                  n_channels=n_chans,
                   nSamplesPre=nsamplespre,
                   nSamples=nsamples,
                   nTrials=ntrials,
@@ -176,8 +151,8 @@ def _read_header(input_fname):
         minute=int(time_n.strftime('%M')),
         second=int(time_n.strftime('%S')),
         millisecond=int(time_n.strftime('%f')),
-        samp_rate=mff_hdr['Fs'],
-        n_channels=mff_hdr['nChans'],
+        sfreq=mff_hdr['sfreq'],
+        n_channels=mff_hdr['n_channels'],
         gain=0,
         bits=0,
         value_range=0)
@@ -338,7 +313,7 @@ class RawMff(BaseRaw):
             # No events
             self.event_id = None
 
-        info = _empty_info(egi_info['samp_rate'])
+        info = _empty_info(egi_info['sfreq'])
         info['buffer_size_sec'] = 1.  # reasonable default
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
@@ -365,7 +340,7 @@ class RawMff(BaseRaw):
         info['chs'] = chs
         info._update_redundant()
         _check_update_montage(info, montage)
-        file_bin = input_fname + '/' + egi_hdr['orig']['eegFilename'][0]
+        file_bin = input_fname + '/' + egi_hdr['orig']['eegFilename']
 
         with open(file_bin, 'rb') as fid:
             block_info = _block_r(fid)
@@ -382,14 +357,13 @@ class RawMff(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
         from ..utils import _mult_cal_one
-        egi_info = self._raw_extras[fi]
-        block_info = egi_info['block_info']
-        offset = block_info['position'] - 4
-        n_channels = egi_info['n_channels']
-        block_size = block_info['hl']
         dtype = '<f4'
         n_bytes = np.dtype(dtype).itemsize
-
+        egi_info = self._raw_extras[fi]
+        block_info = egi_info['block_info']
+        offset = block_info['header_size'] - n_bytes
+        n_channels = egi_info['n_channels']
+        block_size = block_info['hl']
         data_offset = n_channels * start * n_bytes + offset
         data_left = (stop - start) * n_channels
 

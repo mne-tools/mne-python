@@ -1,25 +1,20 @@
 """General functions."""
 
 import numpy as np
+import os
+from xml.dom.minidom import parse
+import re
 
 
 def _get_signal_bl(filepath):
     pib_signal_file, list_infofile = _get_signalfname(filepath, 'PNSData')
-    eeg_info = _get_signal_nbin(filepath, pib_signal_file[0])
-    if pib_signal_file == []:
-        pib_info = dict(nC=0,
-                        sampRate=0,
-                        blocks=0,
-                        blockNumSamps=[],
-                        signalFile=[])
-    else:
-        pib_info = _get_signal_nbin(filepath, pib_signal_file[0])
+    eeg_info = _get_blocks(filepath, pib_signal_file[0])
 
-    signal_blocks = dict(npibChan=pib_info['nC'],
-                         pibBinObj=pib_info['blockNumSamps'],
-                         pibBlocks=pib_info['blocks'],
+    signal_blocks = dict(npibChan=eeg_info['nC'],
+                         pibBinObj=eeg_info['blockNumSamps'],
+                         pibBlocks=eeg_info['blocks'],
                          pibSignalFile=[],
-                         sampRate=eeg_info['sampRate'],
+                         sfreq=eeg_info['sfreq'],
                          nChan=eeg_info['nC'],
                          binObj=eeg_info['blockNumSamps'],
                          blocks=eeg_info['blocks'],
@@ -29,7 +24,6 @@ def _get_signal_bl(filepath):
 
 
 def _extract(tags, filepath=None, obj=None):
-    from xml.dom.minidom import parse
     if obj is not None:
         fileobj = obj
     elif filepath is not None:
@@ -46,8 +40,6 @@ def _extract(tags, filepath=None, obj=None):
 
 
 def _get_gains(filepath):
-    import numpy as np
-    from xml.dom.minidom import parse
     file_obj = parse(filepath)
     objects = file_obj.getElementsByTagName('calibration')
     gains = dict()
@@ -63,10 +55,6 @@ def _get_gains(filepath):
 
 
 def _get_ep_inf(filepath, samprate):
-    import numpy as np
-    from xml.dom.minidom import parse
-    import os.path
-    #  -----------------------------------------------------------------
     epochfile = filepath + '/epochs.xml'
     epochlist = parse(epochfile)
     epochs = epochlist.getElementsByTagName('epoch')
@@ -184,52 +172,43 @@ def _get_ep_inf(filepath, samprate):
     return epoch_info
 
 
-def _get_signal_nbin(filepath, signalnbin):
-    import numpy as np
-    import os
-    binfile = os.path.join(filepath, signalnbin)
+def _get_blocks(filepath):
+    """Get info from meta data blocks."""
+    binfile = os.path.join(filepath)
+    n_blocks = 0
+    samples_block = []
+    header_sizes = []
     with open(binfile, 'rb') as fid:
-        data = fid.read()
-        fid.seek(0, 0)
-        version = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
-        if version != 0:
+        fid.seek(0, 2)  # go to end of file
+        file_length = fid.tell()
+        block_size = file_length
+        fid.seek(0)
+        position = 0
+        while position < file_length:
             block = _block_r(fid)
-            blocksize = block['blocksize']
-            position = block['position']
-            nsamples = block['nsamples']
-        else:
-            raise NotImplementedError('Only continuos files are supported')
-        numblocks = int(len(data) // float(blocksize))
-        samples_block = [nsamples]
-        fid.seek(position + blocksize)
-        if (len(data) / float(blocksize)) - numblocks > 0:
-            numblocks = numblocks + 1
-        for i in range(1, numblocks):
-            version = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
-            if version == 0:
+            if block is None:
+                samples_block.append(samples_block[n_blocks])
+                n_blocks += 1
+                fid.seek(block_size, 1)
                 position = fid.tell()
-                fid.seek(position + blocksize)
-                position = fid.tell()
-                samples_block.append(nsamples)
-            else:
-                block = _block_r(fid)
-                blocksize = block['blocksize']
-                position = block['position']
-                nsamples = block['nsamples']
-                samples_block.append(nsamples)
-        samples_block = np.array(samples_block)
-        signal_blocks = dict(nC=block['nc'],
-                             sampRate=block['samprate'],
-                             blocks=numblocks,
-                             blockNumSamps=samples_block,
-                             signalFile=signalnbin)
-        return signal_blocks
+                continue
+            block_size = block['block_size']
+            header_size = block['header_size']
+            header_sizes.append(header_size)
+            samples_block.append(block['nsamples'])
+            fid.seek(block_size, 1)
+            sfreq = block['sfreq']
+            n_channels = block['nc']
+            position = fid.tell()
+
+    samples_block = np.array(samples_block)
+    signal_blocks = dict(n_channels=n_channels, sfreq=sfreq, n_blocks=n_blocks,
+                         blockNumSamps=samples_block,
+                         header_sizes=header_sizes)
+    return signal_blocks
 
 
 def _get_signalfname(filepath, infontype):
-    import os
-    from xml.dom.minidom import parse
-    import re
     listfiles = os.listdir(filepath)
     binfiles = list(f for f in listfiles if 'signal' in f and f[-4:] == '.bin')
     signalfile = []
@@ -246,7 +225,6 @@ def _get_signalfname(filepath, infontype):
 
 
 def _u2sample(microsecs, samprate):
-    import numpy as np
     sampduration = 1000000. / samprate
     samplenum = np.float(microsecs) / sampduration
     reminder = np.float(microsecs) % sampduration
@@ -270,22 +248,24 @@ def _bls2blns(n_samples, bn_sample):
 
 
 def _block_r(fid):
-    fid.seek(4)
-    headersize = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
-    blocksize = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
-    hl = int(blocksize / 4)
+    """Read meta data."""
+    if np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0] != 1:  # not metadata
+        return None
+    header_size = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
+    block_size = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
+    hl = int(block_size / 4)
     nc = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
     nsamples = int(hl / nc)
     np.fromfile(fid, dtype=np.dtype('i4'), count=nc)  # sigoffset
     sigfreq = np.fromfile(fid, dtype=np.dtype('i4'), count=nc)
-    samprate = (sigfreq[0] - 32) / ((nc - 1) * 2)
-    count = int(headersize / 4 - (4 + 2 * nc))
+    sfreq = (sigfreq[0] - 32) / ((nc - 1) * 2)
+    count = int(header_size / 4 - (4 + 2 * nc))
     np.fromfile(fid, dtype=np.dtype('i4'), count=count)  # sigoffset
-    position = fid.tell()
+    # position = fid.tell()
     block = dict(nc=nc,
                  hl=hl,
                  nsamples=nsamples,
-                 blocksize=blocksize,
-                 position=position,
-                 samprate=samprate)
+                 block_size=block_size,
+                 header_size=header_size,
+                 sfreq=sfreq)
     return block
