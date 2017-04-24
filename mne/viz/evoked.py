@@ -1435,12 +1435,27 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         If str, will be plotted as figure title. If None, the channel
         names will be shown.
     split_legend : bool
-        If True, the legend is split by linestyle and color.
+        If True, the legend is split by linestyle and color. E.g., if
+        linestyles={"Aud":"--", "Vis":"-"}, and colors= {"R":"r", "L:"b"},
+        the legend will contain a black dashed and a black straight line for
+        modality and a straight red and a straight blue line for direction.
     sequential : bool
         If True, colors are treated as parametrically varying with conditions,
-        e.g. to assign sequential colors to "visual/probability_1",
-        "visual/probability_2" etc. conditions.
-        Specifically, if this parameter is true, 
+        e.g. to assign sequential colors to "probability_1/visual",
+        "probability_2/visual" etc. conditions.
+        Specifically, if this parameter is True, the first part of a HED tag
+        (e.g. here, 'probability_2' etc.) is taken, stripped to its numeric
+        component (e.g., 'probability_2' -> 2), the results are sorted, and
+        numbers are assigned to a color on the colormap specified by the
+        `colors` parameter.
+        If `split_legend` is True, a colorbar is added to the plot to
+        demonstrate this alignment. The label on the colorbar will be the
+        non-numeric part of the condition (e.g. here, 'probability_').
+        If the same number occurs multiple times (e.g. 'probability_1/visual'
+        and 'probability_1/auditory'), these two receive the same color,
+        and `linestyles` can be used to distinguish them. Numbers are spaced
+        by rank, e.g., the same colors will be used if the provided numbers
+        are 1, 2, and 3 or 1, 2, 100.
     show : bool
         If True, show the figure.
 
