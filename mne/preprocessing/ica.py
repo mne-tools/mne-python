@@ -1339,7 +1339,7 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self._pre_whitener
         else:
-            data = fast_dot(linalg.pinv(self._pre_whitener, cond=1e-9), data)
+            data = fast_dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
 
         return data
 
