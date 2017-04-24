@@ -347,7 +347,7 @@ class RawEEGLAB(BaseRaw):
         info['chs'].append(stim_chan)
         info._update_redundant()
 
-        events = read_eeglab_events(eeg, event_id=event_id,
+        events = read_events_eeglab(eeg, event_id=event_id,
                                     event_id_func=event_id_func)
         self._create_event_ch(events, n_samples=eeg.pnts)
 
@@ -386,7 +386,7 @@ class RawEEGLAB(BaseRaw):
                  "resulting Raw object will contain the event information "
                  "in a stimulus channel. Stimulus channels can only carry "
                  "one event code per time point, so some events will be "
-                 "lost. You can use the function `mne.io.read_eeglab_events`"
+                 "lost. You can use the function `read_events_eeglab` "
                  "to extract the full events array (which can then be "
                  "passed to e.g. mne.Epochs.")
         if n_samples is None:
@@ -584,7 +584,7 @@ class EpochsEEGLAB(BaseEpochs):
         logger.info('Ready.')
 
 
-def read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer',
+def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
                        uint16_codec=None):
     r"""Create events array from EEGLAB structure.
 

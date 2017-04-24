@@ -14,7 +14,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.eeglab.eeglab import read_eeglab_events
+from mne.io.eeglab.eeglab import read_events_eeglab
 from mne.datasets import testing
 from mne.utils import _TempDir, run_tests_if_main, requires_version
 
@@ -77,9 +77,9 @@ def test_io_set():
                      squeeze_me=True)['EEG']
     for event in eeg.event:  # old version allows integer events
         event.type = 1
-    assert_equal(read_eeglab_events(eeg)[-1, -1], 1)
+    assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
     eeg.event = eeg.event[0]  # single event
-    assert_equal(read_eeglab_events(eeg)[-1, -1], 1)
+    assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
