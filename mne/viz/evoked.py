@@ -1102,7 +1102,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ----------
     evoked : instance of Evoked
         The evoked instance.
-    times : float | array of floats | "auto" | "peaks".
+    times : float | array of floats | "auto" | "peaks"
         The time point(s) to plot. If "auto", 5 evenly spaced topographies
         between the first and last time instant will be shown. If "peaks",
         finds time points automatically by checking for 3 local maxima in
@@ -1110,7 +1110,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     title : str | None
         The title. If `None`, suppress printing channel type. Defaults to ''.
     picks : array-like of int | None
-        The indices of channels to plot. If `None` show all. Defaults to None.
+        The indices of channels to plot. If None show all. Defaults to None.
     exclude : None | list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
         bad channels are excluded. Defaults to None.
@@ -1118,15 +1118,16 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         Show figure if True. Defaults to True.
     ts_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot` to
-        style the butterfly plot. If `spatial_colors` is not in this dict,
-        `spatial_colors=True`, and (if it is not in the dict) `zorder='std'`
-        will be passed. `axes`, `show`, `exclude` are illegal.
-        If `None`, no customizable arguments will be passed.
+        style the butterfly plot. If they are not in this dict, the following
+        defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
+       ``axes``, ``show``, ``exclude`` are illegal.
+        If None, no customizable arguments will be passed.
         Defaults to `None`.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot_topomap` to
-        style the topomaps. `axes`, `show`, `times`, `colorbar` are illegal.
-        If `None`, no customizable arguments will be passed.
+        style the topomaps. If it is not in this dict, ``outlines='skirt'``
+        will be passed. `axes`, `show`, `times`, `colorbar` are illegal`
+        If None, no customizable arguments will be passed.
         Defaults to `None`.
 
     Returns
