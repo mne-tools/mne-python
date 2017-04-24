@@ -1401,11 +1401,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         If a dict, keys must map to evoked keys or conditions, and values must
         be a dict of legal inputs to `matplotlib.pyplot.plot`. These
         parameters will be passed to the line plot call of the corresponding
-        condition, overriding defaults.
+        condition, overriding defaults or instructions from linestyles/colors
+        input.
         E.g., if evokeds is a dict with the keys "Aud/L", "Aud/R",
         "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth":1}}` to set
-        the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
-        not supported.
+        the linewidth for "Aud/L" to 1. HED ('/'-separated) tags are
+        *not* supported.
     vlines : list of int
         A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
@@ -1436,6 +1437,10 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     split_legend : bool
         If True, the legend is split by linestyle and color.
     sequential : bool
+        If True, colors are treated as parametrically varying with conditions,
+        e.g. to assign sequential colors to "visual/probability_1",
+        "visual/probability_2" etc. conditions.
+        Specifically, if this parameter is true, 
     show : bool
         If True, show the figure.
 
@@ -1605,24 +1610,27 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     if split_legend:
         import matplotlib.lines as mlines
-        ls = list()
+        legend_lines = list()
         if not sequential:
             for color in sorted(colors.keys()):
-                c = colors[color]
-                l = mlines.Line2D([], [], color=c, linestyle="-", label=color)
-                ls.append(l)
+                l = mlines.Line2D([], [], linestyle="-",
+                                  color=colors[color], label=color)
+                legend_lines.append(l)
 
         for style, s in linestyles.items():
             l = mlines.Line2D([], [], color='k', linestyle=s, label=style)
-            ls.append(l)
+            legend_lines.append(l)
 
-    if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
-        # XXX should put a good list of default colors into defaults.py
+    if not isinstance(colors, dict):
+        if sequential and not isinstance(colors, string_types):
+            colors = "viridis"
         if isinstance(colors, string_types):
+            def make_number(item):
+                return _strip_to_number(item.split("/")[0])
             cmapper = getattr(plt.cm, colors, plt.cm.hot)
             unique_sortkeys = list({cond.split("/")[0]
                                     for cond in evokeds.keys()})
-            unique_sortkeys.sort(key=_strip_to_number)
+            unique_sortkeys.sort(key=make_number)
             the_colors = cmapper(np.linspace(0, 1, len(unique_sortkeys)))
             colors_ = {cond:color for cond, color in
                       zip(unique_sortkeys, the_colors)}
@@ -1632,7 +1640,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                     if cond_number in cond:
                         colors[cond] = color
                         continue
-        else:
+        else:  # default colors from M Waskom's Seaborn
+               # XXX should put a good list of default colors into defaults.py
             colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
                        '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
             if len(conditions) > len(colors_):
@@ -1663,7 +1672,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # least color and linestyles.
 
     # the actual plot
-    any_negative, any_positive = False, False
+    any_negative, any_positive = False, False  # need this for setting ymin
     for condition in conditions:
         # plot the actual data ('d') as a line
         if ch_type == 'grad' and gfp is False:
@@ -1758,18 +1767,14 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         legend_params = dict(loc='best', frameon=True)
         if split_legend:
             if len(ls) > 1:
-                plt.legend(handles=ls, ncol=1 + (len(ls) // 4),
+                plt.legend(handles=legend_lines, ncol=1 + (len(ls) // 4),
                            **legend_params)
         else:
             plt.legend(ncol=1 + (len(conditions) // 5), **legend_params)
 
     if sequential and split_legend:
         import matplotlib.colors as mcolors
-        import matplotlib.cm
         import matplotlib as mpl
-
-        def make_number(item):
-            return _strip_to_number(item.split("/")[0])
 
         numbers = sorted([make_number(k) for k in colors_])
         colors_l = list(colors_.keys())
@@ -1779,8 +1784,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                                  colors_m + [colors_m[-1]])
 
         norm = mpl.colors.BoundaryNorm(numbers + [numbers[-1] +1], l.N)
-        sm = matplotlib.cm.ScalarMappable(cmap=l, norm=norm
-                                         )
+        sm = plt.cm.ScalarMappable(cmap=l, norm=norm)
         sm.set_array([make_number(k) for k in colors_l])
 
         cbar = plt.colorbar(sm, ax=axes)
