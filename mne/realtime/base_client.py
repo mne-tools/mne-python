@@ -7,7 +7,7 @@ import threading
 import time
 import numpy as np
 
-from mne.io.meas import create_info
+from mne.io.meas_info import create_info
 
 def _buffer_recv_worker(client):
     """Worker thread that constantly receives buffers.
