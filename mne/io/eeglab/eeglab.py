@@ -4,11 +4,12 @@
 # License: BSD (3-clause)
 
 import os.path as op
+from functools import partial
 
 import numpy as np
 
 from ..utils import (_read_segments_file, _find_channels,
-                     _synthesize_stim_channel)
+                     _synthesize_stim_channel, _strip_to_number)
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
@@ -585,7 +586,7 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
     Returns a 1x3 array of zeros if no events are found.
     """
     if event_id_func is 'strip_to_integer':
-        event_id_func = _strip_to_integer
+        event_id_func = partial(_strip_to_number, coerce_to=int)
     if event_id is None:
         event_id = dict()
 
@@ -643,8 +644,3 @@ def _read_eeglab_events(eeg, event_id=None, event_id_func='strip_to_integer'):
             return np.zeros((0, 3))
 
     return np.asarray(events)
-
-
-def _strip_to_integer(trigger):
-    """Return only the integer part of a string."""
-    return int("".join([x for x in trigger if x.isdigit()]))

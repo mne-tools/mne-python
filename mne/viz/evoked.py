@@ -1616,17 +1616,13 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             l = mlines.Line2D([], [], color='k', linestyle=s, label=style)
             ls.append(l)
 
-    def make_number(word):
-        value =  ("".join([x for x in word if x in "1234567890."]))
-        return float(value) if "." in word else int(value)
-
     if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
         # XXX should put a good list of default colors into defaults.py
         if isinstance(colors, string_types):
             cmapper = getattr(plt.cm, colors, plt.cm.hot)
             unique_sortkeys = list({cond.split("/")[0]
                                     for cond in evokeds.keys()})
-            unique_sortkeys.sort(key=make_number)
+            unique_sortkeys.sort(key=_strip_to_number)
             the_colors = cmapper(np.linspace(0, 1, len(unique_sortkeys)))
             colors_ = {cond:color for cond, color in
                       zip(unique_sortkeys, the_colors)}
@@ -1772,6 +1768,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         import matplotlib.cm
         import matplotlib as mpl
 
+        def make_number(item):
+            return _strip_to_number(item.split("/")[0])
+
         numbers = sorted([make_number(k) for k in colors_])
         colors_l = list(colors_.keys())
         colors_l.sort(key=make_number)
@@ -1789,7 +1788,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         cbar.set_ticks(np.array(numbers) + offset)
         cbar.set_ticklabels(numbers)
         cbar.set_label("".join([x for x in colors_l[0]
-                                if x not in "1234567890"]))
+                                if x not in "1234567890"]).strip('.'))
         fig.cbar = cbar
 
     fig.ts_ax = axes
