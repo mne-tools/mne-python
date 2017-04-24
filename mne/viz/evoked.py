@@ -963,8 +963,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     noise_cov[0].get('method', 'empirical'))
         fig.suptitle(suptitle)
 
-    if any(((n_columns == 1 and n_ch_used == 1),
-            (n_columns == 1 and n_ch_used > 1),
+    if any(((n_columns == 1 and n_ch_used >= 1),
             (n_columns == 2 and n_ch_used == 1))):
         axes_evoked = axes[:n_ch_used]
         ax_gfp = axes[-1:]
@@ -1003,20 +1002,21 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     this_rank, 'rank ' if n_columns > 1 else '')
             label = noise_cov.get('method', 'empirical')
 
-            ax_gfp[i].set_title(title if n_columns > 1 else
-                                'whitened global field power (GFP),'
-                                ' method = "%s"' % label)
+            ax = ax_gfp[i]
+            ax.set_title(title if n_columns > 1 else
+                         'whitened global field power (GFP),'
+                         ' method = "%s"' % label)
 
             data = evoked_white.data[sub_picks]
             gfp = whitened_gfp(data, rank=this_rank)
-            ax_gfp[i].plot(times, gfp,
-                           label=(label if n_columns > 1 else title),
-                           color=color if n_columns > 1 else ch_colors[ch])
-            ax_gfp[i].set_xlabel('times [ms]')
-            ax_gfp[i].set_ylabel('GFP [chi^2]')
-            ax_gfp[i].set_xlim(times[0], times[-1])
-            ax_gfp[i].set_ylim(0, 10)
-            ax_gfp[i].axhline(1, color='red', linestyle='--')
+            ax.plot(times, gfp,
+                    label=label if n_columns > 1 else title,
+                    color=color if n_columns > 1 else ch_colors[ch])
+            ax.set_xlabel('times [ms]')
+            ax.set_ylabel('GFP [chi^2]')
+            ax.set_xlim(times[0], times[-1])
+            ax.set_ylim(0, 10)
+            ax.axhline(1, color='red', linestyle='--')
             if n_columns > 1:
                 i += 1
 
@@ -1121,12 +1121,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         style the butterfly plot. If `spatial_colors` is not in this dict,
         `spatial_colors=True`, and (if it is not in the dict) `zorder='std'`
         will be passed. `axes`, `show`, `exclude` are illegal.
-        If `None`, no customizable arguments will be passed. 
+        If `None`, no customizable arguments will be passed.
         Defaults to `None`.
     topomap_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot_topomap` to
         style the topomaps. `axes`, `show`, `times`, `colorbar``are illegal.
-        If `None`, no customizable arguments will be passed. 
+        If `None`, no customizable arguments will be passed.
         Defaults to `None`.
 
     Returns
@@ -1147,8 +1147,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args is None:
         topomap_args = dict()
 
+    illegal_args = {"axes", "show", 'colorbar', 'times', 'exclude'}
     for args in (ts_args, topomap_args):
-        if any((x in args for x in {"axes", "show", 'colorbar', 'exclude'})):
+        if any((x in args for x in illegal_args)):
             raise ValueError("Don't pass any of {} as '{}'.".format(
                 str(args), ", ".join(list(illegal_args))))
 
