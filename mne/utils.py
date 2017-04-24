@@ -1966,10 +1966,20 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
 
 
 def sizeof_fmt(num):
-    """Turn number of bytes into human-readable str."""
+    """Turn number of bytes into human-readable str.
+
+    Parameters
+    ----------
+    num : int
+        The number of bytes.
+
+    Returns
+    -------
+    size : str
+        The size in human-readable format.
+    """
     units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
     decimals = [0, 0, 1, 2, 2, 2]
-    """Human friendly file size"""
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
         quotient = float(num) / 1024 ** exponent

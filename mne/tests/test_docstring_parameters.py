@@ -17,12 +17,14 @@ public_modules = [
     # the list of modules users need to access for all functionality
     'mne',
     'mne.beamformer',
+    'mne.chpi',
     'mne.connectivity',
     'mne.datasets',
+    'mne.datasets.brainstorm',
     'mne.datasets.megsim',
     'mne.datasets.sample',
-    'mne.datasets.spm_face',
     'mne.decoding',
+    'mne.dipole',
     'mne.filter',
     'mne.inverse_sparse',
     'mne.io',
@@ -36,6 +38,7 @@ public_modules = [
     'mne.source_space',
     'mne.stats',
     'mne.time_frequency',
+    'mne.time_frequency.tfr',
     'mne.viz',
 ]
 

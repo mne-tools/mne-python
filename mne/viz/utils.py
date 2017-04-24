@@ -60,7 +60,15 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
 
 
 def plt_show(show=True, **kwargs):
-    """Show a figure while suppressing warnings."""
+    """Show a figure while suppressing warnings.
+
+    Parameters
+    ----------
+    show : bool
+        Show the figure.
+    **kwargs : dict
+        Extra arguments for :func:`matplotlib.pyplot.show`.
+    """
     import matplotlib
     import matplotlib.pyplot as plt
     if show and matplotlib.get_backend() != 'agg':
