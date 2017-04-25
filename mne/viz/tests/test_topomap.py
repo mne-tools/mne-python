@@ -7,6 +7,7 @@
 
 import os.path as op
 import warnings
+from functools import partial
 
 import numpy as np
 from numpy.testing import assert_raises, assert_array_equal
@@ -43,7 +44,6 @@ triux_fname = op.join(data_dir, 'SSS', 'TRIUX', 'triux_bmlhus_erm_raw.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
-fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 layout = read_layout('Vectorview-all')
@@ -57,7 +57,8 @@ def test_plot_topomap():
     from matplotlib.patches import Circle
     # evoked
     warnings.simplefilter('always')
-    res = 16
+    res = 8
+    fast_test = {"res": res, "contours": 0, "sensors": False}
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
 
@@ -69,42 +70,40 @@ def test_plot_topomap():
 
     ev_bad = evoked.copy().pick_types(meg=False, eeg=True)
     ev_bad.pick_channels(ev_bad.ch_names[:2])
-    ev_bad.plot_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
-    assert_raises(ValueError, ev_bad.plot_topomap, ch_type='mag')
-    assert_raises(TypeError, ev_bad.plot_topomap, head_pos='foo')
-    assert_raises(KeyError, ev_bad.plot_topomap, head_pos=dict(foo='bar'))
-    assert_raises(ValueError, ev_bad.plot_topomap, head_pos=dict(center=0))
-    assert_raises(ValueError, ev_bad.plot_topomap, times=[-100])  # bad time
-    assert_raises(ValueError, ev_bad.plot_topomap, times=[[0]])  # bad time
-    assert_raises(ValueError, ev_bad.plot_topomap, times=[[0]])  # bad time
+    plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
+    plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
+    assert_raises(ValueError, plt_topomap, ch_type='mag')
+    assert_raises(TypeError, plt_topomap, head_pos='foo')
+    assert_raises(KeyError, plt_topomap, head_pos=dict(foo='bar'))
+    assert_raises(ValueError, plt_topomap, head_pos=dict(center=0))
+    assert_raises(ValueError, plt_topomap, times=[-100])  # bad time
+    assert_raises(ValueError, plt_topomap, times=[[0]])  # bad time
 
-    evoked.plot_topomap(0.1, layout=layout, scale=dict(mag=0.1))
+    evoked.plot_topomap([0.1], ch_type='eeg', scale=1, res=res,
+                        contours=[-100, 0, 100])
+    plt_topomap = partial(evoked.plot_topomap, **fast_test)
+    plt_topomap(0.1, layout=layout, scale=dict(mag=0.1))
     plt.close('all')
     axes = [plt.subplot(221), plt.subplot(222)]
-    evoked.plot_topomap(axes=axes, colorbar=False)
+    plt_topomap(axes=axes, colorbar=False)
     plt.close('all')
-    evoked.plot_topomap(times=[-0.1, 0.2])
+    plt_topomap(times=[-0.1, 0.2])
     plt.close('all')
     mask = np.zeros_like(evoked.data, dtype=bool)
     mask[[1, 5], :] = True
-    evoked.plot_topomap(ch_type='mag', outlines=None)
+    plt_topomap(ch_type='mag', outlines=None)
     times = [0.1]
-    evoked.plot_topomap(times, ch_type='eeg', res=res, scale=1,
-                        contours=[-100, 0, 100])  # contours as a list
-    evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res)
-    evoked.plot_topomap(times, ch_type='planar1', res=res)
-    evoked.plot_topomap(times, ch_type='planar2', res=res)
-    evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res,
-                        show_names=True, mask_params={'marker': 'x'})
+    plt_topomap(times, ch_type='grad', mask=mask)
+    plt_topomap(times, ch_type='planar1')
+    plt_topomap(times, ch_type='planar2')
+    plt_topomap(times, ch_type='grad', mask=mask, show_names=True,
+                mask_params={'marker': 'x'})
     plt.close('all')
-    assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
-                  res=res, average=-1000)
-    assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
-                  res=res, average='hahahahah')
+    assert_raises(ValueError, plt_topomap, times, ch_type='eeg', average=-1e3)
+    assert_raises(ValueError, plt_topomap, times, ch_type='eeg', average='x')
 
-    p = evoked.plot_topomap(times, ch_type='grad', res=res,
-                            show_names=lambda x: x.replace('MEG', ''),
-                            image_interp='bilinear')
+    p = plt_topomap(times, ch_type='grad', image_interp='bilinear',
+                    show_names=lambda x: x.replace('MEG', ''))
     subplot = [x for x in p.get_children() if
                isinstance(x, matplotlib.axes.Subplot)][0]
     assert_true(all('MEG' not in x.get_text()
@@ -114,7 +113,7 @@ def test_plot_topomap():
     # Plot array
     for ch_type in ('mag', 'grad'):
         evoked_ = evoked.copy().pick_types(eeg=False, meg=ch_type)
-        plot_topomap(evoked_.data[:, 0], evoked_.info)
+        plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test)
     # fail with multiple channel types
     assert_raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
 
@@ -123,9 +122,9 @@ def test_plot_topomap():
         return [x.get_text() for x in p.get_children() if
                 isinstance(x, matplotlib.text.Text)]
 
-    p = evoked.plot_topomap(times, ch_type='eeg', res=res, average=0.01)
+    p = plt_topomap(times, ch_type='eeg', average=0.01)
     assert_equal(len(get_texts(p)), 0)
-    p = evoked.plot_topomap(times, ch_type='eeg', title='Custom', res=res)
+    p = plt_topomap(times, ch_type='eeg', title='Custom')
     texts = get_texts(p)
     assert_equal(len(texts), 1)
     assert_equal(texts[0], 'Custom')
@@ -134,7 +133,7 @@ def test_plot_topomap():
     # delaunay triangulation warning
     with warnings.catch_warnings(record=True):  # can't show
         warnings.simplefilter('always')
-        evoked.plot_topomap(times, ch_type='mag', layout=None, res=res)
+        plt_topomap(times, ch_type='mag', layout=None)
     assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                   proj='interactive')  # projs have already been applied
 
@@ -143,7 +142,7 @@ def test_plot_topomap():
                           baseline=(None, 0), proj=False)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        fig1 = evoked.plot_topomap(0.1, 'mag', proj='interactive', res=res)
+        fig1 = evoked.plot_topomap(.1, 'mag', proj='interactive', **fast_test)
     data_max = np.max(fig1.axes[0].images[0]._A)
     fig2 = plt.gcf()
     _fake_click(fig2, fig2.axes[0], (0.075, 0.775))  # toggle projector
@@ -161,7 +160,7 @@ def test_plot_topomap():
     plot_projs_topomap(projs, res=res, colorbar=True)
     plt.close('all')
     ax = plt.subplot(111)
-    plot_projs_topomap(projs[:1], res=res, axes=ax)  # test axes param
+    plot_projs_topomap(projs[:1], axes=ax, **fast_test)  # test axes param
     plt.close('all')
     plot_projs_topomap(read_info(triux_fname)['projs'][-1:])  # grads
     plt.close('all')
@@ -203,15 +202,15 @@ def test_plot_topomap():
     assert_array_equal(outlines['clip_radius'], 0.75)
 
     # Plot skirt
-    evoked.plot_topomap(times, ch_type='eeg', outlines='skirt')
+    evoked.plot_topomap(times, ch_type='eeg', outlines='skirt', **fast_test)
 
     # Pass custom outlines without patch
-    evoked.plot_topomap(times, ch_type='eeg', outlines=outlines)
+    evoked.plot_topomap(times, ch_type='eeg', outlines=outlines, **fast_test)
     plt.close('all')
 
     # Test interactive cmap
     fig = plot_evoked_topomap(evoked, times=[0., 0.1], ch_type='eeg',
-                              cmap=('Reds', True), title='title')
+                              cmap=('Reds', True), title='title', **fast_test)
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event(' ')
     fig.canvas.key_press_event('down')
@@ -235,7 +234,8 @@ def test_plot_topomap():
         return Circle((0.5, 0.4687), radius=.46,
                       clip_on=True, transform=plt.gca().transAxes)
     outlines['patch'] = patch
-    plot_evoked_topomap(evoked, times, ch_type='eeg', outlines=outlines)
+    plot_evoked_topomap(evoked, times, ch_type='eeg', outlines=outlines,
+                        **fast_test)
 
     # Remove digitization points. Now topomap should fail
     evoked.info['dig'] = None
@@ -269,7 +269,7 @@ def test_plot_topomap():
     # Test peak finder
     axes = [plt.subplot(131), plt.subplot(132)]
     with warnings.catch_warnings(record=True):  # rightmost column
-        evoked.plot_topomap(times='peaks', axes=axes)
+        evoked.plot_topomap(times='peaks', axes=axes, **fast_test)
     plt.close('all')
     evoked.data = np.zeros(evoked.data.shape)
     evoked.data[50][1] = 1
@@ -287,13 +287,16 @@ def test_plot_tfr_topomap():
     import matplotlib.pyplot as plt
     raw = read_raw_fif(raw_fname)
     times = np.linspace(-0.1, 0.1, 200)
+    res = 8
     n_freqs = 3
     nave = 1
     rng = np.random.RandomState(42)
-    data = rng.randn(len(raw.ch_names), n_freqs, len(times))
-    tfr = AverageTFR(raw.info, data, times, np.arange(n_freqs), nave)
+    keep_chans = [93, 94, 96, 97, 21, 22, 24, 25, 129, 130, 315, 316, 2, 5, 8, 11]
+    info = pick_info(raw.info, keep_chans)
+    data = rng.randn(len(keep_chans), n_freqs, len(times))
+    tfr = AverageTFR(info, data, times, np.arange(n_freqs), nave)
     tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
-                     res=16)
+                     res=res, contours=0)
 
     eclick = mpl.backend_bases.MouseEvent('button_press_event',
                                           plt.gcf().canvas, 0, 0, 1)
