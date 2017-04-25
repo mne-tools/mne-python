@@ -23,13 +23,20 @@ def _get_window(start, end):
 
 def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     """Modify original data by using parameter data."""
-    from scipy.interpolate import interp1d
+    from scipy.interpolate import interp1d, PchipInterpolator
     if mode == 'linear':
         x = np.array([first_samp, last_samp])
         f = interp1d(x, data[:, (first_samp, last_samp)][picks])
         xnew = np.arange(first_samp, last_samp)
         interp_data = f(xnew)
         data[picks, first_samp:last_samp] = interp_data
+    if mode == 'cubic':
+        x = np.array([first_samp, last_samp])
+        for pick in picks:
+            f = PchipInterpolator(x, data[:, (first_samp, last_samp)][pick])
+            xnew = np.arange(first_samp, last_samp)
+            interp_data = f(xnew)
+            data[pick, first_samp:last_samp] = interp_data
     if mode == 'window':
         data[picks, first_samp:last_samp] = \
             data[picks, first_samp:last_samp] * window[np.newaxis, :]
@@ -55,9 +62,10 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         Start time of the interpolation window in seconds.
     tmax : float
         End time of the interpolation window in seconds.
-    mode : 'linear' | 'window'
+    mode : 'linear' | 'cubic' | 'window'
         Way to fill the artifacted time interval.
         'linear' does linear interpolation
+        'cubic' does cubic spline interpolation
         'window' applies a (1 - hanning) window.
     stim_channel : str | None
         Stim channel to use.
@@ -67,8 +75,9 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     inst : instance of Raw or Evoked or Epochs
         Instance with modified data
     """
-    if mode not in ('linear', 'window'):
-        raise ValueError("mode has to be 'linear' or 'window' (got %s)" % mode)
+    if mode not in ('linear', 'window', 'cubic'):
+        raise ValueError("mode has to be 'linear' or 'window or 'cubic'"
+                         " (got %s)" % mode)
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
     if (mode == "window") and (s_end - s_start) < 4:
