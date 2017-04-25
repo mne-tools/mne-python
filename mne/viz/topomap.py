@@ -370,37 +370,30 @@ def _griddata(x, y, v, xi, yi):
     d = np.abs(d - d.T)
     n = d.shape[0]
     d.flat[::n + 1] = 1.
-
     g = (d * d) * (np.log(d) - 1.)
     g.flat[::n + 1] = 0.
     weights = linalg.solve(g, v.ravel())
 
-    m, n = xi.shape
-    zi = np.zeros_like(xi)
-    xy = xy.T
-
-    g = np.empty(xy.shape)
-    for i in range(m):
-        for j in range(n):
-            d = np.abs(xi[i, j] + -1j * yi[i, j] - xy)
-            mask = np.where(d == 0)[0]
-            if len(mask):
-                d[mask] = 1.
-            np.log(d, out=g)
-            g -= 1.
-            g *= d * d
-            if len(mask):
-                g[mask] = 0.
-            zi[i, j] = g.dot(weights)
+    d = np.abs(xi + -1j * yi - xy[:, np.newaxis, np.newaxis])
+    mask = (d == 0)
+    d[mask] = 1.
+    g = np.log(d)
+    g -= 1.
+    g *= d * d
+    g[mask] = 0.
+    zi = np.einsum('i,ijk->jk', weights, g)
     return zi
 
 
 def _plot_sensors(pos_x, pos_y, sensors, ax):
     """Plot sensors."""
     from matplotlib.patches import Circle
+    from matplotlib.collections import PatchCollection
     if sensors is True:
+        patches = list()
         for x, y in zip(pos_x, pos_y):
-            ax.add_artist(Circle(xy=(x, y), radius=0.003, color='k'))
+            patches += [Circle(xy=(x, y), radius=0.003)]
+        ax.add_collection(PatchCollection(patches, color='k'))
     else:
         ax.plot(pos_x, pos_y, sensors)
 
@@ -435,8 +428,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         otherwise defaults to 'RdBu_r'.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
+        format string (e.g., 'r+' for red plusses). If True (default), circles
+        will be used.
     res : int
         The resolution of the topomap image (n pixels along each side).
     axes : instance of Axes | None
@@ -725,17 +718,13 @@ def _inside_contour(pos, contour):
     check_mask = np.ones((npos), dtype=bool)
     check_mask[((x < np.min(x)) | (y < np.min(y)) |
                 (x > np.max(x)) | (y > np.max(y)))] = False
-
     critval = 0.1
-    sel = np.where(check_mask)[0]
-    for this_sel in sel:
-        contourx = contour[:, 0] - pos[this_sel, 0]
-        contoury = contour[:, 1] - pos[this_sel, 1]
-        angle = np.arctan2(contoury, contourx)
-        angle = np.unwrap(angle)
-        total = np.sum(np.diff(angle))
-        check_mask[this_sel] = np.abs(total) > critval
-
+    contourx = contour[:, 0] - pos[check_mask, 0][:, np.newaxis]
+    contoury = contour[:, 1] - pos[check_mask, 1][:, np.newaxis]
+    angle = np.arctan2(contoury, contourx)
+    angle = np.unwrap(angle)
+    check_mask[check_mask] = (np.abs(np.sum(np.diff(angle, axis=1), axis=1)) >
+                              critval)
     return check_mask
 
 
@@ -836,8 +825,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses). If True, a circle
-        will be used (via .add_artist). Defaults to True.
+        plot format string (e.g., 'r+' for red plusses). If True (default),
+        circles  will be used.
     colorbar : bool
         Plot a colorbar.
     title : str | None
@@ -1039,8 +1028,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         (None, True).
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses). If True, a circle will
-        be used (via .add_artist). Defaults to True.
+        plot format string (e.g., 'r+' for red plusses). If True (default),
+        circles will be used.
     colorbar : bool
         Plot a colorbar.
     unit : str | None
@@ -1236,8 +1225,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
+        format string (e.g., 'r+' for red plusses). If True (default),
+        circles will be used.
     colorbar : bool
         Plot a colorbar.
     scale : dict | float | None
@@ -1509,7 +1498,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
     if title is not None:
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
-                         cmap=cmap[0], image_interp='bilinear', contours=False,
+                         cmap=cmap[0], image_interp='bilinear', contours=0,
                          outlines=outlines, show=False)
 
     if colorbar is True:
