@@ -6,23 +6,6 @@ from xml.dom.minidom import parse
 import re
 
 
-def _get_signal_bl(filepath):
-    pib_signal_file, list_infofile = _get_signalfname(filepath, 'PNSData')
-    eeg_info = _get_blocks(filepath, pib_signal_file[0])
-
-    signal_blocks = dict(npibChan=eeg_info['nC'],
-                         pibBinObj=eeg_info['blockNumSamps'],
-                         pibBlocks=eeg_info['blocks'],
-                         pibSignalFile=[],
-                         sfreq=eeg_info['sfreq'],
-                         nChan=eeg_info['nC'],
-                         binObj=eeg_info['blockNumSamps'],
-                         blocks=eeg_info['blocks'],
-                         eegFile=pib_signal_file,
-                         infoFile=list_infofile)
-    return signal_blocks
-
-
 def _extract(tags, filepath=None, obj=None):
     if obj is not None:
         fileobj = obj
@@ -178,6 +161,15 @@ def _get_blocks(filepath):
     n_blocks = 0
     samples_block = []
     header_sizes = []
+    n_channels = []
+    sfreq = []
+    # Meta data consists of:
+    # * 1 byte of flag (1 for meta data, 0 for data)
+    # * 1 byte of header size
+    # * 1 byte of block size
+    # * 1 byte of n_channels
+    # * n_channels bytes of offsets
+    # * n_channels bytes of sigfreqs?
     with open(binfile, 'rb') as fid:
         fid.seek(0, 2)  # go to end of file
         file_length = fid.tell()
@@ -187,7 +179,7 @@ def _get_blocks(filepath):
         while position < file_length:
             block = _block_r(fid)
             if block is None:
-                samples_block.append(samples_block[n_blocks])
+                samples_block.append(samples_block[n_blocks - 1])
                 n_blocks += 1
                 fid.seek(block_size, 1)
                 position = fid.tell()
@@ -196,14 +188,21 @@ def _get_blocks(filepath):
             header_size = block['header_size']
             header_sizes.append(header_size)
             samples_block.append(block['nsamples'])
+            n_blocks += 1
             fid.seek(block_size, 1)
-            sfreq = block['sfreq']
-            n_channels = block['nc']
+            sfreq.append(block['sfreq'])
+            n_channels.append(block['nc'])
             position = fid.tell()
 
+    if any([n != n_channels[0] for n in n_channels]):
+        raise RuntimeError("All the blocks don't have the same amount of "
+                           "channels.")
+    if any([f != sfreq[0] for f in sfreq]):
+        raise RuntimeError("All the blocks don't have the same sampling "
+                           "frequency.")
     samples_block = np.array(samples_block)
-    signal_blocks = dict(n_channels=n_channels, sfreq=sfreq, n_blocks=n_blocks,
-                         blockNumSamps=samples_block,
+    signal_blocks = dict(n_channels=n_channels[0], sfreq=sfreq[0],
+                         n_blocks=n_blocks, blockNumSamps=samples_block,
                          header_sizes=header_sizes)
     return signal_blocks
 

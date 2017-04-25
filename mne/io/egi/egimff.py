@@ -13,8 +13,7 @@ import dateutil.parser
 import numpy as np
 
 from .events import _read_events
-from .general import (_block_r, _get_signalfname, _get_ep_inf, _extract,
-                      _get_blocks)
+from .general import _get_signalfname, _get_ep_inf, _extract, _get_blocks
 from ..base import BaseRaw, _check_update_montage
 from ..constants import FIFF
 from ..meas_info import _empty_info
@@ -332,10 +331,6 @@ class RawMff(BaseRaw):
         info._update_redundant()
         _check_update_montage(info, montage)
         file_bin = os.path.join(input_fname, egi_info['eegFilename'])
-
-        with open(file_bin, 'rb') as fid:
-            block_info = _block_r(fid)
-        egi_info['block_info'] = block_info
         egi_info['egi_events'] = egi_events
 
         self._filenames = [file_bin]
@@ -351,15 +346,15 @@ class RawMff(BaseRaw):
         dtype = '<f4'
         n_bytes = np.dtype(dtype).itemsize
         egi_info = self._raw_extras[fi]
-        block_info = egi_info['block_info']
-        offset = block_info['header_size'] - n_bytes
+        offset = egi_info['header_sizes'][0] - n_bytes
         n_channels = egi_info['n_channels']
-        block_size = block_info['hl']
+        n_samples = egi_info['blockNumSamps'][0]
+        block_size = n_samples * n_channels
         data_offset = n_channels * start * n_bytes + offset
         data_left = (stop - start) * n_channels
 
         egi_events = egi_info['egi_events'][:, start:stop]
-        extra_samps = (start // block_info['nsamples'])
+        extra_samps = (start // n_samples)
         beginning = extra_samps * block_size
         data_left += (data_offset - offset) // n_bytes - beginning
         # STI 014 is simply the sum of all event channels (powers of 2).
@@ -374,25 +369,12 @@ class RawMff(BaseRaw):
             s_offset = (data_offset // n_bytes - beginning) / n_channels
             while sample_start * n_channels < data_left:
                 flag = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
-                while flag == 1:  # meta data
-                    # Meta data consists of:
-                    # * 1 bytes of header size
-                    # * 1 bytes of block size
-                    # * 1 byte of n_channels
-                    # * n_channels bytes of offsets
-                    # * n_channels bytes of sigfreqs?
-                    # * 1 byte of flag (1 for meta data, 0 for data)
-                    headersize = np.fromfile(fid, dtype=np.dtype('i4'),
+                if flag == 1:  # meta data
+                    header_size = np.fromfile(fid, dtype=np.dtype('i4'),
+                                              count=1)[0]
+                    block_size = np.fromfile(fid, dtype=np.dtype('i4'),
                                              count=1)[0]
-                    blocksize = np.fromfile(fid, dtype=np.dtype('i4'),
-                                            count=1)[0]
-                    n_channels = np.fromfile(fid, dtype=np.dtype('i4'),
-                                             count=1)[0]
-                    offsets = np.fromfile(fid, dtype=np.dtype('i4'),
-                                          count=n_channels)
-                    sigfreqs = np.fromfile(fid, dtype=np.dtype('i4'),
-                                           count=n_channels)
-                    flag = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
+                    fid.seek(header_size - 3 * n_bytes, 1)
 
                 block = np.fromfile(fid, dtype, block_size)
                 block = block.reshape(n_channels, -1, order='C')
@@ -413,5 +395,5 @@ class RawMff(BaseRaw):
                     sample_sl = slice(sample_start - s_offset,
                                       sample_start - s_offset + block.shape[1])
                 data_view = data[:, sample_sl]
-                sample_start = sample_start + block_info['nsamples']
+                sample_start = sample_start + n_samples
                 _mult_cal_one(data_view, block, idx, cals, mult)
