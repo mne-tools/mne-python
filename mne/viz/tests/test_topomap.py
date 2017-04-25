@@ -291,9 +291,9 @@ def test_plot_tfr_topomap():
     n_freqs = 3
     nave = 1
     rng = np.random.RandomState(42)
-    keep_chans = [93, 94, 96, 97, 21, 22, 24, 25, 129, 130, 315, 316, 2, 5, 8, 11]
-    info = pick_info(raw.info, keep_chans)
-    data = rng.randn(len(keep_chans), n_freqs, len(times))
+    picks = [93, 94, 96, 97, 21, 22, 24, 25, 129, 130, 315, 316, 2, 5, 8, 11]
+    info = pick_info(raw.info, picks)
+    data = rng.randn(len(picks), n_freqs, len(times))
     tfr = AverageTFR(info, data, times, np.arange(n_freqs), nave)
     tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
                      res=res, contours=0)

@@ -125,7 +125,7 @@ def test_plot_ica_properties():
     fig, ax = _create_properties_layout()
     assert_equal(len(ax), 5)
 
-    topoargs = dict(topomap_args={'res': res, 'contours':0, "sensors": False})
+    topoargs = dict(topomap_args={'res': res, 'contours': 0, "sensors": False})
     ica.plot_properties(raw, picks=0, **topoargs)
     ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
     ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
