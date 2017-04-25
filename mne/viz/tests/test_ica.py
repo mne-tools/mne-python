@@ -60,6 +60,7 @@ def test_plot_ica_components():
     """Test plotting of ICA solutions."""
     import matplotlib.pyplot as plt
     res = 8
+    fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -69,13 +70,12 @@ def test_plot_ica_components():
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
-            ica.plot_components(components, image_interp='bilinear', res=res,
-                                colorbar=True, contours=0)
+            ica.plot_components(components, image_interp='bilinear',
+                                colorbar=True, **fast_test)
 
         # test interactive mode (passing 'inst' arg)
         plt.close('all')
-        ica.plot_components([0, 1], image_interp='bilinear', res=res, inst=raw,
-                            contours=0)
+        ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16)
 
         fig = plt.gcf()
         ax = [a for a in fig.get_children() if isinstance(a, plt.Axes)]
@@ -104,6 +104,7 @@ def test_plot_ica_properties():
     """Test plotting of ICA properties."""
     import matplotlib.pyplot as plt
 
+    res = 8
     raw = _get_raw(preload=True)
     raw.add_proj([], remove_existing=True)
     events = _get_events()
