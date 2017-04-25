@@ -261,7 +261,6 @@ def _block_r(fid):
     sfreq = (sigfreq[0] - 32) / ((nc - 1) * 2)
     count = int(header_size / 4 - (4 + 2 * nc))
     np.fromfile(fid, dtype=np.dtype('i4'), count=count)  # sigoffset
-    # position = fid.tell()
     block = dict(nc=nc,
                  hl=hl,
                  nsamples=nsamples,

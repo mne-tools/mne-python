@@ -9,19 +9,17 @@ from xml.etree.ElementTree import parse
 import numpy as np
 
 
-def _read_events(input_fname, hdr, info):
+def _read_events(input_fname, info):
     """Read events for the record.
 
     Parameters
     ----------
     input_fname : str
         The file path.
-    hdr : dict
-        Dictionary with the headers got from read_mff_header.
     info : dict
         Header info array.
     """
-    mff_events, event_codes = _read_mff_events(input_fname, hdr)
+    mff_events, event_codes = _read_mff_events(input_fname, info['sfreq'])
     info['n_events'] = len(event_codes)
     info['event_codes'] = np.asarray(event_codes).astype('<U4')
     events = np.zeros([info['n_events'],
@@ -36,12 +34,15 @@ def _read_events(input_fname, hdr, info):
     return events, info
 
 
-def _read_mff_events(filename, header):
+def _read_mff_events(filename, sfreq):
     """Function for extract the events.
 
-    Parameters:
-    filename = str
-    header = The header array from read_mff_header
+    Parameters
+    ----------
+    filename : str
+        File path.
+    sfreq : float
+        The sampling frequency
     """
     orig = {}
     for xml_file in glob(join(filename, '*.xml')):
@@ -64,7 +65,7 @@ def _read_mff_events(filename, header):
                 code.append(event['code'])
             marker = {'name': event['code'],
                       'start': start,
-                      'start_sample': int(np.fix(start * header['sfreq'])),
+                      'start_sample': int(np.fix(start * sfreq)),
                       'end': start + float(event['duration']) / 1e9,
                       'chan': None,
                       }
@@ -87,8 +88,7 @@ def _xml2list(root):
     output = []
     for element in root:
 
-        if element:
-
+        if len(element) > 0:
             if element[0].tag != element[-1].tag:
                 output.append(_xml2dict(element))
             else:
@@ -122,7 +122,7 @@ def _xml2dict(root):
         output.update(dict(root.items()))
 
     for element in root:
-        if element:
+        if len(element) > 0:
             if len(element) == 1 or element[0].tag != element[1].tag:
                 one_dict = _xml2dict(element)
             else:

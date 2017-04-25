@@ -41,25 +41,23 @@ def _read_mff_header(filepath):
 
     epoch_info = _get_ep_inf(filepath, sfreq)
 
-    summaryinfo = dict(n_blocks=signal_blocks['n_blocks'],
-                       eegFilename=eeg_file,
-                       sfreq=signal_blocks['sfreq'],
-                       n_channels=signal_blocks['n_channels'],
+    summaryinfo = dict(eegFilename=eeg_file,
                        pibNChans=pibnchans,
                        pibHasRef=pibhasref,
                        blockNumSamps=blocknumsamps)
+    summaryinfo.update(signal_blocks)
 
     # Pull header info from the summary info.
     nsamplespre = 0
     if epoch_info['epochType'] == 'seg':
-        nsamples = epoch_info['epochNumSamps'][0]
+        n_samples = epoch_info['epochNumSamps'][0]
         ntrials = len(epoch_info['epochNumSamps'])
 
         # if Time0 is the same for all segments...
         if len(set(epoch_info['epochTime0'])) == 1:
             nsamplespre = epoch_info['epochTime0'][0]
     else:
-        nsamples = np.sum(summaryinfo['blockNumSamps'])
+        n_samples = np.sum(summaryinfo['blockNumSamps'])
         ntrials = 1
 
     # Add the sensor info.
@@ -69,7 +67,6 @@ def _read_mff_header(filepath):
     label = []
     chantype = []
     chanunit = []
-    tmp_label = []
     n_chans = 0
     for sensor in sensors:
         sensortype = int(sensor.getElementsByTagName('type')[0]
@@ -103,22 +100,18 @@ def _read_mff_header(filepath):
             chanunit.append(pns_sensor_obj.getElementsByTagName('unit')[0]
                             .firstChild.data.encode())
 
-    n_chans = n_chans + summaryinfo['pibNChans']
     info_filepath = filepath + "/" + "info.xml"  # add with filepath
     tags = ['mffVersion', 'recordTime']
     version_and_date = _extract(tags, filepath=info_filepath)
-    header = dict(sfreq=summaryinfo['sfreq'],
-                  version=version_and_date['mffVersion'][0],
-                  date=version_and_date['recordTime'][0],
-                  n_channels=n_chans,
-                  nSamplesPre=nsamplespre,
-                  nSamples=nsamples,
-                  nTrials=ntrials,
-                  label=label,
-                  chantype=chantype,
-                  chanunit=chanunit,
-                  orig=summaryinfo)
-    return header
+    summaryinfo.update({'version': version_and_date['mffVersion'][0],
+                        'date': version_and_date['recordTime'][0],
+                        'nSamplesPre': nsamplespre,
+                        'n_samples': n_samples,
+                        'nTrials': ntrials,
+                        'label': label,
+                        'chantype': chantype,
+                        'chanunit': chanunit})
+    return summaryinfo
 
 
 def _read_header(input_fname):
@@ -151,8 +144,6 @@ def _read_header(input_fname):
         minute=int(time_n.strftime('%M')),
         second=int(time_n.strftime('%S')),
         millisecond=int(time_n.strftime('%f')),
-        sfreq=mff_hdr['sfreq'],
-        n_channels=mff_hdr['n_channels'],
         gain=0,
         bits=0,
         value_range=0)
@@ -163,7 +154,6 @@ def _read_header(input_fname):
     if unsegmented:
         info.update(dict(n_categories=0,
                          n_segments=1,
-                         n_samples=mff_hdr['nSamples'],
                          n_events=0,
                          event_codes=[],
                          category_names=[],
@@ -176,7 +166,8 @@ def _read_header(input_fname):
                                           4: ('>f4', 'float'),
                                           6: ('>f8', 'double')}[precision]
     info['dtype'] = np.dtype(info['dtype'])
-    return info, mff_hdr
+    info.update(mff_hdr)
+    return info
 
 
 @verbose
@@ -258,9 +249,9 @@ class RawMff(BaseRaw):
         if misc is None:
             misc = []
         logger.info('Reading EGI MFF Header from %s...' % input_fname)
-        egi_info, egi_hdr = _read_header(input_fname)
+        egi_info = _read_header(input_fname)
         logger.info('    Reading events ...')
-        egi_events, egi_info = _read_events(input_fname, egi_hdr, egi_info)
+        egi_events, egi_info = _read_events(input_fname, egi_info)
         if egi_info['value_range'] != 0 and egi_info['bits'] != 0:
             cal = egi_info['value_range'] / 2 ** egi_info['bits']
         else:
@@ -340,7 +331,7 @@ class RawMff(BaseRaw):
         info['chs'] = chs
         info._update_redundant()
         _check_update_montage(info, montage)
-        file_bin = input_fname + '/' + egi_hdr['orig']['eegFilename']
+        file_bin = os.path.join(input_fname, egi_info['eegFilename'])
 
         with open(file_bin, 'rb') as fid:
             block_info = _block_r(fid)
