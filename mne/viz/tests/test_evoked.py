@@ -132,7 +132,7 @@ def test_plot_evoked():
 
         # plot_compare_evokeds
         evoked.rename_channels({'MEG 2142': "MEG 1642"})
-        assert len(plot_compare_evokeds(evoked)) == 2  #one fig per ch type
+        assert len(plot_compare_evokeds(evoked)) == 2  # one fig per ch type
         # various input formats
         red, blue = evoked.copy(), evoked.copy()
         red.data *= 1.1
@@ -165,7 +165,7 @@ def test_plot_evoked():
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
                              ylim=dict(mag=(1, 10)))
         # sequential colors
-        contrasts = {"a{}/b".format(ii):ev for ii, ev in
+        contrasts = {"a{}/b".format(ii): ev for ii, ev in
                      enumerate((evoked, blue, red))}
         contrasts["a1/c"] = evoked.copy()
         for color in None, 'Reds':
