@@ -389,7 +389,7 @@ class RawEEGLAB(BaseRaw):
                  "which cannot represent two events on the same sample. You "
                  "can extract the original event structure using "
                  "`mne.io.eeglab.read_events_eeglab`. Then, you can e.g. "
-                 "subset the extracted events for constructing epochs.) 
+                 "subset the extracted events for constructing epochs.")
         if n_samples is None:
             n_samples = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
