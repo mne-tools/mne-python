@@ -39,8 +39,6 @@ def test_gdf_data():
     data_biosig = raw_biosig[picks]
 
     # Assert data are almost equal
-    print(data.shape)
-    print(data_biosig.shape)
     assert_array_almost_equal(data, data_biosig, 8)
 
 
@@ -58,8 +56,6 @@ def test_gdf2_data():
     data_biosig = data_biosig[picks]
 
     # Assert data are almost equal
-    print(data.shape)
-    print(data_biosig.shape)
     assert_array_almost_equal(data, data_biosig, 8)
 
     # Find events
