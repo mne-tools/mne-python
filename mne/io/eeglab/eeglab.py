@@ -381,14 +381,15 @@ class RawEEGLAB(BaseRaw):
 
     def _create_event_ch(self, events, n_samples=None):
         """Create the event channel."""
-        if len(set(events[:, 0])) != len(events[:, 0]):
-            warn("Some events overlap/occur at the same time sample. The "
-                 "resulting Raw object will contain the event information "
-                 "in a stimulus channel. Stimulus channels can only carry "
-                 "one event code per time point, so some events will be "
-                 "lost. You can use `mne.io.eeglab.read_events_eeglab` "
-                 "to extract the full events array (which can then be "
-                 "passed to e.g. mne.Epochs.")
+        n_dropped = len(events[:, 0]) - len(set(events[:, 0]))
+        if n_dropped > 0:
+            warn(str(n_dropped) + " events will be dropped because they "
+                 "occur on the same time sample as another event. "
+                 "`mne.io.Raw` objects store events on an event channel, "
+                 "which cannot represent two events on the same sample. You "
+                 "can extract the original event structure using "
+                 "`mne.io.eeglab.read_events_eeglab`. Then, you can e.g. "
+                 "subset the extracted events for constructing epochs.) 
         if n_samples is None:
             n_samples = self.last_samp - self.first_samp + 1
         events = np.array(events, int)
