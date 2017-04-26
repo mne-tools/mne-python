@@ -2006,16 +2006,19 @@ def _setup_butterfly(params):
             ax.set_yticklabels(labels)
         else:
             if 'selections' not in params:
-                selections = _setup_browser_selection(
+                params['selections'] = _setup_browser_selection(
                     params['raw'], 'position', selector=False)
-                params['selections'] = selections
-            selections = _SELECTIONS[1:] + ['Misc']  # Vertex not used
+            sels = params['selections']
+            selections = _SELECTIONS[1:]  # Vertex not used
+            if ('Misc' in sels and len(sels['Misc']) > 0):
+                selections += ['Misc']
             if params['group_by'] == 'selection' and 'eeg' in types:
-                selections += _EEG_SELECTIONS
+                for sel in _EEG_SELECTIONS:
+                    if sel in sels:
+                        selections += [sel]
             picks = list()
             for selection in selections:
-                picks.append(params['selections'].get(selection, list()))
-
+                picks.append(sels.get(selection, list()))
             labels = ax.yaxis.get_ticklabels()
             for label in labels:
                 label.set_visible(True)
