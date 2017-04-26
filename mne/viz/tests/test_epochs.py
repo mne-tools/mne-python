@@ -43,7 +43,7 @@ def _get_picks(raw):
                       ecg=False, eog=False, exclude='bads')
 
 
-def _get_epochs():
+def _get_epochs(n=0):
     """Get epochs."""
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
@@ -51,7 +51,7 @@ def _get_epochs():
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     with warnings.catch_warnings(record=True):  # bad proj
-        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks)
+        epochs = Epochs(raw, events[:5 + n], event_id, tmin, tmax, picks=picks)
     return epochs
 
 
@@ -125,19 +125,20 @@ def test_plot_epochs():
 def test_plot_epochs_image():
     """Test plotting of epochs image."""
     import matplotlib.pyplot as plt
-    epochs = _get_epochs()
+    epochs = _get_epochs(2)
     epochs.plot_image(picks=[1, 2])
-    overlay_times = [0.1]
-    epochs.plot_image(order=[0], overlay_times=overlay_times, vmin=0.01)
+    overlay_times = [0.1, .01]
+    epochs.plot_image(order=[0, 1], overlay_times=overlay_times, vmin=0.01)
     epochs.plot_image(overlay_times=overlay_times, vmin=-0.001, vmax=0.001)
     assert_raises(ValueError, epochs.plot_image,
-                  overlay_times=[0.1, 0.2])
+                  overlay_times=[0.1])
     assert_raises(ValueError, epochs.plot_image,
-                  order=[0, 1])
+                  order=[0])
     with warnings.catch_warnings(record=True) as w:
-        epochs.plot_image(overlay_times=[1.1])
+        epochs.plot_image(overlay_times=[1.1, 1.1])
         warnings.simplefilter('always')
     assert_equal(len(w), 1)
+    epochs.plot_image(gfp=True)
 
     plt.close('all')
 
