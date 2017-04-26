@@ -33,7 +33,7 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     if mode == 'cubic':
         x = np.array([first_samp, last_samp])
         for pick in picks:
-            f = PchipInterpolator(x, data[:, (first_samp, last_samp)][pick])
+            f = PchipInterpolator(x, data[pick][x])
             xnew = np.arange(first_samp, last_samp)
             interp_data = f(xnew)
             data[pick, first_samp:last_samp] = interp_data
@@ -65,7 +65,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     mode : 'linear' | 'cubic' | 'window'
         Way to fill the artifacted time interval.
         'linear' does linear interpolation
-        'cubic' does cubic spline interpolation
+        'cubic' does monotonic cubic spline
+            interpolation (:func:`scipy.interpolate.PchipInterpolator`)
         'window' applies a (1 - hanning) window.
     stim_channel : str | None
         Stim channel to use.
