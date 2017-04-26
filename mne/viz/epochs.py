@@ -125,8 +125,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
         ax1, ax2 = axes[:2]
         # if axes were passed - we ignore fig param and get figure from axes
         fig = ax1.get_figure()
+        axes = [ax1, ax2]
         if colorbar:
-            ax3 = axes[-1]
+            axes += axes[-1]
     types = np.array([channel_type(epochs.info, idx) for idx in picks])
     data = epochs.get_data()
     n_epochs = len(data)
@@ -234,6 +235,8 @@ def _plot_epochs_image_pick(
         ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
+    else:
+        ax1, ax2, *_ = axes
 
     if gfp and scale_vmin:
         this_vmin = this_data.min()
@@ -271,7 +274,7 @@ def _plot_epochs_image_pick(
     ax2.set_ylim([evoked_vmin, evoked_vmax])
     ax2.axvline(0, color='m', linewidth=3, linestyle='--')
     if colorbar:
-        cbar = plt.colorbar(im, cax=ax3)
+        cbar = plt.colorbar(im, cax=axes[-1])
         if cmap[1]:
             ax1.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=this_fig)
