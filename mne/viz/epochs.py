@@ -236,7 +236,7 @@ def _plot_epochs_image_pick(
         if colorbar:
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
     else:
-        ax1, ax2, *_ = axes
+        ax1, ax2 = axes[:2]
 
     if gfp and scale_vmin:
         this_vmin = this_data.min()
