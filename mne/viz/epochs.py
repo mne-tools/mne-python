@@ -237,6 +237,8 @@ def _plot_epochs_image_pick(
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
     else:
         ax1, ax2 = axes[:2]
+        if colorbar:
+            ax3 = axes[2]
 
     if gfp and scale_vmin:
         this_vmin = this_data.min()
@@ -274,7 +276,7 @@ def _plot_epochs_image_pick(
     ax2.set_ylim([evoked_vmin, evoked_vmax])
     ax2.axvline(0, color='m', linewidth=3, linestyle='--')
     if colorbar:
-        cbar = plt.colorbar(im, cax=axes[-1])
+        cbar = plt.colorbar(im, cax=ax3)
         if cmap[1]:
             ax1.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=this_fig)
