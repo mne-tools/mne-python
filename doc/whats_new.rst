@@ -83,6 +83,8 @@ API
 
     - Make function `mne.io.eeglab.read_events_eeglab` public to allow loading overlapping events from EEGLAB files, by `Jona Sassenhagen`_.
 
+    - Add ``cubic`` option to do spline interpolation in :func:`mne.preprocessing.fix_stim_artifact` by `Padma Sundaram`_ and `Mainak Jas`_
+
 .. _changes_0_14:
 
 Version 0.14
@@ -2128,3 +2130,5 @@ of commits):
 .. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
 
 .. _Laura Gwilliams: http://lauragwilliams.github.io
+
+.. _Padma Sundaram: http://www.spl.harvard.edu/pages/People/padma

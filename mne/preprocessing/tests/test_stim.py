@@ -39,11 +39,12 @@ def test_fix_stim_artifact():
     tmin_samp = int(-0.035 * epochs.info['sfreq']) - e_start
     tmax_samp = int(-0.015 * epochs.info['sfreq']) - e_start
 
-    epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='linear')
-    data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    diff_data0 = np.diff(data[0][0])
-    diff_data0 -= np.mean(diff_data0)
-    assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
+    for mode in ['linear', 'cubic']:
+        epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode=mode)
+        data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
+        diff_data0 = np.diff(data[0][0])
+        diff_data0 -= np.mean(diff_data0)
+        assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
 
     epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='window')
     data_from_epochs_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
@@ -85,11 +86,12 @@ def test_fix_stim_artifact():
     tmin_samp = int(0.015 * evoked.info['sfreq']) - evoked.first
     tmax_samp = int(0.035 * evoked.info['sfreq']) - evoked.first
 
-    evoked = fix_stim_artifact(evoked, tmin=tmin, tmax=tmax, mode='linear')
-    data = evoked.data[:, tmin_samp:tmax_samp]
-    diff_data0 = np.diff(data[0])
-    diff_data0 -= np.mean(diff_data0)
-    assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
+    for mode in ['linear', 'cubic']:
+        evoked = fix_stim_artifact(evoked, tmin=tmin, tmax=tmax, mode=mode)
+        data = evoked.data[:, tmin_samp:tmax_samp]
+        diff_data0 = np.diff(data[0])
+        diff_data0 -= np.mean(diff_data0)
+        assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
 
     evoked = fix_stim_artifact(evoked, tmin=tmin, tmax=tmax, mode='window')
     data = evoked.data[:, tmin_samp:tmax_samp]
