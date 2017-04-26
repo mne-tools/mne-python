@@ -59,6 +59,8 @@ def _get_epochs():
 def test_plot_ica_components():
     """Test plotting of ICA solutions."""
     import matplotlib.pyplot as plt
+    res = 8
+    fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -68,12 +70,12 @@ def test_plot_ica_components():
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
-            ica.plot_components(components, image_interp='bilinear', res=16,
-                                colorbar=True)
+            ica.plot_components(components, image_interp='bilinear',
+                                colorbar=True, **fast_test)
 
         # test interactive mode (passing 'inst' arg)
         plt.close('all')
-        ica.plot_components([0, 1], image_interp='bilinear', res=16, inst=raw)
+        ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16)
 
         fig = plt.gcf()
         ax = [a for a in fig.get_children() if isinstance(a, plt.Axes)]
@@ -102,6 +104,7 @@ def test_plot_ica_properties():
     """Test plotting of ICA properties."""
     import matplotlib.pyplot as plt
 
+    res = 8
     raw = _get_raw(preload=True)
     raw.add_proj([], remove_existing=True)
     events = _get_events()
@@ -122,7 +125,7 @@ def test_plot_ica_properties():
     fig, ax = _create_properties_layout()
     assert_equal(len(ax), 5)
 
-    topoargs = dict(topomap_args={'res': 10})
+    topoargs = dict(topomap_args={'res': res, 'contours': 0, "sensors": False})
     ica.plot_properties(raw, picks=0, **topoargs)
     ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
     ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
@@ -141,7 +144,7 @@ def test_plot_ica_properties():
 
     fig, ax = plt.subplots(2, 3)
     ax = ax.ravel()[:-1]
-    ica.plot_properties(epochs, picks=1, axes=ax)
+    ica.plot_properties(epochs, picks=1, axes=ax, **topoargs)
     fig = ica.plot_properties(raw, picks=[0, 1], **topoargs)
     assert_equal(len(fig), 2)
     assert_raises(ValueError, plot_ica_properties, epochs, ica, picks=[0, 1],

@@ -742,7 +742,8 @@ def _inside_contour(pos, contour):
 def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
                       title=None, show=True, outlines='head', contours=6,
-                      image_interp='bilinear', head_pos=None, axes=None):
+                      image_interp='bilinear', head_pos=None, axes=None,
+                      sensors=True):
     """Plot single ica map to axes."""
     import matplotlib as mpl
     from ..channels import _get_ch_type
@@ -774,7 +775,8 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     im = plot_topomap(data.ravel(), pos, vmin=vmin_, vmax=vmax_,
                       res=res, axes=axes, cmap=cmap, outlines=outlines,
                       image_mask=image_mask, contours=contours,
-                      image_interp=image_interp, show=show)[0]
+                      sensors=sensors, image_interp=image_interp,
+                      show=show)[0]
     if colorbar:
         import matplotlib.pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -941,7 +943,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
                           res=res, axes=ax, cmap=cmap[0], outlines=outlines,
                           image_mask=image_mask, contours=contours,
-                          image_interp=image_interp, show=False)[0]
+                          image_interp=image_interp, show=False,
+                          sensors=sensors)[0]
         im.axes.set_label('IC #%03d' % ii)
         if colorbar:
             divider = make_axes_locatable(ax)
