@@ -115,6 +115,15 @@ mne.viz.tight_layout()
 plt.show()
 
 ###############################################################################
+# You can also create a joint plot that contains both the aggregated TFR
+# across channels and topomaps at specific times and frequencies.
+
+power.plot_joint(picks=range(82, 84), baseline=(-0.5, 0), mode='logratio',
+                 title='auto', aggregate='mean',
+                 timefreqs={(1, 10): (1, 4), (1, 19): (1, 6)})
+plt.show()
+
+###############################################################################
 # Inspect ITC
 # -----------
 itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')

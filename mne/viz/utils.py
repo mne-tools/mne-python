@@ -1634,6 +1634,49 @@ def _setup_cmap(cmap, n_axes=1, norm=False):
     return cmap
 
 
+def _format_ch_names(ch_names, n_ch=6):
+    """Format channel names into a string."""
+    ch_string = ", ".join(ch_names[:n_ch])
+    if len(ch_names) > n_ch:
+        warn('More than %d channels, truncating title ...' % n_ch)
+        ch_string += ", ..."
+    return ch_string
+
+
+def _prepare_joint_axes(n_maps, figsize=None):
+    """Prepare axes for topomaps and colorbar in joint plot figure.
+
+    Parameters
+    ----------
+    n_maps: int
+        Number of topomaps to include in the figure
+    figsize: tuple
+        Figure size, see plt.figsize
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Figure with initialized axes
+    main_ax: matplotlib.axes._subplots.AxesSubplot
+        Axes in which to put the main plot
+    map_ax: list
+        List of axes for each topomap
+    cbar_ax: matplotlib.axes._subplots.AxesSubplot
+        Axes for colorbar next to topomaps
+    """
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=figsize)
+    main_ax = fig.add_subplot(212)
+    ts = n_maps + 2
+    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(n_maps)]
+    # Position topomap subplots on the second row, starting on the
+    # second column
+    cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
+    # Position colorbar at the very end of a more finely divided
+    # second row of subplots
+    return fig, main_ax, map_ax, cbar_ax
+
+
 class DraggableColorbar(object):
     """Enable interactive colorbar.
 
@@ -2095,6 +2138,26 @@ def _setup_butterfly(params):
     _set_ax_label_style(ax, params, italicize=not butterfly)
     params['ax_vscroll'].set_visible(not butterfly)
     params['plot_fun']()
+
+
+def _connection_line(x, fig, sourceax, targetax, y=1):
+    """Connect source and target plots with a line.
+
+    Connect source and target plots with a line, such as time series
+    (source) and topolots (target). Primarily used for plot_joint
+    functions.
+    """
+    from matplotlib.lines import Line2D
+    trans_fig = fig.transFigure
+    trans_fig_inv = fig.transFigure.inverted()
+
+    xt, yt = trans_fig_inv.transform(targetax.transAxes.transform([.5, 0]))
+    xs, _ = trans_fig_inv.transform(sourceax.transData.transform([x, 0]))
+    _, ys = trans_fig_inv.transform(sourceax.transData.transform([0, y]))
+
+    return Line2D((xt, xs), (yt, ys), transform=trans_fig, color='grey',
+                  linestyle='-', linewidth=1.5, alpha=.66, zorder=1,
+                  clip_on=False)
 
 
 class DraggableLine:

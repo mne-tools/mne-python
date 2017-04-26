@@ -23,11 +23,13 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
-from ..io.pick import pick_info, pick_types
+from ..io.pick import pick_info, pick_types, _pick_data_channels
 from ..io.meas_info import Info
 from ..utils import SizeMixin
 from .multitaper import dpss_windows
-from ..viz.utils import figure_nobar, plt_show, _setup_cmap
+from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
+                         _connection_line, _format_ch_names,
+                         _prepare_joint_axes, _setup_vmin_vmax)
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
 
@@ -1010,16 +1012,18 @@ class AverageTFR(_BaseTFR):
         self.preload = True
 
     @verbose
-    def plot(self, picks, baseline=None, mode='mean', tmin=None, tmax=None,
-             fmin=None, fmax=None, vmin=None, vmax=None, cmap='RdBu_r',
-             dB=False, colorbar=True, show=True, title=None, axes=None,
-             layout=None, yscale='auto', mask=None, alpha=0.1, verbose=None):
+    def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
+             tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
+             cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
+             axes=None, layout=None, yscale='auto', mask=None, alpha=0.1,
+             aggregate='mean', exclude=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
         ----------
-        picks : array-like of int
-            The indices of the channels to plot, one figure per channel.
+        picks : None | array-like of int
+            The indices of the channels to plot, one figure per channel. If
+            None, plot the across-channel average.
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)
@@ -1082,8 +1086,10 @@ class AverageTFR(_BaseTFR):
             the colorbar cannot be drawn. Defaults to True.
         show : bool
             Call pyplot.show() at the end.
-        title : str | None
-            String for title. Defaults to None (blank/no title).
+        title : str | 'auto' | None
+            String for title. Defaults to None (blank/no title). If 'auto',
+            automatically create a title that lists up to 6 of the channels
+            used in the figure.
         axes : instance of Axes | list | None
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of channels. If instance of Axes,
@@ -1112,6 +1118,12 @@ class AverageTFR(_BaseTFR):
             Defaults to 0.1.
 
             .. versionadded:: 0.16.0
+        aggregate : 'mean' | 'rms' | None
+            Type of aggregation to perform across selected channels. If
+            None, plot one figure per selected channel.
+        exclude : None | list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the
+            bad channels are excluded. Defaults to None.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose`).
@@ -1121,27 +1133,70 @@ class AverageTFR(_BaseTFR):
         fig : matplotlib.figure.Figure
             The figure containing the topography.
         """  # noqa: E501
-        from ..viz.topo import _imshow_tfr
-        import matplotlib.pyplot as plt
-        times, freqs = self.times.copy(), self.freqs.copy()
-        info = self.info
-        data = self.data
+        return self._plot(picks=picks, baseline=baseline, mode=mode,
+                          tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
+                          vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
+                          colorbar=colorbar, show=show, title=title,
+                          axes=axes, layout=layout, yscale=yscale,
+                          aggregate=aggregate, exclude=exclude,
+                          verbose=verbose)[0]
 
-        n_picks = len(picks)
-        info, data, picks = _prepare_picks(info, data, picks)
-        data = data[picks]
+    @verbose
+    def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
+              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
+              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
+              axes=None, layout=None, yscale='auto', aggregate='mean',
+              exclude=None, verbose=None):
+        """Plot TFRs as a two-dimensional image(s).
+
+        See self.plot() for parameters description.
+        """
+        import matplotlib.pyplot as plt
+        from ..viz.topo import _imshow_tfr
+
+        times, freqs = self.times.copy(), self.freqs.copy()
+
+        # channel selection
+        # simply create a new tfr object(s) with the desired channel selection
+        average_tfr = self.copy()
+
+        if picks is not None:
+            n_picks = len(picks)
+            pick_names = [average_tfr.info['ch_names'][pick] for pick in picks]
+        else:
+            n_picks = 1
+            picks = _pick_data_channels(average_tfr.info, exclude='bads')
+            pick_names = [average_tfr.info['ch_names'][pick] for pick in picks]
+        average_tfr.pick_channels(pick_names)
+
+        if exclude == 'bads':
+            exclude = [ch for ch in average_tfr.info['bads']
+                       if ch in average_tfr.info['ch_names']]
+        if exclude is not None:
+            average_tfr.drop_channels(exclude)
+
+        data = average_tfr.data
+        info = average_tfr.info
+
+        if aggregate == 'mean':
+            data = data.mean(axis=0, keepdims=True)
+        elif aggregate == 'rms':
+            data = np.sqrt((data ** 2).mean(axis=0, keepdims=True))
+        elif aggregate is not None:
+            raise ValueError('aggregate must be None, mean or rms.')
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                          baseline, vmin, vmax, dB, info['sfreq'])
 
-        tmin, tmax = times[0], times[-1]
-        if isinstance(axes, plt.Axes):
-            axes = [axes]
         if isinstance(axes, list) or isinstance(axes, np.ndarray):
             if len(axes) != n_picks:
                 raise RuntimeError('There must be an axes for each picked '
                                    'channel.')
+
+        tmin, tmax = times[0], times[-1]
+        if isinstance(axes, plt.Axes):
+            axes = [axes]
 
         cmap = _setup_cmap(cmap)
         for idx in range(len(data)):
@@ -1158,8 +1213,220 @@ class AverageTFR(_BaseTFR):
                         x_label='Time (s)', y_label='Frequency (Hz)',
                         colorbar=colorbar, cmap=cmap, yscale=yscale, mask=mask,
                         alpha=alpha)
+
+            if title is 'auto':
+                if aggregate is None or len(info['ch_names']) == 1:
+                    title = info['ch_names'][0]
+                else:
+                    ch_title = _format_ch_names(info['ch_names'])
+                    title = 'Aggregate (%s) of %s' % (aggregate, ch_title)
             if title:
                 fig.suptitle(title)
+
+            plt_show(show)
+            return fig, data, times * 1e-3, freqs
+
+    @verbose
+    def plot_joint(self, picks=None, baseline=None, mode='mean',
+                   tmin=None, tmax=None, fmin=None, fmax=None, vmin=None,
+                   vmax=None, cmap='RdBu_r', dB=False, colorbar=True,
+                   show=True, title=None, layout=None, yscale='auto',
+                   aggregate='mean', exclude=None, timefreqs=None,
+                   topomap_args=None, verbose=None):
+        """Plot TFRs as a two-dimensional image(s) with topomaps.
+
+        Parameters
+        ----------
+        picks : None | array-like of int
+            The indices of the channels to plot, one figure per channel. If
+            None, plot the across-channel aggregate.
+        baseline : None (default) or tuple of length 2
+            The time interval to apply baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal to (None, None) all the time
+            interval is used.
+        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or zscore (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline)),
+            mean simply subtracts the mean power, percent is the same as
+            applying ratio then mean, logratio is the same as mean but then
+            rendered in log-scale, zlogratio is the same as zscore but data
+            is rendered in log-scale first.
+            If None no baseline correction is applied.
+        tmin : None | float
+            The first time instant to display. If None the first time point
+            available is used.
+        tmax : None | float
+            The last time instant to display. If None the last time point
+            available is used.
+        fmin : None | float
+            The first frequency to display. If None the first frequency
+            available is used.
+        fmax : None | float
+            The last frequency to display. If None the last frequency
+            available is used.
+        vmin : float | None
+            The mininum value of the color scale. If vmin is None, the data
+            minimum value is used.
+        vmax : float | None
+            The maxinum value of the color scale. If vmax is None, the data
+            maximum value is used.
+        cmap : matplotlib colormap
+            The colormap to use.
+        dB : bool
+            If True, 20*log10 is applied to the data to get dB.
+        colorbar : bool
+            If true, colorbar will be added to the plot. For user defined axes,
+            the colorbar cannot be drawn. Defaults to True.
+        show : bool
+            Call pyplot.show() at the end.
+        title : str | None
+            String for title. Defaults to None (blank/no title).
+        layout : Layout | None
+            Layout instance specifying sensor positions. Used for interactive
+            plotting of topographies on rectangle selection. If possible, the
+            correct layout is inferred from the data.
+        yscale : 'auto' (default) | 'linear' | 'log'
+            The scale of y (frequency) axis. 'linear' gives linear y axis,
+            'log' leads to log-spaced y axis and 'auto' detects if frequencies
+            are log-spaced and only then sets the y axis to 'log'.
+        aggregate : 'mean' | 'rms'
+            Type of aggregation to perform across selected channels.
+        exclude : None | list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the
+            bad channels are excluded. Defaults to None.
+        timefreqs : None | list of tuples | dict of tuples
+            The time-frequency point(s) for which topomaps will be plotted.
+            Each tuple defines a pair (time, frequency) in s and Hz on the
+            TFR plot. If provided as a dictionary, (time, frequency) tuples
+            are keys and (time_window, frequency_window) tuples are the
+            values - indicating the width of the windows (centered on the
+            time and frequency indicated by the key) to be averaged over.
+            For example,
+
+                timefreqs={(1, 10): (0.1, 2)}
+
+            would translate into a window that spans 0.95 to 1.05 seconds,
+            as well as 9 to 11 Hz. If None, a single topomap will be
+            plotted at the absolute peak across the time-frequency
+            representation.
+        topomap_args : None | dict
+            A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
+            to style the topomaps. `axes` and `show` are ignored. If `times`
+            is not in this dict, automatic peak detection is used. Beyond that,
+            if ``None``, no customizable arguments will be passed.
+            Defaults to ``None``.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see :func:`mne.verbose`).
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
+
+        Notes
+        -----
+        .. versionadded:: 0.15.0
+
+        """  # noqa: E501
+        from ..viz.topomap import _set_contour_locator
+        import matplotlib.pyplot as plt
+
+        if topomap_args is None:
+            topomap_args = dict()
+
+        cmap = _setup_cmap(cmap)
+
+        # prepare axes for topomap
+        fig, tf_ax, map_ax, cbar_ax = _prepare_joint_axes(
+            len(timefreqs) if timefreqs is not None else 1)
+
+        _, tf_data, tf_times, tf_freqs = self._plot(
+            picks=picks, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
+            fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
+            colorbar=False, show=show, title=title, axes=tf_ax,
+            layout=layout, yscale=yscale, aggregate=aggregate,
+            exclude=exclude, verbose=verbose)
+
+        if timefreqs is None:
+            # find the maximum peak
+            from scipy.signal import argrelmax
+            order = max((1, tf_data.shape[2] // 30))
+            peaks_idx = argrelmax(tf_data, order=order, axis=2)
+            if peaks_idx[0].size == 0:
+                _, p_t, p_f = np.unravel_index(tf_data.argmax(),
+                                               tf_data.shape)
+                timefreqs = [(tf_times[p_t], tf_freqs[p_f])]
+            else:
+                peaks = [tf_data[0, f, t] for f, t in
+                         zip(peaks_idx[1], peaks_idx[2])]
+                peakmax_idx = np.argmax(peaks)
+                peakmax_time = tf_times[peaks_idx[2][peakmax_idx]]
+                peakmax_freq = tf_freqs[peaks_idx[1][peakmax_idx]]
+
+                timefreqs = [(peakmax_time, peakmax_freq)]
+
+        timefreqs = {k: np.asarray(timefreqs[k])
+                     if isinstance(timefreqs, dict) else np.array([0, 0])
+                     for k in timefreqs}
+
+        vmin, vmax = _setup_vmin_vmax(tf_data, vmin, vmax)
+
+        # topomap
+        contours = topomap_args.get('contours', 6)
+        locator, contours = _set_contour_locator(vmin, vmax, contours)
+
+        topomap_args_pass = {k: v for k, v in topomap_args.items() if
+                             k not in ('axes', 'show', 'colorbar')}
+        topomap_args_pass['outlines'] = (topomap_args['outlines'] if 'outlines'
+                                         in topomap_args else 'skirt')
+        topomap_args_pass['contours'] = contours
+
+        for sub_map_ax, ((time, freq), avg) in zip(map_ax, timefreqs.items()):
+            time_half_range, freq_half_range = avg / 2.
+
+            if time_half_range == 0:
+                time = self.times[np.argmin(np.abs(self.times - time))]
+            if freq_half_range == 0:
+                freq = self.freqs[np.argmin(np.abs(self.freqs - freq))]
+
+            if (time_half_range == 0) and (freq_half_range == 0):
+                sub_map_title = '(%d ms,\n%.1f Hz)' % (time * 1e3, freq)
+            else:
+                sub_map_title = '(%d \u00B1 %d ms,\n%.1f \u00B1 %.1f Hz)' % \
+                                (time * 1e3, time_half_range * 1e3, freq,
+                                 freq_half_range)
+            sub_map_ax.set_title(sub_map_title)
+
+            self.plot_topomap(tmin=time - time_half_range,
+                              tmax=time + time_half_range,
+                              fmin=freq - freq_half_range,
+                              fmax=freq + freq_half_range,
+                              axes=sub_map_ax, baseline=baseline, mode=mode,
+                              layout=layout, vmin=vmin, vmax=vmax, cmap=cmap,
+                              colorbar=False, show=False, **topomap_args_pass)
+
+        if colorbar:
+            from matplotlib import ticker
+            cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
+            if locator is None:
+                locator = ticker.MaxNLocator(nbins=5)
+            cbar.locator = locator
+            cbar.update_ticks()
+
+        plt.subplots_adjust(left=.1, right=.93, bottom=.14,
+                            top=1. if title is not None else 1.2)
+
+        # draw the connection lines between time series and topoplots
+        lines = [_connection_line(time_ * 1e3, fig, tf_ax, map_ax_, y=freq_)
+                 for (time_, freq_), map_ax_ in zip(timefreqs, map_ax)]
+
+        fig.lines.extend(lines)
 
         plt_show(show)
         return fig
@@ -1253,10 +1520,10 @@ class AverageTFR(_BaseTFR):
             The last frequency to display. If None the last frequency
             available is used.
         vmin : float | None
-            The mininum value an the color scale. If vmin is None, the data
+            The mininum value of the color scale. If vmin is None, the data
             minimum value is used.
         vmax : float | None
-            The maxinum value an the color scale. If vmax is None, the data
+            The maxinum value of the color scale. If vmax is None, the data
             maximum value is used.
         layout : Layout | None
             Layout instance specifying sensor positions. If possible, the

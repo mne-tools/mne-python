@@ -23,17 +23,29 @@ from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
+<<<<<<< HEAD
                     _setup_vmin_vmax, _grad_pair_pick_and_name, _check_cov,
                     _validate_if_list_of_axes, _triage_rank_sss)
 from ..utils import logger, _clean_names, warn, _pl, verbose
 from ..io.pick import _DATA_CH_TYPES_SPLIT
 
+=======
+                    _setup_vmin_vmax, _connection_line)
+from ..utils import logger, _clean_names, warn, _pl
+from ..io.pick import pick_info
+>>>>>>> [MRG] Implementing plot_joint method in AverageTFR class
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines, _setup_plot_projector
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
+<<<<<<< HEAD
 from ..channels.layout import _pair_grad_sensors, _auto_topomap_coords
+=======
+from .utils import _format_ch_names, _prepare_joint_axes
+from ..channels import find_layout
+from ..channels.layout import _pair_grad_sensors
+>>>>>>> [MRG] Implementing plot_joint method in AverageTFR class
 
 
 def _butterfly_onpick(event, params):
@@ -1120,19 +1132,6 @@ def plot_snr_estimate(evoked, inv, show=True):
     return fig
 
 
-def _connection_line(x, fig, sourceax, targetax):
-    """Connect time series and topolots."""
-    from matplotlib.lines import Line2D
-    transFigure = fig.transFigure.inverted()
-    tf = fig.transFigure
-
-    (xt, yt) = transFigure.transform(targetax.transAxes.transform([.5, .25]))
-    (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
-    (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
-    return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
-                  linestyle='-', linewidth=1.5, alpha=.66, zorder=0)
-
-
 def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                       exclude=None, show=True, ts_args=None,
                       topomap_args=None):
@@ -1235,10 +1234,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                     exclude=list(), topomap_args=topomap_args))
         return figs
 
-    fig = plt.figure(figsize=(8.0, 4.2))
-
     # set up time points to show topomaps for
     times = _process_times(evoked, times, few=True)
+
+    # prepare axes for topomap
+    fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times),
+                                                      figsize=(8.0, 4.2))
 
     # butterfly/time series plot
     # most of this code is about passing defaults on demand
@@ -1263,12 +1264,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                       horizontalalignment='center',
                       verticalalignment='center')
         title_ax.axis('off')
-
-    # prepare axes for topomap
-    # slightly convoluted due to colorbar placement and for vertical alignment
-    ts = len(times) + 2
-    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(ts - 2)]
-    cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
 
     # topomap
     contours = topomap_args.get('contours', 6)
