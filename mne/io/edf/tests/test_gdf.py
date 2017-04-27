@@ -46,7 +46,7 @@ def test_gdf_data():
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
     raw = read_raw_edf(gdf2_path + '.gdf', eog=None, misc=None, preload=True,
-                       stim_channel='STATUS', biosemi=True)
+                       stim_channel='STATUS')
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
@@ -60,6 +60,7 @@ def test_gdf2_data():
 
     # Find events
     events = find_events(raw, verbose=1)
+    events[:, 2] >>= 8  # last 8 bits are system events in biosemi files
     assert(events.shape[0] == 2)  # 2 events in file
     assert_array_equal(events[:, 2], [20, 28])
 

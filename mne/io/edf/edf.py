@@ -64,9 +64,19 @@ class RawEDF(BaseRaw):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    biosemi : bool (default False)
-        Set to True to when reading Biosemi data as GDF files, otherwise the
-        stimulus channel will not be properly parsed.
+
+    Notes
+    -----
+    Biosemi devices trigger codes are encoded in 16-bit format, whereas system
+    codes (CMS in/out-of range, battery low, etc.) are coded in bits 16-23 of
+    the status channel (see http://www.biosemi.com/faq/trigger_signals.htm).
+    To retrieve correct event values (bits 1-16), one could do:
+
+        >>> events = mne.find_events(...)  # doctest:+SKIP
+        >>> events[:, 2] >>= 8  # doctest:+SKIP
+
+    It is also possible to retrieve system codes, but no particular effort has
+    been made to decode these in MNE.
 
     See Also
     --------
@@ -76,7 +86,7 @@ class RawEDF(BaseRaw):
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
                  stim_channel=-1, annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None, biosemi=False):  # noqa: D102
+                 preload=False, verbose=None):  # noqa: D102
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,
@@ -87,8 +97,6 @@ class RawEDF(BaseRaw):
         if bool(annot) != bool(annotmap):
             warn("Stimulus Channel will not be annotated. Both 'annot' and "
                  "'annotmap' must be specified.")
-
-        self._biosemi = biosemi
 
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
@@ -120,7 +128,6 @@ class RawEDF(BaseRaw):
         annot = self._raw_extras[fi]['annot']
         annotmap = self._raw_extras[fi]['annotmap']
         subtype = self._raw_extras[fi]['subtype']
-        biosemi = self._biosemi
 
         if np.size(dtype_byte) > 1:
             if len(np.unique(dtype_byte)) > 1:
@@ -249,10 +256,6 @@ class RawEDF(BaseRaw):
             else:
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),
                                       2**17 - 1)
-
-                if biosemi:
-                    stim = stim >> 8  # not sure why but it works
-
                 data[stim_channel_idx, :] = stim
 
 
@@ -886,12 +889,11 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 elif unit == 512:  # dimensionless
                     units[i] = 1
                 elif unit == 0:
-                    warn('Unrecognized physical dimension for channel %d. '
-                         'Assuming dimensionless.' % i)
-                    units[i] = 1
+                    units[i] = 1  # unrecognized
                 else:
-                    warn('Unsupported physical dimension for channel %d. '
-                         'Assuming dimensionless.' % i)
+                    warn('Unsupported physical dimension for channel %d '
+                         '(assuming dimensionless). Please contact the '
+                         'MNE-Python developers for support.' % i)
                     units[i] = 1
                 include.append(i)
 
@@ -902,7 +904,6 @@ def _read_gdf_header(fname, stim_channel, exclude):
             digital_max = np.fromfile(fid, np.float64, len(channels))
 
             fid.seek(68 * len(channels), 1)  # obsolete
-
             lowpass = np.fromfile(fid, np.float32, len(channels))
             highpass = np.fromfile(fid, np.float32,  len(channels))
             notch = np.fromfile(fid, np.float32, len(channels))
@@ -1059,7 +1060,7 @@ def _check_stim_channel(stim_channel, ch_names, include):
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel=-1, annot=None, annotmap=None, exclude=(),
-                 preload=False, verbose=None, biosemi=False):
+                 preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
     Parameters
@@ -1101,14 +1102,24 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    biosemi : bool (default False)
-        Set to True to when reading Biosemi data as GDF files, otherwise the
-        stimulus channel will not be properly parsed.
 
     Returns
     -------
     raw : Instance of RawEDF
         A Raw object containing EDF data.
+
+    Notes
+    -----
+    Biosemi devices trigger codes are encoded in bits 1-16 of the status
+    channel, whereas system codes (CMS in/out-of range, battery low, etc.) are
+    coded in bits 16-23 (see http://www.biosemi.com/faq/trigger_signals.htm).
+    To retrieve correct event values (bits 1-16), one could do:
+
+        >>> events = mne.find_events(...)  # doctest:+SKIP
+        >>> events[:, 2] >>= 8  # doctest:+SKIP
+
+    It is also possible to retrieve system codes, but no particular effort has
+    been made to decode these in MNE.
 
     See Also
     --------
@@ -1116,5 +1127,4 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     """
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  exclude=exclude, preload=preload, verbose=verbose,
-                  biosemi=biosemi)
+                  exclude=exclude, preload=preload, verbose=verbose)
