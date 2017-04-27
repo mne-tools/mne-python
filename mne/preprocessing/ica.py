@@ -813,7 +813,7 @@ class ICA(ContainsMixin):
         ch_names = []
         ch_info = info['chs'] = []
         for ii in range(self.n_components_):
-            this_source = 'ICA %03d' % (ii + 1)
+            this_source = 'IC #%03d' % (ii)
             ch_names.append(this_source)
             ch_info.append(dict(ch_name=this_source, cal=1,
                                 logno=ii + 1, coil_type=FIFF.FIFFV_COIL_NONE,
