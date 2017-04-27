@@ -5,6 +5,7 @@
 
 import os.path as op
 import warnings
+import inspect
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -20,7 +21,8 @@ from mne.datasets.testing import data_path
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-base_dir = op.join(op.dirname(op.realpath('__file__')), 'data')
+FILE = inspect.getfile(inspect.currentframe())
+base_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 egi_fname = op.join(base_dir, 'test_egi.raw')
 egi_txt_fname = op.join(base_dir, 'test_egi.txt')
 egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
