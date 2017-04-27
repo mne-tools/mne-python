@@ -64,8 +64,8 @@ def _read_mff_header(filepath):
     sensor_layout_obj = parse(sensor_layout_file)
     sensors = sensor_layout_obj.getElementsByTagName('sensor')
     label = []
-    chantype = []
-    chanunit = []
+    chan_type = []
+    chan_unit = []
     n_chans = 0
     for sensor in sensors:
         sensortype = int(sensor.getElementsByTagName('type')[0]
@@ -80,8 +80,8 @@ def _read_mff_header(filepath):
                 sn = sn.encode()
                 tmp_label = sn.decode()
             label.append(tmp_label)
-            chantype.append('eeg')
-            chanunit.append('uV')
+            chan_type.append('eeg')
+            chan_unit.append('uV')
             n_chans = n_chans + 1
     if n_chans != summaryinfo['n_channels']:
         print("Error. Should never occur.")
@@ -94,10 +94,10 @@ def _read_mff_header(filepath):
             tmp_label = 'pib' + str(p + 1)
             label.append(tmp_label)
             pns_sensor_obj = pns_sensors[p]
-            chantype.append(pns_sensor_obj.getElementsByTagName('name')[0]
-                            .firstChild.data.encode())
-            chanunit.append(pns_sensor_obj.getElementsByTagName('unit')[0]
-                            .firstChild.data.encode())
+            chan_type.append(pns_sensor_obj.getElementsByTagName('name')[0]
+                             .firstChild.data.encode())
+            chan_unit.append(pns_sensor_obj.getElementsByTagName('unit')[0]
+                             .firstChild.data.encode())
 
     info_filepath = filepath + "/" + "info.xml"  # add with filepath
     tags = ['mffVersion', 'recordTime']
@@ -108,8 +108,8 @@ def _read_mff_header(filepath):
                         'n_samples': n_samples,
                         'nTrials': ntrials,
                         'label': label,
-                        'chantype': chantype,
-                        'chanunit': chanunit})
+                        'chan_type': chan_type,
+                        'chan_unit': chan_unit})
     return summaryinfo
 
 
@@ -243,18 +243,21 @@ class RawMff(BaseRaw):
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
                  include=None, exclude=None, preload=False, verbose=None):
         """Init the RawMff class."""
+        logger.info('Reading EGI MFF Header from %s...' % input_fname)
+        egi_info = _read_header(input_fname)
         if eog is None:
             eog = []
         if misc is None:
-            misc = []
-        logger.info('Reading EGI MFF Header from %s...' % input_fname)
-        egi_info = _read_header(input_fname)
+            misc = np.where(np.array(egi_info['chan_type']) != 'eeg')[0]
+
         logger.info('    Reading events ...')
         egi_events, egi_info = _read_events(input_fname, egi_info)
         if egi_info['value_range'] != 0 and egi_info['bits'] != 0:
-            cal = egi_info['value_range'] / 2 ** egi_info['bits']
+            cals = [egi_info['value_range'] / 2 ** egi_info['bits'] for i
+                    in range(len(egi_info['chan_type']))]
         else:
-            cal = 1e-6
+            cal_scales = {'uV': 1e-6, 'V': 1}
+            cals = [cal_scales[t] for t in egi_info['chan_unit']]
 
         logger.info('    Assembling measurement info ...')
         if egi_info['n_events'] > 0:
@@ -315,15 +318,14 @@ class RawMff(BaseRaw):
         ch_names.extend(list(egi_info['event_codes']))
         if len(egi_events) > 0:
             ch_names.append('STI 014')  # channel for combined events
-        nchan = len(ch_names)
-        cals = np.repeat(cal, nchan)
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
+        cals.extend(np.repeat(1, len(event_codes) + 1 + len(misc) + len(eog)))
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or len(name) == 4]
         for idx in sti_ch_idx:
-            chs[idx].update({'unit_mul': 0, 'cal': 1,
+            chs[idx].update({'unit_mul': 0, 'cal': cals[idx],
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})

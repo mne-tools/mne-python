@@ -17,7 +17,7 @@ from mne.io import read_raw_egi_mff
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.egi.egi import _combine_triggers
 from mne.utils import run_tests_if_main
-from mne.datasets.testing import data_path
+from mne.datasets.testing import data_path, requires_testing_data
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -28,6 +28,7 @@ egi_txt_fname = op.join(base_dir, 'test_egi.txt')
 egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
 
 
+@requires_testing_data
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files"""
     raw = read_raw_egi_mff(egi_fname_mff, include=None)
