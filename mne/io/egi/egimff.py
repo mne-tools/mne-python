@@ -366,7 +366,7 @@ class RawMff(BaseRaw):
             # extract data in chunks
             sample_start = 0
             # s_offset determines the offset inside the block in samples.
-            s_offset = (data_offset // n_bytes - beginning) / n_channels
+            s_offset = (data_offset // n_bytes - beginning) // n_channels
             while sample_start * n_channels < data_left:
                 flag = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
                 if flag == 1:  # meta data
