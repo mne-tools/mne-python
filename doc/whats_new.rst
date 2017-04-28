@@ -63,6 +63,8 @@ BUG
     - Fix :func:`mne.viz.plot_sensors` to maintain proper aspect ratio by `Eric Larson`_
 
     - Fix :func:`mne.viz.plot_topomap` to allow 0 contours by `Jaakko Leppakangas`_
+    
+    - Fix :func:`mne.preprocessing.ica._pick_sources` increase threshold for rank estimation to 1e-14 by `jdue`
 
 API
 ~~~
