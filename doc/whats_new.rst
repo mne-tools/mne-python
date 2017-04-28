@@ -64,7 +64,7 @@ BUG
 
     - Fix :func:`mne.viz.plot_topomap` to allow 0 contours by `Jaakko Leppakangas`_
     
-    - Fix :func:`mne.preprocessing.ica._pick_sources` increase threshold for rank estimation to 1e-14 by `jdue`
+    - Fix :func:`mne.preprocessing.ica._pick_sources` increase threshold for rank estimation to 1e-14 by `jdue`_
 
 API
 ~~~
@@ -2130,3 +2130,5 @@ of commits):
 .. _Jean-Baptiste Schiratti: https://github.com/jbschiratti
 
 .. _Laura Gwilliams: http://lauragwilliams.github.io
+
+.. _jdue: https://github.com/jdue
