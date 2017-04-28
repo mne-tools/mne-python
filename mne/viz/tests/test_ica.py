@@ -268,19 +268,9 @@ def test_plot_instance_components():
     with warnings.catch_warnings(record=True):  # bad proj
         ica.fit(raw, picks=picks)
     fig = ica.plot_sources(raw, exclude=[0], title='Components')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event('right')
-    fig.canvas.key_press_event('left')
-    fig.canvas.key_press_event('o')
-    fig.canvas.key_press_event('-')
-    fig.canvas.key_press_event('+')
-    fig.canvas.key_press_event('=')
-    fig.canvas.key_press_event('pageup')
-    fig.canvas.key_press_event('pagedown')
-    fig.canvas.key_press_event('home')
-    fig.canvas.key_press_event('end')
-    fig.canvas.key_press_event('f11')
+    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'pageup',
+                'pagedown', 'home', 'end', 'f11', 'b']:
+        fig.canvas.key_press_event(key)
     ax = fig.get_axes()[0]
     line = ax.lines[0]
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
@@ -289,19 +279,9 @@ def test_plot_instance_components():
     plt.close('all')
     epochs = _get_epochs()
     fig = ica.plot_sources(epochs, exclude=[0], title='Components')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event('right')
-    fig.canvas.key_press_event('left')
-    fig.canvas.key_press_event('o')
-    fig.canvas.key_press_event('-')
-    fig.canvas.key_press_event('+')
-    fig.canvas.key_press_event('=')
-    fig.canvas.key_press_event('pageup')
-    fig.canvas.key_press_event('pagedown')
-    fig.canvas.key_press_event('home')
-    fig.canvas.key_press_event('end')
-    fig.canvas.key_press_event('f11')
+    for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'pageup',
+                'pagedown', 'home', 'end', 'f11', 'b']:
+        fig.canvas.key_press_event(key)
     # Test a click
     ax = fig.get_axes()[0]
     line = ax.lines[0]

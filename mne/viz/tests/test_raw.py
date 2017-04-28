@@ -104,7 +104,8 @@ def test_plot_raw():
     events = _get_events()
     plt.close('all')  # ensure all are closed
     with warnings.catch_warnings(record=True):
-        fig = raw.plot(events=events, show_options=True)
+        fig = raw.plot(events=events, show_options=True, order=[1, 7, 3],
+                       group_by='original')
         # test mouse clicks
         x = fig.get_axes()[0].lines[1].get_xdata().mean()
         y = fig.get_axes()[0].lines[1].get_ydata().mean()
@@ -134,6 +135,11 @@ def test_plot_raw():
         for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
                     'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
             fig.canvas.key_press_event(key)
+        fig = plot_raw(raw, events=events, group_by='selection')
+        for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=',
+                    'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
+                    'escape']:
+            fig.canvas.key_press_event(key)
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
         assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
@@ -142,30 +148,30 @@ def test_plot_raw():
         raw.annotations = annot
         fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
-        for order in ['position', 'selection', range(len(raw.ch_names))[::-4],
-                      [1, 2, 4, 6]]:
-            fig = raw.plot(order=order)
+        for group_by, order in zip(['position', 'selection'],
+                                   [np.arange(len(raw.ch_names))[::-3],
+                                    [1, 2, 4, 6]]):
+            fig = raw.plot(group_by=group_by, order=order)
             x = fig.get_axes()[0].lines[1].get_xdata()[10]
             y = fig.get_axes()[0].lines[1].get_ydata()[10]
             _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
             fig.canvas.key_press_event('down')  # change selection
             _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
-            if order in ('position', 'selection'):
-                sel_fig = plt.figure(1)
-                topo_ax = sel_fig.axes[1]
-                _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
-                            xform='data')
-                fig.canvas.key_press_event('down')
-                fig.canvas.key_press_event('up')
-                fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
-                fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
-                _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
-                _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
-                            kind='motion')
-                _fake_click(sel_fig, topo_ax, [0.5, 0.5], xform='data',
-                            kind='motion')
-                _fake_click(sel_fig, topo_ax, [-0.5, 0.5], xform='data',
-                            kind='release')
+            sel_fig = plt.figure(1)
+            topo_ax = sel_fig.axes[1]
+            _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
+                        xform='data')
+            fig.canvas.key_press_event('down')
+            fig.canvas.key_press_event('up')
+            fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+            fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+            _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
+            _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
+                        kind='motion')
+            _fake_click(sel_fig, topo_ax, [0.5, 0.5], xform='data',
+                        kind='motion')
+            _fake_click(sel_fig, topo_ax, [-0.5, 0.5], xform='data',
+                        kind='release')
 
             plt.close('all')
         # test if meas_date has only one element
@@ -173,7 +179,13 @@ def test_plot_raw():
                                          dtype=np.int32)
         raw.annotations = Annotations([1 + raw.first_samp / raw.info['sfreq']],
                                       [5], ['bad'])
-        raw.plot()
+        raw.plot(group_by='position', order=np.arange(8))
+        for fig_num in plt.get_fignums():
+            fig = plt.figure(fig_num)
+            if hasattr(fig, 'radio'):  # Get access to selection fig.
+                break
+        for key in ['down', 'up', 'escape']:
+            fig.canvas.key_press_event(key)
         plt.close('all')
 
 
@@ -197,7 +209,7 @@ def test_plot_raw_filtered():
     assert_raises(ValueError, raw.plot, clipping='foo')
     raw.plot(lowpass=1, clipping='transparent')
     raw.plot(highpass=1, clipping='clamp')
-    raw.plot(highpass=1, lowpass=2)
+    raw.plot(highpass=1, lowpass=2, butterfly=True)
 
 
 @requires_version('scipy', '0.12')

@@ -1722,14 +1722,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
-             event_color='cyan', scalings=None, remove_dc=True, order='type',
+             event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
-             show_first_samp=False, proj=True):
+             show_first_samp=False, proj=True, group_by='type',
+             butterfly=False):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
-                        lowpass, filtorder, clipping, show_first_samp, proj)
+                        lowpass, filtorder, clipping, show_first_samp, proj,
+                        group_by, butterfly)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)

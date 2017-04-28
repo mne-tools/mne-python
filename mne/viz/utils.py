@@ -324,9 +324,11 @@ def _get_help_text(params):
             text2.insert(3, 'Navigate channels up\n')
             text.insert(6, u'a : \n')
             text2.insert(6, 'Toggle annotation mode\n')
+            text.insert(7, u'b : \n')
+            text2.insert(7, 'Toggle butterfly plot on/off\n')
             if 'fig_selection' not in params:
-                text2.insert(9, 'Reduce the number of channels per view\n')
-                text2.insert(10, 'Increase the number of channels per view\n')
+                text2.insert(10, 'Reduce the number of channels per view\n')
+                text2.insert(11, 'Increase the number of channels per view\n')
             text2.append('Mark bad channel\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
@@ -394,7 +396,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     labels = [p['desc'] for p in projs]
     actives = ([p['active'] for p in projs] if draw_current_state else
-               [params['apply_proj']] * len(projs))
+               params.get('proj_bools', [params['apply_proj']] * len(projs)))
 
     width = max([4., max([len(p['desc']) for p in projs]) / 6.0 + 0.5])
     height = len(projs) / 6.0 + 1.5
@@ -419,6 +421,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     proj_checks.on_clicked(partial(_toggle_proj, params=params))
     params['proj_checks'] = proj_checks
+    fig_proj.canvas.mpl_connect('key_press_event', _key_press)
 
     # this should work for non-test cases
     try:
@@ -559,6 +562,8 @@ def _helper_raw_resize(event, params):
 def _plot_raw_onscroll(event, params, len_channels=None):
     """Interpret scroll events."""
     if 'fig_selection' in params:
+        if params['butterfly']:
+            return
         _change_channel_group(event.step, params)
         return
     if len_channels is None:
@@ -600,6 +605,8 @@ def _plot_raw_time(value, params):
 def _radio_clicked(label, params):
     """Handle radio buttons in selection dialog."""
     from .evoked import _rgb
+
+    # First the selection dialog.
     labels = [l._text for l in params['fig_selection'].radio.labels]
     idx = labels.index(label)
     params['fig_selection'].radio._active_idx = idx
@@ -620,6 +627,10 @@ def _radio_clicked(label, params):
     ax_topo.collections[0]._facecolors = colors
     params['fig_selection'].canvas.draw()
 
+    if params['butterfly']:
+        return
+    # Then the plotting window.
+    params['ax_vscroll'].set_visible(True)
     nchan = sum([len(params['selections'][l]) for l in labels[:idx]])
     params['vsel_patch'].set_y(nchan)
     n_channels = len(channels)
@@ -696,11 +707,15 @@ def _plot_raw_onkey(event, params):
         if 'fig_selection' in params.keys():
             _change_channel_group(-1, params)
             return
+        elif params['butterfly']:
+            return
         params['ch_start'] += params['n_channels']
         _channels_changed(params, len(params['inds']))
     elif event.key == 'up':
         if 'fig_selection' in params.keys():
             _change_channel_group(1, params)
+            return
+        elif params['butterfly']:
             return
         params['ch_start'] -= params['n_channels']
         _channels_changed(params, len(params['inds']))
@@ -761,6 +776,8 @@ def _plot_raw_onkey(event, params):
             _setup_annotation_fig(params)
         else:
             params['fig_annotation'].canvas.close_event()
+    elif event.key == 'b':
+        _setup_butterfly(params)
 
 
 def _setup_annotation_fig(params):
@@ -849,7 +866,7 @@ def _onclick_new_label(event, params):
 
 
 def _mouse_click(event, params):
-    """Handle vertical selection."""
+    """Handle mouse clicks."""
     if event.button not in (1, 3):
         return
     if event.button == 3:
@@ -867,7 +884,7 @@ def _mouse_click(event, params):
         params['plot_fun']()
         return
 
-    if event.inaxes is None:
+    if event.inaxes is None:  # check if channel label is clicked
         if params['n_channels'] > 100:
             return
         ax = params['ax']
@@ -877,7 +894,7 @@ def _mouse_click(event, params):
             return
         params['label_click_fun'](pos)
     # vertical scrollbar changed
-    if event.inaxes == params['ax_vscroll']:
+    elif event.inaxes == params['ax_vscroll']:
         if 'fig_selection' in params.keys():
             _handle_change_selection(event, params)
         else:
@@ -929,10 +946,21 @@ def _find_channel_idx(ch_name, params):
     return indices
 
 
+def _draw_vert_line(xdata, params):
+    """Draw vertical line."""
+    params['ax_vertline'].set_data(xdata, np.array(params['ax'].get_ylim()))
+    params['ax_hscroll_vertline'].set_data(xdata, np.array([0., 1.]))
+    params['vertline_t'].set_text('%0.3f' % xdata[0])
+
+
 def _select_bads(event, params, bads):
     """Select bad channels onpick. Returns updated bads list."""
     # trade-off, avoid selecting more than one channel when drifts are present
     # however for clean data don't click on peaks but on flat segments
+    if params['butterfly']:
+        _draw_vert_line(np.array([event.xdata] * 2), params)
+        return bads
+
     def f(x, y):
         return y(np.mean(x), x.std() * 2)
     lines = event.inaxes.lines
@@ -963,10 +991,7 @@ def _select_bads(event, params, bads):
                         params['ax_vscroll'].patches[idx].set_color(color)
                     break
     else:
-        x = np.array([event.xdata] * 2)
-        params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
-        params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
-        params['vertline_t'].set_text('%0.3f' % x[0])
+        _draw_vert_line(np.array([event.xdata] * 2), params)
 
     return bads
 
@@ -981,19 +1006,21 @@ def _onclick_help(event, params):
 
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
+    params['fig_help'] = fig_help
     ax = plt.subplot2grid((8, 5), (0, 0), colspan=5)
     ax.set_title('Keyboard shortcuts')
     plt.axis('off')
     ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
     ax1.set_yticklabels(list())
-    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', weight='bold',
-             ha='right')
+    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', ha='right')
     plt.axis('off')
 
     ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
     ax2.set_yticklabels(list())
     plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
     plt.axis('off')
+
+    fig_help.canvas.mpl_connect('key_press_event', _key_press)
 
     tight_layout(fig=fig_help)
     # this should work for non-test cases
@@ -1004,8 +1031,15 @@ def _onclick_help(event, params):
         pass
 
 
+def _key_press(event):
+    """Handle key press in dialog."""
+    import matplotlib.pyplot as plt
+    if event.key == 'escape':
+        plt.close(event.canvas.figure)
+
+
 def _setup_browser_offsets(params, n_channels):
-    """Compute viewport height and adjusting offsets."""
+    """Compute viewport height and adjust offsets."""
     ylim = [n_channels * 2 + 1, 0]
     offset = ylim[0] / n_channels
     params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
@@ -1951,6 +1985,80 @@ def _annotation_radio_clicked(label, radio, selector):
     color = radio.circles[idx].get_edgecolor()
     selector.rect.set_color(color)
     selector.rectprops.update(dict(facecolor=color))
+
+
+def _setup_butterfly(params):
+    """Set butterfly view of raw plotter."""
+    from .raw import _setup_browser_selection
+    if 'ica' in params:
+        return
+    butterfly = not params['butterfly']
+    ax = params['ax']
+    params['butterfly'] = butterfly
+    if butterfly:
+        types = np.array(params['types'])[params['orig_inds']]
+        if params['group_by'] in ['type', 'original']:
+            inds = params['inds']
+            eeg = 'seeg' if 'seeg' in types else 'eeg'
+            labels = [t for t in ['grad', 'mag', eeg, 'eog', 'ecg']
+                      if t in types] + ['misc']
+            ticks = np.arange(5, 5 * (len(labels) + 1), 5)
+            offs = {l: t for (l, t) in zip(labels, ticks)}
+
+            params['offsets'] = np.zeros(len(params['types']))
+            for ind in inds:
+                params['offsets'][ind] = offs.get(params['types'][ind],
+                                                  5 * (len(labels)))
+            ax.set_yticks(ticks)
+            params['ax'].set_ylim(5 * (len(labels) + 1), 0)
+            ax.set_yticklabels(labels)
+        else:
+            if 'selections' not in params:
+                params['selections'] = _setup_browser_selection(
+                    params['raw'], 'position', selector=False)
+            sels = params['selections']
+            selections = _SELECTIONS[1:]  # Vertex not used
+            if ('Misc' in sels and len(sels['Misc']) > 0):
+                selections += ['Misc']
+            if params['group_by'] == 'selection' and 'eeg' in types:
+                for sel in _EEG_SELECTIONS:
+                    if sel in sels:
+                        selections += [sel]
+            picks = list()
+            for selection in selections:
+                picks.append(sels.get(selection, list()))
+            labels = ax.yaxis.get_ticklabels()
+            for label in labels:
+                label.set_visible(True)
+            ylim = (5. * len(picks), 0.)
+            ax.set_ylim(ylim)
+            offset = ylim[0] / (len(picks) + 1)
+            ticks = np.arange(0, ylim[0], offset)
+            ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+            ax.set_yticks(ticks)
+            offsets = np.zeros(len(params['types']))
+
+            for group_idx, group in enumerate(picks):
+                for idx, pick in enumerate(group):
+                    offsets[pick] = offset * (group_idx + 1)
+            params['inds'] = params['orig_inds'].copy()
+            params['offsets'] = offsets
+            ax.set_yticklabels([''] + selections, color='black', rotation=45,
+                               va='top')
+    else:
+        params['inds'] = params['orig_inds'].copy()
+        if 'fig_selection' not in params:
+            for idx in np.arange(params['n_channels'], len(params['lines'])):
+                params['lines'][idx].set_xdata([])
+                params['lines'][idx].set_ydata([])
+        _setup_browser_offsets(params, max([params['n_channels'], 1]))
+        if 'fig_selection' in params:
+            radio = params['fig_selection'].radio
+            active_idx = _get_active_radiobutton(radio)
+            _radio_clicked(radio.labels[active_idx]._text, params)
+
+    params['ax_vscroll'].set_visible(not butterfly)
+    params['plot_fun']()
 
 
 class DraggableLine:
