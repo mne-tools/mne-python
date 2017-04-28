@@ -66,6 +66,8 @@ BUG
     
     - Fix :func:`mne.preprocessing.ica._pick_sources` increase threshold for rank estimation to 1e-14 by `jdue`_
 
+    - Fix :meth:`raw.set_bipolar_reference` to support duplicates in anodes by `Jean-Baptiste Schiratti`_ and `Alex Gramfort`_
+
 API
 ~~~
 

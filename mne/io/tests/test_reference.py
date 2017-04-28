@@ -121,7 +121,7 @@ def test_apply_reference():
             data=dict(
                 col_names=['EEG 001', 'EEG 002'],
                 row_names=None,
-                data=[[1, 1]],
+                data=np.array([[1, 1]]),
                 ncol=2,
                 nrow=1
             ),
@@ -236,6 +236,13 @@ def test_set_bipolar_reference():
     # Minimalist call
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002')
     assert_true('EEG 001-EEG 002' in reref.ch_names)
+
+    # Minimalist call with twice the same anode
+    reref = set_bipolar_reference(raw,
+                                  ['EEG 001', 'EEG 001'],
+                                  ['EEG 002', 'EEG 003'])
+    assert_true('EEG 001-EEG 002' in reref.ch_names)
+    assert_true('EEG 001-EEG 003' in reref.ch_names)
 
     # Set multiple references at once
     reref = set_bipolar_reference(
