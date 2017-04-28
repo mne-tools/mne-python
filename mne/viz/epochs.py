@@ -155,11 +155,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
         if cmap is None:
             cmap = "RdBu_r"
 
-    if sigma > 0.:
-        for k in range(len(picks)):
-            data[k, :] = ndimage.gaussian_filter1d(
-                data[k, :], sigma=sigma, axis=0)
-
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
 
@@ -187,7 +182,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
         this_fig = _plot_epochs_image_pick(
             im_data, ts_data, epochs, ch_type, scalings, order, fig,
             overlay_times, axes, vmin_, vmax_, scale_vmin, scale_vmax, cmap,
-            n_epochs, title, units, colorbar, gfp)
+            n_epochs, title, units, colorbar, gfp, sigma)
         figs.append(this_fig)
 
     plt_show(show)
@@ -197,7 +192,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
 def _plot_epochs_image_pick(
         this_data, evoked_data, epochs, ch_type, scalings, order, fig,
         overlay_times, axes, vmin, vmax, scale_vmin, scale_vmax, cmap,
-        n_epochs, title, units, colorbar, gfp):
+        n_epochs, title, units, colorbar, gfp, sigma):
     """Helper: plot an epochs image for a single channel."""
     import matplotlib.pyplot as plt
 
@@ -228,6 +223,11 @@ def _plot_epochs_image_pick(
         this_data = this_data[this_order]
         if this_overlay_times is not None:
             this_overlay_times = this_overlay_times[this_order]
+
+    if sigma > 0.:
+        for ch_idx, channel in enumerate(this_data):
+            this_data[ch_idx, :] = ndimage.gaussian_filter1d(
+                channel, sigma=sigma, axis=0)
 
     plt.figure(this_fig.number)
     if axes is None:
