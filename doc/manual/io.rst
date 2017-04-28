@@ -263,16 +263,14 @@ European data format (.edf)
 
 EDF and EDF+ files can be read in using :func:`mne.io.read_raw_edf`.
 
-http://www.edfplus.info/specs/edf.html
+EDF (European Data Format; seehttp://www.edfplus.info/specs/edf.html) and EDF+
+(http://www.edfplus.info/specs/edfplus.html) are 16-bit formats
 
-EDF (European Data Format) and EDF+ are 16-bit formats
-http://www.edfplus.info/specs/edfplus.html
-
-The EDF+ files may contain an annotation channel which can
-be used to store trigger information. The Time-stamped Annotation
-Lists (TALs) on the annotation  data can be converted to a trigger
-channel (STI 014) using an annotation map file which associates
-an annotation label with a number on the trigger channel.
+The EDF+ files may contain an annotation channel which can be used to store
+trigger information. The Time-stamped Annotation Lists (TALs) on the
+annotation  data can be converted to a trigger channel (STI 014) using an
+annotation map file which associates an annotation label with a number on
+the trigger channel.
 
 Biosemi data format (.bdf)
 ==========================
@@ -288,14 +286,13 @@ General data format (.gdf)
 
 GDF files can be read in using :func:`mne.io.read_raw_edf`.
 
-https://arxiv.org/abs/cs/0608052
-
-GDF (General Data Format) is a flexible format for biomedical signals, that
-overcomes some of the limitations of the EDF format. The original specification
-(GDF v1) includes a binary header, and uses an event table. An updated
-specification (GDF v2) was released in 2011 and adds fields for additional
-subject-specific information (gender, age, etc.) and allows storing several
-physical units and other properties. Both specifications are supported in MNE.
+GDF (General Data Format; https://arxiv.org/abs/cs/0608052) is a flexible
+format for biomedical signals, that overcomes some of the limitations of the
+EDF format. The original specification (GDF v1) includes a binary header,
+and uses an event table. An updated specification (GDF v2) was released in
+2011 and adds fields for additional subject-specific information (gender,
+age, etc.) and allows storing several physical units and other properties.
+Both specifications are supported in MNE.
 
 Neuroscan CNT data format (.cnt)
 ================================

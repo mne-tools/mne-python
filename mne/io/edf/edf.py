@@ -138,7 +138,7 @@ class RawEDF(BaseRaw):
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
         cal = np.array([ch['cal'] for ch in self.info['chs']])
-        cal = np.atleast_2d((physical_range) / (cal))  # physical / digital
+        cal = np.atleast_2d(physical_range / cal)  # physical / digital
         gains = np.atleast_2d(self._raw_extras[fi]['units'])
 
         # physical dimension in uV
@@ -378,17 +378,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
                                    ' parsed completely on loading.'
                                    ' You must set preload parameter to True.'))
 
-    if isinstance(stim_channel, str):
-        if stim_channel not in ch_names:
-            err = 'Could not find a channel named "%s" in datafile.' \
-                  % stim_channel
-            casematch = [ch for ch in ch_names
-                         if stim_channel.lower().replace(' ', '') ==
-                         ch.lower().replace(' ', '')]
-            if casematch:
-                err += ' Closest match is "%s".' % casematch[0]
-            raise ValueError(err)
-
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     chs = list()
@@ -474,9 +463,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         warn('Channels contain different highpass filters. Highest filter '
              'setting will be stored.')
     if lowpass.size == 0:
-        info['sfreq'] / 2.
-        logger.info('Lowpass info could not be found. Setting it at half the '
-                    'sampling rate')
+        pass  # Placeholder for future use. Lowpass set in _empty_info.
     elif all(lowpass):
         if lowpass[0] == 'NaN':
             pass  # Placeholder for future use. Lowpass set in _empty_info.
