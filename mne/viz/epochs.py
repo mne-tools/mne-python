@@ -99,7 +99,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
     figs : lists of matplotlib figures
         One figure per channel displayed.
     """
-    from scipy import ndimage
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
 
@@ -225,6 +224,7 @@ def _plot_epochs_image_pick(
             this_overlay_times = this_overlay_times[this_order]
 
     if sigma > 0.:
+        from scipy import ndimage
         for ch_idx, channel in enumerate(this_data):
             this_data[ch_idx, :] = ndimage.gaussian_filter1d(
                 channel, sigma=sigma, axis=0)
