@@ -983,8 +983,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     Parameters
     ----------
-    tfr : AvereageTFR
-        The AvereageTFR object.
+    tfr : AverageTFR
+        The AverageTFR object.
     tmin : None | float
         The first time instant to display. If None the first time point
         available is used.
@@ -1083,13 +1083,12 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. If colorbar=True, the ticks in colorbar correspond to the
-        contour levels. Defaults to 6.
+    contours : False | int | array of float | None
+        The number of contour lines to draw. If 0 or None, no contours will
+        be drawn. If an array, the values represent the levels for the
+        contours. The values are in uV for EEG, fT for magnetometers and
+        fT/m for gradiometers. If colorbar=True, the ticks in colorbar
+        correspond to the contour levels.
 
     Returns
     -------
@@ -1156,6 +1155,9 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                                  itmin=itmin, itmax=itmax, ifmin=ifmin,
                                  ifmax=ifmax, cmap=cmap[0], fig=fig_wrapper,
                                  layout=layout)
+
+    if not isinstance(contours, (list, np.ndarray)):
+        _, contours = _set_contour_locator(vmin, vmax, contours)
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axes=ax, cmap=cmap[0], image_interp='bilinear',

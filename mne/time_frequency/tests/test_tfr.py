@@ -403,7 +403,7 @@ def test_plot():
     tfr.plot(picks=[0, 1, 2], axes=[ax, ax2, ax3])
     plt.close('all')
 
-    tfr.plot_topo(picks=[1, 2])
+    tfr.plot([1, 2], title='title', colorbar=False, exclude='bads')
     plt.close('all')
 
     tfr.plot_topo(picks=[1, 2])
@@ -426,6 +426,34 @@ def test_plot():
 
     fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+
+    plt.close('all')
+
+
+def test_plot_joint():
+    """Test TFR plotting."""
+    import matplotlib.pyplot as plt
+
+    raw = read_raw_fif(raw_fname)
+    times = np.linspace(-0.1, 0.1, 200)
+    n_freqs = 3
+    nave = 1
+    rng = np.random.RandomState(42)
+    data = rng.randn(len(raw.ch_names), n_freqs, len(times))
+    tfr = AverageTFR(raw.info, data, times, np.arange(n_freqs), nave)
+
+    topomap_args = {'res': 8, 'contours': 0, 'sensors': False}
+
+    for aggregate in ('mean', 'rms', None):
+        tfr.plot_joint(picks=[0, 1], title='auto', colorbar=True,
+                       aggregate=aggregate, topomap_args=topomap_args)
+        plt.close('all')
+
+    # TFR - Topomap joint plot
+    timefreqs = {(tfr.times[0], tfr.freqs[1]): (0.1, 0.5),
+                 (tfr.times[-1], tfr.freqs[-1]): (0.2, 0.6)}
+
+    tfr.plot_joint(timefreqs=timefreqs, topomap_args=topomap_args)
 
     plt.close('all')
 
