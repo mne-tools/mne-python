@@ -23,6 +23,7 @@ EEG                   Brainvision                .vhdr      :func:`mne.io.read_r
 EEG                   Neuroscan CNT              .cnt       :func:`mne.io.read_raw_cnt`
 EEG                   European data format       .edf       :func:`mne.io.read_raw_edf`
 EEG                   Biosemi data format        .bdf       :func:`mne.io.read_raw_edf`
+EEG                   General data format        .gdf       :func:`mne.io.read_raw_edf`
 EEG                   EGI simple binary          .egi       :func:`mne.io.read_raw_egi`
 EEG                   EEGLAB                     .set       :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab`
 Electrode locations   elc, txt, csd, sfp, htps   Misc       :func:`mne.channels.read_montage`
@@ -262,25 +263,36 @@ European data format (.edf)
 
 EDF and EDF+ files can be read in using :func:`mne.io.read_raw_edf`.
 
-http://www.edfplus.info/specs/edf.html
+`EDF (European Data Format) <http://www.edfplus.info/specs/edf.html>`_ and
+`EDF+ <http://www.edfplus.info/specs/edfplus.html>`_ are 16-bit formats.
 
-EDF (European Data Format) and EDF+ are 16-bit formats
-http://www.edfplus.info/specs/edfplus.html
-
-The EDF+ files may contain an annotation channel which can
-be used to store trigger information. The Time-stamped Annotation
-Lists (TALs) on the annotation  data can be converted to a trigger
-channel (STI 014) using an annotation map file which associates
-an annotation label with a number on the trigger channel.
+The EDF+ files may contain an annotation channel which can be used to store
+trigger information. The Time-stamped Annotation Lists (TALs) on the
+annotation  data can be converted to a trigger channel (STI 014) using an
+annotation map file which associates an annotation label with a number on
+the trigger channel.
 
 Biosemi data format (.bdf)
 ==========================
 
-The BDF format (http://www.biosemi.com/faq/file_format.htm) is a 24-bit variant
-of the EDF format used by the EEG systems manufactured by a company called
-BioSemi. It can also be read in using :func:`mne.io.read_raw_edf`.
+The `BDF format <http://www.biosemi.com/faq/file_format.htm>`_ is a 24-bit
+variant of the EDF format used by the EEG systems manufactured by a company
+called BioSemi. It can also be read in using :func:`mne.io.read_raw_edf`.
 
 .. warning:: The data samples in a BDF file are represented in a 3-byte (24-bit) format. Since 3-byte raw data buffers are not presently supported in the fif format these data will be changed to 4-byte integers in the conversion.
+
+General data format (.gdf)
+==========================
+
+GDF files can be read in using :func:`mne.io.read_raw_edf`.
+
+`GDF (General Data Format) <https://arxiv.org/abs/cs/0608052>`_ is a flexible
+format for biomedical signals, that overcomes some of the limitations of the
+EDF format. The original specification (GDF v1) includes a binary header,
+and uses an event table. An updated specification (GDF v2) was released in
+2011 and adds fields for additional subject-specific information (gender,
+age, etc.) and allows storing several physical units and other properties.
+Both specifications are supported in MNE.
 
 Neuroscan CNT data format (.cnt)
 ================================
