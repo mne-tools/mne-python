@@ -2015,3 +2015,11 @@ class DraggableLine:
         self.line.figure.canvas.mpl_disconnect(self.cidrelease)
         self.line.figure.canvas.mpl_disconnect(self.cidmotion)
         self.line.figure.axes[0].lines.remove(self.line)
+
+
+def _set_ax_facecolor(ax, face_color):
+    """Fix call for old MPL."""
+    try:
+        ax.set_facecolor(face_color)
+    except AttributeError:
+        ax.set_axis_bgcolor(face_color)

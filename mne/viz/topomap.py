@@ -412,7 +412,7 @@ class _GridData(object):
 def _plot_sensors(pos_x, pos_y, sensors, ax):
     """Plot sensors."""
     if sensors is True:
-        ax.scatter(pos_x, pos_y, s=0.1, marker='o',
+        ax.scatter(pos_x, pos_y, s=0.25, marker='o',
                    edgecolor=['k'] * len(pos_x), facecolor='none')
     else:
         ax.plot(pos_x, pos_y, sensors)
@@ -1829,21 +1829,22 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
               cmap, fig, layout=None):
     """Handle drawing average tfr over channels called from topomap."""
     import matplotlib.pyplot as plt
+    from matplotlib.collections import PathCollection
     pos, _ = _check_outlines(pos, outlines='head', head_pos=None)
     ax = eclick.inaxes
     xmin = min(eclick.xdata, erelease.xdata)
     xmax = max(eclick.xdata, erelease.xdata)
     ymin = min(eclick.ydata, erelease.ydata)
     ymax = max(eclick.ydata, erelease.ydata)
-    indices = [i for i in range(len(pos)) if pos[i][0] < xmax and
-               pos[i][0] > xmin and pos[i][1] < ymax and pos[i][1] > ymin]
-    for idx, circle in enumerate(ax.artists):
-        if idx in indices:
-            circle.set_color('r')
-        else:
-            circle.set_color('black')
-    plt.gcf().canvas.draw()
-    if not indices:
+    indices = ((pos[:, 0] < xmax) & (pos[:, 0] > xmin) &
+               (pos[:, 1] < ymax) & (pos[:, 1] > ymin))
+    colors = ['r' if ii else 'k' for ii in indices]
+    indices = np.where(indices)[0]
+    for collection in ax.collections:
+        if isinstance(collection, PathCollection):  # this is our "scatter"
+            collection.set_color(colors)
+    ax.figure.canvas.draw()
+    if len(indices) == 0:
         return
     data = tfr.data
     if ch_type == 'mag':
