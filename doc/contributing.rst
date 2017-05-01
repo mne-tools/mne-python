@@ -139,9 +139,7 @@ Consult the `sphinx gallery documentation`_ for more details.
 
 Deprecating
 -----------
-If you need to deprecate a function or a class, use the ``@deprecated`` decorator.
-
-.. code-block:: python
+If you need to deprecate a function or a class, use the ``@deprecated`` decorator::
 
     from mne.utils import deprecated
 
@@ -151,15 +149,14 @@ If you need to deprecate a function or a class, use the ``@deprecated`` decorato
 
 If you need to deprecate a parameter, use the mne warning function.
 For example to rename a parameter from `old_param` to `new_param` you can
-use something like this:
-
-.. code-block:: python
+use something like this::
 
     from mne.utils import warn
 
     def my_function(new_param, old_param=None):
-        if my_param is not None:
-             warn('my_param will be deprecated in 0.XX.', DeprecationWarning)
+        if old_param is not None:
+             warn('old_param is deprecated and will be replaced by new_param in 0.XX.',
+                  DeprecationWarning)
              new_param = old_param
         # Do what you have to do with new_param
         return 'foo'
