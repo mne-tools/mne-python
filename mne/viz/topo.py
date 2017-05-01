@@ -21,7 +21,7 @@ from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
-                    DraggableColorbar)
+                    DraggableColorbar, _set_ax_facecolor)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -169,7 +169,8 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
     if colorbar:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg=fig_facecolor)
+        ax = plt.axes([0.015, 0.025, 1.05, .8])
+        _set_ax_facecolor(ax, fig_facecolor)
         cb = fig.colorbar(sm, ax=ax)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
         plt.setp(cb_yticks, color=font_color)
@@ -223,7 +224,7 @@ def _plot_topo_onpick(event, show_func):
         fig, ax = plt.subplots(1)
 
         plt.title(orig_ax._mne_ch_name)
-        ax.set_axis_bgcolor(face_color)
+        _set_ax_facecolor(ax, face_color)
 
         # allow custom function to override parameters
         show_func(ax, ch_idx)

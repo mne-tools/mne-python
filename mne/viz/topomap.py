@@ -11,10 +11,10 @@ from __future__ import print_function
 import math
 import copy
 from functools import partial
+import itertools
 from numbers import Integral
 
 import numpy as np
-from scipy import linalg
 
 from ..baseline import rescale
 from ..io.constants import FIFF
@@ -105,16 +105,18 @@ def _plot_update_evoked_topomap(params, bools):
     if params['merge_grads']:
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
-    image_mask = params['image_mask']
+    image_off = ~params['image_mask']
 
-    pos_x, pos_y = np.asarray(params['pos'])[:, :2].T
+    pos = np.asarray(params['pos'])[:, :2]
+    pos_x, pos_y = pos.T
+    interp = _GridData(pos)
 
     xi = np.linspace(pos_x.min(), pos_x.max(), params['res'])
     yi = np.linspace(pos_y.min(), pos_y.max(), params['res'])
     Xi, Yi = np.meshgrid(xi, yi)
     for ii, im in enumerate(params['images']):
-        Zi = _griddata(pos_x, pos_y, data[:, ii], Xi, Yi)
-        Zi[~image_mask] = np.nan
+        Zi = interp.set_values(data[:, ii])(Xi, Yi)
+        Zi[image_off] = np.nan
         im.set_data(Zi)
     for cont in params['contours']:
         cont.set_array(np.c_[Xi, Yi, Zi])
@@ -363,44 +365,55 @@ def _draw_outlines(ax, outlines):
     return outlines_
 
 
-def _griddata(x, y, v, xi, yi):
-    """Make griddata."""
-    xy = x.ravel() + y.ravel() * -1j
-    d = xy[None, :] * np.ones((len(xy), 1))
-    d = np.abs(d - d.T)
-    n = d.shape[0]
-    d.flat[::n + 1] = 1.
+class _GridData(object):
+    """Unstructured (x,y) data interpolator.
 
-    g = (d * d) * (np.log(d) - 1.)
-    g.flat[::n + 1] = 0.
-    weights = linalg.solve(g, v.ravel())
+    This class allows optimized interpolation by computing parameters
+    for a fixed set of true points, and allowing the values at those points
+    to be set independently.
+    """
 
-    m, n = xi.shape
-    zi = np.zeros_like(xi)
-    xy = xy.T
+    def __init__(self, pos):
+        from scipy.spatial.qhull import Delaunay
+        # in principle this works in N dimensions, not just 2
+        assert pos.ndim == 2 and pos.shape[1] == 2
+        # Adding points outside the extremes helps the interpolators
+        extremes = np.array([pos.min(axis=0), pos.max(axis=0)])
+        diffs = extremes[1] - extremes[0]
+        extremes[0] -= diffs
+        extremes[1] += diffs
+        eidx = np.array(list(itertools.product(
+            *([[0] * (pos.shape[1] - 1) + [1]] * pos.shape[1]))))
+        pidx = np.tile(np.arange(pos.shape[1])[np.newaxis], (len(eidx), 1))
+        self.n_extra = pidx.shape[0]
+        outer_pts = extremes[eidx, pidx]
+        pos = np.concatenate((pos, outer_pts))
+        self.tri = Delaunay(pos)
 
-    g = np.empty(xy.shape)
-    for i in range(m):
-        for j in range(n):
-            d = np.abs(xi[i, j] + -1j * yi[i, j] - xy)
-            mask = np.where(d == 0)[0]
-            if len(mask):
-                d[mask] = 1.
-            np.log(d, out=g)
-            g -= 1.
-            g *= d * d
-            if len(mask):
-                g[mask] = 0.
-            zi[i, j] = g.dot(weights)
-    return zi
+    def set_values(self, v):
+        """Set the values at interpolation points."""
+        # Rbf with thin-plate is what we used to use, but it's slower and
+        # looks about the same:
+        #
+        #     zi = Rbf(x, y, v, function='multiquadric', smooth=0)(xi, yi)
+        #
+        # Eventually we could also do set_values with this class if we want,
+        # see scipy/interpolate/rbf.py, especially the self.nodes one-liner.
+        from scipy.interpolate import CloughTocher2DInterpolator
+        v = np.concatenate((v, np.zeros(self.n_extra)))
+        self.interpolator = CloughTocher2DInterpolator(self.tri, v)
+        return self
+
+    def __call__(self, *args):
+        """Evaluate the interpolator."""
+        return self.interpolator(*args)
 
 
 def _plot_sensors(pos_x, pos_y, sensors, ax):
     """Plot sensors."""
-    from matplotlib.patches import Circle
     if sensors is True:
-        for x, y in zip(pos_x, pos_y):
-            ax.add_artist(Circle(xy=(x, y), radius=0.003, color='k'))
+        ax.scatter(pos_x, pos_y, s=0.25, marker='o',
+                   edgecolor=['k'] * len(pos_x), facecolor='none')
     else:
         ax.plot(pos_x, pos_y, sensors)
 
@@ -435,8 +448,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         otherwise defaults to 'RdBu_r'.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
+        format string (e.g., 'r+' for red plusses). If True (default), circles
+        will be used.
     res : int
         The resolution of the topomap image (n pixels along each side).
     axes : instance of Axes | None
@@ -592,7 +605,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    Zi = _griddata(pos_x, pos_y, data, Xi, Yi)
+    Zi = _GridData(np.array((pos_x, pos_y)).T).set_values(data)(Xi, Yi)
 
     if outlines is None:
         _is_default_outlines = False
@@ -725,17 +738,13 @@ def _inside_contour(pos, contour):
     check_mask = np.ones((npos), dtype=bool)
     check_mask[((x < np.min(x)) | (y < np.min(y)) |
                 (x > np.max(x)) | (y > np.max(y)))] = False
-
     critval = 0.1
-    sel = np.where(check_mask)[0]
-    for this_sel in sel:
-        contourx = contour[:, 0] - pos[this_sel, 0]
-        contoury = contour[:, 1] - pos[this_sel, 1]
-        angle = np.arctan2(contoury, contourx)
-        angle = np.unwrap(angle)
-        total = np.sum(np.diff(angle))
-        check_mask[this_sel] = np.abs(total) > critval
-
+    contourx = contour[:, 0] - pos[check_mask, 0][:, np.newaxis]
+    contoury = contour[:, 1] - pos[check_mask, 1][:, np.newaxis]
+    angle = np.arctan2(contoury, contourx)
+    angle = np.unwrap(angle)
+    check_mask[check_mask] = (np.abs(np.sum(np.diff(angle, axis=1), axis=1)) >
+                              critval)
     return check_mask
 
 
@@ -838,8 +847,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses). If True, a circle
-        will be used (via .add_artist). Defaults to True.
+        plot format string (e.g., 'r+' for red plusses). If True (default),
+        circles  will be used.
     colorbar : bool
         Plot a colorbar.
     title : str | None
@@ -1042,8 +1051,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         (None, True).
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses). If True, a circle will
-        be used (via .add_artist). Defaults to True.
+        plot format string (e.g., 'r+' for red plusses). If True (default),
+        circles will be used.
     colorbar : bool
         Plot a colorbar.
     unit : str | None
@@ -1239,8 +1248,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
+        format string (e.g., 'r+' for red plusses). If True (default),
+        circles will be used.
     colorbar : bool
         Plot a colorbar.
     scale : dict | float | None
@@ -1512,7 +1521,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
     if title is not None:
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
-                         cmap=cmap[0], image_interp='bilinear', contours=False,
+                         cmap=cmap[0], image_interp='bilinear', contours=0,
                          outlines=outlines, show=False)
 
     if colorbar is True:
@@ -1823,21 +1832,22 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
               cmap, fig, layout=None):
     """Handle drawing average tfr over channels called from topomap."""
     import matplotlib.pyplot as plt
+    from matplotlib.collections import PathCollection
     pos, _ = _check_outlines(pos, outlines='head', head_pos=None)
     ax = eclick.inaxes
     xmin = min(eclick.xdata, erelease.xdata)
     xmax = max(eclick.xdata, erelease.xdata)
     ymin = min(eclick.ydata, erelease.ydata)
     ymax = max(eclick.ydata, erelease.ydata)
-    indices = [i for i in range(len(pos)) if pos[i][0] < xmax and
-               pos[i][0] > xmin and pos[i][1] < ymax and pos[i][1] > ymin]
-    for idx, circle in enumerate(ax.artists):
-        if idx in indices:
-            circle.set_color('r')
-        else:
-            circle.set_color('black')
-    plt.gcf().canvas.draw()
-    if not indices:
+    indices = ((pos[:, 0] < xmax) & (pos[:, 0] > xmin) &
+               (pos[:, 1] < ymax) & (pos[:, 1] > ymin))
+    colors = ['r' if ii else 'k' for ii in indices]
+    indices = np.where(indices)[0]
+    for collection in ax.collections:
+        if isinstance(collection, PathCollection):  # this is our "scatter"
+            collection.set_color(colors)
+    ax.figure.canvas.draw()
+    if len(indices) == 0:
         return
     data = tfr.data
     if ch_type == 'mag':
@@ -1933,8 +1943,6 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     vmin, vmax = _setup_vmin_vmax(data, None, None, norm)
 
     pos, outlines = _check_outlines(params['pos'], 'head', None)
-    pos_x = pos[:, 0]
-    pos_y = pos[:, 1]
 
     _hide_frame(ax)
     xlim = np.inf, -np.inf,
@@ -1951,9 +1959,9 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     Xi, Yi = np.meshgrid(xi, yi)
     params['Zis'] = list()
 
+    interp = _GridData(pos)
     for frame in params['frames']:
-        Zi = _griddata(pos_x, pos_y, data[:, frame], Xi, Yi)
-        params['Zis'].append(Zi)
+        params['Zis'].append(interp.set_values(data[:, frame])(Xi, Yi))
     Zi = params['Zis'][0]
     zi_min = np.min(params['Zis'])
     zi_max = np.max(params['Zis'])
