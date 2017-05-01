@@ -150,14 +150,19 @@ If you need to deprecate a function or a class, use the ``@deprecated`` decorato
        return 'foo'
 
 If you need to deprecate a parameter, use the mne warning function.
+For example to rename a parameter from `old_param` to `new_param` you can
+use something like this:
 
 .. code-block:: python
 
     from mne.utils import warn
 
-    def my_function(my_param=None):
-       warn('my_param will be deprecated in 0.XX.', DeprecationWarning)
-       return 'foo'
+    def my_function(new_param, old_param=None):
+        if my_param is not None:
+             warn('my_param will be deprecated in 0.XX.', DeprecationWarning)
+             new_param = old_param
+        # Do what you have to do with new_param
+        return 'foo'
 
 
 
