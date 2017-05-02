@@ -63,7 +63,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    getting_started.rst
     tutorials/philosophy.rst
     manual/cookbook.rst
     python_reference.rst
@@ -124,7 +123,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_modifying_data_inplace.rst
     auto_tutorials/plot_ecog.rst
     manual/memory.rst
-    
+
 .. raw:: html
 
   <details class="example_details">
@@ -142,7 +141,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/io/plot_read_noise_covariance_matrix.rst
 
 .. raw:: html
-    
+
     </details>
 
 **Working with public datasets**

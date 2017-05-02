@@ -53,8 +53,8 @@ install :ref:`MNE-C <install_mne_c>`:
       Boston.
 
       - :ref:`MNE-C <c_reference>` is Matti's C code. Historically, MNE was
-        software for computing cortically constrained Minimum Norm Estimates
-        from MEG and EEG data.
+        a software package for computing cortically constrained Minimum Norm
+        Estimates from MEG and EEG data.
 
       - The MNE python module was built in the Python programming language to
         reimplement all MNE-C’s functionality, offer transparent scripting,
