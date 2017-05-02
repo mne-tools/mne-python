@@ -396,6 +396,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     return _apply_reference(inst, ref_channels)
 
 
+@verbose
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
                           copy=True, verbose=None):
     """Rereference selected channels using a bipolar referencing scheme.
