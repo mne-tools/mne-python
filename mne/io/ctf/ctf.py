@@ -217,11 +217,12 @@ def _get_sample_info(fname, res4, system_clock):
     else:
         n_trial = n_samp // res4['nsamp']
         n_omit = n_samp_tot - n_samp
-        n_samp = n_trial * res4['nsamp']
+        n_samp = (n_trial + 1) * res4['nsamp'] - n_omit
         logger.info('    %d x %d = %d samples from %d chs'
                     % (n_trial, res4['nsamp'], n_samp, res4['nchan']))
         if n_omit != 0:
             logger.info('    %d samples omitted at the end' % n_omit)
+
     return dict(n_samp=n_samp, n_samp_tot=n_samp_tot, block_size=res4['nsamp'],
                 n_trial=n_trial, res4_nsamp=res4['nsamp'],
                 n_chan=res4['nchan'])
