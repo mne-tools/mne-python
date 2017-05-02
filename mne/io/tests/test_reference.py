@@ -239,8 +239,8 @@ def test_set_bipolar_reference():
 
     # Minimalist call with twice the same anode
     reref = set_bipolar_reference(raw,
-                                  ['EEG 001', 'EEG 001'],
-                                  ['EEG 002', 'EEG 003'])
+                                  ['EEG 001', 'EEG 001', 'EEG 002'],
+                                  ['EEG 002', 'EEG 003', 'EEG 003'])
     assert_true('EEG 001-EEG 002' in reref.ch_names)
     assert_true('EEG 001-EEG 003' in reref.ch_names)
 
