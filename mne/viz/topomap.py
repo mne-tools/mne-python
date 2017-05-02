@@ -1438,8 +1438,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             mask_ = (mask[np.ix_(picks[::2], time_idx)] |
                      mask[np.ix_(picks[1::2], time_idx)])
         else:
-            _picks = picks
-            mask_ = mask[np.ix_(_picks, time_idx)]
+            mask_ = mask[np.ix_(picks, time_idx)]
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
     if outlines is not None:
