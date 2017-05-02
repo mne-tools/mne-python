@@ -977,7 +977,9 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     from mpl_toolkits.mplot3d import Axes3D, art3d
     from matplotlib import cm
     import nibabel as nib
-    from ..source_estimate import _morph_buffer
+    from scipy import sparse
+    from ..source_estimate import (_morph_buffer, grade_to_vertices,
+                                   _get_subject_sphere_tris)
     if hemi not in ['lh', 'rh']:
         raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "
                          "Got %s." % hemi)
@@ -1004,7 +1006,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     ax = Axes3D(fig)
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     coords, faces = nib.freesurfer.read_geometry(surf)
-    adj_mat = mesh_edges(faces)
     hemi_idx = 0 if hemi == 'lh' else 1
 
     if hemi_idx == 0:
@@ -1013,14 +1014,20 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
-    array_plot = _morph_buffer(data, np.arange(n_verts), adj_mat,
-                               smoothing_steps, n_verts, vertices, None)
+    nearest = grade_to_vertices(subject, None, subjects_dir)
+    tris = _get_subject_sphere_tris(subject, subjects_dir)
+    e = mesh_edges(tris[hemi_idx])
+    e.data[e.data == 2] = 1
+    n_vertices = e.shape[0]
+    e = e + sparse.eye(n_vertices, n_vertices)
+    array_plot = _morph_buffer(data, vertices, e, smoothing_steps, n_verts,
+                               nearest, None)
     vmax = np.max(array_plot)
 
     colors = array_plot / vmax
     cmap = cm.get_cmap(colormap)
 
-    ax.plot_trisurf(coords[:, 0], coords[:, 1], coords[:, 2], triangles=faces)
+    ax.plot_trisurf(*coords.T, triangles=faces)
     polyc = ax.collections[0]
     facecolors = art3d.PolyCollection.get_facecolors(polyc)
     for idx, face in enumerate(faces):
@@ -1046,7 +1053,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
-                          time_unit='s'):
+                          time_unit='s', backend='auto'):
     """Plot SourceEstimates with PySurfer.
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1146,7 +1153,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-
+    backend : 'auto' | 'mayavi' | 'mpl'
+        Which backend to use. If ``'auto'`` (default), tries to plot with
+        mayavi, but resorts to matplotlib if mayavi is not available.
 
     Returns
     -------
@@ -1161,10 +1170,16 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
+    if backend not in ['auto', 'mpl', 'mayavi']:
+        raise ValueError("backend must be 'auto', 'mayavi' or 'mpl. "
+                         "Got %s." % backend)
     try:
         import mayavi
     except ImportError:
-        warn('Mayavi not found. Resorting to matplotlib 3d.')
+        if backend == 'auto':
+            warn('Mayavi not found. Resorting to matplotlib 3d.')
+        elif backend == 'mayavi':
+            raise
         return _plot_mpl_stc(stc, subject=subject, surface=surface, hemi=hemi,
                              colormap=colormap, time_label=time_label,
                              smoothing_steps=smoothing_steps, alpha=alpha,
