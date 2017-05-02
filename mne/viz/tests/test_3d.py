@@ -84,6 +84,7 @@ def test_plot_sparse_source_estimates():
         np.random.RandomState(0).rand(stc_data.size / 20)
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
+
     colormap = 'mne_analyze'
     plot_source_estimates(stc, 'sample', colormap=colormap,
                           background=(1, 1, 0),
@@ -107,10 +108,10 @@ def test_plot_sparse_source_estimates():
     # Test plotting with mpl.
     stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
              smoothing_steps=2, subject='sample', backend='mpl')
-    assert_raises(ValueError, stc.plot, hemi='both', subject='sample',
-                  backend='mpl')
-    assert_raises(ValueError, stc.plot, time_unit='ss', subject='sample',
-                  backend='mpl')
+    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir, hemi='both',
+                  subject='sample', backend='mpl')
+    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
+                  time_unit='ss', subject='sample', backend='mpl')
     plt.close('all')
 
 

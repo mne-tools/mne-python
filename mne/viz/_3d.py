@@ -1172,6 +1172,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     if backend not in ['auto', 'mpl', 'mayavi']:
         raise ValueError("backend must be 'auto', 'mayavi' or 'mpl. "
                          "Got %s." % backend)
+    if backend == 'mpl':
+        return _plot_mpl_stc(stc, subject=subject, surface=surface, hemi=hemi,
+                             colormap=colormap, time_label=time_label,
+                             smoothing_steps=smoothing_steps, alpha=alpha,
+                             subjects_dir=subjects_dir, views=views,
+                             figure=figure, initial_time=initial_time,
+                             time_unit=time_unit)
     try:
         import mayavi
     except ImportError:
