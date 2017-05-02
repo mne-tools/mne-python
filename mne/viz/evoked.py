@@ -267,7 +267,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
                         units, scalings, evoked.times, xlim, ylim, titles)
-
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -276,15 +275,14 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                       plot_update_proj_callback=_plot_update_evoked,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
-
     block = True if selectable else False
-    plt_show(show, block=block)
+
     for ax in fig.axes[:-1]:
         ax.set_xlabel(' ')
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
         tight_layout(fig=fig)
-
+    plt_show(show, block=block)
     return fig
 
 
