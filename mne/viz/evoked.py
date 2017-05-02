@@ -230,6 +230,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
         if isinstance(axes, plt.Axes):
             axes = [axes]
+        fig.set_size_inches(6.4, 2 + len(axes))
 
     if isinstance(axes, plt.Axes):
         axes = [axes]
@@ -278,6 +279,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     block = True if selectable else False
     plt_show(show, block=block)
+    for ax in fig.axes[:-1]:
+        ax.set_xlabel(' ')
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
         tight_layout(fig=fig)
