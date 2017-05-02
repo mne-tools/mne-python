@@ -397,7 +397,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
 
 
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
-                          copy=True):
+                          copy=True, verbose=None):
     """Rereference selected channels using a bipolar referencing scheme.
 
     A bipolar reference takes the difference between two channels (the anode
@@ -432,6 +432,9 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     copy : bool
         Whether to operate on a copy of the data (True) or modify it in-place
         (False). Defaults to True.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -504,7 +507,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     if copy:
         inst = inst.copy()
 
-    rem_ca = cathode[:]
+    rem_ca = list(cathode)
     for i, (an, ca, name, chs) in enumerate(
             zip(anode, cathode, ch_name, new_chs)):
         if an in anode[i + 1:]:
