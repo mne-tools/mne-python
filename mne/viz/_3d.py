@@ -1064,9 +1064,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     SUBJECTS_DIR environment variable or always use the same value for
     subjects_dir (within the same Python session).
 
-    This function uses Mayavi to plot the source estimates. If Mayavi is not
-    installed, the plotting is done with matplotlib (extremely slow,
-    interactivity disabled).
+    By default this function uses Mayavi to plot the source estimates. If
+    Mayavi is not installed, the plotting is done with matplotlib (extremely
+    slow, interactivity disabled).
 
     Parameters
     ----------
