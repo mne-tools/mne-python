@@ -5,7 +5,7 @@ Receptive Field Estimation and Prediction
 
 This example reproduces figures from Lalor et al's mTRF toolbox in
 matlab [1]_. We will show how the :class:`mne.decoding.ReceptiveField` class
-can perform a similar function along with :mod:`sklearn`. We will fit a
+can perform a similar function along with scikit-learn. We will fit a
 linear encoding model using the continuously-varying speech envelope to
 predict activity of a 128 channel EEG system.
 

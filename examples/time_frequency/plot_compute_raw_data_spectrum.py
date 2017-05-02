@@ -28,7 +28,7 @@ print(__doc__)
 #
 # We'll load a sample MEG dataset, along with SSP projections that will
 # allow us to reduce EOG and ECG artifacts. For more information about
-# reducing artifacts, see the preprocessing section in :ref:`tutorials`.
+# reducing artifacts, see the preprocessing section in :ref:`documentation`.
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'

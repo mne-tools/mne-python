@@ -364,67 +364,57 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     ----------
     estimator : estimator object implementing 'fit'
         The object to use to fit the data.
-
     X : array-like, shape (n_samples, n_dimensional_features,)
         The data to fit. Can be, for example a list, or an array at least 2d.
-
     y : array-like, shape (n_samples, n_targets,)
         The target variable to try to predict in the case of
         supervised learning.
-
     groups : array-like, with shape (n_samples,)
         Group labels for the samples used while splitting the dataset into
         train/test set.
-
     scoring : string, callable | None
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
-
     cv : int, cross-validation generator | iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
-          - None, to use the default 3-fold cross validation,
-          - integer, to specify the number of folds in a `(Stratified)KFold`,
-          - An object to be used as a cross-validation generator.
-          - An iterable yielding train, test splits.
+
+        - None, to use the default 3-fold cross validation,
+        - integer, to specify the number of folds in a ``(Stratified)KFold``,
+        - An object to be used as a cross-validation generator.
+        - An iterable yielding train, test splits.
 
         For integer/None inputs, if the estimator is a classifier and ``y`` is
-        either binary or multiclass, :class:`StratifiedKFold` is used. In all
-        other cases, :class:`KFold` is used.
-
+        either binary or multiclass,
+        :class:`sklearn.model_selection.StratifiedKFold` is used. In all
+        other cases, :class:`sklearn.model_selection.KFold` is used.
     n_jobs : integer, optional
         The number of CPUs to use to do the computation. -1 means
         'all CPUs'.
-
     verbose : integer, optional
         The verbosity level.
-
     fit_params : dict, optional
         Parameters to pass to the fit method of the estimator.
-
     pre_dispatch : int, or string, optional
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched
         than CPUs can process. This parameter can be:
 
-            - None, in which case all the jobs are immediately
-              created and spawned. Use this for lightweight and
-              fast-running jobs, to avoid delays due to on-demand
-              spawning of the jobs
-
-            - An int, giving the exact number of total jobs that are
-              spawned
-
-            - A string, giving an expression as a function of n_jobs,
-              as in '2*n_jobs'
+        - None, in which case all the jobs are immediately
+          created and spawned. Use this for lightweight and
+          fast-running jobs, to avoid delays due to on-demand
+          spawning of the jobs
+        - An int, giving the exact number of total jobs that are
+          spawned
+        - A string, giving an expression as a function of n_jobs,
+          as in '2*n_jobs'
 
     Returns
     -------
     scores : array of float, shape (n_splits,) | shape (n_splits, n_scores)
         Array of scores of the estimator for each run of the cross validation.
-
     """
     # This code is copied from sklearn
 

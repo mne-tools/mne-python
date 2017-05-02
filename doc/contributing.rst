@@ -4,8 +4,8 @@
 
 .. _contribute_to_mne:
 
-Contribute to MNE
-=================
+How to contribute to MNE
+========================
 
 .. contents:: Contents
    :local:
