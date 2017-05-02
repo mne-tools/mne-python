@@ -1164,7 +1164,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
-    import matplotlib.pyplot as plt
     if not isinstance(stc, SourceEstimate):
         raise ValueError('stc has to be a surface source estimate')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
@@ -1212,19 +1211,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             # use figure with specified id
             size_ = size if isinstance(size, (tuple, list)) else (size, size)
             figure = [mayavi.mlab.figure(figure, size=size_)]
-        elif isinstance(figure, plt.Figure):
-            return _plot_mpl_stc(stc, subject=subject, surface=surface,
-                                 hemi=hemi, colormap=colormap,
-                                 time_label=time_label,
-                                 smoothing_steps=smoothing_steps, alpha=alpha,
-                                 subjects_dir=subjects_dir, views=views,
-                                 figure=figure, initial_time=initial_time,
-                                 time_unit=time_unit)
         elif not isinstance(figure, (list, tuple)):
             figure = [figure]
         if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
-            raise TypeError('figure must be a matplotlib figure, mayavi scene '
-                            'or list of scenes')
+            raise TypeError('figure must be a mayavi scene or list of scenes')
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap

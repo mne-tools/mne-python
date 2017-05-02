@@ -105,14 +105,12 @@ def test_plot_sparse_source_estimates():
                                  opacity=0.5, high_resolution=False)
 
     # Test plotting with mpl.
-    fig = plt.figure()
-    stc.plot(subjects_dir=subjects_dir, figure=fig, time_unit='ms',
-             views='dor', smoothing_steps=2, subject='sample')
-
-    assert_raises(ValueError, stc.plot, figure=fig, hemi='both',
-                  subject='sample')
-    assert_raises(ValueError, stc.plot, figure=fig, time_unit='ss',
-                  subject='sample')
+    stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
+             smoothing_steps=2, subject='sample', backend='mpl')
+    assert_raises(ValueError, stc.plot, hemi='both', subject='sample',
+                  backend='mpl')
+    assert_raises(ValueError, stc.plot, time_unit='ss', subject='sample',
+                  backend='mpl')
     plt.close('all')
 
 
