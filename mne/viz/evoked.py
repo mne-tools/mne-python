@@ -275,14 +275,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                       plot_update_proj_callback=_plot_update_evoked,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
-    block = True if selectable else False
 
     for ax in fig.axes[:-1]:
         ax.set_xlabel(' ')
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
         tight_layout(fig=fig)
-    plt_show(show, block=block)
+    plt_show(show)
     return fig
 
 
