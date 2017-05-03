@@ -83,6 +83,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
 
     # write events out after getting data to ensure bad events are dropped
     data = epochs.get_data()
+    assert data.dtype == 'float64'
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
     mapping_ = ';'.join([k + ':' + str(v) for k, v in
@@ -1523,6 +1524,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # bad epochs anyway
         self.drop_bad()
         total_size = self[0].get_data().nbytes * len(self)
+        total_size /= 2  # 64bit data converted to 32bit before writing.
         n_parts = int(np.ceil(total_size / float(split_size)))
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
@@ -2666,6 +2668,9 @@ def _concatenate_epochs(epochs_list, with_data=True):
     drop_log = deepcopy(out.drop_log)
     event_id = deepcopy(out.event_id)
     selection = out.selection
+    # offset is the last epoch + tmax + 10 second
+    events_offset = (np.max(out.events[:, 0]) +
+                     int((10 + tmax) * epochs.info['sfreq']))
     for ii, epochs in enumerate(epochs_list[1:]):
         _compare_epochs_infos(epochs.info, info, ii)
         if not np.allclose(epochs.times, epochs_list[0].times):
@@ -2686,7 +2691,14 @@ def _concatenate_epochs(epochs_list, with_data=True):
 
         if with_data:
             data.append(epochs.get_data())
-        events.append(epochs.events)
+        evs = epochs.events.copy()
+        # add offset
+        evs[:, 0] += events_offset
+        # Update offset for the next iteration.
+        # offset is the last epoch + tmax + 10 second
+        events_offset += (np.max(evs[:, 0]) +
+                          int((10 + tmax) * epochs.info['sfreq']))
+        events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log.extend(epochs.drop_log)
         event_id.update(epochs.event_id)
@@ -2700,7 +2712,6 @@ def _concatenate_epochs(epochs_list, with_data=True):
 def _finish_concat(info, data, events, event_id, tmin, tmax, baseline,
                    selection, drop_log, verbose):
     """Finish concatenation for epochs not read from disk."""
-    events[:, 0] = np.arange(len(events))  # arbitrary after concat
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(
         info, data, events, event_id, tmin, tmax, baseline=baseline,

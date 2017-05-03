@@ -17,7 +17,7 @@ from ..externals.six import string_types
 @verbose
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                     filter_length='10s', ch_name=None, tstart=0,
-                    verbose=None):
+                    reject_by_annotation=False, verbose=None):
     """Locate EOG artifacts.
 
     Parameters
@@ -36,6 +36,8 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         If not None, use specified channel(s) for EOG
     tstart : float
         Start detection after tstart seconds.
+    reject_by_annotation : bool
+        Whether to omit data that is annotated as bad.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -49,7 +51,12 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     eog_inds = _get_eog_channel_index(ch_name, raw)
     logger.info('EOG channel index for this subject is: %s' % eog_inds)
 
-    eog, _ = raw[eog_inds, :]
+    # Reject bad segments.
+    reject_by_annotation = 'omit' if reject_by_annotation else None
+    eog, times = raw.get_data(picks=eog_inds,
+                              reject_by_annotation=reject_by_annotation,
+                              return_times=True)
+    times = times * raw.info['sfreq'] + raw.first_samp
 
     eog_events = _find_eog_events(eog, event_id=event_id, l_freq=l_freq,
                                   h_freq=h_freq,
@@ -57,7 +64,9 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                                   first_samp=raw.first_samp,
                                   filter_length=filter_length,
                                   tstart=tstart)
-
+    # Map times to corresponding samples.
+    eog_events[:, 0] = np.round(times[eog_events[:, 0] -
+                                      raw.first_samp]).astype(int)
     return eog_events
 
 
@@ -71,7 +80,8 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     fmax = np.minimum(45, sampling_rate / 2.0 - 0.75)  # protect Nyquist
     filteog = np.array([filter_data(
         x, sampling_rate, 2, fmax, None, filter_length, 0.5, 0.5,
-        phase='zero-double', fir_window='hann') for x in eog])
+        phase='zero-double', fir_window='hann', fir_design='firwin2')
+        for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))
 
     indexmax = np.argmax(temp)
@@ -79,7 +89,8 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     # easier to detect peaks with filtering.
     filteog = filter_data(
         eog[indexmax], sampling_rate, l_freq, h_freq, None,
-        filter_length, 0.5, 0.5, phase='zero-double', fir_window='hann')
+        filter_length, 0.5, 0.5, phase='zero-double', fir_window='hann',
+        fir_design='firwin2')
 
     # detecting eog blinks and generating event file
 
@@ -191,9 +202,10 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     preload : bool
         Preload epochs or not.
     reject_by_annotation : bool
-        Whether to reject based on annotations. If True (default), epochs
-        overlapping with segments whose description begins with ``'bad'`` are
-        rejected. If False, no rejection based on annotations is performed.
+        Whether to reject based on annotations. If True (default), segments
+        whose description begins with ``'bad'`` are not used for finding
+        artifacts and epochs overlapping with them are rejected. If False, no
+        rejection based on annotations is performed.
 
         .. versionadded:: 0.14.0
 
@@ -207,7 +219,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         Data epoched around EOG events.
     """
     events = find_eog_events(raw, ch_name=ch_name, event_id=event_id,
-                             l_freq=l_freq, h_freq=h_freq)
+                             l_freq=l_freq, h_freq=h_freq,
+                             reject_by_annotation=reject_by_annotation)
 
     # create epochs around EOG events
     eog_epochs = Epochs(raw, events=events, event_id=event_id, tmin=tmin,

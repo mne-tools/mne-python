@@ -12,6 +12,7 @@ from __future__ import print_function
 
 from functools import partial
 from copy import deepcopy
+from numbers import Integral
 
 import numpy as np
 
@@ -158,7 +159,7 @@ def _rgb(x, y, z):
 
 def _plot_legend(pos, colors, axis, bads, outlines, loc):
     """Plot color/channel legends for butterfly plots with spatial colors."""
-    from mpl_toolkits.axes_grid.inset_locator import inset_axes
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=loc)
@@ -962,8 +963,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     noise_cov[0].get('method', 'empirical'))
         fig.suptitle(suptitle)
 
-    if any(((n_columns == 1 and n_ch_used == 1),
-            (n_columns == 1 and n_ch_used > 1),
+    if any(((n_columns == 1 and n_ch_used >= 1),
             (n_columns == 2 and n_ch_used == 1))):
         axes_evoked = axes[:n_ch_used]
         ax_gfp = axes[-1:]
@@ -1002,20 +1002,21 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     this_rank, 'rank ' if n_columns > 1 else '')
             label = noise_cov.get('method', 'empirical')
 
-            ax_gfp[i].set_title(title if n_columns > 1 else
-                                'whitened global field power (GFP),'
-                                ' method = "%s"' % label)
+            ax = ax_gfp[i]
+            ax.set_title(title if n_columns > 1 else
+                         'whitened global field power (GFP),'
+                         ' method = "%s"' % label)
 
             data = evoked_white.data[sub_picks]
             gfp = whitened_gfp(data, rank=this_rank)
-            ax_gfp[i].plot(times, gfp,
-                           label=(label if n_columns > 1 else title),
-                           color=color if n_columns > 1 else ch_colors[ch])
-            ax_gfp[i].set_xlabel('times [ms]')
-            ax_gfp[i].set_ylabel('GFP [chi^2]')
-            ax_gfp[i].set_xlim(times[0], times[-1])
-            ax_gfp[i].set_ylim(0, 10)
-            ax_gfp[i].axhline(1, color='red', linestyle='--')
+            ax.plot(times, gfp,
+                    label=label if n_columns > 1 else title,
+                    color=color if n_columns > 1 else ch_colors[ch])
+            ax.set_xlabel('times [ms]')
+            ax.set_ylabel('GFP [chi^2]')
+            ax.set_xlim(times[0], times[-1])
+            ax.set_ylim(0, 10)
+            ax.axhline(1, color='red', linestyle='--')
             if n_columns > 1:
                 i += 1
 
@@ -1101,7 +1102,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ----------
     evoked : instance of Evoked
         The evoked instance.
-    times : float | array of floats | "auto" | "peaks".
+    times : float | array of floats | "auto" | "peaks"
         The time point(s) to plot. If "auto", 5 evenly spaced topographies
         between the first and last time instant will be shown. If "peaks",
         finds time points automatically by checking for 3 local maxima in
@@ -1117,16 +1118,17 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         Show figure if True. Defaults to True.
     ts_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot` to
-        style the butterfly plot. `axes` and `show` are ignored.
-        If `spatial_colors` is not in this dict, `spatial_colors=True`,
-        and (if it is not in the dict) `zorder='std'` will be passed.
-        Defaults to ``None``.
+        style the butterfly plot. If they are not in this dict, the following
+        defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
+       ``axes``, ``show``, ``exclude`` are illegal.
+        If None, no customizable arguments will be passed.
+        Defaults to `None`.
     topomap_args : None | dict
-        A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
-        to style the topomaps. `axes` and `show` are ignored. If `times`
-        is not in this dict, automatic peak detection is used. Beyond that,
-        if ``None`, no customizable arguments will be passed.
-        Defaults to ``None``.
+        A dict of `kwargs` that are forwarded to `evoked.plot_topomap` to
+        style the topomaps. If it is not in this dict, ``outlines='skirt'``
+        will be passed. `axes`, `show`, `times`, `colorbar` are illegal`
+        If None, no customizable arguments will be passed.
+        Defaults to `None`.
 
     Returns
     -------
@@ -1146,6 +1148,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args is None:
         topomap_args = dict()
 
+    illegal_args = {"axes", "show", 'times', 'exclude'}
+    for args in (ts_args, topomap_args):
+        if any((x in args for x in illegal_args)):
+            raise ValueError("Don't pass any of {} as *_args.".format(
+                ", ".join(list(illegal_args))))
+
     # channel selection
     # simply create a new evoked object(s) with the desired channel selection
     evoked = evoked.copy()
@@ -1164,7 +1172,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         evoked.drop_channels(exclude)
 
     info = evoked.info
-    data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr']
+    data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
     ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
 
     # if multiple sensor types: one plot per channel type, recursive call
@@ -1194,17 +1202,13 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # butterfly/time series plot
     # most of this code is about passing defaults on demand
     ts_ax = fig.add_subplot(212)
-    ts_args_pass = dict((k, v) for k, v in ts_args.items() if k not in
-                        ['axes', 'show', 'colorbar', 'set_tight_layout'])
     ts_args_def = dict(picks=None, unit=True, ylim=None, xlim='tight',
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,
                        spatial_colors=True, zorder='std')
-    for key in ts_args_def:
-        if key not in ts_args:
-            ts_args_pass[key] = ts_args_def[key]
+    ts_args_def.update(ts_args)
     _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
-                 exclude=[], set_tight_layout=False, **ts_args_pass)
+                 exclude=[], set_tight_layout=False, **ts_args_def)
 
     # handle title
     # we use a new axis for the title to handle scaling of plots
@@ -1232,12 +1236,13 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     norm = ch_type == 'grad'
     vmin = 0 if norm else vmin
     vmin, vmax = _setup_vmin_vmax(evoked.data, vmin, vmax, norm)
-    locator, contours = _set_contour_locator(vmin, vmax, contours)
+    if not isinstance(contours, (list, np.ndarray)):
+        locator, contours = _set_contour_locator(vmin, vmax, contours)
+    else:
+        locator = None
 
-    topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
-                             k not in ['times', 'axes', 'show', 'colorbar'])
-    topomap_args_pass['outlines'] = (topomap_args['outlines'] if 'outlines'
-                                     in topomap_args else 'skirt')
+    topomap_args_pass = topomap_args.copy()
+    topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
     topomap_args_pass['contours'] = contours
     evoked.plot_topomap(times=times, axes=map_ax, show=False, colorbar=False,
                         **topomap_args_pass)
@@ -1245,9 +1250,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args.get('colorbar', True):
         from matplotlib import ticker
         cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
-        if locator is None:
-            locator = ticker.MaxNLocator(nbins=5)
-        cbar.locator = locator
+        if isinstance(contours, (list, np.ndarray)):
+            cbar.set_ticks(contours)
+        else:
+            if locator is None:
+                locator = ticker.MaxNLocator(nbins=5)
+            cbar.locator = locator
         cbar.update_ticks()
 
     plt.subplots_adjust(left=.1, right=.93, bottom=.14,
@@ -1464,7 +1472,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     times = example.times
     tmin, tmax = times[0], times[-1]
 
-    if isinstance(picks, int):
+    if isinstance(picks, Integral):
         picks = [picks]
     elif len(picks) == 0:
         warn("No picks, plotting the GFP ...")

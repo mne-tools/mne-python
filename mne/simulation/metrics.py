@@ -43,8 +43,6 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
         * rms: Root mean square of difference between stc data matrices.
         * cosine: Normalized correlation of all elements in stc data matrices.
 
-    Notes
-    -----
     .. versionadded:: 0.10.0
     """
     known_metrics = ['rms', 'cosine']

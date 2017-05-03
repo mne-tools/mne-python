@@ -7,6 +7,7 @@
 from inspect import isfunction
 from collections import namedtuple
 from copy import deepcopy
+from numbers import Integral
 
 import os
 import json
@@ -1338,7 +1339,7 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self._pre_whitener
         else:
-            data = fast_dot(linalg.pinv(self._pre_whitener), data)
+            data = fast_dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
 
         return data
 
@@ -1741,7 +1742,7 @@ def _serialize(dict_, outer_sep=';', inner_sep=':'):
     for key, value in dict_.items():
         if callable(value):
             value = value.__name__
-        elif isinstance(value, int):
+        elif isinstance(value, Integral):
             value = int(value)
         elif isinstance(value, dict):
             # py35 json does not support numpy int64
@@ -2174,7 +2175,8 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
         logger.info('... filtering ICA sources')
         # use FIR here, steeper is better
         kw = dict(phase='zero-double', filter_length='10s', fir_window='hann',
-                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5)
+                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+                  fir_design='firwin2')
         sources = filter_data(sources, ica.info['sfreq'], l_freq, h_freq, **kw)
         logger.info('... filtering target')
         target = filter_data(target, ica.info['sfreq'], l_freq, h_freq, **kw)
@@ -2360,8 +2362,12 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
         used (via .add_artist). Defaults to True.
-    contours : int | False | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. Defaults to 6.
     cmap : None | matplotlib colormap
         Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
         otherwise to 'RdBu_r'.

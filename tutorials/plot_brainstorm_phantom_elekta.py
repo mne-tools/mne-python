@@ -67,8 +67,7 @@ raw = mne.preprocessing.maxwell_filter(raw, origin=(0., 0., 0.))
 ###############################################################################
 # We know our phantom produces sinusoidal bursts below 25 Hz, so let's filter.
 
-raw.filter(None, 40., h_trans_bandwidth='auto', filter_length='auto',
-           phase='zero', fir_window='hamming')
+raw.filter(None, 40., fir_design='firwin')
 raw.plot(events=events)
 
 ###############################################################################

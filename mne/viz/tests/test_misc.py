@@ -62,7 +62,7 @@ def test_plot_filter():
     data = np.zeros(5000)
     freq = [0, 2, 40, 50, 500]
     gain = [0, 1, 1, 0, 0]
-    h = create_filter(data, sfreq, l_freq, h_freq)
+    h = create_filter(data, sfreq, l_freq, h_freq, fir_design='firwin2')
     plot_filter(h, sfreq)
     plt.close('all')
     plot_filter(h, sfreq, freq, gain)

@@ -6,11 +6,12 @@ import os.path as op
 
 from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose)
 
 from mne import io, pick_types
 from mne.utils import requires_sklearn_0_15, run_tests_if_main
-from mne.decoding import ReceptiveField
+from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
 
@@ -71,7 +72,7 @@ def test_time_delay():
 
 @requires_sklearn_0_15
 def test_receptive_field():
-    """Test model prep and fitting"""
+    """Test model prep and fitting."""
     from sklearn.linear_model import Ridge
     # Make sure estimator pulling works
     mod = Ridge()
@@ -120,7 +121,7 @@ def test_receptive_field():
                         estimator=0)
     str(rf)  # repr works before fit
     rf.fit(X, y)
-    assert_true(isinstance(rf.estimator_, Ridge))
+    assert_true(isinstance(rf.estimator_, TimeDelayingRidge))
     str(rf)  # repr works after fit
     rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator=0)
     rf.fit(X[:, [0]], y)
@@ -144,7 +145,93 @@ def test_receptive_field():
     # Need 2D input
     assert_raises(ValueError, _SCORERS['corrcoef'], y.squeeze(), y_pred)
     # Need correct scorers
-    assert_raises(ValueError, ReceptiveField, tmin, tmax, 1, scoring='foo')
+    rf = ReceptiveField(tmin, tmax, 1., scoring='foo')
+    assert_raises(ValueError, rf.fit, X, y)
 
+
+@requires_sklearn_0_15
+def test_receptive_field_fast():
+    """Test that the fast solving works like Ridge."""
+    from sklearn.linear_model import Ridge
+    rng = np.random.RandomState(0)
+    y = np.zeros(500)
+    x = rng.randn(500)
+    for delay in range(-2, 3):
+        y.fill(0.)
+        slims = [(-4, 2)]
+        if delay == 0:
+            y = x.copy()
+        elif delay < 0:
+            y[-delay:] = x[:delay]
+            slims += [(-4, -1)]
+        else:
+            y[:-delay] = x[delay:]
+            slims += [(1, 2)]
+        for slim in slims:
+            tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'laplacian',
+                                    fit_intercept=False)
+            for estimator in (Ridge(alpha=0.), 0., 0.1, tdr):
+                model = ReceptiveField(slim[0], slim[1], 1.,
+                                       estimator=estimator)
+                model.fit(x[:, np.newaxis], y)
+                assert_array_equal(model.delays_,
+                                   np.arange(slim[0], slim[1] + 1))
+                expected = (model.delays_ == delay).astype(float)
+                assert_allclose(model.coef_[0], expected, atol=1e-2)
+                p = model.predict(x[:, np.newaxis])[:, 0]
+                assert_allclose(y, p, atol=5e-2)
+    # multidimensional
+    x = rng.randn(1000, 3)
+    y = np.zeros((1000, 2))
+    slim = [-5, 0]
+    # This is a weird assignment, but it's just a way to distribute some
+    # unique values at various delays, and "expected" explains how they
+    # should appear in the resulting RF
+    for ii in range(1, 5):
+        y[ii:, ii % 2] += (-1) ** ii * ii * x[:-ii, ii % 3]
+    expected = [
+        [[0, 0, 0, 0, 0, 0],
+         [0, 4, 0, 0, 0, 0],
+         [0, 0, 0, 2, 0, 0]],
+        [[0, 0, -3, 0, 0, 0],
+         [0, 0, 0, 0, -1, 0],
+         [0, 0, 0, 0, 0, 0]],
+    ]
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.1, 'laplacian')
+    for estimator in (Ridge(alpha=0.), 0., 0.01, tdr):
+        model = ReceptiveField(slim[0], slim[1], 1.,
+                               estimator=estimator)
+        model.fit(x, y)
+        assert_array_equal(model.delays_,
+                           np.arange(slim[0], slim[1] + 1))
+        assert_allclose(model.coef_, expected, atol=1e-1)
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type='foo')
+    model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
+    assert_raises(ValueError, model.fit, x, y)
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.01, reg_type=['laplacian'])
+    model = ReceptiveField(slim[0], slim[1], 1., estimator=tdr)
+    assert_raises(ValueError, model.fit, x, y)
+    # Now check the intercept_
+    tdr = TimeDelayingRidge(slim[0], slim[1], 1., 0.)
+    tdr_no = TimeDelayingRidge(slim[0], slim[1], 1., 0., fit_intercept=False)
+    for estimator in (Ridge(alpha=0.), tdr,
+                      Ridge(alpha=0., fit_intercept=False), tdr_no):
+        x -= np.mean(x, axis=0)
+        y -= np.mean(y, axis=0)
+        model = ReceptiveField(slim[0], slim[1], 1., estimator=estimator)
+        model.fit(x, y)
+        assert_allclose(model.estimator_.intercept_, 0., atol=1e-2)
+        assert_allclose(model.coef_, expected, atol=1e-1)
+        x += 1e3
+        model.fit(x, y)
+        if estimator.fit_intercept:
+            val, itol, ctol = [-6000, 4000], 20., 1e-1
+        else:
+            val, itol, ctol = 0., 0., 2.  # much worse
+        assert_allclose(model.estimator_.intercept_, val, atol=itol)
+        assert_allclose(model.coef_, expected, atol=ctol)
+        model = ReceptiveField(slim[0], slim[1], 1., fit_intercept=False)
+        model.fit(x, y)
+        assert_allclose(model.estimator_.intercept_, 0., atol=1e-7)
 
 run_tests_if_main()

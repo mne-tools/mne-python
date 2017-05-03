@@ -102,7 +102,7 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
 #     You can also select a portion in the time-frequency plane to
 #     obtain a topomap for a certain time-frequency region.
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
-power.plot([82], baseline=(-0.5, 0), mode='logratio')
+power.plot([82], baseline=(-0.5, 0), mode='logratio', title=power.ch_names[82])
 
 fig, axis = plt.subplots(1, 2, figsize=(7, 4))
 power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=8, fmax=12,

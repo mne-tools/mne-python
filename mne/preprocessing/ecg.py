@@ -53,7 +53,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     win_size = int(round((60.0 * sfreq) / 120.0))
 
     filtecg = filter_data(ecg, sfreq, l_freq, h_freq, None, filter_length,
-                          0.5, 0.5, phase='zero-double', fir_window='hann')
+                          0.5, 0.5, phase='zero-double', fir_window='hann',
+                          fir_design='firwin2')
 
     ecg_abs = np.abs(filtecg)
     init = int(sfreq)
@@ -304,6 +305,9 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     events, _, _, ecg = find_ecg_events(
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
         return_ecg=True, verbose=verbose)
+
+    # Load raw data so that add_channels works
+    raw.load_data()
 
     if not has_ecg:
         ecg_raw = RawArray(

@@ -9,7 +9,7 @@ import mne
 from mne import compute_covariance
 from mne.datasets import testing
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw, tf_lcmv
-from mne.beamformer._lcmv import _lcmv_source_power
+from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main, slow_test
 
@@ -374,6 +374,18 @@ def test_tf_lcmv():
                        label=label)
 
     assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))
+
+
+def test_reg_pinv():
+    """Test regularization and inversion of covariance matrix."""
+    # create rank-deficient array
+    a = np.array([[1., 0., 1.], [0., 1., 0.], [1., 0., 1.]])
+
+    # Test if rank-deficient matrix without regularization throws
+    # specific warning
+    with warnings.catch_warnings(record=True) as w:
+        _reg_pinv(a, reg=0.)
+    assert_true(any('deficient' in str(ww.message) for ww in w))
 
 
 run_tests_if_main()

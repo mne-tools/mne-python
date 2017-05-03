@@ -63,6 +63,7 @@ def _test_raw_reader(reader, test_preloading=True, **kwargs):
 
     # Test saving and reading
     out_fname = op.join(tempdir, 'test_raw.fif')
+    raw = concatenate_raws([raw])
     raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
     raw3 = read_raw_fif(out_fname)
     assert_equal(set(raw.info.keys()), set(raw3.info.keys()))

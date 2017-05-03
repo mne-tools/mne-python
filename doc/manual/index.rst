@@ -102,14 +102,6 @@ Migrating from other software packages.
 
    migrating
 
-Pitfalls
---------
-
-.. toctree::
-   :maxdepth: 2
-
-   pitfalls
-
 C Tools
 -------
 Additional information about various MNE-C tools.

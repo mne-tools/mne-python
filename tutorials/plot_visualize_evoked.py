@@ -109,7 +109,7 @@ evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
 # (:func:`mne.Evoked.plot`) of the joint plot.
 # For an example of specific styling using these ``topomap_args`` and
 # ``ts_args`` arguments, here, topomaps at specific time points
-# (70 and 105 msec) are shown, sensors are not plotted (via an argument
+# (70 and 105 ms) are shown, sensors are not plotted (via an argument
 # forwarded to `plot_topomap`), and the Global Field Power is shown:
 ts_args = dict(gfp=True)
 topomap_args = dict(sensors=False)

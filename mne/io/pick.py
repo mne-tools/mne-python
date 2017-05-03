@@ -741,6 +741,5 @@ def _pick_data_or_ica(info):
     if 'ICA ' in ','.join(ch_names):
         picks = pick_types(info, exclude=[], misc=True)
     else:
-        picks = _pick_data_channels(info, exclude=[],
-                                    with_ref_meg=False)
+        picks = _pick_data_channels(info, exclude=[], with_ref_meg=True)
     return picks

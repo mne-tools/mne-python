@@ -157,6 +157,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_fft : int
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
+        If n_per_seg is None, n_fft must be >= number of time points
+        in the data.
     n_overlap : int
         The number of points of overlap between segments. Will be adjusted
         to be <= n_per_seg. The default value is 0.

@@ -5,7 +5,7 @@ Receptive Field Estimation and Prediction
 
 This example reproduces figures from Lalor et al's mTRF toolbox in
 matlab [1]_. We will show how the :class:`mne.decoding.ReceptiveField` class
-can perform a similar function along with :mod:`sklearn`. We will fit a
+can perform a similar function along with scikit-learn. We will fit a
 linear encoding model using the continuously-varying speech envelope to
 predict activity of a 128 channel EEG system.
 
@@ -32,7 +32,6 @@ from os.path import join
 
 import mne
 from mne.decoding import ReceptiveField
-from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import scale
 
@@ -86,7 +85,7 @@ tmin, tmax = -.4, .2
 
 # Initialize the model
 rf = ReceptiveField(tmin, tmax, sfreq, feature_names=['envelope'],
-                    estimator=Ridge(alpha=1.), scoring='corrcoef')
+                    estimator=1., scoring='corrcoef')
 # We'll have (tmax - tmin) * sfreq delays
 # and an extra 2 delays since we are inclusive on the beginning / end index
 n_delays = int((tmax - tmin) * sfreq) + 2
@@ -148,7 +147,7 @@ ix_plot = np.argmin(np.abs(time_plot - times))
 fig, ax = plt.subplots()
 mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
                      vmin=-max_coef, vmax=max_coef)
-ax.set(title="Topomap of model coefficicients\nfor delay %s" % time_plot)
+ax.set(title="Topomap of model coefficients\nfor delay %s" % time_plot)
 mne.viz.tight_layout()
 
 plt.show()

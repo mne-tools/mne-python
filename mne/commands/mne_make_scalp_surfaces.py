@@ -83,8 +83,9 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
     def check_seghead(surf_path=op.join(subj_path, 'surf')):
         surf = None
         for k in ['lh.seghead', 'lh.smseghead']:
-            surf = op.join(surf_path, k)
-            if op.exists(surf):
+            this_surf = op.join(surf_path, k)
+            if op.exists(this_surf):
+                surf = this_surf
                 break
         return surf
 

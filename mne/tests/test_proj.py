@@ -10,14 +10,14 @@ import copy as cp
 
 import mne
 from mne.datasets import testing
-from mne import pick_types
 from mne.io import read_raw_fif
-from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
+from mne import (compute_proj_epochs, compute_proj_evoked, compute_proj_raw,
+                 pick_types, read_events, Epochs, sensitivity_map,
+                 read_source_estimate)
 from mne.io.proj import (make_projector, activate_proj,
                          _needs_eeg_average_ref_proj)
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
-from mne import read_events, Epochs, sensitivity_map, read_source_estimate
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 
@@ -67,6 +67,25 @@ def test_bad_proj():
     assert_equal(len(raw.info['projs']), n_proj - 1)
     raw.del_proj()
     assert_equal(len(raw.info['projs']), 0)
+
+    # Ensure we deal with newer-style Neuromag projs properly, were getting:
+    #
+    #     Projection vector "PCA-v2" has magnitude 1.00 (should be unity),
+    #     applying projector with 101/306 of the original channels available
+    #     may be dangerous.
+    raw = read_raw_fif(raw_fname).crop(0, 1)
+    raw.info['bads'] = ['MEG 0111']
+    meg_picks = mne.pick_types(raw.info, meg=True, exclude=())
+    ch_names = [raw.ch_names[pick] for pick in meg_picks]
+    for p in raw.info['projs'][:-1]:
+        data = np.zeros((1, len(ch_names)))
+        idx = [ch_names.index(ch_name) for ch_name in p['data']['col_names']]
+        data[:, idx] = p['data']['data']
+        p['data'].update(ncol=len(meg_picks), col_names=ch_names, data=data)
+    with warnings.catch_warnings(record=True) as w:
+        mne.cov.regularize(mne.compute_raw_covariance(raw, verbose='error'),
+                           raw.info)
+    assert_equal(len(w), 0)
 
 
 def _check_warnings(raw, events, picks=None, count=3):

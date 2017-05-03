@@ -98,17 +98,17 @@ class Raw(BaseRaw):
             raws[0].orig_format, None, verbose=verbose)
 
         # combine annotations
-        self.annotations = raws[0].annotations
+        BaseRaw.annotations.fset(self, raws[0].annotations, False)
         if any([r.annotations for r in raws[1:]]):
             first_samps = self._first_samps
             last_samps = self._last_samps
             for r in raws:
-                self.annotations = _combine_annotations((self.annotations,
-                                                         r.annotations),
-                                                        last_samps,
-                                                        first_samps,
-                                                        r.info['sfreq'],
-                                                        self.info['meas_date'])
+                annotations = _combine_annotations((self.annotations,
+                                                    r.annotations),
+                                                   last_samps, first_samps,
+                                                   r.info['sfreq'],
+                                                   self.info['meas_date'])
+                BaseRaw.annotations.fset(self, annotations, False)
                 first_samps = np.r_[first_samps, r.first_samp]
                 last_samps = np.r_[last_samps, r.last_samp]
 
@@ -161,6 +161,8 @@ class Raw(BaseRaw):
                     tag = read_tag(fid, pos)
                     if kind == FIFF.FIFF_MNE_BASELINE_MIN:
                         onset = tag.data
+                        if onset is None:
+                            break  # bug in 0.14 wrote empty annotations
                     elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
                         duration = tag.data - onset
                     elif kind == FIFF.FIFF_COMMENT:
@@ -169,8 +171,9 @@ class Raw(BaseRaw):
                                        description]
                     elif kind == FIFF.FIFF_MEAS_DATE:
                         orig_time = float(tag.data)
-                annotations = Annotations(onset, duration, description,
-                                          orig_time)
+                if onset is not None:
+                    annotations = Annotations(onset, duration, description,
+                                              orig_time)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
