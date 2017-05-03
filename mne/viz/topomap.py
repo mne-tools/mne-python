@@ -1434,8 +1434,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     images, contours_ = [], []
 
     if mask is not None:
-        _picks = picks[::2 if ch_type not in ['mag', 'eeg'] else 1]
-        mask_ = mask[np.ix_(_picks, time_idx)]
+        if ch_type not in ['mag', 'eeg']:
+            mask_ = (mask[np.ix_(picks[::2], time_idx)] |
+                     mask[np.ix_(picks[1::2], time_idx)])
+        else:
+            mask_ = mask[np.ix_(picks, time_idx)]
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
     if outlines is not None:
