@@ -92,11 +92,9 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     if text is not None:
         text.set_visible(True)
         ax = text.axes
-        ylim = ax.get_ylim()
-        vert_lines.append(ax.plot([xmin, xmin], ylim, zorder=0, color='red'))
-        vert_lines.append(ax.plot([xmax, xmax], ylim, zorder=0, color='red'))
-        fill = ax.fill_betweenx(ylim, x1=xmin, x2=xmax, alpha=0.2,
-                                color='green')
+        vert_lines.append(ax.axvline(xmin, zorder=0, color='red'))
+        vert_lines.append(ax.axvline(xmax, zorder=0, color='red'))
+        fill = ax.axvspan(xmin, xmax, alpha=0.2, color='green')
         evoked_fig = plt.gcf()
         evoked_fig.canvas.draw()
         evoked_fig.canvas.flush_events()
@@ -131,7 +129,6 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     fig.suptitle('Average over %.2f%s - %.2f%s' % (xmin, unit, xmax, unit),
                  y=0.1)
     tight_layout(pad=2.0, fig=fig)
-    ax.set_ylim(ylim)
     plt_show()
     if text is not None:
         text.set_visible(False)
@@ -145,8 +142,8 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
 def _topo_closed(events, ax, lines, fill):
     """Remove lines from evoked plot as topomap is closed."""
     for line in lines:
-        ax.lines.remove(line[0])
-    ax.collections.remove(fill)
+        ax.lines.remove(line)
+    ax.patches.remove(fill)
     ax.get_figure().canvas.draw()
 
 
