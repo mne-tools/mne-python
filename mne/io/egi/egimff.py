@@ -13,7 +13,8 @@ import dateutil.parser
 import numpy as np
 
 from .events import _read_events
-from .general import _get_signalfname, _get_ep_inf, _extract, _get_blocks
+from .general import (_get_signalfname, _get_ep_inf, _extract, _get_blocks,
+                      _get_gains)
 from ..base import BaseRaw, _check_update_montage
 from ..constants import FIFF
 from ..meas_info import _empty_info
@@ -29,7 +30,8 @@ def _read_mff_header(filepath):
     filepath : str
         Path to the file.
     """
-    eeg_file = _get_signalfname(filepath, 'PNSData')[0][0]
+    eeg_files, info_files = _get_signalfname(filepath, 'PNSData')
+    eeg_file = eeg_files[0]
     fname = os.path.join(filepath, eeg_file)
     signal_blocks = _get_blocks(fname)
     sfreq = signal_blocks['sfreq']
@@ -40,7 +42,8 @@ def _read_mff_header(filepath):
 
     epoch_info = _get_ep_inf(filepath, sfreq)
 
-    summaryinfo = dict(eegFilename=eeg_file,
+    summaryinfo = dict(eeg_fname=eeg_file,
+                       info_fname=info_files[0],
                        pibNChans=pibnchans,
                        pibHasRef=pibhasref,
                        blockNumSamps=blocknumsamps)
@@ -252,6 +255,7 @@ class RawMff(BaseRaw):
 
         logger.info('    Reading events ...')
         egi_events, egi_info = _read_events(input_fname, egi_info)
+        gains = _get_gains(os.path.join(input_fname, egi_info['info_fname']))
         if egi_info['value_range'] != 0 and egi_info['bits'] != 0:
             cals = [egi_info['value_range'] / 2 ** egi_info['bits'] for i
                     in range(len(egi_info['chan_type']))]
@@ -332,8 +336,9 @@ class RawMff(BaseRaw):
         info['chs'] = chs
         info._update_redundant()
         _check_update_montage(info, montage)
-        file_bin = os.path.join(input_fname, egi_info['eegFilename'])
+        file_bin = os.path.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
+        egi_info['gains'] = gains
 
         self._filenames = [file_bin]
         self._raw_extras = [egi_info]

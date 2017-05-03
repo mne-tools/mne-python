@@ -25,12 +25,12 @@ FILE = inspect.getfile(inspect.currentframe())
 base_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 egi_fname = op.join(base_dir, 'test_egi.raw')
 egi_txt_fname = op.join(base_dir, 'test_egi.txt')
-egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
 
 
 @requires_testing_data
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files"""
+    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
     raw = read_raw_egi_mff(egi_fname_mff, include=None)
     assert_true('RawMff' in repr(raw))
     include = ['DIN1', 'DIN2', 'DIN3', 'DIN4',

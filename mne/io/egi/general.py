@@ -7,6 +7,7 @@ import re
 
 
 def _extract(tags, filepath=None, obj=None):
+    """Extract info from XML."""
     if obj is not None:
         fileobj = obj
     elif filepath is not None:
@@ -23,6 +24,7 @@ def _extract(tags, filepath=None, obj=None):
 
 
 def _get_gains(filepath):
+    """Parse gains."""
     file_obj = parse(filepath)
     objects = file_obj.getElementsByTagName('calibration')
     gains = dict()

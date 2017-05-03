@@ -3,7 +3,6 @@
 from datetime import datetime
 from glob import glob
 from os.path import basename, join, splitext
-from warnings import warn
 
 from xml.etree.ElementTree import parse
 import numpy as np
@@ -26,11 +25,7 @@ def _read_events(input_fname, info):
                       info['n_segments'] * info['n_samples']])
     for n, event in enumerate(event_codes):
         for i in mff_events[event]:
-            if i > events.shape[1]:
-                warn('Event outside data range (%ss).' % (i /
-                                                          info['sfreq']))
-                continue
-            events[n][i] = 2**n
+            events[n][i] = n
     return events, info
 
 
@@ -50,15 +45,11 @@ def _read_mff_events(filename, sfreq):
         orig[xml_type] = _parse_xml(xml_file)
     xml_files = orig.keys()
     xml_events = [x for x in xml_files if x[:7] == 'Events_']
-    # start_time = datetime.strptime(shorttime(orig['info'][0]['recordTime']),
-    #                                '%Y-%m-%dT%H:%M:%S.%f%z')
     start_time = _ns2py_time(orig['info'][1]['recordTime'])
     markers = []
     code = []
     for xml in xml_events:
         for event in orig[xml][2:]:
-            # event_start = datetime.strptime(shorttime(event['beginTime']),
-            #                                 '%Y-%m-%dT%H:%M:%S.%f%z')
             event_start = _ns2py_time(event['beginTime'])
             start = (event_start - start_time).total_seconds()
             if event['code'] not in code:
@@ -79,12 +70,14 @@ def _read_mff_events(filename, sfreq):
 
 
 def _parse_xml(xml_file):
+    """Parse XML file."""
     xml = parse(xml_file)
     root = xml.getroot()
     return _xml2list(root)
 
 
 def _xml2list(root):
+    """Parse XML item."""
     output = []
     for element in root:
 
@@ -141,6 +134,7 @@ def _xml2dict(root):
 
 
 def _ns2py_time(nstime):
+    """Parse times."""
     nsdate = nstime[0:10]
     nstime0 = nstime[11:26]
     nstime00 = nsdate + " " + nstime0
