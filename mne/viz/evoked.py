@@ -29,7 +29,6 @@ from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
-from ..channels import find_layout
 from ..channels.layout import _pair_grad_sensors, _auto_topomap_coords
 
 
@@ -433,23 +432,12 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
 
 def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
     """Set up spatial colors."""
-    ch_type = None if ch_type not in ('meg', 'mag', 'grad', 'eeg') else ch_type
-    layout = find_layout(info, ch_type=ch_type, exclude=[])
-    if layout.kind == 'custom':
-        head_pos = {'center': (0, 0), 'scale': (4.5, 4.5)}
-        outlines = np.array([0.5, 0.5])
-    else:
-        head_pos = None
-        outlines = 'skirt'
-    # drop channels that are not in the data
     used_nm = np.array(_clean_names(info['ch_names']))[idx]
-    names = np.asarray([name for name in used_nm if name in layout.names])
-
     # find indices for bads
-    bads = [np.where(names == bad)[0][0] for bad in info['bads'] if bad in
-            names]
-    pos = _auto_topomap_coords(info, idx, to_sphere=True)
-    pos, outlines = _check_outlines(pos, outlines, head_pos)
+    bads = [np.where(used_nm == bad)[0][0] for bad in info['bads'] if bad in
+            used_nm]
+    pos = _auto_topomap_coords(info, idx, ignore_overlap=True, to_sphere=True)
+    pos, outlines = _check_outlines(pos, 'skirt', None)
     loc = 1 if psd else 2  # Legend in top right for psd plot.
     _plot_legend(pos, colors, ax, bads, outlines, loc)
 
