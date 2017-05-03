@@ -446,13 +446,11 @@ def _handle_spatial_colors(locs3d, info, idx, ch_type, psd, ax):
     used_nm = np.array(_clean_names(info['ch_names']))[idx]
 
     names = np.asarray([name for name in used_nm if name in layout.names])
-    name_idx = [layout.names.index(name) for name in names]
 
     # find indices for bads
     bads = [np.where(names == bad)[0][0] for bad in info['bads'] if bad in
             names]
-    pos, outlines = _check_outlines(layout.pos[:, :2], outlines, head_pos)
-    pos = pos[name_idx]
+    pos, outlines = _check_outlines(locs3d[:, :2], outlines, head_pos)
     loc = 1 if psd else 2  # Legend in top right for psd plot.
     _plot_legend(pos, colors, ax, bads, outlines, loc)
     return colors
