@@ -365,11 +365,11 @@ class DigMontage(object):
         This is typically in the native digitizer space.
     point_names : list, shape (n_elp)
         The names of the digitized points for hpi and elp.
-    nasion : array, shape (1, 3)
+    nasion : array, shape (3,)
         The position of the nasion fidicual point.
-    lpa : array, shape (1, 3)
+    lpa : array, shape (3,)
         The position of the left periauricular fidicual point.
-    rpa : array, shape (1, 3)
+    rpa : array, shape (3,)
         The position of the right periauricular fidicual point.
     dev_head_t : array, shape (4, 4)
         A Device-to-Head transformation matrix.

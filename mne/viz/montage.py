@@ -39,10 +39,21 @@ def plot_montage(montage, scale_factor=20, show_names=False, show=True):
                                         pos[:, 1], pos[:, 2]):
                 ax.text(x, y, z, ch_name)
     elif isinstance(montage, DigMontage):
-        pos = np.vstack((montage.hsp, montage.elp))
+        pos = montage.hsp
+        if montage.elp is not None:
+            pos = np.vstack((pos, montage.elp))
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], s=scale_factor)
+        if montage.lpa is not None:
+            lpa = np.ravel(montage.lpa)
+            ax.scatter(lpa[0], lpa[1], lpa[2], s=3 * scale_factor, c='r')
+        if montage.nasion is not None:
+            nas = np.ravel(montage.nasion)
+            ax.scatter(nas[0], nas[1], nas[2], s=3 * scale_factor, c='g')
+        if montage.rpa is not None:
+            rpa = np.ravel(montage.rpa)
+            ax.scatter(rpa[0], rpa[1], rpa[2], s=3 * scale_factor, c='b')
         if show_names:
-            if montage.point_names:
+            if montage.elp is not None and montage.point_names:
                 hpi_names = montage.point_names
                 for hpi_name, x, y, z in zip(hpi_names, montage.elp[:, 0],
                                              montage.elp[:, 1],
