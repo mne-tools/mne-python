@@ -25,7 +25,7 @@ def _read_events(input_fname, info):
                       info['n_segments'] * info['n_samples']])
     for n, event in enumerate(event_codes):
         for i in mff_events[event]:
-            events[n][i] = n
+            events[n][i] = n + 1
     return events, info
 
 

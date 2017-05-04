@@ -262,7 +262,10 @@ class RawMff(BaseRaw):
         else:
             cal_scales = {'uV': 1e-6, 'V': 1}
             cals = [cal_scales[t] for t in egi_info['chan_unit']]
-
+        if 'gcal' in gains:
+            cals *= gains['gcal']
+        if 'ical' in gains:
+            pass  # XXX: currently not used
         logger.info('    Assembling measurement info ...')
         if egi_info['n_events'] > 0:
             event_codes = list(egi_info['event_codes'])
@@ -324,7 +327,8 @@ class RawMff(BaseRaw):
             ch_names.append('STI 014')  # channel for combined events
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
-        cals.extend(np.repeat(1, len(event_codes) + 1 + len(misc) + len(eog)))
+        cals = np.concatenate(
+            [cals, np.repeat(1, len(event_codes) + 1 + len(misc) + len(eog))])
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or len(name) == 4]
@@ -338,7 +342,6 @@ class RawMff(BaseRaw):
         _check_update_montage(info, montage)
         file_bin = os.path.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
-        egi_info['gains'] = gains
 
         self._filenames = [file_bin]
         self._raw_extras = [egi_info]
