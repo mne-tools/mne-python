@@ -16,6 +16,7 @@ from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform)
 from ..utils import logger, verbose, warn
+from ..parallel import check_n_jobs
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, SourceSpaces)
 from ..source_estimate import VolSourceEstimate
@@ -553,6 +554,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         info = read_info(info, verbose=False)
     else:
         info_extra = 'instance of Info'
+    n_jobs = check_n_jobs(n_jobs)
 
     # Report the setup
     logger.info('Source space                 : %s' % src)
