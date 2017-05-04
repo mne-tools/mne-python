@@ -170,21 +170,8 @@ def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
                      verbose=None):
     """Read EGI mff binary as raw object.
 
-    .. note:: The trigger channel names are based on the
-              arbitrary user dependent event codes used. However this
-              function will attempt to generate a synthetic trigger channel
-              named ``STI 014`` in accordance with the general
-              Neuromag / MNE naming pattern.
-
-              The event_id assignment equals
-              ``np.arange(n_events - n_excluded) + 1``. The resulting
-              `event_id` mapping is stored as attribute to the resulting
-              raw object but will be ignored when saving to a fiff.
-              Note. The trigger channel is artificially constructed based
-              on timestamps received by the Netstation. As a consequence,
-              triggers have only short durations.
-
-              This step will fail if events are not mutually exclusive.
+    .. note:: This function attempts to create a synthetic trigger channel.
+              See notes below.
 
     Parameters
     ----------
@@ -220,8 +207,23 @@ def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
 
     Returns
     -------
-    raw : Instance of RawEGI
-        A Raw object containing EGI data.
+    raw : Instance of RawMff
+        A Raw object containing EGI mff data.
+
+    Notes
+    -----
+    The trigger channel names are based on the arbitrary user dependent event
+    codes used. However this function will attempt to generate a synthetic
+    trigger channel named ``STI 014`` in accordance with the general
+    Neuromag / MNE naming pattern.
+
+    The event_id assignment equals ``np.arange(n_events) + 1``. The resulting
+    ``event_id`` mapping is stored as attribute to the resulting raw object but
+    will be ignored when saving to a fiff. Note. The trigger channel is
+    artificially constructed based on timestamps received by the Netstation.
+    As a consequence, triggers have only short durations.
+
+    This step will fail if events are not mutually exclusive.
 
     See Also
     --------

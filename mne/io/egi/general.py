@@ -40,7 +40,7 @@ def _get_gains(filepath):
 
 
 def _get_ep_info(filepath):
-    """Get epoch info"""
+    """Get epoch info."""
     epochfile = filepath + '/epochs.xml'
     epochlist = parse(epochfile)
     epochs = epochlist.getElementsByTagName('epoch')
