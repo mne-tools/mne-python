@@ -32,7 +32,8 @@ class Annotations(object):
     Parameters
     ----------
     onset : array of float, shape (n_annotations,)
-        Annotation time onsets from the beginning of the recording in seconds.
+        Annotation time onsets relative to the ``orig_time``, the starting time
+        of annotation acquisition.
     duration : array of float, shape (n_annotations,)
         Durations of the annotations in seconds.
     description : array of str, shape (n_annotations,) | str
@@ -85,7 +86,7 @@ class Annotations(object):
         self.description = np.array(description, dtype=str)
 
     def __len__(self):
-        """The number of annotations."""
+        """Return the number of annotations."""
         return len(self.duration)
 
     def append(self, onset, duration, description):
@@ -121,7 +122,7 @@ class Annotations(object):
 
 def _combine_annotations(annotations, last_samps, first_samps, sfreq,
                          meas_date):
-    """Helper for combining a tuple of annotations."""
+    """Combine a tuple of annotations."""
     if not any(annotations):
         return None
     elif annotations[1] is None:
@@ -137,13 +138,13 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq,
         old_description = annotations[0].description
         old_orig_time = annotations[0].orig_time
 
-    extra_samps = len(first_samps) - 1  # Account for sample 0
+    extra_samps = len(first_samps)  # Account for sample 0
     if old_orig_time is not None and annotations[1].orig_time is None:
         meas_date = _handle_meas_date(meas_date)
         extra_samps += sfreq * (meas_date - old_orig_time) + first_samps[0]
 
-    onset = annotations[1].onset + (np.sum(last_samps[:-1]) + extra_samps -
-                                    np.sum(first_samps[:-1])) / sfreq
+    onset = annotations[1].onset + (np.sum(last_samps) + extra_samps -
+                                    np.sum(first_samps)) / sfreq
 
     onset = np.concatenate([old_onset, onset])
     duration = np.concatenate([old_duration, annotations[1].duration])
@@ -152,7 +153,7 @@ def _combine_annotations(annotations, last_samps, first_samps, sfreq,
 
 
 def _handle_meas_date(meas_date):
-    """Helper for converting meas_date to seconds."""
+    """Convert meas_date to seconds."""
     if meas_date is None:
         meas_date = 0
     elif not np.isscalar(meas_date):
@@ -163,13 +164,14 @@ def _handle_meas_date(meas_date):
     return meas_date
 
 
-def _sync_onset(raw, onset):
-    """Helper for adjusting onsets in relation to raw data."""
+def _sync_onset(raw, onset, inverse=False):
+    """Adjust onsets in relation to raw data."""
     meas_date = _handle_meas_date(raw.info['meas_date'])
     if raw.annotations.orig_time is None:
         orig_time = meas_date
     else:
-        orig_time = raw.annotations.orig_time - raw._first_time
+        offset = -raw._first_time if inverse else raw._first_time
+        orig_time = raw.annotations.orig_time - offset
 
     annot_start = orig_time - meas_date + onset
     return annot_start

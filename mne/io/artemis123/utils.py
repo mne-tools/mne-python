@@ -1,7 +1,9 @@
 import numpy as np
 import os.path as op
 from ...utils import logger
-from ...transforms import rotation3d_align_z_axis
+from ...transforms import (rotation3d_align_z_axis, get_ras_to_neuromag_trans,
+                           apply_trans)
+from ..meas_info import _make_dig_points
 
 
 def _load_mne_locs(fname=None):
@@ -82,3 +84,55 @@ def _compute_mne_loc(coil_loc):
     R = rotation3d_align_z_axis(z_axis)
     loc[3:13] = R.T.reshape(9)
     return loc
+
+
+def _read_pos(fname):
+    """Read the .pos file and return positions as dig points."""
+    nas = None
+    lpa = None
+    rpa = None
+    hpi = None
+    extra = None
+    with open(fname, 'r') as fid:
+        for line in fid:
+            line = line.strip()
+            if len(line) > 0:
+                parts = line.split()
+                # The lines can have 4 or 5 parts. First part is for the id,
+                # which can be an int or a string. The last three are for xyz
+                # coordinates. The extra part is for additional info
+                # (e.g. 'Pz', 'Cz') which is ignored.
+                if len(parts) not in [4, 5]:
+                    continue
+
+                if parts[0].lower() == 'nasion':
+                    nas = np.array([float(p) for p in parts[-3:]]) / 100.
+                elif parts[0].lower() == 'left':
+                    lpa = np.array([float(p) for p in parts[-3:]]) / 100.
+                elif parts[0].lower() == 'right':
+                    rpa = np.array([float(p) for p in parts[-3:]]) / 100.
+                elif 'hpi' in parts[0].lower():
+                    if hpi is None:
+                        hpi = list()
+                    hpi.append(np.array([float(p) for p in parts[-3:]]) / 100.)
+                else:
+                    if extra is None:
+                        extra = list()
+                    extra.append(np.array([float(p)
+                                           for p in parts[-3:]]) / 100.)
+    # move into MNE head coords
+    if ((nas is not None) and (lpa is not None) and (rpa is not None)):
+        neuromag_trans = get_ras_to_neuromag_trans(nas, lpa, rpa)
+        nas = apply_trans(neuromag_trans, nas)
+        lpa = apply_trans(neuromag_trans, lpa)
+        rpa = apply_trans(neuromag_trans, rpa)
+
+        if hpi is not None:
+            hpi = apply_trans(neuromag_trans, hpi)
+
+        if extra is not None:
+            extra = apply_trans(neuromag_trans, extra)
+
+    digs = _make_dig_points(nasion=nas, lpa=lpa, rpa=rpa, hpi=hpi,
+                            extra_points=extra)
+    return digs

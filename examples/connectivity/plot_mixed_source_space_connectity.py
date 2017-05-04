@@ -53,7 +53,7 @@ labels_vol = ['Left-Amygdala',
               'Right-Cerebellum-Cortex']
 
 # Setup a surface-based source space
-src = setup_source_space(subject, fname=None, subjects_dir=subjects_dir,
+src = setup_source_space(subject, subjects_dir=subjects_dir,
                          spacing='oct6', add_dist=False)
 
 # Setup a volume source space

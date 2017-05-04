@@ -192,6 +192,9 @@ def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type='not_and'):
     """Read events from fif or text file.
 
+    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
+    for more information about events.
+
     Parameters
     ----------
     filename : string
@@ -420,7 +423,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=0,
                  uint_cast=False, mask_type='not_and'):
-    """Helper function for find events."""
+    """Help find events."""
     if min_samples > 0:
         merge = int(min_samples // 1)
         if merge == min_samples:
@@ -494,6 +497,9 @@ def find_events(raw, stim_channel=None, output='onset',
                 shortest_event=2, mask=None, uint_cast=False,
                 mask_type='not_and', verbose=None):
     """Find events from raw file.
+
+    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
+    for more information about events.
 
     Parameters
     ----------

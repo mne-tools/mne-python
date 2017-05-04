@@ -336,6 +336,9 @@ def test_accuracy():
 def test_dipole_fixed():
     """Test reading a fixed-position dipole (from Xfit)."""
     dip = read_dipole(fname_xfit_dip)
+    # print the representation of the objet DipoleFixed
+    print(dip)
+
     _check_roundtrip_fixed(dip)
     with warnings.catch_warnings(record=True) as w:  # unused fields
         dip_txt = read_dipole(fname_xfit_dip_txt)
@@ -371,5 +374,6 @@ def test_get_phantom_dipoles():
         pos, ori = get_phantom_dipoles(kind)
         assert_equal(pos.shape, (32, 3))
         assert_equal(ori.shape, (32, 3))
+
 
 run_tests_if_main(False)

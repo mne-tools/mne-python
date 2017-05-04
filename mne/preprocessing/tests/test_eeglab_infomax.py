@@ -36,7 +36,8 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
 
     raw.filter(1, 45, picks=picks, filter_length='10s',
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-               phase='zero-double', fir_window='hann')  # use the old way
+               phase='zero-double', fir_window='hann',
+               fir_design='firwin2')  # use the old way
     X = raw[picks, :][0][:, ::20]
 
     # Subtract the mean

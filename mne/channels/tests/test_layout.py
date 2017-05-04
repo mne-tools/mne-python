@@ -268,6 +268,7 @@ def test_find_layout():
 
     # Test plotting
     lout.plot()
+    lout.plot(picks=np.arange(10))
     plt.close('all')
 
 

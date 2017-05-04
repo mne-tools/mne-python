@@ -1,9 +1,9 @@
 
 .. _ch_matlab:
 
-==============
-Matlab toolbox
-==============
+==================
+MNE-MATLAB toolbox
+==================
 
 .. contents:: Contents
    :local:

@@ -1,25 +1,10 @@
-Seven stories about MNE
-=======================
+.. include:: ../git_links.inc
 
+MNE quickstart and background
+=============================
 
-1. What the FIF does MNE stand for?
------------------------------------
-Historically, MNE was a software for computing cortically constrained
-Minimum Norm Estimates from MEG and EEG data. The historical core
-functions of MNE were written by Matti Hämäläinen in Boston and originate
-in part from the Elekta software that is shipped with its MEG systems.
-Ah yes, the FIFF is Elektas Functional Imaging File Format that goes
-along with `.fif` file extensions and is natively used by its MEG systems.
-For these reasons the MNE software is internally relying on the FIFF files.
-Today the situation is a bit different though. MNE is nowadays developed
-mostly in Python by an international team of researchers from diverse
-laboratories and has widened its scope. MNE supports advanced sensor space
-analyses for EEG, temporal ICA, many different file formats and many other
-inverse solvers, for example beamformers. Some of our contributors even
-use it for intracranial data. If you want, MNE can be thought of as MEG'n'EEG.
-
-2. Reading data into the MNE layout
------------------------------------
+1. Reading data into MNE
+------------------------
 One of the first things you might be wondering about is how to get your
 data into mne. Assuming that you have unprocessed data, you will probably
 be happy with at least one of these readers:
@@ -35,16 +20,10 @@ be happy with at least one of these readers:
 * :func:`read_raw_egi <mne.io.read_raw_egi>`
 * :func:`read_raw_nicolet <mne.io.read_raw_nicolet>`
 
-They all have in common to return an :class:`mne.io.Raw` object and the MEG
-readers perform conversions of sensor positions and channel names
-to make the meta data compatible with the conventions of the FIFF
-format. Yes, at this point MNE relies on the historical layout and
-therefore expects MEG data to look like Elekta Neuromag data and to
-conform to Freesurfer data layouts. This is somewhat relaxed for EEG
-data, which have less to do with Neuromag and very often are not
-used for source space analyses. See :ref:`ch_convert`.
+They all have in common to return an :class:`mne.io.Raw`-like object.
+See :ref:`ch_convert`.
 
-3. MNE gives you objects with methods
+2. MNE gives you objects with methods
 -------------------------------------
 We said above that there are MNE objects. This is of course computer
 science jargon. What it actually means is that you get a data structure
@@ -102,15 +81,15 @@ describing averaged data, all have in common that they share certain methods.
   allows you to store your data into a FIFF file.
 
 
-4. A key thing for MNE objects is the measurment info
------------------------------------------------------
-Besides `.ch_names` another important attribute is .info. It contains
+3. A key thing for MNE objects is the measurement info
+------------------------------------------------------
+Besides ``.ch_names`` another important attribute is ``.info``. It contains
 the channel information and some details about the processing history.
 This is especially relevant if your data cannot be read using the io
 functions listed above. You then need to learn how to create an info.
 See :ref:`tut_info_objects`.
 
-5. MNE is modular
+4. MNE is modular
 -----------------
 Beyond methods another concept that is important to get are *modules*.
 Think of them as name spaces, another computer science term.
@@ -139,21 +118,24 @@ Decoding?::
 I'm sure you got it, so explore your intuitions when searching for
 a certain function.
 
-6. Inspect and script
+5. Inspect and script
 ---------------------
-Did you happen to notice that some of the figures returned by `.plot`
-methods allow you to interact with the data? Look at raw.plot and
-epochs.plot for example. They allow you to update channel selections,
+Did you happen to notice that some of the figures returned by ``.plot``
+methods allow you to interact with the data? Look at :meth:`raw.plot <mne.io.Raw.plot>` and
+:meth:`epochs.plot <mne.Epochs.plot>` for example. They allow you to update channel selections,
 scalings and time ranges. However, they do not replace scripting.
 The MNE philosophy is to facilitate diagnostic plotting but does
 not support doing analysis by clicking your way. MNE is meant to be
-a toolbox, and its your task to combine the tools by writing scripts.
-This should really save you time, first of all by being able to reuse
-code and avoiding to click it again. Second by documenting what you
-did. Reviewers are asking you to update your analysis that you actually
+a toolbox, and its your task to combine the tools by **writing scripts**.
+This should save you time in the long run by:
+
+1. Enabling code reuse.
+2. Documenting what you did.
+
+Reviewers are asking you to update your analysis that you actually
 finished 1 year ago? Luckily you have a script.
 
-7. Eighty percent or Python
+6. Eighty percent or Python
 ---------------------------
 A related point is that MNE functions are there to make it fun to
 process common tasks and facilitate doing difficult things.
@@ -165,7 +147,7 @@ you need in order be happy in 80 percent of the time. Where you need
 more Python is there for you. You can easily access the data, e.g.
 `raw[:10, :1000]` or `epochs.get_data()` or `evoked.data` and
 manipulate them using numpy or pass them to high-level machine learning code
-from `scikit-learn <http://scikit-learn.org>`_. Each `.plot` method
+from `scikit-learn`_. Each ``.plot`` method
 returns a matplotlib figure object. Both packages have great documentations
 and often writing Python code amounts to looking up the right library that
 allows you to tackle the problem in a few lines.

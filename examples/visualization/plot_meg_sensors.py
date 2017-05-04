@@ -33,8 +33,9 @@ raws = dict(
                                op.join(bti_path, 'test_config_linux'),
                                op.join(bti_path, 'test_hs_linux')),
     KIT=read_raw_kit(op.join(kit_path, 'test.sqd')),
-    Artemis123=read_raw_artemis123(op.join(testing.data_path(), 'ARTEMIS123',
-                                   'Artemis_Data_2016-11-03-15h-58m_test.bin'))
+    Artemis123=read_raw_artemis123(op.join(
+        testing.data_path(), 'ARTEMIS123',
+        'Artemis_Data_2017-04-14-10h-38m-59s_Phantom_1k_HPI_1s.bin'))
 )
 
 for system, raw in raws.items():

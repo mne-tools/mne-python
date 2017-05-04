@@ -178,7 +178,7 @@ if not use_precomputed:
 # We also lowpass filter the data at 100 Hz to remove the hf components.
 if not use_precomputed:
     raw.filter(None, 100., h_trans_bandwidth=0.5, filter_length='10s',
-               phase='zero-double')
+               phase='zero-double', fir_design='firwin2')
 
 ###############################################################################
 # Epoching and averaging.

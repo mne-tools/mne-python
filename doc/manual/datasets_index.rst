@@ -40,7 +40,7 @@ Details about the data can be found at the Brainstorm `auditory dataset tutorial
 
 .. topic:: Examples
 
-    * :ref:`Brainstorm auditory dataset tutorial<sphx_glr_auto_examples_datasets_plot_brainstorm_data.py>`: Partially replicates the original Brainstorm tutorial.
+    * :ref:`Brainstorm auditory dataset tutorial <sphx_glr_auto_examples_datasets_plot_brainstorm_data.py>`: Partially replicates the original Brainstorm tutorial.
 
 Resting state
 ^^^^^^^^^^^^^
@@ -147,6 +147,22 @@ Representational Similarity Analysis (RSA).
     * :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>`: Partially replicates the results from Cichy et al. (2014).
 
 
+mTRF Dataset
+============
+:func:`mne.datasets.mtrf.data_path()`.
+
+This dataset contains 128 channel EEG as well as natural speech stimulus features,
+which is also available `here <https://sourceforge.net/projects/aespa/files/>`_.
+
+The experiment consisted of subjects listening to natural speech.
+The dataset contains several feature representations of the speech stimulus,
+suitable for using to fit continuous regression models of neural activity.
+More details and a description of the package can be found in [5]_.
+
+.. topic:: Examples
+
+    * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field.py>`: Partially replicates the results from Crosse et al. (2016).
+
 References
 ==========
 
@@ -157,3 +173,5 @@ References
 .. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220
 
 .. [4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object recognition in space and time." Nature neuroscience (2014): 17(3), 455-462
+
+.. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A., & Lalor, E. C. The Multivariate Temporal Response Function (mTRF) Toolbox: A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli. Frontiers in Human Neuroscience (2016): 10.

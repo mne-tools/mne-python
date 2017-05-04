@@ -13,7 +13,7 @@ import numpy as np
 from mne import create_info
 from mne.utils import run_tests_if_main
 from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.annotations import Annotations
+from mne.annotations import Annotations, _sync_onset
 from mne.datasets import testing
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
@@ -45,6 +45,7 @@ def test_annotations():
     raw2.annotations = annot
     assert_array_equal(raw2.annotations.onset, onset)
     concatenate_raws([raw, raw2])
+    raw.annotations.delete(-1)  # remove boundary annotation
     assert_array_almost_equal(onset + 20., raw.annotations.onset, decimal=2)
     assert_array_equal(annot.duration, raw.annotations.duration)
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
@@ -65,6 +66,9 @@ def test_annotations():
     raw.annotations = Annotations([1.], [.5], 'x', None)
     raws.append(raw)
     raw = concatenate_raws(raws)
+    boundary_idx = np.where(raw.annotations.description == 'BAD boundary')[0]
+    assert_equal(len(boundary_idx), 3)
+    raw.annotations.delete(boundary_idx)
     assert_array_equal(raw.annotations.onset, [1., 2., 11., 12., 21., 22.,
                                                31.])
     raw.annotations.delete(2)
@@ -82,7 +86,7 @@ def test_annotations():
     raw.annotations = Annotations([45.], [3], 'test', raw.info['meas_date'])
     raw2.annotations = Annotations([2.], [3], 'BAD', None)
     raw = concatenate_raws([raw, raw2])
-
+    raw.annotations.delete(-1)  # remove boundary annotation
     assert_array_almost_equal(raw.annotations.onset, [45., 2. + last_time],
                               decimal=2)
 
@@ -112,6 +116,13 @@ def test_raw_reject():
     assert_true(not np.isnan(data[:, 614].any()))
     assert_array_equal(data[:, -100:], raw[:10, 5900:6000][0])
     assert_array_equal(raw.get_data(), raw[:][0])
+
+    # Test _sync_onset
+    times = [10, -88, 190]
+    onsets = _sync_onset(raw, times)
+    assert_array_almost_equal(onsets, times - raw.first_samp /
+                              raw.info['sfreq'])
+    assert_array_almost_equal(times, _sync_onset(raw, onsets, True))
 
 
 run_tests_if_main()

@@ -658,8 +658,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         size = size.split(',')
         size = tuple(float(s) for s in size)
     if title is None:
-        title = epochs.name
-        if epochs.name is None or len(title) == 0:
+        title = epochs._name
+        if title is None or len(title) == 0:
             title = ''
     fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
     fig.canvas.set_window_title('mne_browse_epochs')
@@ -1005,13 +1005,18 @@ def _plot_update_epochs_proj(params, bools=None):
         params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
                                    for ii in inds]
         params['proj_bools'] = bools
+    epochs = params['epochs']
+    n_epochs = params['n_epochs']
     params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
                                         verbose=False)
-
-    start = int(params['t_start'] / len(params['epochs'].times))
-    n_epochs = params['n_epochs']
+    start = int(params['t_start'] / len(epochs.times))
     end = start + n_epochs
-    data = np.concatenate(params['epochs'][start:end].get_data(), axis=1)
+    if epochs.preload:
+        data = np.concatenate(epochs.get_data()[start:end], axis=1)
+    else:
+        # this is faster than epochs.get_data()[start:end] when not preloaded
+        data = np.concatenate(epochs[start:end].get_data(), axis=1)
+
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
     types = params['types']
@@ -1623,7 +1628,7 @@ def _label2idx(params, pos):
 
 
 def _draw_event_lines(params):
-    """Function for drawing event lines."""
+    """Draw event lines."""
     epochs = params['epochs']
     n_times = len(epochs.times)
     start_idx = int(params['t_start'] / n_times)

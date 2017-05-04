@@ -13,42 +13,122 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..externals import six
-from ..utils import _check_type_picks
+from ..externals.six import string_types
+from ..utils import _check_type_picks, check_version
+from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
+from ..cov import _check_scalings_user
 
 
-class Scaler(TransformerMixin):
-    u"""Standardize data across channels.
+class _ConstantScaler():
+    """Scale channel types using constant values."""
 
-    By default, this makes each time point (within each epoch) have
-    μ=0, σ=1.
+    def __init__(self, info, scalings, do_scaling=True):
+        self._scalings = scalings
+        self._info = info
+        self._do_scaling = do_scaling
+
+    def fit(self, X, y=None):
+        scalings = _check_scalings_user(self._scalings)
+        picks_by_type = _picks_by_type(pick_info(
+            self._info, _pick_data_channels(self._info, exclude=())))
+        std = np.ones(sum(len(p[1]) for p in picks_by_type))
+        if X.shape[1] != len(std):
+            raise ValueError('info had %d data channels but X has %d channels'
+                             % (len(std), len(X)))
+        if self._do_scaling:  # this is silly, but necessary for completeness
+            for kind, picks in picks_by_type:
+                std[picks] = 1. / scalings[kind]
+        self.std_ = std
+        self.mean_ = np.zeros_like(std)
+        return self
+
+    def transform(self, X, y=None):
+        return X / self.std_
+
+    def inverse_transform(self, X, y=None):
+        return X * self.std_
+
+    def fit_transform(self, X, y=None):
+        return self.fit(X, y).transform(X)
+
+
+def _sklearn_reshape_apply(func, return_result, X, *args):
+    """Reshape epochs and apply function."""
+    if not isinstance(X, np.ndarray):
+        raise ValueError("data should be an np.ndarray, got %s." % type(X))
+    X = np.atleast_3d(X)
+    orig_shape = X.shape
+    X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
+    X = func(X, *args)
+    if return_result:
+        X.shape = (orig_shape[0], orig_shape[2], orig_shape[1])
+        X = X.transpose(0, 2, 1)
+        return X
+
+
+class Scaler(TransformerMixin, BaseEstimator):
+    u"""Standardize channel data.
+
+    This class scales data for each channel. It differs from scikit-learn
+    classes (e.g., :class:`sklearn.preprocessing.StandardScaler`) in that
+    it scales each *channel* by estimating μ and σ using data from all
+    time points and epochs, as opposed to standardizing each *feature*
+    (i.e., each time point for each channel) by estimating using μ and σ
+    using data from all epochs.
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info
-    with_mean : boolean, True by default
-        If True, center the data before scaling.
-    with_std : boolean, True by default
-        If True, scale the data to unit variance (or equivalently,
-        unit standard deviation).
+    info : instance of Info | None
+        The measurement info. Only necessary if ``scalings`` is a dict or
+        None.
+    scalings : dict, string, defaults to None.
+        Scaling method to be applied to data channel wise.
 
-    Attributes
-    ----------
-    info : instance of Info
-        The measurement info
-    ``ch_mean_`` : dict
-        The mean value for each channel type
-    ``std_`` : dict
-        The standard deviation for each channel type
+        * if scalings is None (default), scales mag by 1e15, grad by 1e13,
+          and eeg by 1e6.
+        * if scalings is :class:`dict`, keys are channel types and values
+          are scale factors.
+        * if ``scalings=='median'``,
+          :class:`sklearn.preprocessing.RobustScaler`
+          is used (requires sklearn version 0.17+).
+        * if ``scalings=='mean'``,
+          :class:`sklearn.preprocessing.StandardScaler`
+          is used.
+
+    with_mean : boolean, True by default
+        If True, center the data using mean (or median) before scaling.
+        Ignored for channel-type scaling.
+    with_std : boolean, True by default
+        If True, scale the data to unit variance (``scalings='mean'``),
+        quantile range (``scalings='median``), or using channel type
+        if ``scalings`` is a dict or None).
     """
 
-    def __init__(self, info, with_mean=True, with_std=True):  # noqa: D102
+    def __init__(self, info=None, scalings=None, with_mean=True,
+                 with_std=True):  # noqa: D102
         self.info = info
         self.with_mean = with_mean
         self.with_std = with_std
-        self.ch_mean_ = dict()  # TODO rename attribute
-        self.std_ = dict()  # TODO rename attribute
+        self.scalings = scalings
+
+        if not (scalings is None or isinstance(scalings, (dict, str))):
+            raise ValueError('scalings type should be dict, str, or None, '
+                             'got %s' % type(scalings))
+        if isinstance(scalings, string_types) and \
+                scalings not in ('mean', 'median'):
+            raise ValueError('Invalid method for scaling, must be "mean" or '
+                             '"median" but got %s' % scalings)
+        if scalings is None or isinstance(scalings, dict):
+            self._scaler = _ConstantScaler(info, scalings, self.with_std)
+        elif scalings == 'mean':
+            from sklearn.preprocessing import StandardScaler
+            self._scaler = StandardScaler(self.with_mean, self.with_std)
+        else:  # scalings == 'median':
+            if not check_version('sklearn', '0.17'):
+                raise ValueError("median requires version 0.17 of "
+                                 "sklearn library")
+            from sklearn.preprocessing import RobustScaler
+            self._scaler = RobustScaler(self.with_mean, self.with_std)
 
     def fit(self, epochs_data, y):
         """Standardize data across channels.
@@ -65,36 +145,7 @@ class Scaler(TransformerMixin):
         self : instance of Scaler
             Returns the modified instance.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
-
-        X = np.atleast_3d(epochs_data)
-
-        picks_list = dict()
-        picks_list['mag'] = pick_types(self.info, meg='mag', ref_meg=False,
-                                       exclude='bads')
-        picks_list['grad'] = pick_types(self.info, meg='grad', ref_meg=False,
-                                        exclude='bads')
-        picks_list['eeg'] = pick_types(self.info, eeg=True, ref_meg=False,
-                                       meg=False, exclude='bads')
-
-        self.picks_list_ = picks_list
-
-        for key, this_pick in picks_list.items():
-            if self.with_mean:
-                if len(this_pick) == 0:
-                    ch_mean = np.nan * np.ones((X.shape[0], 1, X.shape[2]))
-                else:
-                    ch_mean = X[:, this_pick, :].mean(axis=1, keepdims=True)
-                self.ch_mean_[key] = ch_mean  # TODO rename attribute
-            if self.with_std:
-                if len(this_pick) == 0:
-                    ch_std = np.nan * np.ones((X.shape[0], 1, X.shape[2]))
-                else:
-                    ch_std = np.std(X[:, this_pick, :], axis=1, keepdims=True)
-                self.std_[key] = ch_std  # TODO rename attribute
-
+        _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y)
         return self
 
     def transform(self, epochs_data, y=None):
@@ -118,22 +169,14 @@ class Scaler(TransformerMixin):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
+        return _sklearn_reshape_apply(self._scaler.transform, True,
+                                      epochs_data, y)
 
-        X = np.atleast_3d(epochs_data).copy()
+    def fit_transform(self, epochs_data, y=None):
+        """Fit to data, then transform it.
 
-        for key, this_pick in six.iteritems(self.picks_list_):
-            if self.with_mean:
-                X[:, this_pick, :] -= self.ch_mean_[key]
-            if self.with_std:
-                X[:, this_pick, :] /= self.std_[key]
-
-        return X
-
-    def inverse_transform(self, epochs_data, y=None):
-        """Invert standardization of data across channels.
+        Fits transformer to epochs_data and y and returns a transformed version
+        of epochs_data.
 
         Parameters
         ----------
@@ -141,7 +184,7 @@ class Scaler(TransformerMixin):
             The data.
         y : None | array, shape (n_epochs,)
             The label for each epoch.
-            If None not used. Defaults to None.
+            Defaults to None.
 
         Returns
         -------
@@ -153,19 +196,28 @@ class Scaler(TransformerMixin):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
-        if not isinstance(epochs_data, np.ndarray):
-            raise ValueError("epochs_data should be of type ndarray (got %s)."
-                             % type(epochs_data))
+        return self.fit(epochs_data, y).transform(epochs_data)
 
-        X = np.atleast_3d(epochs_data).copy()
+    def inverse_transform(self, epochs_data):
+        """Invert standardization of data across channels.
 
-        for key, this_pick in six.iteritems(self.picks_list_):
-            if self.with_std:
-                X[:, this_pick, :] *= self.std_[key]
-            if self.with_mean:
-                X[:, this_pick, :] += self.ch_mean_[key]
+        Parameters
+        ----------
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
+            The data.
 
-        return X
+        Returns
+        -------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
+        """
+        return _sklearn_reshape_apply(self._scaler.inverse_transform, True,
+                                      epochs_data)
 
 
 class Vectorizer(TransformerMixin):
@@ -298,6 +350,10 @@ class PSDEstimator(TransformerMixin):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
+    See Also
+    --------
+    mne.time_frequency.psd_multitaper
     """
 
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
@@ -668,6 +724,15 @@ class TemporalFilter(TransformerMixin):
     fir_window : str, defaults to 'hamming'
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
+    fir_design : str
+        Can be "firwin" (default in 0.16) to use
+        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+        time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
+
+        ..versionadded:: 0.15
+
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -683,7 +748,7 @@ class TemporalFilter(TransformerMixin):
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
                  h_trans_bandwidth='auto', n_jobs=1, method='fir',
-                 iir_params=None, fir_window='hamming',
+                 iir_params=None, fir_window='hamming', fir_design=None,
                  verbose=None):  # noqa: D102
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -695,6 +760,7 @@ class TemporalFilter(TransformerMixin):
         self.method = method
         self.iir_params = iir_params
         self.fir_window = fir_window
+        self.fir_design = fir_design
         self.verbose = verbose
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
@@ -742,18 +808,20 @@ class TemporalFilter(TransformerMixin):
         shape = X.shape
         X = X.reshape(-1, shape[-1])
         (X, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
-         self.h_trans_bandwidth, self.filter_length, _, self.fir_window) = \
+         self.h_trans_bandwidth, self.filter_length, _, self.fir_window,
+         self.fir_design) = \
             _triage_filter_params(X, self.sfreq, self.l_freq, self.h_freq,
                                   self.l_trans_bandwidth,
                                   self.h_trans_bandwidth, self.filter_length,
                                   self.method, phase='zero',
-                                  fir_window=self.fir_window)
+                                  fir_window=self.fir_window,
+                                  fir_design=self.fir_design)
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
                         filter_length=self.filter_length,
                         l_trans_bandwidth=self.l_trans_bandwidth,
                         h_trans_bandwidth=self.h_trans_bandwidth,
                         n_jobs=self.n_jobs, method=self.method,
                         iir_params=self.iir_params, copy=False,
-                        fir_window=self.fir_window,
+                        fir_window=self.fir_window, fir_design=self.fir_design,
                         verbose=self.verbose)
         return X.reshape(shape)

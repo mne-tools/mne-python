@@ -12,7 +12,7 @@ from .base import _set_cv
 from ..io.pick import _pick_data_channels
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import warn, check_version
+from ..utils import warn, check_version, deprecated
 
 
 class _DecodingTime(dict):
@@ -872,6 +872,8 @@ def _predict(X, estimators, vectorize_times, predict_method):
     return y_pred
 
 
+@deprecated('GeneralizationAcrossTime is deprecated and will be removed in '
+            ' 0.15, use GeneralizingEstimator instead.')
 class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     """Generalize across time and conditions.
 
@@ -1203,6 +1205,8 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
                               legend=legend, chance=chance, label=label)
 
 
+@deprecated('TimeDecoding is deprecated and will be removed in '
+            ' 0.15, use SlidingEstimator instead.')
 class TimeDecoding(_GeneralizationAcrossTime):
     """Train and test a series of classifiers at each time point.
 
@@ -1466,7 +1470,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     def plot(self, title=None, xmin=None, xmax=None, ymin=None, ymax=None,
              ax=None, show=True, color=None, xlabel=True, ylabel=True,
              legend=True, chance=True, label='Classif. score'):
-        """Plotting function.
+        """Plot the decoding results.
 
         Predict each classifier. If multiple classifiers are passed, average
         prediction across all classifiers to result in a single prediction per

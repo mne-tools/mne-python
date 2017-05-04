@@ -44,7 +44,7 @@ event_id = dict(aud_r=2, vis_r=4)  # load contra-lateral conditions
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(2, None)  # replace baselining with high-pass
+raw.filter(2, None, fir_design='firwin')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 # Set up pick list: MEG - bad channels (modify to your needs)
@@ -76,7 +76,7 @@ inverse_operator = read_inverse_operator(fname_inv)
 X = np.zeros([n_epochs, n_vertices, n_times])
 
 # to save memory, we'll load and transform our epochs step by step.
-for condition_count, ep in zip([0, n_epochs / 2], epochs_list):
+for condition_count, ep in zip([0, n_epochs // 2], epochs_list):
     stcs = apply_inverse_epochs(ep, inverse_operator, lambda2,
                                 method, pick_ori="normal",  # saves us memory
                                 return_generator=True)

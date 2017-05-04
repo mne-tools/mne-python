@@ -84,9 +84,9 @@ def test_plot_topo():
 
     def return_inds(d):  # to test function kwarg to zorder arg of evoked.plot
         return list(range(d.shape[0]))
-    ts_args = dict(spatial_colors=True, zorder=return_inds)
-    evoked.plot_joint(title='test', ts_args=ts_args,
-                      topomap_args=dict(colorbar=True, times=[0.]))
+    evoked.plot_joint(title='test', topomap_args=dict(contours=0, res=8),
+                      ts_args=dict(spatial_colors=True, zorder=return_inds))
+    assert_raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True))
 
     warnings.simplefilter('always', UserWarning)
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])

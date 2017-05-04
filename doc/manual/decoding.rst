@@ -1,3 +1,4 @@
+.. include:: ../git_links.inc
 
 .. contents:: Contents
    :local:
@@ -5,8 +6,8 @@
 
 .. _decoding:
 
-Decoding
-########
+Decoding in MNE
+###############
 
 For maximal compatibility with the Scikit-learn package, we follow the same API. Each estimator implements a ``fit``, a ``transform`` and a ``fit_transform`` method. In some cases, they also implement an ``inverse_transform`` method. For more details, visit the Scikit-learn page.
 
@@ -17,9 +18,11 @@ Basic Estimators
 
 Scaler
 ^^^^^^
-This will standardize data across channels. Each channel type (mag, grad or eeg) is treated separately. During training time, the mean (`ch_mean_`) and standard deviation (`std_`) is computed in the ``fit`` method and stored as an attribute to the object. The ``transform`` method is called to transform the training set. To perform both the ``fit`` and ``transform`` operations in a single call, the ``fit_transform`` method may be used. During test time, the stored mean and standard deviation are used in the ``transform`` method. To recover the original data, you can use ``inverse_transform``.
+The :class:`mne.decoding.Scaler` will standardize the data based on channel scales. In the simplest modes ``scalings=None`` or ``scalings=dict(...)``, each data channel type (e.g., mag, grad, eeg) is treated separately and scaled by a constant. This is the approach used by e.g., :func:`mne.compute_covariance` to standardize channel scales.
 
-.. note:: This is different from the ``StandarScaler`` estimator offered by Scikit-Learn. The ``StandardScaler`` standardizes each feature, whereas the ``Scaler`` object standardizes by channel type.
+If ``scalings='mean'`` or ``scalings='median'``, each channel is scaled using empirical measures. Each channel is scaled independently by the mean and standand deviation, or median and interquartile range, respectively, across all epochs and time points during :class:`mne.decoding.Scaler.fit` (during training). The :meth:`mne.decoding.Scaler.transform` method is called to transform data (training or test set) by scaling all time points and epochs on a channel-by-channel basis. To perform both the ``fit`` and ``transform`` operations in a single call, the :meth:`mne.decoding.Scaler.fit_transform` method may be used. To invert the transform, :meth:`mne.decoding.Scaler.inverse_transform` can be used. For ``scalings='median'``, scikit-learn_ version 0.17+ is required.
+
+.. note:: This is different from directly applying :class:`sklearn.preprocessing.StandardScaler` or :class:`sklearn.preprocessing.RobustScaler` offered by scikit-learn_. The ``StandardScaler`` and ``RobustScaler`` scale each *classification feature*, e.g. each time point for each channel, with mean and standard deviation computed across epochs, whereas ``Scaler`` scales each *channel* using mean and standard deviation computed across all of its time points and epochs.
 
 Vectorizer
 ^^^^^^^^^^
@@ -72,6 +75,17 @@ Large entries in the diagonal matrix corresponds to a spatial filter which gives
 
     The winning entry of the Grasp-and-lift EEG competition in Kaggle uses the CSP implementation in MNE. It was featured as a `script of the week`_.
 
+
+Source Power Comodulation (SPoC)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Source Power Comodulation (SPoC) [1]_ allows to identify the composition of orthogonal spatial filters that maximally correlate with a continuous target.
+
+SPoC can be seen as an extension of the CSP where the target is driven by a continuous variable rather than a discrete variable. Typical applications include extraction of motor patterns using EMG power or audio patterns using sound envelope.
+
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_spoc_CMC.py`
+
 xDAWN
 ^^^^^
 Xdawn is a spatial filtering method designed to improve the signal to signal + noise ratio (SSNR) of the ERP responses. Xdawn was originally  designed for P300 evoked potential by enhancing the target response with respect to the non-target response. The implementation in MNE-Python is a generalization to any type of ERP.
@@ -119,42 +133,55 @@ To plot the corresponding filter, you can do::
 Sensor-space decoding
 =====================
 
-Generalization Across Time
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-Generalization Across Time (GAT) is a modern strategy to infer neuroscientific conclusions from decoding analysis of sensor-space data. An accuracy matrix is constructed where each point represents the performance of the model trained on one time window and tested on another.
+Decoding over time
+^^^^^^^^^^^^^^^^^^
 
-.. image:: ../../_images/sphx_glr_plot_decoding_time_generalization_001.png
-   :align: center
-   :width: 400px
+This strategy consists in fitting a multivariate predictive model on each
+time instant and evaluating its performance at the same instant on new
+epochs. The :class:`mne.decoding.SlidingEstimator` will take as input a
+pair of features :math:`X` and targets :math:`y`, where :math:`X` has
+more than 2 dimensions. For decoding over time the data :math:`X`
+is the epochs data of shape n_epochs x n_channels x n_times. As the
+last dimension of :math:`X` is the time an estimator will be fit
+on every time instant.
 
-To use this functionality, simply do::
+This approach is analogous to SlidingEstimator-based approaches in fMRI,
+where here we are interested in when one can discriminate experimental
+conditions and therefore figure out when the effect of interest happens.
 
-    >>> gat = GeneralizationAcrossTime(predict_mode='cross-validation', n_jobs=1)
-    >>> gat.fit(epochs)
-    >>> gat.score(epochs)
-    >>> gat.plot(vmin=0.1, vmax=0.9, title="Generalization Across Time (faces vs. scrambled)")
-
-.. topic:: Examples:
-
-    * :ref:`sphx_glr_auto_examples_decoding_plot_ems_filtering.py`
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization_conditions.py`
-
-Time Decoding
-^^^^^^^^^^^^^
-In this strategy, a model trained on one time window is tested on the same time window. A moving time window will thus yield an accuracy curve similar to an ERP, but is considered more sensitive to effects in some situations. It is related to searchlight-based approaches in fMRI. This is also the diagonal of the GAT matrix.
+When working with linear models as estimators, this approach boils
+down to estimating a discriminative spatial filter for each time instant.
 
 .. image:: ../../_images/sphx_glr_plot_decoding_sensors_001.png
    :align: center
    :width: 400px
 
-To generate this plot, you need to initialize a GAT object and then use the method ``plot_diagonal``::
+To generate this plot see our tutorial :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`.
 
-    >>> gat.plot_diagonal()
+Temporal Generalization
+^^^^^^^^^^^^^^^^^^^^^^^
 
-.. topic:: Examples:
+Temporal Generalization is an extension of the decoding over time approach.
+It consists in evaluating whether the model estimated at a particular
+time instant accurately predicts any other time instant. It is analogous to
+transferring a trained model to a distinct learning problem, where the problems
+correspond to decoding the patterns of brain activity recorded at distinct time
+instants.
 
-    * :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`
-    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_time_generalization_conditions.py`
+The object to for Temporal Generalization is
+:class:`mne.decoding.GeneralizingEstimator`. It expects as input :math:`X` and
+:math:`y` (similarly to :class:`mne.decoding.SlidingEstimator`) but, when generate
+predictions from each model for all time instants. The class
+:class:`mne.decoding.GeneralizingEstimator` is generic and will treat the last
+dimension as the one to be used for generalization testing. For convenience,
+here, we refer to it different tasks. If :math:`X` corresponds to epochs data
+then the last dimension is time.
+
+.. image:: ../../_images/sphx_glr_plot_decoding_time_generalization_001.png
+   :align: center
+   :width: 400px
+
+To generate this plot see our tutorial :ref:`sphx_glr_auto_tutorials_plot_sensors_decoding.py`.
 
 Source-space decoding
 =====================
@@ -166,3 +193,8 @@ Source space decoding is also possible, but because the number of features can b
     * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_spatio_temporal_source.py`
 
 .. _script of the week: http://blog.kaggle.com/2015/08/12/july-2015-scripts-of-the-week/
+
+References
+==========
+
+.. [1] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M., Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for relating the amplitude of neuronal oscillations to behaviorally relevant parameters. NeuroImage, 86, 111-122.

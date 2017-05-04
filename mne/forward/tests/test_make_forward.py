@@ -25,7 +25,7 @@ from mne.forward import Forward, _do_forward_solution
 from mne.dipole import Dipole, fit_dipole
 from mne.simulation import simulate_evoked
 from mne.source_estimate import VolSourceEstimate
-from mne.source_space import (get_volume_labels_from_aseg,
+from mne.source_space import (get_volume_labels_from_aseg, write_source_spaces,
                               _compare_source_spaces, setup_source_space)
 
 data_path = testing.data_path(download=False)
@@ -136,8 +136,9 @@ def test_make_forward_solution_kit():
     # first set up a small testing source space
     temp_dir = _TempDir()
     fname_src_small = op.join(temp_dir, 'sample-oct-2-src.fif')
-    src = setup_source_space('sample', fname_src_small, 'oct2',
-                             subjects_dir=subjects_dir, add_dist=False)
+    src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
+                             add_dist=False)
+    write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
     n_src = 108  # this is the resulting # of verts in fwd
 
     # first use mne-C: convert file, make forward solution
@@ -219,8 +220,9 @@ def test_make_forward_solution_sphere():
     """Test making a forward solution with a sphere model."""
     temp_dir = _TempDir()
     fname_src_small = op.join(temp_dir, 'sample-oct-2-src.fif')
-    src = setup_source_space('sample', fname_src_small, 'oct2',
-                             subjects_dir=subjects_dir, add_dist=False)
+    src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
+                             add_dist=False)
+    write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
     out_name = op.join(temp_dir, 'tmp-fwd.fif')
     run_subprocess(['mne_forward_solution', '--meg', '--eeg',
                     '--meas', fname_raw, '--src', fname_src_small,
@@ -254,12 +256,10 @@ def test_forward_mixed_source_space():
     label_names = get_volume_labels_from_aseg(fname_aseg)
     vol_labels = [label_names[int(np.random.rand() * len(label_names))]
                   for _ in range(2)]
-    vol1 = setup_volume_source_space('sample', fname=None, pos=20.,
-                                     mri=fname_aseg,
+    vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[0],
                                      add_interpolator=False)
-    vol2 = setup_volume_source_space('sample', fname=None, pos=20.,
-                                     mri=fname_aseg,
+    vol2 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[1],
                                      add_interpolator=False)
 

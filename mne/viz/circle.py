@@ -14,7 +14,7 @@ from functools import partial
 
 import numpy as np
 
-from .utils import plt_show
+from .utils import plt_show, _set_ax_facecolor
 from ..externals.six import string_types
 
 
@@ -269,7 +269,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # Use a polar axes
     if not isinstance(subplot, tuple):
         subplot = (subplot,)
-    axes = plt.subplot(*subplot, polar=True, axisbg=facecolor)
+    axes = plt.subplot(*subplot, polar=True)
+    _set_ax_facecolor(axes, facecolor)
 
     # No ticks, we'll put our own
     plt.xticks([])

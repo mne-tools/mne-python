@@ -157,6 +157,7 @@ class SurfaceSource(HasTraits):
 
     @on_trait_change('file')
     def read_file(self):
+        """Read the file."""
         if op.exists(self.file):
             if self.file.endswith('.fif'):
                 bem = read_bem_surfaces(self.file, verbose=False)[0]

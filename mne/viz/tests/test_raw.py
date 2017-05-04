@@ -41,90 +41,11 @@ def _get_events():
     return read_events(event_name)
 
 
-def test_plot_raw():
-    """Test plotting of raw data."""
+def _annotation_helper(raw):
+    """Helper for testing interactive annotations."""
     import matplotlib.pyplot as plt
-    raw = _get_raw()
-    events = _get_events()
-    plt.close('all')  # ensure all are closed
-    with warnings.catch_warnings(record=True):
-        fig = raw.plot(events=events, show_options=True)
-        # test mouse clicks
-        x = fig.get_axes()[0].lines[1].get_xdata().mean()
-        y = fig.get_axes()[0].lines[1].get_ydata().mean()
-        data_ax = fig.axes[0]
+    n_anns = 0 if raw.annotations is None else len(raw.annotations.onset)
 
-        _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
-        _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
-        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
-        _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
-        _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
-        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
-        _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
-        fig.canvas.button_press_event(1, 1, 1)  # outside any axes
-        fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-        fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
-        # sadly these fail when no renderer is used (i.e., when using Agg):
-        # ssp_fig = set(plt.get_fignums()) - set([fig.number])
-        # assert_equal(len(ssp_fig), 1)
-        # ssp_fig = plt.figure(list(ssp_fig)[0])
-        # ax = ssp_fig.get_axes()[0]  # only one axis is used
-        # t = [c for c in ax.get_children() if isinstance(c,
-        #      matplotlib.text.Text)]
-        # pos = np.array(t[0].get_position()) + 0.01
-        # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
-        # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
-        #  test keypresses
-        for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
-                    'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
-            fig.canvas.key_press_event(key)
-        # Color setting
-        assert_raises(KeyError, raw.plot, event_color={0: 'r'})
-        assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
-        annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
-                            [10, 10], ['test', 'test'], raw.info['meas_date'])
-        raw.annotations = annot
-        fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
-        plt.close('all')
-        for order in ['position', 'selection', range(len(raw.ch_names))[::-4],
-                      [1, 2, 4, 6]]:
-            fig = raw.plot(order=order)
-            x = fig.get_axes()[0].lines[1].get_xdata()[10]
-            y = fig.get_axes()[0].lines[1].get_ydata()[10]
-            _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
-            fig.canvas.key_press_event('down')  # change selection
-            _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
-            if order in ('position', 'selection'):
-                sel_fig = plt.figure(1)
-                topo_ax = sel_fig.axes[1]
-                _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
-                            xform='data')
-                fig.canvas.key_press_event('down')
-                fig.canvas.key_press_event('up')
-                fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
-                fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
-                _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
-                _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
-                            kind='motion')
-                _fake_click(sel_fig, topo_ax, [0.5, 0.5], xform='data',
-                            kind='motion')
-                _fake_click(sel_fig, topo_ax, [-0.5, 0.5], xform='data',
-                            kind='release')
-
-            plt.close('all')
-        # test if meas_date has only one element
-        raw.info['meas_date'] = np.array([raw.info['meas_date'][0]],
-                                         dtype=np.int32)
-        raw.annotations = Annotations([1 + raw.first_samp / raw.info['sfreq']],
-                                      [5], ['bad'])
-        raw.plot()
-        plt.close('all')
-
-
-def test_plot_annotations():
-    """Test annotation mode of the plotter."""
-    import matplotlib.pyplot as plt
-    raw = _get_raw()
     fig = raw.plot()
     data_ax = fig.axes[0]
     fig.canvas.key_press_event('a')  # annotation mode
@@ -157,10 +78,10 @@ def test_plot_annotations():
     _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1, kind='motion')
     _fake_click(fig, data_ax, [1.1, 1.], xform='data', button=1,
                 kind='release')
-    assert_equal(len(raw.annotations.onset), 1)
-    assert_equal(len(raw.annotations.duration), 1)
-    assert_equal(len(raw.annotations.description), 1)
-    assert_equal(raw.annotations.description[0], 'BAD test')
+    assert_equal(len(raw.annotations.onset), n_anns + 1)
+    assert_equal(len(raw.annotations.duration), n_anns + 1)
+    assert_equal(len(raw.annotations.description), n_anns + 1)
+    assert_equal(raw.annotations.description[n_anns], 'BAD test')
 
     # draw another annotation merging the two
     _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')
@@ -169,17 +90,112 @@ def test_plot_annotations():
     # delete the annotation
     _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3, kind='press')
     fig.canvas.key_press_event('a')  # exit annotation mode
+
+    assert_equal(len(raw.annotations.onset), n_anns)
+    assert_equal(len(raw.annotations.duration), n_anns)
+    assert_equal(len(raw.annotations.description), n_anns)
     plt.close('all')
 
-    assert_equal(len(raw.annotations.onset), 0)
-    assert_equal(len(raw.annotations.duration), 0)
-    assert_equal(len(raw.annotations.description), 0)
-    plt.close('all')
 
-    raw.annotations = Annotations([1], [1], 'test', raw.info['meas_date'])
-    fig = raw.plot()
-    assert_raises(NotImplementedError, fig.canvas.key_press_event, 'a')
-    plt.close('all')
+def test_plot_raw():
+    """Test plotting of raw data."""
+    import matplotlib.pyplot as plt
+    raw = _get_raw()
+    events = _get_events()
+    plt.close('all')  # ensure all are closed
+    with warnings.catch_warnings(record=True):
+        fig = raw.plot(events=events, show_options=True, order=[1, 7, 3],
+                       group_by='original')
+        # test mouse clicks
+        x = fig.get_axes()[0].lines[1].get_xdata().mean()
+        y = fig.get_axes()[0].lines[1].get_ydata().mean()
+        data_ax = fig.axes[0]
+
+        _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
+        _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
+        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+        _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+        _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
+        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+        _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
+        fig.canvas.button_press_event(1, 1, 1)  # outside any axes
+        fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+        fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+        # sadly these fail when no renderer is used (i.e., when using Agg):
+        # ssp_fig = set(plt.get_fignums()) - set([fig.number])
+        # assert_equal(len(ssp_fig), 1)
+        # ssp_fig = plt.figure(list(ssp_fig)[0])
+        # ax = ssp_fig.get_axes()[0]  # only one axis is used
+        # t = [c for c in ax.get_children() if isinstance(c,
+        #      matplotlib.text.Text)]
+        # pos = np.array(t[0].get_position()) + 0.01
+        # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
+        # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
+        #  test keypresses
+        for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=',
+                    'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
+            fig.canvas.key_press_event(key)
+        fig = plot_raw(raw, events=events, group_by='selection')
+        for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=',
+                    'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
+                    'escape']:
+            fig.canvas.key_press_event(key)
+        # Color setting
+        assert_raises(KeyError, raw.plot, event_color={0: 'r'})
+        assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
+        annot = Annotations([10, 10 + raw.first_samp / raw.info['sfreq']],
+                            [10, 10], ['test', 'test'], raw.info['meas_date'])
+        raw.annotations = annot
+        fig = plot_raw(raw, events=events, event_color={-1: 'r', 998: 'b'})
+        plt.close('all')
+        for group_by, order in zip(['position', 'selection'],
+                                   [np.arange(len(raw.ch_names))[::-3],
+                                    [1, 2, 4, 6]]):
+            fig = raw.plot(group_by=group_by, order=order)
+            x = fig.get_axes()[0].lines[1].get_xdata()[10]
+            y = fig.get_axes()[0].lines[1].get_ydata()[10]
+            _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
+            fig.canvas.key_press_event('down')  # change selection
+            _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+            sel_fig = plt.figure(1)
+            topo_ax = sel_fig.axes[1]
+            _fake_click(sel_fig, topo_ax, [-0.425, 0.20223853],
+                        xform='data')
+            fig.canvas.key_press_event('down')
+            fig.canvas.key_press_event('up')
+            fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+            fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+            _fake_click(sel_fig, topo_ax, [-0.5, 0.], xform='data')
+            _fake_click(sel_fig, topo_ax, [0.5, 0.], xform='data',
+                        kind='motion')
+            _fake_click(sel_fig, topo_ax, [0.5, 0.5], xform='data',
+                        kind='motion')
+            _fake_click(sel_fig, topo_ax, [-0.5, 0.5], xform='data',
+                        kind='release')
+
+            plt.close('all')
+        # test if meas_date has only one element
+        raw.info['meas_date'] = np.array([raw.info['meas_date'][0]],
+                                         dtype=np.int32)
+        raw.annotations = Annotations([1 + raw.first_samp / raw.info['sfreq']],
+                                      [5], ['bad'])
+        raw.plot(group_by='position', order=np.arange(8))
+        for fig_num in plt.get_fignums():
+            fig = plt.figure(fig_num)
+            if hasattr(fig, 'radio'):  # Get access to selection fig.
+                break
+        for key in ['down', 'up', 'escape']:
+            fig.canvas.key_press_event(key)
+        plt.close('all')
+
+
+def test_plot_annotations():
+    """Test annotation mode of the plotter."""
+    raw = _get_raw()
+    _annotation_helper(raw)
+
+    raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])
+    _annotation_helper(raw)
 
 
 @requires_version('scipy', '0.10')
@@ -193,7 +209,7 @@ def test_plot_raw_filtered():
     assert_raises(ValueError, raw.plot, clipping='foo')
     raw.plot(lowpass=1, clipping='transparent')
     raw.plot(highpass=1, clipping='clamp')
-    raw.plot(highpass=1, lowpass=2)
+    raw.plot(highpass=1, lowpass=2, butterfly=True)
 
 
 @requires_version('scipy', '0.12')
@@ -202,8 +218,7 @@ def test_plot_raw_psd():
     import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
-    with warnings.catch_warnings(record=True):  # deprecation of tmax
-        raw.plot_psd()
+    raw.plot_psd()
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False,
@@ -241,10 +256,11 @@ def test_plot_sensors():
     raw = _get_raw()
     fig = raw.plot_sensors('3d')
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
-    raw.plot_sensors('topomap', ch_type='mag')
+    raw.plot_sensors('topomap', ch_type='mag',
+                     show_names=['MEG 0111', 'MEG 0131'])
     ax = plt.subplot(111)
     raw.plot_sensors(ch_groups='position', axes=ax)
-    raw.plot_sensors(ch_groups='selection')
+    raw.plot_sensors(ch_groups='selection', to_sphere=False)
     raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
     assert_raises(ValueError, raw.plot_sensors, ch_groups='asd')
     assert_raises(TypeError, plot_sensors, raw)  # needs to be info

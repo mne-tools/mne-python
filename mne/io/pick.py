@@ -714,6 +714,11 @@ _PICK_TYPES_DATA_DICT = dict(
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
 _DATA_CH_TYPES_SPLIT = ['mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr']
 
+# Valid data types, ordered for consistency, used in viz/evoked.
+_VALID_CHANNEL_TYPES = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
+                        'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
+                        'misc']
+
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
     """Pick only data channels."""
@@ -736,6 +741,5 @@ def _pick_data_or_ica(info):
     if 'ICA ' in ','.join(ch_names):
         picks = pick_types(info, exclude=[], misc=True)
     else:
-        picks = _pick_data_channels(info, exclude=[],
-                                    with_ref_meg=False)
+        picks = _pick_data_channels(info, exclude=[], with_ref_meg=True)
     return picks

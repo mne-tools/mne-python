@@ -12,11 +12,12 @@ from __future__ import print_function
 
 from functools import partial
 from copy import deepcopy
+from numbers import Integral
 
 import numpy as np
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
+                       _pick_data_channels, _VALID_CHANNEL_TYPES)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -29,8 +30,7 @@ from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
 from ..channels import find_layout
-from ..channels.layout import (_pair_grad_sensors, generate_2d_layout,
-                               _auto_topomap_coords)
+from ..channels.layout import _pair_grad_sensors
 
 
 def _butterfly_onpick(event, params):
@@ -78,6 +78,9 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
+    if len(ch_types) == 0:
+        raise ValueError('Interactive topomaps only allowed for EEG '
+                         'and MEG channels.')
     if ('grad' in ch_types and
             len(_pair_grad_sensors(info, topomap_coords=False,
                                    raise_error=False)) < 2):
@@ -89,11 +92,9 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     if text is not None:
         text.set_visible(True)
         ax = text.axes
-        ylim = ax.get_ylim()
-        vert_lines.append(ax.plot([xmin, xmin], ylim, zorder=0, color='red'))
-        vert_lines.append(ax.plot([xmax, xmax], ylim, zorder=0, color='red'))
-        fill = ax.fill_betweenx(ylim, x1=xmin, x2=xmax, alpha=0.2,
-                                color='green')
+        vert_lines.append(ax.axvline(xmin, zorder=0, color='red'))
+        vert_lines.append(ax.axvline(xmax, zorder=0, color='red'))
+        fill = ax.axvspan(xmin, xmax, alpha=0.2, color='green')
         evoked_fig = plt.gcf()
         evoked_fig.canvas.draw()
         evoked_fig.canvas.flush_events()
@@ -126,7 +127,7 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
 
     unit = 'Hz' if psd else 'ms'
     fig.suptitle('Average over %.2f%s - %.2f%s' % (xmin, unit, xmax, unit),
-                 fontsize=15, y=0.1)
+                 y=0.1)
     tight_layout(pad=2.0, fig=fig)
     plt_show()
     if text is not None:
@@ -141,8 +142,8 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
 def _topo_closed(events, ax, lines, fill):
     """Remove lines from evoked plot as topomap is closed."""
     for line in lines:
-        ax.lines.remove(line[0])
-    ax.collections.remove(fill)
+        ax.lines.remove(line)
+    ax.patches.remove(fill)
     ax.get_figure().canvas.draw()
 
 
@@ -156,7 +157,7 @@ def _rgb(x, y, z):
 
 def _plot_legend(pos, colors, axis, bads, outlines, loc):
     """Plot color/channel legends for butterfly plots with spatial colors."""
-    from mpl_toolkits.axes_grid.inset_locator import inset_axes
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=loc)
@@ -196,10 +197,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
-    # Valid data types ordered for consistency
-    valid_channel_types = ['eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
-                           'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
-                           'misc']
 
     if picks is None:
         picks = list(range(info['nchan']))
@@ -221,7 +218,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
     types = np.array([channel_type(info, idx) for idx in picks])
     ch_types_used = list()
-    for this_type in valid_channel_types:
+    for this_type in _VALID_CHANNEL_TYPES:
         if this_type in types:
             ch_types_used.append(this_type)
 
@@ -231,6 +228,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
         if isinstance(axes, plt.Axes):
             axes = [axes]
+        fig.set_size_inches(6.4, 2 + len(axes))
 
     if isinstance(axes, plt.Axes):
         axes = [axes]
@@ -267,7 +265,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
                         units, scalings, evoked.times, xlim, ylim, titles)
-
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -277,11 +274,12 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
-    plt_show(show, block=True)
+    for ax in fig.axes[:-1]:
+        ax.set_xlabel('')
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
         tight_layout(fig=fig)
-
+    plt_show(show)
     return fig
 
 
@@ -289,7 +287,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
                 line_alpha):
-    """Function for plotting data as butterfly plot."""
+    """Plot data as butterfly plot."""
     from matplotlib import patheffects
     from matplotlib.widgets import SpanSelector
     texts = list()
@@ -299,15 +297,17 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                            alpha=0.75)]
     gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w",
                                                alpha=0.75)]
-    # Parameters for butterfly interactive plots
-    params = dict(axes=axes, texts=texts, lines=lines,
-                  ch_names=info['ch_names'], idxs=idxs, need_draw=False,
-                  path_effects=path_effects)
-    fig.canvas.mpl_connect('pick_event',
-                           partial(_butterfly_onpick, params=params))
-    fig.canvas.mpl_connect('button_press_event',
-                           partial(_butterfly_on_button_press,
-                                   params=params))
+
+    if selectable:
+        # Parameters for butterfly interactive plots
+        params = dict(axes=axes, texts=texts, lines=lines,
+                      ch_names=info['ch_names'], idxs=idxs, need_draw=False,
+                      path_effects=path_effects)
+        fig.canvas.mpl_connect('pick_event',
+                               partial(_butterfly_onpick, params=params))
+        fig.canvas.mpl_connect('button_press_event',
+                               partial(_butterfly_on_button_press,
+                                       params=params))
     for ax, this_type in zip(axes, ch_types_used):
         line_list = list()  # 'line_list' contains the lines for this axes
         ch_unit = units[this_type]
@@ -329,38 +329,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                          'colors.')
                     spatial_colors = selectable = False
                 if spatial_colors is True and len(idx) != 1:
-                    x, y, z = locs3d.T
-                    colors = _rgb(x, y, z)
-                    if this_type in ('meg', 'mag', 'grad', 'eeg'):
-                        layout = find_layout(info, ch_type=this_type,
-                                             exclude=[])
-                    else:
-                        layout = find_layout(info, None, exclude=[])
-                    # drop channels that are not in the data
-                    used_nm = np.array(_clean_names(info['ch_names']))[idx]
-                    names = np.asarray([name for name in used_nm
-                                        if name in layout.names])
-                    name_idx = [layout.names.index(name) for name in names]
-                    if len(name_idx) < len(chs):
-                        warn('Could not find layout for all the channels. '
-                             'Generating custom layout from channel '
-                             'positions.')
-                        xy = _auto_topomap_coords(info, idx,
-                                                  ignore_overlap=True)
-                        layout = generate_2d_layout(
-                            xy, ch_names=list(used_nm), name='custom')
-                        names = used_nm
-                        name_idx = [layout.names.index(name) for name in
-                                    names]
-
-                    # find indices for bads
-                    bads = [np.where(names == bad)[0][0] for bad in
-                            info['bads'] if bad in names]
-                    pos, outlines = _check_outlines(layout.pos[:, :2],
-                                                    'skirt', None)
-                    pos = pos[name_idx]
-                    loc = 1 if psd else 2  # Legend in top right for psd plot.
-                    _plot_legend(pos, colors, ax, bads, outlines, loc)
+                    colors = _handle_spatial_colors(locs3d, info, idx,
+                                                    this_type, psd, ax)
                 else:
                     if isinstance(spatial_colors, (tuple, string_types)):
                         col = [spatial_colors]
@@ -459,9 +429,38 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
 
 
+def _handle_spatial_colors(locs3d, info, idx, ch_type, psd, ax):
+    """Set up spatial colors."""
+    x, y, z = locs3d.T
+    colors = _rgb(x, y, z)
+    ch_type = None if ch_type not in ('meg', 'mag', 'grad', 'eeg') else ch_type
+
+    layout = find_layout(info, ch_type=ch_type, exclude=[])
+    if layout.kind == 'custom':
+        head_pos = {'center': (0, 0), 'scale': (4.5, 4.5)}
+        outlines = np.array([0.5, 0.5])
+    else:
+        head_pos = None
+        outlines = 'skirt'
+    # drop channels that are not in the data
+    used_nm = np.array(_clean_names(info['ch_names']))[idx]
+
+    names = np.asarray([name for name in used_nm if name in layout.names])
+    name_idx = [layout.names.index(name) for name in names]
+
+    # find indices for bads
+    bads = [np.where(names == bad)[0][0] for bad in info['bads'] if bad in
+            names]
+    pos, outlines = _check_outlines(layout.pos[:, :2], outlines, head_pos)
+    pos = pos[name_idx]
+    loc = 1 if psd else 2  # Legend in top right for psd plot.
+    _plot_legend(pos, colors, ax, bads, outlines, loc)
+    return colors
+
+
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                 xlim, ylim, titles):
-    """Function for plotting images."""
+    """Plot images."""
     import matplotlib.pyplot as plt
     cmap = _setup_cmap(cmap)
     ch_unit = units[this_type]
@@ -592,7 +591,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_facecolor='k',
                      fig_background=None, axis_facecolor='k', font_color='w',
-                     merge_grads=False, show=True):
+                     merge_grads=False, legend=True, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -644,6 +643,14 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
+    legend : bool | int | string | tuple
+        If True, create a legend based on evoked.comment. If False, disable the
+        legend. Otherwise, the legend is created and the parameter value is
+        passed as the location parameter to the matplotlib legend call. It can
+        be an integer (e.g. 0 corresponds to upper right corner of the plot),
+        a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
+        lower left corner of the legend in the axes coordinate system).
+        See matplotlib documentation for more details.
     show : bool
         Show figure if True.
 
@@ -660,7 +667,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color, merge_grads=merge_grads,
-                             show=show)
+                             legend=legend, show=show)
 
 
 def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
@@ -954,8 +961,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     noise_cov[0].get('method', 'empirical'))
         fig.suptitle(suptitle)
 
-    if any(((n_columns == 1 and n_ch_used == 1),
-            (n_columns == 1 and n_ch_used > 1),
+    if any(((n_columns == 1 and n_ch_used >= 1),
             (n_columns == 2 and n_ch_used == 1))):
         axes_evoked = axes[:n_ch_used]
         ax_gfp = axes[-1:]
@@ -994,20 +1000,21 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     this_rank, 'rank ' if n_columns > 1 else '')
             label = noise_cov.get('method', 'empirical')
 
-            ax_gfp[i].set_title(title if n_columns > 1 else
-                                'whitened global field power (GFP),'
-                                ' method = "%s"' % label)
+            ax = ax_gfp[i]
+            ax.set_title(title if n_columns > 1 else
+                         'whitened global field power (GFP),'
+                         ' method = "%s"' % label)
 
             data = evoked_white.data[sub_picks]
             gfp = whitened_gfp(data, rank=this_rank)
-            ax_gfp[i].plot(times, gfp,
-                           label=(label if n_columns > 1 else title),
-                           color=color if n_columns > 1 else ch_colors[ch])
-            ax_gfp[i].set_xlabel('times [ms]')
-            ax_gfp[i].set_ylabel('GFP [chi^2]')
-            ax_gfp[i].set_xlim(times[0], times[-1])
-            ax_gfp[i].set_ylim(0, 10)
-            ax_gfp[i].axhline(1, color='red', linestyle='--')
+            ax.plot(times, gfp,
+                    label=label if n_columns > 1 else title,
+                    color=color if n_columns > 1 else ch_colors[ch])
+            ax.set_xlabel('times [ms]')
+            ax.set_ylabel('GFP [chi^2]')
+            ax.set_xlim(times[0], times[-1])
+            ax.set_ylim(0, 10)
+            ax.axhline(1, color='red', linestyle='--')
             if n_columns > 1:
                 i += 1
 
@@ -1093,7 +1100,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ----------
     evoked : instance of Evoked
         The evoked instance.
-    times : float | array of floats | "auto" | "peaks".
+    times : float | array of floats | "auto" | "peaks"
         The time point(s) to plot. If "auto", 5 evenly spaced topographies
         between the first and last time instant will be shown. If "peaks",
         finds time points automatically by checking for 3 local maxima in
@@ -1109,16 +1116,17 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         Show figure if True. Defaults to True.
     ts_args : None | dict
         A dict of `kwargs` that are forwarded to `evoked.plot` to
-        style the butterfly plot. `axes` and `show` are ignored.
-        If `spatial_colors` is not in this dict, `spatial_colors=True`,
-        and (if it is not in the dict) `zorder='std'` will be passed.
-        Defaults to ``None``.
+        style the butterfly plot. If they are not in this dict, the following
+        defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
+       ``axes``, ``show``, ``exclude`` are illegal.
+        If None, no customizable arguments will be passed.
+        Defaults to `None`.
     topomap_args : None | dict
-        A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
-        to style the topomaps. `axes` and `show` are ignored. If `times`
-        is not in this dict, automatic peak detection is used. Beyond that,
-        if ``None`, no customizable arguments will be passed.
-        Defaults to ``None``.
+        A dict of `kwargs` that are forwarded to `evoked.plot_topomap` to
+        style the topomaps. If it is not in this dict, ``outlines='skirt'``
+        will be passed. `axes`, `show`, `times`, `colorbar` are illegal`
+        If None, no customizable arguments will be passed.
+        Defaults to `None`.
 
     Returns
     -------
@@ -1138,6 +1146,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args is None:
         topomap_args = dict()
 
+    illegal_args = {"axes", "show", 'times', 'exclude'}
+    for args in (ts_args, topomap_args):
+        if any((x in args for x in illegal_args)):
+            raise ValueError("Don't pass any of {} as *_args.".format(
+                ", ".join(list(illegal_args))))
+
     # channel selection
     # simply create a new evoked object(s) with the desired channel selection
     evoked = evoked.copy()
@@ -1156,7 +1170,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         evoked.drop_channels(exclude)
 
     info = evoked.info
-    data_types = ['eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr']
+    data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
     ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
 
     # if multiple sensor types: one plot per channel type, recursive call
@@ -1186,17 +1200,13 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # butterfly/time series plot
     # most of this code is about passing defaults on demand
     ts_ax = fig.add_subplot(212)
-    ts_args_pass = dict((k, v) for k, v in ts_args.items() if k not in
-                        ['axes', 'show', 'colorbar', 'set_tight_layout'])
     ts_args_def = dict(picks=None, unit=True, ylim=None, xlim='tight',
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,
                        spatial_colors=True, zorder='std')
-    for key in ts_args_def:
-        if key not in ts_args:
-            ts_args_pass[key] = ts_args_def[key]
+    ts_args_def.update(ts_args)
     _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
-                 exclude=[], set_tight_layout=False, **ts_args_pass)
+                 exclude=[], set_tight_layout=False, **ts_args_def)
 
     # handle title
     # we use a new axis for the title to handle scaling of plots
@@ -1224,12 +1234,13 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     norm = ch_type == 'grad'
     vmin = 0 if norm else vmin
     vmin, vmax = _setup_vmin_vmax(evoked.data, vmin, vmax, norm)
-    locator, contours = _set_contour_locator(vmin, vmax, contours)
+    if not isinstance(contours, (list, np.ndarray)):
+        locator, contours = _set_contour_locator(vmin, vmax, contours)
+    else:
+        locator = None
 
-    topomap_args_pass = dict((k, v) for k, v in topomap_args.items() if
-                             k not in ['times', 'axes', 'show', 'colorbar'])
-    topomap_args_pass['outlines'] = (topomap_args['outlines'] if 'outlines'
-                                     in topomap_args else 'skirt')
+    topomap_args_pass = topomap_args.copy()
+    topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
     topomap_args_pass['contours'] = contours
     evoked.plot_topomap(times=times, axes=map_ax, show=False, colorbar=False,
                         **topomap_args_pass)
@@ -1237,9 +1248,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if topomap_args.get('colorbar', True):
         from matplotlib import ticker
         cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
-        if locator is None:
-            locator = ticker.MaxNLocator(nbins=5)
-        cbar.locator = locator
+        if isinstance(contours, (list, np.ndarray)):
+            cbar.set_ticks(contours)
+        else:
+            if locator is None:
+                locator = ticker.MaxNLocator(nbins=5)
+            cbar.locator = locator
         cbar.update_ticks()
 
     plt.subplots_adjust(left=.1, right=.93, bottom=.14,
@@ -1358,6 +1372,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         series and the parametric confidence interval is plotted as a shaded
         area. All instances must have the same shape - channel numbers, time
         points etc.
+        If dict, keys must be of type str.
     picks : int | list of int
         If int or list of int, the indices of the sensors to average and plot.
         Must all be of the same channel type.
@@ -1440,6 +1455,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     elif not isinstance(evokeds, dict):
         evokeds = dict((str(ii + 1), evoked)
                        for ii, evoked in enumerate(evokeds))
+    for cond in evokeds.keys():
+        if not isinstance(cond, string_types):
+            raise TypeError('Conditions must be str, not %s' % (type(cond),))
     conditions = sorted(list(evokeds.keys()))
 
     # get and set a few limits and variables (times, channels, units)
@@ -1452,12 +1470,16 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     times = example.times
     tmin, tmax = times[0], times[-1]
 
-    if isinstance(picks, int):
+    if isinstance(picks, Integral):
         picks = [picks]
     elif len(picks) == 0:
         warn("No picks, plotting the GFP ...")
         gfp = True
         picks = _pick_data_channels(example.info)
+
+        if len(picks) == 0:
+            raise ValueError("No valid channels were found to plot the GFP. " +
+                             "Use 'picks' instead to select them manually.")
 
     # deal with picks: infer indices and names
     if gfp is True:
@@ -1473,7 +1495,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     ch_types = list(set(channel_type(example.info, pick_)
                     for pick_ in picks))
     # XXX: could possibly be refactored; plot_joint is doing a similar thing
-    if any([type_ not in _DATA_CH_TYPES_SPLIT for type_ in ch_types]):
+    if any([type_ not in _VALID_CHANNEL_TYPES for type_ in ch_types]):
         raise ValueError("Non-data channel picked.")
     if len(ch_types) > 1:
         warn("Multiple channel types selected, returning one figure per type.")
@@ -1703,7 +1725,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # finishing touches
     if invert_y:
         axes.invert_yaxis()
-    axes.patch.set_alpha(0)
     axes.spines['right'].set_color('none')
     axes.set_xlim(tmin, tmax)
 

@@ -52,7 +52,7 @@ event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(.5, 25)
+raw.filter(.5, 25, fir_design='firwin')
 events = mne.read_events(event_fname)
 
 # Read epochs

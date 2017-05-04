@@ -19,7 +19,8 @@ else:
 
 
 @verbose
-def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
+def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto',
+                  pre_dispatch='2 * n_jobs'):
     """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
@@ -40,6 +41,22 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
         or a human-readable string, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays. Use 'auto' to
         use the value set using mne.set_memmap_min_size.
+    pre_dispatch : int, or string, optional
+        Controls the number of jobs that get dispatched during parallel
+        execution. Reducing this number can be useful to avoid an
+        explosion of memory consumption when more jobs get dispatched
+        than CPUs can process. This parameter can be:
+
+            - None, in which case all the jobs are immediately
+              created and spawned. Use this for lightweight and
+              fast-running jobs, to avoid delays due to on-demand
+              spawning of the jobs
+
+            - An int, giving the exact number of total jobs that are
+              spawned
+
+            - A string, giving an expression as a function of n_jobs,
+              as in '2*n_jobs'
 
     Returns
     -------
@@ -90,6 +107,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
 
     # create keyword arguments for Parallel
     kwargs = {'verbose': 5 if logger.level <= logging.INFO else 0}
+    kwargs['pre_dispatch'] = pre_dispatch
 
     if joblib_mmap:
         if cache_dir is None:
