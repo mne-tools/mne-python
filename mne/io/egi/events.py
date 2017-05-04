@@ -30,7 +30,7 @@ def _read_events(input_fname, info):
 
 
 def _read_mff_events(filename, sfreq):
-    """Function for extract the events.
+    """Extract the events.
 
     Parameters
     ----------

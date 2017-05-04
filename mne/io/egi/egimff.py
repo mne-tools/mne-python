@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jan 13 11:01:39 2017.
+#
+# License: BSD (3-clause)
 
-@author: ramonapariciog
-"""
 import datetime
 import os
 import time
@@ -13,7 +11,7 @@ import dateutil.parser
 import numpy as np
 
 from .events import _read_events
-from .general import (_get_signalfname, _get_ep_inf, _extract, _get_blocks,
+from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains)
 from ..base import BaseRaw, _check_update_montage
 from ..constants import FIFF
@@ -23,7 +21,7 @@ from ...utils import verbose, logger, warn
 
 
 def _read_mff_header(filepath):
-    """Header reader Function.
+    """Read mff header.
 
     Parameters
     ----------
@@ -34,13 +32,12 @@ def _read_mff_header(filepath):
     eeg_file = eeg_files[0]
     fname = os.path.join(filepath, eeg_file)
     signal_blocks = _get_blocks(fname)
-    sfreq = signal_blocks['sfreq']
     blocknumsamps = np.sum(signal_blocks['blockNumSamps'])
 
     pibhasref = False
     pibnchans = 0
 
-    epoch_info = _get_ep_inf(filepath, sfreq)
+    epoch_info = _get_ep_info(filepath)
 
     summaryinfo = dict(eeg_fname=eeg_file,
                        info_fname=info_files[0],
@@ -50,15 +47,11 @@ def _read_mff_header(filepath):
     summaryinfo.update(signal_blocks)
 
     # Pull header info from the summary info.
-    nsamplespre = 0
-    if epoch_info['epochType'] == 'seg':
-        n_samples = epoch_info['epochNumSamps'][0]
-        ntrials = len(epoch_info['epochNumSamps'])
-
-        # if Time0 is the same for all segments...
-        if len(set(epoch_info['epochTime0'])) == 1:
-            nsamplespre = epoch_info['epochTime0'][0]
-    else:
+    categfile = os.path.join(filepath, 'categories.xml')
+    if os.path.isfile(categfile):  # epochtype = 'seg'
+        n_samples = epoch_info[0]['last_samp'] - epoch_info['first_samp']
+        ntrials = len(epoch_info)
+    else:  # 'cnt'
         n_samples = np.sum(summaryinfo['blockNumSamps'])
         ntrials = 1
 
@@ -107,7 +100,6 @@ def _read_mff_header(filepath):
     version_and_date = _extract(tags, filepath=info_filepath)
     summaryinfo.update({'version': version_and_date['mffVersion'][0],
                         'date': version_and_date['recordTime'][0],
-                        'nSamplesPre': nsamplespre,
                         'n_samples': n_samples,
                         'nTrials': ntrials,
                         'label': label,

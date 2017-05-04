@@ -39,121 +39,24 @@ def _get_gains(filepath):
     return gains
 
 
-def _get_ep_inf(filepath, samprate):
+def _get_ep_info(filepath):
+    """Get epoch info"""
     epochfile = filepath + '/epochs.xml'
     epochlist = parse(epochfile)
     epochs = epochlist.getElementsByTagName('epoch')
-    numepochs = epochs.length
-    ep_begins = np.zeros((numepochs), dtype='i8')
-    epochnumsamps = np.zeros((numepochs), dtype='i8')
-    epochfirstblocks = np.zeros((numepochs), dtype='i8')
-    epochlastblocks = np.zeros((numepochs), dtype='i8')
-    epochtime0 = np.zeros((numepochs), dtype='i8')
-    epochlabels = [None] * numepochs    # np.zeros((numEpochs), dtype='S50')
-    epochsubjects = []
-    epochfilenames = []
-    epochsegstatus = [None] * numepochs  # np.zeros((numEpochs), dtype='S50')
-    multisubj = False
-
-    for p in range(numepochs):
-        anepoch = epochs[p]
-        epochbegin = int(anepoch.getElementsByTagName('beginTime')[0]
-                         .firstChild.data)
-        epochend = int(anepoch.getElementsByTagName('endTime')[0]
+    epoch_info = list()
+    for epoch in epochs:
+        ep_begin = int(epoch.getElementsByTagName('beginTime')[0]
                        .firstChild.data)
-        ep_begins[p] = _u2sample(epochbegin, samprate)[0]
-        epochtime0[p] = ep_begins[p]
-        epochnumsamps[p] = _u2sample(epochend, samprate)[0] - ep_begins[p]
-        epochfirstblocks[p] = int(anepoch.getElementsByTagName('firstBlock')[0]
-                                  .firstChild.data)
-        epochlastblocks[p] = int(anepoch.getElementsByTagName('lastBlock')[0]
-                                 .firstChild.data)
-        epochlabels[p] = 'epoch'
-    epochtype = 'cnt'
-    totalnumsegs = 0
-
-    categfile = os.path.join(filepath, 'categories.xml')
-    if os.path.isfile(categfile):
-        epochtype = 'seg'
-        categlist = parse(categfile)
-        cats = categlist.getElementsByTagName('cat')
-        numcategs = cats.length
-
-        multisubj = False
-        if os.path.exists(filepath + '/subjects'):
-            multisubj = True
-            for p in range(numcategs):
-                acateg = cats[p]
-                seglist = acateg.getElementsByTagName('segments')
-                numsegs = seglist.length
-                for q in range(numsegs):
-                    aseg = seglist[q]
-                    keylistarray = aseg.getElementsByTagName('keyCode')
-                    numkeys = keylistarray.length
-                    numsubjs = 0
-                    for r in range(numkeys):
-                        akey = keylistarray[r]
-                        if akey.firstChild.data.encode() == 'subj':
-                            numsubjs = numsubjs + 1
-
-        if multisubj:
-            epochsubjects = [None] * numepochs
-            # np.zeros((numEpo), dtype='S50')
-            epochfilenames = [None] * numepochs
-            # np.zeros((numEpochs), dtype='S50')
-        for p in range(numcategs):
-            acateg = cats[p]
-            categlabel = acateg.getElementsByTagName('name')[0].firstChild.data
-            seglist = acateg.getElementsByTagName('seg')
-            numsegs = seglist.length
-            totalnumsegs = totalnumsegs + numsegs
-            for q in range(numsegs):
-                aseg = seglist[q]
-                segbegin = int(aseg.getElementsByTagName('beginTime')[0]
-                               .firstChild.data)
-                segbeginsamp = int(_u2sample(segbegin, samprate)[0])
-                segind = np.where(ep_begins == segbeginsamp)[0]
-                epochsegstatus[segind[0]] = aseg.getAttribute('status')
-                epochlabels[segind[0]] = categlabel
-                time0 = int(aseg.getElementsByTagName('evtBegin')[0]
-                            .firstChild.data)
-                time0samp = _u2sample(time0, samprate)[0]
-                time0samp = time0samp - segbeginsamp
-                epochtime0[segind[0]] = time0samp
-                if multisubj:
-                    keylistarray = aseg.getElementsByTagName('keyCode')
-                    numkeys = keylistarray.length
-                    datalistarray = aseg.getElementsByTagName('data')
-                    for r in range(numkeys):
-                        akey = keylistarray[r]
-                        adata = datalistarray[r]
-                        subject = None
-                        filename = None
-                        if adata.firstChild is not None:
-                            if akey.firstChild.data.encode() == 'subj':
-                                subject = adata.firstChild.data
-                            elif akey.firstChild.data.encode() == 'FILE':
-                                filename = adata.firstChild.data.encode()
-                        epochsubjects[segind[0]] = subject
-                        epochfilenames[segind[0]] = filename
-    l_epfilen = len(set(epochfilenames))
-    l_epsubjects = len(set(epochsubjects))
-    if (multisubj and l_epfilen == 1 and l_epsubjects == 1):
-        epochsubjects = []
-        epochfilenames = []
-        multisubj = False
-    #  --------------------------------------------------------------------
-    epoch_info = dict(epochType=epochtype,
-                      epochBeginSamps=ep_begins,
-                      epochNumSamps=epochnumsamps,
-                      epochFirstBlocks=epochfirstblocks,
-                      epochLastBlocks=epochlastblocks,
-                      epochLabels=epochlabels,
-                      epochTime0=epochtime0,
-                      multiSubj=multisubj,
-                      epochSubjects=epochsubjects,
-                      epochFilenames=epochfilenames,
-                      epochSegStatus=epochsegstatus)
+        ep_end = int(epoch.getElementsByTagName('endTime')[0].firstChild.data)
+        first_block = int(epoch.getElementsByTagName('firstBlock')[0]
+                          .firstChild.data)
+        last_block = int(epoch.getElementsByTagName('lastBlock')[0]
+                         .firstChild.data)
+        epoch_info.append({'first_samp': ep_begin,
+                           'last_samp': ep_end,
+                           'first_block': first_block,
+                           'last_block': last_block})
     return epoch_info
 
 
@@ -210,6 +113,7 @@ def _get_blocks(filepath):
 
 
 def _get_signalfname(filepath, infontype):
+    """Get filenames."""
     listfiles = os.listdir(filepath)
     binfiles = list(f for f in listfiles if 'signal' in f and f[-4:] == '.bin')
     signalfile = []
@@ -223,29 +127,6 @@ def _get_signalfname(filepath, infontype):
             signalfile.append('signal' + bin_num_str + '.bin')
             infofiles.append(infofile)
     return signalfile, infofiles
-
-
-def _u2sample(microsecs, samprate):
-    sampduration = 1000000. / samprate
-    samplenum = np.float(microsecs) / sampduration
-    reminder = np.float(microsecs) % sampduration
-    samplenum = np.fix(samplenum)
-    out = [samplenum, reminder]
-    return out
-
-
-def _bls2blns(n_samples, bn_sample):
-    blockn = 0
-    #  blockNumSamps(blockNum)
-    n_sample = bn_sample[blockn]
-    while n_samples > n_sample:
-        blockn = blockn + 1
-        # blockNumSamps(blockNum)
-        n_sample = n_sample + bn_sample[blockn]
-    # blockNumSamps(epochNum)
-    n_sample = n_sample - bn_sample[blockn]
-    sample = n_samples - n_sample
-    return blockn, sample
 
 
 def _block_r(fid):
