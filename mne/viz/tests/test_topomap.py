@@ -89,6 +89,19 @@ def test_plot_topomap():
     plt.close('all')
     plt_topomap(times=[-0.1, 0.2])
     plt.close('all')
+    evoked_grad = evoked.copy().crop(0, 0).pick_types(meg='grad')
+    mask = np.zeros((204, 1), bool)
+    mask[[0, 3, 5, 6]] = True
+    names = []
+
+    def proc_names(x):
+        names.append(x)
+        return x[4:]
+
+    evoked_grad.plot_topomap(ch_type='grad', times=[0], mask=mask,
+                             show_names=proc_names, **fast_test)
+    assert_equal(sorted(names),
+                 ['MEG 011x', 'MEG 012x', 'MEG 013x', 'MEG 014x'])
     mask = np.zeros_like(evoked.data, dtype=bool)
     mask[[1, 5], :] = True
     plt_topomap(ch_type='mag', outlines=None)

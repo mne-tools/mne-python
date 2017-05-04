@@ -65,12 +65,15 @@ BUG
     - Fix :func:`mne.viz.plot_sensors` to maintain proper aspect ratio by `Eric Larson`_
 
     - Fix :func:`mne.viz.plot_topomap` to allow 0 contours by `Jaakko Leppakangas`_
-    
+
     - Fix :func:`mne.preprocessing.ica._pick_sources` increase threshold for rank estimation to 1e-14 by `jdue`_
 
     - Fix :meth:`raw.set_bipolar_reference` to support duplicates in anodes by `Jean-Baptiste Schiratti`_ and `Alex Gramfort`_
 
     - Fix visuals of :func:`mne.viz.plot_evoked` and a bug where ylim changes when using interactive topomap plotting by `Jaakko Leppakangas`_
+
+    - Fix :meth:`mne.Evoked.plot_topomap` when using the ``mask`` argument with paired gradiometers by `Eric Larson`_
+
 
 API
 ~~~
