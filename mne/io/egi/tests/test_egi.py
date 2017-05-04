@@ -37,7 +37,7 @@ def test_io_egi_mff():
                'DIN5', 'DIN7']
     with warnings.catch_warnings(record=True):
         raw = _test_raw_reader(read_raw_egi_mff, input_fname=egi_fname_mff,
-                               include=include)
+                               include=include, channel_naming='EEG %03d')
 
     assert_equal('eeg' in raw, True)
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]

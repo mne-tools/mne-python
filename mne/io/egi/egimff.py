@@ -167,7 +167,7 @@ def _read_header(input_fname):
 @verbose
 def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
                      include=None, exclude=None, preload=False,
-                     verbose=None):
+                     channel_naming='E%d', verbose=None):
     """Read EGI mff binary as raw object.
 
     .. note:: This function attempts to create a synthetic trigger channel.
@@ -202,6 +202,10 @@ def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
+    channel_naming : str
+        Channel naming convention for the data channels. Defaults to 'E%d'
+        (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
+        prior to 0.14.0 was 'EEG %03d'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -228,9 +232,11 @@ def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    ..versionadded:: 0.15.0
     """
     return RawMff(input_fname, montage, eog, misc, include, exclude,
-                  preload, verbose)
+                  preload, channel_naming, verbose)
 
 
 class RawMff(BaseRaw):
@@ -238,14 +244,16 @@ class RawMff(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
-                 include=None, exclude=None, preload=False, verbose=None):
+                 include=None, exclude=None, preload=False,
+                 channel_naming='E%d', verbose=None):
         """Init the RawMff class."""
         logger.info('Reading EGI MFF Header from %s...' % input_fname)
         egi_info = _read_header(input_fname)
         if eog is None:
             eog = []
         if misc is None:
-            misc = np.where(np.array(egi_info['chan_type']) != 'eeg')[0]
+            misc = np.where(np.array(
+                egi_info['chan_type']) != 'eeg')[0].tolist()
 
         logger.info('    Reading events ...')
         egi_events, egi_info = _read_events(input_fname, egi_info)
@@ -314,7 +322,7 @@ class RawMff(BaseRaw):
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = np.array([my_timestamp], dtype=np.float32)
-        ch_names = ['EEG %03d' % (i + 1) for i in
+        ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
         if len(egi_events) > 0:
@@ -325,7 +333,7 @@ class RawMff(BaseRaw):
             [cals, np.repeat(1, len(event_codes) + 1 + len(misc) + len(eog))])
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
-                      name.startswith('STI') or len(name) == 4]
+                      name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
             chs[idx].update({'unit_mul': 0, 'cal': cals[idx],
                              'kind': FIFF.FIFFV_STIM_CH,
