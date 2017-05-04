@@ -92,11 +92,9 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     if text is not None:
         text.set_visible(True)
         ax = text.axes
-        ylim = ax.get_ylim()
-        vert_lines.append(ax.plot([xmin, xmin], ylim, zorder=0, color='red'))
-        vert_lines.append(ax.plot([xmax, xmax], ylim, zorder=0, color='red'))
-        fill = ax.fill_betweenx(ylim, x1=xmin, x2=xmax, alpha=0.2,
-                                color='green')
+        vert_lines.append(ax.axvline(xmin, zorder=0, color='red'))
+        vert_lines.append(ax.axvline(xmax, zorder=0, color='red'))
+        fill = ax.axvspan(xmin, xmax, alpha=0.2, color='green')
         evoked_fig = plt.gcf()
         evoked_fig.canvas.draw()
         evoked_fig.canvas.flush_events()
@@ -129,7 +127,7 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
 
     unit = 'Hz' if psd else 'ms'
     fig.suptitle('Average over %.2f%s - %.2f%s' % (xmin, unit, xmax, unit),
-                 fontsize=15, y=0.1)
+                 y=0.1)
     tight_layout(pad=2.0, fig=fig)
     plt_show()
     if text is not None:
@@ -144,8 +142,8 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
 def _topo_closed(events, ax, lines, fill):
     """Remove lines from evoked plot as topomap is closed."""
     for line in lines:
-        ax.lines.remove(line[0])
-    ax.collections.remove(fill)
+        ax.lines.remove(line)
+    ax.patches.remove(fill)
     ax.get_figure().canvas.draw()
 
 
@@ -230,7 +228,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
         if isinstance(axes, plt.Axes):
             axes = [axes]
-
+        fig.set_size_inches(6.4, 2 + len(axes))
     if isinstance(axes, plt.Axes):
         axes = [axes]
     elif isinstance(axes, np.ndarray):
@@ -276,11 +274,12 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
-    plt_show(show, block=True)
+    for ax in fig.axes[:-1]:
+        ax.set_xlabel('')
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
         tight_layout(fig=fig)
-
+    plt_show(show)
     return fig
 
 
