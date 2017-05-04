@@ -371,7 +371,7 @@ class Xdawn(_XdawnTransformer):
 
     See Also
     --------
-    mne.decoding.CSP
+    mne.decoding.CSP, mne.decoding.SPoC
 
     References
     ----------

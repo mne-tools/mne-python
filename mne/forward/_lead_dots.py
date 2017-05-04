@@ -330,7 +330,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
 
 def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
                          n_fact, ch_type, idx):
-    """Helper for parallelization."""
+    """Parallelize."""
     # all possible combinations of two magnetometers
     products = np.zeros((len(rmags), len(rmags)))
     for ci1 in idx:
@@ -469,7 +469,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
 def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
                             this_nn, cosmags, ws, volume, lut, n_fact, ch_type,
                             idx):
-    """Helper for parallelization.
+    """Parallelize.
 
     Parameters
     ----------

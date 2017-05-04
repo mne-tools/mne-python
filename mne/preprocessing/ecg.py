@@ -53,7 +53,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     win_size = int(round((60.0 * sfreq) / 120.0))
 
     filtecg = filter_data(ecg, sfreq, l_freq, h_freq, None, filter_length,
-                          0.5, 0.5, phase='zero-double', fir_window='hann')
+                          0.5, 0.5, phase='zero-double', fir_window='hann',
+                          fir_design='firwin2')
 
     ecg_abs = np.abs(filtecg)
     init = int(sfreq)
@@ -179,7 +180,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     % raw.ch_names[idx_ecg])
         ecg, times = raw[idx_ecg, :]
     else:
-        ecg, times = _make_ecg(raw, None, None, verbose)
+        ecg, times = _make_ecg(raw, None, None, verbose=verbose)
 
     # detecting QRS and generating event file
     ecg_events = qrs_detector(raw.info['sfreq'], ecg.ravel(), tstart=tstart,
@@ -228,7 +229,7 @@ def _get_ecg_channel_index(ch_name, inst):
 def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
                       tmax=0.5, l_freq=8, h_freq=16, reject=None, flat=None,
                       baseline=None, preload=True, keep_ecg=False,
-                      verbose=None):
+                      reject_by_annotation=True, verbose=None):
     """Conveniently generate epochs around ECG artifact events.
 
     Parameters
@@ -283,6 +284,13 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         When ECG is synthetically created (after picking), should it be added
         to the epochs? Must be False when synthetic channel is not used.
         Defaults to False.
+    reject_by_annotation : bool
+        Whether to reject based on annotations. If True (default), epochs
+        overlapping with segments whose description begins with ``'bad'`` are
+        rejected. If False, no rejection based on annotations is performed.
+
+        .. versionadded:: 0.14.0
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -297,6 +305,9 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     events, _, _, ecg = find_ecg_events(
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
         return_ecg=True, verbose=verbose)
+
+    # Load raw data so that add_channels works
+    raw.load_data()
 
     if not has_ecg:
         ecg_raw = RawArray(
@@ -319,6 +330,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
+                        reject_by_annotation=reject_by_annotation,
                         verbose=verbose, preload=preload)
 
     if not has_ecg:
@@ -328,7 +340,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
 
 
 @verbose
-def _make_ecg(inst, start, stop, verbose=None):
+def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     """Create ECG signal from cross channel average."""
     if not any(c in inst for c in ['mag', 'grad']):
         raise ValueError('Unable to generate artificial ECG channel')
@@ -340,7 +352,9 @@ def _make_ecg(inst, start, stop, verbose=None):
                          'grad': 'Gradiometers'}[ch]))
     picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
     if isinstance(inst, BaseRaw):
-        ecg, times = inst[picks, start:stop]
+        reject_by_annotation = 'omit' if reject_by_annotation else None
+        ecg, times = inst.get_data(picks, start, stop, reject_by_annotation,
+                                   True)
     elif isinstance(inst, BaseEpochs):
         ecg = np.hstack(inst.copy().crop(start, stop).get_data())
         times = inst.times

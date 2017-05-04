@@ -69,7 +69,7 @@ class ConductorModel(dict):
 
 
 def _calc_beta(rk, rk_norm, rk1, rk1_norm):
-    """These coefficients are used to calculate the magic vector omega."""
+    """Compute coefficients for calculating the magic vector omega."""
     rkk1 = rk1[0] - rk[0]
     size = np.linalg.norm(rkk1)
     rkk1 /= size
@@ -221,7 +221,7 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
 
 
 def _fwd_bem_homog_solution(solids, nps):
-    """Helper to make a homogeneous solution."""
+    """Make a homogeneous solution."""
     return _fwd_bem_multi_solution(solids, None, nps)
 
 
@@ -364,7 +364,7 @@ def _ico_downsample(surf, dest_grade):
 
 
 def _get_ico_map(fro, to):
-    """Helper to get a mapping between ico surfaces."""
+    """Get a mapping between ico surfaces."""
     nearest, dists = _compute_nearest(fro['rr'], to['rr'], return_dists=True)
     n_bads = (dists > 5e-3).sum()
     if n_bads > 0:
@@ -414,7 +414,7 @@ _surf_name = {
 
 
 def _assert_inside(fro, to):
-    """Helper to check one set of points is inside a surface."""
+    """Check one set of points is inside a surface."""
     # this is "is_inside" in surface_checks.c
     tot_angle = _get_solids(to['rr'][to['tris']], fro['rr'])
     if (np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5).any():
@@ -1158,7 +1158,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
 
 def _extract_volume_info(mgz, raise_error=True):
-    """Helper for extracting volume info from a mgz file."""
+    """Extract volume info from a mgz file."""
     try:
         import nibabel as nib
     except ImportError:
@@ -1418,7 +1418,7 @@ def read_bem_solution(fname, verbose=None):
 
 
 def _add_gamma_multipliers(bem):
-    """Helper to add gamma and multipliers in-place."""
+    """Add gamma and multipliers in-place."""
     bem['sigma'] = np.array([surf['sigma'] for surf in bem['surfs']])
     # Dirty trick for the zero conductivity outside
     sigma = np.r_[0.0, bem['sigma']]
@@ -1479,7 +1479,7 @@ def write_bem_surfaces(fname, surfs):
 
 
 def _write_bem_surfaces_block(fid, surfs):
-    """Helper to actually write bem surfaces."""
+    """Write bem surfaces to open file handle."""
     for surf in surfs:
         start_block(fid, FIFF.FIFFB_BEM_SURF)
         write_float(fid, FIFF.FIFF_BEM_SIGMA, surf['sigma'])
@@ -1533,7 +1533,7 @@ def write_bem_solution(fname, bem):
 # Create 3-Layers BEM model from Flash MRI images
 
 def _prepare_env(subject, subjects_dir, requires_freesurfer):
-    """Helper to prepare an env object for subprocess calls."""
+    """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
     if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
         raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
@@ -1877,13 +1877,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
 
 def _check_bem_size(surfs):
-    """Helper for checking bem surface sizes."""
-    if surfs[0]['np'] > 10000:
-        msg = ('The bem surface has %s data points. 5120 (ico grade=4) should '
-               'be enough.' % surfs[0]['np'])
-        if len(surfs) == 3:
-            msg += ' Dense 3-layer bems may not save properly.'
-        warn(msg)
+    """Check bem surface sizes."""
+    if len(surfs) > 1 and surfs[0]['np'] > 10000:
+        warn('The bem surfaces have %s data points. 5120 (ico grade=4) '
+             'should be enough. Dense 3-layer bems may not save properly.' %
+             surfs[0]['np'])
 
 
 def _symlink(src, dest):

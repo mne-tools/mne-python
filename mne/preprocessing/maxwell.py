@@ -961,7 +961,7 @@ def _check_finite(data):
 
 
 def _sph_harm_norm(order, degree):
-    """Normalization factor for spherical harmonics."""
+    """Compute normalization factor for spherical harmonics."""
     # we could use scipy.special.poch(degree + order + 1, -2 * order)
     # here, but it's slower for our fairly small degree
     norm = np.sqrt((2 * degree + 1.) / (4 * np.pi))

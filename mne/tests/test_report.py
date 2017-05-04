@@ -70,7 +70,8 @@ def test_render_report():
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
     epochs.save(epochs_fname)
     # This can take forever (stall Travis), so let's make it fast
-    epochs.average().crop(0.1, 0.1).save(evoked_fname)
+    # Also, make sure crop range is wide enough to avoid rendering bug
+    epochs.average().crop(0.1, 0.2).save(evoked_fname)
 
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True) as w:

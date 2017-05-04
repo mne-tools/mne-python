@@ -42,7 +42,7 @@ def _ad_hoc_noise(coils, ch_type='meg'):
 
 
 def _setup_dots(mode, coils, ch_type):
-    """Setup dot products."""
+    """Set up dot products."""
     from scipy.interpolate import interp1d
     int_rad = 0.06
     noise = _ad_hoc_noise(coils, ch_type)

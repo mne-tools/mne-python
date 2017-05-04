@@ -366,10 +366,15 @@ def test_split_files():
 
     assert_allclose(raw_1.info['buffer_size_sec'], 10., atol=1e-2)  # samp rate
     split_fname = op.join(tempdir, 'split_raw.fif')
+    raw_1.annotations = Annotations([2.], [5.5], 'test')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.info['buffer_size_sec'], 1., atol=1e-2)  # samp rate
+    assert_array_equal(raw_1.annotations.onset, raw_2.annotations.onset)
+    assert_array_equal(raw_1.annotations.duration, raw_2.annotations.duration)
+    assert_array_equal(raw_1.annotations.description,
+                       raw_2.annotations.description)
     data_1, times_1 = raw_1[:, :]
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
@@ -769,7 +774,8 @@ def test_filter():
 
     trans = 2.0
     filter_params = dict(picks=picks, filter_length='auto',
-                         h_trans_bandwidth=trans, l_trans_bandwidth=trans)
+                         h_trans_bandwidth=trans, l_trans_bandwidth=trans,
+                         fir_design='firwin')
     raw_lp = raw.copy().filter(None, 8.0, **filter_params)
     raw_hp = raw.copy().filter(16.0, None, **filter_params)
     raw_bp = raw.copy().filter(8.0 + trans, 16.0 - trans, **filter_params)
@@ -847,7 +853,7 @@ def test_filter():
         assert_true(raw.info['lowpass'] is None)
         assert_true(raw.info['highpass'] is None)
         kwargs = dict(l_trans_bandwidth=20, h_trans_bandwidth=20,
-                      filter_length='auto', phase='zero', fir_window='hann')
+                      filter_length='auto', phase='zero', fir_design='firwin')
         raw_filt = raw.copy().filter(l_freq, h_freq, picks=np.arange(1),
                                      **kwargs)
         assert_true(raw.info['lowpass'] is None)
@@ -880,7 +886,7 @@ def test_filter_picks():
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         picks['fnirs'] = ch_type if ch_type in ('hbo', 'hbr') else False
         raw_ = raw.copy().pick_types(**picks)
-        raw_.filter(10, 30)
+        raw_.filter(10, 30, fir_design='firwin')
 
     # -- Error if no data channel
     for ch_type in ('misc', 'stim'):
@@ -1064,7 +1070,7 @@ def test_hilbert():
     raw_filt = raw.copy()
     raw_filt.filter(10, 20, picks=picks, l_trans_bandwidth='auto',
                     h_trans_bandwidth='auto', filter_length='auto',
-                    phase='zero', fir_window='blackman')
+                    phase='zero', fir_window='blackman', fir_design='firwin')
     raw_filt_2 = raw_filt.copy()
 
     raw2 = raw.copy()
@@ -1201,8 +1207,8 @@ def test_save():
     onsets = raw.annotations.onset
     durations = raw.annotations.duration
     # 2*5s clips combined with annotations at 2.5s + 2s clip, annotation at 1s
-    assert_array_almost_equal([2.5, 7.5, 11.], onsets, decimal=2)
-    assert_array_almost_equal([2., 2.5, 1.], durations, decimal=2)
+    assert_array_almost_equal([2.5, 7.5, 11.], onsets[:3], decimal=2)
+    assert_array_almost_equal([2., 2.5, 1.], durations[:3], decimal=2)
 
     # test annotation clipping
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',

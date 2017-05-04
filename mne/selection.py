@@ -177,7 +177,7 @@ def _divide_to_regions(info, add_stim=True):
 
 
 def _divide_side(lobe, x):
-    """Helper for making a separation between left and right lobe evenly."""
+    """Make a separation between left and right lobe evenly."""
     lobe = np.asarray(lobe)
     median = np.median(x[lobe])
 

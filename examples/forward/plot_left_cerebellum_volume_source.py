@@ -30,8 +30,7 @@ aseg_fname = subjects_dir + '/sample/mri/aseg.mgz'
 # Setup the source spaces
 
 # setup a cortical surface source space and extract left hemisphere
-surf = setup_source_space(subj, fname=None, subjects_dir=subjects_dir,
-                          add_dist=False)
+surf = setup_source_space(subj, subjects_dir=subjects_dir, add_dist=False)
 lh_surf = surf[0]
 
 # setup a volume source space of the left cerebellum cortex

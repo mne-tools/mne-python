@@ -134,7 +134,7 @@ class Object(HasPrivateTraits):
 
     @on_trait_change('trans,points')
     def _update_points(self):
-        """Update the location of the plotted points"""
+        """Update the location of the plotted points."""
         if not hasattr(self.src, 'data'):
             return
 

@@ -17,12 +17,14 @@ public_modules = [
     # the list of modules users need to access for all functionality
     'mne',
     'mne.beamformer',
+    'mne.chpi',
     'mne.connectivity',
     'mne.datasets',
+    'mne.datasets.brainstorm',
     'mne.datasets.megsim',
     'mne.datasets.sample',
-    'mne.datasets.spm_face',
     'mne.decoding',
+    'mne.dipole',
     'mne.filter',
     'mne.inverse_sparse',
     'mne.io',
@@ -36,6 +38,7 @@ public_modules = [
     'mne.source_space',
     'mne.stats',
     'mne.time_frequency',
+    'mne.time_frequency.tfr',
     'mne.viz',
 ]
 
@@ -54,6 +57,7 @@ def get_name(func):
 # functions to ignore args / docstring of
 _docstring_ignores = [
     'mne.io.write',  # always ignore these
+    'mne.decoding.base.cross_val_multiscore',
 ]
 
 _tab_ignores = [
@@ -76,7 +80,11 @@ def check_parameters_match(func, doc=None):
 
     if doc is None:
         with warnings.catch_warnings(record=True) as w:
-            doc = docscrape.FunctionDoc(func)
+            try:
+                doc = docscrape.FunctionDoc(func)
+            except Exception as exp:
+                incorrect += [name_ + ' parsing error: ' + str(exp)]
+                return incorrect
         if len(w):
             raise RuntimeError('Error for %s:\n%s' % (name_, w[0]))
     # check set

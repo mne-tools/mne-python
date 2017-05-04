@@ -783,7 +783,7 @@ def _decimate_surface(points, triangles, reduction):
     out = decimate.output
     tris = out.polys.to_array()
     # n-tuples + interleaved n-next -- reshape trick
-    return out.points.to_array(), tris.reshape(tris.size / 4, 4)[:, 1:]
+    return out.points.to_array(), tris.reshape(tris.size // 4, 4)[:, 1:]
 
 
 def decimate_surface(points, triangles, n_triangles):

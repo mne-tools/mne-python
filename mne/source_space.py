@@ -38,7 +38,7 @@ from .externals.six import string_types
 
 
 def _get_lut():
-    """Helper to get the FreeSurfer LUT."""
+    """Get the FreeSurfer LUT."""
     data_dir = op.join(op.dirname(__file__), 'data')
     lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
     return np.genfromtxt(lut_fname, dtype=None,
@@ -134,10 +134,9 @@ class SourceSpaces(list):
         info = create_info(0, 1000., 'eeg')
         return plot_trans(
             info, trans=None, subject=self[0]['subject_his_id'],
-            subjects_dir=subjects_dir, ch_type=None,
-            source=(), coord_frame='mri', meg_sensors=(), eeg_sensors=False,
-            dig=False, ref_meg=False, ecog_sensors=False, head=False,
-            brain=brain, skull=skull, src=self)
+            subjects_dir=subjects_dir, source=(), coord_frame='mri',
+            meg_sensors=(), eeg_sensors=False, dig=False, ref_meg=False,
+            ecog_sensors=False, head=False, brain=brain, skull=skull, src=self)
 
     def __repr__(self):  # noqa: D105
         ss_repr = []
@@ -1285,28 +1284,21 @@ def _check_spacing(spacing, verbose=None):
 
 
 @verbose
-def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
-                       overwrite=False, subjects_dir=None, add_dist=True,
-                       n_jobs=1, verbose=None):
-    """Setup bilateral hemisphere surface-based source space with subsampling.
+def setup_source_space(subject, spacing='oct6', surface='white',
+                       subjects_dir=None, add_dist=True, n_jobs=1,
+                       verbose=None):
+    """Set up bilateral hemisphere surface-based source space with subsampling.
 
     Parameters
     ----------
     subject : str
         Subject to process.
-    fname : str | None | bool
-        Filename to use. If True, a default name will be used. If None,
-        the source space will not be saved (only returned). Deprecated
-        parameter. Use :func:`mne.write_source_spaces` instead.
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
         or ``'all'`` for all points.
     surface : str
         The surface to use.
-    overwrite: bool
-        If True, overwrite output file (if it exists). Deprecated parameter.
-        Use :func:`mne.write_source_spaces` instead.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     add_dist : bool
@@ -1328,10 +1320,9 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     --------
     setup_volume_source_space
     """
-    cmd = ('setup_source_space(%s, fname=%s, spacing=%s, surface=%s, '
-           'overwrite=%s, subjects_dir=%s, add_dist=%s, verbose=%s)'
-           % (subject, fname, spacing, surface, overwrite,
-              subjects_dir, add_dist, verbose))
+    cmd = ('setup_source_space(%s, spacing=%s, surface=%s, '
+           'subjects_dir=%s, add_dist=%s, verbose=%s)'
+           % (subject, spacing, surface, subjects_dir, add_dist, verbose))
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surfs = [op.join(subjects_dir, subject, 'surf', hemi + surface)
@@ -1348,19 +1339,6 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
     logger.info('')
     del spacing
-
-    # Create the fif file
-    bem_dir = op.join(subjects_dir, subject, 'bem')
-    if not (fname is True or fname is None or isinstance(fname, string_types)):
-        raise ValueError('"fname" must be a string, True, or None')
-    if fname is True:
-        extra = '%s-%s' % (stype, sval) if sval != '' else stype
-        fname = op.join(bem_dir, '%s-%s-src.fif' % (subject, extra))
-    if fname is not None:
-        warn("Parameters 'fname' and 'overwrite' are deprecated and will be "
-             "removed in version 0.16. In version 0.15 fname will default to "
-             "None. Use mne.write_source_spaces instead.")
-        _check_fname(fname, overwrite)
 
     logger.info('>>> 1. Creating the source space...\n')
 
@@ -1404,30 +1382,23 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
         add_source_space_distances(src, n_jobs=n_jobs, verbose=verbose)
 
     # write out if requested, then return the data
-    if fname is not None:
-        write_source_spaces(fname, src, overwrite)
-        logger.info('Wrote %s' % fname)
     logger.info('You are now one step closer to computing the gain matrix')
     return src
 
 
 @verbose
-def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
+def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
-                              overwrite=None, subjects_dir=None,
-                              volume_label=None, add_interpolator=True,
-                              verbose=None):
-    """Setup a volume source space with grid spacing or discrete source space.
+                              subjects_dir=None, volume_label=None,
+                              add_interpolator=True, verbose=None):
+    """Set up a volume source space with grid spacing or discrete source space.
 
     Parameters
     ----------
     subject : str | None
         Subject to process. If None, the path to the mri volume must be
         absolute. Defaults to None.
-    fname : str | None
-        Deprecated and will be removed in 0.15. Use
-        :func:`mne.write_source_spaces` instead.
     pos : float | dict
         Positions to use for sources. If float, a grid will be constructed
         with the spacing given by `pos` in mm, generating a volume source
@@ -1456,9 +1427,6 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
     exclude : float
         Exclude points closer than this distance (mm) from the center of mass
         of the bounding surface.
-    overwrite: bool
-        Deprecated and will be removed in 0.15. Use
-        :func:`mne.write_source_spaces` instead.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     volume_label : str | list | None
@@ -1492,9 +1460,6 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
     """
     subjects_dir = get_subjects_dir(subjects_dir)
 
-    if fname is not None or overwrite is not None:
-        warn("Parameters 'fname' and 'overwrite' are deprecated and will be "
-             "removed in version 0.15. Use mne.write_source_spaces instead.")
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
                          'specified')
@@ -1567,7 +1532,6 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
         logger.info('Assuming input in millimeters')
         logger.info('Assuming input in MRI coordinates')
 
-    logger.info('Output file           : %s', fname)
     if isinstance(pos, float):
         logger.info('grid                  : %.1f mm' % pos)
         logger.info('mindist               : %.1f mm' % mindist)
@@ -1646,9 +1610,6 @@ def setup_volume_source_space(subject=None, fname=None, pos=5.0, mri=None,
                       nuse_tri=0, tris=None, subject_his_id=subject))
 
     sp = SourceSpaces(sp, dict(working_dir=os.getcwd(), command_line='None'))
-
-    if fname is not None:
-        write_source_spaces(fname, sp, verbose=False)
     return sp
 
 

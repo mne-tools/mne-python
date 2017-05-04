@@ -3,12 +3,14 @@
 Time-frequency beamforming using LCMV
 =====================================
 
-Compute LCMV source power in a grid of time-frequency windows and display
-results.
+Compute LCMV source power [1]_ in a grid of time-frequency windows and
+display results.
 
-The original reference is:
-Dalal et al. Five-dimensional neuroimaging: Localization of the time-frequency
-dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+References
+----------
+.. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
+       time-frequency dynamics of cortical activity.
+       NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 """
 # Author: Roman Goj <roman.goj@gmail.com>
 #
@@ -119,7 +121,7 @@ subtract_evoked = False
 noise_covs = []
 for (l_freq, h_freq) in freq_bins:
     raw_band = raw_noise.copy()
-    raw_band.filter(l_freq, h_freq, n_jobs=1)
+    raw_band.filter(l_freq, h_freq, n_jobs=1, fir_design='firwin')
     epochs_band = mne.Epochs(raw_band, epochs_noise.events, event_id,
                              tmin=tmin_plot, tmax=tmax_plot, baseline=None,
                              proj=True)

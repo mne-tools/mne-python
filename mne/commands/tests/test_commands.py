@@ -62,6 +62,8 @@ def test_show_fiff():
     check_usage(mne_show_fiff)
     with ArgvSetter((raw_fname,)):
         mne_show_fiff.run()
+    with ArgvSetter((raw_fname, '--tag=102')):
+        mne_show_fiff.run()
 
 
 @requires_mne

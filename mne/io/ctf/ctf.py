@@ -167,7 +167,7 @@ class RawCTF(BaseRaw):
 
 
 def _get_sample_info(fname, res4, system_clock):
-    """Helper to determine the number of valid samples."""
+    """Determine the number of valid samples."""
     logger.info('Finding samples for %s: ' % (fname,))
     if CTF.SYSTEM_CLOCK_CH in res4['ch_names']:
         clock_ch = res4['ch_names'].index(CTF.SYSTEM_CLOCK_CH)

@@ -151,7 +151,7 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
 
 
 def _concatenate_coils(coils):
-    """Helper to concatenate MEG coil parameters."""
+    """Concatenate MEG coil parameters."""
     rmags = np.concatenate([coil['rmag'] for coil in coils])
     cosmags = np.concatenate([coil['cosmag'] for coil in coils])
     ws = np.concatenate([coil['w'] for coil in coils])

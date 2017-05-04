@@ -57,7 +57,7 @@ except ImportError:
 
 
 def nottest(f):
-    """Decorator to mark a function as not a test."""
+    """Mark a function as not a test (decorator)."""
     f.__test__ = False
     return f
 
@@ -535,14 +535,14 @@ def _get_inst_data(inst):
 
 
 class _FormatDict(dict):
-    """Helper for pformat()."""
+    """Help pformat() work properly."""
 
     def __missing__(self, key):
         return "{" + key + "}"
 
 
 def pformat(temp, **fmt):
-    """Partially format a template string.
+    """Format a template string partially.
 
     Examples
     --------
@@ -564,7 +564,7 @@ warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
 class deprecated(object):
-    """Decorator to mark a function or class as deprecated.
+    """Mark a function or class as deprecated (decorator).
 
     Issue a warning when the function is called/the class is instantiated and
     adds a warning to the docstring.
@@ -728,14 +728,14 @@ class use_log_level(object):
 
 @nottest
 def slow_test(f):
-    """Decorator for slow tests."""
+    """Mark slow tests (decorator)."""
     f.slow_test = True
     return f
 
 
 @nottest
 def ultra_slow_test(f):
-    """Decorator for ultra slow tests."""
+    """Mark ultra slow tests (decorator)."""
     f.ultra_slow_test = True
     f.slow_test = True
     return f
@@ -767,24 +767,24 @@ def has_nibabel(vox2ras_tkr=False):
 
 
 def has_mne_c():
-    """Aux function."""
+    """Check for MNE-C."""
     return 'MNE_ROOT' in os.environ
 
 
 def has_freesurfer():
-    """Aux function."""
+    """Check for Freesurfer."""
     return 'FREESURFER_HOME' in os.environ
 
 
 def requires_nibabel(vox2ras_tkr=False):
-    """Aux function."""
+    """Check for nibabel."""
     extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
     return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
                                  'Requires nibabel%s' % extra)
 
 
 def buggy_mkl_svd(function):
-    """Decorator for tests that make calls to SVD and intermittently fail."""
+    """Decorate tests that make calls to SVD and intermittently fail."""
     @wraps(function)
     def dec(*args, **kwargs):
         try:
@@ -800,14 +800,14 @@ def buggy_mkl_svd(function):
 
 
 def requires_version(library, min_version):
-    """Helper for testing."""
+    """Check for a library version."""
     return np.testing.dec.skipif(not check_version(library, min_version),
                                  'Requires %s version >= %s'
                                  % (library, min_version))
 
 
 def requires_module(function, name, call=None):
-    """Decorator to skip test if package is not available."""
+    """Skip a test if package is not available (decorator)."""
     call = ('import %s' % name) if call is None else call
     try:
         from nose.plugins.skip import SkipTest
@@ -826,7 +826,7 @@ def requires_module(function, name, call=None):
 
 
 def copy_doc(source):
-    """Decorator to copy the docstring from another function.
+    """Copy the docstring from another function (decorator).
 
     The docstring of the source function is prepepended to the docstring of the
     function wrapped by this decorator.
@@ -1089,7 +1089,8 @@ def check_version(library, min_version):
         The library name to import. Must have a ``__version__`` property.
     min_version : str
         The minimum version string. Anything that matches
-        ``'(\d+ | [a-z]+ | \.)'``
+        ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
+        check (just check for library presence).
 
     Returns
     -------
@@ -1102,14 +1103,15 @@ def check_version(library, min_version):
     except ImportError:
         ok = False
     else:
-        this_version = LooseVersion(library.__version__)
-        if this_version < min_version:
-            ok = False
+        if min_version:
+            this_version = LooseVersion(library.__version__)
+            if this_version < min_version:
+                ok = False
     return ok
 
 
 def _check_mayavi_version(min_version='4.3.0'):
-    """Helper for mayavi."""
+    """Check mayavi version."""
     if not check_version('mayavi', min_version):
         raise RuntimeError("Need mayavi >= %s" % min_version)
 
@@ -1321,7 +1323,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
 
 
 class catch_logging(object):
-    """Helper to store logging.
+    """Store logging.
 
     This will remove all other logging handlers, and return the handler to
     stdout when complete.
@@ -1481,6 +1483,7 @@ known_config_types = (
     'MNE_DATASETS_EEGBCI_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_MISC_PATH',
+    'MNE_DATASETS_MTRF_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_MULTIMODAL_PATH',
@@ -1488,6 +1491,7 @@ known_config_types = (
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+    'MNE_DATASETS_FIELDTRIP_CMC_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -1962,10 +1966,20 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
 
 
 def sizeof_fmt(num):
-    """Turn number of bytes into human-readable str."""
+    """Turn number of bytes into human-readable str.
+
+    Parameters
+    ----------
+    num : int
+        The number of bytes.
+
+    Returns
+    -------
+    size : str
+        The size in human-readable format.
+    """
     units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
     decimals = [0, 0, 1, 2, 2, 2]
-    """Human friendly file size"""
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
         quotient = float(num) / 1024 ** exponent
@@ -2227,7 +2241,7 @@ def run_tests_if_main(measure_mem=False):
                 elapsed = int(round(time.time() - t1))
                 if elapsed >= max_elapsed:
                     max_elapsed, elapsed_name = elapsed, name
-                sys.stdout.write('time: %s sec%s\n' % (elapsed, mem))
+                sys.stdout.write('time: %0.3f sec%s\n' % (elapsed, mem))
                 sys.stdout.flush()
             except Exception as err:
                 if 'skiptest' in err.__class__.__name__.lower():
@@ -2236,9 +2250,10 @@ def run_tests_if_main(measure_mem=False):
                 else:
                     raise
     elapsed = int(round(time.time() - t0))
-    sys.stdout.write('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory'
-                     ' %s MB (%s)\n' % (count, elapsed, max_elapsed,
-                                        elapsed_name, peak_mem, peak_name))
+    sys.stdout.write('Total: %s tests\n• %0.3f sec (%0.3f sec for %s)\n• '
+                     'Peak memory %s MB (%s)\n'
+                     % (count, elapsed, max_elapsed, elapsed_name, peak_mem,
+                        peak_name))
 
 
 class ArgvSetter(object):

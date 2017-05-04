@@ -35,7 +35,6 @@
     - Functional connectivity
     - Machine learning
     - Visualization of sensor- and source-space data
-    - And :ref:`much more <get_started>`
 
     From raw data to source estimates **in about 20 lines of code** (try it `in an experimental online demo <http://mybinder.org/repo/mne-tools/mne-binder/notebooks/plot_introduction.ipynb>`_!)::
 

@@ -36,7 +36,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True)
-raw.filter(1, 30)
+raw.filter(1, 30, fir_design='firwin')
 
 # longer + more epochs for more artifact exposure
 events = mne.find_events(raw, stim_channel='STI 014')

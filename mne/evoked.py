@@ -14,6 +14,7 @@ from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
+from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import resample, detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc)
@@ -312,7 +313,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   border='none', ylim=None, scalings=None, title=None,
                   proj=False, vline=[0.0], fig_facecolor='k',
                   fig_background=None, axis_facecolor='k', font_color='w',
-                  merge_grads=False, show=True):
+                  merge_grads=False, legend=True, show=True):
         """
 
         Notes
@@ -326,7 +327,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                 fig_background=fig_background,
                                 axis_facecolor=axis_facecolor,
                                 font_color=font_color, merge_grads=merge_grads,
-                                show=show)
+                                legend=legend, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
@@ -559,8 +560,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         out.comment = '-' + (out.comment or 'unknown')
         return out
 
-    def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
-                 time_as_index=False):
+    def get_peak(self, ch_type=None, tmin=None, tmax=None,
+                 mode='abs', time_as_index=False, merge_grads=False):
         """Get location and latency of peak amplitude.
 
         Parameters
@@ -582,6 +583,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Defaults to 'abs'.
         time_as_index : bool
             Whether to return the time index instead of the latency in seconds.
+        merge_grads : bool
+            If True, compute peak from merged gradiometer data.
 
         Returns
         -------
@@ -611,6 +614,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                'must not be `None`, pass a sensor type '
                                'value instead')
 
+        if merge_grads:
+            if ch_type != 'grad':
+                raise ValueError('Channel type must be grad for merge_grads')
+            elif mode == 'neg':
+                raise ValueError('Negative mode (mode=neg) does not make '
+                                 'sense with merge_grads=True')
+
         meg = eeg = misc = seeg = ecog = fnirs = False
         picks = None
         if ch_type in ('mag', 'grad'):
@@ -627,18 +637,25 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             fnirs = ch_type
 
         if ch_type is not None:
-            picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
-                               seeg=seeg, ecog=ecog, ref_meg=False,
-                               fnirs=fnirs)
-
+            if merge_grads:
+                picks = _pair_grad_sensors(self.info, topomap_coords=False)
+            else:
+                picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
+                                   seeg=seeg, ecog=ecog, ref_meg=False,
+                                   fnirs=fnirs)
         data = self.data
         ch_names = self.ch_names
+
         if picks is not None:
             data = data[picks]
             ch_names = [ch_names[k] for k in picks]
+
+        if merge_grads:
+            data = _merge_grad_data(data)
+            ch_names = [ch_name[:-1] + 'X' for ch_name in ch_names[::2]]
+
         ch_idx, time_idx = _get_peak(data, self.times, tmin,
                                      tmax, mode)
-
         return (ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
 

@@ -3,7 +3,7 @@
 Compute coherence in source space using a MNE inverse solution
 ==============================================================
 
-This examples computes the coherence between a seed in the left
+This example computes the coherence between a seed in the left
 auditory cortex and the rest of the brain based on single-trial
 MNE-dSPM inverse solutions.
 
@@ -21,6 +21,14 @@ from mne.minimum_norm import (apply_inverse, apply_inverse_epochs,
 from mne.connectivity import seed_target_indices, spectral_connectivity
 
 print(__doc__)
+
+###############################################################################
+# Read the data
+# -------------
+#
+# First we'll read in the sample MEG data that we'll use for computing
+# coherence between channels. We'll convert this into epochs in order to
+# compute the event-related coherence.
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -51,8 +59,14 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(mag=4e-12, grad=4000e-13, eog=150e-6))
 
-# First, we find the most active vertex in the left auditory cortex, which
-# we will later use as seed for the connectivity computation.
+###############################################################################
+# Choose channels for coherence estimation
+# ----------------------------------------
+#
+# Next we'll calculate our channel sources. Then we'll find the most active
+# vertex in the left auditory cortex, which we will later use as seed for the
+# connectivity computation.
+
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 evoked = epochs.average()
@@ -71,7 +85,8 @@ seed_idx = np.searchsorted(stc.vertices[0], seed_vertno)  # index in orig stc
 n_sources = stc.data.shape[0]
 indices = seed_target_indices([seed_idx], np.arange(n_sources))
 
-# Compute inverse solution and for each epoch. By using "return_generator=True"
+###############################################################################
+# Compute the inverse solution for each epoch. By using "return_generator=True"
 # stcs will be a generator object instead of a list. This allows us so to
 # compute the coherence without having to keep all source estimates in memory.
 
@@ -80,18 +95,23 @@ lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_ori="normal", return_generator=True)
 
+###############################################################################
+# Compute the coherence between sources
+# -------------------------------------
+#
 # Now we are ready to compute the coherence in the alpha and beta band.
-# fmin and fmax specify the lower and upper freq. for each band, resp.
+# fmin and fmax specify the lower and upper freq. for each band, respectively.
+#
+# To speed things up, we use 2 parallel jobs and use mode='fourier', which
+# uses a FFT with a Hanning window to compute the spectra (instead of
+# a multitaper estimation, which has a lower variance but is slower).
+# By using faverage=True, we directly average the coherence in the alpha and
+# beta band, i.e., we will only get 2 frequency bins.
+
 fmin = (8., 13.)
 fmax = (13., 30.)
 sfreq = raw.info['sfreq']  # the sampling frequency
 
-# Now we compute connectivity. To speed things up, we use 2 parallel jobs
-# and use mode='fourier', which uses a FFT with a Hanning window
-# to compute the spectra (instead of multitaper estimation, which has a
-# lower variance but is slower). By using faverage=True, we directly
-# average the coherence in the alpha and beta band, i.e., we will only
-# get 2 frequency bins.
 coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     stcs, method='coh', mode='fourier', indices=indices,
     sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, n_jobs=1)
@@ -101,9 +121,18 @@ print(freqs[0])
 print('Frequencies in Hz over which coherence was averaged for beta: ')
 print(freqs[1])
 
-# Generate a SourceEstimate with the coherence. This is simple since we
-# used a single seed. For more than one seeds we would have to split coh.
-# Note: We use a hack to save the frequency axis as time.
+###############################################################################
+# Generate coherence sources and plot
+# -----------------------------------
+#
+# Finally, we'll generate a SourceEstimate with the coherence. This is simple
+# since we used a single seed. For more than one seed we would have to choose
+# one of the slices within `coh`.
+#
+# .. note:: We use a hack to save the frequency axis as time.
+#
+# Finally, we'll plot this source estimate on the brain.
+
 tmin = np.mean(freqs[0])
 tstep = np.mean(freqs[1]) - tmin
 coh_stc = mne.SourceEstimate(coh, vertices=stc.vertices, tmin=1e-3 * tmin,

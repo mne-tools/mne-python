@@ -163,7 +163,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
 
 
 def _compute_cov_epochs(epochs, n_jobs):
-    """Helper function for computing epochs covariance."""
+    """Compute epochs covariance."""
     parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
     data = parallel(p_fun(e, e.T) for e in epochs)
     n_epochs = len(data)
