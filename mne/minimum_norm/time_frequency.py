@@ -358,7 +358,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    """
+    """  # noqa
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori)
 
