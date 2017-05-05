@@ -335,11 +335,16 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used.
-    baseline_mode : None | 'logratio' | 'zscore'
+    baseline_mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
         deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline)).
+        power = [power - mean(power_baseline)] / std(power_baseline)), mean
+        simply subtracts the mean power, percent is the same as applying ratio
+        then mean, logratio is the same as mean but then rendered in log-scale,
+        zlogratio is the same as zscore but data is rendered in log-scale
+        first.
+        If None no baseline correction is applied.
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
