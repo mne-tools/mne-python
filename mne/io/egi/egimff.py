@@ -5,9 +5,9 @@
 import datetime
 import os
 import time
-
 from xml.dom.minidom import parse
 import dateutil.parser
+
 import numpy as np
 
 from .events import _read_events
@@ -32,68 +32,43 @@ def _read_mff_header(filepath):
     eeg_file = eeg_files[0]
     fname = os.path.join(filepath, eeg_file)
     signal_blocks = _get_blocks(fname)
-    blocknumsamps = np.sum(signal_blocks['blockNumSamps'])
-
-    pibhasref = False
-    pibnchans = 0
+    samples_block = np.sum(signal_blocks['samples_block'])
 
     epoch_info = _get_ep_info(filepath)
-
     summaryinfo = dict(eeg_fname=eeg_file,
                        info_fname=info_files[0],
-                       pibNChans=pibnchans,
-                       pibHasRef=pibhasref,
-                       blockNumSamps=blocknumsamps)
+                       samples_block=samples_block)
     summaryinfo.update(signal_blocks)
 
     # Pull header info from the summary info.
     categfile = os.path.join(filepath, 'categories.xml')
     if os.path.isfile(categfile):  # epochtype = 'seg'
         n_samples = epoch_info[0]['last_samp'] - epoch_info['first_samp']
-        ntrials = len(epoch_info)
+        n_trials = len(epoch_info)
     else:  # 'cnt'
-        n_samples = np.sum(summaryinfo['blockNumSamps'])
-        ntrials = 1
+        n_samples = np.sum(summaryinfo['samples_block'])
+        n_trials = 1
 
     # Add the sensor info.
-    sensor_layout_file = filepath + '/sensorLayout.xml'
+    sensor_layout_file = os.path.join(filepath, 'sensorLayout.xml')
     sensor_layout_obj = parse(sensor_layout_file)
     sensors = sensor_layout_obj.getElementsByTagName('sensor')
-    label = []
-    chan_type = []
-    chan_unit = []
+    chan_type = list()
+    chan_unit = list()
     n_chans = 0
+    numbers = list()  # used for identification
     for sensor in sensors:
         sensortype = int(sensor.getElementsByTagName('type')[0]
                          .firstChild.data)
-        if sensortype == 0 or sensortype == 1:
-            if sensor.getElementsByTagName('name')[0].firstChild is None:
-                sn = sensor.getElementsByTagName('number')[0].firstChild.data
-                sn = sn.encode()
-                tmp_label = 'E' + sn.decode()
-            else:
-                sn = sensor.getElementsByTagName('name')[0].firstChild.data
-                sn = sn.encode()
-                tmp_label = sn.decode()
-            label.append(tmp_label)
+        if sensortype in [0, 1]:
+            sn = sensor.getElementsByTagName('number')[0].firstChild.data
+            sn = sn.encode()
+            numbers.append(sn)
             chan_type.append('eeg')
             chan_unit.append('uV')
             n_chans = n_chans + 1
     if n_chans != summaryinfo['n_channels']:
         print("Error. Should never occur.")
-
-    if summaryinfo['pibNChans'] > 0:
-        pns_set_file = filepath + '/pnsSet.xml'
-        pns_set_obj = parse(pns_set_file)
-        pns_sensors = pns_set_obj.getElementsByTagName('sensor')
-        for p in range(summaryinfo['pibNChans']):
-            tmp_label = 'pib' + str(p + 1)
-            label.append(tmp_label)
-            pns_sensor_obj = pns_sensors[p]
-            chan_type.append(pns_sensor_obj.getElementsByTagName('name')[0]
-                             .firstChild.data.encode())
-            chan_unit.append(pns_sensor_obj.getElementsByTagName('unit')[0]
-                             .firstChild.data.encode())
 
     info_filepath = filepath + "/" + "info.xml"  # add with filepath
     tags = ['mffVersion', 'recordTime']
@@ -101,10 +76,10 @@ def _read_mff_header(filepath):
     summaryinfo.update({'version': version_and_date['mffVersion'][0],
                         'date': version_and_date['recordTime'][0],
                         'n_samples': n_samples,
-                        'nTrials': ntrials,
-                        'label': label,
+                        'n_trials': n_trials,
                         'chan_type': chan_type,
-                        'chan_unit': chan_unit})
+                        'chan_unit': chan_unit,
+                        'numbers': numbers})
     return summaryinfo
 
 
@@ -141,10 +116,7 @@ def _read_header(input_fname):
         gain=0,
         bits=0,
         value_range=0)
-    unsegmented = 1 if mff_hdr['nTrials'] == 1 else 0
-    precision = 4
-    if precision == 0:
-        RuntimeError('Floating point precision is undefined.')
+    unsegmented = 1 if mff_hdr['n_trials'] == 1 else 0
     if unsegmented:
         info.update(dict(n_categories=0,
                          n_segments=1,
@@ -156,12 +128,29 @@ def _read_header(input_fname):
     else:
         raise NotImplementedError('Only continuos files are supported')
     info['unsegmented'] = unsegmented
-    info['dtype'], info['orig_format'] = {2: ('>i2', 'short'),
-                                          4: ('>f4', 'float'),
-                                          6: ('>f8', 'double')}[precision]
-    info['dtype'] = np.dtype(info['dtype'])
     info.update(mff_hdr)
     return info
+
+
+def _read_locs(filepath, chs, egi_info):
+    """Read channel locations."""
+    fname = os.path.join(filepath, 'coordinates.xml')
+    if not os.path.exists(fname):
+        return chs
+    numbers = np.array(egi_info['numbers'])
+    coordinates = parse(fname)
+    sensors = coordinates.getElementsByTagName('sensor')
+    for sensor in sensors:
+        nr = sensor.getElementsByTagName('number')[0].firstChild.data.encode()
+        id = np.where(numbers == nr)[0]
+        if len(id) == 0:
+            continue
+        loc = chs[id[0]]['loc']
+        loc[0] = sensor.getElementsByTagName('x')[0].firstChild.data
+        loc[1] = sensor.getElementsByTagName('y')[0].firstChild.data
+        loc[2] = sensor.getElementsByTagName('z')[0].firstChild.data
+        loc /= 100.  # cm -> m
+    return chs
 
 
 @verbose
@@ -240,7 +229,7 @@ def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
 
 
 class RawMff(BaseRaw):
-    """RAWMff class."""
+    """RawMff class."""
 
     @verbose
     def __init__(self, input_fname, montage=None, eog=None, misc=None,
@@ -332,6 +321,7 @@ class RawMff(BaseRaw):
         cals = np.concatenate(
             [cals, np.repeat(1, len(event_codes) + 1 + len(misc) + len(eog))])
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
+        chs = _read_locs(input_fname, chs, egi_info)
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
@@ -348,9 +338,9 @@ class RawMff(BaseRaw):
         self._filenames = [file_bin]
         self._raw_extras = [egi_info]
         super(RawMff, self).__init__(
-            info, preload=preload, orig_format=egi_info['orig_format'],
-            filenames=[file_bin], last_samps=[egi_info['n_samples'] - 1],
-            raw_extras=[egi_info], verbose=verbose)
+            info, preload=preload, orig_format='float', filenames=[file_bin],
+            last_samps=[egi_info['n_samples'] - 1], raw_extras=[egi_info],
+            verbose=verbose)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
@@ -360,7 +350,7 @@ class RawMff(BaseRaw):
         egi_info = self._raw_extras[fi]
         offset = egi_info['header_sizes'][0] - n_bytes
         n_channels = egi_info['n_channels']
-        n_samples = egi_info['blockNumSamps'][0]
+        n_samples = egi_info['samples_block'][0]
         block_size = n_samples * n_channels
         data_offset = n_channels * start * n_bytes + offset
         data_left = (stop - start) * n_channels

@@ -1,10 +1,12 @@
-"""Code for extract the events."""
+# -*- coding: utf-8 -*-
+#
+# License: BSD (3-clause)
 
 from datetime import datetime
 from glob import glob
 from os.path import basename, join, splitext
-
 from xml.etree.ElementTree import parse
+
 import numpy as np
 
 

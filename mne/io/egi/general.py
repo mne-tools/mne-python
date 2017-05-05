@@ -1,9 +1,12 @@
-"""General functions."""
+# -*- coding: utf-8 -*-
+#
+# License: BSD (3-clause)
 
-import numpy as np
 import os
 from xml.dom.minidom import parse
 import re
+
+import numpy as np
 
 
 def _extract(tags, filepath=None, obj=None):
@@ -107,7 +110,7 @@ def _get_blocks(filepath):
                            "frequency.")
     samples_block = np.array(samples_block)
     signal_blocks = dict(n_channels=n_channels[0], sfreq=sfreq[0],
-                         n_blocks=n_blocks, blockNumSamps=samples_block,
+                         n_blocks=n_blocks, samples_block=samples_block,
                          header_sizes=header_sizes)
     return signal_blocks
 
