@@ -1752,14 +1752,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=1, verbose=None):
+                      show=True, block=False, n_jobs=1, axes=None,
+                      verbose=None):
         return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                  fmax=fmax, proj=proj, n_fft=n_fft,
                                  n_overlap=n_overlap, layout=layout,
                                  color=color, fig_facecolor=fig_facecolor,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, block=block, n_jobs=n_jobs,
-                                 verbose=verbose)
+                                 axes=axes, verbose=verbose)
 
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
                       return_singular=False, picks=None, scalings='norm'):

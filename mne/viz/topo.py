@@ -76,7 +76,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
 def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                      axis_facecolor='k', axis_spinecolor='k',
-                     layout_scale=None, unified=False, img=False):
+                     layout_scale=None, unified=False, img=False, axes=None):
     """Iterate over topography.
 
     Has the same parameters as iter_topography, plus:
@@ -106,9 +106,12 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
     ch_names = _clean_names(info['ch_names'])
     iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
     if unified:
-        under_ax = plt.axes([0, 0, 1, 1])
+        if axes is None:
+            under_ax = plt.axes([0, 0, 1, 1])
+            under_ax.axis('off')
+        else:
+            under_ax = axes
         under_ax.set(xlim=[0, 1], ylim=[0, 1])
-        under_ax.axis('off')
         axs = list()
     for idx, name in iter_ch:
         ch_idx = ch_names.index(name)
@@ -146,10 +149,10 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
 
 
 def _plot_topo(info, times, show_func, click_func=None, layout=None,
-               vmin=None, vmax=None, ylim=None, colorbar=None,
-               border='none', axis_facecolor='k', fig_facecolor='k',
-               cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, font_color='w', unified=False, img=False):
+               vmin=None, vmax=None, ylim=None, colorbar=None, border='none',
+               axis_facecolor='k', fig_facecolor='k', cmap='RdBu_r',
+               layout_scale=None, title=None, x_label=None, y_label=None,
+               font_color='w', unified=False, img=False, axes=None):
     """Plot on sensor layout."""
     import matplotlib.pyplot as plt
 
@@ -165,7 +168,10 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                       vmax=vmax, ylim=ylim, x_label=x_label,
                       y_label=y_label, colorbar=colorbar)
 
-    fig = plt.figure()
+    if axes is None:
+        fig = plt.figure()
+    else:
+        fig = axes.figure
     if colorbar:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
@@ -181,7 +187,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                                     axis_spinecolor=border,
                                     axis_facecolor=axis_facecolor,
                                     fig_facecolor=fig_facecolor,
-                                    unified=unified, img=img)
+                                    unified=unified, img=img, axes=axes)
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
@@ -476,7 +482,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, legend=True, show=True):
+                      merge_grads=False, legend=True, axes=None, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -538,6 +544,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
         lower left corner of the legend in the axes coordinate system).
         See matplotlib documentation for more details.
+    axes : instance of matplotlib Axes | None
+        Axes to plot into. If None, axes will be created.
     show : bool
         Show figure if True.
 
@@ -657,12 +665,12 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                          vline=vline, hline=hline)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
-                     click_func=click_func, layout=layout,
-                     colorbar=False, ylim=ylim_, cmap=None,
-                     layout_scale=layout_scale, border=border,
-                     fig_facecolor=fig_facecolor, font_color=font_color,
-                     axis_facecolor=axis_facecolor, title=title,
-                     x_label='Time (s)', y_label=y_label, unified=True)
+                     click_func=click_func, layout=layout, colorbar=False,
+                     ylim=ylim_, cmap=None, layout_scale=layout_scale,
+                     border=border, fig_facecolor=fig_facecolor,
+                     font_color=font_color, axis_facecolor=axis_facecolor,
+                     title=title, x_label='Time (s)', y_label=y_label,
+                     unified=True, axes=axes)
 
     add_background_image(fig, fig_background)
 

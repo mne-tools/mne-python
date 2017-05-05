@@ -986,7 +986,8 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=1, verbose=None):
+                      show=True, block=False, n_jobs=1, axes=None,
+                      verbose=None):
     """Plot channel-wise frequency spectra as topography.
 
     Parameters
@@ -1029,6 +1030,8 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
         May not work on all systems / platforms. Defaults to False.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
+    axes : instance of matplotlib Axes | None
+        Axes to plot into. If None, axes will be created.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1061,7 +1064,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                      click_func=click_func, layout=layout,
                      axis_facecolor=axis_facecolor,
                      fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
-                     unified=True, y_label=y_label)
+                     unified=True, y_label=y_label, axes=axes)
 
     try:
         plt_show(show, block=block)
