@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-#
-# License: BSD (3-clause)
+"""EGI NetStation Load Function."""
 
 import datetime
 import os
@@ -13,6 +11,7 @@ import numpy as np
 from .events import _read_events
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains)
+from .egi import _combine_triggers
 from ..base import BaseRaw, _check_update_montage
 from ..constants import FIFF
 from ..meas_info import _empty_info
@@ -84,7 +83,7 @@ def _read_mff_header(filepath):
 
 
 def _read_header(input_fname):
-    """Obtain the headers of the file package mff.
+    """Obtain the headers from the file package mff.
 
     Parameters
     ----------
@@ -94,11 +93,7 @@ def _read_header(input_fname):
     Returns
     -------
     info : dict
-        Set with main headers.
-    mff_hdr : dict
-        Headers.
-    mff_events : dict
-        Events.
+        Main headers set.
     """
     mff_hdr = _read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
@@ -134,6 +129,7 @@ def _read_header(input_fname):
 
 def _read_locs(filepath, chs, egi_info):
     """Read channel locations."""
+
     fname = os.path.join(filepath, 'coordinates.xml')
     if not os.path.exists(fname):
         return chs
@@ -151,7 +147,6 @@ def _read_locs(filepath, chs, egi_info):
         loc[2] = sensor.getElementsByTagName('z')[0].firstChild.data
         loc /= 100.  # cm -> m
     return chs
-
 
 @verbose
 def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
@@ -292,18 +287,20 @@ class RawMff(BaseRaw):
                             raise ValueError('Could find event named "%s"' % k)
                 elif v is not None:
                     raise ValueError('`%s` must be None or of type list' % kk)
-
-            event_ids, = np.nonzero(np.unique(egi_events))
             logger.info('    Synthesizing trigger channel "STI 014" ...')
             logger.info('    Excluding events {%s} ...' %
                         ", ".join([k for i, k in enumerate(event_codes)
                                    if i not in include_]))
+            events_ids = np.arange(len(include_)) + 1
+            self._new_trigger = _combine_triggers(egi_events[include_],
+                                                  remapping=events_ids)
             self.event_id = dict(zip([e for e in event_codes if e in
-                                      include_names], event_ids))
+                                      include_names], events_ids))
+            if self._new_trigger is not None:
+                egi_events = np.vstack([egi_events, self._new_trigger])
         else:
             # No events
             self.event_id = None
-
         info = _empty_info(egi_info['sfreq'])
         info['buffer_size_sec'] = 1.  # reasonable default
         my_time = datetime.datetime(
@@ -314,7 +311,7 @@ class RawMff(BaseRaw):
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
-        if len(egi_events) > 0:
+        if self._new_trigger is not None:
             ch_names.append('STI 014')  # channel for combined events
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
@@ -354,7 +351,6 @@ class RawMff(BaseRaw):
         block_size = n_samples * n_channels
         data_offset = n_channels * start * n_bytes + offset
         data_left = (stop - start) * n_channels
-
         egi_events = egi_info['egi_events'][:, start:stop]
         extra_samps = (start // n_samples)
         beginning = extra_samps * block_size
@@ -362,7 +358,6 @@ class RawMff(BaseRaw):
         # STI 014 is simply the sum of all event channels (powers of 2).
         if len(egi_events) > 0:
             e_start = 0
-            egi_events = np.vstack([egi_events, np.sum(egi_events, axis=0)])
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             fid.seek(int(beginning * n_bytes + offset + extra_samps * n_bytes))
             # extract data in chunks
