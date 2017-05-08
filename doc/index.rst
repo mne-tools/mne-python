@@ -4,24 +4,25 @@
 
 .. container:: row
 
-  .. container:: col-md-8 nopad
+  .. container:: col-md-12 nopad
 
     .. container:: midcenter nopad
-
-      .. image:: _static/mne_logo.png
-         :alt: MNE
-
-  .. container:: col-md-4 nopad
-
-    .. container:: col-md-8 midcenter nopad
 
       .. image:: _static/institutions.png
          :alt: Institutions
 
 
+  .. container:: col-md-12 nopad
+
+    .. container:: midcenter nopad tall
+
+      .. image:: _static/mne_logo.png
+         :alt: MNE
+
+
 .. container:: row
 
-  .. container:: col-md-8
+  .. container:: col-md-12
 
     Community-driven software for **processing time-resolved neural
     signals including electroencephalography (EEG) and
@@ -35,6 +36,8 @@
     - Functional connectivity
     - Machine learning
     - Visualization of sensor- and source-space data
+
+    Be sure to check out :ref:`what's new <whats_new>` with the package!
 
     From raw data to source estimates **in about 20 lines of code** (try it `in an experimental online demo <http://mybinder.org/repo/mne-tools/mne-binder/notebooks/plot_introduction.ipynb>`_!)::
 
@@ -77,31 +80,16 @@
       *ERC-YStG-676943*
     - French National Research Agency *ANR-14-NEUC-0002-01*.
 
-    .. container:: col-md-8 midcenter
+.. container:: row
 
-      .. raw:: html
-
-        <script type="text/javascript" src="https://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
-
-  .. container:: col-md-4
-
-    .. raw:: html
-
-     <h2>More help</h2>
-
-    - `Mailing list <MNE mailing list>`_ for analysis talk
-    - `GitHub issues <https://github.com/mne-tools/mne-python/issues/>`_ for
-      requests and bug reports
-    - `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
-
-    .. raw:: html
-
-      <h2>News</h2>
-
-    - :ref:`whats_new`
-    - :ref:`cited`
-    - :ref:`cite`
+  .. container:: col-md-8 nopad
 
     .. raw:: html
 
       <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Updates by @mne_python</a>
+
+  .. container:: col-md-4 nopad
+
+    .. raw:: html
+
+      <script type="text/javascript" src="https://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>

@@ -120,6 +120,7 @@ Functions:
   :template: function.rst
 
   anonymize_info
+  read_events_eeglab
   read_raw_artemis123
   read_raw_bti
   read_raw_cnt
@@ -171,7 +172,6 @@ Functions:
    read_epochs
    read_epochs_kit
    read_epochs_eeglab
-   read_events_eeglab
    read_events
    read_evokeds
    read_forward_solution

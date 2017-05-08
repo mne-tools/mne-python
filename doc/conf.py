@@ -308,7 +308,7 @@ sphinx_gallery_conf = {
     'gallery_dirs': gallery_dirs,
     'find_mayavi_figures': find_mayavi_figures,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
-    'mod_example_dir': 'generated',
+    'backreferences_dir': 'generated',
     }
 
 numpydoc_class_members_toctree = False

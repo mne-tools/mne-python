@@ -170,5 +170,7 @@ dt:target code {
     vertical-align:middle;
     text-align: center;
     float: none;
-    height: 280px;
+}
+.tall {
+    height: 250px;
 }

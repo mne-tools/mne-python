@@ -65,11 +65,21 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 
     tutorials/philosophy.rst
     manual/cookbook.rst
+    whats_new.rst
     python_reference.rst
     auto_examples/index.rst
     generated/commands.rst
     auto_tutorials/plot_configuration.rst
+    cited.rst
     faq.rst
+
+**More help**
+
+- :ref:`Cite MNE <cite>`
+- `Mailing list <MNE mailing list>`_ for analysis talk
+- `GitHub issues <https://github.com/mne-tools/mne-python/issues/>`_ for
+  requests and bug reports
+- `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
 
 .. raw:: html
 
@@ -554,6 +564,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/decoding/plot_receptive_field.rst
 
 .. raw:: html
+
     </details>
 
 .. raw:: html

@@ -3,8 +3,8 @@
 .. include:: links.inc
 .. _whats_new:
 
-MNE-Python Code Updates
-=======================
+What's new
+==========
 ..
     Note, we are now using links to highlight new functions and classes.
     Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
