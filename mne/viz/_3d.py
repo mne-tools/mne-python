@@ -970,8 +970,9 @@ def _handle_time(time_label, time_unit, times):
 
 def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   colormap='auto', time_label='auto', smoothing_steps=10,
-                  alpha=1.0, subjects_dir=None, views='lat', figure=None,
-                  initial_time=0, time_unit='s'):
+                  alpha=1.0, subjects_dir=None, views='lat', clim='auto',
+                  figure=None, initial_time=0, time_unit='s',
+                  background='black'):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D, art3d
@@ -994,8 +995,9 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     if views not in kwargs:
         raise ValueError("views must be one of ['lat', 'med', 'fos', 'cau', "
                          "'dor' 'ven', 'fro', 'par']. Got %s." % views)
+    ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
     if colormap == 'auto':
-        colormap = mne_analyze_colormap(format='matplotlib')
+        colormap = mne_analyze_colormap(clim, format='matplotlib')
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     if initial_time is None:
@@ -1027,21 +1029,21 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     colors = array_plot / vmax
     cmap = cm.get_cmap(colormap)
 
-    ax.plot_trisurf(*coords.T, triangles=faces)
-    polyc = ax.collections[0]
+    polyc = ax.plot_trisurf(*coords.T, triangles=faces)
     facecolors = art3d.PolyCollection.get_facecolors(polyc)
     for idx, face in enumerate(faces):
         facecolors[idx] = cmap(np.mean(colors[face]))
     facecolors[:, 3] = alpha
-    polyc.set_facecolors(facecolors)
 
     ax.view_init(**kwargs[views])
-    ax.set_title(time_label % times[time_idx])
+    ax.axis('off')
+    ax.set_title(time_label % times[time_idx], color='w')
     ax.set_xlim(-100, 100)
     ax.set_ylim(-100, 100)
     ax.set_zlim(-100, 100)
     ax.set_aspect('equal')
     ax.disable_mouse_rotation()
+    ax.set_facecolor(background)
     plt.show()
     return fig
 
@@ -1130,7 +1132,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 will be mirrored directly across zero during colormap
                 construction to obtain negative control points.
 
-        Has no effect with mpl backend.
     cortex : str or tuple
         Specifies how binarized curvature values are rendered.
         Either the name of a preset PySurfer cortex colorscheme (one of
@@ -1142,8 +1143,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         a square window, or the (width, height) of a rectangular window.
         Has no effect with mpl backend.
     background : matplotlib color
-        Color of the background of the display window. Has no effect with mpl
-        backend.
+        Color of the background of the display window.
     foreground : matplotlib color
         Color of the foreground of the display window. Has no effect with mpl
         backend.
@@ -1153,7 +1153,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    backend : 'auto' | 'mayavi' | 'mpl'
+    backend : 'auto' | 'mayavi' | 'matplotlib'
         Which backend to use. If ``'auto'`` (default), tries to plot with
         mayavi, but resorts to matplotlib if mayavi is not available.
 
@@ -1169,29 +1169,27 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-    if backend not in ['auto', 'mpl', 'mayavi']:
-        raise ValueError("backend must be 'auto', 'mayavi' or 'mpl. "
+    if backend not in ['auto', 'matplotlib', 'mayavi']:
+        raise ValueError("backend must be 'auto', 'mayavi' or 'matplotlib'. "
                          "Got %s." % backend)
-    if backend == 'mpl':
+    plot_mpl = backend == 'matplotlib'
+    if not plot_mpl:
+        try:
+            import mayavi
+        except ImportError:
+            if backend == 'auto':
+                warn('Mayavi not found. Resorting to matplotlib 3d.')
+                plot_mpl = True
+            else:  # 'mayavi'
+                raise
+
+    if plot_mpl:
         return _plot_mpl_stc(stc, subject=subject, surface=surface, hemi=hemi,
                              colormap=colormap, time_label=time_label,
                              smoothing_steps=smoothing_steps, alpha=alpha,
-                             subjects_dir=subjects_dir, views=views,
+                             subjects_dir=subjects_dir, views=views, clim=clim,
                              figure=figure, initial_time=initial_time,
-                             time_unit=time_unit)
-    try:
-        import mayavi
-    except ImportError:
-        if backend == 'auto':
-            warn('Mayavi not found. Resorting to matplotlib 3d.')
-        elif backend == 'mayavi':
-            raise
-        return _plot_mpl_stc(stc, subject=subject, surface=surface, hemi=hemi,
-                             colormap=colormap, time_label=time_label,
-                             smoothing_steps=smoothing_steps, alpha=alpha,
-                             subjects_dir=subjects_dir, views=views,
-                             figure=figure, initial_time=initial_time,
-                             time_unit=time_unit)
+                             time_unit=time_unit, background=background)
     import surfer
     from surfer import Brain, TimeViewer
     surfer_version = LooseVersion(surfer.__version__)
