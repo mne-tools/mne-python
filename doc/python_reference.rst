@@ -58,10 +58,11 @@ Classes
    preprocessing.Xdawn
    decoding.CSP
    decoding.FilterEstimator
-   decoding.GeneralizationAcrossTime
    decoding.PSDEstimator
+   decoding.ReceptiveField
    decoding.Scaler
-   decoding.TimeDecoding
+   decoding.SlidingEstimator
+   decoding.GeneralizingEstimator
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
@@ -170,6 +171,7 @@ Functions:
    read_epochs
    read_epochs_kit
    read_epochs_eeglab
+   read_events_eeglab
    read_events
    read_evokeds
    read_forward_solution
@@ -362,6 +364,20 @@ Datasets
    :no-inherited-members:
 
 .. currentmodule:: mne.datasets.visual_92_categories
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   data_path
+
+:py:mod:`mne.datasets.mtrf`:
+
+.. automodule:: mne.datasets.mtrf
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.datasets.mtrf
 
 .. autosummary::
    :toctree: generated/
@@ -854,6 +870,8 @@ Functions:
    dics_epochs
    dics_source_power
    rap_music
+   tf_dics
+   tf_lcmv
 
 :py:mod:`mne`:
 
@@ -1093,23 +1111,28 @@ Classes:
    CSP
    EMS
    FilterEstimator
-   GeneralizationAcrossTime
    LinearModel
    PSDEstimator
    Scaler
    TemporalFilter
-   TimeDecoding
    TimeFrequency
    UnsupervisedSpatialFilter
    Vectorizer
+   ReceptiveField
+   TimeDelayingRidge
+   SlidingEstimator
+   GeneralizingEstimator
 
 Functions:
+
+Functions that assist with decoding and model fitting:
 
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
    compute_ems
+   cross_val_multiscore
    get_coef
 
 Realtime

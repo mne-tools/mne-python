@@ -7,9 +7,11 @@
 # License: BSD (3-clause)
 
 import numpy as np
-
+import time
+import numbers
+from ..parallel import parallel_func
 from ..fixes import BaseEstimator
-from ..utils import check_version, deprecated
+from ..utils import check_version, logger, warn
 
 
 class LinearModel(BaseEstimator):
@@ -148,6 +150,36 @@ class LinearModel(BaseEstimator):
         """
         return self.model.predict(X)
 
+    def predict_proba(self, X):
+        """Compute probabilistic predictions of y from X.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features)
+            The data used to compute the predictions.
+
+        Returns
+        -------
+        y_pred : array, shape (n_samples, n_classes)
+            The probabilities.
+        """
+        return self.model.predict_proba(X)
+
+    def decision_function(self, X):
+        """Compute distance from the decision function of y from X.
+
+        Parameters
+        ----------
+        X : array, shape (n_samples, n_features)
+            The data used to compute the predictions.
+
+        Returns
+        -------
+        y_pred : array, shape (n_samples, n_classes)
+            The distances.
+        """
+        return self.model.decision_function(X)
+
     def score(self, X, y):
         """Score the linear model computed on the given test data.
 
@@ -164,330 +196,6 @@ class LinearModel(BaseEstimator):
             Score of the linear model
         """
         return self.model.score(X, y)
-
-    @deprecated('plot_filters is deprecated and will be removed in 0.15, '
-                'use EvokedArray instead.')
-    def plot_patterns(self, info, times=None, ch_type=None, layout=None,
-                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                      colorbar=True, scale=None, scale_time=1e3, unit='a.u.',
-                      res=64, size=1, cbar_fmt='%3.1f',
-                      name_format='%01d ms', proj=False, show=True,
-                      show_names=False, title=None, mask=None,
-                      mask_params=None, outlines='head', contours=6,
-                      image_interp='bilinear', average=None, head_pos=None):
-        """Plot topographic patterns of the linear model.
-
-        The patterns explain how the measured data was generated
-        from the neural sources (a.k.a. the forward model).
-
-        Parameters
-        ----------
-        info : instance of Info
-            Info dictionary of the epochs used to fit the linear model.
-            If not possible, consider using ``create_info``.
-        times : float | array of floats | None.
-            The time point(s) to plot. If None, the number of ``axes``
-            determines the amount of time point(s). If ``axes`` is also None,
-            10 topographies will be shown with a regular time spacing between
-            the first and last time instant.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-            The channel type to plot. For 'grad', the gradiometers are
-            collected in pairs and the RMS for each pair is plotted.
-            If None, then first available channel type from order given
-            above is used. Defaults to None.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found
-            the layout is automatically generated from the sensor locations.
-        vmin : float | callable
-            The value specfying the lower bound of the color range.
-            If None, and vmax is None, -vmax is used. Else np.min(data).
-            If callable, the output equals vmin(data).
-        vmax : float | callable
-            The value specfying the upper bound of the color range.
-            If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
-            If callable, the output equals vmax(data).
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-            Colormap to use. If tuple, the first value indicates the colormap
-            to use and the second value is a boolean defining interactivity. In
-            interactive mode the colors are adjustable by clicking and dragging
-            the colorbar with left and right mouse button. Left mouse button
-            moves the scale up and down and right mouse button adjusts the
-            range. Hitting space bar resets the range. Up and down arrows can
-            be used to change the colormap. If None, 'Reds' is used for all
-            positive data, otherwise defaults to 'RdBu_r'. If 'interactive',
-            translates to (None, True). Defaults to 'RdBu_r'.
-
-            .. warning::  Interactive mode works smoothly only for a small
-                amount of topomaps.
-
-        sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses). If True,
-            a circle will be used (via .add_artist). Defaults to True.
-        colorbar : bool
-            Plot a colorbar.
-        scale : dict | float | None
-            Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-            for grad and 1e15 for mag.
-        scale_time : float | None
-            Scale the time labels. Defaults to 1e3.
-        unit : dict | str | None
-            The unit of the channel type used for colorbar label. If
-            scale is None the unit is automatically determined.
-        res : int
-            The resolution of the topomap image (n pixels along each side).
-        size : float
-            Side length per topomap in inches.
-        cbar_fmt : str
-            String format for colorbar values.
-        name_format : str
-            String format for topomap values. Defaults to "%03f ms"
-        proj : bool | 'interactive'
-            If true SSP projections are applied before display.
-            If 'interactive', a check box for reversible selection
-            of SSP projection vectors will be show.
-        show : bool
-            Show figure if True.
-        show_names : bool | callable
-            If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g.,
-            to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', ''). If `mask` is not None,
-            only significant sensors will be shown.
-        title : str | None
-            Title. If None (default), no title is displayed.
-        mask : ndarray of bool, shape (n_channels, n_times) | None
-            The channels to be marked as significant at a given time point.
-            Indices set to `True` will be considered. Defaults to None.
-        mask_params : dict | None
-            Additional plotting parameters for plotting significant sensors.
-            Default (None) equals::
-
-                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                     linewidth=0, markersize=4)
-
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
-        contours : int | False | None
-            The number of contour lines to draw.
-            If 0, no contours will be drawn.
-        image_interp : str
-            The image interpolation to be used.
-            All matplotlib options are accepted.
-        average : float | None
-            The time window around a given time to be used for averaging
-            (seconds). For example, 0.01 would translate into window that
-            starts 5 ms before and ends 5 ms after a given time point.
-            Defaults to None, which means no averaging.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head
-            should be relative to the electrode locations.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-           The figure.
-        """
-        from .. import EvokedArray
-
-        if times is None:
-            tmin = 0
-            times = 'auto'
-        else:
-            tmin = times[0]
-
-        # create an evoked
-        patterns = EvokedArray(self.patterns_.reshape(info['nchan'], -1),
-                               info, tmin=tmin)
-        # the call plot_topomap
-        return patterns.plot_topomap(times=times, ch_type=ch_type,
-                                     layout=layout, vmin=vmin, vmax=vmax,
-                                     cmap=cmap, colorbar=colorbar, res=res,
-                                     cbar_fmt=cbar_fmt, sensors=sensors,
-                                     scale=scale, scale_time=scale_time,
-                                     time_format=name_format, size=size,
-                                     show_names=show_names, unit=unit,
-                                     mask_params=mask_params,
-                                     mask=mask, outlines=outlines,
-                                     contours=contours, title=title,
-                                     image_interp=image_interp, show=show,
-                                     head_pos=head_pos, average=average)
-
-    @deprecated('plot_filters is deprecated and will be removed in 0.15, '
-                'use EvokedArray instead.')
-    def plot_filters(self, info, times=None, ch_type=None, layout=None,
-                     vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                     colorbar=True, scale=None, scale_time=1e3, unit='a.u.',
-                     res=64, size=1, cbar_fmt='%3.1f',
-                     name_format='%01d ms', proj=False, show=True,
-                     show_names=False, title=None, mask=None,
-                     mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None):
-        """Plot topographic filters of the linear model.
-
-        The filters are used to extract discriminant neural sources from
-        the measured data (a.k.a. the backward model).
-
-        Parameters
-        ----------
-        info : instance of Info
-            Info dictionary of the epochs used to fit the linear model.
-            If not possible, consider using ``create_info``.
-        times : float | array of floats | None.
-            The time point(s) to plot. If None, the number of ``axes``
-            determines the amount of time point(s). If ``axes`` is also None,
-            10 topographies will be shown with a regular time spacing between
-            the first and last time instant.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-            The channel type to plot. For 'grad', the gradiometers are
-            collected in pairs and the RMS for each pair is plotted.
-            If None, then first available channel type from order given
-            above is used. Defaults to None.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found
-            the layout is automatically generated from the sensor locations.
-        vmin : float | callable
-            The value specfying the lower bound of the color range.
-            If None, and vmax is None, -vmax is used. Else np.min(data).
-            If callable, the output equals vmin(data).
-        vmax : float | callable
-            The value specfying the upper bound of the color range.
-            If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
-            If callable, the output equals vmax(data).
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-            Colormap to use. If tuple, the first value indicates the colormap
-            to use and the second value is a boolean defining interactivity. In
-            interactive mode the colors are adjustable by clicking and dragging
-            the colorbar with left and right mouse button. Left mouse button
-            moves the scale up and down and right mouse button adjusts the
-            range. Hitting space bar resets the range. Up and down arrows can
-            be used to change the colormap. If None, 'Reds' is used for all
-            positive data, otherwise defaults to 'RdBu_r'. If 'interactive',
-            translates to (None, True). Defaults to 'RdBu_r'.
-
-            .. warning::  Interactive mode works smoothly only for a small
-                amount of topomaps.
-
-        sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses). If True,
-            a circle will be used (via .add_artist). Defaults to True.
-        colorbar : bool
-            Plot a colorbar.
-        scale : dict | float | None
-            Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-            for grad and 1e15 for mag.
-        scale_time : float | None
-            Scale the time labels. Defaults to 1e3.
-        unit : dict | str | None
-            The unit of the channel type used for colorbar label. If
-            scale is None the unit is automatically determined.
-        res : int
-            The resolution of the topomap image (n pixels along each side).
-        size : float
-            Side length per topomap in inches.
-        cbar_fmt : str
-            String format for colorbar values.
-        name_format : str
-            String format for topomap values. Defaults to "%03f ms"
-        proj : bool | 'interactive'
-            If true SSP projections are applied before display.
-            If 'interactive', a check box for reversible selection
-            of SSP projection vectors will be show.
-        show : bool
-            Show figure if True.
-        show_names : bool | callable
-            If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g.,
-            to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', ''). If `mask` is not None,
-            only significant sensors will be shown.
-        title : str | None
-            Title. If None (default), no title is displayed.
-        mask : ndarray of bool, shape (n_channels, n_times) | None
-            The channels to be marked as significant at a given time point.
-            Indices set to `True` will be considered. Defaults to None.
-        mask_params : dict | None
-            Additional plotting parameters for plotting significant sensors.
-            Default (None) equals::
-
-                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                     linewidth=0, markersize=4)
-
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
-        contours : int | False | None
-            The number of contour lines to draw.
-            If 0, no contours will be drawn.
-        image_interp : str
-            The image interpolation to be used.
-            All matplotlib options are accepted.
-        average : float | None
-            The time window around a given time to be used for averaging
-            (seconds). For example, 0.01 would translate into window that
-            starts 5 ms before and ends 5 ms after a given time point.
-            Defaults to None, which means no averaging.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head
-            should be relative to the electrode locations.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-           The figure.
-        """
-        from .. import EvokedArray
-
-        if times is None:
-            tmin = 0
-            times = 'auto'
-        else:
-            tmin = times[0]
-
-        # create an evoked
-        filters = EvokedArray(self.filters_.T.reshape(info['nchan'], -1),
-                              info, tmin=tmin)
-        # the call plot_topomap
-        return filters.plot_topomap(times=times, ch_type=ch_type,
-                                    layout=layout, vmin=vmin, vmax=vmax,
-                                    cmap=cmap, colorbar=colorbar, res=res,
-                                    cbar_fmt=cbar_fmt, sensors=sensors,
-                                    scale=scale, scale_time=scale_time,
-                                    time_format=name_format, size=size,
-                                    show_names=show_names, unit=unit,
-                                    mask_params=mask_params,
-                                    mask=mask, outlines=outlines,
-                                    contours=contours, title=title,
-                                    image_interp=image_interp, show=show,
-                                    head_pos=head_pos, average=average)
 
 
 def _set_cv(cv, estimator=None, X=None, y=None):
@@ -562,33 +270,6 @@ def _check_estimator(estimator, get_params=True):
                          'cloning.')
 
 
-def _make_scorer(scoring):
-    """Make scorer.
-
-    Parameters
-    ----------
-    scoring : str | callable
-        If str, must be compatible with sklearn sklearn's get_scorer.
-        If callable, function with signature ``score_func(y, y_pred,
-        **kwargs)``.
-
-    Returns
-    -------
-    scorer : callable | None
-        The scorer.
-    """
-    from sklearn.metrics import make_scorer, get_scorer
-    # If scoring is None (default), the predictions are internally
-    # generated by estimator.score(). Else, we must first get the
-    # predictions based on the scorer.
-    if scoring is None:
-        return None
-    elif isinstance(scoring, str):
-        return get_scorer(scoring)
-    else:
-        return make_scorer(scoring)
-
-
 def _get_inverse_funcs(estimator, terminal=True):
     """Retrieve the inverse functions of an pipeline or an estimator."""
     inverse_func = [False]
@@ -644,12 +325,12 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
        96-110. doi:10.1016/j.neuroimage.2013.10.067.
     """
-    # If searchlight, loop across estimators
+    # If SlidingEstimator, loop across estimators
     if hasattr(estimator, 'estimators_'):
         coef = list()
         for est in estimator.estimators_:
             coef.append(get_coef(est, attr, inverse_transform))
-        return np.array(coef)
+        return np.transpose(coef)
 
     else:
         # Get the coefficients of the last estimator in case of nested pipeline
@@ -672,3 +353,187 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
             for inverse_func in _get_inverse_funcs(estimator)[::-1]:
                 coef = inverse_func([coef])[0]
         return coef
+
+
+def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
+                         cv=None, n_jobs=1, verbose=0, fit_params=None,
+                         pre_dispatch='2*n_jobs'):
+    """Evaluate a score by cross-validation.
+
+    Parameters
+    ----------
+    estimator : estimator object implementing 'fit'
+        The object to use to fit the data.
+    X : array-like, shape (n_samples, n_dimensional_features,)
+        The data to fit. Can be, for example a list, or an array at least 2d.
+    y : array-like, shape (n_samples, n_targets,)
+        The target variable to try to predict in the case of
+        supervised learning.
+    groups : array-like, with shape (n_samples,)
+        Group labels for the samples used while splitting the dataset into
+        train/test set.
+    scoring : string, callable | None
+        A string (see model evaluation documentation) or
+        a scorer callable object / function with signature
+        ``scorer(estimator, X, y)``.
+    cv : int, cross-validation generator | iterable
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+
+        - None, to use the default 3-fold cross validation,
+        - integer, to specify the number of folds in a ``(Stratified)KFold``,
+        - An object to be used as a cross-validation generator.
+        - An iterable yielding train, test splits.
+
+        For integer/None inputs, if the estimator is a classifier and ``y`` is
+        either binary or multiclass,
+        :class:`sklearn.model_selection.StratifiedKFold` is used. In all
+        other cases, :class:`sklearn.model_selection.KFold` is used.
+    n_jobs : integer, optional
+        The number of CPUs to use to do the computation. -1 means
+        'all CPUs'.
+    verbose : integer, optional
+        The verbosity level.
+    fit_params : dict, optional
+        Parameters to pass to the fit method of the estimator.
+    pre_dispatch : int, or string, optional
+        Controls the number of jobs that get dispatched during parallel
+        execution. Reducing this number can be useful to avoid an
+        explosion of memory consumption when more jobs get dispatched
+        than CPUs can process. This parameter can be:
+
+        - None, in which case all the jobs are immediately
+          created and spawned. Use this for lightweight and
+          fast-running jobs, to avoid delays due to on-demand
+          spawning of the jobs
+        - An int, giving the exact number of total jobs that are
+          spawned
+        - A string, giving an expression as a function of n_jobs,
+          as in '2*n_jobs'
+
+    Returns
+    -------
+    scores : array of float, shape (n_splits,) | shape (n_splits, n_scores)
+        Array of scores of the estimator for each run of the cross validation.
+    """
+    # This code is copied from sklearn
+
+    from sklearn.base import is_classifier, clone
+    from sklearn.utils import indexable
+    from sklearn.metrics.scorer import check_scoring
+    from sklearn.model_selection._split import check_cv
+
+    X, y, groups = indexable(X, y, groups)
+
+    cv = check_cv(cv, y, classifier=is_classifier(estimator))
+    cv_iter = list(cv.split(X, y, groups))
+    scorer = check_scoring(estimator, scoring=scoring)
+    # We clone the estimator to make sure that all the folds are
+    # independent, and that it is pickle-able.
+    # Note: this parallelization is implemented using MNE Parallel
+    parallel, p_func, n_jobs = parallel_func(_fit_and_score, n_jobs,
+                                             pre_dispatch=pre_dispatch)
+    scores = parallel(p_func(clone(estimator), X, y, scorer, train, test,
+                             verbose, None, fit_params)
+                      for train, test in cv_iter)
+    return np.array(scores)[:, 0, ...]  # flatten over joblib output.
+
+
+def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
+                   parameters, fit_params, return_train_score=False,
+                   return_parameters=False, return_n_test_samples=False,
+                   return_times=False, error_score='raise'):
+    """Fit estimator and compute scores for a given dataset split."""
+    #  This code is adapted from sklearn
+    from sklearn.model_selection._validation import _index_param_value
+    from sklearn.utils.metaestimators import _safe_split
+    from sklearn.utils.validation import _num_samples
+
+    if verbose > 1:
+        if parameters is None:
+            msg = ''
+        else:
+            msg = '%s' % (', '.join('%s=%s' % (k, v)
+                          for k, v in parameters.items()))
+        print("[CV] %s %s" % (msg, (64 - len(msg)) * '.'))
+
+    # Adjust length of sample weights
+    fit_params = fit_params if fit_params is not None else {}
+    fit_params = dict([(k, _index_param_value(X, v, train))
+                      for k, v in fit_params.items()])
+
+    if parameters is not None:
+        estimator.set_params(**parameters)
+
+    start_time = time.time()
+
+    X_train, y_train = _safe_split(estimator, X, y, train)
+    X_test, y_test = _safe_split(estimator, X, y, test, train)
+
+    try:
+        if y_train is None:
+            estimator.fit(X_train, **fit_params)
+        else:
+            estimator.fit(X_train, y_train, **fit_params)
+
+    except Exception as e:
+        # Note fit time as time until error
+        fit_time = time.time() - start_time
+        score_time = 0.0
+        if error_score == 'raise':
+            raise
+        elif isinstance(error_score, numbers.Number):
+            test_score = error_score
+            if return_train_score:
+                train_score = error_score
+            warn("Classifier fit failed. The score on this train-test"
+                 " partition for these parameters will be set to %f. "
+                 "Details: \n%r" % (error_score, e))
+        else:
+            raise ValueError("error_score must be the string 'raise' or a"
+                             " numeric value. (Hint: if using 'raise', please"
+                             " make sure that it has been spelled correctly.)")
+
+    else:
+        fit_time = time.time() - start_time
+        test_score = _score(estimator, X_test, y_test, scorer)
+        score_time = time.time() - start_time - fit_time
+        if return_train_score:
+            train_score = _score(estimator, X_train, y_train, scorer)
+
+    if verbose > 2:
+        msg += ", score=%f" % test_score
+    if verbose > 1:
+        total_time = score_time + fit_time
+        end_msg = "%s, total=%s" % (msg, logger.short_format_time(total_time))
+        print("[CV] %s %s" % ((64 - len(end_msg)) * '.', end_msg))
+
+    ret = [train_score, test_score] if return_train_score else [test_score]
+
+    if return_n_test_samples:
+        ret.append(_num_samples(X_test))
+    if return_times:
+        ret.extend([fit_time, score_time])
+    if return_parameters:
+        ret.append(parameters)
+    return ret
+
+
+def _score(estimator, X_test, y_test, scorer):
+    """Compute the score of an estimator on a given test set.
+
+    This code is the same as sklearn.model_selection._validation._score
+    but accepts to output arrays instead of floats.
+    """
+    if y_test is None:
+        score = scorer(estimator, X_test)
+    else:
+        score = scorer(estimator, X_test, y_test)
+    if hasattr(score, 'item'):
+        try:
+            # e.g. unwrap memmapped scalars
+            score = score.item()
+        except ValueError:
+            # non-scalar?
+            pass
+    return score

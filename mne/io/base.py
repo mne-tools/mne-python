@@ -658,7 +658,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return tuple(self._filenames)
 
     @annotations.setter
-    def annotations(self, annotations):
+    def annotations(self, annotations, emit_warning=True):
         """Setter for annotations.
 
         This setter checks if they are inside the data range.
@@ -667,6 +667,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         annotations : Instance of mne.Annotations
             Annotations to set.
+        emit_warning : bool
+            Whether to emit warnings when limiting or omitting annotations.
         """
         if annotations is not None:
             if not isinstance(annotations, Annotations):
@@ -684,30 +686,35 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             else:
                 offset = 0
             omit_ind = list()
+            omitted = limited = 0
             for ind, onset in enumerate(annotations.onset):
                 onset += offset
                 if onset > self.times[-1]:
-                    warn('Omitting annotation outside data range.')
+                    omitted += 1
                     omit_ind.append(ind)
                 elif onset < self.times[0]:
                     if onset + annotations.duration[ind] < self.times[0]:
-                        warn('Omitting annotation outside data range.')
+                        omitted += 1
                         omit_ind.append(ind)
                     else:
-                        warn('Annotation starting outside the data range. '
-                             'Limiting to the start of data.')
+                        limited += 1
                         duration = annotations.duration[ind] + onset
                         annotations.duration[ind] = duration
                         annotations.onset[ind] = self.times[0] - offset
                 elif onset + annotations.duration[ind] > self.times[-1]:
-                    warn('Annotation expanding outside the data range. '
-                         'Limiting to the end of data.')
+                    limited += 1
                     annotations.duration[ind] = self.times[-1] - onset
             annotations.onset = np.delete(annotations.onset, omit_ind)
             annotations.duration = np.delete(annotations.duration, omit_ind)
             annotations.description = np.delete(annotations.description,
                                                 omit_ind)
-
+            if emit_warning:
+                if omitted > 0:
+                    warn('Omitted %s annotation(s) that were outside data '
+                         'range.' % omitted)
+                if limited > 0:
+                    warn('Limited %s annotation(s) that were expanding '
+                         'outside the data range.' % limited)
         self._annotations = annotations
 
     def __del__(self):  # noqa: D105
@@ -855,7 +862,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             done. If 'omit', segments annotated with description starting with
             'bad' are omitted. If 'NaN', the bad samples are filled with NaNs.
         return_times : bool
-            Whether to return times as well.
+            Whether to return times as well. Defaults to False.
 
         Returns
         -------
@@ -1096,7 +1103,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
-               fir_window='hamming', verbose=None):
+               fir_window='hamming', fir_design=None, verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -1134,16 +1141,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
-                * int: specified length in samples.
-                * 'auto' (default): the filter length is chosen based
-                  on the size of the transition regions (6.6 times the
-                  reciprocal of the shortest transition band for
-                  fir_window='hamming').
-                * str: a human-readable time in
-                  units of "s" or "ms" (e.g., "10s" or "5500ms") will be
-                  converted to that number of samples if ``phase="zero"``, or
-                  the shortest power-of-two length at least that duration for
-                  ``phase="zero-double"``.
+            * 'auto' (default): the filter length is chosen based
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming'
+              and fir_design="firwin2", and half that for "firwin").
+            * str: a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+            * int: specified length in samples. For fir_design="firwin",
+              this should not be used.
 
         l_trans_bandwidth : float | str
             Width of the transition band at the low cut-off frequency in Hz
@@ -1180,13 +1188,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             then a minimum-phase, causal filter will be used.
 
             .. versionadded:: 0.13
-
         fir_window : str
             The window to use in FIR design, can be "hamming" (default),
             "hann" (default in 0.13), or "blackman".
 
             .. versionadded:: 0.13
+        fir_design : str
+            Can be "firwin" (default in 0.16) to use
+            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+            time-domain design technique that generally gives improved
+            attenuation using fewer samples than "firwin2".
 
+            ..versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1231,7 +1245,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         filter_data(self._data, self.info['sfreq'], l_freq, h_freq, picks,
                     filter_length, l_trans_bandwidth, h_trans_bandwidth,
                     n_jobs, method, iir_params, copy=False, phase=phase,
-                    fir_window=fir_window)
+                    fir_window=fir_window, fir_design=fir_design)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
         if update_info:
@@ -1250,7 +1264,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
-                     verbose=None):
+                     fir_design=None, verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -1321,13 +1335,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             then a minimum-phase, causal filter will be used.
 
             .. versionadded:: 0.13
-
         fir_window : str
             The window to use in FIR design, can be "hamming" (default),
             "hann", or "blackman".
 
             .. versionadded:: 0.13
+        fir_design : str
+            Can be "firwin" (default in 0.16) to use
+            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+            time-domain design technique that generally gives improved
+            attenuation using fewer samples than "firwin2".
 
+            ..versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1360,7 +1380,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
             method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
             p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
-            phase=phase, fir_window=fir_window)
+            phase=phase, fir_window=fir_window, fir_design=fir_design)
         return self
 
     @verbose
@@ -1559,10 +1579,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin:smax + 1].copy()
         self._update_times()
+
         if self.annotations is not None:
             annotations = self.annotations
             annotations.onset -= tmin
-            self.annotations = annotations
+            BaseRaw.annotations.fset(self, annotations, emit_warning=False)
+
         return self
 
     @verbose
@@ -1700,28 +1722,25 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
-             event_color='cyan', scalings=None, remove_dc=True, order='type',
+             event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
-             show_first_samp=False):
+             show_first_samp=False, proj=True, group_by='type',
+             butterfly=False):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
-                        lowpass, filtorder, clipping, show_first_samp)
+                        lowpass, filtorder, clipping, show_first_samp, proj,
+                        group_by, butterfly)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
-    def plot_psd(self, tmin=0.0, tmax=None, fmin=0, fmax=np.inf,
+    def plot_psd(self, tmin=0.0, tmax=np.inf, fmin=0, fmax=np.inf,
                  proj=False, n_fft=None, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, average=None, show=True,
                  n_jobs=1, line_alpha=None, spatial_colors=None,
                  xscale='linear', verbose=None):
-        if tmax is None:
-            tmax = 60.
-            warn('tmax defaults to 60. in 0.14 but will change to np.inf in '
-                 '0.15. Set it explicitly to avoid this warning',
-                 DeprecationWarning)
         return plot_raw_psd(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
             n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,
@@ -1733,14 +1752,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=1, verbose=None):
+                      show=True, block=False, n_jobs=1, axes=None,
+                      verbose=None):
         return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                  fmax=fmax, proj=proj, n_fft=n_fft,
                                  n_overlap=n_overlap, layout=layout,
                                  color=color, fig_facecolor=fig_facecolor,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, block=block, n_jobs=n_jobs,
-                                 verbose=verbose)
+                                 axes=axes, verbose=verbose)
 
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
                       return_singular=False, picks=None, scalings='norm'):
@@ -1893,6 +1913,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def append(self, raws, preload=None):
         """Concatenate raw instances as if they were continuous.
 
+        .. note:: Boundaries of the raw files are annotated bad. If you wish to
+                  use the data as continuous recording, you can remove the
+                  boundary annotations after concatenation (see
+                  :meth:`mne.Annotations.delete`).
+
         Parameters
         ----------
         raws : list, or Raw instance
@@ -1959,19 +1984,27 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # now combine information from each raw file to construct new self
         annotations = self.annotations
+        edge_samps = list()
         for r in raws:
-            self._first_samps = np.r_[self._first_samps, r._first_samps]
-            self._last_samps = np.r_[self._last_samps, r._last_samps]
-            self._raw_extras += r._raw_extras
-            self._filenames += r._filenames
             annotations = _combine_annotations((annotations, r.annotations),
                                                self._last_samps,
                                                self._first_samps,
                                                self.info['sfreq'],
                                                self.info['meas_date'])
+            edge_samps.append(sum(self._last_samps) - sum(self._first_samps))
+            self._first_samps = np.r_[self._first_samps, r._first_samps]
+            self._last_samps = np.r_[self._last_samps, r._last_samps]
+            self._raw_extras += r._raw_extras
+            self._filenames += r._filenames
 
         self._update_times()
+        if annotations is None:
+            annotations = Annotations([], [], [])
         self.annotations = annotations
+        for edge_samp in edge_samps:
+            onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
+            self.annotations.append(onset, (1. / self.info['sfreq']),
+                                    'BAD boundary')
 
         if not (len(self._first_samps) == len(self._last_samps) ==
                 len(self._raw_extras) == len(self._filenames)):
@@ -2263,7 +2296,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     # Annotations
     #
-    if annotations is not None:
+    if annotations is not None and len(annotations.onset) > 0:
         start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
         write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, annotations.onset)
         write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
@@ -2387,6 +2420,10 @@ def concatenate_raws(raws, preload=None, events_list=None):
     """Concatenate raw instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
+              Boundaries of the raw files are annotated bad. If you wish to use
+              the data as continuous recording, you can remove the boundary
+              annotations after concatenation (see
+              :meth:`mne.Annotations.delete`).
 
     Parameters
     ----------

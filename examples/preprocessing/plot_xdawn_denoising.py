@@ -50,7 +50,7 @@ event_id = dict(vis_r=4)
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 20)  # replace baselining with high-pass
+raw.filter(1, 20, fir_design='firwin')  # replace baselining with high-pass
 events = read_events(event_fname)
 
 raw.info['bads'] = ['MEG 2443']  # set bad channels

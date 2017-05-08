@@ -61,8 +61,6 @@ class RtEpochs(BaseEpochs):
         interval is used.
     picks : array-like of int | None (default)
         Indices of channels to include (if None, all channels are used).
-    name : string
-        Comment that describes the Evoked data created.
     reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -98,10 +96,6 @@ class RtEpochs(BaseEpochs):
         either turn off baseline correction, as this may introduce a DC
         shift, or set baseline correction to use the entire time interval
         (will yield equivalent results but be slower).
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists). This parameter will be removed in 0.15. Use
-        :func:`mne.set_eeg_reference` instead.
     isi_max : float
         The maximmum time in seconds between epochs. If no epoch
         arrives in the next isi_max seconds the RtEpochs stops.
@@ -136,10 +130,9 @@ class RtEpochs(BaseEpochs):
     @verbose
     def __init__(self, client, event_id, tmin, tmax, stim_channel='STI 014',
                  sleep_time=0.1, baseline=(None, 0), picks=None,
-                 name='Unknown', reject=None, flat=None, proj=True,
+                 reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 add_eeg_ref=False, isi_max=2., find_events=None,
-                 verbose=None):  # noqa: D102
+                 isi_max=2., find_events=None, verbose=None):  # noqa: D102
         info = client.get_measurement_info()
 
         # the measurement info of the data as we receive it
@@ -150,9 +143,9 @@ class RtEpochs(BaseEpochs):
         # call BaseEpochs constructor
         super(RtEpochs, self).__init__(
             info, None, None, event_id, tmin, tmax, baseline, picks=picks,
-            name=name, reject=reject, flat=flat, decim=decim,
+            reject=reject, flat=flat, decim=decim,
             reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
-            add_eeg_ref=add_eeg_ref, verbose=verbose, proj=True)
+            verbose=verbose, proj=True)
 
         self._client = client
 

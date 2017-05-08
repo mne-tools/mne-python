@@ -7,6 +7,7 @@
 from inspect import isfunction
 from collections import namedtuple
 from copy import deepcopy
+from numbers import Integral
 
 import os
 import json
@@ -612,7 +613,7 @@ class ICA(ContainsMixin):
         sources = fast_dot(self.unmixing_matrix_, pca_data)
         return sources
 
-    def _transform_raw(self, raw, start, stop):
+    def _transform_raw(self, raw, start, stop, reject_by_annotation=False):
         """Transform raw data."""
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
@@ -627,7 +628,11 @@ class ICA(ContainsMixin):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
-        data, _ = self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
+        if reject_by_annotation:
+            data = raw.get_data(picks, start, stop, 'omit')
+        else:
+            data = raw[picks, start:stop][0]
+        data, _ = self._pre_whiten(data, raw.info, picks)
         return self._transform(data)
 
     def _transform_epochs(self, epochs, concatenate):
@@ -832,7 +837,7 @@ class ICA(ContainsMixin):
     @verbose
     def score_sources(self, inst, target=None, score_func='pearsonr',
                       start=None, stop=None, l_freq=None, h_freq=None,
-                      verbose=None):
+                      reject_by_annotation=True, verbose=None):
         """Assign score to components based on statistic or metric.
 
         Parameters
@@ -864,6 +869,11 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
+        reject_by_annotation : bool
+            If True, data annotated as bad will be omitted. Defaults to True.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -875,7 +885,8 @@ class ICA(ContainsMixin):
             scores for each source as returned from score_func
         """
         if isinstance(inst, BaseRaw):
-            sources = self._transform_raw(inst, start, stop)
+            sources = self._transform_raw(inst, start, stop,
+                                          reject_by_annotation)
         elif isinstance(inst, BaseEpochs):
             sources = self._transform_epochs(inst, concatenate=True)
         elif isinstance(inst, Evoked):
@@ -884,7 +895,8 @@ class ICA(ContainsMixin):
             raise ValueError('Input must be of Raw, Epochs or Evoked type')
 
         if target is not None:  # we can have univariate metrics without target
-            target = self._check_target(target, inst, start, stop)
+            target = self._check_target(target, inst, start, stop,
+                                        reject_by_annotation)
 
             if sources.shape[-1] != target.shape[-1]:
                 raise ValueError('Sources and target do not have the same'
@@ -900,16 +912,18 @@ class ICA(ContainsMixin):
 
         return scores
 
-    def _check_target(self, target, inst, start, stop):
+    def _check_target(self, target, inst, start, stop,
+                      reject_by_annotation=False):
         """Aux Method."""
         if isinstance(inst, BaseRaw):
+            reject_by_annotation = 'omit' if reject_by_annotation else None
             start, stop = _check_start_stop(inst, start, stop)
             if hasattr(target, 'ndim'):
                 if target.ndim < 2:
                     target = target.reshape(1, target.shape[-1])
             if isinstance(target, string_types):
                 pick = _get_target_ch(inst, target)
-                target, _ = inst[pick, start:stop]
+                target = inst.get_data(pick, start, stop, reject_by_annotation)
 
         elif isinstance(inst, BaseEpochs):
             if isinstance(target, string_types):
@@ -928,9 +942,9 @@ class ICA(ContainsMixin):
         return target
 
     @verbose
-    def find_bads_ecg(self, inst, ch_name=None, threshold=None,
-                      start=None, stop=None, l_freq=8, h_freq=16,
-                      method='ctps', verbose=None):
+    def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
+                      stop=None, l_freq=8, h_freq=16, method='ctps',
+                      reject_by_annotation=True, verbose=None):
         """Detect ECG related components using correlation.
 
         .. note:: If no ECG channel is available, routine attempts to create
@@ -968,6 +982,11 @@ class ICA(ContainsMixin):
             threshold components will be masked and the z-score will
             be recomputed until no supra-threshold component remains.
             Defaults to 'ctps'.
+        reject_by_annotation : bool
+            If True, data annotated as bad will be omitted. Defaults to True.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1000,7 +1019,9 @@ class ICA(ContainsMixin):
         if idx_ecg is None:
             if verbose is not None:
                 verbose = self.verbose
-            ecg, times = _make_ecg(inst, start, stop, verbose)
+            ecg, times = _make_ecg(inst, start, stop,
+                                   reject_by_annotation=reject_by_annotation,
+                                   verbose=verbose)
             ch_name = 'ECG-MAG'
         else:
             ecg = inst.ch_names[idx_ecg]
@@ -1009,7 +1030,9 @@ class ICA(ContainsMixin):
             if threshold is None:
                 threshold = 0.25
             if isinstance(inst, BaseRaw):
-                sources = self.get_sources(create_ecg_epochs(inst)).get_data()
+                sources = self.get_sources(create_ecg_epochs(
+                    inst,
+                    reject_by_annotation=reject_by_annotation)).get_data()
             elif isinstance(inst, BaseEpochs):
                 sources = self.get_sources(inst).get_data()
             else:
@@ -1021,11 +1044,10 @@ class ICA(ContainsMixin):
         elif method == 'correlation':
             if threshold is None:
                 threshold = 3.0
-            scores = self.score_sources(inst, target=ecg,
-                                        score_func='pearsonr',
-                                        start=start, stop=stop,
-                                        l_freq=l_freq, h_freq=h_freq,
-                                        verbose=verbose)
+            scores = self.score_sources(
+                inst, target=ecg, score_func='pearsonr', start=start,
+                stop=stop, l_freq=l_freq, h_freq=h_freq,
+                reject_by_annotation=reject_by_annotation, verbose=verbose)
             ecg_idx = find_outliers(scores, threshold=threshold)
         else:
             raise ValueError('Method "%s" not supported.' % method)
@@ -1037,9 +1059,9 @@ class ICA(ContainsMixin):
         return self.labels_['ecg'], scores
 
     @verbose
-    def find_bads_eog(self, inst, ch_name=None, threshold=3.0,
-                      start=None, stop=None, l_freq=1, h_freq=10,
-                      verbose=None):
+    def find_bads_eog(self, inst, ch_name=None, threshold=3.0, start=None,
+                      stop=None, l_freq=1, h_freq=10,
+                      reject_by_annotation=True, verbose=None):
         """Detect EOG related components using correlation.
 
         Detection is based on Pearson correlation between the
@@ -1068,6 +1090,11 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
+        reject_by_annotation : bool
+            If True, data annotated as bad will be omitted. Defaults to True.
+
+            .. versionadded:: 0.14.0
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1095,15 +1122,15 @@ class ICA(ContainsMixin):
         eog_chs = [inst.ch_names[k] for k in eog_inds]
 
         # some magic we need inevitably ...
-        # get targets befor equalizing
-        targets = [self._check_target(k, inst, start, stop) for k in eog_chs]
+        # get targets before equalizing
+        targets = [self._check_target(k, inst, start, stop,
+                                      reject_by_annotation) for k in eog_chs]
 
         for ii, (eog_ch, target) in enumerate(zip(eog_chs, targets)):
-            scores += [self.score_sources(inst, target=target,
-                                          score_func='pearsonr',
-                                          start=start, stop=stop,
-                                          l_freq=l_freq, h_freq=h_freq,
-                                          verbose=verbose)]
+            scores += [self.score_sources(
+                inst, target=target, score_func='pearsonr', start=start,
+                stop=stop, l_freq=l_freq, h_freq=h_freq, verbose=verbose,
+                reject_by_annotation=reject_by_annotation)]
             # pick last scores
             this_idx = find_outliers(scores[-1], threshold=threshold)
             eog_idx += [this_idx]
@@ -1312,7 +1339,7 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self._pre_whitener
         else:
-            data = fast_dot(linalg.pinv(self._pre_whitener), data)
+            data = fast_dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
 
         return data
 
@@ -1715,7 +1742,7 @@ def _serialize(dict_, outer_sep=';', inner_sep=':'):
     for key, value in dict_.items():
         if callable(value):
             value = value.__name__
-        elif isinstance(value, int):
+        elif isinstance(value, Integral):
             value = int(value)
         elif isinstance(value, dict):
             # py35 json does not support numpy int64
@@ -2148,7 +2175,8 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
         logger.info('... filtering ICA sources')
         # use FIR here, steeper is better
         kw = dict(phase='zero-double', filter_length='10s', fir_window='hann',
-                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5)
+                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+                  fir_design='firwin2')
         sources = filter_data(sources, ica.info['sfreq'], l_freq, h_freq, **kw)
         logger.info('... filtering target')
         target = filter_data(target, ica.info['sfreq'], l_freq, h_freq, **kw)
@@ -2334,8 +2362,12 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
         used (via .add_artist). Defaults to True.
-    contours : int | False | None
+    contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
+        When an integer, matplotlib ticker locator is used to find suitable
+        values for the contour thresholds (may sometimes be inaccurate, use
+        array for accuracy). If an array, the values represent the levels for
+        the contours. Defaults to 6.
     cmap : None | matplotlib colormap
         Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
         otherwise to 'RdBu_r'.

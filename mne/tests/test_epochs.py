@@ -513,7 +513,7 @@ def test_epoch_combine_ids():
                     tmin, tmax, picks=picks, preload=False)
     events_new = merge_events(events, [1, 2], 12)
     epochs_new = combine_event_ids(epochs, ['a', 'b'], {'ab': 12})
-    assert_equal(epochs_new['ab'].name, 'ab')
+    assert_equal(epochs_new['ab']._name, 'ab')
     assert_array_equal(events_new, epochs_new.events)
     # should probably add test + functionality for non-replacement XXX
 
@@ -698,6 +698,7 @@ def test_read_write_epochs():
         epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'),
                                    preload=preload)
         assert_equal(epochs_read2.event_id, epochs.event_id)
+        assert_equal(epochs_read2['a:a'].average().comment, 'a:a')
 
         # add reject here so some of the epochs get dropped
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -911,8 +912,8 @@ def test_evoked_standard_error():
     evoked = [epochs.average(), epochs.standard_error()]
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), evoked)
     evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), [0, 1])
-    evoked3 = [read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown'),
-               read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown',
+    evoked3 = [read_evokeds(op.join(tempdir, 'evoked-ave.fif'), '1'),
+               read_evokeds(op.join(tempdir, 'evoked-ave.fif'), '1',
                             kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
         assert_true(evoked_new[0]._aspect_kind ==
@@ -1478,8 +1479,8 @@ def test_access_by_name():
     assert_array_almost_equal(epochs.get_data(), epochs6.get_data(), 20)
 
     # Make sure we preserve names
-    assert_equal(epochs['a'].name, 'a')
-    assert_equal(epochs[['a', 'b']]['a'].name, 'a')
+    assert_equal(epochs['a']._name, 'a')
+    assert_equal(epochs[['a', 'b']]['a']._name, 'a')
 
 
 @requires_pandas
@@ -2047,6 +2048,14 @@ def test_concatenate_epochs():
     epochs1.event_id = dict(a=1)
     epochs2.event_id = dict(a=2)
     assert_raises(ValueError, concatenate_epochs, [epochs1, epochs2])
+
+    # check events are shifted, but relative position are equal
+    epochs_list = [epochs.copy() for ii in range(3)]
+    epochs_cat = concatenate_epochs(epochs_list)
+    for ii in range(3):
+        evs = epochs_cat.events[ii * len(epochs):(ii + 1) * len(epochs)]
+        rel_pos = epochs_list[ii].events[:, 0] - evs[:, 0]
+        assert_true(sum(rel_pos - rel_pos[0]) == 0)
 
 
 def test_add_channels():

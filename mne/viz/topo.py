@@ -10,6 +10,7 @@ from __future__ import print_function
 
 from functools import partial
 from itertools import cycle
+from copy import deepcopy
 
 import numpy as np
 
@@ -20,7 +21,7 @@ from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
-                    DraggableColorbar)
+                    DraggableColorbar, _set_ax_facecolor)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -75,7 +76,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
 def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                      axis_facecolor='k', axis_spinecolor='k',
-                     layout_scale=None, unified=False, img=False):
+                     layout_scale=None, unified=False, img=False, axes=None):
     """Iterate over topography.
 
     Has the same parameters as iter_topography, plus:
@@ -105,9 +106,12 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
     ch_names = _clean_names(info['ch_names'])
     iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
     if unified:
-        under_ax = plt.axes([0, 0, 1, 1])
+        if axes is None:
+            under_ax = plt.axes([0, 0, 1, 1])
+            under_ax.axis('off')
+        else:
+            under_ax = axes
         under_ax.set(xlim=[0, 1], ylim=[0, 1])
-        under_ax.axis('off')
         axs = list()
     for idx, name in iter_ch:
         ch_idx = ch_names.index(name)
@@ -145,12 +149,17 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
 
 
 def _plot_topo(info, times, show_func, click_func=None, layout=None,
-               vmin=None, vmax=None, ylim=None, colorbar=None,
-               border='none', axis_facecolor='k', fig_facecolor='k',
-               cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, font_color='w', unified=False, img=False):
+               vmin=None, vmax=None, ylim=None, colorbar=None, border='none',
+               axis_facecolor='k', fig_facecolor='k', cmap='RdBu_r',
+               layout_scale=None, title=None, x_label=None, y_label=None,
+               font_color='w', unified=False, img=False, axes=None):
     """Plot on sensor layout."""
     import matplotlib.pyplot as plt
+
+    if layout.kind == 'custom':
+        layout = deepcopy(layout)
+        layout.pos[:, :2] -= layout.pos[:, :2].min(0)
+        layout.pos[:, :2] /= layout.pos[:, :2].max(0)
 
     # prepare callbacks
     tmin, tmax = times[[0, -1]]
@@ -159,11 +168,15 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                       vmax=vmax, ylim=ylim, x_label=x_label,
                       y_label=y_label, colorbar=colorbar)
 
-    fig = plt.figure()
+    if axes is None:
+        fig = plt.figure()
+    else:
+        fig = axes.figure
     if colorbar:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg=fig_facecolor)
+        ax = plt.axes([0.015, 0.025, 1.05, .8])
+        _set_ax_facecolor(ax, fig_facecolor)
         cb = fig.colorbar(sm, ax=ax)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
         plt.setp(cb_yticks, color=font_color)
@@ -174,7 +187,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                                     axis_spinecolor=border,
                                     axis_facecolor=axis_facecolor,
                                     fig_facecolor=fig_facecolor,
-                                    unified=unified, img=img)
+                                    unified=unified, img=img, axes=axes)
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
@@ -217,7 +230,7 @@ def _plot_topo_onpick(event, show_func):
         fig, ax = plt.subplots(1)
 
         plt.title(orig_ax._mne_ch_name)
-        ax.set_axis_bgcolor(face_color)
+        _set_ax_facecolor(ax, face_color)
 
         # allow custom function to override parameters
         show_func(ax, ch_idx)
@@ -306,6 +319,8 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         ax.set_yscale('log')
         ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
 
+    ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+    ax.yaxis.set_minor_locator(ticker.NullLocator())  # get rid of minor ticks
     tick_vals = freq[np.unique(np.linspace(
         0, len(freq) - 1, 12).round().astype('int'))]
     ax.set_yticks(tick_vals)
@@ -467,7 +482,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, show=True):
+                      merge_grads=False, legend=True, axes=None, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -521,6 +536,16 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
+    legend : bool | int | string | tuple
+        If True, create a legend based on evoked.comment. If False, disable the
+        legend. Otherwise, the legend is created and the parameter value is
+        passed as the location parameter to the matplotlib legend call. It can
+        be an integer (e.g. 0 corresponds to upper right corner of the plot),
+        a string (e.g. 'upper right'), or a tuple (x, y coordinates of the
+        lower left corner of the legend in the axes coordinate system).
+        See matplotlib documentation for more details.
+    axes : instance of matplotlib Axes | None
+        Axes to plot into. If None, axes will be created.
     show : bool
         Show figure if True.
 
@@ -529,6 +554,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    import matplotlib.pyplot as plt
+
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
@@ -638,14 +665,24 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                          vline=vline, hline=hline)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
-                     click_func=click_func, layout=layout,
-                     colorbar=False, ylim=ylim_, cmap=None,
-                     layout_scale=layout_scale, border=border,
-                     fig_facecolor=fig_facecolor, font_color=font_color,
-                     axis_facecolor=axis_facecolor, title=title,
-                     x_label='Time (s)', y_label=y_label, unified=True)
+                     click_func=click_func, layout=layout, colorbar=False,
+                     ylim=ylim_, cmap=None, layout_scale=layout_scale,
+                     border=border, fig_facecolor=fig_facecolor,
+                     font_color=font_color, axis_facecolor=axis_facecolor,
+                     title=title, x_label='Time (s)', y_label=y_label,
+                     unified=True, axes=axes)
 
     add_background_image(fig, fig_background)
+
+    if legend is not False:
+        legend_loc = 0 if legend is True else legend
+        labels = [e.comment if e.comment else 'Unknown' for e in evoked]
+        legend = plt.legend(labels, loc=legend_loc,
+                            prop={'size': 10})
+        legend.get_frame().set_facecolor(axis_facecolor)
+        txts = legend.get_texts()
+        for txt, col in zip(txts, color):
+            txt.set_color(col)
 
     if proj == 'interactive':
         for e in evoked:

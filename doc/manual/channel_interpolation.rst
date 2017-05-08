@@ -5,8 +5,8 @@
 
 .. _channel_interpolation:
 
-Repairing bad channels
-######################
+Bad channel repair via interpolation
+####################################
 
 Spherical spline interpolation (EEG)
 ====================================

@@ -602,7 +602,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     fig, ax = plt.subplots(1, 1)
     xlim = [np.inf, -np.inf]
     for dip, color in zip(dipoles, colors):
-        ax.plot(dip.times, dip.amplitude, color=color, linewidth=1.5)
+        ax.plot(dip.times, dip.amplitude * 1e9, color=color, linewidth=1.5)
         xlim[0] = min(xlim[0], dip.times[0])
         xlim[1] = max(xlim[1], dip.times[-1])
     ax.set_xlim(xlim)

@@ -315,7 +315,8 @@ def _check_n_samples(n_samples, n_chan):
 def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            flat=None, picks=None, method='empirical',
                            method_params=None, cv=3, scalings=None, n_jobs=1,
-                           return_estimators=False, verbose=None):
+                           return_estimators=False, reject_by_annotation=True,
+                           verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance from empty room
@@ -406,6 +407,13 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
         .. versionadded:: 0.12
 
+    reject_by_annotation : bool
+        Whether to reject based on annotations. If True (default), epochs
+        overlapping with segments whose description begins with ``'bad'`` are
+        rejected. If False, no rejection based on annotations is performed.
+
+        .. versionadded:: 0.14.0
+
     verbose : bool | str | int | None (default None)
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -439,7 +447,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         pick_mask = slice(None)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
-                    preload=False, proj=False, add_eeg_ref=False)
+                    preload=False, proj=False,
+                    reject_by_annotation=reject_by_annotation)
     if method is None:
         method = 'empirical'
     if isinstance(method, string_types) and method == 'empirical':
@@ -1323,10 +1332,11 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
         eig[out_eeg_idx], eigvec[np.ix_(out_eeg_idx, out_eeg_idx)], = \
             _get_ch_whitener(C_eeg, False, 'EEG', rank_eeg)
-    if _needs_eeg_average_ref_proj(info):
-        warn('No average EEG reference present in info["projs"], covariance '
-             'may be adversely affected. Consider recomputing covariance using'
-             ' a raw file with an average eeg reference projector added.')
+        if _needs_eeg_average_ref_proj(info):
+            warn('No average EEG reference present in info["projs"], '
+                 'covariance may be adversely affected. Consider recomputing '
+                 'covariance using with an average eeg reference projector '
+                 'added.')
     noise_cov = noise_cov.copy()
     noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
                      diag=False, names=ch_names)

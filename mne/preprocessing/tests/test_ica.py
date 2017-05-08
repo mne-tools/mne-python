@@ -173,8 +173,7 @@ def test_ica_reset():
 def test_ica_core():
     """Test ICA on raw and epochs."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+
     # XXX. The None cases helped revealing bugs but are time consuming.
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
@@ -283,6 +282,7 @@ def test_ica_additional():
     tempdir = _TempDir()
     stop2 = 500
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    raw.annotations = Annotations([0.5], [0.5], ['BAD'])
     # XXX This breaks the tests :(
     # raw.info['bads'] = [raw.ch_names[1]]
     test_cov = read_cov(test_cov_name)
@@ -408,15 +408,12 @@ def test_ica_additional():
 
         # test filtering
         d1 = ica_raw._data[0].copy()
-        ica_raw.filter(4, 20, l_trans_bandwidth='auto',
-                       h_trans_bandwidth='auto', filter_length='auto',
-                       phase='zero', fir_window='hamming')
+        ica_raw.filter(4, 20, fir_design='firwin2')
         assert_equal(ica_raw.info['lowpass'], 20.)
         assert_equal(ica_raw.info['highpass'], 4.)
         assert_true((d1 != ica_raw._data[0]).any())
         d1 = ica_raw._data[0].copy()
-        ica_raw.notch_filter([10], filter_length='auto', trans_bandwidth=10,
-                             phase='zero', fir_window='hamming')
+        ica_raw.notch_filter([10], trans_bandwidth=10, fir_design='firwin')
         assert_true((d1 != ica_raw._data[0]).any())
 
         ica.n_pca_components = 2

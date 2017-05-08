@@ -57,7 +57,7 @@ raw = io.read_raw_ctf(raw_fname % 1)  # Take first run
 raw = raw.crop(0, 150.).load_data().resample(60, npad='auto')
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
-raw.filter(1, None, n_jobs=1)
+raw.filter(1, None, n_jobs=1, fir_design='firwin')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
 
@@ -69,8 +69,8 @@ reject = dict(mag=3e-12)
 # Make source space
 
 trans = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
-src = mne.setup_source_space('spm', fname=None, spacing='oct6',
-                             subjects_dir=subjects_dir, add_dist=False)
+src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
+                             add_dist=False)
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(raw.info, trans, src, bem)
 forward = mne.convert_forward_solution(forward, surf_ori=True)

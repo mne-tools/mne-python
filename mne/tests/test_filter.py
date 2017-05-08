@@ -219,7 +219,8 @@ def test_notch_filters():
     for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
         with catch_logging() as log_file:
             with warnings.catch_warnings(record=True):
-                b = notch_filter(a, sfreq, lf, fl, method=meth, verbose=True)
+                b = notch_filter(a, sfreq, lf, fl, method=meth,
+                                 fir_design='firwin', verbose=True)
         if lf is None:
             out = log_file.getvalue().split('\n')[:-1]
             if len(out) != 2 and len(out) != 3:  # force_serial: len(out) == 3
@@ -289,41 +290,46 @@ def test_filters():
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
         assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, fl,
-                      1.0, 1.0)
+                      1.0, 1.0, fir_design='firwin')
     for nj in ['blah', 0.5]:
         assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
-                      1.0, 1.0, n_jobs=nj, phase='zero', fir_window='hann')
+                      1.0, 1.0, n_jobs=nj, phase='zero', fir_design='firwin')
     assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 100,
                   1., 1., fir_window='foo')
+    assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 10,
+                  1., 1., fir_design='firwin')  # too short
     # > Nyq/2
     assert_raises(ValueError, filter_data, a, sfreq, 4, sfreq / 2., None,
-                  100, 1.0, 1.0)
+                  100, 1.0, 1.0, fir_design='firwin')
     assert_raises(ValueError, filter_data, a, sfreq, -1, None, None,
-                  100, 1.0, 1.0)
+                  100, 1.0, 1.0, fir_design='firwin')
     # these should work
-    create_filter(a, sfreq, None, None)
+    create_filter(a, sfreq, None, None, fir_design='firwin')
     create_filter(a, sfreq, None, None, method='iir')
 
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation
-        filter_data(a, sfreq, 1, 8, filter_length=256)
+        filter_data(a, sfreq, 1, 8, filter_length=256, fir_design='firwin2')
     assert_true(any('attenuation' in str(ww.message) for ww in w))
     with warnings.catch_warnings(record=True) as w:
         # Warning for too short a filter
-        filter_data(a, sfreq, 1, 8, filter_length='0.5s')
+        filter_data(a, sfreq, 1, 8, filter_length='0.5s', fir_design='firwin2')
     assert_true(any('Increase filter_length' in str(ww.message) for ww in w))
 
     # try new default and old default
     freqs = fftfreq(a.shape[-1], 1. / sfreq)
     A = np.abs(fft(a))
+    kwargs = dict(fir_design='firwin')
     for fl in ['auto', '10s', '5000ms', 1024, 1023]:
-        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0)
-        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0)
-        lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2)
-        hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10)
-        assert_array_almost_equal(hp, bp, 4)
-        assert_array_almost_equal(bp + bs, a, 4)
+        bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0, **kwargs)
+        bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0,
+                         **kwargs)
+        lp = filter_data(a, sfreq, None, 8, None, fl, 10, 1.0, n_jobs=2,
+                         **kwargs)
+        hp = filter_data(lp, sfreq, 4, None, None, fl, 1.0, 10, **kwargs)
+        assert_allclose(hp, bp, rtol=1e-3, atol=1e-3)
+        assert_allclose(bp + bs, a, rtol=1e-3, atol=1e-3)
         # Sanity check ttenuation
         mask = (freqs > 5.5) & (freqs < 6.5)
         assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]),
@@ -332,9 +338,9 @@ def test_filters():
                         0., atol=0.2)
         # now the minimum-phase versions
         bp = filter_data(a, sfreq, 4, 8, None, fl, 1.0, 1.0,
-                         phase='minimum')
+                         phase='minimum', **kwargs)
         bs = filter_data(a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0,
-                         phase='minimum')
+                         phase='minimum', **kwargs)
         assert_allclose(np.mean(np.abs(fft(bp)[:, mask]) / A[:, mask]),
                         1., atol=0.11)
         assert_allclose(np.mean(np.abs(fft(bs)[:, mask]) / A[:, mask]),
@@ -387,8 +393,10 @@ def test_filters():
     a = rng.randn(5 * sfreq, 5 * sfreq)
     b = a[:, None, :]
 
-    a_filt = filter_data(a, sfreq, 4, 8, None, 400, 2.0, 2.0)
-    b_filt = filter_data(b, sfreq, 4, 8, [0], 400, 2.0, 2.0)
+    a_filt = filter_data(a, sfreq, 4, 8, None, 400, 2.0, 2.0,
+                         fir_design='firwin')
+    b_filt = filter_data(b, sfreq, 4, 8, [0], 400, 2.0, 2.0,
+                         fir_design='firwin')
 
     assert_array_equal(a_filt[:, None, :], b_filt)
 
@@ -411,22 +419,27 @@ def test_filter_auto():
     t = np.arange(N) / sfreq
     x += np.sin(2 * np.pi * sine_freq * t)
     x_orig = x.copy()
-    x_filt = filter_data(x, sfreq, None, lp)
-    assert_array_equal(x, x_orig)
-    # the firwin2 function gets us this close
-    assert_allclose(x, x_filt, rtol=1e-4, atol=1e-4)
-    assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, None))
-    assert_array_equal(x, x_orig)
-    assert_array_equal(x_filt, filter_data(x, sfreq, None, lp))
-    assert_array_equal(x, x_orig)
-    assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, copy=False))
-    assert_array_equal(x, x_filt)
+    for fir_design in ('firwin2', 'firwin'):
+        kwargs = dict(fir_design=fir_design)
+        x = x_orig.copy()
+        x_filt = filter_data(x, sfreq, None, lp, **kwargs)
+        assert_array_equal(x, x_orig)
+        # the firwin2 function gets us this close
+        assert_allclose(x, x_filt, rtol=1e-4, atol=1e-2)
+        assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, None,
+                                               **kwargs))
+        assert_array_equal(x, x_orig)
+        assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, **kwargs))
+        assert_array_equal(x, x_orig)
+        assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, copy=False,
+                                               **kwargs))
+        assert_array_equal(x, x_filt)
 
     # degenerate conditions
     assert_raises(ValueError, filter_data, x, -sfreq, 1, 10)
     assert_raises(ValueError, filter_data, x, sfreq, 1, sfreq * 0.75)
     assert_raises(TypeError, filter_data, x.astype(np.float32), sfreq, None,
-                  10, filter_length='auto', h_trans_bandwidth='auto')
+                  10, filter_length='auto', h_trans_bandwidth='auto', **kwargs)
 
 
 def test_cuda():
@@ -438,27 +451,28 @@ def test_cuda():
     sfreq = 500
     sig_len_secs = 20
     a = rng.randn(sig_len_secs * sfreq)
+    kwargs = dict(fir_design='firwin')
 
     with catch_logging() as log_file:
         for fl in ['auto', '10s', 2048]:
             args = [a, sfreq, 4, 8, None, fl, 1.0, 1.0]
-            bp = filter_data(*args)
-            bp_c = filter_data(*args, n_jobs='cuda', verbose='info')
+            bp = filter_data(*args, **kwargs)
+            bp_c = filter_data(*args, n_jobs='cuda', verbose='info', **kwargs)
             assert_array_almost_equal(bp, bp_c, 12)
 
             args = [a, sfreq, 8 + 1.0, 4 - 1.0, None, fl, 1.0, 1.0]
-            bs = filter_data(*args)
-            bs_c = filter_data(*args, n_jobs='cuda', verbose='info')
+            bs = filter_data(*args, **kwargs)
+            bs_c = filter_data(*args, n_jobs='cuda', verbose='info', **kwargs)
             assert_array_almost_equal(bs, bs_c, 12)
 
             args = [a, sfreq, None, 8, None, fl, 1.0]
-            lp = filter_data(*args)
-            lp_c = filter_data(*args, n_jobs='cuda', verbose='info')
+            lp = filter_data(*args, **kwargs)
+            lp_c = filter_data(*args, n_jobs='cuda', verbose='info', **kwargs)
             assert_array_almost_equal(lp, lp_c, 12)
 
             args = [lp, sfreq, 4, None, None, fl, 1.0]
-            hp = filter_data(*args)
-            hp_c = filter_data(*args, n_jobs='cuda', verbose='info')
+            hp = filter_data(*args, **kwargs)
+            hp_c = filter_data(*args, n_jobs='cuda', verbose='info', **kwargs)
             assert_array_almost_equal(hp, hp_c, 12)
 
     # check to make sure we actually used CUDA

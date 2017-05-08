@@ -106,7 +106,7 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True)
 # for EEG and EOG electrodes.
 #
 # .. note:: In this tutorial, we don't preprocess the data. This is not
-#           something you would normally do. See our :ref:`tutorials` on
+#           something you would normally do. See our :ref:`documentation` on
 #           preprocessing for more.
 baseline = (None, 0.0)
 reject = {'mag': 4e-12, 'eog': 200e-6}

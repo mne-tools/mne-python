@@ -14,7 +14,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.eeglab.eeglab import _read_eeglab_events
+from mne.io.eeglab.eeglab import read_events_eeglab
 from mne.datasets import testing
 from mne.utils import _TempDir, run_tests_if_main, requires_version
 
@@ -31,7 +31,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 @requires_version('scipy', '0.12')
 @testing.requires_testing_data
 def test_io_set():
-    """Test importing EEGLAB .set files"""
+    """Test importing EEGLAB .set files."""
     from scipy import io
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -77,9 +77,9 @@ def test_io_set():
                      squeeze_me=True)['EEG']
     for event in eeg.event:  # old version allows integer events
         event.type = 1
-    assert_equal(_read_eeglab_events(eeg)[-1, -1], 1)
+    assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
     eeg.event = eeg.event[0]  # single event
-    assert_equal(_read_eeglab_events(eeg)[-1, -1], 1)
+    assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -120,6 +120,27 @@ def test_io_set():
     event_id = {eeg.event[0].type: 1}
     read_raw_eeglab(input_fname=one_event_fname, montage=montage,
                     event_id=event_id, preload=True)
+
+    # test overlapping events
+    overlap_fname = op.join(temp_dir, 'test_overlap_event.set')
+    io.savemat(overlap_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': eeg.nbchan, 'data': 'test_overlap_event.fdt',
+                'epoch': eeg.epoch, 'event': [eeg.event[0], eeg.event[0]],
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    op.join(temp_dir, 'test_overlap_event.fdt'))
+    event_id = {'rt': 1, 'square': 2}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw = read_raw_eeglab(input_fname=overlap_fname,
+                              montage=montage, event_id=event_id,
+                              preload=True)
+    assert_equal(len(w), 1)  # one warning for the dropped event
+    events_stimchan = find_events(raw)
+    events_read_events_eeglab = read_events_eeglab(overlap_fname, event_id)
+    assert_true(len(events_stimchan) == 1)
+    assert_true(len(events_read_events_eeglab) == 2)
 
     # test reading file with one channel
     one_chan_fname = op.join(temp_dir, 'test_one_channel.set')

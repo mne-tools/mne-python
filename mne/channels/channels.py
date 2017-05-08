@@ -239,11 +239,46 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_eeg_reference(self, ref_channels=None, verbose=None):
-        """Rereference EEG channels to new reference channel(s).
+        """Specify which reference to use for EEG data.
 
-        If multiple reference channels are specified, they will be averaged. If
-        no reference channels are specified, an average reference will be
-        applied.
+        By default, MNE-Python will automatically re-reference the EEG signal
+        to use an average reference (see below). Use this function to
+        explicitly specify the desired reference for EEG. This can be either an
+        existing electrode or a new virtual channel. This function will
+        re-reference the data according to the desired reference and prevent
+        MNE-Python from automatically adding an average reference.
+
+        Some common referencing schemes and the corresponding value for the
+        ``ref_channels`` parameter:
+
+        No re-referencing:
+            If the EEG data is already using the proper reference, set
+            ``ref_channels=[]``. This will prevent MNE-Python from
+            automatically re-referencing the data to an average reference.
+
+        Average reference:
+            A new virtual reference electrode is created by averaging the
+            current EEG signal. Make sure that all bad EEG channels are
+            properly marked and set ``ref_channels=None``.
+
+        A single electrode:
+            Set ``ref_channels`` to the name of the channel that will act as
+            the new reference.
+
+        The mean of multiple electrodes:
+            A new virtual reference electrode is created by computing the
+            average of the current EEG signal recorded from two or more
+            selected channels. Set ``ref_channels`` to a list of channel names,
+            indicating which channels to use. For example, to apply an average
+            mastoid reference, when using the 10-20 naming scheme, set
+            ``ref_channels=['M1', 'M2']``.
+
+        .. note:: In case of average reference (ref_channels=None), the
+                  reference is added as an SSP projector and it is not applied
+                  automatically. For it to take effect, apply with method
+                  :meth:`apply_proj <mne.io.Raw.apply_proj>`.
+                  For custom reference (ref_channel is not None), this method
+                  operates in place.
 
         Parameters
         ----------
@@ -276,6 +311,12 @@ class SetChannelsMixin(object):
 
         3. In order to apply a reference other than an average reference, the
            data must be preloaded.
+
+        4. Re-referencing to an average reference is done with an SSP
+           projector. This allows applying this reference without preloading
+           the data. Be aware that on preloaded data, SSP projectors are not
+           automatically applied. Use the ``apply_proj()`` method to apply
+           them.
 
         .. versionadded:: 0.13.0
 
@@ -437,10 +478,11 @@ class SetChannelsMixin(object):
         """
         from .montage import _set_montage
         _set_montage(self.info, montage)
+        return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
-                     show_names=False, ch_groups=None, axes=None, block=False,
-                     show=True):
+                     show_names=False, ch_groups=None, to_sphere=True,
+                     axes=None, block=False, show=True):
         """Plot sensor positions.
 
         Parameters
@@ -460,8 +502,9 @@ class SetChannelsMixin(object):
         title : str | None
             Title for the figure. If None (default), equals to ``'Sensor
             positions (%s)' % ch_type``.
-        show_names : bool
-            Whether to display all channel names. Defaults to False.
+        show_names : bool | array of str
+            Whether to display all channel names. If an array, only the channel
+            names in the array are shown. Defaults to False.
         ch_groups : 'position' | array of shape (ch_groups, picks) | None
             Channel groups for coloring the sensors. If None (default), default
             coloring scheme is used. If 'position', the sensors are divided
@@ -469,6 +512,13 @@ class SetChannelsMixin(object):
             array, the channels are divided by picks given in the array.
 
             .. versionadded:: 0.13.0
+
+        to_sphere : bool
+            Whether to project the 3d locations to a sphere. When False, the
+            sensor array appears similar as to looking downwards straight above
+            the subject's head. Has no effect when kind='3d'. Defaults to True.
+
+            .. versionadded:: 0.14.0
 
         axes : instance of Axes | instance of Axes3D | None
             Axes to draw the sensors to. If ``kind='3d'``, axes must be an
@@ -507,7 +557,8 @@ class SetChannelsMixin(object):
         from ..viz.utils import plot_sensors
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
-                            axes=axes, block=block, show=show)
+                            to_sphere=to_sphere, axes=axes, block=block,
+                            show=show)
 
     @copy_function_doc_to_method_doc(anonymize_info)
     def anonymize(self):

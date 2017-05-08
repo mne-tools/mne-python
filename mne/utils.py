@@ -1483,6 +1483,7 @@ known_config_types = (
     'MNE_DATASETS_EEGBCI_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_MISC_PATH',
+    'MNE_DATASETS_MTRF_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_MULTIMODAL_PATH',
@@ -1490,6 +1491,7 @@ known_config_types = (
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+    'MNE_DATASETS_FIELDTRIP_CMC_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -1964,10 +1966,20 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
 
 
 def sizeof_fmt(num):
-    """Turn number of bytes into human-readable str."""
+    """Turn number of bytes into human-readable str.
+
+    Parameters
+    ----------
+    num : int
+        The number of bytes.
+
+    Returns
+    -------
+    size : str
+        The size in human-readable format.
+    """
     units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
     decimals = [0, 0, 1, 2, 2, 2]
-    """Human friendly file size"""
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
         quotient = float(num) / 1024 ** exponent
@@ -2229,7 +2241,7 @@ def run_tests_if_main(measure_mem=False):
                 elapsed = int(round(time.time() - t1))
                 if elapsed >= max_elapsed:
                     max_elapsed, elapsed_name = elapsed, name
-                sys.stdout.write('time: %s sec%s\n' % (elapsed, mem))
+                sys.stdout.write('time: %0.3f sec%s\n' % (elapsed, mem))
                 sys.stdout.flush()
             except Exception as err:
                 if 'skiptest' in err.__class__.__name__.lower():
@@ -2238,9 +2250,10 @@ def run_tests_if_main(measure_mem=False):
                 else:
                     raise
     elapsed = int(round(time.time() - t0))
-    sys.stdout.write('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory'
-                     ' %s MB (%s)\n' % (count, elapsed, max_elapsed,
-                                        elapsed_name, peak_mem, peak_name))
+    sys.stdout.write('Total: %s tests\n• %0.3f sec (%0.3f sec for %s)\n• '
+                     'Peak memory %s MB (%s)\n'
+                     % (count, elapsed, max_elapsed, elapsed_name, peak_mem,
+                        peak_name))
 
 
 class ArgvSetter(object):

@@ -51,7 +51,10 @@ def _fiducial_coords(points, coord_frame=None):
         points = (p for p in points if p['coord_frame'] == coord_frame)
     points_ = dict((p['ident'], p) for p in points if
                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL)
-    return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
+    if points_:
+        return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
+    else:
+        return np.array([])
 
 
 def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
@@ -383,7 +386,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 @verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
-               ch_type=None, source=('bem', 'head', 'outer_skin'),
+               source=('bem', 'head', 'outer_skin'),
                coord_frame='head', meg_sensors=('helmet', 'sensors'),
                eeg_sensors='original', dig=False, ref_meg=False,
                ecog_sensors=True, head=None, brain=None, skull=False,
@@ -404,8 +407,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    ch_type : None | 'eeg' | 'meg'
-        This argument is deprecated. Use meg_sensors and eeg_sensors instead.
     source : str | list
         Type to load. Common choices would be `'bem'`, `'head'` or
         `'outer_skin'`. If list, the sources are looked up in the given order
@@ -471,12 +472,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils
     mlab = _import_mlab()
-    if ch_type is not None:
-        if ch_type not in ['eeg', 'meg']:
-            raise ValueError('Argument ch_type must be None | eeg | meg. Got '
-                             '%s.' % ch_type)
-        warnings.warn('the ch_type argument is deprecated and will be removed '
-                      'in 0.14. Use meg_sensors and eeg_sensors instead.')
     if meg_sensors is False:  # old behavior
         meg_sensors = 'helmet'
     elif meg_sensors is True:
@@ -607,8 +602,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     else:
         fid_loc = []
 
-    if 'helmet' in meg_sensors and len(meg_picks) > 0 and \
-            (ch_type is None or ch_type == 'meg'):
+    if 'helmet' in meg_sensors and len(meg_picks) > 0:
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
     if brain is None:
         if len(ecog_picks) > 0 and subject is not None:
@@ -682,7 +676,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     car_loc = list()
     eeg_loc = list()
     eegp_loc = list()
-    if len(eeg_sensors) > 0 and (ch_type is None or ch_type == 'eeg'):
+    if len(eeg_sensors) > 0:
         eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
         if len(eeg_loc) > 0:
             eeg_loc = apply_trans(head_trans, eeg_loc)
@@ -693,13 +687,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                     return_nn=True)[2:4]
             if 'original' not in eeg_sensors:
                 eeg_loc = list()
-        else:
-            # only warn if EEG explicitly requested, or EEG channels exist but
-            # no locations are provided
-            if (ch_type is not None or
-                    len(pick_types(info, meg=False, eeg=True)) > 0):
-                warn('EEG electrode locations not found. Cannot plot EEG '
-                     'electrodes.')
     del eeg_sensors
     if 'sensors' in meg_sensors:
         coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
@@ -1356,121 +1343,10 @@ def _toggle_mlab_render(fig, render):
         fig.scene.disable_render = not render
 
 
-def _plot_dipole_locations_3d(dipoles, trans, subject, subjects_dir=None,
-                              bgcolor=(1, 1, 1), opacity=0.3,
-                              brain_color=(1, 1, 0), fig_name=None,
-                              fig_size=(600, 600), mode=None,
-                              scale_factor=0.1e-1, colors=None,
-                              verbose=None):
-    """Plot dipole locations.
-
-    Only the location of the first time point of each dipole is shown.
-
-    Parameters
-    ----------
-    dipoles : list of instances of Dipole | Dipole
-        The dipoles to plot.
-    trans : dict
-        The mri to head trans.
-    subject : str
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT.
-    subjects_dir : None | str
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-        The default is None.
-    bgcolor : tuple of length 3
-        Background color in 3D.
-    opacity : float in [0, 1]
-        Opacity of brain mesh.
-    brain_color : tuple of length 3
-        Brain color.
-    fig_name : str
-        Mayavi figure name.
-    fig_size : tuple of length 2
-        Mayavi figure size.
-    mode : str
-        Should be ``'cone'`` or ``'sphere'`` to specify
-        how the dipoles should be shown.
-    scale_factor : float
-        The scaling applied to amplitudes for the plot.
-    colors: list of colors | None
-        Color to plot with each dipole. If None default colors are used.
-    coord_frame : str
-        Coordinate frame to use, 'head' or 'mri'.
-    idx : int | 'gof' | 'amplitude'
-        Index of the initially plotted dipole. Can also be 'gof' to plot the
-        dipole with highest goodness of fit value or 'amplitude' to plot the
-        dipole with the highest amplitude. The dipoles can also be browsed
-        through using up/down arrow keys or mouse scroll. Defaults to 'gof'.
-    show_all : bool
-        Whether to always plot all the dipoles. If True (default), the active
-        dipole is plotted as a red dot and it's location determines the shown
-        MRI slices. The the non-active dipoles are plotted as small blue dots.
-        If False, only the active dipole is plotted.
-    ax : instance of matplotlib Axes3D | None
-        Axes to plot into. If None (default), axes will be created.
-    block : bool
-        Whether to halt program execution until the figure is closed. Defaults
-        to False.
-    show : bool
-        Show figure if True. Defaults to True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    fig : instance of mlab.Figure
-        The mayavi figure.
-    """
-    mlab = _import_mlab()
-    from matplotlib.colors import ColorConverter
-    color_converter = ColorConverter()
-
-    trans = _get_trans(trans)[0]
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
-    fname = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
-    surf = complete_surface_info(read_surface(fname, return_dict=True,
-                                              verbose=False)[2], copy=False)
-    surf['rr'] = apply_trans(trans['trans'], surf['rr'] * 1e-3)
-
-    from .. import Dipole
-    if isinstance(dipoles, Dipole):
-        dipoles = [dipoles]
-
-    if colors is None:
-        colors = cycle(COLORS)
-
-    fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
-    _toggle_mlab_render(fig, False)
-    mesh = _create_mesh_surf(surf, fig=fig)
-    with warnings.catch_warnings(record=True):  # traits
-        surface = mlab.pipeline.surface(mesh, color=brain_color,
-                                        opacity=opacity)
-    surface.actor.property.backface_culling = True
-    for dip, color in zip(dipoles, colors):
-        rgb_color = color_converter.to_rgb(color)
-        with warnings.catch_warnings(record=True):  # FutureWarning in traits
-            mlab.quiver3d(dip.pos[0, 0], dip.pos[0, 1], dip.pos[0, 2],
-                          dip.ori[0, 0], dip.ori[0, 1], dip.ori[0, 2],
-                          opacity=1., mode=mode, color=rgb_color,
-                          scalars=dip.amplitude.max(),
-                          scale_factor=scale_factor)
-    if fig_name is not None:
-        with warnings.catch_warnings(record=True):  # traits
-            mlab.title(fig_name)
-    if fig.scene is not None:  # safe for Travis
-        fig.scene.x_plus_view()
-    _toggle_mlab_render(fig, True)
-    return fig
-
-
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
                           bgcolor=(1, 1, 1), opacity=0.3,
                           brain_color=(1, 1, 0), fig_name=None,
-                          fig_size=(600, 600), mode=None,
+                          fig_size=(600, 600), mode='orthoview',
                           scale_factor=0.1e-1, colors=None,
                           coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False,
@@ -1482,9 +1358,6 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
 
     The option mode='orthoview' was added in version 0.14.
 
-    .. warning:: Using mode with option 'cone' or 'sphere' will be
-                 deprecated in version 0.15.
-
     Parameters
     ----------
     dipoles : list of instances of Dipole | Dipole
@@ -1509,9 +1382,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     fig_size : tuple of length 2
         Mayavi figure size.
     mode : str
-        Should be ``'cone'`` or ``'sphere'`` or ``'orthoview'`` to specify
-        how the dipoles should be shown. If orthoview then matplotlib is
-        used otherwise it is mayavi.
+        Currently only ``'orthoview'`` is supported.
 
         .. versionadded:: 0.14.0
     scale_factor : float
@@ -1567,25 +1438,13 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     -----
     .. versionadded:: 0.9.0
     """
-    if mode is None:
-        warnings.warn('The mayavi surface-based rendering is deprecated '
-                      'and will be removed in version 0.15. Set "mode" '
-                      'to "orthoview" to avoid seeing this warning.')
-        mode = 'cone'
-
-    if mode in ['cone', 'sphere']:
-        fig = _plot_dipole_locations_3d(
-            dipoles, trans, subject, subjects_dir, bgcolor, opacity,
-            brain_color, fig_name, fig_size, mode, scale_factor,
-            colors)
-    elif mode == 'orthoview':
+    if mode == 'orthoview':
         fig = _plot_dipole_mri_orthoview(
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
             ax=ax, block=block, show=show)
     else:
-        raise ValueError('Mode must be "orthoview", "cone" or "sphere". '
-                         'Got %s.' % mode)
+        raise ValueError('Mode must be "orthoview", got %s.' % (mode,))
 
     return fig
 
@@ -1734,6 +1593,10 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     if coord_frame not in ['head', 'mri']:
         raise ValueError("coord_frame must be 'head' or 'mri'. "
                          "Got %s." % coord_frame)
+
+    if not isinstance(dipole, Dipole):
+        from ..dipole import _concatenate_dipoles
+        dipole = _concatenate_dipoles(dipole)
     if idx == 'gof':
         idx = np.argmax(dipole.gof)
     elif idx == 'amplitude':
@@ -1741,10 +1604,6 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     elif not isinstance(idx, Integral):
         raise ValueError("idx must be an int or one of ['gof', 'amplitude']. "
                          "Got %s." % idx)
-
-    if not isinstance(dipole, Dipole):
-        from ..dipole import _concatenate_dipoles
-        dipole = _concatenate_dipoles(dipole)
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)

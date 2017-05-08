@@ -134,7 +134,7 @@ class Object(HasPrivateTraits):
 
     @on_trait_change('trans,points')
     def _update_points(self):
-        """Update the location of the plotted points"""
+        """Update the location of the plotted points."""
         if not hasattr(self.src, 'data'):
             return
 
@@ -208,7 +208,7 @@ class PointObject(Object):
             fig = self.scene.mayavi_scene
             for i, pt in enumerate(np.array(self.src.data.points)):
                 x, y, z = pt
-                t = text3d(x, y, z, ' %i' % i, scale=.01, color=self.rgbcolor,
+                t = text3d(x, y, z, ' %i' % i, scale=.01, color=self.color,
                            figure=fig)
                 self.text3d.append(t)
         _toggle_mlab_render(self, True)

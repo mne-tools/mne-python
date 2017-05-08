@@ -16,6 +16,7 @@ from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform)
 from ..utils import logger, verbose, warn
+from ..parallel import check_n_jobs
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, SourceSpaces)
 from ..source_estimate import VolSourceEstimate
@@ -23,8 +24,7 @@ from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
 
-from .forward import (Forward, write_forward_solution, _merge_meg_eeg_fwds,
-                      convert_forward_solution)
+from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
 from ._compute_forward import _compute_forwards
 
 
@@ -398,8 +398,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
 @verbose
 def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                          bem_extra='', trans='', info_extra='',
-                         meg=True, eeg=True, ignore_ref=False, fname=None,
-                         overwrite=False, verbose=None):
+                         meg=True, eeg=True, ignore_ref=False, verbose=None):
     """Prepare for forward computation."""
     # Read the source locations
     logger.info('')
@@ -421,8 +420,8 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     _print_coord_trans(mri_head_t)
 
     # make a new dict with the relevant information
-    arg_list = [info_extra, trans, src, bem_extra, fname, meg, eeg,
-                mindist, overwrite, n_jobs, verbose]
+    arg_list = [info_extra, trans, src, bem_extra, meg, eeg, mindist,
+                n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
     info = Info(chs=info['chs'], comps=info['comps'],
@@ -482,9 +481,9 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
 
 
 @verbose
-def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
-                          eeg=True, mindist=0.0, ignore_ref=False,
-                          overwrite=False, n_jobs=1, verbose=None):
+def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
+                          mindist=0.0, ignore_ref=False, n_jobs=1,
+                          verbose=None):
     """Calculate a forward solution for a subject.
 
     Parameters
@@ -506,10 +505,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     bem : dict | str
         Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
         use, or a loaded sphere model (dict).
-    fname : str | None
-        Destination forward solution filename. If None, the solution
-        will not be saved. Deprecated and removed in 0.15, Use
-        :func:`mne.write_forward_solution` instead.
     meg : bool
         If True (Default), include MEG computations.
     eeg : bool
@@ -520,11 +515,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since forward computation
         with reference channels is not currently supported.
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
-        Deprecated and removed in 0.15. Use :func:`mne.write_forward_solution`
-        instead.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -557,9 +547,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     # (could also be HEAD to MRI)
     mri_head_t, trans = _get_trans(trans)
     bem_extra = 'dict' if isinstance(bem, dict) else bem
-    if fname is not None and op.isfile(fname) and not overwrite:
-        raise IOError('file "%s" exists, consider using overwrite=True'
-                      % fname)
     if not isinstance(info, (Info, string_types)):
         raise TypeError('info should be an instance of Info or string')
     if isinstance(info, string_types):
@@ -567,6 +554,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
         info = read_info(info, verbose=False)
     else:
         info_extra = 'instance of Info'
+    n_jobs = check_n_jobs(n_jobs)
 
     # Report the setup
     logger.info('Source space                 : %s' % src)
@@ -582,12 +570,11 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     logger.info('Do computations in %s coordinates',
                 _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
     logger.info('Free source orientations')
-    logger.info('Destination for the solution : %s' % fname)
 
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
         update_kwargs, bem = _prepare_for_forward(
             src, mri_head_t, info, bem, mindist, n_jobs, bem_extra, trans,
-            info_extra, meg, eeg, ignore_ref, fname, overwrite)
+            info_extra, meg, eeg, ignore_ref)
     del (src, mri_head_t, trans, info_extra, bem_extra, mindist,
          meg, eeg, ignore_ref)
 
@@ -609,12 +596,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     # done in the C code) because mne-python assumes forward solution source
     # spaces are in head coords.
     fwd.update(**update_kwargs)
-    if fname is not None:
-        logger.info('writing %s...', fname)
-        warn("Parameters 'fname' and 'overwrite' are deprecated and removed in"
-             "version 0.15. Use mne.write_forward_solution instead.")
-        write_forward_solution(fname, fwd, overwrite, verbose=False)
-
     logger.info('Finished.')
     return fwd
 
@@ -685,8 +666,8 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
 
     # Forward operator created for channels in info (use pick_info to restrict)
     # Use defaults for most params, including min_dist
-    fwd = make_forward_solution(info, trans, src, bem, fname=None,
-                                n_jobs=n_jobs, verbose=verbose)
+    fwd = make_forward_solution(info, trans, src, bem, n_jobs=n_jobs,
+                                verbose=verbose)
     # Convert from free orientations to fixed (in-place)
     convert_forward_solution(fwd, surf_ori=False, force_fixed=True,
                              copy=False, verbose=None)
