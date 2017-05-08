@@ -651,7 +651,7 @@ def find_events(raw, stim_channel=None, output='onset',
     stim_channel = _get_stim_channel(stim_channel, raw.info)
 
     pick = pick_channels(raw.info['ch_names'], include=stim_channel)
-    if len(pick) == 0:
+    if len(pick)==0:
         raise ValueError('No stim channel found to extract event triggers.')
     data, _ = raw[pick, :]
 
