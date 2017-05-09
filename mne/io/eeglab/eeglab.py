@@ -46,6 +46,7 @@ def _check_mat_struct(fname):
         mat = io.whosmat(fname, struct_as_record=False, squeeze_me=True)
     except:
         # Try to read new style Matlab file
+        import h5py
         f = h5py.File(fname)
         mat = f.keys()
         if 'ALLEEG' in mat:
@@ -324,6 +325,7 @@ def namedtuple_wrapper(name, **kwargs):
 
 def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
     """Convert h5py obj to dict"""
+    import h5py
     out_dict = {}
     variable_names = in_hdf.keys()
     indent_incr = '    '
@@ -381,6 +383,7 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
 
 
 def hlGroup_2_namedtuple_list(orig, in_hlGroup, tuple_name, indent):
+    import h5py
     nt = namedtuple(tuple_name, in_hlGroup)
     try:
         temp_dict = {ct: in_hlGroup[ct].value.flatten() for ct in in_hlGroup}
