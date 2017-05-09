@@ -6,7 +6,6 @@
 import os.path as op
 
 import numpy as np
-import h5py  # Added to read newer Matlab files (7.3 and later)
 import sys
 from collections import Mapping, namedtuple
 
@@ -412,6 +411,7 @@ def _get_eeg_data(input_fname, uint16_codec):
                          uint16_codec=uint16_codec)['EEG']
     except:
         # Try to read new style Matlab file (Version 7.3+)
+        import h5py  # Added to read newer Matlab files (7.3 and later)
         logger.info("Attempting to read style Matlab hdf file")
         f = h5py.File(input_fname)
         eeg_dict = hdf_2_dict(f, f['EEG'], prefix=None)
