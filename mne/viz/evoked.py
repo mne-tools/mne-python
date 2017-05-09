@@ -166,8 +166,7 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc):
         ax.scatter(pos_x[idx], pos_y[idx], s=5, marker='.', color='w',
                    zorder=1)
 
-    if isinstance(outlines, dict):
-        _draw_outlines(ax, outlines)
+    _draw_outlines(ax, outlines)
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
@@ -437,7 +436,8 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
     bads = [np.where(used_nm == bad)[0][0] for bad in info['bads'] if bad in
             used_nm]
     pos = _auto_topomap_coords(info, idx, ignore_overlap=True, to_sphere=True)
-    pos, outlines = _check_outlines(pos, 'skirt', None)
+    pos, outlines = _check_outlines(pos, np.array([1, 1]),
+                                    {'center': (0, 0), 'scale': (0.5, 0.5)})
     loc = 1 if psd else 2  # Legend in top right for psd plot.
     _plot_legend(pos, colors, ax, bads, outlines, loc)
 
