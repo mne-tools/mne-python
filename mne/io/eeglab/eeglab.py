@@ -6,15 +6,14 @@
 import os.path as op
 
 import numpy as np
-import h5py #Added to read newer Matlab files (7.3 and later)
+import h5py  # Added to read newer Matlab files (7.3 and later)
+import sys
 from collections import Mapping, namedtuple
-
-from scipy.io import loadmat, matlab, whosmat
 
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
 from ..constants import FIFF
-from ..meas_info import _empty_info, create_info
+from ..meas_info import _empty_info, create_info, _kind_dict
 from ..base import BaseRaw, _check_update_montage
 from ...utils import logger, verbose, check_version, warn
 from ...channels.montage import Montage
@@ -42,18 +41,19 @@ def _check_mat_struct(fname):
     if not check_version('scipy', '0.12'):
         raise RuntimeError('scipy >= 0.12 must be installed for reading EEGLAB'
                            ' files.')
+    from scipy import io
     try:
-        #Try to read old style Matlab file
-        mat = whosmat(fname, struct_as_record=False, squeeze_me=True)
+        # Try to read old style Matlab file
+        mat = io.whosmat(fname, struct_as_record=False, squeeze_me=True)
     except:
-        #Try to read new style Matlab file
-        f=h5py.File(fname)
+        # Try to read new style Matlab file
+        f = h5py.File(fname)
         mat = f.keys()
         if 'ALLEEG' in mat:
-           mat[0] = u'ALLEEG'
+            mat[0] = u'ALLEEG'
         elif 'EEG' in mat:
-           mat[0] = u'EEG'
-        
+            mat[0] = u'EEG'
+
     if 'ALLEEG' in mat[0]:
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
@@ -67,22 +67,23 @@ def _to_loc(ll):
     """Check if location exists."""
     if isinstance(ll, (int, float)):
         return ll
-    elif isinstance (ll, (list, tuple)) and len(ll) > 0:
+    elif isinstance(ll, (list, tuple)) and len(ll) > 0:
         return ll
-    elif hasattr(ll,'dtype') and \
-         ((np.issubdtype(ll.dtype, np.integer) or
-           np.issubdtype(ll.dtype, np.float))):
+    elif hasattr(ll, 'dtype') and \
+        ((np.issubdtype(ll.dtype, np.integer) or
+          np.issubdtype(ll.dtype, np.float))):
         if isinstance(ll, np.ndarray):
             return list(ll) if ll.size > 0 else np.nan
         else:
             return ll
-    
+
     else:
         return np.nan
 
 
 def _get_info(eeg, montage, eog=()):
     """Get measurement info."""
+    from scipy import io
     info = _empty_info(sfreq=eeg.srate)
     update_ch_names = True
 
@@ -92,10 +93,9 @@ def _get_info(eeg, montage, eog=()):
             eeg.chanlocs = [eeg.chanlocs]
 
     if len(eeg.chanlocs) > 0:
-        ch_types = [x.type for x in eeg.chanlocs]
         pos_fields = ['X', 'Y', 'Z']
         if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
-                eeg.chanlocs[0], matlab.mio5_params.mat_struct)):
+                eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
             has_pos = all(fld in eeg.chanlocs[0].dtype.names
                           for fld in pos_fields)
         else:
@@ -103,10 +103,34 @@ def _get_info(eeg, montage, eog=()):
                           for fld in pos_fields)
         get_pos = has_pos and montage is None
         pos_ch_names, ch_names, pos = list(), list(), list()
+        ch_types = list()
         kind = 'user_defined'
         update_ch_names = False
+        err_mesg_shown = False
+        err_ch_set = set()
         for chanloc in eeg.chanlocs:
             ch_names.append(chanloc.labels)
+            if not hasattr(chanloc, 'type'):
+                ch_types.append('eeg')
+            elif not isinstance(chanloc.type, string_types):
+                msg = "'{}' does not use a string variable for its "
+                msg += "channel type. 'eeg' will be assumed, since "
+                msg += "data is sourced from EEGLAB."
+                ch_types.append('eeg')
+            elif chanloc.type in _kind_dict:
+                ch_types.append(chanloc.type)
+            else:
+                if not err_mesg_shown:
+                    msg = "Valid channel types are:\n{}\n"
+                    warn(msg.format(list(_kind_dict.keys())))
+                    err_mesg_shown = True
+                if chanloc.type not in err_ch_set:
+                    msg = "'{}' is not a recognized channel type "
+                    msg += "for {}. It will be replaced with 'misc'"
+                    warn(msg.format(chanloc.type, chanloc.labels))
+                    err_ch_set.add(chanloc.type)
+                ch_types.append('misc')
+
             if get_pos:
                 loc_x = _to_loc(chanloc.X)
                 loc_y = _to_loc(chanloc.Y)
@@ -115,6 +139,7 @@ def _get_info(eeg, montage, eog=()):
                 if not np.any(np.isnan(locs)):
                     pos_ch_names.append(chanloc.labels)
                     pos.append(locs)
+
         n_channels_with_pos = len(pos_ch_names)
         info = create_info(ch_names, eeg.srate, ch_types=ch_types)
         if n_channels_with_pos > 0:
@@ -281,8 +306,9 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     return epochs
 
 
-def namedtuplify(mapping, name='NT'):  # thank you https://gist.github.com/hangtwenty/5960435
-    """ Convert mappings to namedtuples recursively. """
+def namedtuplify(mapping, name='NT'):
+    """ Convert mappings to namedtuples recursively.
+       (thank you https://gist.github.com/hangtwenty/5960435)"""
     if isinstance(mapping, Mapping):
         for key, value in list(mapping.items()):
             mapping[key] = namedtuplify(value)
@@ -291,83 +317,107 @@ def namedtuplify(mapping, name='NT'):  # thank you https://gist.github.com/hangt
         return [namedtuplify(item) for item in mapping]
     return mapping
 
+
 def namedtuple_wrapper(name, **kwargs):
     wrap = namedtuple(name, kwargs)
     return wrap(**kwargs)
 
-def hdf_2_dict(orig, in_hdf, prefix=None, indent = ''):
+
+def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
     """Convert h5py obj to dict"""
     out_dict = {}
     variable_names = in_hdf.keys()
     indent_incr = '    '
-    
+
     for curr in sorted(variable_names):
         if prefix is None:
             curr_name = curr
         else:
-            curr_name = '_'.join([prefix,curr])
+            curr_name = '_'.join([prefix, curr])
 
+        msg = indent + "Converting ", curr_name
         if isinstance(in_hdf[curr], h5py.Dataset):
-            print indent + "Converting ", curr_name
+            logger.info(msg)
             temp = in_hdf[curr].value
             if 1 in temp.shape:
-               temp = temp.flatten()
+                temp = temp.flatten()
 
             if isinstance(temp[0], h5py.h5r.Reference):
-               temp = np.array([orig[x].value.flatten()[0] for x in temp])
+                temp = np.array([orig[x].value.flatten()[0] for x in temp])
 
             if len(temp) == 1:
-                temp=np.asscalar(temp[0])
+                temp = np.asscalar(temp[0])
                 if isinstance(temp, float) and temp.is_integer():
                     temp = int(temp)
             out_dict[curr] = temp
         elif isinstance(in_hdf[curr], h5py.Group):
-            print indent + "Converting ", curr_name
+            logger.info(msg)
             if curr == 'chanlocs':
-                temp = hlGroup_2_namedtuple_list(orig, in_hdf[curr], curr, indent + indent_incr)
-                
+                temp = hlGroup_2_namedtuple_list(orig, in_hdf[curr], curr,
+                                                 indent + indent_incr)
                 hdf_labels = in_hdf[curr]['labels']
                 ascii_labels = [orig[hdf_labels[x][0]].value
                                 for x in range(len(hdf_labels))]
-                chr_labels=[''.join([chr(x) for x in curr_label])
-                            for curr_label in ascii_labels]
+                chr_labels = [''.join([chr(x) for x in curr_label])
+                              for curr_label in ascii_labels]
 
                 hdf_type = in_hdf[curr]['type']
                 ascii_type = [orig[hdf_type[x][0]].value
-                                for x in range(len(hdf_type))]
-                chr_type=[''.join([chr(x) for x in curr_label]).strip().lower()
+                              for x in range(len(hdf_type))]
+                chr_type = [''.join([chr(x)
+                                     for x in curr_label]).strip().lower()
                             for curr_label in ascii_type]
 
-                
-                for ctr, (curr_label, curr_type) in enumerate(zip(chr_labels, chr_type)):
-                    temp[ctr]=temp[ctr]._replace(labels=curr_label, type=curr_type)
+                for ctr, (curr_label, curr_type) in enumerate(zip(chr_labels,
+                                                                  chr_type)):
+                    temp[ctr] = temp[ctr]._replace(labels=curr_label,
+                                                   type=curr_type)
             else:
-                temp = hdf_2_dict(orig, in_hdf[curr], curr_name, indent + indent_incr)
+                temp = hdf_2_dict(orig, in_hdf[curr],
+                                  curr_name, indent + indent_incr)
             out_dict[curr] = temp
         else:
             sys.exit("Unknown type")
     return out_dict
-    
+
+
 def hlGroup_2_namedtuple_list(orig, in_hlGroup, tuple_name, indent):
     nt = namedtuple(tuple_name, in_hlGroup)
     try:
-        temp_dict = {ct:in_hlGroup[ct].value.flatten() for ct in in_hlGroup}
-        temp_dict = {x:[orig[y].value.flatten()[0] for y in temp_dict[x]]
+        temp_dict = {ct: in_hlGroup[ct].value.flatten() for ct in in_hlGroup}
+        temp_dict = {x: [orig[y].value.flatten()[0] for y in temp_dict[x]]
                      if isinstance(temp_dict[x][0], h5py.Reference)
                      else temp_dict[x]
                      for x in temp_dict}
         for ct in in_hlGroup:
-            print indent + "Converting ", tuple_name + '_' + ct
+            msg = indent + "Converting ", tuple_name + '_' + ct
+            logger.info(msg)
 
-    except IOError as e:
-        temp_dict = {ct:[None] for ct in in_hlGroup}
-        print "Couldn't read",tuple_name,". Assuming empty"
-        
+    except IOError:
+        temp_dict = {ct: [None] for ct in in_hlGroup}
+        warn("Couldn't read", tuple_name, ". Assuming empty")
+
     sz = len(temp_dict[temp_dict.keys()[0]])
-    nt_list = [nt(**{key:temp_dict[key][x] for key in temp_dict}) for x in range(sz)]
+    nt_list = [nt(**{key: temp_dict[key][x] for key in temp_dict})
+               for x in range(sz)]
     return nt_list
 
 
+def _get_eeg_data(input_fname, uint16_codec):
+    from scipy import io
+    try:
+        # Try to read old style Matlab file
+        eeg = io.loadmat(input_fname, struct_as_record=False,
+                         squeeze_me=True,
+                         uint16_codec=uint16_codec)['EEG']
+    except:
+        # Try to read new style Matlab file (Version 7.3+)
+        logger.info("Attempting to read style Matlab hdf file")
+        f = h5py.File(input_fname)
+        eeg_dict = hdf_2_dict(f, f['EEG'], prefix=None)
+        eeg = namedtuplify(eeg_dict)
+
+    return eeg
 
 
 class RawEEGLAB(BaseRaw):
@@ -440,18 +490,7 @@ class RawEEGLAB(BaseRaw):
                  verbose=None, uint16_codec=None):  # noqa: D102
         basedir = op.dirname(input_fname)
         _check_mat_struct(input_fname)
-        try:
-            #Try to read old style Matlab file
-            eeg = loadmat(input_fname, struct_as_record=False,
-                            squeeze_me=True, uint16_codec=uint16_codec)['EEG']
-        except:
-            #Try to read new style Matlab file (Version 7.3+)
-            print "Attempting to read hdf file"
-            f=h5py.File(input_fname)
- 
-            eeg_dict = hdf_2_dict(f, f['EEG'], prefix=None)
-            eeg = namedtuplify(eeg_dict)
-
+        eeg = _get_eeg_data(input_fname, uint16_codec)
 
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
@@ -494,13 +533,12 @@ class RawEEGLAB(BaseRaw):
             else:
                 n_chan, n_times = eeg.data.shape
 
-            #Seem to have transpose with matlab hdf storage
+            # Seem to have transpose with matlab hdf storage
             if n_chan != eeg.nbchan and n_times == eeg.nbchan:
-               temp = eeg.data.transpose()
-               eeg=eeg._replace(data=temp)
-               n_chan, n_times = eeg.data.shape
+                temp = eeg.data.transpose()
+                eeg = eeg._replace(data=temp)
+                n_chan, n_times = eeg.data.shape
 
-                
             data = np.empty((n_chan + 1, n_times), dtype=np.double)
             data[:-1] = eeg.data
             data *= CAL
@@ -622,17 +660,7 @@ class EpochsEEGLAB(BaseEpochs):
                  reject_tmax=None, montage=None, eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
         _check_mat_struct(input_fname)
-        try:
-            #Try to read old style Matlab file
-            eeg = loadmat(input_fname, struct_as_record=False,
-                            squeeze_me=True, uint16_codec=uint16_codec)['EEG']
-        except:
-            #Try to read new style Matlab file (Version 7.3+)
-            print "Attempting to read hdf file"
-            f=h5py.File(input_fname)
- 
-            eeg_dict = hdf_2_dict(f, f['EEG'], prefix=None)
-            eeg = namedtuplify(eeg_dict)
+        eeg = _get_eeg_data(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or
                 (events is not None and event_id is not None)):
