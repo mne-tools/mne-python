@@ -1028,13 +1028,26 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
     colors = array_plot / vmax
     cmap = cm.get_cmap(colormap)
-
+    greymap = cm.get_cmap('Greys')
     polyc = ax.plot_trisurf(*coords.T, triangles=faces)
-    facecolors = art3d.PolyCollection.get_facecolors(polyc)
-    for idx, face in enumerate(faces):
-        facecolors[idx] = cmap(np.mean(colors[face]))
-    facecolors[:, 3] = alpha
 
+    curv = nib.freesurfer.read_morph_data(op.join(subjects_dir, subject,
+                                                  'surf', '%s.curv' % hemi))
+    bin_curv = np.array(curv > 0, np.int)
+    facecolors = art3d.PolyCollection.get_facecolors(polyc)
+    transp = 0.8
+
+    color_ave = np.zeros(len(faces))
+    curv_ave = np.zeros(len(faces))
+    for idx, face in enumerate(faces):
+        color_ave[idx] = np.mean(colors[face])
+        curv_ave[idx] = np.mean(bin_curv[face])
+
+    to_blend = color_ave > 0.5  # don't show activation under 0.5 * vmax
+    facecolors[to_blend, :3] = ((1 - transp) *
+                                greymap(curv_ave[to_blend])[:, :3] +
+                                transp * cmap(color_ave[to_blend])[:, :3])
+    facecolors[~to_blend, :3] = transp * cmap(curv_ave[~to_blend])[:, :3]
     ax.view_init(**kwargs[views])
     ax.axis('off')
     ax.set_title(time_label % times[time_idx], color='w')
