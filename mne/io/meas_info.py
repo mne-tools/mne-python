@@ -1478,12 +1478,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         if not isinstance(kind, string_types):
             raise TypeError('each entry in ch_types must be a string')
         if kind not in _kind_dict:
-            print ('kind must be one of %s, not %s' % (list(_kind_dict.keys()), kind))
+            print ('kind must be one of %s, not %s' %
+                   (list(_kind_dict.keys()), kind))
             print ('  Changing "%s" to "misc"' % kind)
             ch_types[ci] = 'misc'
             kind = "misc"
-            #raise KeyError('kind must be one of %s, not %s'
-            #               % (list(_kind_dict.keys()), kind))
             
         kind = _kind_dict[kind]
         chan_info = dict(loc=loc.copy(), unit_mul=0, range=1., cal=1.,
@@ -1492,7 +1491,6 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
 
-        
     info._update_redundant()
     if montage is not None:
         from ..channels.montage import (Montage, DigMontage, _set_montage,

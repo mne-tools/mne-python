@@ -306,25 +306,26 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     return epochs
 
 
-def namedtuplify(mapping, name='NT'):
-    """ Convert mappings to namedtuples recursively.
-       (thank you https://gist.github.com/hangtwenty/5960435)"""
+def _namedtuplify(mapping, name='NT'):
+    """Convert mappings to namedtuples recursively.
+
+    Based on https://gist.github.com/hangtwenty/5960435.
+    """
     if isinstance(mapping, Mapping):
         for key, value in list(mapping.items()):
-            mapping[key] = namedtuplify(value)
-        return namedtuple_wrapper(name, **mapping)
+            mapping[key] = _namedtuplify(value)
+        return _namedtuple_wrapper(name, **mapping)
     elif isinstance(mapping, list):
-        return [namedtuplify(item) for item in mapping]
+        return [_namedtuplify(item) for item in mapping]
     return mapping
 
-
-def namedtuple_wrapper(name, **kwargs):
+def _namedtuple_wrapper(name, **kwargs):
+    """Convert mappings to namedtuples."""
     wrap = namedtuple(name, kwargs)
     return wrap(**kwargs)
 
-
 def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
-    """Convert h5py obj to dict"""
+    """Convert h5py obj to dict."""
     import h5py
     out_dict = {}
     variable_names = in_hdf.keys()
@@ -354,7 +355,7 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
         elif isinstance(in_hdf[curr], h5py.Group):
             logger.info(msg)
             if curr == 'chanlocs':
-                temp = hlGroup_2_namedtuple_list(orig, in_hdf[curr], curr,
+                temp = _hlGroup_2_namedtuple_list(orig, in_hdf[curr], curr,
                                                  indent + indent_incr)
                 hdf_labels = in_hdf[curr]['labels']
                 ascii_labels = [orig[hdf_labels[x][0]].value
@@ -382,7 +383,7 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
     return out_dict
 
 
-def hlGroup_2_namedtuple_list(orig, in_hlGroup, tuple_name, indent):
+def _hlGroup_2_namedtuple_list(orig, in_hlGroup, tuple_name, indent):
     import h5py
     nt = namedtuple(tuple_name, in_hlGroup)
     try:
@@ -418,7 +419,7 @@ def _get_eeg_data(input_fname, uint16_codec):
         logger.info("Attempting to read style Matlab hdf file")
         f = h5py.File(input_fname)
         eeg_dict = hdf_2_dict(f, f['EEG'], prefix=None)
-        eeg = namedtuplify(eeg_dict)
+        eeg = _namedtuplify(eeg_dict)
 
     return eeg
 

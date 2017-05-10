@@ -46,9 +46,6 @@ def test_array_raw():
     # wrong length
     assert_raises(ValueError, create_info, ch_names, sfreq, types)
     # bad entry - now is corrected, by reassigning to misc
-    #types.append('foo')
-    #assert_raises(KeyError, create_info, ch_names, sfreq, types)
-    #types[-1] = 'eog'
     types.append('eog')
     # default type
     info = create_info(ch_names, sfreq)
