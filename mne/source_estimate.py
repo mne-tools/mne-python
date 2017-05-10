@@ -2830,13 +2830,9 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     U, s, V = linalg.svd(stc.data[vertidx, :],
                                          full_matrices=False)
                     # determine sign-flip
-                    sign = np.sign(np.dot(U[:, 0], flip))
-
-                    # use average power in label for scaling
-                    scale = linalg.norm(s) / np.sqrt(len(vertidx))
-                    flip_refrence = sign * scale * V[0]
+                    flip_refrence = V[0]
                     flip = np.sign(np.corrcoef(flip_refrence, stc.data[vertidx, :]))[1:,0]
-                    label_tc[i] = np.mean(flip[:,np.newaxis] * stc.data[vertidx, :], axis=0)
+                    label_tc[i] = np.median(flip[:,np.newaxis] * stc.data[vertidx, :], axis=0)
         elif mode == 'max':
             for i, vertidx in enumerate(label_vertidx):
                 if vertidx is not None:
