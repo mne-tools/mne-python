@@ -76,6 +76,8 @@ BUG
 
     - Fix :meth:`mne.Evoked.plot_topomap` when using the ``mask`` argument with paired gradiometers by `Eric Larson`_
 
+    - Fix bug in :meth:`mne.Label.fill` where an empty label raised an error, by `Eric Larson`_
+
 
 API
 ~~~

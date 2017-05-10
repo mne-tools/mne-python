@@ -166,7 +166,7 @@ def assert_labels_equal(l0, l1, decimal=5, comment=True, color=True):
 
 
 def test_copy():
-    """Test label copying"""
+    """Test label copying."""
     label = read_label(label_fname)
     label_2 = label.copy()
     label_2.pos += 1
@@ -174,8 +174,7 @@ def test_copy():
 
 
 def test_label_subject():
-    """Test label subject name extraction
-    """
+    """Test label subject name extraction."""
     label = read_label(label_fname)
     assert_is(label.subject, None)
     assert_true('unknown' in repr(label))
@@ -255,7 +254,7 @@ def test_label_addition():
 
 @testing.requires_testing_data
 def test_label_in_src():
-    """Test label in src"""
+    """Test label in src."""
     src = read_source_spaces(src_fname)
     label = read_label(v1_label_fname)
 
@@ -282,11 +281,15 @@ def test_label_in_src():
     vertices = np.append([-1], vert_in_src)
     assert_raises(ValueError, Label(vertices, hemi='lh').fill, src)
 
+    # test filling empty label
+    label = Label([], hemi='lh')
+    label.fill(src)
+    assert_array_equal(label.vertices, np.array([], int))
+
 
 @testing.requires_testing_data
 def test_label_io_and_time_course_estimates():
-    """Test IO for label + stc files
-    """
+    """Test IO for label + stc files."""
     stc = read_source_estimate(stc_fname)
     label = read_label(real_label_fname)
     stc_label = stc.in_label(label)
@@ -297,8 +300,7 @@ def test_label_io_and_time_course_estimates():
 
 @testing.requires_testing_data
 def test_label_io():
-    """Test IO of label files
-    """
+    """Test IO of label files."""
     tempdir = _TempDir()
     label = read_label(label_fname)
 
@@ -333,7 +335,7 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 @testing.requires_testing_data
 def test_annot_io():
-    """Test I/O from and to *.annot files"""
+    """Test I/O from and to *.annot files."""
     # copy necessary files from fsaverage to tempdir
     tempdir = _TempDir()
     subject = 'fsaverage'
@@ -380,8 +382,7 @@ def test_annot_io():
 
 @testing.requires_testing_data
 def test_read_labels_from_annot():
-    """Test reading labels from FreeSurfer parcellation
-    """
+    """Test reading labels from FreeSurfer parcellation."""
     # test some invalid inputs
     assert_raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
                   subjects_dir=subjects_dir)
@@ -438,8 +439,7 @@ def test_read_labels_from_annot():
 
 @testing.requires_testing_data
 def test_read_labels_from_annot_annot2labels():
-    """Test reading labels from parc. by comparing with mne_annot2labels
-    """
+    """Test reading labels from parc. by comparing with mne_annot2labels."""
     label_fnames = glob.glob(label_dir + '/*.label')
     label_fnames.sort()
     labels_mne = [read_label(fname) for fname in label_fnames]
@@ -451,7 +451,7 @@ def test_read_labels_from_annot_annot2labels():
 
 @testing.requires_testing_data
 def test_write_labels_to_annot():
-    """Test writing FreeSurfer parcellation from labels"""
+    """Test writing FreeSurfer parcellation from labels."""
     tempdir = _TempDir()
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
@@ -578,7 +578,7 @@ def test_write_labels_to_annot():
 @requires_sklearn
 @testing.requires_testing_data
 def test_split_label():
-    """Test splitting labels"""
+    """Test splitting labels."""
     aparc = read_labels_from_annot('fsaverage', 'aparc', 'lh',
                                    regexp='lingual', subjects_dir=subjects_dir)
     lingual = aparc[0]
@@ -632,8 +632,7 @@ def test_split_label():
 @testing.requires_testing_data
 @requires_sklearn
 def test_stc_to_label():
-    """Test stc_to_label
-    """
+    """Test stc_to_label."""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         src = read_source_spaces(fwd_fname)
@@ -694,8 +693,7 @@ def test_stc_to_label():
 @slow_test
 @testing.requires_testing_data
 def test_morph():
-    """Test inter-subject label morphing
-    """
+    """Test inter-subject label morphing."""
     label_orig = read_label(real_label_fname)
     label_orig.subject = 'sample'
     # should work for specifying vertices for both hemis, or just the
@@ -728,7 +726,7 @@ def test_morph():
 
 @testing.requires_testing_data
 def test_grow_labels():
-    """Test generation of circular source labels"""
+    """Test generation of circular source labels."""
     seeds = [0, 50000]
     # these were chosen manually in mne_analyze
     should_be_in = [[49, 227], [51207, 48794]]
@@ -770,7 +768,7 @@ def test_grow_labels():
 
 @testing.requires_testing_data
 def test_label_sign_flip():
-    """Test label sign flip computation"""
+    """Test label sign flip computation."""
     src = read_source_spaces(src_fname)
     label = Label(vertices=src[0]['vertno'][:5], hemi='lh')
     src[0]['nn'][label.vertices] = np.array(
@@ -789,7 +787,7 @@ def test_label_sign_flip():
 
 @testing.requires_testing_data
 def test_label_center_of_mass():
-    """Test computing the center of mass of a label"""
+    """Test computing the center of mass of a label."""
     stc = read_source_estimate(stc_fname)
     stc.lh_data[:] = 0
     vertex_stc = stc.center_of_mass('sample', subjects_dir=subjects_dir)[0]
@@ -840,4 +838,6 @@ def test_label_center_of_mass():
                   surf=1)
     assert_raises(IOError, label.center_of_mass, subjects_dir=subjects_dir,
                   surf='foo')
+
+
 run_tests_if_main()
