@@ -1043,7 +1043,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         color_ave[idx] = np.mean(colors[face])
         curv_ave[idx] = np.mean(bin_curv[face])
 
-    to_blend = color_ave > 0.5  # don't show activation under 0.5 * vmax
+    to_blend = color_ave > ctrl_pts[0] / vmax
     facecolors[to_blend, :3] = ((1 - transp) *
                                 greymap(curv_ave[to_blend])[:, :3] +
                                 transp * cmap(color_ave[to_blend])[:, :3])
