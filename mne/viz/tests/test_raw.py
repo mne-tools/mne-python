@@ -238,7 +238,8 @@ def test_plot_raw_psd():
     raw.plot_psd(tmax=np.inf, ax=ax)
     plt.close('all')
     # topo psd
-    raw.plot_psd_topo()
+    ax = plt.subplot()
+    raw.plot_psd_topo(axes=ax)
     plt.close('all')
     # with channel information not available
     for idx in range(len(raw.info['chs'])):

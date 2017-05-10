@@ -43,7 +43,9 @@ Changelog
 
     - Add :meth:`mne.time_frequency.EpochsTFR.save` by `Jaakko Leppakangas`_
 
-    - Add butterfly mode (toggled with 'b' key) to :meth:`mne.io.Raw.plot by ``Jaakko Leppakangas`_
+    - Add butterfly mode (toggled with 'b' key) to :meth:`mne.io.Raw.plot` by `Jaakko Leppakangas`_
+
+    - Add ``axes`` parameter to plot_topo functions by `Jaakko Leppakangas`_
 
 BUG
 ~~~
@@ -70,7 +72,10 @@ BUG
 
     - Fix :meth:`raw.set_bipolar_reference` to support duplicates in anodes by `Jean-Baptiste Schiratti`_ and `Alex Gramfort`_
 
+    - Fix visuals of :func:`mne.viz.plot_evoked` and a bug where ylim changes when using interactive topomap plotting by `Jaakko Leppakangas`_
+
     - Fix :meth:`mne.Evoked.plot_topomap` when using the ``mask`` argument with paired gradiometers by `Eric Larson`_
+
 
 API
 ~~~
