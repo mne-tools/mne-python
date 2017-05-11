@@ -1016,14 +1016,16 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
-    nearest = grade_to_vertices(subject, None, subjects_dir)
-    tris = _get_subject_sphere_tris(subject, subjects_dir)
-    e = mesh_edges(tris[hemi_idx])
+    nearest = grade_to_vertices(subject, None, subjects_dir)[hemi_idx]
+    tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
+
+    e = mesh_edges(tris)
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
+    maps = sparse.identity(n_vertices).tocsr()
     e = e + sparse.eye(n_vertices, n_vertices)
     array_plot = _morph_buffer(data, vertices, e, smoothing_steps, n_verts,
-                               nearest, None)
+                               nearest, maps)
     vmax = np.max(array_plot)
 
     colors = array_plot / vmax
@@ -1051,9 +1053,9 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     ax.view_init(**kwargs[views])
     ax.axis('off')
     ax.set_title(time_label % times[time_idx], color='w')
-    ax.set_xlim(-100, 100)
-    ax.set_ylim(-100, 100)
-    ax.set_zlim(-100, 100)
+    ax.set_xlim(-80, 80)
+    ax.set_ylim(-80, 80)
+    ax.set_zlim(-80, 80)
     ax.set_aspect('equal')
     ax.disable_mouse_rotation()
     ax.set_facecolor(background)
