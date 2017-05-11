@@ -1058,7 +1058,8 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     ax.set_zlim(-80, 80)
     ax.set_aspect('equal')
     ax.disable_mouse_rotation()
-    ax.set_facecolor(background)
+    with warnings.catch_warnings(record=True):  # deprecation warn in mpl >= 2
+        ax.set_axis_bgcolor(background)
     plt.show()
     return fig
 
