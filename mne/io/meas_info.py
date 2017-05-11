@@ -1483,7 +1483,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
             print ('  Changing "%s" to "misc"' % kind)
             ch_types[ci] = 'misc'
             kind = "misc"
-            
+
         kind = _kind_dict[kind]
         chan_info = dict(loc=loc.copy(), unit_mul=0, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],

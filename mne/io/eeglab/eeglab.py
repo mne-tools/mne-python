@@ -319,10 +319,12 @@ def _namedtuplify(mapping, name='NT'):
         return [_namedtuplify(item) for item in mapping]
     return mapping
 
+
 def _namedtuple_wrapper(name, **kwargs):
     """Convert mappings to namedtuples."""
     wrap = namedtuple(name, kwargs)
     return wrap(**kwargs)
+
 
 def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
     """Convert h5py obj to dict."""
@@ -356,7 +358,7 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
             logger.info(msg)
             if curr == 'chanlocs':
                 temp = _hlGroup_2_namedtuple_list(orig, in_hdf[curr], curr,
-                                                 indent + indent_incr)
+                                                  indent + indent_incr)
                 hdf_labels = in_hdf[curr]['labels']
                 ascii_labels = [orig[hdf_labels[x][0]].value
                                 for x in range(len(hdf_labels))]
