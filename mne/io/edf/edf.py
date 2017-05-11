@@ -908,8 +908,9 @@ def _read_gdf_header(fname, stim_channel, exclude):
             if edf_info['number'] < 2.19:
                 impedance = np.fromfile(fid, np.uint8, len(channels))
                 mask = impedance == 255
-                channel['impedance'] = pow(2, impedance.astype(float) / 8)
-                channel['impedance'][mask] = np.nan
+                impedance = pow(2, impedance.astype(float) / 8)
+                impedance[mask] = np.nan
+                channel['impedance'] = impedance
                 fid.seek(19 * len(channels), 1)  # reserved
             else:
                 tmp = np.fromfile(fid, np.float32, 5 * len(channels))
