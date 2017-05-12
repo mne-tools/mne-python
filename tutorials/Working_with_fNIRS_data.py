@@ -86,8 +86,7 @@ raw_data.filter(l_freq, h_freq, fir_design='firwin')
 # events positions, using the same colors previously used in
 # :func:`mne.viz.plot_events`.
 scalings = dict(hbo=10e-6, hbr=10e-6, stim=1)
-fig_title = 'fNIRS Raw Bandpass filtered [' + str(l_freq) + ' Hz, ' +
-            str(h_freq) + ' Hz]'
+fig_title = 'fNIRS raw bandpass filtered %s Hz - %s Hz' % (l_freq, h_freq)
 plot_colors = dict(hbo='r', hbr='b', stim='k')
 raw_data.plot(title=fig_title, events=events, start=0.0, color=plot_colors,
               event_color=color, duration=np.max(raw_data.times),
