@@ -6,7 +6,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_almost_equal)
+                           )
 from nose.tools import assert_true, assert_raises
 import warnings
 
@@ -43,7 +43,6 @@ def test_simulate_evoked():
     evoked_template = read_evokeds(ave_fname, condition=0, baseline=None)
     evoked_template.pick_types(meg=True, eeg=True, exclude=raw.info['bads'])
 
-    snr = 6  # dB
     tmin = -0.1
     sfreq = 1000.  # Hz
     tstep = 1. / sfreq
@@ -56,8 +55,9 @@ def test_simulate_evoked():
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
-    evoked = simulate_evoked(fwd, stc, evoked_template.info, cov, snr,
-                             tmin=0.0, tmax=0.2, iir_filter=iir_filter)
+    evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
+                             tmin=0.0, tmax=0.2, iir_filter=iir_filter,
+                             nave=evoked_template.nave)
     assert_array_almost_equal(evoked.times, stc.times)
     assert_true(len(evoked.data) == len(fwd['sol']['data']))
 
@@ -67,26 +67,12 @@ def test_simulate_evoked():
     stc_bad.vertices[0][0] = mv + 1
 
     assert_raises(RuntimeError, simulate_evoked, fwd, stc_bad,
-                  evoked_template.info, cov, snr, tmin=0.0, tmax=0.2)
+                  evoked_template.info, cov, tmin=0.0, tmax=0.2)
     evoked_1 = simulate_evoked(fwd, stc, evoked_template.info, cov, np.inf,
                                tmin=0.0, tmax=0.2)
     evoked_2 = simulate_evoked(fwd, stc, evoked_template.info, cov, np.inf,
                                tmin=0.0, tmax=0.2)
     assert_array_equal(evoked_1.data, evoked_2.data)
-
-    # test snr definition in dB
-    evoked_noise = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                                   snr=snr, tmin=None, tmax=None,
-                                   iir_filter=None)
-    evoked_clean = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                                   snr=np.inf, tmin=None, tmax=None,
-                                   iir_filter=None)
-    noise = evoked_noise.data - evoked_clean.data
-
-    empirical_snr = 10 * np.log10(np.mean((evoked_clean.data ** 2).ravel()) /
-                                  np.mean((noise ** 2).ravel()))
-
-    assert_almost_equal(snr, empirical_snr, decimal=5)
 
     cov['names'] = cov.ch_names[:-2]  # Error channels are different.
     assert_raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,

@@ -3,7 +3,6 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
-import copy
 import warnings
 import math
 
@@ -11,7 +10,7 @@ import numpy as np
 
 from ..io.pick import pick_channels_cov
 from ..forward import apply_forward
-from ..utils import check_random_state, verbose, _time_mask
+from ..utils import check_random_state, verbose
 
 
 @verbose
@@ -49,6 +48,7 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
+    nave : XXX
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -129,36 +129,3 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     else:
         zf = None
     return noise, zf
-
-
-def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
-    """Add noise to evoked object with specified SNR.
-
-    SNR is computed in the interval from tmin to tmax.
-
-    Parameters
-    ----------
-    evoked : Evoked object
-        An instance of evoked with signal
-    noise : Evoked object
-        An instance of evoked with noise
-    snr : float
-        signal to noise ratio in dB. It corresponds to
-        10 * log10( var(signal) / var(noise) )
-    tmin : float
-        start time before event
-    tmax : float
-        end time after event
-
-    Returns
-    -------
-    evoked_noise : Evoked object
-        An instance of evoked corrupted by noise
-    """
-    evoked = copy.deepcopy(evoked)
-    tmask = _time_mask(evoked.times, tmin, tmax, sfreq=evoked.info['sfreq'])
-    tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
-                        np.mean((noise.data ** 2).ravel()))
-    noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data
-    evoked.data += noise.data
-    return evoked
