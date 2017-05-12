@@ -179,4 +179,18 @@ def test_rap_music_simulated_sphere():
     assert_true(1e-10 < dipoles[0].amplitude[0] < 1e-7)
 
 
+@testing.requires_testing_data
+def test_rap_music_return_only_dipole_fixed():
+    """Test RAP-MUSIC to verify if return is a DipoleFixed object."""
+    cond = 'Right Auditory'
+    ave = mne.read_evokeds(fname_ave, condition=cond, baseline=(None, 0))
+    fwd = mne.read_forward_solution(fname_fwd, surf_ori=True,
+                                    force_fixed=False)
+    cov = mne.read_cov(fname_cov)
+    dipoles, residual = rap_music(ave, fwd, cov, n_dipoles=2,
+                                  return_residual=True, verbose=False)
+    for dipole in dipoles:
+        assert_true(isinstance(dipole, mne.dipole.DipoleFixed))
+
+
 run_tests_if_main()
