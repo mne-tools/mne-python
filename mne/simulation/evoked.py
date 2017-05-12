@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 import copy
 import warnings
+import math
 
 import numpy as np
 
@@ -15,7 +16,8 @@ from ..utils import check_random_state, verbose, _time_mask
 
 @verbose
 def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
-                    iir_filter=None, random_state=None, verbose=None):
+                    iir_filter=None, random_state=None, verbose=None,
+                    nave=1):
     """Generate noisy evoked data.
 
     .. note:: No projections from ``info`` will be present in the
@@ -69,11 +71,8 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     evoked = apply_forward(fwd, stc, info)
     if snr < np.inf:
         noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
-        evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin,
-                                        tmax=tmax)
-    else:
-        evoked_noise = evoked
-    return evoked_noise
+        evoked.data += noise.data / math.sqrt(nave)
+    return evoked
 
 
 def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
