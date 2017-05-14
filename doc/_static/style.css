@@ -68,6 +68,51 @@ code {
     color: rgb(242, 80, 80);
 }
 
+#navbar {
+    max-width: 1024px;
+}
+
+div.row-carousel {
+    width: 850px;
+}
+div.carousel-front {
+    float:right;
+    width:50%;
+}
+
+div.crop-wrapper {
+  width: 380px;
+  height: 190px;
+  overflow: hidden
+}
+
+div.logo-front {
+    width:50%;
+    margin: 0px;
+}
+
+img.logo-front {
+    margin: 0 10%;
+    width:; auto;
+}
+
+div.row-front {
+    width: 100%;
+    height: 70px;
+}
+
+a.button-front {
+    width: 32%;
+    height: 100%;
+    margin: 5px;
+    float:left;
+    background-color: #e7e7e7;
+    color: black;
+    border: 1px solid;
+    padding: 20px 0px;
+    font-size: larger;
+}
+
 .note a {
     color: rgb(0,0,255);
 }

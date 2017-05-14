@@ -2,62 +2,41 @@
 
 .. include:: links.inc
 
-.. container:: row
+.. container:: row-carousel
 
-  .. container:: col-md-12 nopad
+  .. container:: carousel-front
 
-    .. container:: midcenter nopad
+    .. include:: carousel.inc
 
-      .. image:: _static/institutions.png
-         :alt: Institutions
+  .. container:: logo-front
 
+    .. image:: _static/mne_logo.png
+       :alt: MNE
+       :class: logo-front
 
-  .. container:: col-md-12 nopad
+.. container:: row-front
 
-    .. container:: midcenter nopad tall
+  .. raw:: html
 
-      .. image:: _static/mne_logo.png
-         :alt: MNE
+    <a href="http://google.com" class="btn btn-default button-front">Preprocessing</a>
+    <a href="http://google.com" class="btn btn-default button-front">Visualization</a>
+    <a href="http://google.com" class="btn btn-default button-front">Connectivity</a>
 
+.. container:: row-front
 
-.. container:: row
+  .. raw:: html
 
-  .. container:: col-md-12
+    <a href="http://google.com" class="btn btn-default button-front">Time-Frequency Analysis</a>
+    <a href="http://google.com" class="btn btn-default button-front">Source Reconstruction</a>
+    <a href="http://google.com" class="btn btn-default button-front">Statistics and<br />Machine Learning</a>
 
-    Community-driven software for **processing time-resolved neural
-    signals including electroencephalography (EEG) and
-    magnetoencephalography (MEG)**, offering comprehensive data analysis
-    tools for Windows, OSX, and Linux:
+.. raw:: html
 
-    - Preprocessing and denoising
-    - Source estimation
-    - Time–frequency analysis
-    - Statistical testing
-    - Functional connectivity
-    - Machine learning
-    - Visualization of sensor- and source-space data
+   <div style='clear:both'></div>
+   <br />
+   <br />
 
-    Be sure to check out :ref:`what's new <whats_new>` with the package!
-
-    From raw data to source estimates **in about 20 lines of code** (try it `in an experimental online demo <http://mybinder.org/repo/mne-tools/mne-binder/notebooks/plot_introduction.ipynb>`_!)::
-
-        >>> import mne  # doctest: +SKIP
-        >>> raw = mne.io.read_raw_fif('raw.fif')  # load data  # doctest: +SKIP
-        >>> raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels  # doctest: +SKIP
-        >>> raw.filter(l_freq=None, h_freq=40.0)  # low-pass filter  # doctest: +SKIP
-        >>> events = mne.find_events(raw, 'STI014')  # extract events and epoch data # doctest: +SKIP
-        >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,  # doctest: +SKIP
-        >>>                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))  # doctest: +SKIP
-        >>> evoked = epochs.average()  # compute evoked  # doctest: +SKIP
-        >>> evoked.plot()  # butterfly plot the evoked data # doctest: +SKIP
-        >>> cov = mne.compute_covariance(epochs, tmax=0, method='shrunk')  # doctest: +SKIP
-        >>> fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)  # doctest: +SKIP
-        >>> inv = mne.minimum_norm.make_inverse_operator(  # doctest: +SKIP
-        >>>     raw.info, fwd, cov, loose=0.2)  # compute inverse operator # doctest: +SKIP
-        >>> stc = mne.minimum_norm.apply_inverse(  # doctest: +SKIP
-        >>>     evoked, inv, lambda2=1. / 9., method='dSPM')  # apply it # doctest: +SKIP
-        >>> stc_fs = stc.morph('fsaverage')  # morph to fsaverage # doctest: +SKIP
-        >>> stc_fs.plot()  # plot source data on fsaverage's brain # doctest: +SKIP
+.. container:: support-front
 
     Direct financial support for MNE has been provided by the United States:
 
@@ -86,7 +65,7 @@
 
     .. raw:: html
 
-      <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Updates by @mne_python</a>
+      <a class="twitter-timeline" href="https://twitter.com/mne_news" data-widget-id="317730454184804352">Updates by @mne_news</a>
 
   .. container:: col-md-4 nopad
 
