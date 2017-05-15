@@ -174,6 +174,11 @@ def test_render_add_sections():
                                captions='random image', scale=1.2)
     assert_true(repr(report))
 
+    img_fname = op.join(tempdir, 'testimage.gif')
+    fig.savefig(img_fname)
+    report.add_images_to_section(img_fname, 'evoked response', 'gif',
+                                 image_format='gif')
+
 
 @slow_test
 @testing.requires_testing_data
