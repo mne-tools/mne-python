@@ -68,13 +68,10 @@ code {
     color: rgb(242, 80, 80);
 }
 
-#navbar {
-    max-width: 1024px;
+div.row-carousel {
+    width: 1000px;
 }
 
-div.row-carousel {
-    width: 850px;
-}
 div.carousel-front {
     float:right;
     width:50%;
@@ -109,8 +106,17 @@ a.button-front {
     background-color: #e7e7e7;
     color: black;
     border: 1px solid;
-    padding: 20px 0px;
     font-size: larger;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.anchor-doc {
+    position: relative;
+    padding-top: 200px !important;
+    display: none !important;
+
 }
 
 .note a {

@@ -178,6 +178,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
+            <a id="preprocessing" class="anchor-doc"></a>
             <a data-toggle="collapse" href="#collapse_pre">Preprocessing (filtering, SSP, ICA, Maxwell filtering, ...)</a>
           </h4>
         </div>
@@ -243,6 +244,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
+            <a id="visualization" class="anchor-doc"></a>
             <a data-toggle="collapse" href="#collapse_viz">Visualization</a>
           </h4>
         </div>
@@ -291,6 +293,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
+            <a id="time-freq" class="anchor-doc"></a>
             <a data-toggle="collapse" href="#collapse_analysis">Time- and frequency-domain analyses</a>
           </h4>
         </div>
@@ -339,6 +342,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
+            <a id="source-analysis" class="anchor-doc"></a>
             <a data-toggle="collapse" href="#collapse_source">Source-level analysis</a>
           </h4>
         </div>
@@ -509,6 +513,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
+            <a id="machine-learning" class="anchor-doc"></a>
             <a data-toggle="collapse" href="#collapse_ml">Machine learning (decoding, encoding, MVPA)</a>
           </h4>
         </div>
@@ -577,6 +582,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
+            <a id="connectivity" class="anchor-doc"></a>
             <a data-toggle="collapse" href="#collapse_conn">Connectivity</a>
           </h4>
         </div>

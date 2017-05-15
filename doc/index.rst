@@ -18,17 +18,17 @@
 
   .. raw:: html
 
-    <a href="http://google.com" class="btn btn-default button-front">Preprocessing</a>
-    <a href="http://google.com" class="btn btn-default button-front">Visualization</a>
-    <a href="http://google.com" class="btn btn-default button-front">Connectivity</a>
+    <a href="documentation.html#preprocessing" class="btn btn-default button-front">Preprocessing</a>
+    <a href="documentation.html#visualization" class="btn btn-default button-front">Visualization</a>
+    <a href="documentation.html#connectivity" class="btn btn-default button-front">Connectivity</a>
 
 .. container:: row-front
 
   .. raw:: html
 
-    <a href="http://google.com" class="btn btn-default button-front">Time-Frequency Analysis</a>
-    <a href="http://google.com" class="btn btn-default button-front">Source Reconstruction</a>
-    <a href="http://google.com" class="btn btn-default button-front">Statistics and<br />Machine Learning</a>
+    <a href="documentation.html#time-freq" class="btn btn-default button-front">Time-Frequency Analysis</a>
+    <a href="documentation.html#source-analysis" class="btn btn-default button-front">Source Reconstruction</a>
+    <a href="documentation.html#machine-learning" class="btn btn-default button-front">Statistics and<br />Machine Learning</a>
 
 .. raw:: html
 
@@ -58,6 +58,11 @@
     - European Research Council Starting Grant *ERC-YStG-263584* and
       *ERC-YStG-676943*
     - French National Research Agency *ANR-14-NEUC-0002-01*.
+
+    With support from the following institutions:
+
+.. image:: _static/institutions.png
+  :alt: Institutions
 
 .. container:: row
 
