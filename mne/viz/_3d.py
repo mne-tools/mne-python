@@ -970,9 +970,8 @@ def _handle_time(time_label, time_unit, times):
 
 def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   colormap='auto', time_label='auto', smoothing_steps=10,
-                  alpha=1.0, subjects_dir=None, views='lat', clim='auto',
-                  figure=None, initial_time=0, time_unit='s',
-                  background='black'):
+                  subjects_dir=None, views='lat', clim='auto', figure=None,
+                  initial_time=0, time_unit='s', background='black'):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D, art3d
@@ -1031,11 +1030,11 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     colors = array_plot / vmax
     cmap = cm.get_cmap(colormap)
     greymap = cm.get_cmap('Greys')
-    polyc = ax.plot_trisurf(*coords.T, triangles=faces)
+    polyc = ax.plot_trisurf(*coords.T, triangles=faces, antialiased=False)
 
     curv = nib.freesurfer.read_morph_data(op.join(subjects_dir, subject,
                                                   'surf', '%s.curv' % hemi))
-    bin_curv = np.array(curv > 0, np.int)
+    curv = np.clip(np.array(curv > 0, np.int), 0.2, 0.8)
     facecolors = art3d.PolyCollection.get_facecolors(polyc)
     transp = 0.8
 
@@ -1043,13 +1042,13 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     curv_ave = np.zeros(len(faces))
     for idx, face in enumerate(faces):
         color_ave[idx] = np.mean(colors[face])
-        curv_ave[idx] = np.mean(bin_curv[face])
+        curv_ave[idx] = np.mean(curv[face])
 
     to_blend = color_ave > ctrl_pts[0] / vmax
     facecolors[to_blend, :3] = ((1 - transp) *
                                 greymap(curv_ave[to_blend])[:, :3] +
                                 transp * cmap(color_ave[to_blend])[:, :3])
-    facecolors[~to_blend, :3] = transp * cmap(curv_ave[~to_blend])[:, :3]
+    facecolors[~to_blend, :3] = greymap(curv_ave[~to_blend])[:, :3]
     ax.view_init(**kwargs[views])
     ax.axis('off')
     ax.set_title(time_label % times[time_idx], color='w')
@@ -1202,7 +1201,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     if plot_mpl:
         return _plot_mpl_stc(stc, subject=subject, surface=surface, hemi=hemi,
                              colormap=colormap, time_label=time_label,
-                             smoothing_steps=smoothing_steps, alpha=alpha,
+                             smoothing_steps=smoothing_steps,
                              subjects_dir=subjects_dir, views=views, clim=clim,
                              figure=figure, initial_time=initial_time,
                              time_unit=time_unit, background=background)
