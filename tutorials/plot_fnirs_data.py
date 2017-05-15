@@ -5,10 +5,10 @@
 Use MNE with fNIRS data
 =======================
 
-MNE Python was implemented with EEG and MEG in mind, but can be useful to
-process fNIRS data as #well. A common fNIRS data set (similarly to EEG and
-MEG data) contains data recorded over time(a.k.a. samples) at many locations
-on the scalp (a.k.a. channels).
+MNE Python was originally implemented with EEG and MEG in mind, but can be
+useful to process fNIRS data as well. A common fNIRS data set (similarly to EEG
+and MEG data) contains data recorded over time(a.k.a. samples) at many
+locations on the scalp (a.k.a. channels).
 Usually in fNIRS one looks for brain responses to external sensorial
 stimulations (visual, acoustic, etc.). In order to do so, block design
 studies are usually employed and data are later epoched to get evoked
