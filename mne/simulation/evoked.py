@@ -54,6 +54,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
     snr : float
         signal to noise ratio in dB. It corresponds to
         10 * log10( var(signal) / var(noise) ).
+        snr is deprecated and will be removed in 0.16.
 
     Returns
     -------
