@@ -3,6 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
+import copy
 import warnings
 import math
 
@@ -10,13 +11,13 @@ import numpy as np
 
 from ..io.pick import pick_channels_cov
 from ..forward import apply_forward
-from ..utils import check_random_state, verbose
+from ..utils import check_random_state, verbose, _time_mask, warn, deprecated
 
 
 @verbose
-def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
+def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
                     iir_filter=None, random_state=None, verbose=None,
-                    nave=1):
+                    snr=None):
     """Generate noisy evoked data.
 
     .. note:: No projections from ``info`` will be present in the
@@ -35,9 +36,8 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
         Measurement info to generate the evoked.
     cov : Covariance object
         The noise covariance.
-    snr : float
-        signal to noise ratio in dB. It corresponds to
-        10 * log10( var(signal) / var(noise) ).
+    nave : int
+        Number of averaged epochs.
     tmin : float | None
         start of time interval to estimate SNR. If None first time point
         is used.
@@ -48,10 +48,12 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
-    nave : XXX
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    snr : float
+        signal to noise ratio in dB. It corresponds to
+        10 * log10( var(signal) / var(noise) ).
 
     Returns
     -------
@@ -68,10 +70,16 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     -----
     .. versionadded:: 0.10.0
     """
+    if snr is not None:
+        warn('snr is deprecated and will be removed in 0.16. Set it to '
+             'None to remove this warning. Give nave instead',
+             DeprecationWarning)
+
     evoked = apply_forward(fwd, stc, info)
-    if snr < np.inf:
+    if nave < np.inf:
         noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
         evoked.data += noise.data / math.sqrt(nave)
+        evoked.nave = nave
     return evoked
 
 
@@ -129,3 +137,34 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     else:
         zf = None
     return noise, zf
+
+
+@deprecated('add_noise_evoked will be deprecated in 0.16.')
+def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
+    """Add noise to evoked object with specified SNR.
+    SNR is computed in the interval from tmin to tmax.
+    Parameters
+    ----------
+    evoked : Evoked object
+        An instance of evoked with signal
+    noise : Evoked object
+        An instance of evoked with noise
+    snr : float
+        signal to noise ratio in dB. It corresponds to
+        10 * log10( var(signal) / var(noise) )
+    tmin : float
+        start time before event
+    tmax : float
+        end time after event
+    Returns
+    -------
+    evoked_noise : Evoked object
+        An instance of evoked corrupted by noise
+    """
+    evoked = copy.deepcopy(evoked)
+    tmask = _time_mask(evoked.times, tmin, tmax, sfreq=evoked.info['sfreq'])
+    tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
+                        np.mean((noise.data ** 2).ravel()))
+    noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data
+    evoked.data += noise.data
+    return evoked

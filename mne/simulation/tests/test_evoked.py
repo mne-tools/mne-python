@@ -5,8 +5,7 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           )
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises
 import warnings
 
@@ -16,6 +15,7 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked
 from mne import read_cov
 from mne.io import read_raw_fif
 from mne import pick_types_forward, read_evokeds
+from mne.cov import regularize
 from mne.utils import run_tests_if_main
 
 warnings.simplefilter('always')
@@ -43,6 +43,9 @@ def test_simulate_evoked():
     evoked_template = read_evokeds(ave_fname, condition=0, baseline=None)
     evoked_template.pick_types(meg=True, eeg=True, exclude=raw.info['bads'])
 
+    cov = regularize(cov, evoked_template.info)
+    nave = evoked_template.nave
+
     tmin = -0.1
     sfreq = 1000.  # Hz
     tstep = 1. / sfreq
@@ -51,13 +54,13 @@ def test_simulate_evoked():
 
     # Generate times series for 2 dipoles
     stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times)
-    stc._data *= 1e-9
+    # stc._data *= 1e-9
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
     evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
                              tmin=0.0, tmax=0.2, iir_filter=iir_filter,
-                             nave=evoked_template.nave)
+                             nave=nave)
     assert_array_almost_equal(evoked.times, stc.times)
     assert_true(len(evoked.data) == len(fwd['sol']['data']))
 
@@ -68,14 +71,14 @@ def test_simulate_evoked():
 
     assert_raises(RuntimeError, simulate_evoked, fwd, stc_bad,
                   evoked_template.info, cov, tmin=0.0, tmax=0.2)
-    evoked_1 = simulate_evoked(fwd, stc, evoked_template.info, cov, np.inf,
-                               tmin=0.0, tmax=0.2)
-    evoked_2 = simulate_evoked(fwd, stc, evoked_template.info, cov, np.inf,
-                               tmin=0.0, tmax=0.2)
+    evoked_1 = simulate_evoked(fwd, stc, evoked_template.info, cov,
+                               tmin=0.0, tmax=0.2, nave=np.inf)
+    evoked_2 = simulate_evoked(fwd, stc, evoked_template.info, cov,
+                               tmin=0.0, tmax=0.2, nave=np.inf)
     assert_array_equal(evoked_1.data, evoked_2.data)
 
     cov['names'] = cov.ch_names[:-2]  # Error channels are different.
     assert_raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,
-                  cov, snr=3., tmin=None, tmax=None, iir_filter=None)
+                  cov, nave=nave, tmin=None, tmax=None, iir_filter=None)
 
 run_tests_if_main()
