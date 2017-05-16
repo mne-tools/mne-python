@@ -141,7 +141,7 @@ def test_rap_music_simulated():
     assert_true(dipoles[0].gof.min() >= 0.)
     assert_array_equal(dipoles[0].gof, dipoles[1].gof)
 
-    nave = 1e5  # add a tiny amount of noise to the simulated evokeds
+    nave = 100000  # add a tiny amount of noise to the simulated evokeds
     sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
                                 n_dipoles, evoked.times, nave=nave)
     dipoles, residual = rap_music(sim_evoked, forward_fixed, noise_cov,

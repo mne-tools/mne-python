@@ -334,7 +334,7 @@ def test_make_forward_dipole():
     # Now simulate evoked responses for each of the test dipoles,
     # and fit dipoles to them (sphere model, MEG and EEG)
     times, pos, amplitude, ori, gof = [], [], [], [], []
-    nave = 1e2  # add a tiny amount of noise to the simulated evokeds
+    nave = 100  # add a tiny amount of noise to the simulated evokeds
     for s in stc:
         evo_test = simulate_evoked(fwd, s, info, cov,
                                    nave=nave, random_state=rng)

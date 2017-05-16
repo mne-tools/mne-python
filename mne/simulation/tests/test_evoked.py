@@ -54,7 +54,6 @@ def test_simulate_evoked():
 
     # Generate times series for 2 dipoles
     stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times)
-    # stc._data *= 1e-9
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]

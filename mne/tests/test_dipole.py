@@ -113,7 +113,7 @@ def test_dipole_fitting():
                 for s in fwd['src']]
     nv = sum(len(v) for v in vertices)
     stc = SourceEstimate(amp * np.eye(nv), vertices, 0, 0.001)
-    evoked = simulate_evoked(fwd, stc, evoked.info, cov, snr=20,
+    evoked = simulate_evoked(fwd, stc, evoked.info, cov, nave=evoked.nave,
                              random_state=rng)
     # For speed, let's use a subset of channels (strange but works)
     picks = np.sort(np.concatenate([
@@ -309,7 +309,7 @@ def test_accuracy():
         data[-1, -1] = 1.
         data *= amp
         stc = SourceEstimate(data, vertices, 0., 1e-3, 'sample')
-        sim = simulate_evoked(fwd, stc, evoked.info, cov=None, snr=np.inf)
+        sim = simulate_evoked(fwd, stc, evoked.info, cov=None, nave=np.inf)
 
         cov = make_ad_hoc_cov(evoked.info)
         dip = fit_dipole(sim, cov, bem, min_dist=0.001)[0]
