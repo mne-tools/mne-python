@@ -1363,10 +1363,11 @@ class ICA(ContainsMixin):
 
         try:
             _write_ica(fid, self)
+            end_file(fid)
         except Exception:
+            end_file(fid)
             os.remove(fname)
             raise
-        end_file(fid)
 
         return self
 
