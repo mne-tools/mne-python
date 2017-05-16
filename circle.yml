@@ -59,7 +59,11 @@ dependencies:
     - git fetch upstream;
     - git branch -a;
     - mkdir -p ~/mne_data;
-    - PATTERN="";
+    - if [[ `git log -1 --pretty=%B` == *"[circle front]"* ]]; then
+        PATTERN="plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py";
+      else
+        PATTERN="";
+      fi;
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
       elif [ "$CIRCLE_BRANCH" == "maint/0.14" ]; then

@@ -1,3 +1,8 @@
+html {
+  position: relative;
+  min-height: 100%;
+}
+
 body {
     font-family: 'Open Sans', 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;
 }
@@ -68,34 +73,10 @@ code {
     color: rgb(242, 80, 80);
 }
 
-div.row-carousel {
-    width: 1000px;
-}
-
-div.carousel-front {
-    float:right;
-    width:50%;
-}
-
 div.crop-wrapper {
   width: 380px;
   height: 190px;
   overflow: hidden
-}
-
-div.logo-front {
-    width:50%;
-    margin: 0px;
-}
-
-img.logo-front {
-    margin: 0 10%;
-    width:; auto;
-}
-
-div.row-front {
-    width: 100%;
-    height: 70px;
 }
 
 a.button-front {
@@ -218,10 +199,46 @@ dt:target code {
 /* Display content (e.g., images) in the middle center of a div */
 .midcenter {
     display: table-cell;
-    vertical-align:middle;
+    vertical-align: middle;
     text-align: center;
     float: none;
 }
 .tall {
     height: 250px;
+}
+
+.chopper {
+    display: inline-block;
+    vertical-align: middle;
+    overflow: hidden;
+    height: 250px;
+    width: inherit;
+}
+.carousel-image {
+    width: 100%;
+    vertical-align: middle;
+    opacity: 0.75;
+}
+
+.cont{
+    width: 100%;
+    display: table;
+    border-spacing: 5px;
+}
+.btn-cont {
+    display: table-cell;
+}
+.footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+}
+.jumbotron {
+    background-color: #fff;
+}
+.support-front {
+    font-size: 12px;
+}
+.carousel-caption {
+    text-shadow: 0 1px 4px rgba(0,0,0,1.0)
 }

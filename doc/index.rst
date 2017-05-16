@@ -2,39 +2,41 @@
 
 .. include:: links.inc
 
-.. container:: row-carousel
+.. container:: row
 
-  .. container:: carousel-front
+  .. container:: jumbotron
 
-    .. include:: carousel.inc
+    .. title image
+    .. container:: col-md-4 col-md-offset-1 nopad tall
 
-  .. container:: logo-front
+      .. image:: _static/mne_logo.png
+         :alt: MNE
 
-    .. image:: _static/mne_logo.png
-       :alt: MNE
-       :class: logo-front
+    .. carousel
+    .. container:: col-md-6 col-md-offset-1 nopad tall
 
-.. container:: row-front
+      .. include:: carousel.inc
 
-  .. raw:: html
+.. container:: row
 
-    <a href="documentation.html#preprocessing" class="btn btn-default button-front">Preprocessing</a>
-    <a href="documentation.html#visualization" class="btn btn-default button-front">Visualization</a>
-    <a href="documentation.html#connectivity" class="btn btn-default button-front">Connectivity</a>
+  .. buttons
+  .. container:: col-md-12 nopad
 
-.. container:: row-front
+    .. container:: cont
 
-  .. raw:: html
+      .. raw:: html
 
-    <a href="documentation.html#time-freq" class="btn btn-default button-front">Time-Frequency Analysis</a>
-    <a href="documentation.html#source-analysis" class="btn btn-default button-front">Source Reconstruction</a>
-    <a href="documentation.html#machine-learning" class="btn btn-default button-front">Statistics and<br />Machine Learning</a>
+        <a href="documentation.html#preprocessing" class="btn btn-success btn-sm btn-cont">Preprocessing</a>
+        <a href="documentation.html#visualization" class="btn btn-success btn-sm btn-cont">Visualization</a>
+        <a href="documentation.html#connectivity" class="btn btn-success btn-sm btn-cont">Connectivity</a>
+        <a href="documentation.html#time-freq" class="btn btn-success btn-sm btn-cont">Time-frequency</a>
+        <a href="documentation.html#source-analysis" class="btn btn-success btn-sm btn-cont">Source estimation</a>
+        <a href="documentation.html#machine-learning" class="btn btn-success btn-sm btn-cont">Statistics</a>
+        <a href="documentation.html#machine-learning" class="btn btn-success btn-sm btn-cont">Machine learning</a>
 
 .. raw:: html
 
    <div style='clear:both'></div>
-   <br />
-   <br />
 
 .. container:: support-front
 
@@ -58,22 +60,3 @@
     - European Research Council Starting Grant *ERC-YStG-263584* and
       *ERC-YStG-676943*
     - French National Research Agency *ANR-14-NEUC-0002-01*.
-
-    With support from the following institutions:
-
-.. image:: _static/institutions.png
-  :alt: Institutions
-
-.. container:: row
-
-  .. container:: col-md-8 nopad
-
-    .. raw:: html
-
-      <a class="twitter-timeline" href="https://twitter.com/mne_news" data-widget-id="317730454184804352">Updates by @mne_news</a>
-
-  .. container:: col-md-4 nopad
-
-    .. raw:: html
-
-      <script type="text/javascript" src="https://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>

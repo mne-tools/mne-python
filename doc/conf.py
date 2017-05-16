@@ -152,7 +152,7 @@ html_theme_options = {
     'navbar_class': "navbar",
     'bootstrap_version': "3",  # default
     'navbar_links': [
-        ("Get started", "getting_started"),
+        ("Install", "getting_started"),
         ("Documentation", "documentation"),
         ("API", "python_reference"),
         ("Examples", "auto_examples/index"),

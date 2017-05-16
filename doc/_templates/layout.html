@@ -45,7 +45,7 @@
 {% block relbar1 %}
 {% if build_dev_html|tobool %}
 <div class="row devbar alert alert-danger">
-This documentation is for the <strong>development version ({{ release }})</strong> - <a href="http://martinos.org/mne/stable">switch to Stable</a>
+This documentation is for the <strong>development version {{ release }}</strong> - <a href="http://martinos.org/mne/stable">switch to Stable</a>
 </div>
 {% endif %}
 
@@ -55,3 +55,13 @@ This documentation is for the <strong>development version ({{ release }})</stron
 {# put the sidebar before the body #}
 {% block sidebar1 %}{{ sidebar() }}{% endblock %}
 {% block sidebar2 %}{% endblock %}
+
+{%- block footer %}
+<footer class="footer">
+  <div class="container"><img src="_static/institutions.png" alt="Institutions"></div>
+  <div class="container">
+    <p class="pull-right"><a href="#">Back to top</a></p>
+    <p>&copy; Copyright {{ copyright }}.<br></p>
+  </div>
+</footer>
+{%- endblock %}
