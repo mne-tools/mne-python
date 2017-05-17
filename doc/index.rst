@@ -2,61 +2,109 @@
 
 .. include:: links.inc
 
-.. container:: row
 
-  .. container:: jumbotron
+.. container:: jumbotron
 
-    .. title image
-    .. container:: col-md-4 col-md-offset-1 nopad tall
+  .. container:: row
+
+    .. title image and description
+    .. container:: col-md-10
 
       .. image:: _static/mne_logo.png
          :alt: MNE
-
-    .. carousel
-    .. container:: col-md-6 col-md-offset-1 nopad tall
-
-      .. include:: carousel.inc
-
-.. container:: row
-
-  .. buttons
-  .. container:: col-md-12 nopad
-
-    .. container:: cont
+         :class: center-block
 
       .. raw:: html
 
-        <a href="documentation.html#preprocessing" class="btn btn-success btn-sm btn-cont">Preprocessing</a>
-        <a href="documentation.html#visualization" class="btn btn-success btn-sm btn-cont">Visualization</a>
-        <a href="documentation.html#connectivity" class="btn btn-success btn-sm btn-cont">Connectivity</a>
-        <a href="documentation.html#time-freq" class="btn btn-success btn-sm btn-cont">Time-frequency</a>
-        <a href="documentation.html#source-analysis" class="btn btn-success btn-sm btn-cont">Source estimation</a>
-        <a href="documentation.html#machine-learning" class="btn btn-success btn-sm btn-cont">Statistics</a>
-        <a href="documentation.html#machine-learning" class="btn btn-success btn-sm btn-cont">Machine learning</a>
+        <p class="tagline">
+        Open-source Python software for
+        processing human neurophysiological data
+        (MEG, EEG, sEEG, ECoG, and more).</p>
 
-.. raw:: html
+    .. main bullets
+    .. container:: col-md-2
 
-   <div style='clear:both'></div>
+      .. raw:: html
 
-.. container:: support-front
+        <div class="text-right">
+        <h3 class="right-h3"><i class="fa fa-tachometer"></i> Speed</h3>
+        <p class="right-p">Multi-core CPU &<br>GPU&nbsp;processing.</p>
+        <h3 class="right-h3"><i class="fa fa-compass"></i> Usability</h3>
+        <p class="right-p">Clean scripting &<br>visualization options.</p>
+        <h3 class="right-h3"><i class="fa fa-life-ring"></i> Reliability</h3>
+        <p class="right-p">Thoroughly tested.</p>
+        </div>
 
-    Direct financial support for MNE has been provided by the United States:
+  .. container:: row top10
 
-    - NIH National Institute of Biomedical Imaging and Bioengineering
-      *5R01EB009048* and *P41EB015896* (Center for Functional Neuroimaging
-      Technologies)
-    - NSF awards *0958669* and *1042134*.
-    - NCRR *P41RR14075-06* (Center for Functional Neuroimaging Technologies)
-    - NIH *1R01EB009048-01*, *R01EB006385-A101*, *1R01HD40712-A1*,
-      *1R01NS44319-01*, *2R01NS37462-05*
-    - Department of Energy Award Number *DE-FG02-99ER62764* (The MIND
-      Institute)
-    - Amazon Web Services - *Research Grant* issued to Denis A. Engemann
+    .. carousel
+    .. container:: col-md-12
 
-    And France:
+      .. include:: carousel.inc
 
-    - IDEX Paris-Saclay, *ANR-11-IDEX-0003-02*, via the
-      `Center for Data Science <http://www.datascience-paris-saclay.fr/>`_.
-    - European Research Council Starting Grant *ERC-YStG-263584* and
-      *ERC-YStG-676943*
-    - French National Research Agency *ANR-14-NEUC-0002-01*.
+      .. raw:: html
+
+        <div class="nopad cont">
+        <a href="documentation.html#collapse_io" class="btn btn-primary btn-xs btn-cont">Data I/O</a>
+        <a href="documentation.html#collapse_preprocessing" class="btn btn-primary btn-xs btn-cont">Preprocessing</a>
+        <a href="documentation.html#collapse_visualization" class="btn btn-primary btn-xs btn-cont">Visualization</a>
+        <a href="documentation.html#collapse_source" class="btn btn-primary btn-xs btn-cont">Source estimation</a>
+        </div>
+        <div class="nopad cont">
+        <a href="documentation.html#collapse_tf" class="btn btn-primary btn-xs btn-cont">Time-frequency</a>
+        <a href="documentation.html#collapse_connectivity" class="btn btn-primary btn-xs btn-cont">Connectivity</a>
+        <a href="documentation.html#collapse_ml" class="btn btn-primary btn-xs btn-cont">Machine learning</a>
+        <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-xs btn-cont">Statistics</a>
+        </div>
+
+
+.. container:: row
+
+    .. financial support
+    .. container:: col-md-8
+
+      .. raw:: html
+
+        <div class="list-group">
+        <div class="list-group-item">
+        <h4 class="list-group-item-heading">
+        <span class="flag-icon flag-icon-us"></span>
+        Direct financial support:
+        </h4>
+        <div class="list-group-item-text support-front ul-2col">
+
+      - **NIH** 5R01EB009048, 1R01EB009048-01, R01EB006385-A101, 1R01HD40712-A1,
+        1R01NS44319-01, 2R01NS37462-05, P41EB015896
+      - **NSF** 0958669, 1042134
+      - **NCRR** P41RR14075-06
+      - **DoE** DE-FG02-99ER62764 (MIND)
+      - **Amazon** - AWS Research Grants
+
+      .. raw:: html
+
+        </div>
+        </div>
+        </div>
+
+    .. container:: col-md-4
+
+      .. raw:: html
+
+        <div class="list-group">
+        <div class="list-group-item">
+        <h4 class="list-group-item-heading">
+        <span class="flag-icon flag-icon-fr"></span>
+        Direct financial support:
+        </h4>
+        <div class="list-group-item-text support-front">
+
+      - **IDEX** Paris-Saclay, *ANR-11-IDEX-0003-02*
+        (`CDS <http://www.datascience-paris-saclay.fr/>`_).
+      - **ERC** ERC-YStG-263584, ERC-YStG-676943
+      - **French ANR** ANR-14-NEUC-0002-01
+
+      .. raw:: html
+
+        </div>
+        </div>
+        </div>

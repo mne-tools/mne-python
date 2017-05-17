@@ -27,8 +27,16 @@ Documentation
         padding-left: 20px;
         margin-bottom: 10px;
     }
-
     </style>
+
+    <script type="text/javascript">
+    $(document).ready(function () {
+        if(location.hash != null && location.hash != ""){
+            $('.collapse').removeClass('in');
+            $(location.hash + '.collapse').addClass('in');
+        }
+    });
+    </script>
 
 This is where you can learn about all the things you can do with MNE. It contains **background information** and **tutorials** for taking a deep-dive into the techniques that MNE-python covers. You'll find practical information on how to use these methods with your data, and in many cases some high-level concepts underlying these methods.
 
@@ -117,10 +125,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse_datasets">Data I/O and datasets</a>
+            <a data-toggle="collapse" href="#collapse_io">Data I/O and datasets</a>
           </h4>
         </div>
-        <div id="collapse_datasets" class="panel-collapse collapse">
+        <div id="collapse_io" class="panel-collapse collapse">
           <div class="panel-body">
 
 **Getting your data into MNE**
@@ -179,10 +187,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
         <div class="panel-heading">
           <h4 class="panel-title">
             <a id="preprocessing" class="anchor-doc"></a>
-            <a data-toggle="collapse" href="#collapse_pre">Preprocessing (filtering, SSP, ICA, Maxwell filtering, ...)</a>
+            <a data-toggle="collapse" href="#collapse_preprocessing">Preprocessing (filtering, SSP, ICA, Maxwell filtering, ...)</a>
           </h4>
         </div>
-        <div id="collapse_pre" class="panel-collapse collapse">
+        <div id="collapse_preprocessing" class="panel-collapse collapse">
           <div class="panel-body">
 
 **Background**
@@ -245,10 +253,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
         <div class="panel-heading">
           <h4 class="panel-title">
             <a id="visualization" class="anchor-doc"></a>
-            <a data-toggle="collapse" href="#collapse_viz">Visualization</a>
+            <a data-toggle="collapse" href="#collapse_visualization">Visualization</a>
           </h4>
         </div>
-        <div id="collapse_viz" class="panel-collapse collapse">
+        <div id="collapse_visualization" class="panel-collapse collapse">
           <div class="panel-body">
 
 .. toctree::
@@ -294,10 +302,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
         <div class="panel-heading">
           <h4 class="panel-title">
             <a id="time-freq" class="anchor-doc"></a>
-            <a data-toggle="collapse" href="#collapse_analysis">Time- and frequency-domain analyses</a>
+            <a data-toggle="collapse" href="#collapse_tf">Time- and frequency-domain analyses</a>
           </h4>
         </div>
-        <div id="collapse_analysis" class="panel-collapse collapse">
+        <div id="collapse_tf" class="panel-collapse collapse">
           <div class="panel-body">
 
 **Tutorials**
@@ -451,10 +459,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse_stats">Statistics in sensor- and source-space</a>
+            <a data-toggle="collapse" href="#collapse_statistics">Statistics in sensor- and source-space</a>
           </h4>
         </div>
-        <div id="collapse_stats" class="panel-collapse collapse">
+        <div id="collapse_statistics" class="panel-collapse collapse">
           <div class="panel-body">
 
 
@@ -583,10 +591,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
         <div class="panel-heading">
           <h4 class="panel-title">
             <a id="connectivity" class="anchor-doc"></a>
-            <a data-toggle="collapse" href="#collapse_conn">Connectivity</a>
+            <a data-toggle="collapse" href="#collapse_connectivity">Connectivity</a>
           </h4>
         </div>
-        <div id="collapse_conn" class="panel-collapse collapse">
+        <div id="collapse_connectivity" class="panel-collapse collapse">
           <div class="panel-body">
 
 **Examples**
@@ -612,10 +620,10 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse_real">Realtime</a>
+            <a data-toggle="collapse" href="#collapse_realtime">Realtime</a>
           </h4>
         </div>
-        <div id="collapse_real" class="panel-collapse collapse">
+        <div id="collapse_realtime" class="panel-collapse collapse">
           <div class="panel-body">
 
 **Examples**

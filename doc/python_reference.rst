@@ -62,6 +62,7 @@ Classes
    decoding.ReceptiveField
    decoding.Scaler
    decoding.SlidingEstimator
+   decoding.SPoC
    decoding.GeneralizingEstimator
    realtime.RtEpochs
    realtime.RtClient

@@ -4,7 +4,7 @@ html {
 }
 
 body {
-    font-family: 'Open Sans', 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;
+    margin-bottom: 150px;
 }
 
 .navbar-version {
@@ -30,7 +30,6 @@ h1 {
 }
 
 h2 {
-    background-color: rgb(255,255,255);
     font-size: 140%;
     font-weight: 800;
 }
@@ -207,23 +206,30 @@ dt:target code {
     height: 250px;
 }
 
+/* our carousel */
 .chopper {
-    display: inline-block;
-    vertical-align: middle;
     overflow: hidden;
     height: 250px;
-    width: inherit;
 }
 .carousel-image {
+    position: absolute;
     width: 100%;
-    vertical-align: middle;
     opacity: 0.75;
+    left: 50%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-50%);
 }
 
 .cont{
     width: 100%;
     display: table;
     border-spacing: 5px;
+}
+.cont:before {
+    content: "";
+}
+.cont:after {
+    content: "";
 }
 .btn-cont {
     display: table-cell;
@@ -237,8 +243,42 @@ dt:target code {
     background-color: #fff;
 }
 .support-front {
-    font-size: 12px;
+    font-size: 11px;
 }
 .carousel-caption {
-    text-shadow: 0 1px 4px rgba(0,0,0,1.0)
+    text-shadow: 0 1px 1px rgba(0,0,0,1.0);
+    background-color: rgba(0,0,0,0.5);
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+.carousel-caption p {
+    font-size: 16px;
+}
+.tagline {
+  font-size: 22px !important;
+}
+.vertical-center {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+.right-h3 {
+    font-size: 24px;
+    font-weight: 800;
+}
+.right-p {
+    font-size: 15px !important;
+    font-weight: 400 !important;
+}
+.top10 {
+    margin-top:10px;
+}
+.ul-2col ul {
+    columns: 2;
+    /* list-style-position: inside;*/
+    list-style: inside disc;
+}
+.ul-2col ul li {
+    padding-left: 1em;
+    padding-right: 2em;
+    text-indent: -1.25em;
 }
