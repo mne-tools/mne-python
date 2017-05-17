@@ -38,6 +38,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
         The noise covariance.
     nave : int
         Number of averaged epochs.
+        versionadded:: 0.15.0
     tmin : float | None
         start of time interval to estimate SNR. If None first time point
         is used.
@@ -69,7 +70,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
 
     Notes
     -----
-    .. versionadded:: 0.15.0
+    .. versionadded:: 0.10.0
     """
     if snr is not None:
         warn('snr is deprecated and will be removed in 0.16. Set it to '
