@@ -1483,7 +1483,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
                                              'scale': (4.5, 4.5)})
         _draw_outlines(ax, outlines)
 
-        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
+        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=25,
                          edgecolor=edgecolors, linewidth=2, clip_on=False)
 
         if select:
@@ -1500,7 +1500,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
             if pos.shape[1] == 3:
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
             else:
-                ax.text(this_pos[0], this_pos[1], ch_names[idx])
+                ax.text(this_pos[0] + 0.015, this_pos[1], ch_names[idx])
         connect_picker = select
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
