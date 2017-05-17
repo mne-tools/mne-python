@@ -131,7 +131,7 @@ class RawEDF(BaseRaw):
         annot = self._raw_extras[fi]['annot']
         annotmap = self._raw_extras[fi]['annotmap']
         subtype = self._raw_extras[fi]['subtype']
-        events = self._raw_extras[fi].get('events', None)
+        stim_data = self._raw_extras[fi].get('stim_data', None)  # for GDF
 
         if np.size(dtype_byte) > 1:
             if len(np.unique(dtype_byte)) > 1:
@@ -206,7 +206,7 @@ class RawEDF(BaseRaw):
                             if annot and annotmap or tal_channels is not None:
                                 # don't resample, it gets overwritten later
                                 ch_data = np.zeros((len(ch_data, buf_len)))
-                            elif events is not None:  # GDF events
+                            elif stim_data is not None:  # GDF events
                                 ch_data = self._raw_extras[fi]['stim_data']
                                 ch_data = ch_data[start:stop].reshape((
                                     stop - start, buf_len))
@@ -365,7 +365,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     if ext == 'gdf' and stim_channel == -1:
         cals = np.append(cals, 1)
     # Check that stimulus channel exists in dataset
-    if stim_channel is not None or stim_channel is not False:
+    if stim_channel is not None:
         stim_channel = _check_stim_channel(stim_channel, ch_names, include)
 
     # Annotations
