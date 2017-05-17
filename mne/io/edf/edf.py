@@ -958,27 +958,28 @@ def _read_gdf_header(fname, stim_channel, exclude):
                     sr = np.fromfile(fid, np.uint8, 3)
                     event_sr = sr[0]
                     for i in range(1, len(sr)):
-                        event_sr = event_sr + sr[i] * 2**i
+                        event_sr = event_sr + sr[i] * 2**(i * 8)
                     n_events = np.fromfile(fid, np.uint32, 1)[0]
                 else:
                     ne = np.fromfile(fid, np.uint8, 3)
                     n_events = ne[0]
                     for i in range(1, len(ne)):
-                        n_events = n_events + ne[i] * 2**i
+                        n_events = n_events + ne[i] * 2**(i * 8)
                     event_sr = np.fromfile(fid, np.float32, 1)[0]
 
-                pos = np.fromfile(fid, np.uint32, n_events * 4)
-                typ = np.fromfile(fid, np.uint16, n_events * 2)
+                pos = np.fromfile(fid, np.uint32, n_events) - 1  # 1-based inds
+                typ = np.fromfile(fid, np.uint16, n_events)
 
                 if etmode == 3:
-                    chn = np.fromfile(fid, np.uint16, n_events * 2)
-                    dur = np.fromfile(fid, np.uint32, n_events * 4)
+                    chn = np.fromfile(fid, np.uint16, n_events)
+                    dur = np.fromfile(fid, np.uint32, n_events)
                     events.append([n_events, pos, typ, chn, dur])
                 else:
                     dur = np.zeros(n_events, dtype=np.uint32)
                     events.append([n_events, pos, typ])
 
                 edf_info['events'] = events
+                edf_info['event_sfreq'] = event_sr
 
     return edf_info
 
