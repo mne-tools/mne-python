@@ -1507,6 +1507,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
 
+    ax.axis("off")  # remove border around figure
     fig.suptitle(title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
