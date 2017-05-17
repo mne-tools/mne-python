@@ -325,34 +325,34 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
        96-110. doi:10.1016/j.neuroimage.2013.10.067.
     """
-    # If SlidingEstimator, loop across estimators
-    if hasattr(estimator, 'estimators_'):
-        coef = list()
-        for est in estimator.estimators_:
-            coef.append(get_coef(est, attr, inverse_transform))
-        return np.transpose(coef)
 
+    # Get the coefficients of the last estimator in case of nested pipeline
+    est = estimator
+    while hasattr(est, 'steps'):
+        est = est.steps[-1][1]
+
+    # If SlidingEstimator, loop across estimators
+    if hasattr(est, 'estimators_'):
+        coef = list()
+        for this_est in est.estimators_:
+            coef.append(get_coef(this_est, attr, inverse_transform))
+        coef = np.transpose(coef)
+    elif not hasattr(est, attr):
+        raise ValueError('This estimator does not have a %s '
+                         'attribute.' % attr)
     else:
-        # Get the coefficients of the last estimator in case of nested pipeline
-        est = estimator
-        while hasattr(est, 'steps'):
-            est = est.steps[-1][1]
-        if not hasattr(est, attr):
-            raise ValueError('This estimator does not have a %s '
-                             'attribute.' % attr)
         coef = getattr(est, attr)
 
-        # inverse pattern e.g. to get back physical units
-        if inverse_transform:
-            if not hasattr(estimator, 'steps'):
-                raise ValueError('inverse_transform can only be applied onto '
-                                 'pipeline estimators.')
-
-            # The inverse_transform parameter will call this method on any
-            # estimator contained in the pipeline, in reverse order.
-            for inverse_func in _get_inverse_funcs(estimator)[::-1]:
-                coef = inverse_func([coef])[0]
-        return coef
+    # inverse pattern e.g. to get back physical units
+    if inverse_transform:
+        if not hasattr(estimator, 'steps') and not hasattr(est, 'estimators_'):
+            raise ValueError('inverse_transform can only be applied onto '
+                             'pipeline estimators.')
+        # The inverse_transform parameter will call this method on any
+        # estimator contained in the pipeline, in reverse order.
+        for inverse_func in _get_inverse_funcs(estimator)[::-1]:
+            coef = inverse_func(np.array([coef]))[0]
+    return coef
 
 
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,

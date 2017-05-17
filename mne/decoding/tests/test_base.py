@@ -9,6 +9,7 @@ from mne.utils import requires_sklearn_0_15
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
                                cross_val_multiscore)
 from mne.decoding.search_light import SlidingEstimator
+from mne.decoding import Scaler
 
 
 @requires_sklearn_0_15
@@ -101,17 +102,20 @@ def test_get_coef():
     patterns_manual = np.cov(X.T).dot(coef)
     assert_array_almost_equal(patterns, patterns_manual * std + mean)
 
-    # Check with search_light:
+    # Check with search_light and combination of preprocessing ending with sl:
     n_samples, n_features, n_times = 20, 3, 5
     y = np.arange(n_samples) % 2
     X = np.random.rand(n_samples, n_features, n_times)
-    clf = SlidingEstimator(make_pipeline(StandardScaler(), LinearModel()))
-    clf.fit(X, y)
-    for inverse in (True, False):
-        patterns = get_coef(clf, 'patterns_', inverse)
-        filters = get_coef(clf, 'filters_', inverse)
-        assert_array_equal(filters.shape, patterns.shape,
-                           [n_features, n_times])
+    slider = SlidingEstimator(make_pipeline(StandardScaler(), LinearModel()))
+
+    clfs = (make_pipeline(Scaler(None, scalings='mean'), slider), slider)
+    for clf in clfs:
+        clf.fit(X, y)
+        for inverse in (True, False):
+            patterns = get_coef(clf, 'patterns_', inverse)
+            filters = get_coef(clf, 'filters_', inverse)
+            assert_array_equal(filters.shape, patterns.shape,
+                               [n_features, n_times])
     for t in [0, 1]:
         assert_array_equal(get_coef(clf.estimators_[t], 'filters_', False),
                            filters[:, t])
