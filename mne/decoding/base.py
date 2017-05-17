@@ -325,7 +325,6 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
        96-110. doi:10.1016/j.neuroimage.2013.10.067.
     """
-
     # Get the coefficients of the last estimator in case of nested pipeline
     est = estimator
     while hasattr(est, 'steps'):
