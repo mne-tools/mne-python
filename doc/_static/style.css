@@ -239,6 +239,9 @@ dt:target code {
     bottom: 0;
     width: 100%;
 }
+.footer a {
+    font-weight: 700;
+}
 .jumbotron {
     background-color: #fff;
 }

@@ -34,13 +34,16 @@ dependencies:
         chmod +x ~/miniconda.sh;
         ~/miniconda.sh -b -p /home/ubuntu/miniconda;
         conda update --yes --quiet conda;
-        conda create -n circleenv --yes pip python=2.7 pip;
-        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
       else
         echo "Conda already set up.";
       fi
-    # Let's use old Mayavi because 4.5.0 (as of 2016/12/20) breaks plot_mne_inverse_coherence_epochs.py
-    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi vtk wxpython;
+    - if ! conda env list | grep circleenv; then
+        conda create -n circleenv --yes pip python=2.7 pip;
+        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
+      else
+        echo "Conda env already set up.";
+      fi;
+    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
@@ -139,8 +142,12 @@ dependencies:
 
 test:
   override:
-    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && ETS_TOOLKIT=wx PATTERN=$(cat ../pattern.txt) make html_dev-pattern; else make test-doc; cd doc; ETS_TOOLKIT=wx make $(cat ../build.txt); fi:
+    # Mayavi can bomb on exit (yay!), turning a successful build into a failure.
+    # We thus tee into a log (which returns 0) and then parse afterward for
+    # what immediately precedes the "Build finished." line.
+    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot | tee ~/output.txt; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern | tee ~/output.txt; else make test-doc; cd doc; make $(cat ../build.txt) | tee ~/output.txt; fi:
           timeout: 1500
+    - tail ~/output.txt | grep "auto_tutorials\[100%\] plot_"
 
 general:
   # branches:
