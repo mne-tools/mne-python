@@ -203,13 +203,10 @@ class RawEDF(BaseRaw):
                             else:
                                 ch_data = ch_data[:, :buf_len]
                         elif ci == stim_channel:
-                            if annot and annotmap or tal_channels is not None:
+                            if (annot and annotmap or stim_data is not None or
+                                    tal_channels is not None):
                                 # don't resample, it gets overwritten later
-                                ch_data = np.zeros((len(ch_data, buf_len)))
-                            elif stim_data is not None:  # GDF events
-                                ch_data = self._raw_extras[fi]['stim_data']
-                                ch_data = ch_data[start:stop].reshape((
-                                    stop - start, buf_len))
+                                ch_data = np.zeros((len(ch_data), buf_len))
                             else:
                                 # Stim channel will be interpolated
                                 old = np.linspace(0, 1, n_samps[ci] + 1, True)
@@ -261,6 +258,8 @@ class RawEDF(BaseRaw):
                              ' are not fully supported')
                     stim[n_start:n_stop] += evid
                 data[stim_channel_idx, :] = stim[start:stop]
+            elif stim_data is not None:  # GDF events
+                data[stim_channel_idx, :] = stim_data[start:stop]
             else:
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),
                                       2**17 - 1)
@@ -344,8 +343,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         if annot is not None:
             warn('Annotations not yet supported for GDF files.')
         edf_info = _read_gdf_header(fname, stim_channel, exclude)
-        edf_info['annot'] = None
-        edf_info['annotmap'] = None
     else:
         raise NotImplementedError(
             'Only GDF, EDF, and BDF files are supported, got %s.' % ext)
@@ -361,8 +358,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         warn('Scaling factor is not defined in following channels:\n' +
              ', '.join(ch_names[i] for i in idx))
         cals[idx] = 1
-
-    if ext == 'gdf' and stim_channel == -1:
+    if 'stim_data' in edf_info and stim_channel == -1:  # For GDF events.
         cals = np.append(cals, 1)
     # Check that stimulus channel exists in dataset
     if stim_channel is not None:
@@ -616,10 +612,9 @@ def _read_edf_header(fname, stim_channel, annot, annotmap, exclude):
 def _read_gdf_header(fname, stim_channel, exclude):
     """Read GDF 1.x and GDF 2.x header info."""
     edf_info = dict()
-    # edf_info['annot'] = annot
-    # edf_info['annotmap'] = annotmap
     events = []
-
+    edf_info['annot'] = None
+    edf_info['annotmap'] = None
     with open(fname, 'rb') as fid:
 
         version = fid.read(8).decode()
@@ -990,13 +985,13 @@ def _read_gdf_header(fname, stim_channel, exclude):
         edf_info['include'].append(edf_info['nchan'])
         edf_info['n_samps'] = np.append(edf_info['n_samps'], 0)
         edf_info['units'] = np.append(edf_info['units'], 1)
-        edf_info['nchan'] += 1
         edf_info['ch_names'] += [u'STI 014']
         edf_info['physical_min'] = np.append(edf_info['physical_min'], 0)
         edf_info['digital_min'] = np.append(edf_info['digital_min'], 0)
         vmax = np.max(events[2])
         edf_info['physical_max'] = np.append(edf_info['physical_max'], vmax)
         edf_info['digital_max'] = np.append(edf_info['digital_max'], vmax)
+
         data = np.zeros(np.max(n_samps * n_records))
         for samp, id, dur in zip(events[1], events[2], events[4]):
             data[samp:samp + dur] += id
