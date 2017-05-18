@@ -1469,6 +1469,9 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
 
         ax.azim = 90
         ax.elev = 0
+        ax.xaxis.set_label_text('x')
+        ax.yaxis.set_label_text('y')
+        ax.zaxis.set_label_text('z')
     else:
         ax.text(0, 0, '', zorder=1)
         # Equal aspect for 3D looks bad, so only use for 2D
@@ -1489,6 +1492,8 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
 
+        ax.axis("off")  # remove border around figure
+
     connect_picker = True
     if show_names:
         if isinstance(show_names, (list, np.ndarray)):  # only given channels
@@ -1507,7 +1512,6 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
                          ch_names=ch_names, show_names=show_names)
         fig.canvas.mpl_connect('pick_event', picker)
 
-    ax.axis("off")  # remove border around figure
     fig.suptitle(title)
     closed = partial(_close_event, fig=fig)
     fig.canvas.mpl_connect('close_event', closed)
