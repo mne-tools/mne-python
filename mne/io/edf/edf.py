@@ -343,6 +343,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         if annot is not None:
             warn('Annotations not yet supported for GDF files.')
         edf_info = _read_gdf_header(fname, stim_channel, exclude)
+        if 'stim_data' not in edf_info and stim_channel == -1:
+            stim_channel = None  # Cannot construct stim channel.
     else:
         raise NotImplementedError(
             'Only GDF, EDF, and BDF files are supported, got %s.' % ext)
