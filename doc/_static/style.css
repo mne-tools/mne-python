@@ -214,7 +214,7 @@ dt:target code {
 .carousel-image {
     position: absolute;
     width: 100%;
-    opacity: 0.75;
+    opacity: 1.0;
     left: 50%;
     top: 50%;
     transform: translateY(-50%) translateX(-50%);
@@ -223,7 +223,7 @@ dt:target code {
 .cont{
     width: 100%;
     display: table;
-    border-spacing: 5px;
+    border-spacing: 20px 5px;
 }
 .cont:before {
     content: "";
@@ -233,6 +233,7 @@ dt:target code {
 }
 .btn-cont {
     display: table-cell;
+    width: 20%;
 }
 .footer {
     position: absolute;
@@ -246,7 +247,7 @@ dt:target code {
     background-color: #fff;
 }
 .support-front {
-    font-size: 11px;
+    font-size: 10px;
 }
 .carousel-caption {
     text-shadow: 0 1px 1px rgba(0,0,0,1.0);
@@ -257,7 +258,7 @@ dt:target code {
     font-size: 16px;
 }
 .tagline {
-  font-size: 22px !important;
+  font-size: 24px !important;
 }
 .vertical-center {
   min-height: 100vh;
@@ -265,24 +266,20 @@ dt:target code {
   align-items: center;
 }
 .right-h3 {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 800;
 }
 .right-p {
     font-size: 15px !important;
     font-weight: 400 !important;
 }
-.margin25 {
-    margin-top: 25px;
-    margin-bottom: 25px;
+.support-front ul {
+    padding-left: 20px;
 }
-.ul-2col ul {
-    columns: 2;
-    /* list-style-position: inside;*/
-    list-style: inside disc;
+.extramargin {
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
-.ul-2col ul li {
-    padding-left: 1em;
-    padding-right: 2em;
-    text-indent: -1.25em;
+h4.list-group-item-heading {
+    font-size: 15px;
 }

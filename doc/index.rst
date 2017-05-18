@@ -3,12 +3,12 @@
 .. include:: links.inc
 
 
-.. container:: jumbotron
+.. container:: row
 
   .. container:: row
 
     .. title image and description
-    .. container:: col-md-10
+    .. container:: col-md-9
 
       .. image:: _static/mne_logo.png
          :alt: MNE
@@ -22,27 +22,29 @@
         and more.</p>
 
     .. main bullets
-    .. container:: col-md-2
+    .. container:: col-md-3
 
       .. raw:: html
 
         <div class="text-right">
-        <h3 class="right-h3"><i class="fa fa-tachometer"></i> Speed</h3>
+        <h3 class="right-h3"><i class="fa fa-bolt"></i> Speed</h3>
         <p class="right-p">Multi-core CPU &<br>GPU&nbsp;processing.</p>
-        <h3 class="right-h3"><i class="fa fa-compass"></i> Usability</h3>
+        <h3 class="right-h3"><i class="fa fa-eye"></i> Usability</h3>
         <p class="right-p">Clean scripting &<br>visualization options.</p>
-        <h3 class="right-h3"><i class="fa fa-life-ring"></i> Reliability</h3>
-        <p class="right-p">Thoroughly tested.</p>
+        <h3 class="right-h3"><i class="fa fa-sliders"></i> Flexibility</h3>
+        <p class="right-p">Broad support for<br>data formats & analyses.
+
         </div>
 
-  .. container:: row margin25
+.. container:: row extramargin
+
+
+  .. container:: col-md-9
 
     .. carousel
     .. container:: col-md-12
 
       .. include:: carousel.inc
-
-  .. container:: row margin25
 
     .. buttons
     .. container:: col-md-12
@@ -62,11 +64,8 @@
         <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-xs btn-cont">Statistics</a>
         </div>
 
-
-  .. container:: row margin25
-
-    .. financial support
-    .. container:: col-md-8
+  .. financial support
+  .. container:: col-md-3
 
       .. raw:: html
 
@@ -76,7 +75,7 @@
         <span class="flag-icon flag-icon-us"></span>
         Direct financial support:
         </h4>
-        <div class="list-group-item-text support-front ul-2col">
+        <div class="list-group-item-text support-front">
 
       - **NIH** 5R01EB009048, 1R01EB009048-01, R01EB006385-A101, 1R01HD40712-A1,
         1R01NS44319-01, 2R01NS37462-05, P41EB015896
@@ -89,13 +88,6 @@
 
         </div>
         </div>
-        </div>
-
-    .. container:: col-md-4
-
-      .. raw:: html
-
-        <div class="list-group">
         <div class="list-group-item">
         <h4 class="list-group-item-heading">
         <span class="flag-icon flag-icon-fr"></span>
@@ -106,7 +98,7 @@
       - **IDEX** Paris-Saclay, *ANR-11-IDEX-0003-02*
         (`CDS <http://www.datascience-paris-saclay.fr/>`_).
       - **ERC** ERC-YStG-263584, ERC-YStG-676943
-      - **French ANR** ANR-14-NEUC-0002-01
+      - **ANR** ANR-14-NEUC-0002-01
 
       .. raw:: html
 
