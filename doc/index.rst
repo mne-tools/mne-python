@@ -17,9 +17,9 @@
       .. raw:: html
 
         <p class="tagline">
-        Open-source Python software for
-        processing human neurophysiological data
-        (MEG, EEG, sEEG, ECoG, and more).</p>
+        Open-source Python software for exploring, visualizing, and
+        analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
+        and more.</p>
 
     .. main bullets
     .. container:: col-md-2
@@ -35,12 +35,17 @@
         <p class="right-p">Thoroughly tested.</p>
         </div>
 
-  .. container:: row top10
+  .. container:: row margin25
 
     .. carousel
     .. container:: col-md-12
 
       .. include:: carousel.inc
+
+  .. container:: row margin25
+
+    .. buttons
+    .. container:: col-md-12
 
       .. raw:: html
 
@@ -58,7 +63,7 @@
         </div>
 
 
-.. container:: row
+  .. container:: row margin25
 
     .. financial support
     .. container:: col-md-8

@@ -269,8 +269,9 @@ dt:target code {
     font-size: 15px !important;
     font-weight: 400 !important;
 }
-.top10 {
-    margin-top:10px;
+.margin25 {
+    margin-top: 25px;
+    margin-bottom: 25px;
 }
 .ul-2col ul {
     columns: 2;
