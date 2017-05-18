@@ -46,7 +46,7 @@
       .. include:: carousel.inc
 
     .. buttons
-    .. container:: col-md-12
+    .. container:: col-md-12 nopad
 
       .. raw:: html
 
@@ -94,8 +94,8 @@
         </h4>
         <div class="list-group-item-text support-front">
 
-      - **IDEX** Paris-Saclay, *ANR-11-IDEX-0003-02*
-        (`CDS <http://www.datascience-paris-saclay.fr/>`_).
+      - **IDEX** Paris-Saclay, ANR-11-IDEX-0003-02
+        `CDS <http://www.datascience-paris-saclay.fr/>`_
       - **ERC** ERC-YStG-263584, ERC-YStG-676943
       - **ANR** ANR-14-NEUC-0002-01
 

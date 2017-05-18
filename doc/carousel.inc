@@ -74,7 +74,7 @@
               <div class="carousel-caption">
                 <h2>Data visualization.</h2>
                 <p>Explore your data from multiple perspectives.</p>
-                <p><a class="btn btn-info btn-xs" href="auto_tutorials/auto_tutorials/plot_visualize_evoked.html" role="button">Check it out</a></p>
+                <p><a class="btn btn-info btn-xs" href="auto_tutorials/plot_visualize_evoked.html" role="button">Check it out</a></p>
               </div>
             </div>
           </div>
