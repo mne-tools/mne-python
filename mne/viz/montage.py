@@ -25,6 +25,10 @@ def plot_montage(montage, kind='3d', scale_factor=20, show_names=False,
     fig : Instance of matplotlib.figure.Figure
         The figure object.
     """
-    info = mne.create_info(montage.ch_names, sfreq=256, ch_types="eeg",
+    if isinstance(montage, mne.channels.montage.Montage):
+        ch_names = montage.ch_names
+    elif isinstance(montage, mne.channels.montage.DigMontage):
+        ch_names = montage.point_names
+    info = mne.create_info(ch_names, sfreq=256, ch_types="eeg",
                            montage=montage)
     return plot_sensors(info, kind=kind, show_names=show_names, show=show)
