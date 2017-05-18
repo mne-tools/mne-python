@@ -73,9 +73,9 @@ class Montage(object):
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=20, show_names=False, show=True):
-        return plot_montage(self, scale_factor=scale_factor,
-                            show_names=show_names, show=True)
+    def plot(self, kind='3d', scale_factor=20, show_names=False, show=True):
+        return plot_montage(self, kind=kind, scale_factor=scale_factor,
+                            show_names=show_names, show=show)
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):

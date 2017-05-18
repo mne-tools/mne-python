@@ -1,16 +1,18 @@
 """Functions to plot EEG sensor montages or digitizer montages."""
-import numpy as np
+import mne
+from .utils import plot_sensors
 
-from .utils import plt_show
 
-
-def plot_montage(montage, scale_factor=20, show_names=False, show=True):
+def plot_montage(montage, kind='3d', scale_factor=20, show_names=False,
+                 show=True):
     """Plot a montage.
 
     Parameters
     ----------
     montage : instance of Montage
         The montage to visualize.
+    kind : str
+        Whether to plot the montage as '3d' or 'topomap'.
     scale_factor : float
         Determines the size of the points. Defaults to 20.
     show_names : bool
@@ -23,35 +25,6 @@ def plot_montage(montage, scale_factor=20, show_names=False, show=True):
     fig : Instance of matplotlib.figure.Figure
         The figure object.
     """
-    from ..channels.montage import Montage, DigMontage
-
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    if isinstance(montage, Montage):
-        pos = montage.pos
-        ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], s=scale_factor)
-        if show_names:
-            ch_names = montage.ch_names
-            for ch_name, x, y, z in zip(ch_names, pos[:, 0],
-                                        pos[:, 1], pos[:, 2]):
-                ax.text(x, y, z, ch_name)
-    elif isinstance(montage, DigMontage):
-        pos = np.vstack((montage.hsp, montage.elp))
-        ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], s=scale_factor)
-        if show_names:
-            if montage.point_names:
-                hpi_names = montage.point_names
-                for hpi_name, x, y, z in zip(hpi_names, montage.elp[:, 0],
-                                             montage.elp[:, 1],
-                                             montage.elp[:, 2]):
-                    ax.text(x, y, z, hpi_name)
-
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-
-    plt_show(show)
-    return fig
+    info = mne.create_info(montage.ch_names, sfreq=256, ch_types="eeg",
+                           montage=montage)
+    return plot_sensors(info, kind=kind, show_names=show_names, show=show)
