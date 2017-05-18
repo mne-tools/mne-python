@@ -29,7 +29,7 @@ gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
     raw = read_raw_edf(gdf1_path + '.gdf', eog=None,
-                       misc=None, preload=True, stim_channel=None)
+                       misc=None, preload=True, stim_channel=-1)
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
@@ -40,6 +40,11 @@ def test_gdf_data():
 
     # Assert data are almost equal
     assert_array_almost_equal(data, data_biosig, 8)
+
+    # Test for stim channel
+    events = find_events(raw, shortest_event=1)
+    # The events are overlapping.
+    assert_array_equal(events[:, 0], raw._raw_extras[0]['events'][1][::2])
 
 
 @testing.requires_testing_data

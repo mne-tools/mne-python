@@ -735,20 +735,19 @@ def _read_gdf_header(fname, stim_channel, exclude):
             etp = header_nbytes + n_records * edf_info['bytes_tot']
             # skip data to go to event table
             fid.seek(etp)
-            etmode = fid.read(1).decode()
-            if etmode != '':
-                etmode = np.fromfile(fid, np.uint8, 1).tolist()
+            etmode = np.fromfile(fid, np.uint8, 1)[0]
+            if etmode in (1, 3):
                 sr = np.fromfile(fid, np.uint8, 3)
                 event_sr = sr[0]
                 for i in range(1, len(sr)):
-                    event_sr = event_sr + sr[i] * 256 ** i
+                    event_sr = event_sr + sr[i] * 2 ** (i * 8)
                 n_events = np.fromfile(fid, np.uint32, 1)[0]
-                pos = np.fromfile(fid, np.uint32, n_events * 4)
-                typ = np.fromfile(fid, np.uint16, n_events * 2)
+                pos = np.fromfile(fid, np.uint32, n_events)
+                typ = np.fromfile(fid, np.uint16, n_events)
 
                 if etmode == 3:
-                    chn = np.fromfile(fid, np.uint16, n_events * 2)
-                    dur = np.fromfile(fid, np.uint32, n_events * 4)
+                    chn = np.fromfile(fid, np.uint16, n_events)
+                    dur = np.fromfile(fid, np.uint32, n_events)
                 else:
                     chn = np.zeros(n_events, dtype=np.int32)
                     dur = np.ones(n_events, dtype=np.uint32)
