@@ -737,7 +737,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 for i in range(1, len(sr)):
                     event_sr = event_sr + sr[i] * 2 ** (i * 8)
                 n_events = np.fromfile(fid, np.uint32, 1)[0]
-                pos = np.fromfile(fid, np.uint32, n_events)
+                pos = np.fromfile(fid, np.uint32, n_events) - 1  # 1-based inds
                 typ = np.fromfile(fid, np.uint16, n_events)
 
                 if etmode == 3:
