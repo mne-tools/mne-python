@@ -74,7 +74,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
     """
     if snr is not None:
         warn('snr is deprecated and will be removed in 0.16. Set it to '
-             'None to remove this warning. Give nave instead',
+             'None to remove this warning. Set nave parameter instead.',
              DeprecationWarning)
 
     evoked = apply_forward(fwd, stc, info)

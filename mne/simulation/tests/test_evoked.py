@@ -62,6 +62,7 @@ def test_simulate_evoked():
                              nave=nave)
     assert_array_almost_equal(evoked.times, stc.times)
     assert_true(len(evoked.data) == len(fwd['sol']['data']))
+    assert_true(evoked.nave == nave)
 
     # make a vertex that doesn't exist in fwd, should throw error
     stc_bad = stc.copy()
