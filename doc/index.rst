@@ -26,7 +26,7 @@
 
       .. raw:: html
 
-        <div class="text-left">
+        <div class="text-right">
         <h3 class="right-h3"><i class="fa fa-bolt"></i> Speed</h3>
         <p class="right-p">Multi-core CPU &<br>GPU&nbsp;processing.</p>
         <h3 class="right-h3"><i class="fa fa-eye"></i> Usability</h3>
@@ -51,16 +51,16 @@
       .. raw:: html
 
         <div class="nopad cont">
-        <a href="documentation.html#collapse_io" class="btn btn-primary btn-xs btn-cont">Data I/O</a>
-        <a href="documentation.html#collapse_preprocessing" class="btn btn-primary btn-xs btn-cont">Preprocessing</a>
-        <a href="documentation.html#collapse_visualization" class="btn btn-primary btn-xs btn-cont">Visualization</a>
-        <a href="documentation.html#collapse_source" class="btn btn-primary btn-xs btn-cont">Source estimation</a>
+        <a href="documentation.html#collapse_io" class="btn btn-primary btn-sm btn-cont">Data I/O</a>
+        <a href="documentation.html#collapse_preprocessing" class="btn btn-primary btn-sm btn-cont">Preprocessing</a>
+        <a href="documentation.html#collapse_visualization" class="btn btn-primary btn-sm btn-cont">Visualization</a>
+        <a href="documentation.html#collapse_source" class="btn btn-primary btn-sm btn-cont">Source estimation</a>
         </div>
         <div class="nopad cont">
-        <a href="documentation.html#collapse_tf" class="btn btn-primary btn-xs btn-cont">Time-frequency</a>
-        <a href="documentation.html#collapse_connectivity" class="btn btn-primary btn-xs btn-cont">Connectivity</a>
-        <a href="documentation.html#collapse_ml" class="btn btn-primary btn-xs btn-cont">Machine learning</a>
-        <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-xs btn-cont">Statistics</a>
+        <a href="documentation.html#collapse_tf" class="btn btn-primary btn-sm btn-cont">Time-frequency</a>
+        <a href="documentation.html#collapse_connectivity" class="btn btn-primary btn-sm btn-cont">Connectivity</a>
+        <a href="documentation.html#collapse_ml" class="btn btn-primary btn-sm btn-cont">Machine learning</a>
+        <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-sm btn-cont">Statistics</a>
         </div>
 
   .. financial support
