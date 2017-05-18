@@ -88,11 +88,19 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
         and is added to the image. It is typically useful to display reaction
         times. Note that it is defined with respect to the order
         of epochs such that overlay_times[0] corresponds to epochs[0].
-    gfp : bool
-        If True, plot the Global Field Power (one figure per channel type).
-        The GFP is calculated on a single-trial basis for the image, but the
-        time series plot below shows the GFP of the average across epochs,
-        not the mean of the single-trial GFPs.
+    combine : None | str | callable
+        Select how to deal with multiple channels, potentially aggregating over
+        channels.
+        If None, one plot is returned per selected channel.
+        If 'str', must be 'gfp', in which case the Global Field Power is shown
+        (one plot per sensor type).
+        If a callable, must aggregate over the 2nd dimension of the data: i.e.,
+        given a 3D array (trials, channels, times), it must return a 2D array
+        (n_picks, n_times). E.g., `lambda x: return x.mean(1)`.
+    group_by : None | str
+        What channels to group by with each other for the sake of combining.
+        If None, don't group.
+        If 'str', must be 'type', in which case channels are grouped by type.
 
     Returns
     -------
@@ -105,8 +113,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
-        if gfp is False:
-            picks = picks[:5]
+        if combine is None:  # if combine is unspecified, only take 5 picks
+            picks = picks[:5]  # to avoid showing >50 figures
 
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
@@ -130,6 +138,40 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
     types = np.array([channel_type(epochs.info, idx) for idx in picks])
     data = epochs.get_data()
     n_epochs = len(data)
+
+    if groupby is not None:
+        if groupby == "type":
+            if axes != None:
+                raise ValueError("If grouping by type, `axes` cannot be "
+                                 "passed as we are returning one figure per "
+                                 "channel type.")
+            figures = list()
+            for ch_type in types_:
+                picks_ = types[types == ch_type]
+                this_fig = plot_epochs_image(
+                    epochs, picks=picks_, sigma=sigma, vmin=vmin, vmax=vmax,
+                    colorbar=colorbar, order=order, show=show, units=units,
+                    scalings=scalings, cmap=cmap, fig=fig, axes=None,
+                    overlay_times=overlay_times, combine=combine,
+                    groupby=None)
+
+
+    if combine is not None:
+        if combine == 'gfp':
+            if group_by is None and len(set(types)) > 1:
+                ValueError("Plotting GFP across channels of different type ...")
+#            combine = lambda D: np.sqrt((D * D).mean(axis=1))
+            def combine(D, axis):
+                return np.sqrt(D * D).mean(axis=axis)
+        else:
+            if not callable(combine):
+                raise ValueError('`combine` must be None, "gfp" or callable.')
+        evoked = epochs.average(picks=picks)
+        data = combine(data[:, picks, :] * scalings[list(types)[0]], axis=1)
+    else:
+        for pick in picks:
+            pass
+
     if gfp:
         data_per_type, evokeds, types_ = list(), list(), tuple(set(types))
         evoked = epochs.average()
