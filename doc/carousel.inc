@@ -8,6 +8,7 @@
           <li data-target="#examples_carousel" data-slide-to="2" class=""></li>
           <li data-target="#examples_carousel" data-slide-to="3" class=""></li>
           <li data-target="#examples_carousel" data-slide-to="4" class=""></li>
+          <li data-target="#examples_carousel" data-slide-to="5" class=""></li>
         </ol>
         <!-- Carousel items -->
         <div class="carousel-inner">
@@ -18,7 +19,7 @@
               <div class="carousel-caption">
                 <h2>Source estimation</h2>
                 <p>Distributed, sparse, mixed-norm, beamformers, dipole fitting, and more.</p>
-                <p><a class="btn btn-info btn-xs" href="auto_tutorials/plot_mne_dspm_source_localization.html" role="button">Try it</a></p>
+                <p><a class="btn btn-info btn-xs" href="auto_tutorials/plot_mne_dspm_source_localization.html" role="button">Check it out</a></p>
               </div>
             </div>
           </div>
@@ -29,7 +30,7 @@
               <div class="carousel-caption">
                 <h2>Statistics</h2>
                 <p>Parametric and non-parametric, permutation tests and clustering.</p>
-                <p><a class="btn btn-info btn-xs" href="auto_tutorials/plot_stats_cluster_spatio_temporal.html" role="button">Try it</a></p>
+                <p><a class="btn btn-info btn-xs" href="auto_tutorials/plot_stats_cluster_spatio_temporal.html" role="button">Check it out</a></p>
               </div>
             </div>
           </div>
@@ -40,7 +41,7 @@
               <div class="carousel-caption">
                 <h2>Machine learning</h2>
                 <p>Advanced decoding models including time generalization.</p>
-                <p><a class="btn btn-info btn-xs" href="auto_tutorials/plot_sensors_decoding.html" role="button">Try it</a></p>
+                <p><a class="btn btn-info btn-xs" href="auto_tutorials/plot_sensors_decoding.html" role="button">Check it out</a></p>
               </div>
             </div>
           </div>
@@ -51,7 +52,7 @@
               <div class="carousel-caption">
                 <h2>Encoding models</h2>
                 <p>Receptive field estimation for with optional smoothness priors.</p>
-                <p><a class="btn btn-info btn-xs" href="auto_tutorials/plot_receptive_field.html" role="button">Try it</a></p>
+                <p><a class="btn btn-info btn-xs" href="auto_tutorials/plot_receptive_field.html" role="button">Check it out</a></p>
               </div>
             </div>
           </div>
@@ -62,7 +63,18 @@
               <div class="carousel-caption">
                 <h2>Connectivity</h2>
                 <p>All-to-all spectral and effective connectivity measures.</p>
-                <p><a class="btn btn-info btn-xs" href="auto_examples/connectivity/plot_mne_inverse_label_connectivity.html" role="button">Try it</a></p>
+                <p><a class="btn btn-info btn-xs" href="auto_examples/connectivity/plot_mne_inverse_label_connectivity.html" role="button">Check it out</a></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="item">
+            <div class="chopper container"><img src="_images/sphx_glr_plot_visualize_evoked_009.png" alt="Visualization" class="carousel-image"></div>
+            <div class="container">
+              <div class="carousel-caption">
+                <h2>Data visualization.</h2>
+                <p>Explore your data from multiple perspectives.</p>
+                <p><a class="btn btn-info btn-xs" href="auto_tutorials/auto_tutorials/plot_visualize_evoked.html" role="button">Check it out</a></p>
               </div>
             </div>
           </div>

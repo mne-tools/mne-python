@@ -63,7 +63,7 @@ dependencies:
     - git branch -a;
     - mkdir -p ~/mne_data;
     - if [[ `git log -1 --pretty=%B` == *"[circle front]"* ]]; then
-        PATTERN="plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\|";
+        PATTERN="plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\|plot_visualize_evoked.py\|";
       else
         PATTERN="";
       fi;

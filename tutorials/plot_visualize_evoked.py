@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 
 import mne
 
+# sphinx_gallery_thumbnail_number = 9
+
 ###############################################################################
 # In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
 # First we read the evoked object from a file. Check out

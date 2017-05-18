@@ -59,7 +59,7 @@ html_dev-noplot:
 	@echo "Build finished. The HTML pages are in _build/html."
 
 html_dev-front:
-	@PATTERN="\(plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\)" make html_dev-pattern;
+	@PATTERN="\(plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\|plot_visualize_evoked.py\)" make html_dev-pattern;
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) _build/dirhtml

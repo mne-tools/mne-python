@@ -268,6 +268,7 @@ dt:target code {
 .right-h3 {
     font-size: 20px;
     font-weight: 800;
+    margin-bottom: 5px;
 }
 .right-p {
     font-size: 15px !important;

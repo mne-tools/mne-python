@@ -26,14 +26,13 @@
 
       .. raw:: html
 
-        <div class="text-right">
+        <div class="text-left">
         <h3 class="right-h3"><i class="fa fa-bolt"></i> Speed</h3>
         <p class="right-p">Multi-core CPU &<br>GPU&nbsp;processing.</p>
         <h3 class="right-h3"><i class="fa fa-eye"></i> Usability</h3>
         <p class="right-p">Clean scripting &<br>visualization options.</p>
         <h3 class="right-h3"><i class="fa fa-sliders"></i> Flexibility</h3>
         <p class="right-p">Broad support for<br>data formats & analyses.
-
         </div>
 
 .. container:: row extramargin
