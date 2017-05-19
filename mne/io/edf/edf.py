@@ -77,6 +77,7 @@ class RawEDF(BaseRaw):
 
     It is also possible to retrieve system codes, but no particular effort has
     been made to decode these in MNE.
+
     For GDF files, the stimulus channel is constructed from the events in the
     header. You should use keyword ``stim_channel=-1`` to add it at the end of
     the channel list.
@@ -1129,6 +1130,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
 
     It is also possible to retrieve system codes, but no particular effort has
     been made to decode these in MNE.
+
     For GDF files, the stimulus channel is constructed from the events in the
     header. You should use keyword ``stim_channel=-1`` to add it at the end of
     the channel list.
