@@ -72,6 +72,11 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
 
     Notes
     -----
+    To make the equivalence between snr and nave, when the snr is given
+    instead of nave:
+        nave = (1 / 10 ** ((actual_snr - snr)) / 20) ** 2
+        where actual_snr is the snr to the generated noise before scaling.
+
     .. versionadded:: 0.10.0
     """
     if snr is not None:
@@ -90,12 +95,12 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
             tmask = _time_mask(evoked.times, tmin, tmax,
                                sfreq=evoked.info['sfreq'])
             tmp = \
-                10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
-                              np.mean((noise.data ** 2).ravel()))
+                10 * np.log10(np.mean((evoked.data[:, tmask] ** 2)) /
+                              np.mean((noise.data ** 2)))
             nave = 1. / 10 ** ((tmp - float(snr)) / 10)
 
         evoked.data += noise.data / math.sqrt(nave)
-        evoked.nave = nave
+        evoked.nave = np.int(nave)
     return evoked
 
 
@@ -180,8 +185,8 @@ def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
     """
     evoked = copy.deepcopy(evoked)
     tmask = _time_mask(evoked.times, tmin, tmax, sfreq=evoked.info['sfreq'])
-    tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
-                        np.mean((noise.data ** 2).ravel()))
+    tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2)) /
+                        np.mean((noise.data ** 2)))
     noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data
     evoked.data += noise.data
     return evoked
