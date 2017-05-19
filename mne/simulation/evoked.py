@@ -82,6 +82,18 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
     evoked = apply_forward(fwd, stc, info)
     if nave < np.inf:
         noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
+
+        # Convert snr to nave before deprecation
+        if snr == np.inf:
+            nave = snr
+        elif snr is not None:
+            tmask = _time_mask(evoked.times, tmin, tmax,
+                               sfreq=evoked.info['sfreq'])
+            tmp = \
+                10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
+                              np.mean((noise.data ** 2).ravel()))
+            nave = 1. / 10 ** ((tmp - float(snr)) / 10)
+
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = nave
     return evoked
@@ -143,9 +155,10 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     return noise, zf
 
 
-@deprecated('add_noise_evoked will be deprecated in 0.16.')
+@deprecated('add_noise_evoked will be deprecated and removed in 0.16.')
 def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
     """Add noise to evoked object with specified SNR.
+
     SNR is computed in the interval from tmin to tmax.
     Parameters
     ----------
