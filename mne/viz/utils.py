@@ -1469,6 +1469,9 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
 
         ax.azim = 90
         ax.elev = 0
+        ax.xaxis.set_label_text('x')
+        ax.yaxis.set_label_text('y')
+        ax.zaxis.set_label_text('z')
     else:
         ax.text(0, 0, '', zorder=1)
         # Equal aspect for 3D looks bad, so only use for 2D
@@ -1483,11 +1486,13 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
                                              'scale': (4.5, 4.5)})
         _draw_outlines(ax, outlines)
 
-        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
+        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=25,
                          edgecolor=edgecolors, linewidth=2, clip_on=False)
 
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
+
+        ax.axis("off")  # remove border around figure
 
     connect_picker = True
     if show_names:
@@ -1500,7 +1505,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
             if pos.shape[1] == 3:
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
             else:
-                ax.text(this_pos[0], this_pos[1], ch_names[idx])
+                ax.text(this_pos[0] + 0.015, this_pos[1], ch_names[idx])
         connect_picker = select
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,

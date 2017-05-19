@@ -68,7 +68,7 @@ BUG
 
     - Fix :func:`mne.viz.plot_topomap` to allow 0 contours by `Jaakko Leppakangas`_
 
-    - Fix :func:`mne.preprocessing.ica._pick_sources` increase threshold for rank estimation to 1e-14 by `jdue`_
+    - Fix :func:`mne.preprocessing.ica._pick_sources` increase threshold for rank estimation to 1e-14 by `Jesper Duemose Nielsen`_
 
     - Fix :meth:`raw.set_bipolar_reference` to support duplicates in anodes by `Jean-Baptiste Schiratti`_ and `Alex Gramfort`_
 
@@ -78,6 +78,9 @@ BUG
 
     - Fix bug in :meth:`mne.Label.fill` where an empty label raised an error, by `Eric Larson`_
 
+    - Fix :func:`mne.io.read_raw_ctf` to also include the samples in the last block by `Jaakko Leppakangas`_
+    
+    - Fix :meth:`mne.preprocessing.ICA.save` to close file before attempting to delete it when write fails by `Jesper Duemose Nielsen`_
 
 API
 ~~~
@@ -2146,4 +2149,4 @@ of commits):
 
 .. _Laura Gwilliams: http://lauragwilliams.github.io
 
-.. _jdue: https://github.com/jdue
+.. _Jesper Duemose Nielsen: https://github.com/jdue
