@@ -1304,7 +1304,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
     if tag is None:
-        res['nn'] = list()
+        res['nn'] = None
     else:
         res['nn'] = tag.data
         if res['nn'].shape[0] != res['np']:
@@ -1317,6 +1317,9 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     res['tris'] = tag.data - 1  # index start at 0 in Python
     if res['tris'].shape[0] != res['ntri']:
         raise ValueError('Triangulation information is incorrect')
+
+    if res['nn'] is None:
+        complete_surface_info(res, copy=False)
 
     return res
 
