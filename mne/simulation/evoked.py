@@ -42,10 +42,10 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
         .. versionadded:: 0.15.0
     tmin : float | None
         start of time interval to estimate SNR. If None first time point
-        is used.
+        is used. tmin is deprecated and will be removed in 0.16.
     tmax : float | None
         start of time interval to estimate SNR. If None last time point
-        is used.
+        is used. tmax is deprecated and will be removed in 0.16.
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     random_state : None | int | np.random.RandomState
@@ -82,6 +82,16 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
     if snr is not None:
         warn('snr is deprecated and will be removed in 0.16. Set it to '
              'None to remove this warning. Set nave parameter instead.',
+             DeprecationWarning)
+
+    if tmin is not None:
+        warn('tmin is deprecated and will be removed in 0.16. Set it to '
+             'None to remove this warning.',
+             DeprecationWarning)
+
+    if tmax is not None:
+        warn('tmax is deprecated and will be removed in 0.16. Set it to '
+             'None to remove this warning.',
              DeprecationWarning)
 
     evoked = apply_forward(fwd, stc, info)

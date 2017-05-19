@@ -60,8 +60,7 @@ def test_simulate_evoked():
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
     evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                             tmin=0.0, tmax=0.2, iir_filter=iir_filter,
-                             nave=nave)
+                             iir_filter=iir_filter, nave=nave)
     assert_array_almost_equal(evoked.times, stc.times)
     assert_true(len(evoked.data) == len(fwd['sol']['data']))
     assert_equal(evoked.nave, nave)
@@ -72,11 +71,11 @@ def test_simulate_evoked():
     stc_bad.vertices[0][0] = mv + 1
 
     assert_raises(RuntimeError, simulate_evoked, fwd, stc_bad,
-                  evoked_template.info, cov, tmin=0.0, tmax=0.2)
+                  evoked_template.info, cov)
     evoked_1 = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                               tmin=0.0, tmax=0.2, nave=np.inf)
+                               nave=np.inf)
     evoked_2 = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                               tmin=0.0, tmax=0.2, nave=np.inf)
+                               nave=np.inf)
     assert_array_equal(evoked_1.data, evoked_2.data)
 
     # Test the equivalence snr to nave
@@ -87,6 +86,6 @@ def test_simulate_evoked():
 
     cov['names'] = cov.ch_names[:-2]  # Error channels are different.
     assert_raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,
-                  cov, nave=nave, tmin=None, tmax=None, iir_filter=None)
+                  cov, nave=nave, iir_filter=None)
 
 run_tests_if_main()
