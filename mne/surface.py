@@ -333,8 +333,8 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     if len(idx) > 0:
         logger.info('    Vertices [%s] have fewer than three neighboring '
                     'tris, omitted' % ','.join([str(ii) for ii in idx]))
-    for k in idx:
-        surf['neighbor_tri'] = np.array([], int)
+        for k in idx:
+            surf['neighbor_tri'][k] = np.array([], int)
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
