@@ -2772,6 +2772,9 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     elif mode == 'pca_flip_mean':
         # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src[:2])
+    elif mode == 'pca_flip_truncated':
+        # get the sign-flip vector for every label
+        label_flip = _get_label_flip(labels, label_vertidx, src[:2])
     elif mode == 'max':
         pass  # we calculate the maximum value later
     else:
@@ -2830,9 +2833,28 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     U, s, V = linalg.svd(stc.data[vertidx, :],
                                          full_matrices=False)
                     # determine sign-flip
-                    flip_refrence = V[0]
+                    sign = np.sign(np.dot(U[:, 0], flip))
+
+                    # use average power in label for scaling
+                    scale = linalg.norm(s) / np.sqrt(len(vertidx))
+                    flip_refrence = sign * scale * V[0]
                     flip = np.sign(np.corrcoef(flip_refrence, stc.data[vertidx, :]))[1:,0]
                     label_tc[i] = np.median(flip[:,np.newaxis] * stc.data[vertidx, :], axis=0)
+        elif mode == 'pca_flip_truncated':
+            for i, (vertidx, flip) in enumerate(zip(label_vertidx,
+                                                    label_flip)):
+                if vertidx is not None:
+                    U, s, V = linalg.svd(stc.data[vertidx, :],
+                                         full_matrices=False)
+                    # determine sign-flip
+                    sign = np.sign(np.dot(U[:, 0], flip))
+
+                    # use average power in label for scaling
+                    scale = linalg.norm(s) / np.sqrt(len(vertidx))
+
+                    #determining component explaining 90 percent variance
+                    n_comps = np.sum(s.cumsum() / s.cumsum().max() < .9)
+                    label_tc[i] = sign * scale * V[:n_comps].mean(0)
         elif mode == 'max':
             for i, vertidx in enumerate(label_vertidx):
                 if vertidx is not None:
