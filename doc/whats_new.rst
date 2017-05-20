@@ -82,6 +82,8 @@ BUG
     
     - Fix :meth:`mne.preprocessing.ICA.save` to close file before attempting to delete it when write fails by `Jesper Duemose Nielsen`_
 
+    - Fix :func:`mne.simulation.simulate_evoked` to use nave parameter instead of snr, by `Yousra Bekhti`_
+
 API
 ~~~
 
