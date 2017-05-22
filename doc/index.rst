@@ -29,6 +29,12 @@
 
 .. container:: row extramargin
 
+    .. container:: col-sm-10 col-sm-offset-1
+
+      .. include:: carousel.inc
+
+.. container:: row extramargin
+
     .. buttons
     .. container:: col-sm-10 col-sm-offset-1
 
@@ -47,15 +53,9 @@
         <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-sm btn-cont">Statistics</a>
         </div>
 
-.. container:: row extramargin
-
-    .. container:: col-sm-10 col-sm-offset-1
-
-      .. include:: carousel.inc
-
-  .. financial support
 .. container:: row
 
+    .. financial support
     .. container:: col-sm-7 col-sm-offset-1
 
       .. raw:: html

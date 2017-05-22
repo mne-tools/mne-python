@@ -51,7 +51,7 @@
             <div class="container">
               <div class="carousel-caption">
                 <h2>Encoding models</h2>
-                <p>Receptive field estimation for with optional smoothness priors.</p>
+                <p>Receptive field estimation with optional smoothness priors.</p>
                 <p><a class="btn btn-info btn-sm" href="auto_tutorials/plot_receptive_field.html" role="button">Check it out</a></p>
               </div>
             </div>
