@@ -8,10 +8,9 @@ import dateutil.parser
 
 import numpy as np
 
-from .events import _read_events
+from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains)
-from .egi import _combine_triggers
 from ..base import BaseRaw, _check_update_montage
 from ..constants import FIFF
 from ..meas_info import _empty_info
@@ -72,13 +71,11 @@ def _read_mff_header(filepath):
     info_filepath = filepath + "/" + "info.xml"  # add with filepath
     tags = ['mffVersion', 'recordTime']
     version_and_date = _extract(tags, filepath=info_filepath)
-    summaryinfo.update({'version': version_and_date['mffVersion'][0],
-                        'date': version_and_date['recordTime'][0],
-                        'n_samples': n_samples,
-                        'n_trials': n_trials,
-                        'chan_type': chan_type,
-                        'chan_unit': chan_unit,
-                        'numbers': numbers})
+    summaryinfo.update(version=version_and_date['mffVersion'][0],
+                       date=version_and_date['recordTime'][0],
+                       n_samples=n_samples, n_trials=n_trials,
+                       chan_type=chan_type, chan_unit=chan_unit,
+                       numbers=numbers)
     return summaryinfo
 
 
@@ -148,10 +145,11 @@ def _read_locs(filepath, chs, egi_info):
         loc /= 100.  # cm -> m
     return chs
 
+
 @verbose
-def read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
-                     include=None, exclude=None, preload=False,
-                     channel_naming='E%d', verbose=None):
+def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
+                      include=None, exclude=None, preload=False,
+                      channel_naming='E%d', verbose=None):
     """Read EGI mff binary as raw object.
 
     .. note:: This function attempts to create a synthetic trigger channel.
@@ -342,7 +340,7 @@ class RawMff(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
         from ..utils import _mult_cal_one
-        dtype = '<f4'
+        dtype = '<f4'  # Data read in four byte floats.
         n_bytes = np.dtype(dtype).itemsize
         egi_info = self._raw_extras[fi]
         offset = egi_info['header_sizes'][0] - n_bytes

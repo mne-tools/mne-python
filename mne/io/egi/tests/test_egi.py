@@ -13,7 +13,6 @@ from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne import find_events, pick_types
 from mne.io import read_raw_egi
-from mne.io import read_raw_egi_mff
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.egi.egi import _combine_triggers
 from mne.utils import run_tests_if_main
@@ -31,13 +30,11 @@ egi_txt_fname = op.join(base_dir, 'test_egi.txt')
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files"""
     egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
-    raw = read_raw_egi_mff(egi_fname_mff, include=None)
+    raw = read_raw_egi(egi_fname_mff, include=None)
     assert_true('RawMff' in repr(raw))
-    include = ['DIN1', 'DIN2', 'DIN3', 'DIN4',
-               'DIN5', 'DIN7']
-    with warnings.catch_warnings(record=True):
-        raw = _test_raw_reader(read_raw_egi_mff, input_fname=egi_fname_mff,
-                               include=include, channel_naming='EEG %03d')
+    include = ['DIN1', 'DIN2', 'DIN3', 'DIN4', 'DIN5', 'DIN7']
+    raw = _test_raw_reader(read_raw_egi, input_fname=egi_fname_mff,
+                           include=include, channel_naming='EEG %03d')
 
     assert_equal('eeg' in raw, True)
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
@@ -52,9 +49,9 @@ def test_io_egi_mff():
     assert_true(np.unique(events[:, 0])[0] != 0)
     assert_true(np.unique(events[:, 2])[0] != 0)
 
-    assert_raises(ValueError, read_raw_egi_mff, egi_fname_mff, include=['Foo'],
+    assert_raises(ValueError, read_raw_egi, egi_fname_mff, include=['Foo'],
                   preload=False)
-    assert_raises(ValueError, read_raw_egi_mff, egi_fname_mff, exclude=['Bar'],
+    assert_raises(ValueError, read_raw_egi, egi_fname_mff, exclude=['Bar'],
                   preload=False)
     for ii, k in enumerate(include, 1):
         assert_true(k in raw.event_id)

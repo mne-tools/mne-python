@@ -9,6 +9,8 @@ from xml.etree.ElementTree import parse
 
 import numpy as np
 
+from ...utils import logger
+
 
 def _read_events(input_fname, info):
     """Read events for the record.
@@ -99,7 +101,7 @@ def _xml2list(root):
 
 
 def _ns(s):
-    """Remove namespace, but only it there is a namespace to begin with."""
+    """Remove namespace, but only if there is a namespace to begin with."""
     if '}' in s:
         return '}'.join(s.split('}')[1:])
     else:
@@ -142,3 +144,19 @@ def _ns2py_time(nstime):
     nstime00 = nsdate + " " + nstime0
     pytime = datetime.strptime(nstime00, '%Y-%m-%d %H:%M:%S.%f')
     return pytime
+
+
+def _combine_triggers(data, remapping=None):
+    """Combine binary triggers."""
+    new_trigger = np.zeros(data.shape[1])
+    if data.astype(bool).sum(axis=0).max() > 1:  # ensure no overlaps
+        logger.info('    Found multiple events at the same time '
+                    'sample. Cannot create trigger channel.')
+        return
+    if remapping is None:
+        remapping = np.arange(data) + 1
+    for d, event_id in zip(data, remapping):
+        idx = d.nonzero()
+        if np.any(idx):
+            new_trigger[idx] += event_id
+    return new_trigger
