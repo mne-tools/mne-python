@@ -231,11 +231,6 @@ dt:target code {
 .carousel-caption p {
     font-size: 16px;
 }
-.vertical-center {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-}
 .support-front ul {
     padding-left: 15px;
 }
