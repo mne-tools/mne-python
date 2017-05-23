@@ -3,20 +3,20 @@ import mne
 from .utils import plot_sensors
 
 
-def plot_montage(montage, kind='3d', scale_factor=20, show_names=False,
+def plot_montage(montage, kind='topomap', scale_factor=20, show_names=True,
                  show=True):
     """Plot a montage.
 
     Parameters
     ----------
-    montage : instance of Montage
+    montage : instance of Montage or DigMontage
         The montage to visualize.
     kind : str
-        Whether to plot the montage as '3d' or 'topomap'.
+        Whether to plot the montage as '3d' or 'topomap' (default).
     scale_factor : float
-        Determines the size of the points. Defaults to 20.
+        Determines the size of the points.
     show_names : bool
-        Whether to show the channel names. Defaults to False.
+        Whether to show the channel names.
     show : bool
         Show figure if True.
 
@@ -29,6 +29,15 @@ def plot_montage(montage, kind='3d', scale_factor=20, show_names=False,
         ch_names = montage.ch_names
     elif isinstance(montage, mne.channels.montage.DigMontage):
         ch_names = montage.point_names
+    else:
+        raise TypeError("montage must be an instance of "
+                        "mne.channels.montage.Montage or"
+                        "mne.channels.montage.DigMontage")
+    if kind not in ['topomap', '3d']:
+        raise ValueError("kind must be 'topomap' or '3d'")
     info = mne.create_info(ch_names, sfreq=256, ch_types="eeg",
                            montage=montage)
-    return plot_sensors(info, kind=kind, show_names=show_names, show=show)
+    fig = plot_sensors(info, kind=kind, show_names=show_names, show=show)
+    collection = fig.axes[0].collections[0]
+    collection.set_sizes([scale_factor])
+    return fig
