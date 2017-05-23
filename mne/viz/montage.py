@@ -37,7 +37,8 @@ def plot_montage(montage, kind='topomap', scale_factor=20, show_names=True,
         raise ValueError("kind must be 'topomap' or '3d'")
     info = mne.create_info(ch_names, sfreq=256, ch_types="eeg",
                            montage=montage)
-    fig = plot_sensors(info, kind=kind, show_names=show_names, show=show)
+    fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
+                       title=montage.kind)
     collection = fig.axes[0].collections[0]
     collection.set_sizes([scale_factor])
     return fig
