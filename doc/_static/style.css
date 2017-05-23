@@ -256,7 +256,7 @@ h4.list-group-item-heading {
     margin: auto;
 }
 .tagline {
-    font-size: 22px;
+    font-size: 20px;
 }
 /* Fix collapsing */
 @media (max-width: 991px) {

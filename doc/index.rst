@@ -10,7 +10,7 @@
 
       <div class="cell-like col-sm-8">
         <img src="_static/mne_logo.png" alt="MNE" class="center-block">
-        <h4 class="tagline">
+        <p class="tagline">
         Open-source Python software for exploring, visualizing, and
         analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
         and more.
@@ -27,7 +27,7 @@
 
 .. container:: row topmargin limitedwidth
 
-    .. container:: col-sm-12
+    .. container:: col-sm-12 topmargin
 
       .. include:: carousel.inc
 
@@ -37,28 +37,28 @@
     .. raw:: html
 
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_io" class="btn btn-primary btn-sm btn-cont">Data I/O</a>
+        <a href="documentation.html#collapse_io" class="btn btn-primary btn-lg btn-cont">Data I/O</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_preprocessing" class="btn btn-primary btn-sm btn-cont">Preprocessing</a>
+        <a href="documentation.html#collapse_preprocessing" class="btn btn-primary btn-lg btn-cont">Preprocessing</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_visualization" class="btn btn-primary btn-sm btn-cont">Visualization</a>
+        <a href="documentation.html#collapse_visualization" class="btn btn-primary btn-lg btn-cont">Visualization</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_source" class="btn btn-primary btn-sm btn-cont">Source estimation</a>
+        <a href="documentation.html#collapse_source" class="btn btn-primary btn-lg btn-cont">Source estimation</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_tf" class="btn btn-primary btn-sm btn-cont">Time-frequency</a>
+        <a href="documentation.html#collapse_tf" class="btn btn-primary btn-lg btn-cont">Time-frequency</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_connectivity" class="btn btn-primary btn-sm btn-cont">Connectivity</a>
+        <a href="documentation.html#collapse_connectivity" class="btn btn-primary btn-lg btn-cont">Connectivity</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_ml" class="btn btn-primary btn-sm btn-cont">Machine learning</a>
+        <a href="documentation.html#collapse_ml" class="btn btn-primary btn-lg btn-cont">Machine learning</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-sm btn-cont">Statistics</a>
+        <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-lg btn-cont">Statistics</a>
         </div>
 
 .. container:: row limitedwidth
