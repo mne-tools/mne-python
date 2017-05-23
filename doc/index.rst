@@ -3,60 +3,68 @@
 .. include:: links.inc
 
 
-.. container:: row
+.. container:: row limitedwidth table-like
 
     .. title image and description
     .. raw:: html
 
-      <div class="table-like col-md-12">
-      <div class="cell-like col-sm-7 col-sm-offset-1">
-      <img src="_static/mne_logo.png" alt="MNE" class="center-block">
-        <p class="tagline">
+      <div class="cell-like col-sm-8">
+        <img src="_static/mne_logo.png" alt="MNE" class="center-block">
+        <h4 class="tagline">
         Open-source Python software for exploring, visualizing, and
         analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
-        and more.</p>
+        and more.
+        </h4>
       </div>
-      <div class="cell-like col-sm-3">
-        <div class="text-right">
-        <h3 class="right-h3"><i class="fa fa-bolt"></i> Speed</h3>
-        <p class="right-p">Multi-core CPU & GPU.</p>
-        <h3 class="right-h3"><i class="fa fa-eye"></i> Usability</h3>
-        <p class="right-p">Clean scripting & visualization.</p>
-        <h3 class="right-h3"><i class="fa fa-sliders"></i> Flexibility</h3>
-        <p class="right-p">Broad data format & analysis support.
-      </div>
+      <div class="cell-like col-sm-4 text-right">
+        <h3><i class="fa fa-bolt"></i> Speed</h3>
+        <p>Multi-core CPU & GPU.</p>
+        <h3><i class="fa fa-eye"></i> Usability</h3>
+        <p>Clean scripting & visualization.</p>
+        <h3><i class="fa fa-sliders"></i> Flexibility</h3>
+        <p>Broad data format & analysis support.
       </div>
 
-.. container:: row extramargin
+.. container:: row topmargin limitedwidth
 
-    .. container:: col-sm-10 col-sm-offset-1
+    .. container:: col-sm-12
 
       .. include:: carousel.inc
 
-.. container:: row extramargin
+.. container:: row limitedwidth
 
     .. buttons
-    .. container:: col-sm-10 col-sm-offset-1
+    .. raw:: html
 
-      .. raw:: html
-
-        <div class="nopad cont">
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
         <a href="documentation.html#collapse_io" class="btn btn-primary btn-sm btn-cont">Data I/O</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
         <a href="documentation.html#collapse_preprocessing" class="btn btn-primary btn-sm btn-cont">Preprocessing</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
         <a href="documentation.html#collapse_visualization" class="btn btn-primary btn-sm btn-cont">Visualization</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
         <a href="documentation.html#collapse_source" class="btn btn-primary btn-sm btn-cont">Source estimation</a>
         </div>
-        <div class="nopad cont">
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
         <a href="documentation.html#collapse_tf" class="btn btn-primary btn-sm btn-cont">Time-frequency</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
         <a href="documentation.html#collapse_connectivity" class="btn btn-primary btn-sm btn-cont">Connectivity</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
         <a href="documentation.html#collapse_ml" class="btn btn-primary btn-sm btn-cont">Machine learning</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
         <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-sm btn-cont">Statistics</a>
         </div>
 
-.. container:: row
+.. container:: row limitedwidth
 
     .. financial support
-    .. container:: col-sm-7 col-sm-offset-1
+    .. container:: col-sm-8
 
       .. raw:: html
 
@@ -81,7 +89,7 @@
         </div>
         </div>
 
-    .. container:: col-sm-3
+    .. container:: col-sm-4
 
       .. raw:: html
 

@@ -20,25 +20,6 @@ a:hover {
     color: rgb(102, 179, 255);
 }
 
-h2 a {
-    color: rgb(0,0,0);
-    text-decoration: none;
-}
-
-h1 {
-    font-weight: 1000;
-}
-
-h2 {
-    font-size: 140%;
-    font-weight: 800;
-}
-
-h3 {
-    font-size: 110%;
-    font-weight: 600;
-}
-
 blockquote {
     font-size: 100% !important;
 }
@@ -222,7 +203,7 @@ dt:target code {
 }
 .btn-cont {
     display: table-cell;
-    width: 25%;
+    width: 100%;
 }
 .footer {
     position: absolute;
@@ -241,7 +222,8 @@ dt:target code {
 .ul-2col ul{
     columns: 2;
 }
-}.carousel-caption {
+}
+.carousel-caption {
     text-shadow: 0 1px 1px rgba(0,0,0,1.0);
     background-color: rgba(0,0,0,0.5);
     box-shadow: 0 0 5px rgba(0,0,0,0.5);
@@ -249,27 +231,18 @@ dt:target code {
 .carousel-caption p {
     font-size: 16px;
 }
-.tagline {
-  font-size: 18px !important;
-}
 .vertical-center {
   min-height: 100vh;
   display: flex;
   align-items: center;
 }
-.right-h3 {
-    font-size: 22px;
-    font-weight: 800;
-}
-.right-p {
-    font-size: 14px !important;
-    font-weight: 400 !important;
-}
 .support-front ul {
     padding-left: 15px;
 }
-.extramargin {
+.topmargin {
     margin-top: 10px;
+}
+.bottommargin {
     margin-bottom: 10px;
 }
 h4.list-group-item-heading {
@@ -281,6 +254,14 @@ h4.list-group-item-heading {
 .cell-like {
     display: table-cell;
     vertical-align: middle;
+    float: none;
+}
+.limitedwidth {
+    max-width: 1024px;
+    text
+}
+.tagline {
+    font-size: 22px;
 }
 /* Fix collapsing */
 @media (max-width: 991px) {
