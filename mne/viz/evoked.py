@@ -735,13 +735,13 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         be shown.
     units : dict | None
         The units of the channel types used for axes lables. If None,
-        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+        defaults to ``dict(eeg='uV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     titles : dict | None
         The titles associated with the channels. If None, defaults to
-        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
+        ``dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')``.
     axes : instance of Axis | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
@@ -753,8 +753,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         with left and right mouse button. Left mouse button moves the scale up
         and down and right mouse button adjusts the range. Hitting space bar
         resets the scale. Up and down arrows can be used to change the
-        colormap. If 'interactive', translates to ('RdBu_r', True). Defaults to
-        'RdBu_r'.
+        colormap. If 'interactive', translates to ``('RdBu_r', True)``.
+        Defaults to ``'RdBu_r'``.
 
     Returns
     -------
@@ -1104,7 +1104,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         A dict of `kwargs` that are forwarded to `evoked.plot` to
         style the butterfly plot. If they are not in this dict, the following
         defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
-       ``axes``, ``show``, ``exclude`` are illegal.
+        ``axes``, ``show``, ``exclude`` are illegal.
         If None, no customizable arguments will be passed.
         Defaults to `None`.
     topomap_args : None | dict

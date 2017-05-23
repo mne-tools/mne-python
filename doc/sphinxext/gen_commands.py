@@ -53,6 +53,8 @@ command_rst = """
 
 def generate_commands_rst(app):
     out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'generated'))
+    if not op.isdir(out_dir):
+        os.mkdir(out_dir)
     out_fname = op.join(out_dir, 'commands.rst')
 
     command_path = op.join(os.path.dirname(__file__), '..', '..', 'mne',

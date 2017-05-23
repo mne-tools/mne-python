@@ -16,14 +16,15 @@ from mne.datasets import sample
 from mne.minimum_norm import (make_inverse_operator, apply_inverse,
                               write_inverse_operator)
 
+# sphinx_gallery_thumbnail_number = 7
+
 ###############################################################################
 # Process MEG data
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = mne.io.read_raw_fif(raw_fname)
-raw.set_eeg_reference()  # set EEG average reference
+raw = mne.io.read_raw_fif(raw_fname)  # already has an average reference
 events = mne.find_events(raw, stim_channel='STI 014')
 
 event_id = dict(aud_r=1)  # event trigger and conditions
@@ -120,15 +121,15 @@ brain.show_view('lateral')
 # Morph data to average brain
 # ---------------------------
 
-fs_vertices = [np.arange(10242)] * 2
+fs_vertices = [np.arange(10242)] * 2  # fsaverage is special this way
 morph_mat = mne.compute_morph_matrix('sample', 'fsaverage', stc.vertices,
                                      fs_vertices, smooth=None,
                                      subjects_dir=subjects_dir)
 stc_fsaverage = stc.morph_precomputed('fsaverage', fs_vertices, morph_mat)
-brain_fsaverage = stc_fsaverage.plot(surface='inflated', hemi='rh',
-                                     subjects_dir=subjects_dir,
-                                     clim=dict(kind='value', lims=[8, 12, 15]),
-                                     initial_time=time_max, time_unit='s')
+brain_fsaverage = stc_fsaverage.plot(
+    surface='inflated', hemi='rh', subjects_dir=subjects_dir,
+    clim=dict(kind='value', lims=[8, 12, 15]), initial_time=time_max,
+    time_unit='s', size=(800, 800), smoothing_steps=5)
 brain_fsaverage.show_view('lateral')
 
 ###############################################################################

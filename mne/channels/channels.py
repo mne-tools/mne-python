@@ -576,7 +576,7 @@ class UpdateChannelsMixin(object):
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
-                   fnirs=False, include=[], exclude='bads', selection=None):
+                   fnirs=False, include=(), exclude='bads', selection=None):
         """Pick some channels by type and names.
 
         Parameters
