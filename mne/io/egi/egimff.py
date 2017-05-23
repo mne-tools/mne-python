@@ -126,7 +126,6 @@ def _read_header(input_fname):
 
 def _read_locs(filepath, chs, egi_info):
     """Read channel locations."""
-
     fname = os.path.join(filepath, 'coordinates.xml')
     if not os.path.exists(fname):
         return chs
