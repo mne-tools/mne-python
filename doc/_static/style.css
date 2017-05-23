@@ -222,7 +222,6 @@ dt:target code {
 .ul-2col ul{
     columns: 2;
 }
-}
 .carousel-caption {
     text-shadow: 0 1px 1px rgba(0,0,0,1.0);
     background-color: rgba(0,0,0,0.5);
@@ -253,7 +252,8 @@ h4.list-group-item-heading {
 }
 .limitedwidth {
     max-width: 1024px;
-    text
+    float: none;
+    margin: auto;
 }
 .tagline {
     font-size: 22px;
