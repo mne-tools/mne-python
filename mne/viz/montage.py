@@ -27,8 +27,10 @@ def plot_montage(montage, kind='topomap', scale_factor=20, show_names=True,
     """
     if isinstance(montage, mne.channels.montage.Montage):
         ch_names = montage.ch_names
+        title = montage.kind
     elif isinstance(montage, mne.channels.montage.DigMontage):
         ch_names = montage.point_names
+        title = None
     else:
         raise TypeError("montage must be an instance of "
                         "mne.channels.montage.Montage or"
@@ -38,7 +40,7 @@ def plot_montage(montage, kind='topomap', scale_factor=20, show_names=True,
     info = mne.create_info(ch_names, sfreq=256, ch_types="eeg",
                            montage=montage)
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
-                       title=montage.kind)
+                       title=title)
     collection = fig.axes[0].collections[0]
     collection.set_sizes([scale_factor])
     return fig
