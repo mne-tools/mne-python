@@ -52,7 +52,7 @@ dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF
 # and compare to the measured data, highlighting the ipsilateral (right) source
 fwd, stc = make_forward_dipole(dip, fname_bem, evoked.info, fname_trans)
-pred_evoked = simulate_evoked(fwd, stc, evoked.info, None, snr=np.inf)
+pred_evoked = simulate_evoked(fwd, stc, evoked.info, cov=None, nave=np.inf)
 
 # find time point with highes GOF to plot
 best_idx = np.argmax(dip.gof)

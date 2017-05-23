@@ -15,7 +15,7 @@ from ..utils import check_random_state, verbose, _time_mask, warn, deprecated
 
 
 @verbose
-def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
+def simulate_evoked(fwd, stc, info, cov, nave=30, tmin=None, tmax=None,
                     iir_filter=None, random_state=None, verbose=None,
                     snr=None):
     """Generate noisy evoked data.
@@ -37,7 +37,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
     cov : Covariance object
         The noise covariance.
     nave : int
-        Number of averaged epochs.
+        Number of averaged epochs (defaults to 30).
 
         .. versionadded:: 0.15.0
     tmin : float | None
@@ -55,7 +55,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=3., tmin=None, tmax=None,
         and :ref:`Logging documentation <tut_logging>` for more).
     snr : float
         signal to noise ratio in dB. It corresponds to
-        10 * log10( var(signal) / var(noise) ).
+        ``10 * log10( var(signal) / var(noise) )``.
 
         snr is deprecated and will be removed in 0.16.
 
@@ -175,6 +175,7 @@ def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
     """Add noise to evoked object with specified SNR.
 
     SNR is computed in the interval from tmin to tmax.
+
     Parameters
     ----------
     evoked : Evoked object
@@ -188,6 +189,7 @@ def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
         start time before event
     tmax : float
         end time after event
+
     Returns
     -------
     evoked_noise : Evoked object
