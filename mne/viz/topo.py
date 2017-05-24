@@ -200,7 +200,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                   vmax=vmax, ylim=ylim_)
 
     if title is not None:
-        plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
+        plt.figtext(0.03, 0.95, title, color=font_color, fontsize=15, va='top')
 
     return fig
 
