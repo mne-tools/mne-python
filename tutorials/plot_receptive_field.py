@@ -101,7 +101,7 @@ gauss_high = multivariate_normal.pdf(grid, means_high, cov)
 gauss_low = -1 * multivariate_normal.pdf(grid, means_low, cov)
 weights = gauss_high + gauss_low  # Combine to create the "true" STRF
 kwargs = dict(vmax=np.abs(weights).max(), vmin=-np.abs(weights).max(),
-              cmap='RdBu_r')
+              cmap='RdBu_r', shading='gouraud')
 
 fig, ax = plt.subplots()
 ax.pcolormesh(delays_sec, freqs, weights, **kwargs)

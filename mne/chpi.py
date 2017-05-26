@@ -898,7 +898,8 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
 
 
 @verbose
-def filter_chpi(raw, include_line=True, verbose=None):
+def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
+                verbose=None):
     """Remove cHPI and line noise from data.
 
     .. note:: This function will only work properly if cHPI was on
@@ -910,6 +911,11 @@ def filter_chpi(raw, include_line=True, verbose=None):
         Raw data with cHPI information. Must be preloaded. Operates in-place.
     include_line : bool
         If True, also filter line noise.
+    t_step : float
+        Time step to use for estimation, default is 0.01 (10 ms).
+    t_window : float
+        Time window to use to estimate the amplitudes, default is
+        0.2 (200 ms).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -930,8 +936,11 @@ def filter_chpi(raw, include_line=True, verbose=None):
     """
     if not raw.preload:
         raise RuntimeError('raw data must be preloaded')
-    t_window = 0.2
-    t_step = 0.01
+    t_step = float(t_step)
+    t_window = float(t_window)
+    if not (t_step > 0 and t_window > 0):
+        raise ValueError('t_step (%s) and t_window (%s) must both be > 0.'
+                         % (t_step, t_window))
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
     hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])),
                             exclude='bads', remove_aliased=True,

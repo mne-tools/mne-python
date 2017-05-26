@@ -29,8 +29,7 @@ from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
-from ..channels import find_layout
-from ..channels.layout import _pair_grad_sensors
+from ..channels.layout import _pair_grad_sensors, _auto_topomap_coords
 
 
 def _butterfly_onpick(event, params):
@@ -167,8 +166,7 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc):
         ax.scatter(pos_x[idx], pos_y[idx], s=5, marker='.', color='w',
                    zorder=1)
 
-    if isinstance(outlines, dict):
-        _draw_outlines(ax, outlines)
+    _draw_outlines(ax, outlines)
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
@@ -329,8 +327,10 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                          'colors.')
                     spatial_colors = selectable = False
                 if spatial_colors is True and len(idx) != 1:
-                    colors = _handle_spatial_colors(locs3d, info, idx,
-                                                    this_type, psd, ax)
+                    x, y, z = locs3d.T
+                    colors = _rgb(x, y, z)
+                    _handle_spatial_colors(colors, info, idx, this_type, psd,
+                                           ax)
                 else:
                     if isinstance(spatial_colors, (tuple, string_types)):
                         col = [spatial_colors]
@@ -429,33 +429,17 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 useblit=blit, rectprops=dict(alpha=0.5, facecolor='red'))
 
 
-def _handle_spatial_colors(locs3d, info, idx, ch_type, psd, ax):
+def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
     """Set up spatial colors."""
-    x, y, z = locs3d.T
-    colors = _rgb(x, y, z)
-    ch_type = None if ch_type not in ('meg', 'mag', 'grad', 'eeg') else ch_type
-
-    layout = find_layout(info, ch_type=ch_type, exclude=[])
-    if layout.kind == 'custom':
-        head_pos = {'center': (0, 0), 'scale': (4.5, 4.5)}
-        outlines = np.array([0.5, 0.5])
-    else:
-        head_pos = None
-        outlines = 'skirt'
-    # drop channels that are not in the data
     used_nm = np.array(_clean_names(info['ch_names']))[idx]
-
-    names = np.asarray([name for name in used_nm if name in layout.names])
-    name_idx = [layout.names.index(name) for name in names]
-
     # find indices for bads
-    bads = [np.where(names == bad)[0][0] for bad in info['bads'] if bad in
-            names]
-    pos, outlines = _check_outlines(layout.pos[:, :2], outlines, head_pos)
-    pos = pos[name_idx]
+    bads = [np.where(used_nm == bad)[0][0] for bad in info['bads'] if bad in
+            used_nm]
+    pos = _auto_topomap_coords(info, idx, ignore_overlap=True, to_sphere=True)
+    pos, outlines = _check_outlines(pos, np.array([1, 1]),
+                                    {'center': (0, 0), 'scale': (0.5, 0.5)})
     loc = 1 if psd else 2  # Legend in top right for psd plot.
     _plot_legend(pos, colors, ax, bads, outlines, loc)
-    return colors
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
@@ -751,13 +735,13 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         be shown.
     units : dict | None
         The units of the channel types used for axes lables. If None,
-        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+        defaults to ``dict(eeg='uV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     titles : dict | None
         The titles associated with the channels. If None, defaults to
-        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
+        ``dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')``.
     axes : instance of Axis | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
@@ -769,8 +753,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         with left and right mouse button. Left mouse button moves the scale up
         and down and right mouse button adjusts the range. Hitting space bar
         resets the scale. Up and down arrows can be used to change the
-        colormap. If 'interactive', translates to ('RdBu_r', True). Defaults to
-        'RdBu_r'.
+        colormap. If 'interactive', translates to ``('RdBu_r', True)``.
+        Defaults to ``'RdBu_r'``.
 
     Returns
     -------
@@ -1120,7 +1104,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         A dict of `kwargs` that are forwarded to `evoked.plot` to
         style the butterfly plot. If they are not in this dict, the following
         defaults are passed: ``spatial_colors=True``, ``zorder='std'``,
-       ``axes``, ``show``, ``exclude`` are illegal.
+        ``axes``, ``show``, ``exclude`` are illegal.
         If None, no customizable arguments will be passed.
         Defaults to `None`.
     topomap_args : None | dict
