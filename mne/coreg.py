@@ -946,7 +946,8 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
     surfs = read_bem_surfaces(src)
     for surf in surfs:
         surf['rr'] *= scale
-        if nn_scale is not None and len(surf['nn']) > 0:
+        if nn_scale is not None:
+            assert len(surf['nn']) > 0
             surf['nn'] *= nn_scale
             _normalize_vectors(surf['nn'])
     write_bem_surfaces(dst, surfs)
