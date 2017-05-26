@@ -3,7 +3,7 @@ from ..utils import check_version
 from . import plot_sensors
 
 
-def plot_montage(montage, kind='topomap', scale_factor=20, show_names=True,
+def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
                  show=True):
     """Plot a montage.
 
