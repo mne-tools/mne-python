@@ -2121,3 +2121,17 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         _write_annot(fname, annot, ctab, hemi_names)
 
     logger.info('[done]')
+def plot(label,borders=True,color='b'):    
+	'''
+	Parameters
+	----------
+	labels : list with instances of mne.Label
+	label on the brain surface 
+	borders : bool 
+	Border of the label. Default border = True       	
+	color  : str
+	Color used to represent the Border. Default border = 'b' (blue) 
+	'''
+
+	brain.add_label(label, borders, color)    
+	
