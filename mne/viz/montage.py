@@ -11,12 +11,12 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     ----------
     montage : instance of Montage or DigMontage
         The montage to visualize.
-    kind : str
-        Whether to plot the montage as '3d' or 'topomap' (default).
     scale_factor : float
         Determines the size of the points.
     show_names : bool
         Whether to show the channel names.
+    kind : str
+        Whether to plot the montage as '3d' or 'topomap' (default).
     show : bool
         Show figure if True.
 
