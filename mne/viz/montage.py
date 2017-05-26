@@ -1,6 +1,6 @@
 """Functions to plot EEG sensor montages or digitizer montages."""
-import mne
-from .utils import plot_sensors
+from ..utils import check_version
+from . import plot_sensors
 
 
 def plot_montage(montage, kind='topomap', scale_factor=20, show_names=True,
@@ -25,10 +25,12 @@ def plot_montage(montage, kind='topomap', scale_factor=20, show_names=True,
     fig : Instance of matplotlib.figure.Figure
         The figure object.
     """
-    if isinstance(montage, mne.channels.montage.Montage):
+    from ..channels import Montage, DigMontage
+    from .. import create_info
+    if isinstance(montage, Montage):
         ch_names = montage.ch_names
         title = montage.kind
-    elif isinstance(montage, mne.channels.montage.DigMontage):
+    elif isinstance(montage, DigMontage):
         ch_names = montage.point_names
         title = None
     else:
@@ -37,10 +39,12 @@ def plot_montage(montage, kind='topomap', scale_factor=20, show_names=True,
                         "mne.channels.montage.DigMontage")
     if kind not in ['topomap', '3d']:
         raise ValueError("kind must be 'topomap' or '3d'")
-    info = mne.create_info(ch_names, sfreq=256, ch_types="eeg",
-                           montage=montage)
+    info = create_info(ch_names, sfreq=256, ch_types="eeg", montage=montage)
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
                        title=title)
     collection = fig.axes[0].collections[0]
-    collection.set_sizes([scale_factor])
+    if check_version("matplotlib", "1.4"):
+        collection.set_sizes([scale_factor])
+    else:
+        collection._sizes = [scale_factor]
     return fig
