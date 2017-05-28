@@ -79,5 +79,5 @@ mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=0.5, vmin=-100,
                           overlay_times=plt_times, show=True)
 
 mne.viz.plot_epochs_image(epochs, combine='gfp', sigma=0.5, vmin=-100,
-                          vmax=250, colorbar=True, order=order_func,
+                          vmax=250, colorbar=True, #order=order_func,
                           overlay_times=plt_times, show=True)

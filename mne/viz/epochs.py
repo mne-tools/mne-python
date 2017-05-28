@@ -194,7 +194,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
         data = data.squeeze() * list(scalings.values())[0]  # only 1 entry
         chans = epochs.average(picks).ch_names
         #evoked = epochs.average(picks)
-        evokeds = data#.mean(0)#evoked.data
+        evokeds = data.mean(0)#evoked.data
         combined = False
 
     if cmap is None:
@@ -245,7 +245,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None, vmax=None,
                  % (epochs.tmin, epochs.tmax))
 
     figs = list()
-    print(data.mean(), "data mean jjjjj")
+    print(data.mean(), evokeds.shape, "data mean jjjjj")
     for im_data, ts_data, ch, ch_type in zip(data, evokeds, chans, types):
         title = ch_type #+ ", gfp" if gfp else ch
         vmin_, vmax_ = _setup_vmin_vmax(im_data, vmin, vmax)
