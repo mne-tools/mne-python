@@ -49,7 +49,7 @@ Changelog
 
     - Add options to change time windowing in :func:`mne.filter.filter_chpi` by `Eric Larson`_
 
-    - :meth:`mne.channels.Montage.plot`, :meth:`mne.channels.Montage.plot`, and :func:`mne.viz.montage.plot_montage` now allow plotting channel locations as a topomap by `Clemens Brunner`_
+    - :meth:`mne.channels.Montage.plot`, :meth:`mne.channels.DigMontage.plot`, and :func:`mne.viz.montage.plot_montage` now allow plotting channel locations as a topomap by `Clemens Brunner`_
 
 BUG
 ~~~
