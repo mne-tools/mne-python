@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import h5py
 import os.path as op
 import shutil
 
@@ -14,13 +15,14 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.eeglab.eeglab import read_events_eeglab
+from mne.io.eeglab.eeglab import read_events_eeglab, _get_eeg_data
 from mne.datasets import testing
 from mne.utils import _TempDir, run_tests_if_main, requires_version
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 raw_fname = op.join(base_dir, 'test_raw.set')
 raw_fname_onefile = op.join(base_dir, 'test_raw_onefile.set')
+raw_fname_hdffile = op.join(base_dir, 'test_hdf5_raw.set')
 epochs_fname = op.join(base_dir, 'test_epochs.set')
 epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile.set')
 montage = op.join(base_dir, 'test_chans.locs')
@@ -72,9 +74,19 @@ def test_io_set():
                            event_id=event_id, preload=False,
                            uint16_codec='ascii')
 
+    # test new EEGLAB version event import
+    eeg = _get_eeg_data(raw_fname_hdffile)
+    for event in eeg.event:  # old version allows integer events
+        event._replace(type = 1)
+    assert_equal(read_events_eeglab(eeg)[-1, -1], 1520)
+    eeg.event = eeg.event[0]  # single event
+    assert_equal(read_events_eeglab(eeg)[-1, -1], 1120)
+ 
+
     # test old EEGLAB version event import
     eeg = io.loadmat(raw_fname, struct_as_record=False,
                      squeeze_me=True)['EEG']
+
     for event in eeg.event:  # old version allows integer events
         event.type = 1
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)

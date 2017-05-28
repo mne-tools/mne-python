@@ -7,7 +7,7 @@ import os.path as op
 
 import numpy as np
 import sys
-from collections import Mapping, namedtuple
+from collections import Mapping, namedtuple, Iterable
 
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
@@ -376,6 +376,30 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
                                                                   chr_type)):
                     temp[ctr] = temp[ctr]._replace(labels=curr_label,
                                                    type=curr_type)
+            elif curr == 'event':
+                temp = _hlGroup_2_namedtuple_list(orig, in_hdf[curr], curr,
+                                                  indent + indent_incr)
+
+                hdf_type = in_hdf[curr]['type']
+                ascii_type = [orig[hdf_type[x][0]].value
+                              for x in range(len(hdf_type))]
+                num_type = [''.join([chr(x)
+                                     for x in curr_label]).strip().lower()
+                            for curr_label in ascii_type]
+
+                hdf_usertag = in_hdf[curr]['usertags']
+                ascii_usertag = [orig[hdf_usertag[x][0]].value
+                              for x in range(len(hdf_usertag))]
+                chr_usertag = [''.join([chr(x)
+                                     for x in curr_label]).strip().lower()
+                               for curr_label in ascii_usertag]
+              
+                for ctr, (curr_usertag, curr_type) in enumerate(zip(chr_usertag,
+                                                                  num_type)):
+                    temp[ctr] = temp[ctr]._replace(usertags=curr_usertag,
+                                                   type=curr_type)
+              
+                
             else:
                 temp = hdf_2_dict(orig, in_hdf[curr],
                                   curr_name, indent + indent_incr)
@@ -408,7 +432,7 @@ def _hlGroup_2_namedtuple_list(orig, in_hlGroup, tuple_name, indent):
     return nt_list
 
 
-def _get_eeg_data(input_fname, uint16_codec):
+def _get_eeg_data(input_fname, uint16_codec=None):
     from scipy import io
     try:
         # Try to read old style Matlab file
@@ -826,7 +850,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         eeg = io.loadmat(eeg, struct_as_record=False, squeeze_me=True,
                          uint16_codec=uint16_codec)['EEG']
 
-    if isinstance(eeg.event, np.ndarray):
+    if isinstance(eeg.event, Iterable): 
         types = [str(event.type) for event in eeg.event]
         latencies = [event.latency for event in eeg.event]
     else:
