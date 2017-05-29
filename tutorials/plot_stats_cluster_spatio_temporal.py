@@ -180,7 +180,8 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 #    shows all the clusters, weighted by duration
 subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A < condition B, red for A > B
-brain = stc_all_cluster_vis.plot(hemi='both', views='lateral',
-                                 subjects_dir=subjects_dir,
-                                 time_label='Duration significant (ms)')
-brain.save_image('clusters.png')
+brain = stc_all_cluster_vis.plot(
+    hemi='both', views='lateral', subjects_dir=subjects_dir,
+    time_label='Duration significant (ms)', size=(800, 800),
+    smoothing_steps=5)
+# brain.save_image('clusters.png')

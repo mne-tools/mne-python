@@ -156,10 +156,10 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     -------
     gap : float
         Dual gap
-    pobj : float
+    p_obj : float
         Primal cost
-    dobj : float
-        Dual cost. gap = pobj - dobj
+    d_obj : float
+        Dual cost. gap = p_obj - d_obj
     R : array, shape (n_sensors, n_times)
         Current residual of M - G * X
     """
@@ -167,13 +167,13 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     R = M - GX
     penalty = norm_l21(X, n_orient, copy=True)
     nR2 = sum_squared(R)
-    pobj = 0.5 * nR2 + alpha * penalty
+    p_obj = 0.5 * nR2 + alpha * penalty
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
     scaling = min(scaling, 1.0)
-    dobj = 0.5 * (scaling ** 2) * nR2 + scaling * np.sum(R * GX)
-    gap = pobj - dobj
-    return gap, pobj, dobj, R
+    d_obj = (scaling - 0.5 * (scaling ** 2)) * nR2 + scaling * np.sum(R * GX)
+    gap = p_obj - d_obj
+    return gap, p_obj, d_obj, R
 
 
 @verbose
@@ -204,7 +204,7 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
     t = 1.0
     Y = np.zeros((n_sources, n_times))  # FISTA aux variable
     E = []  # track cost function
-
+    highest_d_obj = - np.inf
     active_set = np.ones(n_sources, dtype=np.bool)  # start with full AS
 
     for i in range(maxit):
@@ -228,9 +228,11 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
         else:
             R = GTM - np.dot(gram[:, Y_as], Y[Y_as])
 
-        gap, pobj, dobj, _ = dgap_l21(M, G, X, active_set, alpha, n_orient)
-        E.append(pobj)
-        logger.debug("pobj : %s -- gap : %s" % (pobj, gap))
+        _, p_obj, d_obj, _ = dgap_l21(M, G, X, active_set, alpha, n_orient)
+        highest_d_obj = max(d_obj, highest_d_obj)
+        gap = p_obj - highest_d_obj
+        E.append(p_obj)
+        logger.debug("p_obj : %s -- gap : %s" % (p_obj, gap))
         if gap < tol:
             logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
             break
@@ -249,8 +251,8 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
     if init is not None:
         init = init.T
 
-    clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol, normalize=False,
-                         fit_intercept=False, max_iter=maxit,
+    clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol / sum_squared(M),
+                         normalize=False, fit_intercept=False, max_iter=maxit,
                          warm_start=True)
     clf.coef_ = init
     clf.fit(G, M)
@@ -258,8 +260,8 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
     X = clf.coef_.T
     active_set = np.any(X, axis=1)
     X = X[active_set]
-    gap, pobj, dobj, _ = dgap_l21(M, G, X, active_set, alpha, n_orient)
-    return X, active_set, pobj
+    gap, p_obj, d_obj, _ = dgap_l21(M, G, X, active_set, alpha, n_orient)
+    return X, active_set, p_obj
 
 
 @verbose
@@ -281,7 +283,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
         R = M - np.dot(G, X)
 
     E = []  # track cost function
-
+    highest_d_obj = - np.inf
     active_set = np.zeros(n_sources, dtype=np.bool)  # start with full AS
 
     alpha_lc = alpha / lipschitz_constant
@@ -311,11 +313,13 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                 X_j[:] = X_j_new
                 active_set[idx] = True
 
-        gap, pobj, dobj, _ = dgap_l21(M, G, X[active_set], active_set, alpha,
+        _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set, alpha,
                                       n_orient)
-        E.append(pobj)
-        logger.debug("Iteration %d :: pobj %f :: dgap %f :: n_active %d" % (
-                     i + 1, pobj, gap, np.sum(active_set) / n_orient))
+        highest_d_obj = max(d_obj, highest_d_obj)
+        gap = p_obj - highest_d_obj
+        E.append(p_obj)
+        logger.debug("Iteration %d :: p_obj %f :: dgap %f :: n_active %d" % (
+                     i + 1, p_obj, gap, np.sum(active_set) / n_orient))
 
         if gap < tol:
             logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
@@ -329,7 +333,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 @verbose
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
-                      solver='auto'):
+                      solver='auto', return_gap=False):
     """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
     Algorithm is detailed in:
@@ -362,6 +366,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         The number of orientation (1 : fixed or 3 : free or loose).
     solver : 'prox' | 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization.
+    return_gap : bool
+        Return final duality gap.
 
     Returns
     -------
@@ -371,6 +377,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         The mask of active sources.
     E : list
         The value of the objective function over the iterations.
+    gap : float
+        Final duality gap. Returned only if return_gap is True.
     """
     n_dipoles = G.shape[1]
     n_positions = n_dipoles // n_orient
@@ -424,6 +432,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     if active_set_size is not None:
         E = list()
+        highest_d_obj = - np.inf
         X_init = None
         active_set = np.zeros(n_dipoles, dtype=np.bool)
         idx_large_corr = np.argsort(groups_norm2(np.dot(G.T, M), n_orient))
@@ -446,12 +455,14 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
             active_set[active_set] = as_.copy()
             idx_old_active_set = np.where(active_set)[0]
 
-            gap, pobj, dobj, R = dgap_l21(M, G, X, active_set, alpha,
+            _, p_obj, d_obj, R = dgap_l21(M, G, X, active_set, alpha,
                                           n_orient)
-            E.append(pobj)
-            logger.info("Iteration %d :: pobj %f :: dgap %f ::"
+            highest_d_obj = max(d_obj, highest_d_obj)
+            gap = p_obj - highest_d_obj
+            E.append(p_obj)
+            logger.info("Iteration %d :: p_obj %f :: dgap %f ::"
                         "n_active_start %d :: n_active_end %d" % (
-                            k + 1, pobj, gap, as_size // n_orient,
+                            k + 1, p_obj, gap, as_size // n_orient,
                             np.sum(active_set) // n_orient))
             if gap < tol:
                 logger.info('Convergence reached ! (gap: %s < %s)'
@@ -478,6 +489,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     else:
         X, active_set, E = l21_solver(M, G, alpha, lc, maxit=maxit,
                                       tol=tol, n_orient=n_orient, init=None)
+        if return_gap:
+            gap = dgap_l21(M, G, X, active_set, alpha, n_orient)[0]
 
     if np.any(active_set) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
@@ -485,7 +498,10 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     logger.info('Final active set size: %s' % (np.sum(active_set) // n_orient))
 
-    return X, active_set, E
+    if return_gap:
+        return X, active_set, E, gap
+    else:
+        return X, active_set, E
 
 
 @verbose
@@ -580,7 +596,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
             # Reapply weights to have correct unit
             X *= weights[_active_set][:, np.newaxis]
             weights = gprime(X)
-            p_obj = 0.5 * linalg.norm(M - np.dot(G[:, active_set],  X),
+            p_obj = 0.5 * linalg.norm(M - np.dot(G[:, active_set], X),
                                       'fro') ** 2. + alpha * np.sum(g(X))
             E.append(p_obj)
 
@@ -801,11 +817,11 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha_space, alpha_time,
             max_diff = np.maximum(max_diff, np.max(np.abs(Z[j] - Z0)))
 
         if log_objective:  # log cost function value
-            pobj = (0.5 * (R ** 2.).sum() + alpha_space * val_norm_l21_tf +
-                    alpha_time * val_norm_l1_tf)
-            E.append(pobj)
-            logger.info("Iteration %d :: pobj %f :: n_active %d" % (i + 1,
-                        pobj, np.sum(active_set) / n_orient))
+            p_obj = (0.5 * (R ** 2.).sum() + alpha_space * val_norm_l21_tf +
+                     alpha_time * val_norm_l1_tf)
+            E.append(p_obj)
+            logger.info("Iteration %d :: p_obj %f :: n_active %d" % (i + 1,
+                        p_obj, np.sum(active_set) / n_orient))
         else:
             logger.info("Iteration %d" % (i + 1))
 

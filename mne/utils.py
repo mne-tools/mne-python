@@ -16,6 +16,7 @@ import inspect
 import json
 import logging
 from math import log, ceil
+import multiprocessing
 import os
 import os.path as op
 import platform
@@ -49,6 +50,7 @@ def _memory_usage(*args, **kwargs):
     elif not isinstance(args[0], int):  # can be -1 for current use
         args[0]()
     return [-1]
+
 
 try:
     from memory_profiler import memory_usage
@@ -2558,7 +2560,18 @@ def sys_info(fid=None, show_paths=False):
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
-    out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
+    out += 'Executable:'.ljust(ljust) + sys.executable + '\n'
+    out += 'CPU:'.ljust(ljust) + ('%s: %s cores\n' %
+                                  (platform.processor(),
+                                   multiprocessing.cpu_count()))
+    out += 'Memory:'.ljust(ljust)
+    try:
+        import psutil
+    except ImportError:
+        out += 'Unavailable (requires "psutil" package)'
+    else:
+        out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
+    out += '\n'
     old_stdout = sys.stdout
     capture = StringIO()
     try:

@@ -3,8 +3,8 @@
 .. include:: links.inc
 .. _whats_new:
 
-MNE-Python Code Updates
-=======================
+What's new
+==========
 ..
     Note, we are now using links to highlight new functions and classes.
     Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
@@ -47,6 +47,8 @@ Changelog
 
     - Add ``axes`` parameter to plot_topo functions by `Jaakko Leppakangas`_
 
+    - Add options to change time windowing in :func:`mne.filter.filter_chpi` by `Eric Larson`_
+
 BUG
 ~~~
 
@@ -68,9 +70,9 @@ BUG
 
     - Fix :func:`mne.viz.plot_topomap` to allow 0 contours by `Jaakko Leppakangas`_
 
-    - Fix :func:`mne.preprocessing.ica._pick_sources` increase threshold for rank estimation to 1e-14 by `jdue`_
+    - Fix :class:`mne.preprocessing.ICA` source-picking to increase threshold for rank estimation to 1e-14 by `Jesper Duemose Nielsen`_
 
-    - Fix :meth:`raw.set_bipolar_reference` to support duplicates in anodes by `Jean-Baptiste Schiratti`_ and `Alex Gramfort`_
+    - Fix :func:`mne.set_bipolar_reference` to support duplicates in anodes by `Jean-Baptiste Schiratti`_ and `Alex Gramfort`_
 
     - Fix visuals of :func:`mne.viz.plot_evoked` and a bug where ylim changes when using interactive topomap plotting by `Jaakko Leppakangas`_
 
@@ -78,8 +80,13 @@ BUG
 
     - Fix bug in :meth:`mne.Label.fill` where an empty label raised an error, by `Eric Larson`_
 
-    - Fix :func:`mne.read_bem_surfaces` for BEM files missing normals by `Christian Brodbeck`_
+    - Fix :func:`mne.io.read_raw_ctf` to also include the samples in the last block by `Jaakko Leppakangas`_
 
+    - Fix :meth:`mne.preprocessing.ICA.save` to close file before attempting to delete it when write fails by `Jesper Duemose Nielsen`_
+
+    - Fix :func:`mne.simulation.simulate_evoked` to use nave parameter instead of snr, by `Yousra Bekhti`_
+
+    - Fix :func:`mne.read_bem_surfaces` for BEM files missing normals by `Christian Brodbeck`_
 
 API
 ~~~
@@ -270,6 +277,8 @@ BUG
     - Fix reading of fiducials correctly from CTF data in :func:`mne.io.read_raw_ctf` by `Jaakko Leppakangas`_
 
     - Fix :func:`mne.beamformer.rap_music` to return dipoles with amplitudes in Am instead of nAm by `Jaakko Leppakangas`_
+
+    - Fix computation of duality gap in :func:`mne.inverse_sparse.mxne_optim.dgap_l21` by `Mathurin Massias`_
 
 API
 ~~~
@@ -2148,4 +2157,6 @@ of commits):
 
 .. _Laura Gwilliams: http://lauragwilliams.github.io
 
-.. _jdue: https://github.com/jdue
+.. _Jesper Duemose Nielsen: https://github.com/jdue
+
+.. _Mathurin Massias: https://mathurinm.github.io/
