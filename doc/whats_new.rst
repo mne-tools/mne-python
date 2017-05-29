@@ -78,6 +78,8 @@ BUG
 
     - Fix bug in :meth:`mne.Label.fill` where an empty label raised an error, by `Eric Larson`_
 
+    - Fix :func:`mne.read_bem_surfaces` for BEM files missing normals by `Christian Brodbeck`_
+
 
 API
 ~~~
