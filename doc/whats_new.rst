@@ -276,6 +276,8 @@ BUG
 
     - Fix :func:`mne.beamformer.rap_music` to return dipoles with amplitudes in Am instead of nAm by `Jaakko Leppakangas`_
 
+    - Fix computation of duality gap in :func:`mne.inverse_sparse.mxne_optim.dgap_l21` by `Mathurin Massias`_
+
 API
 ~~~
 
@@ -2154,3 +2156,5 @@ of commits):
 .. _Laura Gwilliams: http://lauragwilliams.github.io
 
 .. _Jesper Duemose Nielsen: https://github.com/jdue
+
+.. _Mathurin Massias: https://mathurinm.github.io/
