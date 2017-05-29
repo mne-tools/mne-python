@@ -86,6 +86,8 @@ BUG
 
     - Fix :func:`mne.simulation.simulate_evoked` to use nave parameter instead of snr, by `Yousra Bekhti`_
 
+    - Fix :func:`mne.read_bem_surfaces` for BEM files missing normals by `Christian Brodbeck`_
+
 API
 ~~~
 
