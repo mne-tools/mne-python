@@ -65,7 +65,8 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         """Init TimeFrequency transformer."""
         frequencies, sfreq, _, n_cycles, time_bandwidth, decim = \
             _check_tfr_param(frequencies, sfreq, method, True, n_cycles,
-                             time_bandwidth, use_fft, decim, output)
+                             time_bandwidth, use_fft, decim, output,
+                             parallel_across='channels')
         self.frequencies = frequencies
         self.sfreq = sfreq
         self.method = method
@@ -142,7 +143,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         Xt = _compute_tfr(X, self.frequencies, self.sfreq, self.method,
                           self.n_cycles, True, self.time_bandwidth,
                           self.use_fft, self.decim, self.output, self.n_jobs,
-                          self.verbose)
+                          verbose=self.verbose, parallel_across='channels')
 
         # Back to original shape
         if not shape:

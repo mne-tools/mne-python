@@ -251,7 +251,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
                  n_cycles=7.0, zero_mean=None, time_bandwidth=None,
                  use_fft=True, decim=1, output='complex', n_jobs=1,
-                 verbose=None):
+                 parallel_across='channels', verbose=None):
     """Compute time-frequency transforms.
 
     Parameters
@@ -302,6 +302,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     n_jobs : int, defaults to 1
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
+    parallel_across : {'channels', 'frequencies'}
+        The parallelization is applied across channels or frequencies.
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -324,7 +326,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     # Check params
     frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
         _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
-                         time_bandwidth, use_fft, decim, output)
+                         time_bandwidth, use_fft, decim, output,
+                         parallel_across)
 
     # Setup wavelet
     if method == 'morlet':
@@ -357,26 +360,48 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
 
     # Parallel computation
-    parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
+    if parallel_across == 'channels':
+        parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
 
-    # Parallelization is applied across channels.
-    tfrs = parallel(
-        my_cwt(channel, Ws, output, use_fft, 'same', decim)
-        for channel in epoch_data.transpose(1, 0, 2))
+        # Parallelization is applied across channels.
+        tfrs = parallel(
+            my_cwt(channel, Ws, output, use_fft, 'same', decim)
+            for channel in epoch_data.transpose(1, 0, 2))
 
-    # FIXME: to avoid overheads we should use np.array_split()
-    for channel_idx, tfr in enumerate(tfrs):
-        out[channel_idx] = tfr
+        # FIXME: to avoid overheads we should use np.array_split()
+        for channel_idx, tfr in enumerate(tfrs):
+            out[channel_idx] = tfr
 
-    if ('avg_' not in output) and ('itc' not in output):
-        # This is to enforce that the first dimension is for epochs
-        out = out.transpose(1, 0, 2, 3)
+        if ('avg_' not in output) and ('itc' not in output):
+            # This is to enforce that the first dimension is for epochs
+            out = out.transpose(1, 0, 2, 3)  # from fcet to ecft
+    else:
+        # Parallelization is applied across frequencies.
+        parallel, my_cwt, n_jobs = parallel_func(_tfr_loop_freqs, n_jobs)
+        n_jobs = min(n_jobs, len(Ws[0]))
+        out = parallel(my_cwt(epoch_data, w, output, use_fft, decim, dtype)
+                       for w in np.array_split(Ws[0], n_jobs))
+        out = np.concatenate(out, axis=0)
+        if ('avg_' in output) or ('itc' in output):
+            out = out.transpose(1, 0, 2)  # from fct to cft
+        else:
+            out = out.transpose(2, 1, 0, 3)  # from cfet to ecft
     return out
 
 
 def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
-                     time_bandwidth, use_fft, decim, output):
+                     time_bandwidth, use_fft, decim, output, parallel_across):
     """Aux. function to _compute_tfr to check the params validity."""
+
+    # Check parallelization
+    if parallel_across not in ('channels', 'frequencies'):
+        raise ValueError('parallel_across must be "channels" or "frequencies",'
+                         'got %s instead' % parallel_across)
+
+    if parallel_across == 'frequencies' and method == 'multitaper':
+        raise ValueError('parallelization across frequencies cannot be used '
+                         'with multitapers.')
+
     # Check frequencies
     if not isinstance(frequencies, (list, np.ndarray)):
         raise ValueError('frequencies must be an array-like, got %s '
@@ -447,6 +472,24 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
                          'instead.' % type(method))
 
     return frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim
+
+
+def _tfr_loop_freqs(epoch_data, Ws, output, use_fft, decim, dtype):
+    """Aux. function to _compute_tfr to parallelize across frequencies
+    See _time_frequency_loop for parameters"""
+    n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
+    n_freqs = len(Ws)
+
+    # Use empty to optimize RAM in parallelization
+    out = np.empty((n_freqs, n_chans, n_epochs, n_times), dtype)
+    if ('avg_' in output) or ('itc' in output):
+        out = np.empty((n_freqs, n_chans, n_times), dtype)
+
+    for freq_idx, W in enumerate(Ws):
+        for ch_idx, channel in enumerate(epoch_data.transpose(1, 0, 2)):
+            out[freq_idx, ch_idx] = _time_frequency_loop(
+                channel, [[W]], output, use_fft, 'same', decim)[..., 0, :]
+    return out
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
