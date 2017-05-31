@@ -8,7 +8,7 @@ import os
 from os import path as op
 import glob
 import copy
-from numbers import Integral
+
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
@@ -18,7 +18,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import check_fname, logger, verbose
+from .utils import check_fname, logger, verbose, _ensure_int
 from .externals.six import string_types
 
 
@@ -64,8 +64,8 @@ def _to_const(cf):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
-    elif not isinstance(cf, (Integral, np.int32)):
-        raise TypeError('cf must be str or int, not %s' % type(cf))
+    else:
+        cf = _ensure_int(cf, 'coordinate frame', 'a str or int')
     return int(cf)
 
 
