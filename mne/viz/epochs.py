@@ -120,6 +120,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)
 
+    # First, we collect groupings of picks and types in two lists
+    # (all_picks, all_ch_types) -> groupby.
+    # Then, we construct a list of the corresponding data, names and evokeds
+    # (to_plot_list) -> combine.
+    # Then, we loop over this list and plot using _plot_epochs_image.
+
+    # groupby
     if groupby is None:
         all_picks, all_ch_types = [picks], ch_types   # fix!!!!
     else:
@@ -131,13 +138,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 all_ch_types.append(this_type)
         if isinstance(groupby, dict):
             if combine is None:
-                msg = "If `groupb` i a dict, `combine` must not be None"
+                msg = "If `groupby` is a dict, `combine` must not be None"
                 raise ValueError(msg)
             all_ch_types = list(groupby.keys())
             all_picks = [groupby[ch_type] for ch_type in all_ch_types]
 
+    # combine/construct list for plotting
     data = epochs.get_data()
-
     to_plot_list = list()
     if combine is None:
         for ii, (pick, ch_type) in enumerate(zip(picks, all_ch_types)):
@@ -166,6 +173,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             to_plot_list.append((this_data, ch_type, ev,
                                  name_dict.get(ch_type, ch_type)))
 
+    # plot
     figs, all_data = list(), list()
     for data_, ch_type, evoked, name in to_plot_list:
         fig, data_ = _plot_epochs_image(
@@ -182,6 +190,7 @@ def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
                        figs=None, order=None, show=True, unit=None, cmap=None,
                        fig=None, axes=None, overlay_times=None, scaling=None,
                        evoked=None, title=None):
+    """Helper function for plot_epochs_image/epochs.plot_image."""
     from scipy import ndimage
 
     import matplotlib.pyplot as plt
