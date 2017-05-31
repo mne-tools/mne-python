@@ -77,3 +77,7 @@ plt.close('all')
 mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=0.5, vmin=-100,
                           vmax=250, colorbar=True, order=order_func,
                           overlay_times=plt_times, show=True)
+
+mne.viz.plot_epochs_image(epochs, sigma=0.5, colorbar=True, #order=order_func,
+#                          overlay_times=plt_times,
+                          show=True, combine="gfp")
