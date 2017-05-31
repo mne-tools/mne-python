@@ -92,6 +92,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         of epochs such that overlay_times[0] corresponds to epochs[0].
     combine : None | str | callable
         ...
+    groupby : None | str | dict
+       ...
 
     Returns
     -------
@@ -118,19 +120,33 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)
 
-    if groupby is not None:
-        pass
-
-    all_picks, all_ch_types = [picks], [ch_type]   # fix!!!!
+    if groupby is None:
+        all_picks, all_ch_types = [picks], ch_types   # fix!!!!
+    else:
+        if groupby == "type":
+            all_picks, all_ch_types = list(), list()
+            for this_type in set(ch_types):
+                these_picks = picks[np.array(ch_types) == this_type]
+                all_picks.append(these_picks)
+                all_ch_types.append(this_type)
+        if isinstance(groupby, dict):
+            if combine is None:
+                msg = "If `groupb` i a dict, `combine` must not be None"
+                raise ValueError(msg)
+            all_ch_types = list(groupby.keys())
+            all_picks = [groupby[ch_type] for ch_type in all_ch_types]
 
     data = epochs.get_data()
 
     to_plot_list = list()
     if combine is None:
-        for ii, (pick, ch_type) in enumerate(zip(picks, ch_types)):
+        for ii, (pick, ch_type) in enumerate(zip(picks, all_ch_types)):
             this_data = data[:, ii, :].squeeze() #* scalings[ch_type] # (n_epochs, n_channels, n_times)
-            to_plot_list.append((this_data, ch_type, epochs.average(picks=[pick])))
+            to_plot_list.append((this_data, ch_type, epochs.average(picks=[pick]),
+                                 epochs.ch_names[pick]))
     else:
+        name_dict = {"eeg": "EEG", "grad": "Gradiometers",
+                     "mag": "Magnetometers"}
         if combine == "gfp":
             combine = lambda D: np.sqrt((D * D).mean(axis=1))
             vmin = 0
@@ -139,27 +155,33 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         elif combine == "std":
             combine = lambda D: np.std(D, 1)
             vmin = 0
+        elif not callable(combine):
+            tmplt = ("`combine` must be None, a callable or "
+                     "one out of 'mean' or 'gfp`. Got {}.")
+            raise ValueError(tmplt.format(type(combine)))
         for ch_type, picks_ in zip(all_ch_types, all_picks):
             this_data = combine(data[:, picks_, :]) / scalings[ch_type] #* scalings[ch_type] # (n_epochs, n_channels, n_times)
             ev = epochs.average(picks=picks_)
             ev.data = this_data.mean(0)
-            to_plot_list.append((this_data, ch_type, ev))
+            to_plot_list.append((this_data, ch_type, ev,
+                                 name_dict.get(ch_type, ch_type)))
 
     figs, all_data = list(), list()
-    for data_, ch_type, evoked in to_plot_list:
+    for data_, ch_type, evoked, name in to_plot_list:
         fig, data_ = _plot_epochs_image(
             data_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
             order=order, show=show, evoked=evoked, unit=units[ch_type],
             scaling=scalings[ch_type], cmap=cmap, fig=fig, axes=axes,
-            overlay_times=overlay_times)
+            overlay_times=overlay_times, title=name)
         figs.append(fig)
         all_data.append(data_)
     return figs, np.array(all_data)
 
 
-def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True, figs=None,
-                       order=None, show=True, unit=None, cmap=None, fig=None,
-                       axes=None, overlay_times=None, scaling=None, evoked=None):
+def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
+                       figs=None, order=None, show=True, unit=None, cmap=None,
+                       fig=None, axes=None, overlay_times=None, scaling=None,
+                       evoked=None, title=None):
     from scipy import ndimage
 
     import matplotlib.pyplot as plt
@@ -249,7 +271,7 @@ def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
     if this_overlay_times is not None:
         ax1.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
                  'k', linewidth=2)
-    ax1.set_title('blah blah')
+    ax1.set_title(title)
     ax1.set_ylabel('Epochs')
     ax1.axis('auto')
     ax1.axis('tight')
