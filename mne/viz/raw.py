@@ -9,7 +9,6 @@ from __future__ import print_function
 import copy
 from functools import partial
 from warnings import warn
-from numbers import Integral
 
 import numpy as np
 
@@ -18,7 +17,7 @@ from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type)
 from ..io.proj import setup_proj
 from ..io.meas_info import create_info
-from ..utils import verbose, get_config
+from ..utils import verbose, get_config, _ensure_int
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
@@ -329,12 +328,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     if not isinstance(event_color, dict):
         event_color = {-1: event_color}
-    else:
-        event_color = copy.deepcopy(event_color)  # we might modify it
+    event_color = dict((_ensure_int(key, 'event_color key'), event_color[key])
+                       for key in event_color)
     for key in event_color:
-        if not isinstance(key, Integral):
-            raise TypeError('event_color key "%s" was a %s not an int'
-                            % (key, type(key)))
         if key <= 0 and key != -1:
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
                            % key)

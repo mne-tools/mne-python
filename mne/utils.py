@@ -17,6 +17,7 @@ import json
 import logging
 from math import log, ceil
 import multiprocessing
+import operator
 import os
 import os.path as op
 import platform
@@ -73,6 +74,17 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 
 ###############################################################################
 # RANDOM UTILITIES
+
+
+def _ensure_int(x, name, must_be='an int'):
+    """Ensure a variable is an integer."""
+    # This is preferred over numbers.Integral, see:
+    # https://github.com/scipy/scipy/pull/7351#issuecomment-299713159
+    try:
+        x = int(operator.index(x))
+    except TypeError:
+        raise TypeError('%s must be %s, got %s' % (name, must_be, type(x)))
+    return x
 
 
 def _pl(x):
