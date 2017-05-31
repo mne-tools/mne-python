@@ -21,6 +21,7 @@ References
 """  # noqa: E501
 
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 # sphinx_gallery_thumbnail_number = 3

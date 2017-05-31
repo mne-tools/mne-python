@@ -34,6 +34,39 @@ picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
 picks = picks[:2]
 
 
+@requires_sklearn_0_15
+def test_rank_deficiency():
+    """Test signals that are rank deficient."""
+    # See GH#4253
+    from sklearn.linear_model import Ridge
+    N = 256
+    fs = 1.
+    tmin, tmax = -50, 100
+    reg = 0.1
+    rng = np.random.RandomState(0)
+    eeg = rng.randn(N, 1, 1)
+    eeg *= 100
+    eeg = np.fft.rfft(eeg, axis=0)
+    eeg[N // 4:] = 0  # rank-deficient lowpass
+    eeg = np.fft.irfft(eeg, axis=0)
+    win = np.hanning(N // 8)
+    win /= win.mean()
+    y = np.apply_along_axis(np.convolve, 0, eeg, win, mode='same')
+    y += rng.randn(*y.shape) * 100
+
+    rf1 = ReceptiveField(tmin, tmax, fs, estimator=Ridge(reg))
+    rf1.fit(eeg, y)
+    pred = rf1.predict(eeg)
+    corr = np.corrcoef(y.ravel(), pred.ravel())[0, 1]
+    assert_true(corr > 0.99, msg=corr)
+
+    rf2 = ReceptiveField(tmin, tmax, fs, estimator=reg)
+    rf2.fit(eeg, y)
+    pred = rf2.predict(eeg)
+    corr = np.corrcoef(y.ravel(), pred.ravel())[0, 1]
+    assert_true(corr > 0.99, msg=corr)
+
+
 def test_time_delay():
     """Test that time-delaying w/ times and samples works properly."""
     from scipy.sparse import csr_matrix
@@ -96,8 +129,8 @@ def test_receptive_field():
     assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
 
     y_pred = rf.predict(X)
-    assert_array_almost_equal(y[rf.keep_samples_],
-                              y_pred.squeeze()[rf.keep_samples_], 2)
+    assert_array_almost_equal(y[rf.valid_samples_],
+                              y_pred.squeeze()[rf.valid_samples_], 2)
     scores = rf.score(X, y)
     assert_true(scores > .99)
     assert_array_almost_equal(rf.coef_.reshape(-1, order='F'), w, 2)
@@ -139,7 +172,7 @@ def test_receptive_field():
         rf = ReceptiveField(tmin, tmax, 1, ['one'],
                             estimator=0, scoring=key)
         rf.fit(X[:, [0]], y)
-        y_pred = rf.predict(X[:, [0]])
+        y_pred = rf.predict(X[:, [0]]).T.ravel()[:, np.newaxis]
         assert_array_almost_equal(val(y[:, np.newaxis], y_pred),
                                   rf.score(X[:, [0]], y), 4)
     # Need 2D input
@@ -177,8 +210,8 @@ def test_receptive_field_fast():
                 assert_array_equal(model.delays_,
                                    np.arange(slim[0], slim[1] + 1))
                 expected = (model.delays_ == delay).astype(float)
-                assert_allclose(model.coef_[0], expected, atol=1e-2)
-                p = model.predict(x[:, np.newaxis])[:, 0]
+                assert_allclose(model.coef_[0, 0, :], expected, atol=1e-2)
+                p = model.predict(x[:, np.newaxis])[:, 0, 0]
                 assert_allclose(y, p, atol=5e-2)
     # multidimensional
     x = rng.randn(1000, 3)
