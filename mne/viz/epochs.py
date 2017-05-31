@@ -28,9 +28,9 @@ from ..defaults import _handle_default
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r',
+                      units=None, scalings=None, cmap=None,
                       fig=None, axes=None, overlay_times=None,
-                      combine=None):
+                      combine=None, groupby=None):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -66,15 +66,16 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         The scalings of the channel types to be applied for plotting.
         If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
         eog=1e6)`.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+    cmap : None | matplotlib colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive
         mode the colors are adjustable by clicking and dragging the colorbar
         with left and right mouse button. Left mouse button moves the scale up
         and down and right mouse button adjusts the range. Hitting space bar
         resets the scale. Up and down arrows can be used to change the
-        colormap. If 'interactive', translates to ('RdBu_r', True). Defaults to
-        'RdBu_r'.
+        colormap. If 'interactive', translates to ('RdBu_r', True).
+        If None, "RdBu_r" is used, unless the data is all positive, in which
+        case "Reds" is used.
     fig : matplotlib figure | None
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
@@ -117,6 +118,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)
 
+    if groupby is not None:
+        pass
+
     all_picks, all_ch_types = [picks], [ch_type]   # fix!!!!
 
     data = epochs.get_data()
@@ -130,8 +134,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         if combine == "gfp":
             combine = lambda D: np.sqrt((D * D).mean(axis=1))
             vmin = 0
-        elif combine == "mean" :
-            combine = lambda D: np.mean(D, 1) ** 2
+        elif combine == "mean":
+            combine = lambda D: np.mean(D, 1)
+        elif combine == "std":
+            combine = lambda D: np.std(D, 1)
+            vmin = 0
         for ch_type, picks_ in zip(all_ch_types, all_picks):
             this_data = combine(data[:, picks_, :]) / scalings[ch_type] #* scalings[ch_type] # (n_epochs, n_channels, n_times)
             ev = epochs.average(picks=picks_)
@@ -140,17 +147,18 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     figs, all_data = list(), list()
     for data_, ch_type, evoked in to_plot_list:
-        fig, data_ = _plot_epochs_image(data_, sigma=sigma, vmin=vmin, vmax=vmax,
-                        colorbar=colorbar, order=order, show=show, evoked=evoked,
-                        unit=units[ch_type], scaling=scalings[ch_type], cmap='RdBu_r',
-                        fig=fig, axes=axes, overlay_times=overlay_times)
+        fig, data_ = _plot_epochs_image(
+            data_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
+            order=order, show=show, evoked=evoked, unit=units[ch_type],
+            scaling=scalings[ch_type], cmap=cmap, fig=fig, axes=axes,
+            overlay_times=overlay_times)
         figs.append(fig)
         all_data.append(data_)
     return figs, np.array(all_data)
 
 
 def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True, figs=None,
-                       order=None, show=True, unit=None, cmap='RdBu_r', fig=None,
+                       order=None, show=True, unit=None, cmap=None, fig=None,
                        axes=None, overlay_times=None, scaling=None, evoked=None):
     from scipy import ndimage
 
@@ -196,6 +204,9 @@ def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
         this_fig = fig
 
     this_data *= scaling#s[ch_type]
+
+    if cmap is None:
+        cmap = "Reds" if this_data.min() >= 0 else 'RdBu_r'
 
     this_order = order
     if callable(order):
