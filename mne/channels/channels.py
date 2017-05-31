@@ -15,6 +15,8 @@ from scipy import sparse
 from ..externals.six import string_types
 
 from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
+from ..utils import _check_preload
+
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info
@@ -725,7 +727,6 @@ class UpdateChannelsMixin(object):
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
-        from ..io.base import _check_preload
         from ..time_frequency import AverageTFR
 
         _check_preload(self, 'adding or dropping channels')

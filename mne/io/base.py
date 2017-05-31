@@ -35,7 +35,8 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel,
                      logger, verbose, _time_mask, warn, SizeMixin,
-                     copy_function_doc_to_method_doc)
+                     copy_function_doc_to_method_doc,
+                     _check_preload)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -2075,14 +2076,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if buffer_size_sec is None:
             buffer_size_sec = self.info.get('buffer_size_sec', 1.)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
-
-
-def _check_preload(raw, msg):
-    """Ensure data are preloaded."""
-    if not raw.preload:
-        raise RuntimeError(msg + ' requires raw data to be loaded. Use '
-                           'preload=True (or string) in the constructor or '
-                           'raw.load_data().')
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
