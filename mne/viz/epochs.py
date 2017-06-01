@@ -103,13 +103,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
 
+    picks = np.atleast_1d(picks)
     if (fig is not None or axes is not None) and len(picks) > 1:
         raise ValueError('Only single pick can be drawn to a figure.')
 
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')[:5]
-    picks = np.atleast_1d(picks)
 
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
