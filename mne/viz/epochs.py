@@ -66,7 +66,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         The scalings of the channel types to be applied for plotting.
         If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
         eog=1e6)`.
-    cmap : None | matplotlib colormap | (colormap, bool) | 'interactive'
+    cmap : None | matplotlib colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive
         mode the colors are adjustable by clicking and dragging the colorbar
@@ -93,7 +93,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     combine : None | str | callable
         ...
     groupby : None | str | dict
-       ...
+        ...
 
     Returns
     -------
