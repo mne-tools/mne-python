@@ -2144,6 +2144,19 @@ def _check_subject(class_subject, input_subject, raise_error=True):
         return None
 
 
+def _check_preload(inst, msg):
+    """Ensure data are preloaded."""
+    from .epochs import BaseEpochs
+
+    name = 'raw'
+    if isinstance(inst, BaseEpochs):
+        name = 'epochs'
+    if not inst.preload:
+        raise RuntimeError(msg + ' requires %s data to be loaded. Use '
+                           'preload=True (or string) in the constructor or '
+                           '%s.load_data().' % (name, name))
+
+
 def _check_pandas_installed():
     """Aux function."""
     try:
