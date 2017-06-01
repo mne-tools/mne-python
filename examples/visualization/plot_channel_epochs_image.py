@@ -78,18 +78,3 @@ mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=0.5, vmin=-100,
                           vmax=250, colorbar=True, order=order_func,
                           overlay_times=plt_times, show=True)
 
-mne.viz.plot_epochs_image(epochs, sigma=0.5, colorbar=True, #order=order_func,
-#                          overlay_times=plt_times,
-                          show=True, combine="gfp")
-
-picks = mne.pick_types(raw.info, meg=True, eeg=True, stim=True, eog=True,
-                       exclude='bads')
-
-# Read epochs
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), preload=True,
-                    reject=dict(grad=4000e-13, eog=150e-6))
-
-mne.viz.plot_epochs_image(epochs, sigma=0.5, colorbar=True, #order=order_func,
-#                          overlay_times=plt_times,
-                          show=True, combine="gfp", groupby='type')

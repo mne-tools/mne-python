@@ -147,8 +147,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     data = epochs.get_data()
     to_plot_list = list()
     if combine is None:
-        for ii, (pick, ch_type) in enumerate(zip(picks, all_ch_types)):
-            this_data = data[:, ii, :].squeeze() #* scalings[ch_type] # (n_epochs, n_channels, n_times)
+        for pick, ch_type in zip(picks, all_ch_types):
+            this_data = data[:, pick, :].squeeze() #* scalings[ch_type] # (n_epochs, n_channels, n_times)
             to_plot_list.append((this_data, ch_type, epochs.average(picks=[pick]),
                                  epochs.ch_names[pick]))
     else:
@@ -176,14 +176,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # plot
     figs, all_data = list(), list()
     for data_, ch_type, evoked, name in to_plot_list:
-        fig, data_ = _plot_epochs_image(
+        this_fig, data_ = _plot_epochs_image(
             data_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
             order=order, show=show, evoked=evoked, unit=units[ch_type],
             scaling=scalings[ch_type], cmap=cmap, fig=fig, axes=axes,
             overlay_times=overlay_times, title=name)
-        figs.append(fig)
-        all_data.append(data_)
-    return figs, np.array(all_data)
+        figs.append(this_fig)
+    return figs
 
 
 def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=True,
