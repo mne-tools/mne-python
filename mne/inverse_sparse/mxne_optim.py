@@ -934,9 +934,9 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                                 gap, p_obj, d_obj))
 
                 candidates = np.where(screening[::n_orient])[0]
-                inactive = np.where(screening[::n_orient] == False)[0]
+                inactive = np.where(np.invert(screening[::n_orient]))[0]
                 if len(inactive):
-                    active_set[screening == False] = False
+                    active_set[np.invert(screening)] = False
                     Z.update(dict(zip(inactive, [0.0 for inact in inactive])))
         else:
             logger.info("Iteration %d :: n_active %d" % (
