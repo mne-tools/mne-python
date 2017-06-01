@@ -1,4 +1,4 @@
-"""Decoding analysis utilities."""
+"""Decoding and encoding, including machine learning and receptive fields."""
 
 from .transformer import Scaler, FilterEstimator
 from .transformer import (PSDEstimator, Vectorizer,

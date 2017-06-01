@@ -439,6 +439,7 @@ def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
     return jd2jcal(int(np.fromstring(fid.read(4), dtype=">i4")))
 
+
 # Read types call dict
 _call_dict = {
     FIFF.FIFFT_STRING: _read_string,

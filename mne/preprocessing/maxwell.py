@@ -1372,7 +1372,7 @@ def _bases_real_to_complex(real_tot, int_order, ext_order):
 
 def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
     """Ensure that Maxwell filtering has not been applied yet."""
-    for ent in info.get('proc_history', []):
+    for ent in info['proc_history']:
         for msg, key, doing in (('SSS', 'sss_info', sss),
                                 ('tSSS', 'max_st', tsss),
                                 ('fine calibration', 'sss_cal', calibration),
@@ -1430,10 +1430,9 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         # Reset 'bads' for any MEG channels since they've been reconstructed
         _reset_meg_bads(raw.info)
     block_id = _generate_meas_id()
-    proc_block = dict(max_info=max_info_dict, block_id=block_id,
-                      creator='mne-python v%s' % __version__,
-                      date=_date_now(), experimentor='')
-    raw.info['proc_history'] = [proc_block] + raw.info.get('proc_history', [])
+    raw.info['proc_history'].append(dict(
+        max_info=max_info_dict, block_id=block_id, date=_date_now(),
+        creator='mne-python v%s' % __version__, experimenter=''))
 
 
 def _reset_meg_bads(info):

@@ -864,13 +864,12 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     if not isinstance(noise_cov, (list, tuple)):
         noise_cov = [noise_cov]
 
-    proc_history = evoked.info.get('proc_history', [])
     has_sss = False
-    if len(proc_history) > 0:
+    if len(evoked.info['proc_history']) > 0:
         # if SSSed, mags and grad are not longer independent
         # for correct display of the whitening we will drop the cross-terms
         # (the gradiometer * magnetometer covariance)
-        has_sss = 'max_info' in proc_history[0] and has_meg
+        has_sss = 'max_info' in evoked.info['proc_history'][0] and has_meg
     if has_sss:
         logger.info('SSS has been applied to data. Showing mag and grad '
                     'whitening jointly.')

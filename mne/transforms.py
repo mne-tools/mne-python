@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""Helpers for various transformations."""
+
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #

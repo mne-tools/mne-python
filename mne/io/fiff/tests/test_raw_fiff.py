@@ -171,7 +171,7 @@ def test_rank_estimation():
         n_eeg = len(picks_eeg)
 
         raw = read_raw_fif(fname, preload=True)
-        if 'proc_history' not in raw.info:
+        if len(raw.info['proc_history']) == 0:
             expected_rank = n_meg + n_eeg
         else:
             mf = raw.info['proc_history'][0]['max_info']
