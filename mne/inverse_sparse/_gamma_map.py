@@ -12,7 +12,8 @@ from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose, warn
 from ..externals.six.moves import xrange as range
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
-                           _reapply_source_weighting, _compute_residual)
+                           _reapply_source_weighting, _compute_residual,
+                           _make_dipoles)
 
 
 @verbose
@@ -166,7 +167,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
               gammas=None, pca=True, return_residual=False,
-              verbose=None):
+              return_as_dipoles=False, verbose=None):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method.
 
     Models each source time course using a zero-mean Gaussian prior with an
@@ -212,6 +213,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         If True the rank of the data is reduced to the true dimension.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
+    return_as_dipoles : bool
+        If True, the sources are returned as a list of Dipole instances.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -264,6 +267,9 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     if len(active_set) == 0:
         raise Exception("No active dipoles found. alpha is too big.")
 
+    # Compute estimated whitened sensor data
+    M_estimated = np.dot(gain[:, active_set], X)
+
     # Reapply weights to have correct unit
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     X = _reapply_source_weighting(X, source_weighting,
@@ -290,10 +296,16 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     tmin = evoked.times[0]
     tstep = 1.0 / evoked.info['sfreq']
-    stc = _make_sparse_stc(X, active_set, forward, tmin, tstep,
-                           active_is_idx=True, verbose=verbose)
+
+    if return_as_dipoles:
+        out = _make_dipoles(X, active_set, forward, tmin, tstep, M,
+                            M_estimated)
+    else:
+        out = _make_sparse_stc(X, active_set, forward, tmin, tstep)
+
+    logger.info('[done]')
 
     if return_residual:
-        return stc, residual
-    else:
-        return stc
+        out = out, residual
+
+    return out

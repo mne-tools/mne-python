@@ -86,3 +86,23 @@ src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
                              fig_name="Morphed MxNE (cond %s)" % condition,
                              opacity=0.1)
+
+
+###############################################################################
+# Run solver returning dipoles
+# Compute (ir)MxNE inverse solution
+dipoles = mixed_norm(
+    evoked, forward, cov, alpha, loose=loose, depth=depth, maxit=3000,
+    tol=1e-4, active_set_size=10, debias=True, weights=stc_dspm,
+    weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=False,
+    return_as_dipoles=True)
+
+###############################################################################
+# View dipoles and MRI
+from mne.viz import plot_dipole_locations, plot_dipole_amplitudes
+plot_dipole_amplitudes(dipoles)
+
+trans = forward['mri_head_t']
+for dip in dipoles:
+    plot_dipole_locations(dip, trans, 'sample', subjects_dir=subjects_dir,
+                          mode='orthoview', idx='amplitude')

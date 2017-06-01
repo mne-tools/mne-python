@@ -64,3 +64,19 @@ evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
 residual.pick_types(meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
               proj=True)
+
+###############################################################################
+# Run solver returning dipoles
+# Compute (ir)MxNE inverse solution
+dipoles = gamma_map(evoked, forward, cov, alpha, xyz_same_gamma=True,
+                    return_residual=False, return_as_dipoles=True)
+
+###############################################################################
+# View dipoles and MRI
+from mne.viz import plot_dipole_locations, plot_dipole_amplitudes
+plot_dipole_amplitudes(dipoles)
+
+trans = forward['mri_head_t']
+for dip in dipoles:
+    plot_dipole_locations(dip, trans, 'sample', subjects_dir=subjects_dir,
+                          mode='orthoview', idx='amplitude')
