@@ -186,8 +186,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     return figs, np.array(all_data)
 
 
-def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
-                       figs=None, order=None, show=True, unit=None, cmap=None,
+def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=True,
+                       order=None, show=True, unit=None, cmap=None,
                        fig=None, axes=None, overlay_times=None, scaling=None,
                        evoked=None, title=None):
     """Helper function for plot_epochs_image/epochs.plot_image."""
@@ -206,14 +206,12 @@ def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
         fig = ax1.get_figure()
         if colorbar:
             ax3 = axes[-1]
-#    evoked = epochs.average(picks)
-    #data = epochs.get_data()[:, picks, :]
-    n_epochs = len(this_data)
-    #this_data = data#np.swapaxes(data, 0, 1)
+    n_epochs = len(data)
 
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
-    vmin, vmax = _setup_vmin_vmax(this_data, vmin, vmax)
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    data *= scaling
 
     if overlay_times is not None and len(overlay_times) != n_epochs:
         raise ValueError('size of overlay_times parameter (%s) do not '
@@ -230,38 +228,28 @@ def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
                  % (evoked.times[0], evoked.times[-1]))
 
     if fig is None:
-        this_fig = plt.figure()
-    else:
-        this_fig = fig
-
-    this_data *= scaling#s[ch_type]
+        fig = plt.figure()
 
     if cmap is None:
-        cmap = "Reds" if this_data.min() >= 0 else 'RdBu_r'
+        cmap = "Reds" if data.min() >= 0 else 'RdBu_r'
 
-    this_order = order
     if callable(order):
-        this_order = order(evoked.times, this_data)
-
-    if this_order is not None and (len(this_order) != len(this_data)):
+        order = order(evoked.times, data)
+    if order is not None and (len(order) != len(data)):
         raise ValueError('size of order parameter (%s) does not '
                             'match the number of epochs (%s).'
-                            % (len(this_order), len(this_data)))
+                            % (len(order), len(data)))
 
-    this_overlay_times = None
-    if overlay_times is not None:
-        this_overlay_times = overlay_times
-
-    if this_order is not None:
-        this_order = np.asarray(this_order)
-        this_data = this_data[this_order]
-        if this_overlay_times is not None:
-            this_overlay_times = this_overlay_times[this_order]
+    if order is not None:
+        order = np.asarray(order)
+        data = data[order]
+        if overlay_times is not None:
+            overlay_times = overlay_times[order]
 
     if sigma > 0.:
-        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+        data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
 
-    plt.figure(this_fig.number)
+    plt.figure(fig.number)
     if axes is None:
         ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
         ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
@@ -272,13 +260,13 @@ def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
     this_vmax = vmax * scaling if scale_vmax else vmax
 
     cmap = _setup_cmap(cmap)
-    im = ax1.imshow(this_data,
+    im = ax1.imshow(data,
                     extent=[1e3 * evoked.times[0], 1e3 * evoked.times[-1],
                             0, n_epochs],
                     aspect='auto', origin='lower', interpolation='nearest',
                     vmin=this_vmin, vmax=this_vmax, cmap=cmap[0])
-    if this_overlay_times is not None:
-        ax1.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
+    if overlay_times is not None:
+        ax1.plot(1e3 * overlay_times, 0.5 + np.arange(len(data)),
                  'k', linewidth=2)
     ax1.set_title(title)
     ax1.set_ylabel('Epochs')
@@ -295,7 +283,7 @@ def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
     if scale_vmin or scale_vmax:
         evoked_vmax = max(np.abs([evoked_vmax, evoked_vmin]))
 
-        evoked_vmin = -evoked_vmax if this_data.min() < 0 else 0
+        evoked_vmin = -evoked_vmax if data.min() < 0 else 0
 
     ax2.set_ylim([evoked_vmin, evoked_vmax])
     ax2.axvline(0, color='m', linewidth=3, linestyle='--')
@@ -303,10 +291,10 @@ def _plot_epochs_image(this_data, sigma=0., vmin=None, vmax=None, colorbar=True,
         cbar = plt.colorbar(im, cax=ax3)
         if cmap[1]:
             ax1.CB = DraggableColorbar(cbar, im)
-        tight_layout(fig=this_fig)
+        tight_layout(fig=fig)
     plt_show(show)
 
-    return this_fig, this_data
+    return fig, data
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
