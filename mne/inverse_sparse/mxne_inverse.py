@@ -177,14 +177,14 @@ def _make_dipoles(X, active_set, forward, tmin, tstep, M, M_estimated,
     dipoles = []
     for k, i_dip in enumerate(active_idx):
         i_pos = forward['source_rr'][i_dip][np.newaxis, :].repeat(len(times),
-            axis=0)
+                                                                  axis=0)
         X_ = X[k * n_dip_per_pos: (k + 1) * n_dip_per_pos]
         if n_dip_per_pos == 1:
             amplitude = X_
             i_ori = forward['source_nn'][i_dip]
         elif forward['surf_ori']:
-            X_ = np.dot(forward['source_nn'][i_dip *\
-                n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
+            X_ = np.dot(forward['source_nn'][i_dip *
+                        n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
             amplitude = linalg.norm(X_, ord=None, axis=0)
             i_ori = (X_ / amplitude).T
         else:
@@ -372,7 +372,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                 M[:, cnt:(cnt + len(e.times))],
                 M_estimated[:, cnt:(cnt + len(e.times))], verbose=None)
         else:
-             out = _make_sparse_stc(Xe, active_set, forward, tmin, tstep)
+            out = _make_sparse_stc(Xe, active_set, forward, tmin, tstep)
         outs.append(out)
         cnt += len(e.times)
 
