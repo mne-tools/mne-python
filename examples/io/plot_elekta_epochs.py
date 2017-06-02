@@ -15,7 +15,6 @@ averaging parameters and get epochs.
 import mne
 import os
 from mne.datasets import multimodal
-from mne import AcqParserFIF
 
 fname_raw = os.path.join(multimodal.data_path(), 'multimodal_raw.fif')
 
@@ -23,27 +22,27 @@ fname_raw = os.path.join(multimodal.data_path(), 'multimodal_raw.fif')
 print(__doc__)
 
 ###############################################################################
-# Read raw file and create parser instance
+# Read raw file
 raw = mne.io.read_raw_fif(fname_raw)
-ap = AcqParserFIF(raw.info)
 
 ###############################################################################
 # Check DACQ defined averaging categories and other info
-print(ap)
+print(raw.acqparser)
 
 ###############################################################################
 # Extract epochs corresponding to a category
-cond = ap.get_condition(raw, 'Auditory right')
+cond = raw.acqparser.get_condition(raw, 'Auditory right')
 epochs = mne.Epochs(raw, **cond)
 epochs.average().plot_topo()
 
 ###############################################################################
 # Get epochs from all conditions, average
 evokeds = []
-for cat in ap.categories:
-    cond = ap.get_condition(raw, cat)
+for cat in raw.acqparser.categories:
+    cond = raw.acqparser.get_condition(raw, cat)
     # copy (supported) rejection parameters from DACQ settings
-    epochs = mne.Epochs(raw, reject=ap.reject, flat=ap.flat, **cond)
+    epochs = mne.Epochs(raw, reject=raw.acqparser.reject,
+                        flat=raw.acqparser.flat, **cond)
     evoked = epochs.average()
     evoked.comment = cat['comment']
     evokeds.append(evoked)
@@ -63,6 +62,7 @@ newcat['reqwithin'] = .5  # ...required within .5 sec (before or after)
 newcat['reqwhen'] = 2  # ...required before (1) or after (2) ref. event
 newcat['index'] = 9  # can be set freely
 
-cond = ap.get_condition(raw, newcat)
-epochs = mne.Epochs(raw, reject=ap.reject, flat=ap.flat, **cond)
+cond = raw.acqparser.get_condition(raw, newcat)
+epochs = mne.Epochs(raw, reject=raw.acqparser.reject,
+                    flat=raw.acqparser.flat, **cond)
 epochs.average().plot()
