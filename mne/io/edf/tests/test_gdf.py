@@ -9,7 +9,9 @@ from __future__ import print_function
 import os.path as op
 import warnings
 
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from nose.tools import assert_true
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_equal)
 import numpy as np
 import scipy.io as sio
 
@@ -29,7 +31,7 @@ gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
     raw = read_raw_edf(gdf1_path + '.gdf', eog=None,
-                       misc=None, preload=True, stim_channel=None)
+                       misc=None, preload=True, stim_channel=-1)
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
@@ -41,12 +43,25 @@ def test_gdf_data():
     # Assert data are almost equal
     assert_array_almost_equal(data, data_biosig, 8)
 
+    # Test for stim channel
+    events = find_events(raw, shortest_event=1)
+    # The events are overlapping.
+    assert_array_equal(events[:, 0], raw._raw_extras[0]['events'][1][::2])
+
+    # Test events are encoded to stim channel.
+    events = find_events(raw)
+    evs = raw.get_gdf_events()
+    assert_true(all([event in evs[1] for event in events[:, 0]]))
+
 
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
     raw = read_raw_edf(gdf2_path + '.gdf', eog=None, misc=None, preload=True,
                        stim_channel='STATUS')
+
+    nchan = raw.info['nchan']
+    ch_names = raw.ch_names  # Renamed STATUS -> STI 014.
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
@@ -61,8 +76,15 @@ def test_gdf2_data():
     # Find events
     events = find_events(raw, verbose=1)
     events[:, 2] >>= 8  # last 8 bits are system events in biosemi files
-    assert(events.shape[0] == 2)  # 2 events in file
+    assert_equal(events.shape[0], 2)  # 2 events in file
     assert_array_equal(events[:, 2], [20, 28])
+
+    with warnings.catch_warnings(record=True) as w:
+        raw = read_raw_edf(gdf2_path + '.gdf')  # header contains no events
+        assert_equal(len(w), 1)
+        assert_true(str(w[0].message).startswith('No events found.'))
+    assert_equal(nchan, raw.info['nchan'])  # stim channel not constructed
+    assert_array_equal(ch_names[1:], raw.ch_names[1:])
 
 
 run_tests_if_main()
