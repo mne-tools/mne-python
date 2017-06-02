@@ -1593,7 +1593,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq',
-                    'subject_info', 'sfreq', 'xplotter_layout']
+                    'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
 
@@ -1706,7 +1706,7 @@ RAW_INFO_FIELDS = (
     'file_id', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
     'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
-    'subject_info', 'xplotter_layout',
+    'subject_info', 'xplotter_layout', 'proc_history',
 )
 
 

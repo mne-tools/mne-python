@@ -6,8 +6,9 @@
 Python API Reference
 ====================
 
-This is the classes and functions reference of MNE-Python. Functions are
-grouped thematically by analysis stage. Functions and classes that are not
+This is the reference for classes (``CamelCase`` names) and functions
+(``underscore_case`` names) of MNE-Python, grouped thematically by analysis
+stage. Functions and classes that are not
 below a module heading are found in the :py:mod:`mne` namespace.
 
 MNE-Python also provides multiple command-line scripts that can be called
@@ -42,8 +43,6 @@ Reading raw data
 .. automodule:: mne.io
    :no-members:
    :no-inherited-members:
-
-Functions:
 
 .. autosummary::
   :toctree: generated/
@@ -89,8 +88,6 @@ File I/O
 ========
 
 .. currentmodule:: mne
-
-Functions:
 
 .. autosummary::
    :toctree: generated
@@ -150,8 +147,6 @@ Base class:
 Creating data objects from arrays
 =================================
 
-Classes:
-
 .. currentmodule:: mne
 
 .. autosummary::
@@ -160,16 +155,7 @@ Classes:
 
    EvokedArray
    EpochsArray
-
-.. currentmodule:: mne.io
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   RawArray
-
-Functions:
+   io.RawArray
 
 .. currentmodule:: mne
 
@@ -221,16 +207,11 @@ Visualization
    :no-members:
    :no-inherited-members:
 
-
-Classes:
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
    ClickableImage
-
-Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -288,15 +269,11 @@ Projections:
 
 .. currentmodule:: mne
 
-Classes:
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
    Projection
-
-Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -316,8 +293,6 @@ Functions:
    :no-members:
    :no-inherited-members:
 
-Classes:
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
@@ -325,8 +300,6 @@ Classes:
    Layout
    Montage
    DigMontage
-
-Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -352,16 +325,12 @@ Functions:
    :no-members:
    :no-inherited-members:
 
-Classes:
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
    ICA
    Xdawn
-
-Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -438,15 +407,11 @@ EEG referencing:
    :no-members:
    :no-inherited-members:
 
-Classes
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
    Transform
-
-Functions
 
 .. autosummary::
    :toctree: generated/
@@ -537,9 +502,7 @@ Covariance computation
 
 .. currentmodule:: mne
 
-Classes
-
-..autosumarry::
+.. autosummary::
    :toctree: generated/
    :template: class.rst
 
@@ -587,16 +550,12 @@ Forward Modeling
 
 .. currentmodule:: mne
 
-Classes:
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
    Forward
    SourceSpaces
-
-Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -607,6 +566,8 @@ Functions:
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   forward.restrict_forward_to_label
+   forward.restrict_forward_to_stc
    make_bem_model
    make_bem_solution
    make_forward_dipole
@@ -622,14 +583,17 @@ Functions:
    sensitivity_map
    setup_source_space
    setup_volume_source_space
+   surface.complete_surface_info
    write_bem_surfaces
    write_trans
 
 :py:mod:`mne.bem`:
 
-.. currentmodule:: mne.bem
+.. automodule:: mne.bem
+   :no-members:
+   :no-inherited-members:
 
-Classes
+.. currentmodule:: mne.bem
 
 .. autosummary::
    :toctree: generated/
@@ -647,30 +611,6 @@ Classes
    make_flash_bem
    convert_flash_mris
 
-.. currentmodule:: mne.forward
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   restrict_forward_to_label
-   restrict_forward_to_stc
-
-.. currentmodule:: mne.transforms
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   Transform
-
-.. currentmodule:: mne.surface
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   complete_surface_info
 
 Inverse Solutions
 =================
@@ -683,15 +623,11 @@ Inverse Solutions
 
 .. currentmodule:: mne.minimum_norm
 
-Classes:
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
    InverseOperator
-
-Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -752,16 +688,12 @@ Functions:
 
 .. currentmodule:: mne
 
-Classes:
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
    Dipole
    DipoleFixed
-
-Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -776,8 +708,6 @@ Functions:
    :no-inherited-members:
 
 .. currentmodule:: mne.dipole
-
-Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -836,8 +766,6 @@ Time-Frequency
    :no-inherited-members:
 
 .. currentmodule:: mne.time_frequency
-
-Classes:
 
 .. autosummary::
    :toctree: generated/
@@ -947,7 +875,7 @@ Statistics
    f_threshold_mway_rm
    summarize_clusters_stc
 
-Functions to compute connectivity (adjacency) matrices for cluster-level statistics
+Functions to compute neighbor/adjacency matrices for cluster-level statistics:
 
 .. currentmodule:: mne
 
@@ -985,8 +913,8 @@ Simulation
    simulate_sparse_stc
    select_source_in_label
 
-.. _api_decoding:
 
+.. _api_decoding:
 
 Decoding
 ========
@@ -996,8 +924,6 @@ Decoding
 .. automodule:: mne.decoding
    :no-members:
    :no-inherited-members:
-
-Classes:
 
 .. autosummary::
    :toctree: generated/
@@ -1018,8 +944,6 @@ Classes:
    SlidingEstimator
    GeneralizingEstimator
 
-Functions:
-
 Functions that assist with decoding and model fitting:
 
 .. autosummary::
@@ -1039,8 +963,6 @@ Realtime
 .. automodule:: mne.realtime
    :no-members:
    :no-inherited-members:
-
-Classes:
 
 .. autosummary::
    :toctree: generated/

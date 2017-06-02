@@ -1430,7 +1430,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         # Reset 'bads' for any MEG channels since they've been reconstructed
         _reset_meg_bads(raw.info)
     block_id = _generate_meas_id()
-    raw.info['proc_history'].append(dict(
+    raw.info['proc_history'].insert(0, dict(
         max_info=max_info_dict, block_id=block_id, date=_date_now(),
         creator='mne-python v%s' % __version__, experimenter=''))
 
