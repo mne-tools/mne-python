@@ -80,7 +80,9 @@ class RawEDF(BaseRaw):
 
     For GDF files, the stimulus channel is constructed from the events in the
     header. You should use keyword ``stim_channel=-1`` to add it at the end of
-    the channel list.
+    the channel list. The id numbers of overlapping events are simply combined
+    through addition. To get the original events from the header, use method
+    ``raw.get_gdf_events``.
 
     See Also
     --------
@@ -1164,7 +1166,9 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
 
     For GDF files, the stimulus channel is constructed from the events in the
     header. You should use keyword ``stim_channel=-1`` to add it at the end of
-    the channel list.
+    the channel list. The id numbers of overlapping events are simply combined
+    through addition. To get the original events from the header, use method
+    ``raw.get_gdf_events``.
 
     See Also
     --------
