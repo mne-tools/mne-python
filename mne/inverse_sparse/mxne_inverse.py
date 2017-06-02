@@ -162,10 +162,10 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
 
 @verbose
-def _make_dipoles(X, active_set, forward, tmin, tstep, M, M_estimated,
+def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_estimated,
                   verbose=None):
 
-    times = np.arange(tmin, tmin + X.shape[1] * tstep, tstep)
+    times = tmin + tstep * np.arange(X.shape[1])
 
     active_idx = np.where(active_set)[0]
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
@@ -367,7 +367,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         tstep = 1.0 / e.info['sfreq']
         Xe = X[:, cnt:(cnt + len(e.times))]
         if return_as_dipoles:
-            out = _make_dipoles(
+            out = _make_dipoles_sparse(
                 Xe, active_set, forward, tmin, tstep,
                 M[:, cnt:(cnt + len(e.times))],
                 M_estimated[:, cnt:(cnt + len(e.times))], verbose=None)
@@ -572,7 +572,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
             forward, evoked, X, active_set, gain_info)
 
     if return_as_dipoles:
-        out = _make_dipoles(
+        out = _make_dipoles_sparse(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
             M, M_estimated, verbose=None)
     else:

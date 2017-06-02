@@ -13,7 +13,7 @@ from ..utils import logger, verbose, warn
 from ..externals.six.moves import xrange as range
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
-                           _make_dipoles)
+                           _make_dipoles_sparse)
 
 
 @verbose
@@ -298,7 +298,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     tstep = 1.0 / evoked.info['sfreq']
 
     if return_as_dipoles:
-        out = _make_dipoles(X, active_set, forward, tmin, tstep, M,
+        out = _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
                             M_estimated)
     else:
         out = _make_sparse_stc(X, active_set, forward, tmin, tstep)
