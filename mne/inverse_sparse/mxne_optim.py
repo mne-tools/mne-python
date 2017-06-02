@@ -1039,13 +1039,14 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         Z = np.zeros((0, n_step * n_freq), dtype=np.complex)
         X = np.zeros((0, n_times))
 
-    return X, Z, active_set, E
+    return X, Z, active_set, E, gap
 
 
 @verbose
 def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
                          n_orient=1, maxit=200, tol=1e-8, log_objective=True,
-                         active_set_size=None, debias=True, verbose=None):
+                         active_set_size=None, debias=True, return_gap=False,
+                         verbose=None):
     """Solve TF L21+L1 inverse solver with BCD and active set approach.
 
     Algorithm is detailed in:
@@ -1092,6 +1093,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         and stored at every 10th iteration.
     debias : bool
         Debias source estimates.
+    return_gap : bool
+        Return final duality gap.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1105,6 +1108,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     E : list
         The value of the objective function at each iteration. If log_objective
         is False, it will be empty.
+    gap : float
+        Final duality gap. Returned only if return_gap is True.
     """
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
@@ -1126,7 +1131,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
             lc[j] = linalg.norm(np.dot(G_tmp.T, G_tmp), ord=2)
 
     logger.info("Using block coordinate descent with active set approach")
-    X, Z, active_set, E = _tf_mixed_norm_solver_bcd_active_set(
+    X, Z, active_set, E, gap = _tf_mixed_norm_solver_bcd_active_set(
         M, G, alpha_space, alpha_time, lc, phi, phiT, shape, Z_init=None,
         n_orient=n_orient, maxit=maxit, tol=tol,
         log_objective=log_objective, verbose=None)
@@ -1135,4 +1140,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
         X *= bias[:, np.newaxis]
 
-    return X, active_set, E
+    if return_gap:
+        return X, active_set, E, gap
+    else:
+        return X, active_set, E
