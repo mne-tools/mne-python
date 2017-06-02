@@ -4,7 +4,6 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
-from copy import deepcopy
 from math import sqrt, ceil
 
 import numpy as np
@@ -715,7 +714,7 @@ def norm_l1_tf(Z, shape, n_orient):
 
 
 def prox_l1_full(Y, alpha, n_orient):
-    """proximity operator for l1 norm with multiple orientation support
+    """Proximity operator for l1 norm with multiple orientation support.
 
     L2 over orientation and L1 over position (space + time)
 
@@ -749,7 +748,7 @@ def prox_l1_full(Y, alpha, n_orient):
 
 def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
                n_orient, highest_d_obj, screening):
-    """Duality gaps for the time-frequency mixed norm inverse problem
+    """Duality gap for the time-frequency mixed norm inverse problem.
 
     For details see:
     Wang J., and Ye J.,
@@ -929,9 +928,9 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                 converged = (gap < tol)
                 E.append(p_obj)
                 logger.info("Iteration %d :: n_active %d" % (
-                                i + 1, np.sum(active_set) / n_orient))
+                            i + 1, np.sum(active_set) / n_orient))
                 logger.info("dgap %.2e :: p_obj %f :: d_obj %f\n" % (
-                                gap, p_obj, d_obj))
+                            gap, p_obj, d_obj))
 
                 candidates = np.where(screening[::n_orient])[0]
                 inactive = np.where(np.invert(screening[::n_orient]))[0]
