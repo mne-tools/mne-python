@@ -128,6 +128,7 @@ def test_plot_epochs_image():
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_image(picks=[1, 2])
+    epochs.plot_image(groupby='type')
     overlay_times = [0.1]
     epochs.plot_image(order=[0], overlay_times=overlay_times, vmin=0.01)
     epochs.plot_image(overlay_times=overlay_times, vmin=-0.001, vmax=0.001)
@@ -135,8 +136,10 @@ def test_plot_epochs_image():
                   overlay_times=[0.1, 0.2])
     assert_raises(ValueError, epochs.plot_image,
                   order=[0, 1])
+    assert_raises(ValueError, epochs.plot_image,
+                  combine='error')
     with warnings.catch_warnings(record=True) as w:
-        epochs.plot_image(overlay_times=[1.1])
+        epochs.plot_image(overlay_times=[1.1], combine="gfp")
         warnings.simplefilter('always')
     assert_equal(len(w), 1)
 
