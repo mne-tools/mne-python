@@ -16,8 +16,7 @@ from .write import (start_block, end_block, write_int, write_float,
 from .tag import find_tag
 from .constants import FIFF
 from ..externals.six import text_type, string_types
-from ..utils import warn
-
+from ..utils import warn, logger
 
 _proc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
               'date', 'experimenter', 'creator']
@@ -310,3 +309,40 @@ def _get_sss_rank(sss):
     nfree -= (len(sss['sss_info']['components'][:nfree]) -
               sss['sss_info']['components'][:nfree].sum())
     return nfree
+
+
+def get_rank_sss(inst):
+    """Look up rank from SSS data.
+
+    .. note::
+        Throws an error if SSS has not been applied.
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs or Evoked, or Info
+        Any MNE object with an .info attribute
+    Returns
+    -------
+    rank : int
+        The numerical rank as predicted by the number of SSS
+        components.
+    """
+    if not isinstance(inst, dict):
+        info = inst.info
+    else:
+        info = inst
+
+    max_infos = list()
+    for proc_info in info.get('proc_history', list()):
+        max_info = proc_info.get('max_info', {})
+        if len(max_info['sss_info']) > 0:
+            max_infos.append(max_info)
+    if len(max_info) > 1:
+        logger.info('found multiple SSS records. Using the first.')
+    elif len(max_info) == 0:
+        raise ValueError(
+            'Did not find any SSS record. You should use data-based '
+            'rank estimate instead')
+
+    max_info = max_infos[0]
+    return _get_sss_rank(max_info)

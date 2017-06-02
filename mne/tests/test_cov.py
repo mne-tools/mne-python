@@ -23,12 +23,11 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
-                 make_ad_hoc_cov)
+                 make_ad_hoc_cov, get_rank_sss)
 from mne.io import read_raw_fif, RawArray, read_info
 from mne.tests.common import assert_naming, assert_snr
 from mne.utils import (_TempDir, slow_test, requires_sklearn_0_15,
                        run_tests_if_main)
-from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -457,8 +456,7 @@ def test_rank():
 
             # check sss
             if 'proc_history' in this_very_info:
-                mf = this_very_info['proc_history'][0]['max_info']
-                n_free = _get_sss_rank(mf)
+                n_free = get_rank_sss(this_very_info)
                 if 'mag' not in ch_types and 'grad' not in ch_types:
                     n_free = 0
                 # - n_projs XXX clarify
