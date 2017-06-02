@@ -535,8 +535,12 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
         titles_list = ['Selected channels']
         units_list = ['amplitude']
         scalings_list = [1.]
-        ax_list = [ax]
-
+        
+        if len(picks) == 1:
+            ax_list = ax
+        else
+            ax_list = [ax]
+          
     make_label = False
     fig = None
     if ax is None:
