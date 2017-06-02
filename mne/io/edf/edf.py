@@ -266,6 +266,28 @@ class RawEDF(BaseRaw):
                                       2**17 - 1)
                 data[stim_channel_idx, :] = stim
 
+    def get_gdf_events(self):
+        """Get original events as read from the GDF header.
+
+        The values are returned in form
+        [n_events, pos, typ, chn, dur]
+        where:
+
+        ========  ===================================  =======
+        name      description                          type
+        ========  ===================================  =======
+        n_events  The number of all events             integer
+        pos       Beginnning of the events in samples  array
+        typ       The event identifiers                array
+        chn       The associated channels (0 for all)  array
+        dur       The durations of the events          array
+        ========  ===================================  =======
+        """
+        if self._raw_extras[0]['subtype'].lower() != 'gdf':
+            raise TypeError('get_gdf_events is intended for GDF files only. '
+                            'Use mne.find_events instead.')
+        return self._raw_extras[0]['events']
+
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
@@ -986,6 +1008,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
     if stim_channel == -1 and edf_info['nchan'] not in exclude:
         if len(events) == 0:
             warn('No events found. Cannot construct a stimulus channel.')
+            edf_info['events'] = list()
             return edf_info
         edf_info['include'].append(edf_info['nchan'])
         edf_info['n_samps'] = np.append(edf_info['n_samps'], 0)
@@ -998,8 +1021,14 @@ def _read_gdf_header(fname, stim_channel, exclude):
         edf_info['digital_max'] = np.append(edf_info['digital_max'], vmax)
 
         data = np.zeros(np.max(n_samps * n_records))
+        warn_overlap = False
         for samp, id, dur in zip(events[1], events[2], events[4]):
+            if np.sum(data[samp:samp + dur]) > 0:
+                warn_overlap = True  # Warn only once.
             data[samp:samp + dur] += id
+        if warn_overlap:
+            warn('Overlapping events detected. Use get_gdf_events for the '
+                 'original events.')
         edf_info['stim_data'] = data
     edf_info['events'] = events
     return edf_info

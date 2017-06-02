@@ -182,6 +182,8 @@ def test_stim_channel():
         raw[:]
     assert_equal(len(w), 0)
 
+    assert_raises(TypeError, raw_py.get_gdf_events)
+
 
 def test_parse_annotation():
     """Test parsing the tal channel."""

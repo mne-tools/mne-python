@@ -48,12 +48,18 @@ def test_gdf_data():
     # The events are overlapping.
     assert_array_equal(events[:, 0], raw._raw_extras[0]['events'][1][::2])
 
+    # Test events are encoded to stim channel.
+    events = find_events(raw)
+    evs = raw.get_gdf_events()
+    assert_true(all([event in evs[1] for event in events[:, 0]]))
+
 
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
     raw = read_raw_edf(gdf2_path + '.gdf', eog=None, misc=None, preload=True,
                        stim_channel='STATUS')
+
     nchan = raw.info['nchan']
     ch_names = raw.ch_names  # Renamed STATUS -> STI 014.
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
@@ -79,5 +85,6 @@ def test_gdf2_data():
         assert_true(str(w[0].message).startswith('No events found.'))
     assert_equal(nchan, raw.info['nchan'])  # stim channel not constructed
     assert_array_equal(ch_names[1:], raw.ch_names[1:])
+
 
 run_tests_if_main()
