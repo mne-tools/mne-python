@@ -960,7 +960,7 @@ class AcqParserFIF(object):
         acq_pars = info['acq_pars']
         if not acq_pars:
             raise ValueError('No acquisition parameters')
-        self.acq_dict = self._acqpars_dict(acq_pars)
+        self.acq_dict = dict(self._acqpars_gen(acq_pars))
         if 'ERFversion' in self.acq_dict:
             self.compat = False  # DACQ ver >= 3.4
         elif 'ERFncateg' in self.acq_dict:  # probably DACQ < 3.4
@@ -1117,13 +1117,8 @@ class AcqParserFIF(object):
             events[evnum] = evdi
         return events
 
-    def _acqpars_dict(self, acq_pars):
-        """Parse `` info['acq_pars']`` into a dict."""
-        return dict(self._acqpars_gen(acq_pars))
-
     def _acqpars_gen(self, acq_pars):
         """Yield key/value pairs from ``info['acq_pars'])``."""
-        # DACQ variable names always start with one of these
         key, val = '', ''
         for line in acq_pars.split():
             if any([line.startswith(x) for x in self._acq_var_magic]):
