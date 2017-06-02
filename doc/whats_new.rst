@@ -109,6 +109,8 @@ API
 
     - Make function `mne.io.eeglab.read_events_eeglab` public to allow loading overlapping events from EEGLAB files, by `Jona Sassenhagen`_.
 
+    - :func:`mne.find_events` ``mask_type`` parameter will change from ``'not_and'`` to ``'and'`` in 0.16.
+
 .. _changes_0_14:
 
 Version 0.14
