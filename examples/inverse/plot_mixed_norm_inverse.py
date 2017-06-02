@@ -28,7 +28,8 @@ import mne
 from mne.datasets import sample
 from mne.inverse_sparse import mixed_norm
 from mne.minimum_norm import make_inverse_operator, apply_inverse
-from mne.viz import plot_sparse_source_estimates
+from mne.viz import (plot_sparse_source_estimates,
+                     plot_dipole_locations, plot_dipole_amplitudes)
 
 print(__doc__)
 
@@ -99,7 +100,6 @@ dipoles = mixed_norm(
 
 ###############################################################################
 # View dipoles and MRI
-from mne.viz import plot_dipole_locations, plot_dipole_amplitudes
 plot_dipole_amplitudes(dipoles)
 
 trans = forward['mri_head_t']

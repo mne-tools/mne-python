@@ -163,7 +163,7 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
 @verbose
 def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_estimated,
-                  verbose=None):
+                         verbose=None):
 
     times = tmin + tstep * np.arange(X.shape[1])
 

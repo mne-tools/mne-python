@@ -15,7 +15,8 @@ import numpy as np
 import mne
 from mne.datasets import sample
 from mne.inverse_sparse import gamma_map
-from mne.viz import plot_sparse_source_estimates
+from mne.viz import (plot_sparse_source_estimates,
+                     plot_dipole_locations, plot_dipole_amplitudes)
 
 print(__doc__)
 
@@ -73,7 +74,6 @@ dipoles = gamma_map(evoked, forward, cov, alpha, xyz_same_gamma=True,
 
 ###############################################################################
 # View dipoles and MRI
-from mne.viz import plot_dipole_locations, plot_dipole_amplitudes
 plot_dipole_amplitudes(dipoles)
 
 trans = forward['mri_head_t']

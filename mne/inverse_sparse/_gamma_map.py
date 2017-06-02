@@ -299,7 +299,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     if return_as_dipoles:
         out = _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
-                            M_estimated)
+                                   M_estimated)
     else:
         out = _make_sparse_stc(X, active_set, forward, tmin, tstep)
 
