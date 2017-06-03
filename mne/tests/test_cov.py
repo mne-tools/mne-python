@@ -456,7 +456,7 @@ def test_rank():
                 n_projs_eeg = 0
 
             # check sss
-            if 'proc_history' in this_very_info:
+            if len(this_very_info['proc_history']) > 0:
                 mf = this_very_info['proc_history'][0]['max_info']
                 n_free = _get_sss_rank(mf)
                 if 'mag' not in ch_types and 'grad' not in ch_types:

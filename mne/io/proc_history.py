@@ -33,49 +33,49 @@ _proc_casters = [dict, dict, dict,
                  np.array, text_type, text_type]
 
 
-def _read_proc_history(fid, tree, info):
+def _read_proc_history(fid, tree):
     """Read processing history from fiff file.
 
     This function reads the SSS info, the CTC correction and the
     calibaraions from the SSS processing logs inside af a raw file
-    (C.f. Maxfilter v2.2 manual (October 2010), page 21):
+    (C.f. Maxfilter v2.2 manual (October 2010), page 21)::
 
-    104 = {                 900 = proc. history
-      104 = {               901 = proc. record
-        103 = block ID
-        204 = date
-        212 = scientist
-        113 = creator program
-        104 = {             502 = SSS info
-          264 = SSS task
-          263 = SSS coord frame
-          265 = SSS origin
-          266 = SSS ins.order
-          267 = SSS outs.order
-          268 = SSS nr chnls
-          269 = SSS components
-          278 = SSS nfree
-          243 = HPI g limit    0.98
-          244 = HPI dist limit 0.005
-        105 = }             502 = SSS info
-        104 = {             504 = MaxST info
-          264 = SSS task
-          272 = SSST subspace correlation
-          279 = SSST buffer length
-        105 = }
-        104 = {             501 = CTC correction
-          103 = block ID
-          204 = date
-          113 = creator program
-          800 = CTC matrix
-          3417 = proj item chs
-        105 = }             501 = CTC correction
-        104 = {             503 = SSS finecalib.
-          270 = SSS cal chnls
-          271 = SSS cal coeff
-        105 = }             503 = SSS finecalib.
-      105 = }               901 = proc. record
-    105 = }                 900 = proc. history
+        104 = {                 900 = proc. history
+          104 = {               901 = proc. record
+            103 = block ID
+            204 = date
+            212 = scientist
+            113 = creator program
+            104 = {             502 = SSS info
+              264 = SSS task
+              263 = SSS coord frame
+              265 = SSS origin
+              266 = SSS ins.order
+              267 = SSS outs.order
+              268 = SSS nr chnls
+              269 = SSS components
+              278 = SSS nfree
+              243 = HPI g limit    0.98
+              244 = HPI dist limit 0.005
+            105 = }             502 = SSS info
+            104 = {             504 = MaxST info
+              264 = SSS task
+              272 = SSST subspace correlation
+              279 = SSST buffer length
+            105 = }
+            104 = {             501 = CTC correction
+              103 = block ID
+              204 = date
+              113 = creator program
+              800 = CTC matrix
+              3417 = proj item chs
+            105 = }             501 = CTC correction
+            104 = {             503 = SSS finecalib.
+              270 = SSS cal chnls
+              271 = SSS cal coeff
+            105 = }             503 = SSS finecalib.
+          105 = }               901 = proc. record
+        105 = }                 900 = proc. history
     """
     proc_history = dir_tree_find(tree, FIFF.FIFFB_PROCESSING_HISTORY)
     out = list()
@@ -105,14 +105,11 @@ def _read_proc_history(fid, tree, info):
                 record['smartshield'] = ss
             if len(record['max_info']) > 0:
                 out.append(record)
-        if len(proc_records) > 0:
-            info['proc_history'] = out
+    return out
 
 
 def _write_proc_history(fid, info):
     """Write processing history to file."""
-    if 'proc_history' not in info:
-        return
     if len(info['proc_history']) > 0:
         start_block(fid, FIFF.FIFFB_PROCESSING_HISTORY)
         for record in info['proc_history']:
