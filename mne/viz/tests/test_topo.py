@@ -78,7 +78,7 @@ def test_plot_topo():
     # Show topography
     evoked = _get_epochs().average()
     # should auto-find layout
-    plot_evoked_topo([evoked, evoked], merge_grads=True)
+    plot_evoked_topo([evoked, evoked], merge_grads=True, dark_background=False)
     # Test jointplot
     evoked.plot_joint()
 
@@ -120,8 +120,10 @@ def test_plot_topo():
         _plot_update_evoked_topo_proj(params, bools)
     # should auto-generate layout
     plot_evoked_topo(picked_evoked_eeg.copy(),
-                     fig_background=np.zeros((4, 3, 3)), proj=True)
-    picked_evoked.plot_topo(merge_grads=True)  # Test RMS plot of grad pairs
+                     fig_background=np.zeros((4, 3, 3)), proj=True,
+                     dark_background=False)
+    # Test RMS plot of grad pairs
+    picked_evoked.plot_topo(merge_grads=True, dark_background=False)
     plt.close('all')
     for ax, idx in iter_topography(evoked.info):
         ax.plot(evoked.data[idx], color='red')
