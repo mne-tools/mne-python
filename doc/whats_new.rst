@@ -51,6 +51,9 @@ Changelog
 
     - :meth:`mne.channels.Montage.plot`, :meth:`mne.channels.DigMontage.plot`, and :func:`mne.viz.montage.plot_montage` now allow plotting channel locations as a topomap by `Clemens Brunner`_
 
+    - Add ``background_color`` parameter to :meth:`mne.Epochs.plot_topo` and :func:`mne.viz.plot_evoked_topo` and improve axes rendering as done in :func:`mne.viz.plot_compare_evokeds` by `Alex Gramfort`_
+
+
 BUG
 ~~~
 
