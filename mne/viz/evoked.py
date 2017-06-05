@@ -621,7 +621,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
 
-        .. note:: The parameter will be deprecated in version v0.16.
+        .. note:: The parameter will be removed in version v0.16.
                   Use background_color parameter instead.
 
     fig_background : None | numpy ndarray
@@ -630,13 +630,13 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     axis_facecolor : str | obj
         The face color to be used for each sensor plot. Defaults to black.
 
-        .. note:: The parameter will be deprecated in version v0.16.
+        .. note:: The parameter will be removed in version v0.16.
                   Use background_color parameter instead.
 
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
 
-        .. note:: The parameter will be deprecated in version v0.16.
+        .. note:: The parameter will be removed in version v0.16.
                   Use background_color parameter instead.
 
     merge_grads : bool
