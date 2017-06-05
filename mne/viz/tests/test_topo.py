@@ -121,7 +121,7 @@ def test_plot_topo():
     # should auto-generate layout
     plot_evoked_topo(picked_evoked_eeg.copy(),
                      fig_background=np.zeros((4, 3, 3)), proj=True,
-                     dark_background=False)
+                     dark_background=True)
     # Test RMS plot of grad pairs
     picked_evoked.plot_topo(merge_grads=True, dark_background=False)
     plt.close('all')
