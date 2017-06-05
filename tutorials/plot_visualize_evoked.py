@@ -160,9 +160,9 @@ evoked_r_aud.plot_image(picks=picks)
 # figure for comparison. Click on the individual plots to open them bigger.
 title = 'MNE sample data\n(condition : %s)'
 evoked_l_aud.plot_topo(title=title % evoked_l_aud.comment,
-                       dark_background=True, color=['white'])
+                       background_color='k', color=['white'])
 mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
-                         dark_background=False)
+                         background_color='w')
 
 ###############################################################################
 # Visualizing field lines in 3D
