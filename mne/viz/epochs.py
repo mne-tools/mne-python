@@ -127,6 +127,26 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # Then, we loop over this list and plot using _plot_epochs_image.
 
     # groupby
+    all_picks, all_ch_types = _get_picks_and_types(picks, ch_types, groupby)
+
+    # combine/construct list for plotting
+    to_plot_list = _get_to_plot(epochs, combine, picks, all_ch_types
+                                scalings)
+
+    # plot
+    figs, all_data = list(), list()
+    for data_, ch_type, evoked, name in to_plot_list:
+        this_fig, data_ = _plot_epochs_image(
+            data_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
+            order=order, show=show, evoked=evoked, unit=units[ch_type],
+            scaling=scalings[ch_type], cmap=cmap, fig=fig, axes=axes,
+            overlay_times=overlay_times, title=name)
+        figs.append(this_fig)
+    return figs
+
+
+def _get_picks_and_types(picks, ch_types, groupby):
+    "Helper function for plot_epochs_image: group picks and types"
     if groupby is None:
         all_picks, all_ch_types = [picks], ch_types   # fix!!!!
     else:
@@ -142,18 +162,22 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 raise ValueError(msg)
             all_ch_types = list(groupby.keys())
             all_picks = [groupby[ch_type] for ch_type in all_ch_types]
+    return all_picks, all_ch_types  # all_picks is a list of lists
 
-    # combine/construct list for plotting
+
+def _get_to_plot(epochs, combine, picks, all_ch_types, scalings):
+    "Helper function for plot_epochs_image: combine epochs data"
     data = epochs.get_data()
     to_plot_list = list()
+
     if combine is None:
         for pick, ch_type in zip(picks, all_ch_types):
-            this_data = data[:, pick, :].squeeze() #* scalings[ch_type] # (n_epochs, n_channels, n_times)
-            to_plot_list.append((this_data, ch_type, epochs.average(picks=[pick]),
+            this_data = data[:, pick, :].squeeze()
+            to_plot_list.append((this_data, ch_type,
+                                 epochs.average(picks=[pick]),
                                  epochs.ch_names[pick]))
     else:
-        name_dict = {"eeg": "EEG", "grad": "Gradiometers",
-                     "mag": "Magnetometers"}
+        names = {"eeg": "EEG", "grad": "Gradiometers", "mag": "Magnetometers"}
         if combine == "gfp":
             combine = lambda D: np.sqrt((D * D).mean(axis=1))
             vmin = 0
@@ -171,18 +195,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             ev = epochs.average(picks=picks_)
             ev.data = this_data.mean(0)
             to_plot_list.append((this_data, ch_type, ev,
-                                 name_dict.get(ch_type, ch_type)))
+                                 names.get(ch_type, ch_type)))
 
-    # plot
-    figs, all_data = list(), list()
-    for data_, ch_type, evoked, name in to_plot_list:
-        this_fig, data_ = _plot_epochs_image(
-            data_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
-            order=order, show=show, evoked=evoked, unit=units[ch_type],
-            scaling=scalings[ch_type], cmap=cmap, fig=fig, axes=axes,
-            overlay_times=overlay_times, title=name)
-        figs.append(this_fig)
-    return figs
+    return to_plot_list  # data, ch_type, evoked, name
 
 
 def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=True,
