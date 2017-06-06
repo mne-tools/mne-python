@@ -46,7 +46,6 @@ stc, residual = gamma_map(evoked, forward, cov, alpha, xyz_same_gamma=True,
                           return_residual=True)
 
 # View in 2D and 3D ("glass" brain like 3D plot)
-
 # Show the sources as spheres scaled by their strength
 scale_factors = np.max(np.abs(stc.data), axis=1)
 scale_factors = 0.5 * (1 + scale_factors / np.max(scale_factors))
@@ -56,6 +55,21 @@ plot_sparse_source_estimates(
     modes=['sphere'], opacity=0.1, scale_factors=(scale_factors, None),
     fig_name="Gamma-MAP")
 
+###############################################################################
+# Run solver returning dipoles
+# Compute (ir)MxNE inverse solution
+dipoles = gamma_map(evoked, forward, cov, alpha, xyz_same_gamma=True,
+                    return_as_dipoles=True, return_residual=False)
+
+# View dipoles and MRI
+plot_dipole_amplitudes(dipoles)
+
+trans = forward['mri_head_t']
+for dip in dipoles:
+    plot_dipole_locations(dip, trans, 'sample', subjects_dir=subjects_dir,
+                          mode='orthoview', idx='amplitude')
+
+###############################################################################
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
 evoked.pick_types(meg='grad', exclude='bads')
@@ -65,18 +79,3 @@ evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
 residual.pick_types(meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
               proj=True)
-
-###############################################################################
-# Run solver returning dipoles
-# Compute (ir)MxNE inverse solution
-dipoles = gamma_map(evoked, forward, cov, alpha, xyz_same_gamma=True,
-                    return_residual=False, return_as_dipoles=True)
-
-###############################################################################
-# View dipoles and MRI
-plot_dipole_amplitudes(dipoles)
-
-trans = forward['mri_head_t']
-for dip in dipoles:
-    plot_dipole_locations(dip, trans, 'sample', subjects_dir=subjects_dir,
-                          mode='orthoview', idx='amplitude')

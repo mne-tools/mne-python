@@ -163,11 +163,15 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
 @verbose
 def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_estimated,
-                         verbose=None):
+                         active_is_idx=False, verbose=None):
 
     times = tmin + tstep * np.arange(X.shape[1])
 
-    active_idx = np.where(active_set)[0]
+    if not active_is_idx:
+        active_idx = np.where(active_set)[0]
+    else:
+        active_idx = active_set
+
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     if n_dip_per_pos > 1:
         active_idx = np.unique(active_idx // n_dip_per_pos)

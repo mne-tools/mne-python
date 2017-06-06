@@ -40,7 +40,8 @@ import mne
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.inverse_sparse import tf_mixed_norm
-from mne.viz import plot_sparse_source_estimates
+from mne.viz import (plot_sparse_source_estimates,
+                     plot_dipole_locations, plot_dipole_amplitudes)
 
 print(__doc__)
 
@@ -91,20 +92,7 @@ stc, residual = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
 
 # Crop to remove edges
 stc.crop(tmin=-0.05, tmax=0.3)
-evoked.crop(tmin=-0.05, tmax=0.3)
-residual.crop(tmin=-0.05, tmax=0.3)
 
-# Show the evoked response and the residual for gradiometers
-ylim = dict(grad=[-120, 120])
-evoked.pick_types(meg='grad', exclude='bads')
-evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
-            proj=True)
-
-residual.pick_types(meg='grad', exclude='bads')
-residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
-              proj=True)
-
-###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="TF-MxNE (cond %s)"
@@ -117,3 +105,39 @@ brain = stc.plot('sample', 'inflated', 'rh', views='medial',
                  subjects_dir=subjects_dir, initial_time=150, time_unit='ms')
 brain.add_label("V1", color="yellow", scalar_thresh=.5, borders=True)
 brain.add_label("V2", color="red", scalar_thresh=.5, borders=True)
+
+###############################################################################
+# Compute TF-MxNE inverse solution
+dipoles = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
+                        loose=loose, depth=depth, maxit=200, tol=1e-4,
+                        weights=stc_dspm, weights_min=8., debias=True,
+                        wsize=16, tstep=4, window=0.05,
+                        return_as_dipoles=True, return_residual=True)
+
+# Crop to remove edges
+for dip in dipoles:
+    dip.crop(tmin=-0.05, tmax=0.3)
+
+###############################################################################
+# View dipoles and MRI
+plot_dipole_amplitudes(dipoles)
+
+trans = forward['mri_head_t']
+for dip in dipoles:
+    plot_dipole_locations(dip, trans, 'sample', subjects_dir=subjects_dir,
+                          mode='orthoview', idx='amplitude')
+
+###############################################################################
+# Crop to remove edges
+evoked.crop(tmin=-0.05, tmax=0.3)
+residual.crop(tmin=-0.05, tmax=0.3)
+
+# Show the evoked response and the residual for gradiometers
+ylim = dict(grad=[-120, 120])
+evoked.pick_types(meg='grad', exclude='bads')
+evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
+            proj=True)
+
+residual.pick_types(meg='grad', exclude='bads')
+residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
+              proj=True)
