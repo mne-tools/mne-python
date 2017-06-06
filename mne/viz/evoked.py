@@ -652,7 +652,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
-    background_color : str | obj
+    background_color : str | obj
         Background color. Typically 'k' (black) or 'w' (white).
         It will be set to 'w' by default in v0.16
 
