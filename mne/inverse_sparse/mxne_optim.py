@@ -130,12 +130,6 @@ def prox_l1(Y, alpha, n_orient):
 def dgap_l21(M, G, X, active_set, alpha, n_orient):
     """Duality gaps for the mixed norm inverse problem.
 
-    For details see:
-    Gramfort A., Kowalski M. and Hamalainen, M,
-    Mixed-norm estimates for the M/EEG inverse problem using accelerated
-    gradient methods, Physics in Medicine and Biology, 2012
-    http://dx.doi.org/10.1088/0031-9155/57/7/1937
-
     Parameters
     ----------
     M : array, shape (n_sensors, n_times)
@@ -156,11 +150,18 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     gap : float
         Dual gap
     p_obj : float
-        Primal cost
+        Primal objective
     d_obj : float
-        Dual cost. gap = p_obj - d_obj
+        Dual objective. gap = p_obj - d_obj
     R : array, shape (n_sensors, n_times)
         Current residual of M - G * X
+
+    References
+    ----------
+    .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
+       "Mixed-norm estimates for the M/EEG inverse problem using accelerated
+       gradient methods", Physics in Medicine and Biology, 2012.
+       http://dx.doi.org/10.1088/0031-9155/57/7/1937
     """
     GX = np.dot(G[:, active_set], X)
     R = M - GX
@@ -202,7 +203,7 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
 
     t = 1.0
     Y = np.zeros((n_sources, n_times))  # FISTA aux variable
-    E = []  # track cost function
+    E = []  # track primal objective function
     highest_d_obj = - np.inf
     active_set = np.ones(n_sources, dtype=np.bool)  # start with full AS
 
@@ -281,7 +282,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
         X = init
         R = M - np.dot(G, X)
 
-    E = []  # track cost function
+    E = []  # track primal objective function
     highest_d_obj = - np.inf
     active_set = np.zeros(n_sources, dtype=np.bool)  # start with full AS
 
@@ -335,12 +336,6 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       solver='auto', return_gap=False):
     """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
-    Algorithm is detailed in:
-    Gramfort A., Kowalski M. and Hamalainen, M,
-    Mixed-norm estimates for the M/EEG inverse problem using accelerated
-    gradient methods, Physics in Medicine and Biology, 2012
-    http://dx.doi.org/10.1088/0031-9155/57/7/1937
-
     Parameters
     ----------
     M : array, shape (n_sensors, n_times)
@@ -378,6 +373,18 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         The value of the objective function over the iterations.
     gap : float
         Final duality gap. Returned only if return_gap is True.
+
+    References
+    ----------
+    .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
+       "Mixed-norm estimates for the M/EEG inverse problem using accelerated
+       gradient methods", Physics in Medicine and Biology, 2012.
+       http://dx.doi.org/10.1088/0031-9155/57/7/1937
+
+    .. [2] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
+       "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
+       MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
+       Volume 35 (10), pp. 2218-2228, 15 April 2013.
     """
     n_dipoles = G.shape[1]
     n_positions = n_dipoles // n_orient
@@ -509,13 +516,6 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                                 debias=True, n_orient=1, solver='auto'):
     """Solve L0.5/L2 mixed-norm inverse problem with active set strategy.
 
-    Algorithm is detailed in:
-
-    Strohmeier D., Haueisen J., and Gramfort A.:
-    Improved MEG/EEG source localization with reweighted mixed-norms,
-    4th International Workshop on Pattern Recognition in Neuroimaging,
-    Tuebingen, 2014
-
     Parameters
     ----------
     M : array, shape (n_sensors, n_times)
@@ -552,6 +552,13 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         The mask of active sources.
     E : list
         The value of the objective function over the iterations.
+
+    References
+    ----------
+    .. [1] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
+       "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
+       MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
+       Volume 35 (10), pp. 2218-2228, 2016.
     """
     def g(w):
         return np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
@@ -750,33 +757,18 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
                n_orient, highest_d_obj, screening):
     """Duality gap for the time-frequency mixed norm inverse problem.
 
-    For details see:
-    Wang J., and Ye J.,
-    Two-layer feature reduction for sparse-group lasso via decomposition of
-    convex sets, in Advances in Neural Information Processing Systems (NIPS),
-    vol. 27, pp. 2132-2140, 2014.
-
-    Bach F., Jenatton R., Mairal J., and Obozinski G.,
-    Optimization with sparsity-inducing penalties, Foundations and Trends
-    in Machine Learning, vol. 4, no. 1, pp. 1-106, 2012.
-
-    Gramfort A., Kowalski M., and Hamalainen, M.,
-    Mixed-norm estimates for the M/EEG inverse problem using accelerated
-    gradient methods, Physics in Medicine and Biology, 2012
-    http://dx.doi.org/10.1088/0031-9155/57/7/1937
-
     Parameters
     ----------
-    M : array of shape [n_sensors, n_times]
+    M : array of shape (n_sensors, n_times)
         The data.
-    G : array of shape [n_sensors, n_active]
+    G : array of shape (n_sensors, n_active)
         Gain matrix a.k.a. lead field.
-    Z : array of shape [n_active, n_coefs]
+    Z : array of shape (n_active, n_coefs)
         Sources in TF domain.
     active_set : array of bool
         Mask of active sources.
     alpha_space : float
-        The spatial regularization parameter. It should be between 0 and 100.
+        The spatial regularization parameter.
     alpha_time : float
         The temporal regularization parameter. The higher it is the smoother
         will be the estimated time series.
@@ -789,7 +781,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     n_orient : int
         Number of dipoles per locations (typically 1 or 3).
     highest_d_obj : float
-        The highest value of the dual cost so far.
+        The highest value of the dual objective so far.
     screening : array of bool
         Mask of screened-out sources by dynamic screening.
 
@@ -798,13 +790,25 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     gap : float
         Dual gap
     p_obj : float
-        Primal cost
+        Primal objective
     d_obj : float
-        Dual cost. gap = pobj - dobj
-    R : array of shape [n_sensors, n_times]
+        Dual objective. gap = p_obj - d_obj
+    R : array of shape (n_sensors, n_times)
         Current residual of M - G * X
     screening : array of bool
         Mask of screened-out sources by dynamic screening.
+
+    References
+    ----------
+    .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
+       "Mixed-norm estimates for the M/EEG inverse problem using accelerated
+       gradient methods", Physics in Medicine and Biology, 2012.
+       http://dx.doi.org/10.1088/0031-9155/57/7/1937
+
+    .. [2] J. Wang, J. Ye,
+       "Two-layer feature reduction for sparse-group lasso via decomposition of
+       convex sets", Advances in Neural Information Processing Systems (NIPS),
+       vol. 27, pp. 2132-2140, 2014.
     """
     X = phiT(Z)
     GX = np.dot(G[:, active_set], X)
@@ -851,7 +855,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
     for idx in active:
         R -= np.dot(G[idx], phiT(Z[idx]))
 
-    E = []  # track cost function
+    E = []  # track primal objective function
 
     alpha_time_lc = alpha_time / lipschitz_constant
     alpha_space_lc = alpha_space / lipschitz_constant
@@ -1016,18 +1020,18 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         active_set[active_set] = as_.copy()
         E += E_tmp
 
-        if converged:
-            Zd = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
-            gap, p_obj, d_obj, _, screening = dgap_l21l1(
-                M, G, Zd, active_set, alpha_space, alpha_time,
-                phi, phiT, shape, n_orient, d_obj, screening)
-            logger.info("dgap %.2e :: p_obj %f :: d_obj %f :: n_active %d" % (
-                gap, p_obj, d_obj, np.sum(active_set) / n_orient))
-            if gap < tol:
-                logger.info("Convergence reached!\n")
-                break
-            candidates = np.where(screening[::n_orient])[0]
-            logger.info("%d sources kept after screening!\n" % len(candidates))
+        #if converged:
+        Zd = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
+        gap, p_obj, d_obj, _, screening = dgap_l21l1(
+            M, G, Zd, active_set, alpha_space, alpha_time,
+            phi, phiT, shape, n_orient, d_obj, screening)
+        logger.info("dgap %.2e :: p_obj %f :: d_obj %f :: n_active %d" % (
+            gap, p_obj, d_obj, np.sum(active_set) / n_orient))
+        if gap < tol:
+            logger.info("Convergence reached!\n")
+            break
+        candidates = np.where(screening[::n_orient])[0]
+        logger.info("%d sources kept after screening!\n" % len(candidates))
 
     if active_set.sum():
         Z = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
@@ -1047,22 +1051,6 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
                          active_set_size=None, debias=True, return_gap=False,
                          verbose=None):
     """Solve TF L21+L1 inverse solver with BCD and active set approach.
-
-    Algorithm is detailed in:
-
-    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-    Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-    non-stationary source activations
-    Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
-    DOI: 10.1016/j.neuroimage.2012.12.051.
-
-    Functional Brain Imaging with M/EEG Using Structured Sparsity in
-    Time-Frequency Dictionaries
-    Gramfort A., Strohmeier D., Haueisen J., Hamalainen M. and Kowalski M.
-    INFORMATION PROCESSING IN MEDICAL IMAGING
-    Lecture Notes in Computer Science, 2011, Volume 6801/2011,
-    600-611, DOI: 10.1007/978-3-642-22092-0_49
-    http://dx.doi.org/10.1007/978-3-642-22092-0_49
 
     Parameters
     ----------
@@ -1109,6 +1097,21 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         is False, it will be empty.
     gap : float
         Final duality gap. Returned only if return_gap is True.
+
+    References
+    ----------
+    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+       "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
+       non-stationary source activations",
+       Neuroimage, Volume 70, pp. 410-422, 15 April 2013. ISSN 1053-8119,
+       DOI: 10.1016/j.neuroimage.2012.12.051.
+
+    .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+       "Functional Brain Imaging with M/EEG Using Structured Sparsity in
+       Time-Frequency Dictionaries",
+       Proceedings Information Processing in Medical Imaging
+       Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
+       DOI: 10.1007/978-3-642-22092-0_49
     """
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
