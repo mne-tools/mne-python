@@ -639,8 +639,8 @@ def _sph_to_cart(sph):
     out = np.empty((len(sph), 3))
     out[:, 2] = sph[:, 0] * np.cos(sph[:, 2])
     xy = sph[:, 0] * np.sin(sph[:, 2])
-    out[:, 0] = xy * np.cos(sph[:, 1])
-    out[:, 1] = xy * np.sin(sph[:, 1])
+    out[:, 1] = xy * np.cos(sph[:, 1])
+    out[:, 0] = xy * np.sin(sph[:, 1])
     return out
 
 
