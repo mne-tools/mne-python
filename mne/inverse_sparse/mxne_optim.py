@@ -128,7 +128,7 @@ def prox_l1(Y, alpha, n_orient):
 
 
 def dgap_l21(M, G, X, active_set, alpha, n_orient):
-    """Duality gaps for the mixed norm inverse problem.
+    """Duality gap for the mixed norm inverse problem.
 
     Parameters
     ----------
@@ -1059,7 +1059,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     G : array, shape (n_sensors, n_dipoles)
         The gain matrix a.k.a. lead field.
     alpha_space : float
-        The spatial regularization parameter. It should be between 0 and 100.
+        The spatial regularization parameter.
     alpha_time : float
         The temporal regularization parameter. The higher it is the smoother
         will be the estimated time series.
