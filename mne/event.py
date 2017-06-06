@@ -913,8 +913,9 @@ class AcqParserFIF(object):
 
     Parameters
     ----------
-    info : Info
-        An instance of Info where the DACQ parameters will be taken from.
+    inst : instance of Raw | instance of Info
+        An instance of Info where the DACQ parameters will be taken from. Can
+        also be an instance of Raw, in which case inst.info will be used.
 
     Attributes
     ----------
@@ -964,7 +965,12 @@ class AcqParserFIF(object):
     _event_vars = _event_vars_compat + ('Name', 'Channel', 'NewBits',
                                         'OldBits', 'NewMask', 'OldMask')
 
-    def __init__(self, info):  # noqa: D102
+    def __init__(self, inst):  # noqa: D102
+        from .io.base import _BaseRaw
+        if isinstance(inst, _BaseRaw):
+            info = inst.info
+        else:
+            info = inst
         acq_pars = info['acq_pars']
         if not acq_pars:
             raise ValueError('No acquisition parameters')
