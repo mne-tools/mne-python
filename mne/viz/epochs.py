@@ -91,9 +91,21 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         times. Note that it is defined with respect to the order
         of epochs such that overlay_times[0] corresponds to epochs[0].
     combine : None | str | callable
-        ...
+        If None, return one figure per pick. If not None, aggregate over
+        channels via the indicated method. If str, must be one of "mean",
+        "std" and "gfp", in which case the average, the standard deviation or
+        the GFP over channels are calculated and plotted.
+        If callable, must accept two inputs: a data array
+        (n_epochs, n_channels, n_times) and an axis parameter, where axis is
+        1. It must return an array (n_epochs, n_times).
     groupby : None | str | dict
-        ...
+        If not None, combine must not be None. In this case, combining happens
+        over channel groups defined by this parameter.
+        If str, must be "type", in which case one figure per channel type is
+        returned (combining within channel types).
+        If a dict, the values must be picks and one figure will be returned
+        for each entry, aggregating over the corresponding pick groups. This
+        is useful for e.g. ROIs.
 
     Returns
     -------
@@ -102,6 +114,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     """
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
+
+    if groupby is not None and combine is None:
+        raise ValueError("If groupby is not None, combine must not be None.")
 
     if (fig is not None or axes is not None) and len(picks) > 1:
         raise ValueError('Only single pick can be drawn to a figure.')
@@ -118,6 +133,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         raise ValueError('Scalings and units must have the same keys.')
 
     ch_types = [channel_type(epochs.info, idx) for idx in picks]
+    if len(set(ch_types)) > 1 and groupby is None and combine is not None:
+        warn("Combining over multiple channel types. "
+             "Please use `groupby`.")
     for ch_type in ch_types:
         if ch_type not in scalings:
             # We know it's not in either scalings or units since keys match

@@ -60,6 +60,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 from sklearn.cluster.spectral import spectral_embedding  # noqa
 from sklearn.metrics.pairwise import rbf_kernel   # noqa
 
+
 def order_func(times, data):
     this_data = data[:, (times > 0.0) & (times < 0.350)]
     this_data /= np.sqrt(np.sum(this_data ** 2, axis=1))[:, np.newaxis]
