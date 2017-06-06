@@ -538,7 +538,7 @@ def _tessellate_sphere_surf(level, rad=1.0):
     ntri = len(tris)
     nn = rr.copy()
     rr *= rad
-    s = dict(rr=rr, np=npt, tris=tris, use_tris=tris, ntri=ntri, nuse=np,
+    s = dict(rr=rr, np=npt, tris=tris, use_tris=tris, ntri=ntri, nuse=npt,
              nn=nn, inuse=np.ones(npt, int))
     return s
 

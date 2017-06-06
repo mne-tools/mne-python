@@ -351,6 +351,7 @@ def test_setup_source_space():
         src_new = setup_source_space('sample', spacing='oct6',
                                      subjects_dir=subjects_dir, add_dist=False)
         write_source_spaces(temp_name, src_new, overwrite=True)
+    assert_equal(src_new[0]['nuse'], 4098)
     _compare_source_spaces(src, src_new, mode='approx', nearest=False)
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx', nearest=False)
