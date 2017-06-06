@@ -152,7 +152,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 def _get_picks_and_types(picks, ch_types, groupby):
     "Helper function for plot_epochs_image: group picks and types"
     if groupby is None:
-        all_picks, all_ch_types = picks, ch_types   # fix!!!!
+        all_picks, all_ch_types = picks, ch_types
     else:
         if groupby == "type":
             all_picks, all_ch_types = list(), list()
@@ -184,12 +184,10 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings):
         names = {"eeg": "EEG", "grad": "Gradiometers", "mag": "Magnetometers"}
         if combine == "gfp":
             combine = lambda D: np.sqrt((D * D).mean(axis=1))
-            vmin = 0
         elif combine == "mean":
             combine = lambda D: np.mean(D, 1)
         elif combine == "std":
             combine = lambda D: np.std(D, 1)
-            vmin = 0
         elif not callable(combine):
             tmplt = ("`combine` must be None, a callable or "
                      "one out of 'mean' or 'gfp`. Got {}.")
@@ -226,6 +224,8 @@ def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=True,
             ax3 = axes[-1]
     n_epochs = len(data)
 
+    if vmin is None and data.min() >= 0:
+        vmin = 0  # for gfp etc
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
