@@ -1020,18 +1020,18 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         active_set[active_set] = as_.copy()
         E += E_tmp
 
-        #if converged:
-        Zd = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
-        gap, p_obj, d_obj, _, screening = dgap_l21l1(
-            M, G, Zd, active_set, alpha_space, alpha_time,
-            phi, phiT, shape, n_orient, d_obj, screening)
-        logger.info("dgap %.2e :: p_obj %f :: d_obj %f :: n_active %d" % (
-            gap, p_obj, d_obj, np.sum(active_set) / n_orient))
-        if gap < tol:
-            logger.info("Convergence reached!\n")
-            break
-        candidates = np.where(screening[::n_orient])[0]
-        logger.info("%d sources kept after screening!\n" % len(candidates))
+        if converged:
+            Zd = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
+            gap, p_obj, d_obj, _, screening = dgap_l21l1(
+                M, G, Zd, active_set, alpha_space, alpha_time,
+                phi, phiT, shape, n_orient, d_obj, screening)
+            logger.info("dgap %.2e :: p_obj %f :: d_obj %f :: n_active %d" % (
+                gap, p_obj, d_obj, np.sum(active_set) / n_orient))
+            if gap < tol:
+                logger.info("Convergence reached!\n")
+                break
+            candidates = np.where(screening[::n_orient])[0]
+            logger.info("%d sources kept after screening!\n" % len(candidates))
 
     if active_set.sum():
         Z = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
