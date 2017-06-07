@@ -29,16 +29,6 @@ label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
-def _check_stcs(stc1, stc2):
-    """Helper to check correctness"""
-    assert_allclose(stc1.times, stc2.times)
-    assert_allclose(stc1.data, stc2.data)
-    assert_allclose(stc1.vertices[0], stc2.vertices[0])
-    assert_allclose(stc1.vertices[1], stc2.vertices[1])
-    assert_allclose(stc1.tmin, stc2.tmin)
-    assert_allclose(stc1.tstep, stc2.tstep)
-
-
 @slow_test
 @testing.requires_testing_data
 def test_mxne_inverse():
