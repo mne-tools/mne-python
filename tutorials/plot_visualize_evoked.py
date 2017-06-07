@@ -111,11 +111,11 @@ evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
 # (:func:`mne.Evoked.plot`) of the joint plot.
 # For an example of specific styling using these ``topomap_args`` and
 # ``ts_args`` arguments, here, topomaps at specific time points
-# (70 and 105 ms) are shown, sensors are not plotted (via an argument
+# (90 and 200 ms) are shown, sensors are not plotted (via an argument
 # forwarded to `plot_topomap`), and the Global Field Power is shown:
 ts_args = dict(gfp=True)
 topomap_args = dict(sensors=False)
-evoked_r_aud.plot_joint(title='right auditory', times=[.07, .105],
+evoked_r_aud.plot_joint(title='right auditory', times=[.09, .20],
                         ts_args=ts_args, topomap_args=topomap_args)
 
 ###############################################################################
@@ -158,7 +158,7 @@ evoked_r_aud.plot_image(picks=picks)
 # Finally we plot the sensor data as a topographical view. In the simple case
 # we plot only left auditory responses, and then we plot them all in the same
 # figure for comparison. Click on the individual plots to open them bigger.
-title = 'MNE sample data (condition : %s)'
+title = 'MNE sample data\n(condition : %s)'
 evoked_l_aud.plot_topo(title=title % evoked_l_aud.comment)
 colors = 'yellow', 'green', 'red', 'blue'
 mne.viz.plot_evoked_topo(evoked, color=colors,

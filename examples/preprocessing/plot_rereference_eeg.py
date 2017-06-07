@@ -33,7 +33,7 @@ picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True, exclude='bads')
 ###############################################################################
 # Apply different EEG referencing schemes and plot the resulting evokeds.
 
-reject = dict(eeg=180e-6, eog=150e-6)
+reject = dict(eog=150e-6)
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
                      picks=picks, reject=reject)
 

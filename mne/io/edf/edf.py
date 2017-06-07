@@ -78,6 +78,12 @@ class RawEDF(BaseRaw):
     It is also possible to retrieve system codes, but no particular effort has
     been made to decode these in MNE.
 
+    For GDF files, the stimulus channel is constructed from the events in the
+    header. You should use keyword ``stim_channel=-1`` to add it at the end of
+    the channel list. The id numbers of overlapping events are simply combined
+    through addition. To get the original events from the header, use method
+    ``raw.get_gdf_events``.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -128,6 +134,7 @@ class RawEDF(BaseRaw):
         annot = self._raw_extras[fi]['annot']
         annotmap = self._raw_extras[fi]['annotmap']
         subtype = self._raw_extras[fi]['subtype']
+        stim_data = self._raw_extras[fi].get('stim_data', None)  # for GDF
 
         if np.size(dtype_byte) > 1:
             if len(np.unique(dtype_byte)) > 1:
@@ -199,9 +206,10 @@ class RawEDF(BaseRaw):
                             else:
                                 ch_data = ch_data[:, :buf_len]
                         elif ci == stim_channel:
-                            if annot and annotmap or tal_channels is not None:
+                            if (annot and annotmap or stim_data is not None or
+                                    tal_channels is not None):
                                 # don't resample, it gets overwritten later
-                                ch_data = np.zeros((len(ch_data, buf_len)))
+                                ch_data = np.zeros((len(ch_data), buf_len))
                             else:
                                 # Stim channel will be interpolated
                                 old = np.linspace(0, 1, n_samps[ci] + 1, True)
@@ -253,10 +261,34 @@ class RawEDF(BaseRaw):
                              ' are not fully supported')
                     stim[n_start:n_stop] += evid
                 data[stim_channel_idx, :] = stim[start:stop]
+            elif stim_data is not None:  # GDF events
+                data[stim_channel_idx, :] = stim_data[start:stop]
             else:
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),
                                       2**17 - 1)
                 data[stim_channel_idx, :] = stim
+
+    def get_gdf_events(self):
+        """Get original events as read from the GDF header.
+
+        The values are returned in form
+        [n_events, pos, typ, chn, dur]
+        where:
+
+        ========  ===================================  =======
+        name      description                          type
+        ========  ===================================  =======
+        n_events  The number of all events             integer
+        pos       Beginnning of the events in samples  array
+        typ       The event identifiers                array
+        chn       The associated channels (0 for all)  array
+        dur       The durations of the events          array
+        ========  ===================================  =======
+        """
+        if self._raw_extras[0]['subtype'].lower() != 'gdf':
+            raise TypeError('get_gdf_events is intended for GDF files only. '
+                            'Use mne.find_events instead.')
+        return self._raw_extras[0]['events']
 
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
@@ -336,8 +368,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         if annot is not None:
             warn('Annotations not yet supported for GDF files.')
         edf_info = _read_gdf_header(fname, stim_channel, exclude)
-        edf_info['annot'] = None
-        edf_info['annotmap'] = None
+        if 'stim_data' not in edf_info and stim_channel == -1:
+            stim_channel = None  # Cannot construct stim channel.
     else:
         raise NotImplementedError(
             'Only GDF, EDF, and BDF files are supported, got %s.' % ext)
@@ -353,7 +385,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         warn('Scaling factor is not defined in following channels:\n' +
              ', '.join(ch_names[i] for i in idx))
         cals[idx] = 1
-
+    if 'stim_data' in edf_info and stim_channel == -1:  # For GDF events.
+        cals = np.append(cals, 1)
     # Check that stimulus channel exists in dataset
     if stim_channel is not None:
         stim_channel = _check_stim_channel(stim_channel, ch_names, include)
@@ -606,10 +639,9 @@ def _read_edf_header(fname, stim_channel, annot, annotmap, exclude):
 def _read_gdf_header(fname, stim_channel, exclude):
     """Read GDF 1.x and GDF 2.x header info."""
     edf_info = dict()
-    # edf_info['annot'] = annot
-    # edf_info['annotmap'] = annotmap
-    edf_info['events'] = []
-
+    events = []
+    edf_info['annot'] = None
+    edf_info['annotmap'] = None
     with open(fname, 'rb') as fid:
 
         version = fid.read(8).decode()
@@ -725,28 +757,24 @@ def _read_gdf_header(fname, stim_channel, exclude):
             etp = header_nbytes + n_records * edf_info['bytes_tot']
             # skip data to go to event table
             fid.seek(etp)
-            etmode = fid.read(1).decode()
-            if etmode != '':
-                etmode = np.fromfile(fid, np.uint8, 1).tolist()
+            etmode = np.fromfile(fid, np.uint8, 1)[0]
+            if etmode in (1, 3):
                 sr = np.fromfile(fid, np.uint8, 3)
                 event_sr = sr[0]
-                events = []
                 for i in range(1, len(sr)):
-                    event_sr = event_sr + sr[i] * 256 ** i
+                    event_sr = event_sr + sr[i] * 2 ** (i * 8)
                 n_events = np.fromfile(fid, np.uint32, 1)[0]
-                pos = np.fromfile(fid, np.uint32, n_events * 4)
-                typ = np.fromfile(fid, np.uint16, n_events * 2)
+                pos = np.fromfile(fid, np.uint32, n_events) - 1  # 1-based inds
+                typ = np.fromfile(fid, np.uint16, n_events)
 
                 if etmode == 3:
-                    chn = np.fromfile(fid, np.uint16, n_events * 2)
-                    dur = np.fromfile(fid, np.uint32, n_events * 4)
-                    events.append([n_events, pos, typ, chn, dur])
+                    chn = np.fromfile(fid, np.uint16, n_events)
+                    dur = np.fromfile(fid, np.uint32, n_events)
                 else:
-                    dur = np.zeros(n_events, dtype=np.uint32)
-                    events.append([n_events, pos, typ])
-
-                edf_info['events'] = events
-                # info['events'] = np.c_[pos, dur, typ]
+                    chn = np.zeros(n_events, dtype=np.int32)
+                    dur = np.ones(n_events, dtype=np.uint32)
+                np.clip(dur, 1, np.inf, out=dur)
+                events = [n_events, pos, typ, chn, dur]
 
         # GDF 2.x
         # ----------------------------------------------------------------------
@@ -949,7 +977,6 @@ def _read_gdf_header(fname, stim_channel, exclude):
             etp = edf_info['data_offset'] + edf_info['n_records'] * \
                 edf_info['bytes_tot']
             fid.seek(etp)  # skip data to go to event table
-            events = []
             etmode = fid.read(1).decode()
             if etmode != '':
                 etmode = np.fromstring(etmode, np.uint8).tolist()[0]
@@ -958,28 +985,54 @@ def _read_gdf_header(fname, stim_channel, exclude):
                     sr = np.fromfile(fid, np.uint8, 3)
                     event_sr = sr[0]
                     for i in range(1, len(sr)):
-                        event_sr = event_sr + sr[i] * 2**i
+                        event_sr = event_sr + sr[i] * 2**(i * 8)
                     n_events = np.fromfile(fid, np.uint32, 1)[0]
                 else:
                     ne = np.fromfile(fid, np.uint8, 3)
                     n_events = ne[0]
                     for i in range(1, len(ne)):
-                        n_events = n_events + ne[i] * 2**i
+                        n_events = n_events + ne[i] * 2**(i * 8)
                     event_sr = np.fromfile(fid, np.float32, 1)[0]
 
-                pos = np.fromfile(fid, np.uint32, n_events * 4)
-                typ = np.fromfile(fid, np.uint16, n_events * 2)
+                pos = np.fromfile(fid, np.uint32, n_events) - 1  # 1-based inds
+                typ = np.fromfile(fid, np.uint16, n_events)
 
                 if etmode == 3:
-                    chn = np.fromfile(fid, np.uint16, n_events * 2)
-                    dur = np.fromfile(fid, np.uint32, n_events * 4)
-                    events.append([n_events, pos, typ, chn, dur])
+                    chn = np.fromfile(fid, np.uint16, n_events)
+                    dur = np.fromfile(fid, np.uint32, n_events)
                 else:
-                    dur = np.zeros(n_events, dtype=np.uint32)
-                    events.append([n_events, pos, typ])
+                    chn = np.zeros(n_events, dtype=np.uint32)
+                    dur = np.ones(n_events, dtype=np.uint32)
+                np.clip(dur, 1, np.inf, out=dur)
+                events = [n_events, pos, typ, chn, dur]
+                edf_info['event_sfreq'] = event_sr
 
-                edf_info['events'] = events
+    if stim_channel == -1 and edf_info['nchan'] not in exclude:
+        if len(events) == 0:
+            warn('No events found. Cannot construct a stimulus channel.')
+            edf_info['events'] = list()
+            return edf_info
+        edf_info['include'].append(edf_info['nchan'])
+        edf_info['n_samps'] = np.append(edf_info['n_samps'], 0)
+        edf_info['units'] = np.append(edf_info['units'], 1)
+        edf_info['ch_names'] += [u'STI 014']
+        edf_info['physical_min'] = np.append(edf_info['physical_min'], 0)
+        edf_info['digital_min'] = np.append(edf_info['digital_min'], 0)
+        vmax = np.max(events[2])
+        edf_info['physical_max'] = np.append(edf_info['physical_max'], vmax)
+        edf_info['digital_max'] = np.append(edf_info['digital_max'], vmax)
 
+        data = np.zeros(np.max(n_samps * n_records))
+        warn_overlap = False
+        for samp, id, dur in zip(events[1], events[2], events[4]):
+            if np.sum(data[samp:samp + dur]) > 0:
+                warn_overlap = True  # Warn only once.
+            data[samp:samp + dur] += id
+        if warn_overlap:
+            warn('Overlapping events detected. Use get_gdf_events for the '
+                 'original events.')
+        edf_info['stim_data'] = data
+    edf_info['events'] = events
     return edf_info
 
 
@@ -1036,6 +1089,8 @@ def _check_stim_channel(stim_channel, ch_names, include):
                 err += ' Closest match is "{}".'.format(casematch[0])
             raise ValueError(err)
     else:
+        if stim_channel is True:
+            stim_channel = -1
         if stim_channel == -1:
             stim_channel = len(include) - 1
         elif stim_channel > len(ch_names):
@@ -1108,6 +1163,12 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
 
     It is also possible to retrieve system codes, but no particular effort has
     been made to decode these in MNE.
+
+    For GDF files, the stimulus channel is constructed from the events in the
+    header. You should use keyword ``stim_channel=-1`` to add it at the end of
+    the channel list. The id numbers of overlapping events are simply combined
+    through addition. To get the original events from the header, use method
+    ``raw.get_gdf_events``.
 
     See Also
     --------

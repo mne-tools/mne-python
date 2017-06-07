@@ -12,7 +12,7 @@ use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches datas
 
 Sample
 ======
-:func:`mne.datasets.sample.data_path()`
+:func:`mne.datasets.sample.data_path`
 
 :ref:`ch_sample_data` is recorded using a 306-channel Neuromag vectorview system.
 
@@ -34,7 +34,7 @@ IO for the `ctf` format as well in addition to the C converter utilities. Please
 
 Auditory
 ^^^^^^^^
-:func:`mne.datasets.brainstorm.bst_raw.data_path()`.
+:func:`mne.datasets.brainstorm.bst_raw.data_path`.
 
 Details about the data can be found at the Brainstorm `auditory dataset tutorial`_.
 
@@ -44,19 +44,19 @@ Details about the data can be found at the Brainstorm `auditory dataset tutorial
 
 Resting state
 ^^^^^^^^^^^^^
-:func:`mne.datasets.brainstorm.bst_resting.data_path()`
+:func:`mne.datasets.brainstorm.bst_resting.data_path`
 
 Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
 Median nerve
 ^^^^^^^^^^^^
-:func:`mne.datasets.brainstorm.bst_raw.data_path()`
+:func:`mne.datasets.brainstorm.bst_raw.data_path`
 
 Details can be found at the Brainstorm `median nerve dataset tutorial`_.
 
 MEGSIM
 ======
-:func:`mne.datasets.megsim.load_data()`
+:func:`mne.datasets.megsim.load_data`
 
 This dataset contains experimental and simulated MEG data. To load data from this dataset, do::
 
@@ -73,7 +73,7 @@ Detailed description of the dataset can be found in the related publication [1]_
 
 SPM faces
 =========
-:func:`mne.datasets.spm_face.data_path()`
+:func:`mne.datasets.spm_face.data_path`
 
 The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perception.
 
@@ -83,7 +83,7 @@ The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perceptio
 
 EEGBCI motor imagery
 ====================
-:func:`mne.datasets.eegbci.load_data()`
+:func:`mne.datasets.eegbci.load_data`
 
 The EEGBCI dataset is documented in [2]_. The data set is available at PhysioNet [3]_.
 The dataset contains 64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+ format.
@@ -110,7 +110,7 @@ to discuss the possibility to add more publicly available datasets.
 
 Somatosensory
 =============
-:func:`mne.datasets.somato.data_path()`
+:func:`mne.datasets.somato.data_path`
 
 This dataset contains somatosensory data with event-related synchronizations
 (ERS) and desynchronizations (ERD).
@@ -121,7 +121,7 @@ This dataset contains somatosensory data with event-related synchronizations
 
 Multimodal
 ==========
-:func:`mne.datasets.multimodal.data_path()`
+:func:`mne.datasets.multimodal.data_path`
 
 This dataset contains a single subject recorded at Otaniemi (Aalto University)
 with auditory, visual, and somatosensory stimuli.
@@ -144,7 +144,7 @@ with MRI images in DICOM format.
 
 Visual 92 object categories
 ===========================
-:func:`mne.datasets.visual_92_categories.data_path()`.
+:func:`mne.datasets.visual_92_categories.data_path`.
 
 This dataset is recorded using a 306-channel Neuromag vectorview system.
 
@@ -160,7 +160,7 @@ Representational Similarity Analysis (RSA).
 
 mTRF Dataset
 ============
-:func:`mne.datasets.mtrf.data_path()`.
+:func:`mne.datasets.mtrf.data_path`.
 
 This dataset contains 128 channel EEG as well as natural speech stimulus features,
 which is also available `here <https://sourceforge.net/projects/aespa/files/>`_.

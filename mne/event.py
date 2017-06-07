@@ -189,7 +189,7 @@ def _read_events_fif(fid, tree):
 
 
 def read_events(filename, include=None, exclude=None, mask=None,
-                mask_type='not_and'):
+                mask_type=None):
     """Read events from fif or text file.
 
     See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
@@ -216,7 +216,8 @@ def read_events(filename, include=None, exclude=None, mask=None,
         If None (default), no masking is performed.
     mask_type: 'and' | 'not_and'
         The type of operation between the mask and the trigger.
-        Choose 'and' for MNE-C masking behavior.
+        Choose 'and' for MNE-C masking behavior. The default ('not_and')
+        will change to 'and' in 0.16.
 
         .. versionadded:: 0.13
 
@@ -422,7 +423,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=0,
-                 uint_cast=False, mask_type='not_and'):
+                 uint_cast=False, mask_type=None):
     """Help find events."""
     if min_samples > 0:
         merge = int(min_samples // 1)
@@ -495,7 +496,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=None, uint_cast=False,
-                mask_type='not_and', verbose=None):
+                mask_type=None, verbose=None):
     """Find events from raw file.
 
     See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
@@ -541,7 +542,8 @@ def find_events(raw, stim_channel=None, output='onset',
 
     mask_type: 'and' | 'not_and'
         The type of operation between the mask and the trigger.
-        Choose 'and' for MNE-C masking behavior.
+        Choose 'and' for MNE-C masking behavior. The default ('not_and')
+        will change to 'and' in 0.16.
 
         .. versionadded:: 0.13
 
@@ -674,6 +676,12 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Mask digital trigger values."""
+    if mask_type is None:
+        mask_type = 'not_and'
+        if mask is not None:
+            warn('The default mask type "not_and" will change to "and" in '
+                 '0.16, set it explicitly to avoid this warning.',
+                 DeprecationWarning)
     if not isinstance(mask_type, string_types) or \
             mask_type not in ('not_and', 'and'):
         raise ValueError('mask_type must be "not_and" or "and", got %s'
@@ -960,7 +968,7 @@ class AcqParserFIF(object):
         acq_pars = info['acq_pars']
         if not acq_pars:
             raise ValueError('No acquisition parameters')
-        self.acq_dict = self._acqpars_dict(acq_pars)
+        self.acq_dict = dict(self._acqpars_gen(acq_pars))
         if 'ERFversion' in self.acq_dict:
             self.compat = False  # DACQ ver >= 3.4
         elif 'ERFncateg' in self.acq_dict:  # probably DACQ < 3.4
@@ -1117,13 +1125,8 @@ class AcqParserFIF(object):
             events[evnum] = evdi
         return events
 
-    def _acqpars_dict(self, acq_pars):
-        """Parse `` info['acq_pars']`` into a dict."""
-        return dict(self._acqpars_gen(acq_pars))
-
     def _acqpars_gen(self, acq_pars):
         """Yield key/value pairs from ``info['acq_pars'])``."""
-        # DACQ variable names always start with one of these
         key, val = '', ''
         for line in acq_pars.split():
             if any([line.startswith(x) for x in self._acq_var_magic]):

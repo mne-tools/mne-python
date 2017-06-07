@@ -1,4 +1,7 @@
-"""Functions for fetching remote datasets."""
+"""Functions for fetching remote datasets.
+
+See `datasets`_ for more information.
+"""
 
 from . import fieldtrip_cmc
 from . import brainstorm

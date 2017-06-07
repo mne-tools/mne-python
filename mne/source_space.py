@@ -1266,7 +1266,7 @@ def _check_spacing(spacing, verbose=None):
             sval = int(sval)
         elif stype == 'spacing':  # spacing
             sval = float(sval)
-    except:
+    except Exception:
         raise ValueError(space_err)
     if stype == 'all':
         logger.info('Include all vertices')

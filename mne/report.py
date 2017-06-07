@@ -1,4 +1,4 @@
-"""Generate html report from MNE database."""
+"""Generate self-contained HTML reports from MNE objects."""
 
 # Authors: Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Mainak Jas <mainak@neuro.hut.fi>
