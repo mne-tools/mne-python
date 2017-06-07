@@ -204,6 +204,30 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
 
 @verbose
 def make_sparse_stc_from_dipoles(dipoles, forward, verbose=None):
+    """Convert a list of spatio-temporal dipoles into a SourceEstimate.
+
+    Parameters
+    ----------
+    dipoles : Dipole | list of instances of Dipole
+        Dipoles to convert.
+    forward : dict
+        Forward operator.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    stc : SourceEstimate
+        The source estimate.
+    """
+    logger.info('Converting dipoles into a SourceEstimate.')
+    if isinstance(dipoles, Dipole):
+        dipoles = [dipoles]
+    if not isinstance(dipoles, list):
+        raise ValueError('Dipoles must be an instance of Dipole or '
+                         'a list of instances of Dipole. '
+                         'Got %s!' % type(dipoles))
     tmin = dipoles[0].times[0]
     tstep = dipoles[0].times[1] - tmin
     X = np.zeros((len(dipoles), len(dipoles[0].times)))
@@ -224,6 +248,7 @@ def make_sparse_stc_from_dipoles(dipoles, forward, verbose=None):
             rh_vertno.append(src[1]['vertno'][idx - n_lh_points])
     vertices = [np.array(lh_vertno), np.array(rh_vertno)]
     stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+    logger.info('[done]')
     return stc
 
 
