@@ -106,7 +106,10 @@ def test_plot_sparse_source_estimates():
                                  opacity=0.5, high_resolution=False)
 
     # Test plotting with mpl.
-    stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
+    stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven', hemi='rh',
+             smoothing_steps=2, subject='sample', backend='matplotlib',
+             spacing='all', initial_time=0.001, colormap='Reds')
+    stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor', hemi='lh',
              smoothing_steps=2, subject='sample', backend='matplotlib',
              spacing='ico2')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir, hemi='both',

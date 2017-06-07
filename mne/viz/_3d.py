@@ -1006,18 +1006,22 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         time_idx = np.argmin(np.abs(times - initial_time))
     fig = plt.figure() if figure is None else figure
     ax = Axes3D(fig)
+
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
+    if spacing == 'all':
+        coords, faces = nib.freesurfer.read_geometry(surf)
+        inuse = slice(None)
+    else:
+        stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
+        surf = _create_surf_spacing(surf, hemi, subject, stype, ico_surf,
+                                    subjects_dir)
+        inuse = surf['vertno']
+        faces = surf['use_tris']
+        coords = surf['rr'][inuse]
+        shape = faces.shape
+        faces = stats.rankdata(faces, 'dense').reshape(shape) - 1
 
-    stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
-    surf = _create_surf_spacing(surf, hemi, subject, stype, ico_surf,
-                                subjects_dir)
-    inuse = surf['vertno']
-    faces = surf['use_tris']
-    coords = surf['rr'][inuse]
     hemi_idx = 0 if hemi == 'lh' else 1
-    shape = faces.shape
-    faces = stats.rankdata(faces, 'dense').reshape(shape) - 1
-
     if hemi_idx == 0:
         data = stc.data[:len(stc.vertices[0]), time_idx:time_idx + 1]
     else:
