@@ -6,7 +6,8 @@ import os.path as op
 
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
+from numpy.testing import (assert_array_almost_equal, assert_equal,
+                           assert_array_equal)
 
 from mne.datasets import testing
 from mne import read_cov, read_forward_solution, read_evokeds
@@ -65,5 +66,12 @@ def test_gamma_map():
                     loose=None, return_residual=False)
     _check_stc(stc, evoked, 85739, 20)
 
+    dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                     xyz_same_gamma=False, update_mode=2,
+                     loose=None, return_residual=False,
+                     return_as_dipoles=True)
+    assert_array_almost_equal(dips[0].times, evoked.times, 5)
+    assert_array_equal(dips[0].pos[0],
+                       forward['src'][0]['rr'][stc.vertices[0][0]])
 
 run_tests_if_main()

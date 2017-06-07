@@ -5,7 +5,8 @@
 
 import os.path as op
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_array_equal)
 from nose.tools import assert_true, assert_equal
 
 from mne.datasets import testing
@@ -90,6 +91,26 @@ def test_mxne_inverse():
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
+    dips, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                         depth=depth, maxit=500, tol=1e-8,
+                         active_set_size=10, return_residual=True,
+                         solver='cd', return_as_dipoles=True)
+    assert_array_almost_equal(dips[0].times, evoked_l21.times, 5)
+    assert_array_equal(dips[0].pos[0],
+                       forward['src'][0]['rr'][stc.vertices[0][0]])
+
+    stc_bcd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                         depth=depth, maxit=500, tol=1e-8, active_set_size=10,
+                         weights=stc_dspm, weights_min=weights_min,
+                         solver='bcd')
+
+    dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                      depth=depth, maxit=500, tol=1e-8,
+                      active_set_size=10, solver='cd', return_as_dipoles=True)
+    assert_array_almost_equal(dips[0].times, evoked_l21.times, 5)
+    assert_array_equal(dips[0].pos[0],
+                       forward['src'][0]['rr'][stc.vertices[0][0]])
+
     # irMxNE tests
     stc = mixed_norm(evoked_l21, forward, cov, alpha,
                      n_mxne_iter=5, loose=loose, depth=depth,
@@ -98,6 +119,15 @@ def test_mxne_inverse():
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
     assert_equal(stc.vertices, [[63152], [79017]])
+
+    dips = mixed_norm(evoked_l21, forward, cov, alpha,
+                      n_mxne_iter=5, loose=loose, depth=depth,
+                      maxit=500, tol=1e-8, active_set_size=10,
+                      solver='cd', return_as_dipoles=True,
+                      return_residual=False)
+    assert_array_almost_equal(dips[0].times, evoked_l21.times, 5)
+    assert_array_equal(dips[0].pos[0],
+                       forward['src'][0]['rr'][stc.vertices[0][0]])
 
     # Do with TF-MxNE for test memory savings
     alpha_space = 60.  # spatial regularization parameter
@@ -110,5 +140,13 @@ def test_mxne_inverse():
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
+    dips, _ = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
+                            loose=loose, depth=depth, maxit=100, tol=1e-4,
+                            tstep=4, wsize=16, window=0.1, weights=stc_dspm,
+                            weights_min=weights_min, return_as_dipoles=True,
+                            return_residual=True)
+    assert_array_almost_equal(dips[0].times, evoked.times, 5)
+    assert_array_equal(dips[0].pos[0],
+                       forward['src'][0]['rr'][stc.vertices[0][0]])
 
 run_tests_if_main()

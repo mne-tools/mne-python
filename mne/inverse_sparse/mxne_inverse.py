@@ -176,7 +176,10 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_estimated,
     if n_dip_per_pos > 1:
         active_idx = np.unique(active_idx // n_dip_per_pos)
 
-    gof = linalg.norm(M_estimated, axis=0) / linalg.norm(M, axis=0) * 100.
+    gof = np.zeros(M_estimated.shape[1])
+    M_norm = linalg.norm(M, axis=0)
+    gof[M_norm > 0.0] = (linalg.norm(M_estimated, axis=0)[M_norm > 0.0] /
+                         M_norm[M_norm > 0.0] * 100.)
 
     dipoles = []
     for k, i_dip in enumerate(active_idx):
