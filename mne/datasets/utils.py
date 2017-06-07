@@ -222,13 +222,14 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
         'hf_sef': 'MNE_DATASETS_HF_SEF_PATH',
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
-        'mtrf': 'MNE_DATASETS_MTRF_PATH'
+        'mtrf': 'MNE_DATASETS_MTRF_PATH',
+        'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH'
     }[name]
 
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.31', misc='0.3')
+    releases = dict(testing='0.33', misc='0.3')
     # And also update the "hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -243,7 +244,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         hf_sef='hf_sef_meg.tar.gz',
         fake='foo.tgz',
         visual_92_categories='MNE-visual_92_categories.tar.gz',
-        mtrf='mTRF_1.5.zip'
+        mtrf='mTRF_1.5.zip',
+        fieldtrip_cmc='SubjectCMC.zip'
     )
     if archive_name is not None:
         archive_names.update(archive_name)
@@ -259,6 +261,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         spm='MNE-spm-face',
         testing='MNE-testing-data',
         visual_92_categories='MNE-visual_92_categories-data',
+        fieldtrip_cmc='MNE-fieldtrip_cmc-data'
     )
     urls = dict(
         brainstorm='https://mne-tools.s3.amazonaws.com/datasets/'
@@ -275,7 +278,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         multimodal='https://ndownloader.figshare.com/files/5999598',
         hf_sef='https://zenodo.org/record/495393/files/hf_sef_meg.tar.gz',
         visual_92_categories='https://mne-tools.s3.amazonaws.com/datasets/%s',
-        mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/%s"
+        mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/%s",
+        fieldtrip_cmc='ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/'
+                      'tutorial/%s'
     )
     hashes = dict(
         brainstorm=None,
@@ -284,11 +289,12 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='1d5da3a809fded1ef5734444ab5bf857',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
         spm='f61041e3f3f2ba0def8a2ca71592cc41',
-        testing='037711ea367c610bd673c11b9b2325ca',
+        testing='37e965395f04ed357605e796fde104f3',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         hf_sef='3c9c5ba590e00586812dd8dca73e2fc3',
         visual_92_categories='46c7e590f4a48596441ce001595d5e58',
         mtrf='273a390ebbc48da2c3184b01a82e4636',
+        fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c'
     )
     folder_origs = dict(  # not listed means None
         misc='mne-misc-data-%s' % releases['misc'],
@@ -369,6 +375,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         logger.info('(please be patient, this can take some time)')
         if name != 'brainstorm':
             extract_path = path
+        if name == 'fieldtrip_cmc':
+            extract_path = folder_path
         if archive_name.endswith('.zip'):
             with zipfile.ZipFile(archive_name, 'r') as ff:
                 ff.extractall(extract_path)
@@ -419,6 +427,7 @@ def has_dataset(name):
     """Check for dataset presence."""
     endswith = {
         'brainstorm': 'MNE_brainstorm-data',
+        'fieldtrip_cmc': 'MNE-fieldtrip_cmc-data',
         'fake': 'foo',
         'misc': 'MNE-misc-data',
         'sample': 'MNE-sample-data',
@@ -444,7 +453,7 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal, hf_sef, mtrf)
+                   eegbci, multimodal, mtrf, hf_sef, mtrf)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -453,6 +462,7 @@ def _download_all_example_data(verbose=True):
     hf_sef.data_path()
     multimodal.data_path()
     mtrf.data_path()
+    fieldtrip_cmc.data_path()
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()

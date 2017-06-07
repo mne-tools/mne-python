@@ -14,6 +14,7 @@ from numpy.testing import assert_array_equal
 import mne
 from mne.datasets import testing
 from mne.beamformer import rap_music
+from mne.cov import regularize
 from mne.utils import run_tests_if_main
 
 
@@ -47,11 +48,12 @@ def _get_data(event_id=1):
                                                surf_ori=True)
 
     noise_cov = mne.read_cov(fname_cov)
+    noise_cov = regularize(noise_cov, evoked.info)
 
     return evoked, noise_cov, forward, forward_surf_ori, forward_fixed
 
 
-def simu_data(evoked, forward, noise_cov, n_dipoles, times):
+def simu_data(evoked, forward, noise_cov, n_dipoles, times, nave=1):
     """Simulate an evoked dataset with 2 sources
 
     One source is put in each hemisphere.
@@ -80,7 +82,7 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
     stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
 
     sim_evoked = mne.simulation.simulate_evoked(forward, stc, evoked.info,
-                                                noise_cov, snr=20,
+                                                noise_cov, nave=nave,
                                                 random_state=rng)
 
     return sim_evoked, stc
@@ -130,28 +132,31 @@ def test_rap_music_simulated():
 
     n_dipoles = 2
     sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
-                                n_dipoles, evoked.times)
+                                n_dipoles, evoked.times, nave=evoked.nave)
     # Check dipoles for fixed ori
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)
-    _check_dipoles(dipoles, forward_fixed, stc, evoked)
+    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
     assert_true(0.98 < dipoles[0].gof.max() < 1.)
     assert_true(dipoles[0].gof.min() >= 0.)
     assert_array_equal(dipoles[0].gof, dipoles[1].gof)
 
+    nave = 100000  # add a tiny amount of noise to the simulated evokeds
+    sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
+                                n_dipoles, evoked.times, nave=nave)
     dipoles, residual = rap_music(sim_evoked, forward_fixed, noise_cov,
                                   n_dipoles=n_dipoles, return_residual=True)
-    _check_dipoles(dipoles, forward_fixed, stc, evoked, residual)
+    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
     # Check dipoles for free ori
     dipoles, residual = rap_music(sim_evoked, forward, noise_cov,
                                   n_dipoles=n_dipoles, return_residual=True)
-    _check_dipoles(dipoles, forward_fixed, stc, evoked, residual)
+    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
     # Check dipoles for free surface ori
     dipoles, residual = rap_music(sim_evoked, forward_surf_ori, noise_cov,
                                   n_dipoles=n_dipoles, return_residual=True)
-    _check_dipoles(dipoles, forward_fixed, stc, evoked, residual)
+    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
 
 @testing.requires_testing_data

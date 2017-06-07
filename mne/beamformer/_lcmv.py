@@ -17,13 +17,20 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, estimate_rank
 from .. import Epochs
 from ..externals import six
 
 
 def _reg_pinv(x, reg):
     """Compute a regularized pseudoinverse of a square array."""
+    if reg == 0:
+        covrank = estimate_rank(x, tol='auto', norm=False,
+                                return_singular=False)
+        if covrank < x.shape[0]:
+            warn('Covariance matrix is rank-deficient, but no regularization '
+                 'is done.')
+
     # This adds it to the diagonal without using np.eye
     d = reg * np.trace(x) / len(x)
     x.flat[::x.shape[0] + 1] += d

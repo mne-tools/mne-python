@@ -325,34 +325,33 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
        96-110. doi:10.1016/j.neuroimage.2013.10.067.
     """
-    # If SlidingEstimator, loop across estimators
-    if hasattr(estimator, 'estimators_'):
-        coef = list()
-        for est in estimator.estimators_:
-            coef.append(get_coef(est, attr, inverse_transform))
-        return np.transpose(coef)
+    # Get the coefficients of the last estimator in case of nested pipeline
+    est = estimator
+    while hasattr(est, 'steps'):
+        est = est.steps[-1][1]
 
+    # If SlidingEstimator, loop across estimators
+    if hasattr(est, 'estimators_'):
+        coef = list()
+        for this_est in est.estimators_:
+            coef.append(get_coef(this_est, attr, inverse_transform))
+        coef = np.transpose(coef)
+    elif not hasattr(est, attr):
+        raise ValueError('This estimator does not have a %s '
+                         'attribute.' % attr)
     else:
-        # Get the coefficients of the last estimator in case of nested pipeline
-        est = estimator
-        while hasattr(est, 'steps'):
-            est = est.steps[-1][1]
-        if not hasattr(est, attr):
-            raise ValueError('This estimator does not have a %s '
-                             'attribute.' % attr)
         coef = getattr(est, attr)
 
-        # inverse pattern e.g. to get back physical units
-        if inverse_transform:
-            if not hasattr(estimator, 'steps'):
-                raise ValueError('inverse_transform can only be applied onto '
-                                 'pipeline estimators.')
-
-            # The inverse_transform parameter will call this method on any
-            # estimator contained in the pipeline, in reverse order.
-            for inverse_func in _get_inverse_funcs(estimator)[::-1]:
-                coef = inverse_func([coef])[0]
-        return coef
+    # inverse pattern e.g. to get back physical units
+    if inverse_transform:
+        if not hasattr(estimator, 'steps') and not hasattr(est, 'estimators_'):
+            raise ValueError('inverse_transform can only be applied onto '
+                             'pipeline estimators.')
+        # The inverse_transform parameter will call this method on any
+        # estimator contained in the pipeline, in reverse order.
+        for inverse_func in _get_inverse_funcs(estimator)[::-1]:
+            coef = inverse_func(np.array([coef]))[0]
+    return coef
 
 
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
@@ -364,67 +363,57 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     ----------
     estimator : estimator object implementing 'fit'
         The object to use to fit the data.
-
     X : array-like, shape (n_samples, n_dimensional_features,)
         The data to fit. Can be, for example a list, or an array at least 2d.
-
     y : array-like, shape (n_samples, n_targets,)
         The target variable to try to predict in the case of
         supervised learning.
-
     groups : array-like, with shape (n_samples,)
         Group labels for the samples used while splitting the dataset into
         train/test set.
-
     scoring : string, callable | None
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
-
     cv : int, cross-validation generator | iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
-          - None, to use the default 3-fold cross validation,
-          - integer, to specify the number of folds in a `(Stratified)KFold`,
-          - An object to be used as a cross-validation generator.
-          - An iterable yielding train, test splits.
+
+        - None, to use the default 3-fold cross validation,
+        - integer, to specify the number of folds in a ``(Stratified)KFold``,
+        - An object to be used as a cross-validation generator.
+        - An iterable yielding train, test splits.
 
         For integer/None inputs, if the estimator is a classifier and ``y`` is
-        either binary or multiclass, :class:`StratifiedKFold` is used. In all
-        other cases, :class:`KFold` is used.
-
+        either binary or multiclass,
+        :class:`sklearn.model_selection.StratifiedKFold` is used. In all
+        other cases, :class:`sklearn.model_selection.KFold` is used.
     n_jobs : integer, optional
         The number of CPUs to use to do the computation. -1 means
         'all CPUs'.
-
     verbose : integer, optional
         The verbosity level.
-
     fit_params : dict, optional
         Parameters to pass to the fit method of the estimator.
-
     pre_dispatch : int, or string, optional
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched
         than CPUs can process. This parameter can be:
 
-            - None, in which case all the jobs are immediately
-              created and spawned. Use this for lightweight and
-              fast-running jobs, to avoid delays due to on-demand
-              spawning of the jobs
-
-            - An int, giving the exact number of total jobs that are
-              spawned
-
-            - A string, giving an expression as a function of n_jobs,
-              as in '2*n_jobs'
+        - None, in which case all the jobs are immediately
+          created and spawned. Use this for lightweight and
+          fast-running jobs, to avoid delays due to on-demand
+          spawning of the jobs
+        - An int, giving the exact number of total jobs that are
+          spawned
+        - A string, giving an expression as a function of n_jobs,
+          as in '2*n_jobs'
 
     Returns
     -------
     scores : array of float, shape (n_splits,) | shape (n_splits, n_scores)
         Array of scores of the estimator for each run of the cross validation.
-
     """
     # This code is copied from sklearn
 

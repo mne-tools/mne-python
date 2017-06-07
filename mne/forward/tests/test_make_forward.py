@@ -207,7 +207,8 @@ def test_make_forward_solution_kit():
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python."""
     fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
-                                   fname_bem, mindist=5.0, eeg=True, meg=True)
+                                   fname_bem, mindist=5.0, eeg=True, meg=True,
+                                   n_jobs=-1)
     assert_true(isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
@@ -333,10 +334,10 @@ def test_make_forward_dipole():
     # Now simulate evoked responses for each of the test dipoles,
     # and fit dipoles to them (sphere model, MEG and EEG)
     times, pos, amplitude, ori, gof = [], [], [], [], []
-    snr = 20.  # add a tiny amount of noise to the simulated evokeds
+    nave = 100  # add a tiny amount of noise to the simulated evokeds
     for s in stc:
         evo_test = simulate_evoked(fwd, s, info, cov,
-                                   snr=snr, random_state=rng)
+                                   nave=nave, random_state=rng)
         # evo_test.add_proj(make_eeg_average_ref_proj(evo_test.info))
         dfit, resid = fit_dipole(evo_test, cov, sphere, None)
         times += dfit.times.tolist()

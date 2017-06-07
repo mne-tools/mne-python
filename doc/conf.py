@@ -152,13 +152,11 @@ html_theme_options = {
     'navbar_class': "navbar",
     'bootstrap_version': "3",  # default
     'navbar_links': [
-        ("Get started", "getting_started"),
-        ("Tutorials", "tutorials"),
-        ("Examples", "auto_examples/index"),
+        ("Install", "getting_started"),
+        ("Documentation", "documentation"),
         ("API", "python_reference"),
-        ("Manual", "manual/index"),
-        ("Contribute", "contribute_to_mne"),
-        ("FAQ", "faq"),
+        ("Examples", "auto_examples/index"),
+        ("Contribute", "contributing"),
     ],
     }
 
@@ -310,7 +308,7 @@ sphinx_gallery_conf = {
     'gallery_dirs': gallery_dirs,
     'find_mayavi_figures': find_mayavi_figures,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
-    'mod_example_dir': 'generated',
+    'backreferences_dir': 'generated',
     }
 
 numpydoc_class_members_toctree = False

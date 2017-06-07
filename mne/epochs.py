@@ -14,7 +14,6 @@ from copy import deepcopy
 import json
 import os.path as op
 from distutils.version import LooseVersion
-from numbers import Integral
 
 import numpy as np
 import scipy
@@ -43,7 +42,7 @@ from .fixes import _get_args
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, check_random_state, warn, _pl,
+                    _time_mask, check_random_state, warn, _pl, _ensure_int,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
@@ -83,6 +82,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
 
     # write events out after getting data to ensure bad events are dropped
     data = epochs.get_data()
+    assert data.dtype == 'float64'
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
     mapping_ = ';'.join([k + ':' + str(v) for k, v in
@@ -222,23 +222,21 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         # check out event_id dict
         if event_id is None:  # convert to int to make typing-checks happy
-            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
-        elif isinstance(event_id, dict):
-            if not all(isinstance(v, Integral) for v in event_id.values()):
-                raise ValueError('Event IDs must be of type integer')
-            if not all(isinstance(k, string_types) for k in event_id):
-                raise ValueError('Event names must be of type str')
-            event_id = deepcopy(event_id)
+            event_id = list(np.unique(events[:, 2]))
+        if isinstance(event_id, dict):
+            for key in event_id.keys():
+                if not isinstance(key, string_types):
+                    raise TypeError('Event names must be of type str, '
+                                    'got %s (%s)' % (key, type(key)))
+            event_id = dict((key, _ensure_int(val, 'event_id[%s]' % key))
+                            for key, val in event_id.items())
         elif isinstance(event_id, list):
-            if not all(isinstance(v, Integral) for v in event_id):
-                raise ValueError('Event IDs must be of type integer')
+            event_id = [_ensure_int(v, 'event_id[%s]' % vi)
+                        for vi, v in enumerate(event_id)]
             event_id = dict(zip((str(i) for i in event_id), event_id))
-        elif isinstance(event_id, Integral):
-            event_id = {str(event_id): event_id}
         else:
-            raise ValueError('event_id must be dict or int.')
-        for k, v in event_id.items():
-            event_id[k] = int(v)  # make sure values are of type int
+            event_id = _ensure_int(event_id, 'event_id')
+            event_id = {str(event_id): event_id}
         self.event_id = event_id
         del event_id
 
@@ -1523,6 +1521,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # bad epochs anyway
         self.drop_bad()
         total_size = self[0].get_data().nbytes * len(self)
+        total_size /= 2  # 64bit data converted to 32bit before writing.
         n_parts = int(np.ceil(total_size / float(split_size)))
         epoch_idxs = np.array_split(np.arange(len(self)), n_parts)
 
@@ -2666,6 +2665,9 @@ def _concatenate_epochs(epochs_list, with_data=True):
     drop_log = deepcopy(out.drop_log)
     event_id = deepcopy(out.event_id)
     selection = out.selection
+    # offset is the last epoch + tmax + 10 second
+    events_offset = (np.max(out.events[:, 0]) +
+                     int((10 + tmax) * epochs.info['sfreq']))
     for ii, epochs in enumerate(epochs_list[1:]):
         _compare_epochs_infos(epochs.info, info, ii)
         if not np.allclose(epochs.times, epochs_list[0].times):
@@ -2686,7 +2688,14 @@ def _concatenate_epochs(epochs_list, with_data=True):
 
         if with_data:
             data.append(epochs.get_data())
-        events.append(epochs.events)
+        evs = epochs.events.copy()
+        # add offset
+        evs[:, 0] += events_offset
+        # Update offset for the next iteration.
+        # offset is the last epoch + tmax + 10 second
+        events_offset += (np.max(evs[:, 0]) +
+                          int((10 + tmax) * epochs.info['sfreq']))
+        events.append(evs)
         selection = np.concatenate((selection, epochs.selection))
         drop_log.extend(epochs.drop_log)
         event_id.update(epochs.event_id)
@@ -2700,7 +2709,6 @@ def _concatenate_epochs(epochs_list, with_data=True):
 def _finish_concat(info, data, events, event_id, tmin, tmax, baseline,
                    selection, drop_log, verbose):
     """Finish concatenation for epochs not read from disk."""
-    events[:, 0] = np.arange(len(events))  # arbitrary after concat
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(
         info, data, events, event_id, tmin, tmax, baseline=baseline,

@@ -8,6 +8,7 @@ from __future__ import print_function
 # License: Simplified BSD
 
 from functools import partial
+from numbers import Integral
 
 import numpy as np
 
@@ -91,8 +92,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     if isinstance(inst, BaseRaw):
         fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
                                 stop=stop, show=show, title=title,
-                                block=block,
-                                show_first_samp=show_first_samp)
+                                block=block, show_first_samp=show_first_samp)
     elif isinstance(inst, BaseEpochs):
         fig = _plot_sources_epochs(ica, inst, picks, exclude, start=start,
                                    stop=stop, show=show, title=title,
@@ -199,7 +199,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # if no picks given - plot the first 5 components
     picks = list(range(min(5, ica.n_components_))) if picks is None else picks
-    picks = [picks] if isinstance(picks, int) else picks
+    picks = [picks] if isinstance(picks, Integral) else picks
     if axes is None:
         fig, axes = _create_properties_layout(figsize=figsize)
     else:
@@ -820,6 +820,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     params['fig_proj'] = None
     params['event_times'] = None
+    params['butterfly'] = False
     params['update_fun']()
     params['plot_fun']()
     try:

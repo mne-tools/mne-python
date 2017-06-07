@@ -358,8 +358,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         to compute the MEG field map. The default value is ``'helmet'``
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head
-        coords and in meters. The default is ``'auto'``, which means
-        a head-digitization-based origin fit.
+        coords and in meters. Can be ``'auto'``, which means
+        a head-digitization-based origin fit. Default is ``(0., 0., 0.04)``.
 
         .. versionadded:: 0.11
 

@@ -1,7 +1,7 @@
 """
-==========================
-Decoding sensor space data
-==========================
+=================================
+Decoding sensor space data (MVPA)
+=================================
 
 Decoding, a.k.a MVPA or supervised machine learning applied to MEG
 data in sensor space. Here the classifier is applied to every time
@@ -23,6 +23,8 @@ data_path = sample.data_path()
 
 plt.close('all')
 
+# sphinx_gallery_thumbnail_number = 4
+
 ###############################################################################
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -35,7 +37,7 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 # The subsequent decoding analyses only capture evoked responses, so we can
 # low-pass the MEG data.
-raw.filter(None, 40.)
+raw.filter(None, 40., fir_design='firwin')
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
@@ -122,7 +124,7 @@ plt.show()
 
 # Plot the full matrix
 fig, ax = plt.subplots(1, 1)
-im = ax.imshow(scores, interpolation='nearest', origin='lower', cmap='RdBu_r',
+im = ax.imshow(scores, interpolation='lanczos', origin='lower', cmap='RdBu_r',
                extent=epochs.times[[0, -1, 0, -1]], vmin=0., vmax=1.)
 ax.set_xlabel('Testing Time (s)')
 ax.set_ylabel('Training Time (s)')

@@ -62,6 +62,7 @@ Classes
    decoding.ReceptiveField
    decoding.Scaler
    decoding.SlidingEstimator
+   decoding.SPoC
    decoding.GeneralizingEstimator
    realtime.RtEpochs
    realtime.RtClient
@@ -120,6 +121,7 @@ Functions:
   :template: function.rst
 
   anonymize_info
+  read_events_eeglab
   read_raw_artemis123
   read_raw_bti
   read_raw_cnt
@@ -883,6 +885,8 @@ Functions:
    dics_epochs
    dics_source_power
    rap_music
+   tf_dics
+   tf_lcmv
 
 :py:mod:`mne`:
 
@@ -1130,6 +1134,7 @@ Classes:
    UnsupervisedSpatialFilter
    Vectorizer
    ReceptiveField
+   TimeDelayingRidge
    SlidingEstimator
    GeneralizingEstimator
 
@@ -1142,6 +1147,7 @@ Functions that assist with decoding and model fitting:
    :template: function.rst
 
    compute_ems
+   cross_val_multiscore
    get_coef
 
 Realtime

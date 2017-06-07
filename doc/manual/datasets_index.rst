@@ -40,7 +40,7 @@ Details about the data can be found at the Brainstorm `auditory dataset tutorial
 
 .. topic:: Examples
 
-    * :ref:`Brainstorm auditory dataset tutorial<sphx_glr_auto_examples_datasets_plot_brainstorm_data.py>`: Partially replicates the original Brainstorm tutorial.
+    * :ref:`Brainstorm auditory dataset tutorial <sphx_glr_auto_examples_datasets_plot_brainstorm_data.py>`: Partially replicates the original Brainstorm tutorial.
 
 Resting state
 ^^^^^^^^^^^^^
@@ -172,7 +172,7 @@ More details and a description of the package can be found in [5]_.
 
 .. topic:: Examples
 
-    * :ref:`Receptive Field Estimation and Prediction <_sphx_glr_auto_examples_decoding_plot_receptive_field.py>`: Partially replicates the results from Crosse et al. (2016).
+    * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field.py>`: Partially replicates the results from Crosse et al. (2016).
 
 References
 ==========

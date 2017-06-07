@@ -6,8 +6,8 @@
 
 .. _decoding:
 
-Decoding
-########
+Decoding in MNE
+###############
 
 For maximal compatibility with the Scikit-learn package, we follow the same API. Each estimator implements a ``fit``, a ``transform`` and a ``fit_transform`` method. In some cases, they also implement an ``inverse_transform`` method. For more details, visit the Scikit-learn page.
 
@@ -75,6 +75,17 @@ Large entries in the diagonal matrix corresponds to a spatial filter which gives
 
     The winning entry of the Grasp-and-lift EEG competition in Kaggle uses the CSP implementation in MNE. It was featured as a `script of the week`_.
 
+
+Source Power Comodulation (SPoC)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Source Power Comodulation (SPoC) [1]_ allows to identify the composition of orthogonal spatial filters that maximally correlate with a continuous target.
+
+SPoC can be seen as an extension of the CSP where the target is driven by a continuous variable rather than a discrete variable. Typical applications include extraction of motor patterns using EMG power or audio patterns using sound envelope.
+
+.. topic:: Examples
+
+    * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_spoc_CMC.py`
+
 xDAWN
 ^^^^^
 Xdawn is a spatial filtering method designed to improve the signal to signal + noise ratio (SSNR) of the ERP responses. Xdawn was originally  designed for P300 evoked potential by enhancing the target response with respect to the non-target response. The implementation in MNE-Python is a generalization to any type of ERP.
@@ -127,7 +138,7 @@ Decoding over time
 
 This strategy consists in fitting a multivariate predictive model on each
 time instant and evaluating its performance at the same instant on new
-epochs. The :class:`decoding.SlidingEstimator` will take as input a
+epochs. The :class:`mne.decoding.SlidingEstimator` will take as input a
 pair of features :math:`X` and targets :math:`y`, where :math:`X` has
 more than 2 dimensions. For decoding over time the data :math:`X`
 is the epochs data of shape n_epochs x n_channels x n_times. As the
@@ -158,10 +169,10 @@ correspond to decoding the patterns of brain activity recorded at distinct time
 instants.
 
 The object to for Temporal Generalization is
-:class:`decoding.GeneralizingEstimator`. It expects as input :math:`X` and
-:math:`y` (similarly to :class:`decoding.SlidingEstimator`) but, when generate
+:class:`mne.decoding.GeneralizingEstimator`. It expects as input :math:`X` and
+:math:`y` (similarly to :class:`mne.decoding.SlidingEstimator`) but, when generate
 predictions from each model for all time instants. The class
-:class:`decoding.GeneralizingEstimator` is generic and will treat the last
+:class:`mne.decoding.GeneralizingEstimator` is generic and will treat the last
 dimension as the one to be used for generalization testing. For convenience,
 here, we refer to it different tasks. If :math:`X` corresponds to epochs data
 then the last dimension is time.
@@ -182,3 +193,8 @@ Source space decoding is also possible, but because the number of features can b
     * :ref:`sphx_glr_auto_examples_decoding_plot_decoding_spatio_temporal_source.py`
 
 .. _script of the week: http://blog.kaggle.com/2015/08/12/july-2015-scripts-of-the-week/
+
+References
+==========
+
+.. [1] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M., Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for relating the amplitude of neuronal oscillations to behaviorally relevant parameters. NeuroImage, 86, 111-122.

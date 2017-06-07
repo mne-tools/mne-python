@@ -15,6 +15,8 @@ from scipy import sparse
 from ..externals.six import string_types
 
 from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
+from ..utils import _check_preload
+
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info
@@ -276,7 +278,7 @@ class SetChannelsMixin(object):
         .. note:: In case of average reference (ref_channels=None), the
                   reference is added as an SSP projector and it is not applied
                   automatically. For it to take effect, apply with method
-                  :meth:`apply_proj <mne.io.proj.ProjMixin.apply_proj>`.
+                  :meth:`apply_proj <mne.io.Raw.apply_proj>`.
                   For custom reference (ref_channel is not None), this method
                   operates in place.
 
@@ -502,8 +504,9 @@ class SetChannelsMixin(object):
         title : str | None
             Title for the figure. If None (default), equals to ``'Sensor
             positions (%s)' % ch_type``.
-        show_names : bool
-            Whether to display all channel names. Defaults to False.
+        show_names : bool | array of str
+            Whether to display all channel names. If an array, only the channel
+            names in the array are shown. Defaults to False.
         ch_groups : 'position' | array of shape (ch_groups, picks) | None
             Channel groups for coloring the sensors. If None (default), default
             coloring scheme is used. If 'position', the sensors are divided
@@ -575,7 +578,7 @@ class UpdateChannelsMixin(object):
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
-                   fnirs=False, include=[], exclude='bads', selection=None):
+                   fnirs=False, include=(), exclude='bads', selection=None):
         """Pick some channels by type and names.
 
         Parameters
@@ -724,7 +727,6 @@ class UpdateChannelsMixin(object):
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
-        from ..io.base import _check_preload
         from ..time_frequency import AverageTFR
 
         _check_preload(self, 'adding or dropping channels')

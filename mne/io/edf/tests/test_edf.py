@@ -133,7 +133,8 @@ def test_edf_data():
         fid_out.write(rbytes[:236])
         fid_out.write(bytes('-1      '.encode()))
         fid_out.write(rbytes[244:])
-    read_raw_edf(broken_fname, preload=True)
+    raw = read_raw_edf(broken_fname, preload=True)
+    read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True)
 
 
 @testing.requires_testing_data

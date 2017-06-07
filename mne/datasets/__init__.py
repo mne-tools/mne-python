@@ -1,5 +1,6 @@
 """Functions for fetching remote datasets."""
 
+from . import fieldtrip_cmc
 from . import brainstorm
 from . import visual_92_categories
 from . import eegbci

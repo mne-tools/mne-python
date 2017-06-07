@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-========================================
-Background information on configurations
-========================================
+======================
+Configuring MNE python
+======================
 
 This tutorial gives a short introduction to MNE configurations.
 """

@@ -148,7 +148,10 @@ data = list()
 for ai, asig in enumerate(seg.analogsignals):
     # Since the data does not contain channel names, channel indices are used.
     ch_names.append('Neo %02d' % (ai + 1,))
-    data.append(asig.rescale('V').magnitude[:, 0])
+    # We need the ravel() here because Neo < 0.5 gave 1D, Neo 0.5 gives
+    # 2D (but still a single channel).
+    data.append(asig.rescale('V').magnitude.ravel())
+
 data = np.array(data, float)
 
 sfreq = int(seg.analogsignals[0].sampling_rate.magnitude)

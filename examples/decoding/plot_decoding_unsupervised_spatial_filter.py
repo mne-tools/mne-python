@@ -34,7 +34,7 @@ tmin, tmax = -0.1, 0.3
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 20)
+raw.filter(1, 20, fir_design='firwin')
 events = mne.read_events(event_fname)
 
 picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,

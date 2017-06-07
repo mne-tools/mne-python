@@ -141,6 +141,10 @@ def test_kit2fiff_gui():
             ui, frame = mne.gui.kit2fiff()
             assert_equal(frame.model.stim_threshold, 10.)
             assert_equal(frame.model.stim_chs, 'save this!')
+
+            frame.model.markers.mrk1.file = mrk_pre_path
+            frame.marker_panel.mrk1_obj.label = True
+            frame.marker_panel.mrk1_obj.label = False
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
         del os.environ['_MNE_FAKE_HOME_DIR']

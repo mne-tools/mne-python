@@ -1,8 +1,8 @@
 .. _cookbook:
 
-========
-Cookbook
-========
+==========================
+The typical M/EEG workflow
+==========================
 
 .. contents:: Contents
    :local:
@@ -300,7 +300,7 @@ BEM model meshes are correctly positioned using *e.g.*, :class:`mne.Report`.
           anatomical (geometrical) information only and thus remain
           identical across different MEG studies.
 
-.. note:: If you use custom head models you might need to set the ``ico=None`` 
+.. note:: If you use custom head models you might need to set the ``ico=None``
           parameter to ``None`` and skip subsampling of the surface.
 
 

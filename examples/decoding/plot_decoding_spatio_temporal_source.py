@@ -44,7 +44,7 @@ event_id = dict(aud_r=2, vis_r=4)  # load contra-lateral conditions
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(2, None)  # replace baselining with high-pass
+raw.filter(2, None, fir_design='firwin')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 # Set up pick list: MEG - bad channels (modify to your needs)
