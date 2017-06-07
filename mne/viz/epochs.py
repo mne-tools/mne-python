@@ -118,9 +118,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if groupby is not None and combine is None:
         raise ValueError("If groupby is not None, combine must not be None.")
 
-    if (fig is not None or axes is not None) and len(picks) > 1:
-        raise ValueError('Only single pick can be drawn to a figure.')
-
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
@@ -128,6 +125,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             picks = picks[:5]
     else:
         picks = np.atleast_1d(picks)
+
+    if (fig is not None or axes is not None) and len(picks) > 1:
+        raise ValueError('Only single pick can be drawn to a figure.')
 
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
@@ -151,7 +151,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     all_picks, all_ch_types = _get_picks_and_types(picks, ch_types, groupby)
 
     # combine/construct list for plotting
-#    print('hu', all_picks)
     to_plot_list = _get_to_plot(epochs, combine, all_picks, all_ch_types,
                                 scalings)  # data, ch_type, evoked, name
 
