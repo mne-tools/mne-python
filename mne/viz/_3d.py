@@ -27,7 +27,8 @@ from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
-from ..source_space import SourceSpaces
+from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
+
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info, mesh_edges)
@@ -971,15 +972,15 @@ def _handle_time(time_label, time_unit, times):
 def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   colormap='auto', time_label='auto', smoothing_steps=10,
                   subjects_dir=None, views='lat', clim='auto', figure=None,
-                  initial_time=0, time_unit='s', background='black'):
+                  initial_time=0, time_unit='s', background='black',
+                  spacing='oct5'):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D, art3d
     from matplotlib import cm
     import nibabel as nib
-    from scipy import sparse
-    from ..source_estimate import (_morph_buffer, grade_to_vertices,
-                                   _get_subject_sphere_tris)
+    from scipy import sparse, stats
+    from ..source_estimate import _morph_buffer, _get_subject_sphere_tris
     if hemi not in ['lh', 'rh']:
         raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "
                          "Got %s." % hemi)
@@ -1006,8 +1007,16 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     fig = plt.figure() if figure is None else figure
     ax = Axes3D(fig)
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
-    coords, faces = nib.freesurfer.read_geometry(surf)
+
+    stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
+    surf = _create_surf_spacing(surf, hemi, subject, stype, ico_surf,
+                                subjects_dir)
+    inuse = surf['vertno']
+    faces = surf['use_tris']
+    coords = surf['rr'][inuse]
     hemi_idx = 0 if hemi == 'lh' else 1
+    shape = faces.shape
+    faces = stats.rankdata(faces, 'dense').reshape(shape) - 1
 
     if hemi_idx == 0:
         data = stc.data[:len(stc.vertices[0]), time_idx:time_idx + 1]
@@ -1015,34 +1024,33 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
-    nearest = grade_to_vertices(subject, None, subjects_dir)[hemi_idx]
     tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
-
     e = mesh_edges(tris)
     e.data[e.data == 2] = 1
     n_vertices = e.shape[0]
     maps = sparse.identity(n_vertices).tocsr()
     e = e + sparse.eye(n_vertices, n_vertices)
     array_plot = _morph_buffer(data, vertices, e, smoothing_steps, n_verts,
-                               nearest, maps)
-    vmax = np.max(array_plot)
+                               inuse, maps)
 
+    vmax = np.max(array_plot)
     colors = array_plot / vmax
     cmap = cm.get_cmap(colormap)
     greymap = cm.get_cmap('Greys')
-    polyc = ax.plot_trisurf(*coords.T, triangles=faces, antialiased=False)
 
-    curv = nib.freesurfer.read_morph_data(op.join(subjects_dir, subject,
-                                                  'surf', '%s.curv' % hemi))
+    curv = nib.freesurfer.read_morph_data(
+        op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
     curv = np.clip(np.array(curv > 0, np.int), 0.2, 0.8)
-    facecolors = art3d.PolyCollection.get_facecolors(polyc)
+
     transp = 0.8
 
+    polyc = ax.plot_trisurf(*coords.T, triangles=faces, antialiased=False)
     color_ave = np.zeros(len(faces))
     curv_ave = np.zeros(len(faces))
     for idx, face in enumerate(faces):
         color_ave[idx] = np.mean(colors[face])
         curv_ave[idx] = np.mean(curv[face])
+    facecolors = art3d.PolyCollection.get_facecolors(polyc)
 
     to_blend = color_ave > ctrl_pts[0] / vmax
     facecolors[to_blend, :3] = ((1 - transp) *
@@ -1056,7 +1064,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     ax.set_ylim(-80, 80)
     ax.set_zlim(-80, 80)
     ax.set_aspect('equal')
-    ax.disable_mouse_rotation()
     with warnings.catch_warnings(record=True):  # deprecation warn in mpl >= 2
         ax.set_axis_bgcolor(background)
     plt.show()
@@ -1070,7 +1077,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
-                          time_unit='s', backend='auto'):
+                          time_unit='s', backend='auto', spacing='oct5'):
     """Plot SourceEstimates with PySurfer.
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1082,8 +1089,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir (within the same Python session).
 
     By default this function uses Mayavi to plot the source estimates. If
-    Mayavi is not installed, the plotting is done with matplotlib (extremely
-    slow, interactivity disabled).
+    Mayavi is not installed, the plotting is done with matplotlib (much slower,
+    decimated source space by default).
 
     Parameters
     ----------
@@ -1172,6 +1179,17 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Which backend to use. If ``'auto'`` (default), tries to plot with
         mayavi, but resorts to matplotlib if mayavi is not available.
 
+        .. versionadded:: 0.15.0
+
+    spacing : str
+        The spacing to use for the source space. Can be ``'ico#'`` for a
+        recursively subdivided icosahedron, ``'oct#'`` for a recursively
+        subdivided octahedron, or ``'all'`` for all points. In general, you can
+        speed up the plotting by selecting a sparser source space. Has no
+        effect with mayavi backend. Defaults  to 'oct5'.
+
+        .. versionadded:: 0.15.0
+
     Returns
     -------
     brain : Brain
@@ -1204,7 +1222,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              smoothing_steps=smoothing_steps,
                              subjects_dir=subjects_dir, views=views, clim=clim,
                              figure=figure, initial_time=initial_time,
-                             time_unit=time_unit, background=background)
+                             time_unit=time_unit, background=background,
+                             spacing=spacing)
     import surfer
     from surfer import Brain, TimeViewer
     surfer_version = LooseVersion(surfer.__version__)

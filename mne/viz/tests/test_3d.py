@@ -107,7 +107,8 @@ def test_plot_sparse_source_estimates():
 
     # Test plotting with mpl.
     stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
-             smoothing_steps=2, subject='sample', backend='matplotlib')
+             smoothing_steps=2, subject='sample', backend='matplotlib',
+             spacing='ico2')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir, hemi='both',
                   subject='sample', backend='matplotlib')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,

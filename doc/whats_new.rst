@@ -63,6 +63,8 @@ Changelog
 
     - Add IO support for EGI MFF format by `Jaakko Leppakangas`_  and `ramonapariciog`_
 
+    - Add option to use matplotlib backend when plotting with :func:`mne.viz.plot_source_estimates` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
