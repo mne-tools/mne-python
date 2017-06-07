@@ -1068,7 +1068,9 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     ax.set_ylim(-80, 80)
     ax.set_zlim(-80, 80)
     ax.set_aspect('equal')
-    with warnings.catch_warnings(record=True):  # deprecation warn in mpl >= 2
+    try:
+        ax.set_facecolor(background)
+    except AttributeError:
         ax.set_axis_bgcolor(background)
     plt.show()
     return fig
@@ -1196,8 +1198,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     Returns
     -------
-    brain : Brain
-        A instance of surfer.viz.Brain from PySurfer or matplotlib figure.
+    figure : surfer.viz.Brain | matplotlib.figure.Figure
+        An instance of surfer.viz.Brain from PySurfer or matplotlib figure.
     """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
