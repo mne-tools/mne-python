@@ -162,7 +162,7 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
 
 @verbose
-def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_estimated,
+def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
                          active_is_idx=False, verbose=None):
 
     times = tmin + tstep * np.arange(X.shape[1])
@@ -176,9 +176,9 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_estimated,
     if n_dip_per_pos > 1:
         active_idx = np.unique(active_idx // n_dip_per_pos)
 
-    gof = np.zeros(M_estimated.shape[1])
-    M_norm = linalg.norm(M, axis=0)
-    gof[M_norm > 0.0] = (linalg.norm(M_estimated, axis=0)[M_norm > 0.0] /
+    gof = np.zeros(M_est.shape[1])
+    M_norm = np.sqrt(np.sum(M ** 2, axis=0))
+    gof[M_norm > 0.0] = (np.sqrt(np.sum(M_est ** 2., axis=0))[M_norm > 0.0] /
                          M_norm[M_norm > 0.0] * 100.)
 
     dipoles = []
@@ -187,19 +187,44 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_estimated,
                                                                   axis=0)
         X_ = X[k * n_dip_per_pos: (k + 1) * n_dip_per_pos]
         if n_dip_per_pos == 1:
-            amplitude = X_
+            amplitude = X_[0]
             i_ori = forward['source_nn'][i_dip]
-        elif forward['surf_ori']:
-            X_ = np.dot(forward['source_nn'][i_dip *
-                        n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
-            amplitude = linalg.norm(X_, ord=None, axis=0)
-            i_ori = (X_ / amplitude).T
         else:
-            amplitude = linalg.norm(X_, ord=None, axis=0)
-            i_ori = (X_ / amplitude).T
+            if forward['surf_ori']:
+                X_ = np.dot(forward['source_nn'][i_dip *
+                            n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
+            amplitude = np.sqrt(np.sum(X_ ** 2, axis=0))
+            i_ori = np.zeros((len(times), 3))
+            i_ori[amplitude > 0.] = (X_[:, amplitude > 0.] /
+                                     amplitude[amplitude > 0.]).T
         dipoles.append(Dipole(times, i_pos, amplitude, i_ori, gof))
 
     return dipoles
+
+
+@verbose
+def make_sparse_stc_from_dipoles(dipoles, forward, verbose=None):
+    tmin = dipoles[0].times[0]
+    tstep = dipoles[0].times[1] - tmin
+    X = np.zeros((len(dipoles), len(dipoles[0].times)))
+    src = forward['src']
+    n_lh_points = len(src[0]['vertno'])
+    lh_vertno = list()
+    rh_vertno = list()
+    for i in range(len(dipoles)):
+        if not np.all(dipoles[i].pos == dipoles[i].pos[0]):
+            raise ValueError('Only dipoles with fixed position over time '
+                             'are supported!')
+        X[i] = dipoles[i].amplitude
+        idx = np.all(forward['source_rr'] == dipoles[i].pos[0], axis=1)
+        idx = np.where(idx)[0][0]
+        if idx < n_lh_points:
+            lh_vertno.append(src[0]['vertno'][idx])
+        else:
+            rh_vertno.append(src[1]['vertno'][idx - n_lh_points])
+    vertices = [np.array(lh_vertno), np.array(rh_vertno)]
+    stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+    return stc
 
 
 @verbose

@@ -7,14 +7,16 @@ import os.path as op
 from nose.tools import assert_true
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
-                           assert_array_equal)
+                           assert_array_equal, assert_allclose)
 
 from mne.datasets import testing
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
+from mne.inverse_sparse.mxne_inverse import make_sparse_stc_from_dipoles
 from mne import pick_types_forward
 from mne.utils import run_tests_if_main, slow_test
+from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
 fname_evoked = op.join(data_path, 'MEG', 'sample',
@@ -56,8 +58,11 @@ def test_gamma_map():
                     xyz_same_gamma=True, update_mode=1)
     _check_stc(stc, evoked, 68477)
 
-    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                    xyz_same_gamma=False, update_mode=1)
+    dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                     xyz_same_gamma=False, update_mode=1,
+                     return_as_dipoles=True)
+    assert_true(isinstance(dips[0], Dipole))
+    stc = make_sparse_stc_from_dipoles(dips, forward)
     _check_stc(stc, evoked, 82010)
 
     # force fixed orientation
@@ -65,13 +70,5 @@ def test_gamma_map():
                     xyz_same_gamma=False, update_mode=2,
                     loose=None, return_residual=False)
     _check_stc(stc, evoked, 85739, 20)
-
-    dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
-                     xyz_same_gamma=False, update_mode=2,
-                     loose=None, return_residual=False,
-                     return_as_dipoles=True)
-    assert_array_almost_equal(dips[0].times, evoked.times, 5)
-    assert_array_equal(dips[0].pos[0],
-                       forward['src'][0]['rr'][stc.vertices[0][0]])
 
 run_tests_if_main()
