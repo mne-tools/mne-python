@@ -997,15 +997,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                              show=show)
 
     @copy_function_doc_to_method_doc(plot_epochs_image)
-    def plot_image(self, picks=None, sigma=0., vmin=None,
-                   vmax=None, colorbar=True, order=None, show=True,
-                   units=None, scalings=None, cmap='RdBu_r',
-                   fig=None, axes=None, overlay_times=None):
+    def plot_image(self, picks=None, sigma=0., vmin=None, vmax=None,
+                   colorbar=True, order=None, show=True, units=None,
+                   scalings=None, cmap=None, fig=None, axes=None,
+                   overlay_times=None, gfp=False):
         return plot_epochs_image(self, picks=picks, sigma=sigma, vmin=vmin,
                                  vmax=vmax, colorbar=colorbar, order=order,
                                  show=show, units=units, scalings=scalings,
                                  cmap=cmap, fig=fig, axes=axes,
-                                 overlay_times=overlay_times)
+                                 overlay_times=overlay_times, gfp=gfp)
 
     @verbose
     def drop(self, indices, reason='USER', verbose=None):

@@ -1629,7 +1629,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             d = ((_merge_grad_data(evokeds[condition]
                  .data[picks, :])).T * scaling).mean(-1)
         else:
-            func = np.std if gfp is True else np.mean
+            gfp_func = lambda D: np.sqrt((D * D).mean(axis=0))
+            func = gfp_func if gfp is True else np.mean
             d = func((evokeds[condition].data[picks, :].T * scaling), -1)
         axes.plot(times, d, zorder=1000, label=condition, **styles[condition])
         if any(d > 0):
