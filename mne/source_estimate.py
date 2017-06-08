@@ -2902,6 +2902,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
         return_generator = False
     elif isinstance(stcs, MixedSourceEstimate):
         stcs = [stcs]
+        return_several = False
     else:
         return_several = True
 
