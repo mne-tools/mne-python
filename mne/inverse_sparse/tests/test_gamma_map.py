@@ -6,7 +6,8 @@ import os.path as op
 
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
+from numpy.testing import (assert_array_almost_equal, assert_equal,
+                           assert_allclose)
 
 from mne.datasets import testing
 from mne import read_cov, read_forward_solution, read_evokeds
@@ -37,6 +38,16 @@ def _check_stc(stc, evoked, idx, ratio=50.):
     assert_true(amps[0] > ratio * amps[1], msg=str(amps[0] / amps[1]))
 
 
+def _check_stcs(stc1, stc2):
+    """Helper to check correctness"""
+    assert_allclose(stc1.times, stc2.times)
+    assert_allclose(stc1.data, stc2.data)
+    assert_allclose(stc1.vertices[0], stc2.vertices[0])
+    assert_allclose(stc1.vertices[1], stc2.vertices[1])
+    assert_allclose(stc1.tmin, stc2.tmin)
+    assert_allclose(stc1.tstep, stc2.tstep)
+
+
 @slow_test
 @testing.requires_testing_data
 def test_gamma_map():
@@ -57,12 +68,16 @@ def test_gamma_map():
                     xyz_same_gamma=True, update_mode=1)
     _check_stc(stc, evoked, 68477)
 
+    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                    xyz_same_gamma=False, update_mode=1)
+    _check_stc(stc, evoked, 82010)
+
     dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                      xyz_same_gamma=False, update_mode=1,
                      return_as_dipoles=True)
     assert_true(isinstance(dips[0], Dipole))
-    stc = make_sparse_stc_from_dipoles(dips, forward)
-    _check_stc(stc, evoked, 82010)
+    stc_dip = make_sparse_stc_from_dipoles(dips, forward)
+    _check_stcs(stc, stc_dip)
 
     # force fixed orientation
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,

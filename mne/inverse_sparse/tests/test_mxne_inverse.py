@@ -28,6 +28,16 @@ label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
+def _check_stcs(stc1, stc2):
+    """Helper to check correctness"""
+    assert_allclose(stc1.times, stc2.times)
+    assert_allclose(stc1.data, stc2.data)
+    assert_allclose(stc1.vertices[0], stc2.vertices[0])
+    assert_allclose(stc1.vertices[1], stc2.vertices[1])
+    assert_allclose(stc1.tmin, stc2.tmin)
+    assert_allclose(stc1.tstep, stc2.tstep)
+
+
 @slow_test
 @testing.requires_testing_data
 def test_mxne_inverse():
@@ -63,19 +73,17 @@ def test_mxne_inverse():
     alpha = 70  # spatial regularization parameter
 
     stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                          depth=depth, maxit=500, tol=1e-8,
+                          depth=depth, maxit=300, tol=1e-8,
                           active_set_size=10, weights=stc_dspm,
                           weights_min=weights_min, solver='prox')
     stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                        depth=depth, maxit=500, tol=1e-8, active_set_size=10,
+                        depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                         weights=stc_dspm, weights_min=weights_min,
                         solver='cd')
-    dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                      depth=depth, maxit=500, tol=1e-8, active_set_size=10,
-                      weights=stc_dspm, weights_min=weights_min,
-                      solver='bcd', return_as_dipoles=True)
-    stc_bcd = make_sparse_stc_from_dipoles(dips, forward)
-    assert_true(isinstance(dips[0], Dipole))
+    stc_bcd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                         depth=depth, maxit=300, tol=1e-8, active_set_size=10,
+                         weights=stc_dspm, weights_min=weights_min,
+                         solver='bcd')
     assert_array_almost_equal(stc_prox.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_bcd.times, evoked_l21.times, 5)
@@ -86,8 +94,16 @@ def test_mxne_inverse():
     assert_true(stc_cd.vertices[1][0] in label.vertices)
     assert_true(stc_bcd.vertices[1][0] in label.vertices)
 
+    dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                      depth=depth, maxit=300, tol=1e-8, active_set_size=10,
+                      weights=stc_dspm, weights_min=weights_min,
+                      solver='cd', return_as_dipoles=True)
+    stc_dip = make_sparse_stc_from_dipoles(dips, forward)
+    assert_true(isinstance(dips[0], Dipole))
+    _check_stcs(stc_cd, stc_dip)
+
     stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                        depth=depth, maxit=500, tol=1e-8,
+                        depth=depth, maxit=300, tol=1e-8,
                         active_set_size=10, return_residual=True,
                         solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
@@ -96,7 +112,7 @@ def test_mxne_inverse():
     # irMxNE tests
     stc = mixed_norm(evoked_l21, forward, cov, alpha,
                      n_mxne_iter=5, loose=loose, depth=depth,
-                     maxit=500, tol=1e-8, active_set_size=10,
+                     maxit=300, tol=1e-8, active_set_size=10,
                      solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
