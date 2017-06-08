@@ -10,6 +10,7 @@ import glob
 import copy
 from numbers import Integral
 import numpy as np
+from copy import deepcopy
 from numpy import sin, cos
 from scipy import linalg
 
@@ -537,6 +538,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
     res : dict
         Transformed source space.
     """
+    surf = deepcopy(surf) if copy else surf
     if isinstance(dest, string_types):
         if dest not in _str_to_frame:
             raise KeyError('dest must be one of %s, not "%s"'

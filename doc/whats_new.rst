@@ -90,6 +90,8 @@ BUG
 
     - Fix :func:`mne.read_bem_surfaces` for BEM files missing normals by `Christian Brodbeck`_
 
+    - Fix :func:`mne.transforms.transform_surface_to` to actually copy when ``copy=True`` by `Eric Larson`_
+
 API
 ~~~
 
