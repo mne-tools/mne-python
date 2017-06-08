@@ -148,7 +148,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # Then, we loop over this list and plot using _plot_epochs_image.
 
     # groupby
-    all_picks, all_ch_types = _get_picks_and_types(picks, ch_types, groupby)
+    all_picks, all_ch_types = _get_picks_and_types(picks, ch_types, groupby,
+                                                   combine)
 
     # combine/construct list for plotting
     to_plot_list = _get_to_plot(epochs, combine, all_picks, all_ch_types,
@@ -166,9 +167,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     return figs
 
 
-def _get_picks_and_types(picks, ch_types, groupby):
+def _get_picks_and_types(picks, ch_types, groupby, combine):
     "Helper function for plot_epochs_image: group picks and types"
     if groupby is None:
+        if combine is not None:
+            picks = [picks]
         all_picks, all_ch_types = picks, ch_types
     else:
         if groupby == "type":
@@ -193,7 +196,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings):
 
     if combine is None:
         for pick, ch_type in zip(all_picks, all_ch_types):
-            this_data = data[:, pick, :].squeeze()
+            this_data = data[:, pick, :]#.squeeze()
             to_plot_list.append((this_data, ch_type,
                                  epochs.average(picks=[pick]),
                                  epochs.ch_names[pick]))
@@ -207,13 +210,18 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings):
             combine = lambda D: np.std(D, 1)
         elif not callable(combine):
             tmplt = ("`combine` must be None, a callable or "
-                     "one out of 'mean' or 'gfp`. Got {}.")
+                     "one out of 'mean' or 'gfp'. Got {}.")
             raise ValueError(tmplt.format(type(combine)))
         for ch_type, picks_ in zip(all_ch_types, all_picks):
+            if len(np.atleast_1d(picks_)) < 2:
+                raise ValueError("Cannot combine over only one sensor. "
+                                    "Consider using different values for "
+                                    "`picks` and/or `groupby`.")
+
             this_data = combine(data[:, picks_, :]) / scalings[ch_type]
-            ev = epochs.average(picks=picks_)
-            ev.data = this_data.mean(0)[np.newaxis, :]
-            to_plot_list.append((this_data, ch_type, ev,
+            evoked = epochs.average(picks=np.atleast_1d(picks_))
+            evoked.data = this_data.mean(0)[np.newaxis, :]
+            to_plot_list.append((this_data, ch_type, evoked,
                                  names.get(ch_type, ch_type)))
 
     return to_plot_list  # data, ch_type, evoked, name
