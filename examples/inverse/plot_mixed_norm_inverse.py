@@ -88,7 +88,6 @@ plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
                              fig_name="Morphed MxNE (cond %s)" % condition,
                              opacity=0.1)
 
-
 ###############################################################################
 # Run solver returning dipoles
 # Compute (ir)MxNE inverse solution

@@ -183,12 +183,13 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
 
     dipoles = []
     for k, i_dip in enumerate(active_idx):
-        i_pos = forward['source_rr'][i_dip][np.newaxis, :].repeat(len(times),
-                                                                  axis=0)
+        i_pos = forward['source_rr'][i_dip][np.newaxis, :]
+        i_pos = i_pos.repeat(len(times), axis=0)
         X_ = X[k * n_dip_per_pos: (k + 1) * n_dip_per_pos]
         if n_dip_per_pos == 1:
             amplitude = X_[0]
-            i_ori = forward['source_nn'][i_dip]
+            i_ori = forward['source_nn'][i_dip][np.newaxis, :]
+            i_ori = i_ori.repeat(len(times), axis=0)
         else:
             if forward['surf_ori']:
                 X_ = np.dot(forward['source_nn'][i_dip *
