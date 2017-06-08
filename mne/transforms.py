@@ -355,6 +355,8 @@ def translation(x=0, y=0, z=0):
 
 def _ensure_trans(trans, fro='mri', to='head'):
     """Ensure we have the proper transform."""
+    if not isinstance(trans, Transform):
+        raise TypeError('trans must be a transform, got %s' % (type(trans),))
     if isinstance(fro, string_types):
         from_str = fro
         from_const = _str_to_frame[fro]
