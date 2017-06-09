@@ -76,7 +76,8 @@ for ii, roi in enumerate(sorted(rois.keys())):
 # Plot
 overlay_times = rts / 1000  # RT in seconds
 order = rts.argsort()  # sorting from fast to slow trials
-combine = lambda data: median(data, 1)  # take the median of each ROI
+def combine(data):  # we will take the median of each ROI
+    return median(data, 1)
 
 epochs["square"].plot_image(
     groupby=rois, combine=combine, axes=axes,
