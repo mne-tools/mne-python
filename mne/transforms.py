@@ -355,8 +355,6 @@ def translation(x=0, y=0, z=0):
 
 def _ensure_trans(trans, fro='mri', to='head'):
     """Ensure we have the proper transform."""
-    if not isinstance(trans, Transform):
-        raise TypeError('trans must be a transform, got %s' % (type(trans),))
     if isinstance(fro, string_types):
         from_str = fro
         from_const = _str_to_frame[fro]
@@ -371,13 +369,14 @@ def _ensure_trans(trans, fro='mri', to='head'):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = 'trans must go %s<->%s, provided' % (from_str, to_str)
-    if trans is None:
+    err_str = ('trans must be a Transform between %s<->%s, got'
+               % (from_str, to_str))
+    if not isinstance(trans, Transform):
         raise ValueError('%s None' % err_str)
     if set([trans['from'], trans['to']]) != set([from_const, to_const]):
-        raise ValueError('%s trans is %s->%s' % (err_str,
-                                                 _frame_to_str[trans['from']],
-                                                 _frame_to_str[trans['to']]))
+        raise ValueError('%s %s->%s' % (err_str,
+                                        _frame_to_str[trans['from']],
+                                        _frame_to_str[trans['to']]))
     if trans['from'] != from_const:
         trans = invert_transform(trans)
     return trans
