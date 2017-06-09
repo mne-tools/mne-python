@@ -917,7 +917,7 @@ def _check_loose(forward, loose):
                                  ' with free orientation.')
                             forward = convert_forward_solution(forward,
                                                                surf_ori=True)
-                        if src_type == 'vol':
+                        if loose[src_type] < 1 and src_type == 'vol':
                             loose[src_type] = None
                             warn('The loose orientation constraint is '
                                  'currently not supported for volume-based '
