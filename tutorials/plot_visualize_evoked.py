@@ -159,10 +159,10 @@ evoked_r_aud.plot_image(picks=picks)
 # we plot only left auditory responses, and then we plot them all in the same
 # figure for comparison. Click on the individual plots to open them bigger.
 title = 'MNE sample data\n(condition : %s)'
-evoked_l_aud.plot_topo(title=title % evoked_l_aud.comment)
-colors = 'yellow', 'green', 'red', 'blue'
-mne.viz.plot_evoked_topo(evoked, color=colors,
-                         title=title % 'Left/Right Auditory/Visual')
+evoked_l_aud.plot_topo(title=title % evoked_l_aud.comment,
+                       background_color='k', color=['white'])
+mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
+                         background_color='w')
 
 ###############################################################################
 # Visualizing field lines in 3D
