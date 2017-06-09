@@ -368,9 +368,9 @@ def test_make_inverse_operator_free():
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
                   noise_cov, depth=None)
 
-    # for free ori inv, loose=None and loose=1 should be equivalent
+    # for free ori inv, loose=None and loose=1. should be equivalent
     inv_1 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=None)
-    inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=1)
+    inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=1.)
     _compare_inverses_approx(inv_1, inv_2, evoked, 0, 1e-2)
 
     # for depth=None, surf_ori of the fwd should not matter
