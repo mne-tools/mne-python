@@ -17,6 +17,7 @@ sorted by response time.
 # License: BSD (3-clause)
 
 from numpy import median
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import testing
@@ -64,6 +65,13 @@ for pick, channel in enumerate(epochs.ch_names):
         roi = "Left" if last_char % 2 else "Right"
         rois[roi] = rois.get(roi, list()) + [pick]
 
+# set up corresponding axes to plot to
+axes = dict()
+for ii, roi in enumerate(sorted(rois.keys())):
+    im_ax = plt.subplot2grid((3, 3), (0, ii), colspan=1, rowspan=2)
+    ts_ax = plt.subplot2grid((3, 3), (2, ii), colspan=1, rowspan=1)
+    axes[roi] = [im_ax, ts_ax]
+
 ###############################################################################
 # Plot
 overlay_times = rts / 1000  # RT in seconds
@@ -71,5 +79,10 @@ order = rts.argsort()  # sorting from fast to slow trials
 combine = lambda data: median(data, 1)  # take the median of each ROI
 
 epochs["square"].plot_image(
-    groupby=rois, combine=combine, #vmin=-50, vmax=60,
-    overlay_times=overlay_times, order=order)
+    groupby=rois, combine=combine, axes=axes,#vmin=-50, vmax=60,
+    overlay_times=overlay_times, order=order, colorbar=False)
+for roi in ("Midline", "Right"):
+    for ax in axes[roi]:
+        ax.set_ylabel('')
+        ax.set_yticks(())
+plt.show()

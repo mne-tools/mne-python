@@ -81,11 +81,15 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
-    axes : list of matplotlib axes | None
+    axes : list of matplotlib axes | dict of lists of matplotlib Axes | None
         List of axes instances to draw the image, erp and colorbar to.
         Must be of length three if colorbar is True (with the last list element
         being the colorbar axes) or two if colorbar is False. If both fig and
-        axes are passed an error is raised. Defaults to None.
+        axes are passed an error is raised.
+        If `groupby` is a dict, this can also be a dict of lists of axes,
+        with the keys matching. In that case, the provided axes will be used
+        for the corresponding groups.
+        Defaults to None.
     overlay_times : array-like, shape (n_epochs,) | None
         If not None the parameter is interpreted as time instants in seconds
         and is added to the image. It is typically useful to display reaction
@@ -150,6 +154,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)
 
+    if isinstance(axes, dict):
+        show = False
+
     # First, we collect groupings of picks and types in two lists
     # (all_picks, all_ch_types, names) -> groupby.
     # Then, we construct a list of the corresponding data, names and evokeds
@@ -169,11 +176,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # plot
     figs = list()
-    for data_, ch_type, evoked, name in to_plot_list:
+    for ii, (data_, ch_type, evoked, name) in enumerate(to_plot_list):
         this_fig = _plot_epochs_image(
             data_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
             order=order, show=show, evoked=evoked, unit=units[ch_type],
-            scaling=scalings[ch_type], cmap=cmap, fig=fig, axes=axes,
+            scaling=scalings[ch_type], cmap=cmap, fig=fig,
+            axes=axes if not isinstance(axes, dict) else axes[name],
             overlay_times=overlay_times, title=name, draw_evoked=True)
         figs.append(this_fig)
     return figs
@@ -184,7 +192,7 @@ def _get_picks_and_types(picks, ch_types, groupby, combine):
     if groupby is None:
         if combine is not None:
             picks = [picks]
-        return all_picks, all_ch_types, all_ch_types
+        return picks, ch_types, ch_types
     else:
         if groupby == "type":
             all_picks, all_ch_types = list(), list()
@@ -262,13 +270,12 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
 
 
 def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
-                       order=None, show=True, unit=None, cmap=None,
+                       order=None, show=False, unit=None, cmap=None,
                        fig=None, axes=None, overlay_times=None, scaling=None,
                        evoked=None, title=None, draw_evoked=False):
     """Helper function for plot_epochs_image/epochs.plot_image."""
     from scipy import ndimage
     import matplotlib.pyplot as plt
-    print("colorbar? ", colorbar)
 
     ### prepare fig and axes ###
     if axes is not None:
@@ -362,7 +369,7 @@ def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
     ax1.set_ylabel('Epochs')
     ax1.axis('auto')
     ax1.axis('tight')
-    ax1.axvline(0, color='m', linewidth=3, linestyle='--')
+    ax1.axvline(0, color='m', linewidth=2, linestyle='--')
 
     #### draw the evoked ####
     if draw_evoked:
@@ -379,7 +386,8 @@ def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
             evoked_vmin = -evoked_vmax if data.min() < 0 else 0
 
         ax2.set_ylim([evoked_vmin, evoked_vmax])
-        ax2.axvline(0, color='m', linewidth=3, linestyle='--')
+        ax2.axvline(0, color='m', linewidth=2, linestyle='--')
+        ax2.axhline(0, color='m', linewidth=2, linestyle='--')
 
     #### draw the colorbar ####
     if colorbar:
@@ -387,8 +395,9 @@ def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
         if cmap[1]:
             ax1.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=fig)
-    plt_show(show)
 
+    ### finish ###
+    plt_show(show)
     return fig
 
 
