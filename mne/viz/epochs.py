@@ -253,7 +253,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
         elif not callable(combine):
             raise ValueError(
                 "`combine` must be None, a callable or one out of 'mean' "
-                "or 'gfp'. Got " + type(combine))
+                "or 'gfp'. Got " + str(type(combine)))
         for ch_type, picks_, name in zip(all_ch_types, all_picks, names):
             if len(np.atleast_1d(picks_)) < 2:
                 raise ValueError("Cannot combine over only one sensor. "
@@ -382,7 +382,6 @@ def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
         evoked_vmax = max(evoked_data) * 1.1 if scale_vmax else vmax
         if scale_vmin or scale_vmax:
             evoked_vmax = max(np.abs([evoked_vmax, evoked_vmin]))
-
             evoked_vmin = -evoked_vmax if data.min() < 0 else 0
 
         ax2.set_ylim([evoked_vmin, evoked_vmax])
