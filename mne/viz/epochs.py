@@ -253,7 +253,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
         elif not callable(combine):
             raise ValueError(
                 "`combine` must be None, a callable or one out of 'mean' "
-                "or 'gfp'. Got ") + type(combine)
+                "or 'gfp'. Got " + type(combine))
         for ch_type, picks_, name in zip(all_ch_types, all_picks, names):
             if len(np.atleast_1d(picks_)) < 2:
                 raise ValueError("Cannot combine over only one sensor. "

@@ -8,7 +8,7 @@ potential / field (ERP/ERF) image.
 
 The EEGLAB example file is read in and response times are calculated.
 ROIs are determined by the channel types (in 10/20 channel notation,
-'even' channels are right, 'odd' are left, and 'z' are central). The
+even channels are right, odd are left, and 'z' are central). The
 median within each channel is calculated, and the trials are plotted,
 sorted by response time.
 """
@@ -79,7 +79,7 @@ order = rts.argsort()  # sorting from fast to slow trials
 combine = lambda data: median(data, 1)  # take the median of each ROI
 
 epochs["square"].plot_image(
-    groupby=rois, combine=combine, axes=axes,#vmin=-50, vmax=60,
+    groupby=rois, combine=combine, axes=axes,
     overlay_times=overlay_times, order=order, colorbar=False)
 for roi in ("Midline", "Right"):
     for ax in axes[roi]:
