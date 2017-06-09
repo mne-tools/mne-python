@@ -25,7 +25,8 @@ from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import prepare_noise_cov, _read_cov, _write_cov, Covariance
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
-                       compute_orient_prior, convert_forward_solution)
+                       compute_orient_prior, convert_forward_solution,
+                       _check_loose)
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
@@ -1181,10 +1182,11 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         Forward operator.
     noise_cov : instance of Covariance
         The noise covariance matrix.
-    loose : None | float in [0, 1]
+    loose : None | dict | float in [0, 1]
         Value that weights the source variances of the dipole components
-        defining the tangent space of the cortical surfaces. Requires surface-
-        based, free orientation forward solutions.
+        defining the tangent space of the cortical surfaces. Using loose=float
+        is an alias for loose=dict(surf=float, discrete=float, vol=None).
+        Requires surface-based, free orientation forward solutions.
     depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     fixed : bool
@@ -1242,13 +1244,15 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     weighting. Thus slightly different results are to be expected with
     and without this information.
     """  # noqa: E501
-    is_fixed_ori = is_fixed_orient(forward)
+
+    forward, loose = _check_loose(forward, loose)
 
     if fixed and loose is not None:
         warn('When invoking make_inverse_operator with fixed=True, the loose '
              'parameter is ignored.')
         loose = None
 
+    is_fixed_ori = is_fixed_orient(forward)
     if is_fixed_ori and not fixed:
         raise ValueError('Forward operator has fixed orientation and can only '
                          'be used to make a fixed-orientation inverse '
@@ -1276,15 +1280,6 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         if not forward['surf_ori']:
             forward = convert_forward_solution(forward, surf_ori=True)
         assert forward['surf_ori']
-    if loose is not None:
-        if not (0 <= loose <= 1):
-            raise ValueError('loose value should be smaller than 1 and bigger '
-                             'than 0, or None for not loose orientations.')
-        if loose < 1 and not forward['surf_ori']:
-            raise ValueError('Forward operator is not oriented in surface '
-                             'coordinates. A loose inverse operator requires '
-                             'a surface-based, free orientation forward '
-                             'operator.')
 
     #
     # 1. Read the bad channels

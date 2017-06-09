@@ -875,6 +875,70 @@ def write_forward_meas_info(fid, info):
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
 
 
+def _check_loose(forward, loose):
+    """Checking the loose parameter."""
+    if is_fixed_orient(forward):
+        warn('Ignoring loose parameter with forward operator '
+             'with fixed orientation.')
+        loose = None
+
+    if loose is not None:
+        if isinstance(loose, float):
+            if not (0 <= loose <= 1):
+                raise ValueError('Loose value should be smaller than 1 and '
+                                 'bigger than 0, or None for not loose '
+                                 'orientations.')
+            if loose < 1 and not forward['surf_ori']:
+                warn('Forward operator is not oriented in surface coordinates.'
+                     ' A loose inverse operator requires a surface-oriented '
+                     'forward operator with free orientation.')
+                forward = convert_forward_solution(forward, surf_ori=True)
+            loose = dict(surf=loose, discrete=loose, vol=None)
+
+        elif isinstance(loose, dict):
+            src_types = np.array([src['type'] for src in forward['src']])
+            for src_type in np.unique(src_types):
+                if src_type not in loose:
+                    loose[src_type] = None if src_type == 'vol' else 0.2
+                    warn('No loose parameter given for source spaces of type '
+                         '\'%s\'. Using default value loose[\'%s\']=%f.'
+                         % (src_type, src_type, loose[src_type]))
+                elif loose[src_type] is not None:
+                    if isinstance(loose[src_type], float):
+                        if not (0 <= loose[src_type] <= 1):
+                            raise ValueError(
+                                'Loose value should be smaller than  1 and '
+                                'bigger than 0, or None for not loose '
+                                'orientations.')
+                        if loose[src_type] < 1 and not forward['surf_ori']:
+                            warn('Forward operator is not oriented in surface'
+                                 ' coordinates. A loose inverse operator '
+                                 'requires a surface-oriented forward operator'
+                                 ' with free orientation.')
+                            forward = convert_forward_solution(forward,
+                                                               surf_ori=True)
+                        if src_type == 'vol':
+                            loose[src_type] = None
+                            warn('The loose orientation constraint is '
+                                 'currently not supported for volume-based '
+                                 'source spaces. Setting loose[\'%s\']=None.'
+                                 % (src_type))
+                    else:
+                        raise ValueError(
+                            'loose value must be a float smaller than 1 and '
+                            'bigger than 0, or None for not loose '
+                            'orientations. Got %s' % type(loose[src_type]))
+            if all([val is None for val in loose.values()]):
+                loose = None
+        else:
+            raise ValueError('loose value must be None for not loose '
+                             'orientations, a float smaller than 1 and '
+                             'bigger than 0, or a dict with loose values '
+                             'for each type of source space.'
+                             'Got %s' % type(loose))
+    return forward, loose
+
+
 @verbose
 def compute_orient_prior(forward, loose=0.2, verbose=None):
     """Compute orientation prior.
@@ -883,8 +947,11 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     ----------
     forward : dict
         Forward operator.
-    loose : float in [0, 1] or None
-        The loose orientation parameter.
+    loose : None | dict | float in [0, 1]
+        Value that weights the source variances of the dipole components
+        defining the tangent space of the cortical surfaces. Using loose=float
+        is an alias for loose=dict(surf=float, discrete=float, vol=None).
+        Requires surface-based, free orientation forward solutions.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -894,29 +961,25 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     orient_prior : array
         Orientation priors.
     """
-    is_fixed_ori = is_fixed_orient(forward)
     n_sources = forward['sol']['data'].shape[1]
-
-    if loose is not None:
-        if not (0 <= loose <= 1):
-            raise ValueError('loose value should be smaller than 1 and bigger '
-                             'than 0, or None for not loose orientations.')
-
-        if loose < 1 and not forward['surf_ori']:
-            raise ValueError('Forward operator is not oriented in surface '
-                             'coordinates. loose parameter should be None '
-                             'not %s.' % loose)
-
-        if is_fixed_ori:
-            warn('Ignoring loose parameter with forward operator '
-                 'with fixed orientation.')
-
+    forward, loose = _check_loose(forward, loose)
     orient_prior = np.ones(n_sources, dtype=np.float)
-    if (not is_fixed_ori) and (loose is not None) and (loose < 1):
-        logger.info('Applying loose dipole orientations. Loose value '
-                    'of %s.' % loose)
-        orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose
-
+    if ((loose is not None) and
+            not all([item in [1., None] for item in loose.values()])):
+        idx_start = 0
+        for src in forward['src']:
+            n_points = len(src['vertno'])
+            idx_end = idx_start + n_points * 3
+            loose_val = loose[src['type']]
+            if loose_val is not None:
+                logger.info('Applying loose dipole orientations for '
+                            'source space of type \'%s.\' with '
+                            'loose[\'%s\']=%f.' % (src['type'], src['type'],
+                                                   loose[src['type']]))
+                loose_vec = np.array([loose_val, loose_val, 1.])
+                orient_prior[idx_start:idx_end] = np.kron(np.ones(n_points),
+                                                          loose_vec)
+            idx_start = idx_end
     return orient_prior
 
 
