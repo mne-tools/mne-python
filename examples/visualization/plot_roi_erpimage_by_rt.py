@@ -74,15 +74,20 @@ for ii, roi in enumerate(sorted(rois.keys())):
 
 ###############################################################################
 # Plot
+
+# Parameters for plotting
 overlay_times = rts / 1000  # RT in seconds
 order = rts.argsort()  # sorting from fast to slow trials
+
+
 def combine(data):  # we will take the median of each ROI
     return median(data, 1)
 
+# The actual plot
 epochs["square"].plot_image(
     groupby=rois, combine=combine, axes=axes,
     overlay_times=overlay_times, order=order, colorbar=False)
-for roi in ("Midline", "Right"):
+for roi in ("Midline", "Right"):  # uncrowd visually
     for ax in axes[roi]:
         ax.set_ylabel('')
         ax.set_yticks(())
