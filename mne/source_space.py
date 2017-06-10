@@ -1648,9 +1648,9 @@ def _make_discrete_source_space(pos, coord_frame='mri'):
                        % (list(_str_to_frame.keys()), coord_frame))
     coord_frame = _str_to_frame[coord_frame]  # now an int
 
-    # process points
-    rr = pos['rr'].copy()
-    nn = pos['nn'].copy()
+    # process points (copy and cast)
+    rr = np.array(pos['rr'], float)
+    nn = np.array(pos['nn'], float)
     if not (rr.ndim == nn.ndim == 2 and nn.shape[0] == nn.shape[0] and
             rr.shape[1] == nn.shape[1]):
         raise RuntimeError('"rr" and "nn" must both be 2D arrays with '
