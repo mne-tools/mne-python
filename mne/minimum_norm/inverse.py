@@ -1244,7 +1244,6 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     weighting. Thus slightly different results are to be expected with
     and without this information.
     """  # noqa: E501
-
     forward, loose = _check_loose(forward, loose)
 
     if fixed and loose is not None:
