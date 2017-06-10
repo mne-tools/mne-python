@@ -315,8 +315,14 @@ def test_ica_additional():
     ica = ICA(n_components=3, max_pca_components=4,
               n_pca_components=4)
     assert_raises(RuntimeError, ica.save, '')
+
     with warnings.catch_warnings(record=True):
         ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
+
+    # check passing a ch_name to find_bads_ecg
+    _, scores_1 = ica.find_bads_ecg(raw)
+    _, scores_2 = ica.find_bads_ecg(raw, raw.ch_names[1])
+    assert_false(scores_1[0] == scores_2[0])
 
     # test corrmap
     ica2 = ica.copy()
@@ -458,7 +464,7 @@ def test_ica_additional():
         assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     os.remove(test_ica_fname)
-    # check scrore funcs
+    # check score funcs
     for name, func in get_score_funcs().items():
         if name in score_funcs_unsuited:
             continue
@@ -494,11 +500,15 @@ def test_ica_additional():
         assert_equal(len(scores), ica.n_components_)
 
         idx, scores = ica.find_bads_ecg(epochs, method='ctps')
+
         assert_equal(len(scores), ica.n_components_)
         assert_raises(ValueError, ica.find_bads_ecg, epochs.average(),
                       method='ctps')
         assert_raises(ValueError, ica.find_bads_ecg, raw,
                       method='crazy-coupling')
+
+        idx, scores = ica.find_bads_eog(raw)
+        assert_equal(len(scores), ica.n_components_)
 
         raw.info['chs'][raw.ch_names.index('EOG 061') - 1]['kind'] = 202
         idx, scores = ica.find_bads_eog(raw)
