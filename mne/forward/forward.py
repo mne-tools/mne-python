@@ -877,7 +877,7 @@ def write_forward_meas_info(fid, info):
 
 def _check_loose(forward, loose):
     """Check loose parameter input."""
-    if is_fixed_orient(forward):
+    if is_fixed_orient(forward) and loose is not None:
         warn('Ignoring loose parameter with forward operator '
              'with fixed orientation.')
         loose = None
