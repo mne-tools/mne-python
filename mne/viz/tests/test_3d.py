@@ -112,7 +112,7 @@ def test_plot_sparse_source_estimates():
     with warnings.catch_warnings(record=True):
         stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
                  hemi='rh', smoothing_steps=2, subject='sample',
-                 backend='matplotlib', spacing='all', initial_time=0.001,
+                 backend='matplotlib', spacing='oct1', initial_time=0.001,
                  colormap='Reds')
         stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
                  hemi='lh', smoothing_steps=2, subject='sample',
