@@ -106,6 +106,9 @@ def test_plot_sparse_source_estimates():
                                  opacity=0.5, high_resolution=False)
 
     # Test plotting with mpl.
+    # The sparse data here does not fit the vertices. Hence the tests here are
+    # not testing the activations (becomes all zeros, raises warnings, tested
+    # elsewhere).
     with warnings.catch_warnings(record=True):
         stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
                  hemi='rh', smoothing_steps=2, subject='sample',
