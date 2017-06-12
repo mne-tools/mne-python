@@ -71,7 +71,6 @@ def test_plot_head_positions():
 @requires_mayavi
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates."""
-    import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -104,24 +103,6 @@ def test_plot_sparse_source_estimates():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                  opacity=0.5, high_resolution=False)
-
-    # Test plotting with mpl.
-    # The sparse data here does not fit the vertices. Hence the tests here are
-    # not testing the activations (becomes all zeros, raises warnings, tested
-    # elsewhere).
-    with warnings.catch_warnings(record=True):
-        stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
-                 hemi='rh', smoothing_steps=2, subject='sample',
-                 backend='matplotlib', spacing='oct1', initial_time=0.001,
-                 colormap='Reds')
-        stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
-                 hemi='lh', smoothing_steps=2, subject='sample',
-                 backend='matplotlib', spacing='ico2')
-        assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
-                      hemi='both', subject='sample', backend='matplotlib')
-        assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
-                      time_unit='ss', subject='sample', backend='matplotlib')
-    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -211,6 +192,7 @@ def test_plot_trans():
 @requires_mayavi
 def test_limits_to_control_points():
     """Test functionality for determing control points."""
+    import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 
@@ -258,6 +240,21 @@ def test_limits_to_control_points():
         plot_source_estimates(stc, **kwargs)
         assert_equal(len(w), 1)
     mlab.close(all=True)
+
+    # Test plotting with mpl.
+    stc.data.fill(1)  # Prevent data array of zeros.
+    stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
+             hemi='rh', smoothing_steps=2, subject='sample',
+             backend='matplotlib', spacing='oct1', initial_time=0.001,
+             colormap='Reds')
+    stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
+             hemi='lh', smoothing_steps=2, subject='sample',
+             backend='matplotlib', spacing='ico2')
+    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
+                  hemi='both', subject='sample', backend='matplotlib')
+    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
+                  time_unit='ss', subject='sample', backend='matplotlib')
+    plt.close('all')
 
 
 @testing.requires_testing_data
