@@ -23,7 +23,7 @@ from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
-                    _setup_vmin_vmax)
+                    _setup_vmin_vmax, _grad_pair_pick_and_name)
 from ..utils import logger, _clean_names, warn, _pl
 from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
 from .topo import _plot_evoked_topo
@@ -1585,24 +1585,14 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     unit = _handle_default("units")[ch_type]
 
     if ch_type == 'grad' and gfp is not True:  # deal with grad pairs
-        from ..channels.layout import _merge_grad_data, _pair_grad_sensors
-        picked_chans = list()
-        pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
-        for ii in np.arange(0, len(pairpicks), 2):
-            first, second = pairpicks[ii], pairpicks[ii + 1]
-            if first in picks or second in picks:
-                picked_chans.append(first)
-                picked_chans.append(second)
-        picks = list(sorted(set(picked_chans)))
-        ch_names = [example.ch_names[pick] for pick in picks]
+        picks, ch_names = _grad_pair_pick_and_name(example.info, picks)
 
     if ymin is None and (gfp is True or ch_type == 'grad'):
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
     # deal with dict/list of lists and the CI
     if not isinstance(ci, np.float):
-        msg = '"ci" must be float, got {0} instead.'
-        raise TypeError(msg.format(type(ci)))
+        raise TypeError('"ci" must be float, got {0}.'.format(type(ci)))
 
     # if we have a dict/list of lists, we compute the grand average and the CI
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
@@ -1613,6 +1603,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 # this will fail if evokeds do not have the same structure
                 # (e.g. channel count)
                 if ch_type == 'grad' and gfp is not True:
+                    from ..channels.layout import _merge_grad_data
                     data = np.asarray([
                         _merge_grad_data(
                             evoked_.data[picks, :]).mean(0)
@@ -1703,11 +1694,15 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     for condition in conditions:
         # plot the actual data ('d') as a line
         if ch_type == 'grad' and gfp is False:
-            d = ((_merge_grad_data(evokeds[condition]
-                 .data[picks, :])).T * scaling).mean(-1)
+            print("hihihihihihihihihi")
+            d = (_merge_grad_data(evokeds[condition]
+                 .data[picks, :]).T * scaling).mean(-1)
         else:
-            func = np.std if gfp is True else np.mean
-            d = func((evokeds[condition].data[picks, :].T * scaling), -1)
+            d = evokeds[condition].data[picks, :].T * scaling
+            if gfp is True:
+                d = np.sqrt((d * d).mean(axis=-1))
+            else:
+                d = d.mean(-1)
         axes.plot(times, d, zorder=1000, label=condition, **styles[condition])
         if np.any(d > 0):
             any_positive = True
@@ -1716,9 +1711,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
         # plot the confidence interval (standard error of the mean/'sem_')
         if ci and gfp is not True:
-            sem_ = sem_array[condition]
-            axes.fill_between(times, sem_[0].flatten() * scaling,
-                              sem_[1].flatten() * scaling, zorder=100,
+            sem_ = sem_array[condition] * scaling
+            axes.fill_between(times, sem_[0].flatten(),
+                              sem_[1].flatten(), zorder=100,
                               color=styles[condition]['c'], alpha=.333)
 
     # truncate the y axis

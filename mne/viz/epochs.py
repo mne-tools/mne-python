@@ -21,8 +21,9 @@ from ..io.proj import setup_proj
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
-                    _plot_raw_onscroll, _onclick_help, plt_show, _handle_decim,
-                    _compute_scalings, DraggableColorbar, _setup_cmap)
+                    _plot_raw_onscroll, _onclick_help, plt_show,
+                    _compute_scalings, DraggableColorbar, _setup_cmap,
+                    _grad_pair_pick_and_name, _handle_decim)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
 
@@ -176,10 +177,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # plot
     figs = list()
-    for ii, (data_, ch_type, evoked, name) in enumerate(to_plot_list):
+    for ii, (epochs_, ch_type, name) in enumerate(to_plot_list):
         this_fig = _plot_epochs_image(
-            data_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
-            order=order, show=show, evoked=evoked, unit=units[ch_type],
+            epochs_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
+            order=order, show=show, unit=units[ch_type], ch_type=ch_type,
             scaling=scalings[ch_type], cmap=cmap, fig=fig,
             axes=axes if not isinstance(axes, dict) else axes[name],
             overlay_times=overlay_times, title=name, draw_evoked=True)
@@ -230,16 +231,21 @@ def _get_picks_and_types(picks, ch_types, groupby, combine):
 
 def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
     "Helper for plot_epochs_image. Packs data and metadata into a list."
-    data = epochs.get_data()
     to_plot_list = list()
+    tmin = epochs.times[0]
 
     if combine is None:
         for pick, ch_type, _ in zip(all_picks, all_ch_types, names):
-            this_data = data[:, pick, :]
-            to_plot_list.append((this_data, ch_type,
-                                 epochs.average(picks=[pick]),
-                                 epochs.ch_names[pick]))
+            name = epochs.ch_names[pick]
+            if ch_type == "grad":
+                ch_names = _grad_pair_pick_and_name(epochs.info, [pick])[1]
+                these_epochs = epochs.copy().pick_channels(ch_names)
+            else:
+                these_epochs = epochs.copy().pick_channels([name])
+            to_plot_list.append((these_epochs, ch_type, name))
     else:
+        from .. import EpochsArray, pick_info
+        data = epochs.get_data()
         type2name = {"eeg": "EEG", "grad": "Gradiometers",
                      "mag": "Magnetometers"}
         if combine == "gfp":
@@ -259,20 +265,26 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
                 raise ValueError("Cannot combine over only one sensor. "
                                  "Consider using different values for "
                                  "`picks` and/or `groupby`.")
-
-            this_data = combine(data[:, picks_, :])
-            evoked = epochs.average(picks=np.atleast_1d(picks_))
-            evoked.data = this_data.mean(0)[np.newaxis, :]
-            to_plot_list.append((this_data, ch_type, evoked,
+            if ch_type == "grad":
+                f  = lambda x: combine(np.sqrt(np.sum(x ** 2, axis=1) / 2))
+                picks_ = _grad_pair_pick_and_name(epochs.info, picks)[0]
+                this_data = f(
+                    data[:, picks_, :])[:, np.newaxis, :] / scalings[ch_type]
+            else:
+                this_data = combine(
+                    data[:, picks_, :])[:, np.newaxis, :] / scalings[ch_type]
+            info = pick_info(epochs.info, [picks_[0]], copy=True)
+            these_epochs = EpochsArray(this_data, info, tmin=tmin)
+            to_plot_list.append((these_epochs, ch_type,
                                  type2name.get(name, name)))
 
     return to_plot_list  # data, ch_type, evoked, name
 
 
-def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
+def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar=False,
                        order=None, show=False, unit=None, cmap=None,
                        fig=None, axes=None, overlay_times=None, scaling=None,
-                       evoked=None, title=None, draw_evoked=False):
+                       title=None, draw_evoked=False):
     """Helper function for plot_epochs_image/epochs.plot_image."""
     from scipy import ndimage
     import matplotlib.pyplot as plt
@@ -308,14 +320,14 @@ def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
         if colorbar:
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
 
-    ### collect parameters about the data ###
+    ### data transforms - sorting, scaling, smoothing ###
+    if ch_type == "grad" and len(epochs.ch_names) > 1:
+        data = epochs.get_data()
+        data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
+    else:
+        data = epochs.get_data()[:, 0, :]
     n_epochs = len(data)
-
-    if vmin is None and data.min() >= 0:
-        vmin = 0  # for gfp etc
-    scale_vmin = True if vmin is None else False
-    scale_vmax = True if vmax is None else False
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    data *= scaling
 
     if overlay_times is not None and len(overlay_times) != n_epochs:
         raise ValueError('size of overlay_times parameter (%s) do not '
@@ -326,19 +338,13 @@ def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
         overlay_times = np.array(overlay_times)
         times_min = np.min(overlay_times)
         times_max = np.max(overlay_times)
-        if ((times_min < evoked.times[0]) or (times_max > evoked.times[-1])):
+        if ((times_min < epochs.times[0]) or (times_max > epochs.times[-1])):
             warn('Some values in overlay_times fall outside of the epochs '
                  'time interval (between %s s and %s s)'
                  % (evoked.times[0], evoked.times[-1]))
 
-    if cmap is None:
-        cmap = "Reds" if data.min() >= 0 else 'RdBu_r'
-
-    ### data transforms - sorting, scaling, smoothing ###
-    data *= scaling
-
     if callable(order):
-        order = order(evoked.times, data)
+        order = order(epochs.times, data)
     if order is not None and (len(order) != len(data)):
         raise ValueError('size of order parameter (%s) does not '
                          'match the number of epochs (%s).'
@@ -353,14 +359,25 @@ def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
     if sigma > 0.:
         data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
 
+    ### setup lims and cmap
+    if vmin is None and data.min() >= 0:
+        vmin = 0  # for gfp etc
+    scale_vmin = True if vmin is None else False
+    scale_vmax = True if vmax is None else False
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+
+
+    if cmap is None:
+        cmap = "Reds" if data.min() >= 0 else 'RdBu_r'
+
     ### Plot ###
     #### draw the image ####
-    this_vmin = vmin * scaling if scale_vmin else vmin
-    this_vmax = vmax * scaling if scale_vmax else vmax
+#    this_vmin = vmin if scale_vmin else vmin
+    #this_vmax = vmax * scaling if scale_vmax else vmax
     cmap = _setup_cmap(cmap)
     im = ax1.imshow(
-        data, vmin=this_vmin, vmax=this_vmax, cmap=cmap[0],
-        extent=[1e3 * evoked.times[0], 1e3 * evoked.times[-1], 0, n_epochs],
+        data, vmin=vmin, vmax=vmax, cmap=cmap[0],
+        extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs],
         aspect='auto', origin='lower', interpolation='nearest')
     if overlay_times is not None:
         ax1.plot(1e3 * overlay_times, 0.5 + np.arange(len(data)),
@@ -369,24 +386,18 @@ def _plot_epochs_image(data, sigma=0., vmin=None, vmax=None, colorbar=False,
     ax1.set_ylabel('Epochs')
     ax1.axis('auto')
     ax1.axis('tight')
-    ax1.axvline(0, color='m', linewidth=2, linestyle='--')
+    ax1.axvline(0, color='k', linewidth=1, linestyle='--')
 
     #### draw the evoked ####
     if draw_evoked:
-        evoked_data = scaling * evoked.data.mean(0)
-        ax2.plot(1e3 * evoked.times, evoked_data)
-        ax2.set_xlabel('Time (ms)')
-        ax2.set_xlim([1e3 * evoked.times[0], 1e3 * evoked.times[-1]])
-        ax2.set_ylabel(unit)
-        evoked_vmin = min(evoked_data) * 1.1 if scale_vmin else vmin
-        evoked_vmax = max(evoked_data) * 1.1 if scale_vmax else vmax
-        if scale_vmin or scale_vmax:
-            evoked_vmax = max(np.abs([evoked_vmax, evoked_vmin]))
-            evoked_vmin = -evoked_vmax if data.min() < 0 else 0
-
-        ax2.set_ylim([evoked_vmin, evoked_vmax])
-        ax2.axvline(0, color='m', linewidth=2, linestyle='--')
-        ax2.axhline(0, color='m', linewidth=2, linestyle='--')
+        from mne.viz import plot_compare_evokeds
+        ylim = dict()
+        plot_compare_evokeds({"cond":list(epochs.iter_evoked())},
+                              colors={"cond":"black"},
+                              axes=ax2, ylim=ylim, picks=[0], title='',
+                              truncate_yaxis=False, show=False)
+        ax1.set_xticks(())
+        # ylabel rotation
 
     #### draw the colorbar ####
     if colorbar:

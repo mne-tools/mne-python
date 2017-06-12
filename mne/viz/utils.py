@@ -2197,3 +2197,18 @@ def _handle_decim(info, decim, lowpass):
     decim = _check_decim(info, decim, 0)[0]
     data_picks = _pick_data_channels(info, exclude=())
     return decim, data_picks
+
+
+def _grad_pair_pick_and_name(info, picks):
+        """Helper for a few viz functions - deal with grads"""
+        from ..channels.layout import _pair_grad_sensors
+        picked_chans = list()
+        pairpicks = _pair_grad_sensors(info, topomap_coords=False)
+        for ii in np.arange(0, len(pairpicks), 2):
+            first, second = pairpicks[ii], pairpicks[ii + 1]
+            if first in picks or second in picks:
+                picked_chans.append(first)
+                picked_chans.append(second)
+        picks = list(sorted(set(picked_chans)))
+        ch_names = [info["ch_names"][pick] for pick in picks]
+        return picks, ch_names
