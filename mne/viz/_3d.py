@@ -973,7 +973,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   colormap='auto', time_label='auto', smoothing_steps=10,
                   subjects_dir=None, views='lat', clim='auto', figure=None,
                   initial_time=0, time_unit='s', background='black',
-                  spacing='oct5'):
+                  spacing='oct6'):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D, art3d
@@ -1049,11 +1049,8 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     transp = 0.8
 
     polyc = ax.plot_trisurf(*coords.T, triangles=faces, antialiased=False)
-    color_ave = np.zeros(len(faces))
-    curv_ave = np.zeros(len(faces))
-    for idx, face in enumerate(faces):
-        color_ave[idx] = np.mean(colors[face])
-        curv_ave[idx] = np.mean(curv[face])
+    color_ave = np.mean(colors[faces], axis=1).flatten()
+    curv_ave = np.mean(curv[faces], axis=1).flatten()
     facecolors = art3d.PolyCollection.get_facecolors(polyc)
 
     to_blend = color_ave > ctrl_pts[0] / vmax
@@ -1083,7 +1080,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
-                          time_unit='s', backend='auto', spacing='oct5'):
+                          time_unit='s', backend='auto', spacing='oct6'):
     """Plot SourceEstimates with PySurfer.
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1192,7 +1189,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         recursively subdivided icosahedron, ``'oct#'`` for a recursively
         subdivided octahedron, or ``'all'`` for all points. In general, you can
         speed up the plotting by selecting a sparser source space. Has no
-        effect with mayavi backend. Defaults  to 'oct5'.
+        effect with mayavi backend. Defaults  to 'oct6'.
 
         .. versionadded:: 0.15.0
 
