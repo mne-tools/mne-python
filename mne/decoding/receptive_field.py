@@ -268,7 +268,6 @@ class ReceptiveField(BaseEstimator):
         scorer_ = _SCORERS[self.scoring]
 
         # Generate predictions, then reshape so we can mask time
-        y_orig = y.copy()
         X, y = self._check_dimensions(X, y, predict=True)
         n_times, n_epochs, n_outputs = y.shape
         y_pred = self.predict(X)
