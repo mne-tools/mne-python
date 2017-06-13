@@ -9,7 +9,7 @@ from ..io import BaseRaw
 from ..event import find_events
 
 from ..io.pick import _pick_data_channels
-from ..io.base import _check_preload
+from ..utils import _check_preload
 
 
 def _get_window(start, end):

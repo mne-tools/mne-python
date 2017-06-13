@@ -73,9 +73,9 @@ class Montage(object):
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=20, show_names=False, show=True):
+    def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
         return plot_montage(self, scale_factor=scale_factor,
-                            show_names=show_names, show=True)
+                            show_names=show_names, kind=kind, show=show)
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
@@ -433,9 +433,9 @@ class DigMontage(object):
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=20, show_names=False, show=True):
+    def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
         return plot_montage(self, scale_factor=scale_factor,
-                            show_names=show_names)
+                            show_names=show_names, kind=kind, show=show)
 
     def transform_to_head(self):
         """Transform digitizer points to Neuromag head coordinates."""

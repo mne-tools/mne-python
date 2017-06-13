@@ -1,34 +1,34 @@
 # -*- coding: utf-8 -*-
-u"""Functions for fitting head positions with (c)HPI coils.
+"""Functions for fitting head positions with (c)HPI coils."""
 
-To fit head positions (continuously), the procedure using
-``_calculate_chpi_positions`` is:
+# To fit head positions (continuously), the procedure using
+# ``_calculate_chpi_positions`` is:
+#
+#     1. Get HPI coil locations (as digitized in info['dig'] in head coords
+#        using ``_get_hpi_initial_fit``.
+#     2. Get HPI frequencies,  HPI status channel, HPI status bits,
+#        and digitization order using ``_setup_hpi_struct``.
+#     3. Map HPI coil locations into device coords and compute coil to coil
+#        distances.
+#     4. Window data using ``t_window`` (half before and half after ``t``) and
+#        ``t_step_min``.
+#        (Here Elekta high-passes the data, but we omit this step.)
+#     5. Use a linear model (DC + linear slope + sin + cos terms set up
+#        in ``_setup_hpi_struct``) to fit sinusoidal amplitudes to MEG
+#        channels. Use SVD to determine the phase/amplitude of the sinusoids.
+#        This step is accomplished using ``_fit_cHPI_amplitudes``
+#     6. If the amplitudes are 98% correlated with last position
+#        (and Δt < t_step_max), skip fitting.
+#     7. Fit magnetic dipoles using the amplitudes for each coil frequency
+#        (calling ``_fit_magnetic_dipole``).
+#     8. If ``use_distances is True`` choose good coils based on pairwise
+#        distances, taking into account the tolerance ``dist_limit``.
+#     9. Fit dev_head_t quaternion (using ``_fit_chpi_quat``).
+#     10. Accept or reject fit based on GOF threshold ``gof_limit``.
+#
+# The function ``filter_chpi`` uses the same linear model to filter cHPI
+# and (optionally) line frequencies from the data.
 
-    1. Get HPI coil locations (as digitized in info['dig'] in head coords
-       using ``_get_hpi_initial_fit``.
-    2. Get HPI frequencies,  HPI status channel, HPI status bits,
-       and digitization order using ``_setup_hpi_struct``.
-    3. Map HPI coil locations into device coords and compute coil to coil
-       distances.
-    4. Window data using ``t_window`` (half before and half after ``t``) and
-       ``t_step_min``.
-       (Here Elekta high-passes the data, but we omit this step.)
-    5. Use a linear model (DC + linear slope + sin + cos terms set up
-       in ``_setup_hpi_struct``) to fit sinusoidal amplitudes to MEG
-       channels. Use SVD to determine the phase/amplitude of the sinusoids.
-       This step is accomplished using ``_fit_cHPI_amplitudes``
-    6. If the amplitudes are 98% correlated with last position
-       (and Δt < t_step_max), skip fitting.
-    7. Fit magnetic dipoles using the amplitudes for each coil frequency
-       (calling ``_fit_magnetic_dipole``).
-    8. If ``use_distances is True`` choose good coils based on pairwise
-       distances, taking into account the tolerance ``dist_limit``.
-    9. Fit dev_head_t quaternion (using ``_fit_chpi_quat``).
-    10. Accept or reject fit based on GOF threshold ``gof_limit``.
-
-The function ``filter_chpi`` uses the same linear model to filter cHPI
-and (optionally) line frequencies from the data.
-"""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
@@ -898,7 +898,8 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
 
 
 @verbose
-def filter_chpi(raw, include_line=True, verbose=None):
+def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
+                verbose=None):
     """Remove cHPI and line noise from data.
 
     .. note:: This function will only work properly if cHPI was on
@@ -910,6 +911,11 @@ def filter_chpi(raw, include_line=True, verbose=None):
         Raw data with cHPI information. Must be preloaded. Operates in-place.
     include_line : bool
         If True, also filter line noise.
+    t_step : float
+        Time step to use for estimation, default is 0.01 (10 ms).
+    t_window : float
+        Time window to use to estimate the amplitudes, default is
+        0.2 (200 ms).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -930,8 +936,11 @@ def filter_chpi(raw, include_line=True, verbose=None):
     """
     if not raw.preload:
         raise RuntimeError('raw data must be preloaded')
-    t_window = 0.2
-    t_step = 0.01
+    t_step = float(t_step)
+    t_window = float(t_window)
+    if not (t_step > 0 and t_window > 0):
+        raise ValueError('t_step (%s) and t_window (%s) must both be > 0.'
+                         % (t_step, t_window))
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
     hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])),
                             exclude='bads', remove_aliased=True,

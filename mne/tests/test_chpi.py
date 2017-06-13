@@ -400,6 +400,8 @@ def test_chpi_subtraction():
     del raw.info['hpi_subsystem']['event_channel']
     with catch_logging() as log:
         filter_chpi(raw, verbose=True)
+    assert_raises(ValueError, filter_chpi, raw, t_window=-1)
     assert_true('2 cHPI' in log.getvalue())
+
 
 run_tests_if_main()

@@ -193,6 +193,11 @@ def test_simulate_raw_bem():
     """Test simulation of raw data with BEM."""
     raw, src, stc, trans, sphere = _get_data()
     src = setup_source_space('sample', 'oct1', subjects_dir=subjects_dir)
+    for s in src:
+        s['nuse'] = 3
+        s['vertno'] = src[1]['vertno'][:3]
+        s['inuse'].fill(0)
+        s['inuse'][s['vertno']] = 1
     # use different / more complete STC here
     vertices = [s['vertno'] for s in src]
     stc = SourceEstimate(np.eye(sum(len(v) for v in vertices)), vertices,
@@ -207,7 +212,8 @@ def test_simulate_raw_bem():
     n_ch = len(picks)
     corr = np.corrcoef(raw_sim_sph[picks][0], raw_sim_bem[picks][0])
     assert_array_equal(corr.shape, (2 * n_ch, 2 * n_ch))
-    assert_true(np.median(np.diag(corr[:n_ch, -n_ch:])) > 0.65)
+    med_corr = np.median(np.diag(corr[:n_ch, -n_ch:]))
+    assert_true(med_corr > 0.65, msg=med_corr)
     # do some round-trip localization
     for s in src:
         transform_surface_to(s, 'head', trans)
@@ -217,14 +223,15 @@ def test_simulate_raw_bem():
     # The tolerance for the BEM is surprisingly high (28) but I get the same
     # result when using MNE-C and Xfit, even when using a proper 5120 BEM :(
     for use_raw, bem, tol in ((raw_sim_sph, sphere, 1),
-                              (raw_sim_bem, bem_fname, 28)):
+                              (raw_sim_bem, bem_fname, 31)):
         events = find_events(use_raw, 'STI 014')
-        assert_equal(len(locs), 12)  # oct1 count
+        assert_equal(len(locs), 6)
         evoked = Epochs(use_raw, events, 1, 0, tmax, baseline=None).average()
         assert_equal(len(evoked.times), len(locs))
         fits = fit_dipole(evoked, cov, bem, trans, min_dist=1.)[0].pos
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
-        assert_true(np.median(diffs) < tol)
+        med_diff = np.median(diffs)
+        assert_true(med_diff < tol, msg='%s: %s' % (bem, med_diff))
 
 
 @slow_test
@@ -232,6 +239,10 @@ def test_simulate_raw_bem():
 def test_simulate_raw_chpi():
     """Test simulation of raw data with cHPI."""
     raw = read_raw_fif(raw_chpi_fname, allow_maxshield='yes')
+    picks = np.arange(len(raw.ch_names))
+    picks = np.setdiff1d(picks, pick_types(raw.info, meg=True, eeg=True)[::4])
+    raw.load_data().pick_channels([raw.ch_names[pick] for pick in picks])
+    raw.info.normalize_proj()
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
     sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)
@@ -268,5 +279,6 @@ def test_simulate_raw_chpi():
     quats_sim = _calculate_chpi_positions(raw_chpi)
     quats = read_head_pos(pos_fname)
     _assert_quats(quats, quats_sim, dist_tol=5e-3, angle_tol=3.5)
+
 
 run_tests_if_main()

@@ -1469,6 +1469,9 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
 
         ax.azim = 90
         ax.elev = 0
+        ax.xaxis.set_label_text('x')
+        ax.yaxis.set_label_text('y')
+        ax.zaxis.set_label_text('z')
     else:
         ax.text(0, 0, '', zorder=1)
         # Equal aspect for 3D looks bad, so only use for 2D
@@ -1483,11 +1486,13 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
                                              'scale': (4.5, 4.5)})
         _draw_outlines(ax, outlines)
 
-        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
+        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=25,
                          edgecolor=edgecolors, linewidth=2, clip_on=False)
 
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
+
+        ax.axis("off")  # remove border around figure
 
     connect_picker = True
     if show_names:
@@ -1500,7 +1505,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
             if pos.shape[1] == 3:
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
             else:
-                ax.text(this_pos[0], this_pos[1], ch_names[idx])
+                ax.text(this_pos[0] + 0.015, this_pos[1], ch_names[idx])
         connect_picker = select
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
@@ -2131,3 +2136,43 @@ def _set_ax_facecolor(ax, face_color):
         ax.set_facecolor(face_color)
     except AttributeError:
         ax.set_axis_bgcolor(face_color)
+
+
+def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
+                     ymax_bound=None, unit=None):
+    y_range = -np.subtract(*axes.get_ylim())
+
+    # style the spines/axes
+    axes.spines["top"].set_position('zero')
+    axes.spines["top"].set_smart_bounds(True)
+
+    axes.tick_params(direction='out')
+    axes.tick_params(right="off")
+
+    current_ymin = axes.get_ylim()[0]
+
+    # set x label
+    axes.set_xlabel('Time (s)')
+    axes.xaxis.get_label().set_verticalalignment('center')
+
+    # set y label and ylabel position
+    if unit is not None:
+        axes.set_ylabel(unit, rotation=0)
+        ylabel_height = (-(current_ymin / y_range)
+                         if 0 > current_ymin  # ... if we have negative values
+                         else (axes.get_yticks()[-1] / 2 / y_range))
+        axes.yaxis.set_label_coords(-0.05, 1 - ylabel_height
+                                    if invert_y else ylabel_height)
+
+    xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
+    axes.set_xticks(xticks)
+    axes.set_xticklabels(xticks)
+    x_extrema = [t for t in xticks if tmax >= t >= tmin]
+    axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    axes.spines["left"].set_zorder(0)
+
+    # finishing touches
+    if invert_y:
+        axes.invert_yaxis()
+    axes.spines['right'].set_color('none')
+    axes.set_xlim(tmin, tmax)

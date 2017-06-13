@@ -2,106 +2,112 @@
 
 .. include:: links.inc
 
-.. container:: row
 
-  .. container:: col-md-8 nopad
+.. container:: row limitedwidth table-like
 
-    .. container:: midcenter nopad
+    .. title image and description
+    .. raw:: html
 
-      .. image:: _static/mne_logo.png
-         :alt: MNE
+      <div class="cell-like col-sm-8">
+        <img src="_static/mne_logo.png" alt="MNE" class="center-block">
+        <p class="tagline">
+        Open-source Python software for exploring, visualizing, and
+        analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
+        and more.
+        </h4>
+      </div>
+      <div class="cell-like col-sm-4 text-right">
+        <h3><i class="fa fa-bolt"></i> Speed</h3>
+        <p>Multi-core CPU & GPU.</p>
+        <h3><i class="fa fa-eye"></i> Usability</h3>
+        <p>Clean scripting & visualization.</p>
+        <h3><i class="fa fa-sliders"></i> Flexibility</h3>
+        <p>Broad data format & analysis support.
+      </div>
 
-  .. container:: col-md-4 nopad
+.. container:: row topmargin limitedwidth
 
-    .. container:: col-md-8 midcenter nopad
+    .. container:: col-sm-12 topmargin
 
-      .. image:: _static/institutions.png
-         :alt: Institutions
+      .. include:: carousel.inc
 
+.. container:: row limitedwidth
 
-.. container:: row
+    .. buttons
+    .. raw:: html
 
-  .. container:: col-md-8
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
+        <a href="documentation.html#collapse_io" class="btn btn-primary btn-lg btn-cont">Data I/O</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
+        <a href="documentation.html#collapse_preprocessing" class="btn btn-primary btn-lg btn-cont">Preprocessing</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
+        <a href="documentation.html#collapse_visualization" class="btn btn-primary btn-lg btn-cont">Visualization</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
+        <a href="documentation.html#collapse_source" class="btn btn-primary btn-lg btn-cont">Source estimation</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
+        <a href="documentation.html#collapse_tf" class="btn btn-primary btn-lg btn-cont">Time-frequency</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
+        <a href="documentation.html#collapse_connectivity" class="btn btn-primary btn-lg btn-cont">Connectivity</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
+        <a href="documentation.html#collapse_ml" class="btn btn-primary btn-lg btn-cont">Machine learning</a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
+        <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-lg btn-cont">Statistics</a>
+        </div>
 
-    Community-driven software for **processing time-resolved neural
-    signals including electroencephalography (EEG) and
-    magnetoencephalography (MEG)**, offering comprehensive data analysis
-    tools for Windows, OSX, and Linux:
+.. container:: row limitedwidth
 
-    - Preprocessing and denoising
-    - Source estimation
-    - Time–frequency analysis
-    - Statistical testing
-    - Functional connectivity
-    - Machine learning
-    - Visualization of sensor- and source-space data
-
-    From raw data to source estimates **in about 20 lines of code** (try it `in an experimental online demo <http://mybinder.org/repo/mne-tools/mne-binder/notebooks/plot_introduction.ipynb>`_!)::
-
-        >>> import mne  # doctest: +SKIP
-        >>> raw = mne.io.read_raw_fif('raw.fif')  # load data  # doctest: +SKIP
-        >>> raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels  # doctest: +SKIP
-        >>> raw.filter(l_freq=None, h_freq=40.0)  # low-pass filter  # doctest: +SKIP
-        >>> events = mne.find_events(raw, 'STI014')  # extract events and epoch data # doctest: +SKIP
-        >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,  # doctest: +SKIP
-        >>>                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))  # doctest: +SKIP
-        >>> evoked = epochs.average()  # compute evoked  # doctest: +SKIP
-        >>> evoked.plot()  # butterfly plot the evoked data # doctest: +SKIP
-        >>> cov = mne.compute_covariance(epochs, tmax=0, method='shrunk')  # doctest: +SKIP
-        >>> fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)  # doctest: +SKIP
-        >>> inv = mne.minimum_norm.make_inverse_operator(  # doctest: +SKIP
-        >>>     raw.info, fwd, cov, loose=0.2)  # compute inverse operator # doctest: +SKIP
-        >>> stc = mne.minimum_norm.apply_inverse(  # doctest: +SKIP
-        >>>     evoked, inv, lambda2=1. / 9., method='dSPM')  # apply it # doctest: +SKIP
-        >>> stc_fs = stc.morph('fsaverage')  # morph to fsaverage # doctest: +SKIP
-        >>> stc_fs.plot()  # plot source data on fsaverage's brain # doctest: +SKIP
-
-    Direct financial support for MNE has been provided by the United States:
-
-    - NIH National Institute of Biomedical Imaging and Bioengineering
-      *5R01EB009048* and *P41EB015896* (Center for Functional Neuroimaging
-      Technologies)
-    - NSF awards *0958669* and *1042134*.
-    - NCRR *P41RR14075-06* (Center for Functional Neuroimaging Technologies)
-    - NIH *1R01EB009048-01*, *R01EB006385-A101*, *1R01HD40712-A1*,
-      *1R01NS44319-01*, *2R01NS37462-05*
-    - Department of Energy Award Number *DE-FG02-99ER62764* (The MIND
-      Institute)
-    - Amazon Web Services - *Research Grant* issued to Denis A. Engemann
-
-    And France:
-
-    - IDEX Paris-Saclay, *ANR-11-IDEX-0003-02*, via the
-      `Center for Data Science <http://www.datascience-paris-saclay.fr/>`_.
-    - European Research Council Starting Grant *ERC-YStG-263584* and
-      *ERC-YStG-676943*
-    - French National Research Agency *ANR-14-NEUC-0002-01*.
-
-    .. container:: col-md-8 midcenter
+    .. financial support
+    .. container:: col-sm-8
 
       .. raw:: html
 
-        <script type="text/javascript" src="https://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
+        <div class="list-group">
+        <div class="list-group-item">
+        <h4 class="list-group-item-heading">
+        <span class="flag-icon flag-icon-us"></span>
+        Direct financial support:
+        </h4>
+        <div class="list-group-item-text support-front ul-2col">
 
-  .. container:: col-md-4
+      - **NIH** 5R01EB009048, 1R01EB009048, R01EB006385, 1R01HD40712,
+        1R01NS44319, 2R01NS37462, P41EB015896
+      - **NSF** 0958669, 1042134
+      - **NCRR** P41RR14075-06
+      - **DoE** DE-FG02-99ER62764 (MIND)
+      - **Amazon** - AWS Research Grants
 
-    .. raw:: html
+      .. raw:: html
 
-     <h2>More help</h2>
+        </div>
+        </div>
+        </div>
 
-    - `Mailing list <MNE mailing list>`_ for analysis talk
-    - `GitHub issues <https://github.com/mne-tools/mne-python/issues/>`_ for
-      requests and bug reports
-    - `Gitter <https://gitter.im/mne-tools/mne-python>`_ to chat with devs
+    .. container:: col-sm-4
 
-    .. raw:: html
+      .. raw:: html
 
-      <h2>News</h2>
+        <div class="list-group">
+        <div class="list-group-item">
+        <h4 class="list-group-item-heading">
+        <span class="flag-icon flag-icon-fr"></span>
+        Direct financial support:
+        </h4>
+        <div class="list-group-item-text support-front">
 
-    - :ref:`whats_new`
-    - :ref:`cited`
-    - :ref:`cite`
+      - **IDEX** Paris-Saclay, ANR-11-IDEX-0003-02
+        `CDS <http://www.datascience-paris-saclay.fr/>`_
+      - **ERC** ERC-YStG-263584, ERC-YStG-676943
+      - **ANR** ANR-14-NEUC-0002-01
 
-    .. raw:: html
+      .. raw:: html
 
-      <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Updates by @mne_python</a>
+        </div>
+        </div>
+        </div>

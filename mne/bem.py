@@ -1246,8 +1246,8 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
                 surf.append(this)
                 logger.info('[done]')
             logger.info('    %d BEM surfaces read' % len(surf))
-        if patch_stats:
-            for this in surf:
+        for this in surf:
+            if patch_stats or this['nn'] is None:
                 complete_surface_info(this, copy=False)
     return surf[0] if s_id is not None else surf
 
@@ -1304,7 +1304,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
     if tag is None:
-        res['nn'] = list()
+        res['nn'] = None
     else:
         res['nn'] = tag.data
         if res['nn'].shape[0] != res['np']:

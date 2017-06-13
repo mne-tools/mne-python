@@ -208,7 +208,7 @@ class PointObject(Object):
             fig = self.scene.mayavi_scene
             for i, pt in enumerate(np.array(self.src.data.points)):
                 x, y, z = pt
-                t = text3d(x, y, z, ' %i' % i, scale=.01, color=self.rgbcolor,
+                t = text3d(x, y, z, ' %i' % i, scale=.01, color=self.color,
                            figure=fig)
                 self.text3d.append(t)
         _toggle_mlab_render(self, True)

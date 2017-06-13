@@ -267,7 +267,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     chpi = chpi and len(meg_picks) > 0
     if chpi:
         hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info)
-        hpi_rrs = _get_hpi_initial_fit(info)
+        hpi_rrs = _get_hpi_initial_fit(info, verbose='error')
         hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
                                            axis=1))[:, np.newaxis]
         # turn on cHPI in file

@@ -20,7 +20,7 @@ from matplotlib import pyplot as plt
 # during a trial.
 #
 # :class:`Epochs <mne.Epochs>` objects can be created in three ways:
-#  1. From a :class:`Raw <mne.io.RawFIF>` object, along with event times
+#  1. From a :class:`Raw <mne.io.Raw>` object, along with event times
 #  2. From an :class:`Epochs <mne.Epochs>` object that has been saved as a
 #     `.fif` file
 #  3. From scratch using :class:`EpochsArray <mne.EpochsArray>`. See

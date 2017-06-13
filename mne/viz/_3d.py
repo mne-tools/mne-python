@@ -16,7 +16,6 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import os.path as op
 import warnings
-from numbers import Integral
 from functools import partial
 
 import numpy as np
@@ -36,7 +35,8 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     _import_mlab, SilenceStdout, has_nibabel, check_version)
+                     _import_mlab, SilenceStdout, has_nibabel, check_version,
+                     _ensure_int)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
                     tight_layout)
 
@@ -1601,9 +1601,8 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         idx = np.argmax(dipole.gof)
     elif idx == 'amplitude':
         idx = np.argmax(np.abs(dipole.amplitude))
-    elif not isinstance(idx, Integral):
-        raise ValueError("idx must be an int or one of ['gof', 'amplitude']. "
-                         "Got %s." % idx)
+    else:
+        idx = _ensure_int(idx, 'idx', 'an int or one of ["gof", "amplitude"]')
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)

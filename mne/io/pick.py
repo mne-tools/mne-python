@@ -200,7 +200,7 @@ def _check_meg_type(meg, allow_auto=False):
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
-               gof=False, bio=False, ecog=False, fnirs=False, include=[],
+               gof=False, bio=False, ecog=False, fnirs=False, include=(),
                exclude='bads', selection=None):
     """Pick channels by type and names.
 
