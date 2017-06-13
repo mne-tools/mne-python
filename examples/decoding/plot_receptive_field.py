@@ -134,7 +134,7 @@ time_plot = -.180  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(4, 8))
 max_coef = mean_coefs.max()
 ax.pcolormesh(times, ix_chs, mean_coefs, cmap='RdBu_r',
-              vmin=-max_coef, vmax=max_coef)
+              vmin=-max_coef, vmax=max_coef, shading='gouraud')
 ax.axvline(time_plot, ls='--', color='k', lw=2)
 ax.set(xlabel='Delay (s)', ylabel='Channel', title="Mean Model\nCoefficients",
        xlim=times[[0, -1]], ylim=[len(ix_chs) - 1, 0],

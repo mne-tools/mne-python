@@ -273,7 +273,7 @@ def test_to_data_frame():
     assert_raises(ValueError, ave.to_data_frame, picks=np.arange(400))
     df = ave.to_data_frame()
     assert_true((df.columns == ave.ch_names).all())
-    df = ave.to_data_frame(index=None).reset_index('time')
+    df = ave.to_data_frame(index=None).reset_index()
     assert_true('time' in df.columns)
     assert_array_equal(df.values[:, 1], ave.data[0] * 1e13)
     assert_array_equal(df.values[:, 3], ave.data[2] * 1e15)

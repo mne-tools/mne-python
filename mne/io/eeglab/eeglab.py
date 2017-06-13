@@ -641,8 +641,8 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
 
     See Also
     --------
-    find_events : Extract events from a stim channel. Note that stim channels
-        can only code for one event per time point.
+    mne.find_events : Extract events from a stim channel. Note that stim
+        channels can only code for one event per time point.
     """
     if event_id_func is 'strip_to_integer':
         event_id_func = _strip_to_integer

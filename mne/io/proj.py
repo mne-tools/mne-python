@@ -279,7 +279,7 @@ def _read_proj(fid, node, verbose=None):
 
     Returns
     -------
-    projs: dict
+    projs : list of Projection
         The list of projections.
     """
     projs = list()

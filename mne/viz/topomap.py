@@ -1434,10 +1434,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     images, contours_ = [], []
 
     if mask is not None:
-        if ch_type not in ['mag', 'eeg']:
+        if ch_type == 'grad':
             mask_ = (mask[np.ix_(picks[::2], time_idx)] |
                      mask[np.ix_(picks[1::2], time_idx)])
-        else:
+        else:  # mag, eeg, planar1, planar2
             mask_ = mask[np.ix_(picks, time_idx)]
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)

@@ -420,6 +420,8 @@ class Label(object):
             including intermediate surface vertices.
         """
         # find source space patch info
+        if len(self.vertices) == 0:
+            return self.copy()
         if self.hemi == 'lh':
             hemi_src = src[0]
         elif self.hemi == 'rh':

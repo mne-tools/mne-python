@@ -288,17 +288,22 @@ def _check_comp(comp):
 
 def _conv_comp(comp, first, last, chs):
     """Add a new converted compensation data item."""
+    ch_names = [c['ch_name'] for c in chs]
+    n_col = comp[first]['ncoeff']
+    col_names = comp[first]['sensors'][:n_col]
+    row_names = [comp[p]['sensor_name'] for p in range(first, last + 1)]
+    mask = np.in1d(col_names, ch_names)  # missing channels excluded
+    col_names = np.array(col_names)[mask]
+    n_col = len(col_names)
+    n_row = len(row_names)
     ccomp = dict(ctfkind=np.array([comp[first]['coeff_type']]),
                  save_calibrated=False)
     _add_kind(ccomp)
-    n_col = comp[first]['ncoeff']
-    n_row = last - first + 1
-    col_names = comp[first]['sensors'][:n_col]
-    row_names = [comp[p]['sensor_name'] for p in range(first, last + 1)]
+
     data = np.empty((n_row, n_col))
     for ii, coeffs in enumerate(comp[first:last + 1]):
         # Pick the elements to the matrix
-        data[ii, :] = coeffs['coeffs'][:]
+        data[ii, :] = coeffs['coeffs'][mask]
     ccomp['data'] = dict(row_names=row_names, col_names=col_names,
                          data=data, nrow=len(row_names), ncol=len(col_names))
     mk = ('proper_gain', 'qgain')

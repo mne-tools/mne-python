@@ -333,8 +333,8 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     if len(idx) > 0:
         logger.info('    Vertices [%s] have fewer than three neighboring '
                     'tris, omitted' % ','.join([str(ii) for ii in idx]))
-    for k in idx:
-        surf['neighbor_tri'] = np.array([], int)
+        for k in idx:
+            surf['neighbor_tri'][k] = np.array([], int)
 
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
@@ -538,7 +538,7 @@ def _tessellate_sphere_surf(level, rad=1.0):
     ntri = len(tris)
     nn = rr.copy()
     rr *= rad
-    s = dict(rr=rr, np=npt, tris=tris, use_tris=tris, ntri=ntri, nuse=np,
+    s = dict(rr=rr, np=npt, tris=tris, use_tris=tris, ntri=ntri, nuse=npt,
              nn=nn, inuse=np.ones(npt, int))
     return s
 
