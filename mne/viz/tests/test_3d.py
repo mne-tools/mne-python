@@ -20,6 +20,7 @@ from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, snapshot_brain_montage, plot_head_positions)
+from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version)
 from mne.datasets import testing
@@ -247,9 +248,11 @@ def test_limits_to_control_points():
              hemi='rh', smoothing_steps=2, subject='sample',
              backend='matplotlib', spacing='oct1', initial_time=0.001,
              colormap='Reds')
-    stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
-             hemi='lh', smoothing_steps=2, subject='sample',
-             backend='matplotlib', spacing='ico2')
+    fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
+                   hemi='lh', smoothing_steps=2, subject='sample',
+                   backend='matplotlib', spacing='ico2', time_viewer=True)
+    time_viewer = fig.time_viewer
+    _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change time
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   hemi='both', subject='sample', backend='matplotlib')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,

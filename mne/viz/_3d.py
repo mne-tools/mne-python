@@ -969,18 +969,62 @@ def _handle_time(time_label, time_unit, times):
     return time_label, times
 
 
+def _smooth_plot(this_time, ax, stc, coords, faces, hemi_idx, vertices, e,
+                 smoothing_steps, n_verts, inuse, maps, cmap, curv, ctrl_pts,
+                 greymap, time_label):
+    """Smooth source estimate data and plot with mpl."""
+    from ..source_estimate import _morph_buffer
+    from mpl_toolkits.mplot3d import art3d
+    ax.clear()
+    times = stc.times
+    if this_time is None:
+        time_idx = 0
+    else:
+        time_idx = np.argmin(np.abs(times - this_time))
+
+    if hemi_idx == 0:
+        data = stc.data[:len(stc.vertices[0]), time_idx:time_idx + 1]
+    else:
+        data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
+
+    array_plot = _morph_buffer(data, vertices, e, smoothing_steps, n_verts,
+                               inuse, maps)
+
+    vmax = np.max(array_plot)
+    colors = array_plot / vmax
+
+    transp = 0.8
+    polyc = ax.plot_trisurf(*coords.T, triangles=faces, antialiased=False)
+    color_ave = np.mean(colors[faces], axis=1).flatten()
+    curv_ave = np.mean(curv[faces], axis=1).flatten()
+    facecolors = art3d.PolyCollection.get_facecolors(polyc)
+
+    to_blend = color_ave > ctrl_pts[0] / vmax
+    facecolors[to_blend, :3] = ((1 - transp) *
+                                greymap(curv_ave[to_blend])[:, :3] +
+                                transp * cmap(color_ave[to_blend])[:, :3])
+    facecolors[~to_blend, :3] = greymap(curv_ave[~to_blend])[:, :3]
+    ax.set_title(time_label % times[time_idx], color='w')
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.set_xlim(-80, 80)
+    ax.set_ylim(-80, 80)
+    ax.set_zlim(-80, 80)
+    ax.figure.canvas.draw()
+
+
 def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   colormap='auto', time_label='auto', smoothing_steps=10,
                   subjects_dir=None, views='lat', clim='auto', figure=None,
                   initial_time=0, time_unit='s', background='black',
-                  spacing='oct6'):
+                  spacing='oct6', time_viewer=False):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D, art3d
+    from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
     import nibabel as nib
     from scipy import sparse, stats
-    from ..source_estimate import _morph_buffer, _get_subject_sphere_tris
+    from ..source_estimate import _get_subject_sphere_tris
     if hemi not in ['lh', 'rh']:
         raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "
                          "Got %s." % hemi)
@@ -1000,13 +1044,9 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         colormap = mne_analyze_colormap(clim, format='matplotlib')
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
-    if initial_time is None:
-        time_idx = 0
-    else:
-        time_idx = np.argmin(np.abs(times - initial_time))
     fig = plt.figure() if figure is None else figure
     ax = Axes3D(fig)
-
+    hemi_idx = 0 if hemi == 'lh' else 1
     surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
     if spacing == 'all':
         coords, faces = nib.freesurfer.read_geometry(surf)
@@ -1021,11 +1061,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         shape = faces.shape
         faces = stats.rankdata(faces, 'dense').reshape(shape) - 1
 
-    hemi_idx = 0 if hemi == 'lh' else 1
-    if hemi_idx == 0:
-        data = stc.data[:len(stc.vertices[0]), time_idx:time_idx + 1]
-    else:
-        data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
     tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
@@ -1034,41 +1069,40 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     n_vertices = e.shape[0]
     maps = sparse.identity(n_vertices).tocsr()
     e = e + sparse.eye(n_vertices, n_vertices)
-    array_plot = _morph_buffer(data, vertices, e, smoothing_steps, n_verts,
-                               inuse, maps)
-
-    vmax = np.max(array_plot)
-    colors = array_plot / vmax
     cmap = cm.get_cmap(colormap)
     greymap = cm.get_cmap('Greys')
 
     curv = nib.freesurfer.read_morph_data(
         op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
     curv = np.clip(np.array(curv > 0, np.int), 0.2, 0.8)
+    _smooth_plot(initial_time, ax, stc, coords, faces, hemi_idx, vertices, e,
+                 smoothing_steps, n_verts, inuse, maps, cmap, curv, ctrl_pts,
+                 greymap, time_label)
 
-    transp = 0.8
-
-    polyc = ax.plot_trisurf(*coords.T, triangles=faces, antialiased=False)
-    color_ave = np.mean(colors[faces], axis=1).flatten()
-    curv_ave = np.mean(curv[faces], axis=1).flatten()
-    facecolors = art3d.PolyCollection.get_facecolors(polyc)
-
-    to_blend = color_ave > ctrl_pts[0] / vmax
-    facecolors[to_blend, :3] = ((1 - transp) *
-                                greymap(curv_ave[to_blend])[:, :3] +
-                                transp * cmap(color_ave[to_blend])[:, :3])
-    facecolors[~to_blend, :3] = greymap(curv_ave[~to_blend])[:, :3]
     ax.view_init(**kwargs[views])
-    ax.axis('off')
-    ax.set_title(time_label % times[time_idx], color='w')
-    ax.set_xlim(-80, 80)
-    ax.set_ylim(-80, 80)
-    ax.set_zlim(-80, 80)
-    ax.set_aspect('equal')
+
     try:
         ax.set_facecolor(background)
     except AttributeError:
         ax.set_axis_bgcolor(background)
+
+    if time_viewer:
+        from utils import figure_nobar
+        from matplotlib.widgets import Slider
+        time_viewer = figure_nobar(figsize=(4.5, 1.))
+        fig.time_viewer = time_viewer
+        ax_time = plt.axes()
+        slider = Slider(ax_time, 'Time', stc.times[0], stc.times[-1],
+                        initial_time, time_label)
+        slider_cb = partial(_smooth_plot, ax=ax, stc=stc, coords=coords,
+                            faces=faces, hemi_idx=hemi_idx, vertices=vertices,
+                            e=e, smoothing_steps=smoothing_steps,
+                            n_verts=n_verts, inuse=inuse, maps=maps, cmap=cmap,
+                            curv=curv, ctrl_pts=ctrl_pts, greymap=greymap,
+                            time_label=time_label)
+        slider.on_changed(slider_cb)
+        plt.subplots_adjust(left=0.12, bottom=0.05, right=0.75, top=0.95)
+
     plt.show()
     return fig
 
@@ -1126,7 +1160,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Alpha value to apply globally to the overlay. Has no effect with mpl
         backend.
     time_viewer : bool
-        Display time viewer GUI. Has no effect with mpl backend.
+        Display time viewer GUI.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
@@ -1226,7 +1260,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              subjects_dir=subjects_dir, views=views, clim=clim,
                              figure=figure, initial_time=initial_time,
                              time_unit=time_unit, background=background,
-                             spacing=spacing)
+                             spacing=spacing, time_viewer=time_viewer)
     import surfer
     from surfer import Brain, TimeViewer
     surfer_version = LooseVersion(surfer.__version__)
