@@ -39,7 +39,7 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout, has_nibabel, check_version,
                      _ensure_int)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
-                    tight_layout)
+                    tight_layout, figure_nobar)
 
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
@@ -1022,6 +1022,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib import cm
+    from matplotlib.widgets import Slider
     import nibabel as nib
     from scipy import sparse, stats
     from ..source_estimate import _get_subject_sphere_tris
@@ -1087,8 +1088,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         ax.set_axis_bgcolor(background)
 
     if time_viewer:
-        from utils import figure_nobar
-        from matplotlib.widgets import Slider
         time_viewer = figure_nobar(figsize=(4.5, 1.))
         fig.time_viewer = time_viewer
         ax_time = plt.axes()
