@@ -193,7 +193,6 @@ def test_plot_trans():
 @requires_mayavi
 def test_limits_to_control_points():
     """Test functionality for determing control points."""
-    import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 
@@ -242,8 +241,19 @@ def test_limits_to_control_points():
         assert_equal(len(w), 1)
     mlab.close(all=True)
 
-    # Test plotting with mpl.
-    stc.data.fill(1)  # Prevent data array of zeros.
+
+@testing.requires_testing_data
+def test_stc_mpl():
+    """Test plotting with matplotlib."""
+    import matplotlib.pyplot as plt
+    sample_src = read_source_spaces(src_fname)
+
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.ones((n_verts * n_time))
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
     stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
              hemi='rh', smoothing_steps=2, subject='sample',
              backend='matplotlib', spacing='oct1', initial_time=0.001,

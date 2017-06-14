@@ -1020,7 +1020,7 @@ def _smooth_plot(this_time, ax, stc, coords, faces, hemi_idx, vertices, e,
 def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                   colormap='auto', time_label='auto', smoothing_steps=10,
                   subjects_dir=None, views='lat', clim='auto', figure=None,
-                  initial_time=0, time_unit='s', background='black',
+                  initial_time=None, time_unit='s', background='black',
                   spacing='oct6', time_viewer=False):
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
@@ -1095,8 +1095,11 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         time_viewer = figure_nobar(figsize=(4.5, 1.))
         fig.time_viewer = time_viewer
         ax_time = plt.axes()
-        slider = Slider(ax_time, 'Time', times[0], times[-1], initial_time,
-                        time_label)
+        if initial_time is None:
+            initial_time = 0
+        slider = Slider(ax=ax_time, label='Time', valmin=times[0],
+                        valmax=times[-1], valinit=initial_time,
+                        valfmt=time_label)
         slider_cb = partial(_smooth_plot, ax=ax, stc=stc, coords=coords,
                             faces=faces, hemi_idx=hemi_idx, vertices=vertices,
                             e=e, smoothing_steps=smoothing_steps,
