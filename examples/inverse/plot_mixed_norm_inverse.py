@@ -76,11 +76,13 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              fig_name="MxNE (cond %s)" % condition,
                              opacity=0.1)
 
-# and on the fsaverage brain after morphing
+###############################################################################
+# Morph onto fsaverage brain and view
 stc_fsaverage = stc.morph(subject_from='sample', subject_to='fsaverage',
                           grade=None, sparse=True, subjects_dir=subjects_dir)
 src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 
 plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
+                             fig_name="Morphed MxNE (cond %s)" % condition,
                              opacity=0.1)
