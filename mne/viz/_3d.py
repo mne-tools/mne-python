@@ -957,7 +957,10 @@ def _limits_to_control_points(clim, stc_data, colormap):
 def _handle_time(time_label, time_unit, times):
     """Handle time label string and units."""
     if time_label == 'auto':
-        time_label = 'time=%0.3f ms'
+        if time_unit == 's':
+            time_label = 'time=%0.3fs'
+        elif time_unit == 'ms':
+            time_label = 'time=%0.1fms'
     if time_unit == 's':
         times = times
     elif time_unit == 'ms':
@@ -971,7 +974,7 @@ def _handle_time(time_label, time_unit, times):
 
 def _smooth_plot(this_time, ax, stc, coords, faces, hemi_idx, vertices, e,
                  smoothing_steps, n_verts, inuse, maps, cmap, curv, ctrl_pts,
-                 greymap, time_label):
+                 greymap, time_label, time_unit):
     """Smooth source estimate data and plot with mpl."""
     from ..source_estimate import _morph_buffer
     from mpl_toolkits.mplot3d import art3d
@@ -980,7 +983,8 @@ def _smooth_plot(this_time, ax, stc, coords, faces, hemi_idx, vertices, e,
     if this_time is None:
         time_idx = 0
     else:
-        time_idx = np.argmin(np.abs(times - this_time))
+        scaler = 1000. if time_unit == 'ms' else 1.
+        time_idx = np.argmin(np.abs(times - this_time / scaler))
 
     if hemi_idx == 0:
         data = stc.data[:len(stc.vertices[0]), time_idx:time_idx + 1]
@@ -1078,7 +1082,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     curv = np.clip(np.array(curv > 0, np.int), 0.2, 0.8)
     _smooth_plot(initial_time, ax, stc, coords, faces, hemi_idx, vertices, e,
                  smoothing_steps, n_verts, inuse, maps, cmap, curv, ctrl_pts,
-                 greymap, time_label)
+                 greymap, time_label, time_unit)
 
     ax.view_init(**kwargs[views])
 
@@ -1091,14 +1095,14 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         time_viewer = figure_nobar(figsize=(4.5, 1.))
         fig.time_viewer = time_viewer
         ax_time = plt.axes()
-        slider = Slider(ax_time, 'Time', stc.times[0], stc.times[-1],
-                        initial_time, time_label)
+        slider = Slider(ax_time, 'Time', times[0], times[-1], initial_time,
+                        time_label)
         slider_cb = partial(_smooth_plot, ax=ax, stc=stc, coords=coords,
                             faces=faces, hemi_idx=hemi_idx, vertices=vertices,
                             e=e, smoothing_steps=smoothing_steps,
                             n_verts=n_verts, inuse=inuse, maps=maps, cmap=cmap,
                             curv=curv, ctrl_pts=ctrl_pts, greymap=greymap,
-                            time_label=time_label)
+                            time_label=time_label, time_unit=time_unit)
         slider.on_changed(slider_cb)
         plt.subplots_adjust(left=0.12, bottom=0.05, right=0.75, top=0.95)
 
