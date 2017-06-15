@@ -458,6 +458,15 @@ class Info(dict):
         self['nchan'] = len(self['chs'])
 
 
+def _simplify_info(info):
+    """Return a simplified info structure to speed up picking."""
+    chs = [{key: ch[key] for key in ('ch_name', 'kind', 'unit')}
+           for ch in info['chs']]
+    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
+    sub_info._update_redundant()
+    return sub_info
+
+
 def read_fiducials(fname):
     """Read fiducials from a fiff file.
 

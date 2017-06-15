@@ -352,21 +352,26 @@ def warn(message, category=RuntimeWarning):
     import mne
     root_dir = op.dirname(mne.__file__)
     frame = None
-    stack = inspect.stack()
-    last_fname = ''
-    for fi, frame in enumerate(stack):
-        fname, lineno = frame[1:3]
-        if fname == '<string>' and last_fname == 'utils.py':  # in verbose dec
-            last_fname = fname
-            continue
-        # treat tests as scripts
-        # and don't capture unittest/case.py (assert_raises)
-        if not (fname.startswith(root_dir) or
-                ('unittest' in fname and 'case' in fname)) or \
-                op.basename(op.dirname(fname)) == 'tests':
-            break
-        last_fname = op.basename(fname)
     if logger.level <= logging.WARN:
+        last_fname = ''
+        frame = inspect.currentframe()
+        while frame:
+            fname = frame.f_code.co_filename
+            lineno = frame.f_lineno
+            # in verbose dec
+            if fname == '<string>' and last_fname == 'utils.py':
+                last_fname = fname
+                frame = frame.f_back
+                continue
+            # treat tests as scripts
+            # and don't capture unittest/case.py (assert_raises)
+            if not (fname.startswith(root_dir) or
+                    ('unittest' in fname and 'case' in fname)) or \
+                    op.basename(op.dirname(fname)) == 'tests':
+                break
+            last_fname = op.basename(fname)
+            frame = frame.f_back
+        del frame
         # We need to use this instead of warn(message, category, stacklevel)
         # because we move out of the MNE stack, so warnings won't properly
         # recognize the module name (and our warnings.simplefilter will fail)

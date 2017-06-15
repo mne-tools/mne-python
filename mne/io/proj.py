@@ -513,9 +513,14 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
             sel = []
             vecsel = []
             for c, name in enumerate(ch_names):
-                if name in p['data']['col_names'] and name not in bads:
-                    sel.append(c)
-                    vecsel.append(p['data']['col_names'].index(name))
+                if name not in bads:
+                    try:
+                        idx = p['data']['col_names'].index(name)
+                    except ValueError:
+                        pass
+                    else:
+                        sel.append(c)
+                        vecsel.append(idx)
 
             # If there is something to pick, pickit
             nrow = p['data']['nrow']
