@@ -93,9 +93,9 @@ install:
 script:
     # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        nosetests -a '!slow_test' --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE;
+        nosetests -a '!slow_test' --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 $COVERAGE;
       else
-        nosetests -a '!ultra_slow_test' --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE;
+        nosetests -a '!ultra_slow_test' --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 $COVERAGE;
       fi;
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
