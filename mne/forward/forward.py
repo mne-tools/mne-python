@@ -579,6 +579,11 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 5. sol_grad['ncol']
     # 6. source_ori
     if is_fixed_orient(fwd, orig=True) or force_fixed:  # Fixed
+        if not all([src_type == 'surf' for src_type in set(fwd['src'])]):
+            raise ValueError('Forcing fixed orientation is not allowed '
+                             'when working with volume or discrete source '
+                             'spaces.')
+
         nuse = 0
         fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
                                            for s in fwd['src']], axis=0)
@@ -603,10 +608,18 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
         fwd['surf_ori'] = True
     elif surf_ori:  # Free, surf-oriented
+        if any([src['type'] == 'surf' for src in fwd['src']]):
+            logger.info('    Converting to surface-based source orientations '
+                        '(surface-based source spaces only)...')
+        else:
+            logger.info('    No surface-based source space available. '
+                        'Convertion to surface-based source orientations '
+                        'omitted.')
+
         #   Rotate the local source coordinate systems
         nuse_total = sum([s['nuse'] for s in fwd['src']])
-        fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
-        logger.info('    Converting to surface-based source orientations...')
+        fwd['source_nn'] = np.tile(np.eye(3), (nuse_total, 1))
+
         if fwd['src'][0]['patch_inds'] is not None:
             use_ave_nn = True
             logger.info('    Average patch normals will be employed in the '
@@ -618,20 +631,21 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         nuse = 0
         pp = 0
         for s in fwd['src']:
-            for p in range(s['nuse']):
-                #  Project out the surface normal and compute SVD
-                if use_ave_nn is True:
-                    nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
-                    nn = np.sum(nn, axis=0)[:, np.newaxis]
-                    nn /= linalg.norm(nn)
-                else:
-                    nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
-                U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
-                #  Make sure that ez is in the direction of nn
-                if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
-                    U *= -1.0
-                fwd['source_nn'][pp:pp + 3, :] = U.T
-                pp += 3
+            if s['type'] == 'surf':
+                for p in range(s['nuse']):
+                    #  Project out the surface normal and compute SVD
+                    if use_ave_nn is True:
+                        nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
+                        nn = np.sum(nn, axis=0)[:, np.newaxis]
+                        nn /= linalg.norm(nn)
+                    else:
+                        nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
+                    U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
+                    #  Make sure that ez is in the direction of nn
+                    if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
+                        U *= -1.0
+                    fwd['source_nn'][pp:pp + 3, :] = U.T
+                    pp += 3
             nuse += s['nuse']
 
         #   Rotate the solution components as well
@@ -877,59 +891,22 @@ def write_forward_meas_info(fid, info):
 
 def _check_loose(forward, loose):
     """Check loose parameter input."""
-    if is_fixed_orient(forward) and loose is not None:
-        warn('Ignoring loose parameter with forward operator '
-             'with fixed orientation.')
-        loose = None
-
     if loose is not None:
+        if is_fixed_orient(forward):
+            warn('Ignoring loose parameter with forward operator '
+                 'with fixed orientation.')
+            loose = None
         if isinstance(loose, float):
             if not (0 <= loose <= 1):
                 raise ValueError('Loose value should be smaller than 1 and '
                                  'bigger than 0, or None for not loose '
                                  'orientations.')
             if loose < 1 and not forward['surf_ori']:
-                warn('Forward operator is not oriented in surface coordinates.'
-                     ' A loose inverse operator requires a surface-oriented '
-                     'forward operator with free orientation.')
+                warn('Forward operator is not oriented in surface '
+                     'coordinates. A loose inverse operator requires a '
+                     'surface-oriented forward operator with free '
+                     'orientation.')
                 forward = convert_forward_solution(forward, surf_ori=True)
-            loose = dict(surf=loose, discrete=loose, vol=None)
-
-        elif isinstance(loose, dict):
-            src_types = np.array([src['type'] for src in forward['src']])
-            for src_type in np.unique(src_types):
-                if src_type not in loose:
-                    loose[src_type] = None if src_type == 'vol' else 0.2
-                    warn('No loose parameter given for source spaces of type '
-                         '\'%s\'. Using default value loose[\'%s\']=%f.'
-                         % (src_type, src_type, loose[src_type]))
-                elif loose[src_type] is not None:
-                    if isinstance(loose[src_type], float):
-                        if not (0 <= loose[src_type] <= 1):
-                            raise ValueError(
-                                'Loose value should be smaller than  1 and '
-                                'bigger than 0, or None for not loose '
-                                'orientations.')
-                        if loose[src_type] < 1 and not forward['surf_ori']:
-                            warn('Forward operator is not oriented in surface'
-                                 ' coordinates. A loose inverse operator '
-                                 'requires a surface-oriented forward operator'
-                                 ' with free orientation.')
-                            forward = convert_forward_solution(forward,
-                                                               surf_ori=True)
-                        if loose[src_type] < 1 and src_type == 'vol':
-                            loose[src_type] = None
-                            warn('The loose orientation constraint is '
-                                 'currently not supported for volume-based '
-                                 'source spaces. Setting loose[\'%s\']=None.'
-                                 % (src_type))
-                    else:
-                        raise ValueError(
-                            'loose value must be a float smaller than 1 and '
-                            'bigger than 0, or None for not loose '
-                            'orientations. Got %s' % type(loose[src_type]))
-            if all([val is None for val in loose.values()]):
-                loose = None
         else:
             raise ValueError('loose value must be None for not loose '
                              'orientations, a float smaller than 1 and '
@@ -947,11 +924,12 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     ----------
     forward : dict
         Forward operator.
-    loose : None | dict | float in [0, 1]
+    loose : None | float in [0, 1]
         Value that weights the source variances of the dipole components
-        defining the tangent space of the cortical surfaces. Using loose=float
-        is an alias for loose=dict(surf=float, discrete=float, vol=None).
-        Requires surface-based, free orientation forward solutions.
+        defining the tangent space of the cortical surfaces. Requires
+        surface-oriented, free orientation forward solutions. Loose
+        orientation constraints are only applied for surface-based source
+        spaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -964,21 +942,20 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     n_sources = forward['sol']['data'].shape[1]
     forward, loose = _check_loose(forward, loose)
     orient_prior = np.ones(n_sources, dtype=np.float)
-    if ((loose is not None) and
-            not all([item in [1., None] for item in loose.values()])):
+    if loose is not None and loose < 1.:
+        if loose == 0.0:
+            logger.info('Applying fixed dipole orientations for surface-based '
+                        'source spaces.')
+        else:
+            logger.info('Applying loose dipole orientations for surface-based '
+                        'source spaces with loose=%f.' % loose)
         idx_start = 0
         for src in forward['src']:
             n_points = len(src['vertno'])
             idx_end = idx_start + n_points * 3
-            loose_val = loose[src['type']]
-            if loose_val is not None:
-                logger.info('Applying loose dipole orientations for '
-                            'source space of type \'%s.\' with '
-                            'loose[\'%s\']=%f.' % (src['type'], src['type'],
-                                                   loose[src['type']]))
-                loose_vec = np.array([loose_val, loose_val, 1.])
-                orient_prior[idx_start:idx_end] = np.kron(np.ones(n_points),
-                                                          loose_vec)
+            if src['type'] == 'surf':
+                loose_vec = np.array([loose, loose, 1.])
+                orient_prior[idx_start:idx_end] = np.tile(loose_vec, n_points)
             idx_start = idx_end
     return orient_prior
 
