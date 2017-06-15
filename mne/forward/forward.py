@@ -579,7 +579,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 5. sol_grad['ncol']
     # 6. source_ori
     if is_fixed_orient(fwd, orig=True) or force_fixed:  # Fixed
-        if not all([src_type == 'surf' for src_type in set(fwd['src'])]):
+        if not all([src['type'] == 'surf' for src in fwd['src']]):
             raise ValueError('Forcing fixed orientation is not allowed '
                              'when working with volume or discrete source '
                              'spaces.')
