@@ -1276,7 +1276,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     scalings = _handle_default('scalings_cov_rank', scalings)
 
     # Create the projection operator
-    proj, ncomp, _ = make_projector(info['projs'], ch_names)
+    proj, ncomp, _ = make_projector(info['projs'] + noise_cov['projs'],
+                                    ch_names)
     if ncomp > 0:
         logger.info('    Created an SSP operator (subspace dimension = %d)'
                     % ncomp)
