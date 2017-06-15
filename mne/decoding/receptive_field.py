@@ -60,8 +60,8 @@ class ReceptiveField(BaseEstimator):
     ``valid_samples_`` : slice
         The rows to keep during model fitting after removing rows with
         missing values due to time delaying. This can be used to get an
-        output equivalent to that of ``mode='valid'`` of
-        :func:`numpy.convolve` or :func:`numpy.correlate`.
+        output equivalent to using :func:`numpy.convolve` or
+        :func:`numpy.correlate` with ``mode='valid'``.
 
     See Also
     --------
@@ -224,8 +224,9 @@ class ReceptiveField(BaseEstimator):
         Returns
         -------
         y_pred : array, shape (n_times[, n_epochs], n_outputs)
-            The output predictions. Note that valid samples can be
-            obtained using ``y_pred[rf.valid_samples_]``.
+            The output predictions. "Note that valid samples (those
+            unaffected by edge artifacts during the time delaying step) can
+            be obtained using ``y_pred[rf.valid_samples_]``.
         """
         if not hasattr(self, 'delays_'):
             raise ValueError('Estimator has not been fit yet.')
@@ -333,6 +334,9 @@ def _pad_time_series(X, n_delays, fill_mean=True):
         The time series to pad.
     n_delays : int
         The number of delays.
+    fill_mean : bool
+        If True, the fill value will be the mean along the time dimension
+        of the feature. If False, the fill value will be zero.
 
     Returns
     -------
@@ -368,8 +372,8 @@ def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0,
         The axis in the output array that corresponds to time delays.
         Defaults to 0, for the first axis.
     fill_mean : bool
-        If True (usually when using fit_intercept=True), the fill value
-        will be the mean instead of zero.
+        If True, the fill value will be the mean along the time dimension
+        of the feature. If False, the fill value will be zero.
     axis : int
         The axis corresponding to the time dimension.
 
