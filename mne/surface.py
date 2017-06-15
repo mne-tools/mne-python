@@ -980,8 +980,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         for hemi in ['lh', 'rh']:
             fname = op.join(subjects_dir, subject_from, 'surf',
                             '%s.sphere.reg' % hemi)
-            from_pts = read_surface(fname, verbose=False)[0]
-            n_pts = len(from_pts)
+            n_pts = len(read_surface(fname, verbose=False)[0])
             morph_maps.append(speye(n_pts, n_pts, format='csr'))
         return morph_maps
 
@@ -989,35 +988,34 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         # load surfaces and normalize points to be on unit sphere
         fname = op.join(subjects_dir, subject_from, 'surf',
                         '%s.sphere.reg' % hemi)
-        from_pts, from_tris = read_surface(fname, verbose=False)
-        n_from_pts = len(from_pts)
-        _normalize_vectors(from_pts)
-        tri_geom = _get_tri_supp_geom(dict(rr=from_pts, tris=from_tris))
-
+        from_rr, from_tri = read_surface(fname, verbose=False)
         fname = op.join(subjects_dir, subject_to, 'surf',
                         '%s.sphere.reg' % hemi)
-        to_pts = read_surface(fname, verbose=False)[0]
-        n_to_pts = len(to_pts)
-        _normalize_vectors(to_pts)
+        to_rr = read_surface(fname, verbose=False)[0]
+        _normalize_vectors(from_rr)
+        _normalize_vectors(to_rr)
 
         # from surface: get nearest neighbors, find triangles for each vertex
-        nn_pts_idx = _compute_nearest(from_pts, to_pts)
-        from_pt_tris = _triangle_neighbors(from_tris, len(from_pts))
+        nn_pts_idx = _compute_nearest(from_rr, to_rr)
+        from_pt_tris = _triangle_neighbors(from_tri, len(from_rr))
         from_pt_tris = [from_pt_tris[pt_idx] for pt_idx in nn_pts_idx]
 
         # find triangle in which point lies and assoc. weights
-        nn_tri_inds = []
-        nn_tris_weights = []
-        for pt_tris, to_pt in zip(from_pt_tris, to_pts):
+        tri_inds = []
+        weights = []
+        tri_geom = _get_tri_supp_geom(dict(rr=from_rr, tris=from_tri))
+        for pt_tris, to_pt in zip(from_pt_tris, to_rr):
             p, q, idx, dist = _find_nearest_tri_pt(to_pt, tri_geom, pt_tris,
                                                    run_all=False)
-            nn_tri_inds.append(idx)
-            nn_tris_weights.extend([1. - (p + q), p, q])
+            tri_inds.append(idx)
+            weights.append([1. - (p + q), p, q])
 
-        nn_tris = from_tris[nn_tri_inds]
-        row_ind = np.repeat(np.arange(n_to_pts), 3)
-        this_map = csr_matrix((nn_tris_weights, (row_ind, nn_tris.ravel())),
-                              shape=(n_to_pts, n_from_pts))
+        nn_idx = from_tri[tri_inds]
+        weights = np.array(weights)
+
+        row_ind = np.repeat(np.arange(len(to_rr)), 3)
+        this_map = csr_matrix((weights.ravel(), (row_ind, nn_idx.ravel())),
+                              shape=(len(to_rr), len(from_rr)))
         morph_maps.append(this_map)
 
     return morph_maps

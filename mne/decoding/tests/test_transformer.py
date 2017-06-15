@@ -223,12 +223,12 @@ def test_temporal_filter():
     values = (('10hz', None, 100., 'auto'), (5., '10hz', 100., 'auto'),
               (10., 20., 5., 'auto'), (None, None, 100., '5hz'))
     for low, high, sf, ltrans in values:
-        filt = TemporalFilter(low, high, sf, ltrans)
+        filt = TemporalFilter(low, high, sf, ltrans, fir_design='firwin')
         assert_raises(ValueError, filt.fit_transform, X)
 
     # Add tests for different combinations of l_freq and h_freq
     for low, high in ((5., 15.), (None, 15.), (5., None)):
-        filt = TemporalFilter(low, high, sfreq=100.)
+        filt = TemporalFilter(low, high, sfreq=100., fir_design='firwin')
         Xt = filt.fit_transform(X)
         assert_array_equal(filt.fit_transform(X), Xt)
         assert_true(X.shape == Xt.shape)
@@ -240,7 +240,8 @@ def test_temporal_filter():
     # Test with 2 dimensional data array
     X = np.random.rand(101, 500)
     filt = TemporalFilter(l_freq=25., h_freq=50., sfreq=1000.,
-                          filter_length=150)
+                          filter_length=150, fir_design='firwin2')
     assert_equal(filt.fit_transform(X).shape, X.shape)
+
 
 run_tests_if_main()

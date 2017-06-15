@@ -637,8 +637,7 @@ def test_morphed_source_space_return():
 
     # Compare to the original data
     stc_morph_morph = stc_morph.morph('fsaverage', stc_morph_return.vertices,
-                                      smooth=1,
-                                      subjects_dir=subjects_dir)
+                                      smooth=1, subjects_dir=subjects_dir)
     assert_equal(stc_morph_return.subject, stc_morph_morph.subject)
     for ii in range(2):
         assert_array_equal(stc_morph_return.vertices[ii],

@@ -34,12 +34,11 @@ def _read_forward_solution_meg(fname_fwd, **kwargs):
 
 
 def _get_data(event_id=1):
-    """Read in data used in tests
-    """
+    """Read in data used in tests."""
     # Read evoked
     evoked = mne.read_evokeds(fname_ave, event_id)
     evoked.pick_types(meg=True, eeg=False)
-    evoked.crop(0, 0.3)
+    evoked.decimate(6)
 
     forward = mne.read_forward_solution(fname_fwd)
 
@@ -54,7 +53,7 @@ def _get_data(event_id=1):
 
 
 def simu_data(evoked, forward, noise_cov, n_dipoles, times, nave=1):
-    """Simulate an evoked dataset with 2 sources
+    """Simulate an evoked dataset with 2 sources.
 
     One source is put in each hemisphere.
     """
@@ -125,8 +124,7 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
 
 @testing.requires_testing_data
 def test_rap_music_simulated():
-    """Test RAP-MUSIC with simulated evoked
-    """
+    """Test RAP-MUSIC with simulated evoked."""
     evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
         _get_data()
 

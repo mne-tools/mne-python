@@ -192,15 +192,17 @@ def test_movement_compensation():
     head_pos_bad = head_pos.copy()
     head_pos_bad[0, 4] = 1.  # off by more than 1 m
     with warnings.catch_warnings(record=True) as w:
-        maxwell_filter(raw, head_pos=head_pos_bad, bad_condition='ignore')
+        maxwell_filter(raw.copy().crop(0, 0.1), head_pos=head_pos_bad,
+                       bad_condition='ignore')
     assert_true(any('greater than 1 m' in str(ww.message) for ww in w))
 
     # make sure numerical error doesn't screw it up, though
     head_pos_bad = head_pos.copy()
     head_pos_bad[0, 0] = raw.first_samp / raw.info['sfreq'] - 5e-4
-    raw_sss_tweak = maxwell_filter(raw, head_pos=head_pos_bad,
-                                   origin=mf_head_origin)
-    assert_meg_snr(raw_sss_tweak, raw_sss, 2., 10., chpi_med_tol=11)
+    raw_sss_tweak = maxwell_filter(
+        raw.copy().crop(0, 0.05), head_pos=head_pos_bad, origin=mf_head_origin)
+    assert_meg_snr(raw_sss_tweak, raw_sss.copy().crop(0, 0.05), 1.4, 8.,
+                   chpi_med_tol=5)
 
 
 @slow_test
@@ -491,7 +493,7 @@ def test_bads_reconstruction():
 @buggy_mkl_svd
 @requires_svd_convergence
 @testing.requires_testing_data
-def test_spatiotemporal_maxwell():
+def test_spatiotemporal():
     """Test Maxwell filter (tSSS) spatiotemporal processing."""
     # Load raw testing data
     raw = read_crop(raw_fname)
@@ -499,10 +501,13 @@ def test_spatiotemporal_maxwell():
     # Test that window is less than length of data
     assert_raises(ValueError, maxwell_filter, raw, st_duration=1000.)
 
-    # Check both 4 and 10 seconds because Elekta handles them differently
-    # This is to ensure that std/non-std tSSS windows are correctly handled
-    st_durations = [4., 10.]
-    tols = [325., 200.]
+    # We could check both 4 and 10 seconds because Elekta handles them
+    # differently (to ensure that std/non-std tSSS windows are correctly
+    # handled), but the 4-sec case should hopefully be sufficient.
+    st_durations = [4.]  # , 10.]
+    tols = [325.]  # , 200.]
+    kwargs = dict(origin=mf_head_origin, regularize=None,
+                  bad_condition='ignore')
     for st_duration, tol in zip(st_durations, tols):
         # Load tSSS data depending on st_duration and get data
         tSSS_fname = op.join(sss_path,
@@ -511,27 +516,15 @@ def test_spatiotemporal_maxwell():
         # Because Elekta's tSSS sometimes(!) lumps the tail window of data
         # onto the previous buffer if it's shorter than st_duration, we have to
         # crop the data here to compensate for Elekta's tSSS behavior.
-        if st_duration == 10.:
-            tsss_bench.crop(0, st_duration)
+        # if st_duration == 10.:
+        #     tsss_bench.crop(0, st_duration)
+        #     raw.crop(0, st_duration)
 
         # Test sss computation at the standard head origin. Same cropping issue
         # as mentioned above.
-        if st_duration == 10.:
-            raw_tsss = maxwell_filter(raw.crop(0, st_duration),
-                                      origin=mf_head_origin,
-                                      st_duration=st_duration, regularize=None,
-                                      bad_condition='ignore')
-        else:
-            raw_tsss = maxwell_filter(raw, st_duration=st_duration,
-                                      origin=mf_head_origin, regularize=None,
-                                      bad_condition='ignore', verbose=True)
-            raw_tsss_2 = maxwell_filter(raw, st_duration=st_duration,
-                                        origin=mf_head_origin, regularize=None,
-                                        bad_condition='ignore', st_fixed=False,
-                                        verbose=True)
-            assert_meg_snr(raw_tsss, raw_tsss_2, 100., 1000.)
-            assert_equal(raw_tsss.estimate_rank(), 140)
-            assert_equal(raw_tsss_2.estimate_rank(), 140)
+        raw_tsss = maxwell_filter(
+            raw, st_duration=st_duration, **kwargs)
+        assert_equal(raw_tsss.estimate_rank(), 140)
         assert_meg_snr(raw_tsss, tsss_bench, tol)
         py_st = raw_tsss.info['proc_history'][0]['max_info']['max_st']
         assert_true(len(py_st) > 0)
@@ -549,29 +542,27 @@ def test_spatiotemporal_maxwell():
 def test_spatiotemporal_only():
     """Test tSSS-only processing."""
     # Load raw testing data
-    raw = read_crop(raw_fname, (0, 2)).load_data()
-    picks = pick_types(raw.info, meg='mag', exclude=())
-    power = np.sqrt(np.sum(raw[picks][0] ** 2))
+    raw = read_crop(raw_fname, (0, 1)).load_data()
+    picks = pick_types(raw.info, meg=True, exclude='bads')[::2]
+    raw.pick_channels([raw.ch_names[pick] for pick in picks])
+    mag_picks = pick_types(raw.info, meg='mag', exclude=())
+    power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
     # basics
-    raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True)
+    raw_tsss = maxwell_filter(raw, st_duration=0.5, st_only=True)
     assert_equal(len(raw.info['projs']), len(raw_tsss.info['projs']))
-    assert_equal(raw_tsss.estimate_rank(), 366)
+    assert_equal(raw_tsss.estimate_rank(), len(picks))
     _assert_shielding(raw_tsss, power, 10)
-    # temporal proj will actually reduce spatial DOF with small windows!
-    raw_tsss = maxwell_filter(raw, st_duration=0.1, st_only=True)
-    assert_true(raw_tsss.estimate_rank() < 350)
-    _assert_shielding(raw_tsss, power, 40)
     # with movement
     head_pos = read_head_pos(pos_fname)
-    raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True,
+    raw_tsss = maxwell_filter(raw, st_duration=0.5, st_only=True,
                               head_pos=head_pos)
-    assert_equal(raw_tsss.estimate_rank(), 366)
-    _assert_shielding(raw_tsss, power, 12)
+    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    _assert_shielding(raw_tsss, power, 10)
     with warnings.catch_warnings(record=True):  # st_fixed False
-        raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True,
+        raw_tsss = maxwell_filter(raw, st_duration=0.5, st_only=True,
                                   head_pos=head_pos, st_fixed=False)
-    assert_equal(raw_tsss.estimate_rank(), 366)
-    _assert_shielding(raw_tsss, power, 12)
+    assert_equal(raw_tsss.estimate_rank(), len(picks))
+    _assert_shielding(raw_tsss, power, 10)
     # should do nothing
     raw_tsss = maxwell_filter(raw, st_duration=1., st_correlation=1.,
                               st_only=True)
@@ -585,15 +576,16 @@ def test_spatiotemporal_only():
     assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
     # now also with head movement, and a bad MEG channel
     assert_equal(len(raw.info['bads']), 0)
-    raw.info['bads'] = ['EEG001', 'MEG2623']
+    bads = [raw.ch_names[0]]
+    raw.info['bads'] = list(bads)
     raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True,
                               head_pos=head_pos)
-    assert_equal(raw.info['bads'], ['EEG001', 'MEG2623'])
-    assert_equal(raw_tsss.info['bads'], ['EEG001', 'MEG2623'])  # don't reset
+    assert_equal(raw.info['bads'], bads)
+    assert_equal(raw_tsss.info['bads'], bads)  # don't reset
     raw_tsss = maxwell_filter(raw_tsss, head_pos=head_pos)
-    assert_equal(raw_tsss.info['bads'], ['EEG001'])  # do reset MEG bads
+    assert_equal(raw_tsss.info['bads'], [])  # do reset MEG bads
     raw_tsss_2 = maxwell_filter(raw, st_duration=1., head_pos=head_pos)
-    assert_equal(raw_tsss_2.info['bads'], ['EEG001'])
+    assert_equal(raw_tsss_2.info['bads'], [])
     assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
 
 
