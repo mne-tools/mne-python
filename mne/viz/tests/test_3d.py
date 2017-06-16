@@ -243,6 +243,7 @@ def test_limits_to_control_points():
 
 
 @testing.requires_testing_data
+@requires_nibabel
 def test_stc_mpl():
     """Test plotting with matplotlib."""
     import matplotlib.pyplot as plt

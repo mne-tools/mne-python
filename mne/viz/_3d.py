@@ -980,10 +980,10 @@ def _smooth_plot(this_time, ax, stc, coords, faces, hemi_idx, vertices, e,
     from mpl_toolkits.mplot3d import art3d
     ax.clear()
     times = stc.times
+    scaler = 1000. if time_unit == 'ms' else 1.
     if this_time is None:
         time_idx = 0
     else:
-        scaler = 1000. if time_unit == 'ms' else 1.
         time_idx = np.argmin(np.abs(times - this_time / scaler))
 
     if hemi_idx == 0:
@@ -1008,7 +1008,7 @@ def _smooth_plot(this_time, ax, stc, coords, faces, hemi_idx, vertices, e,
                                 greymap(curv_ave[to_blend])[:, :3] +
                                 transp * cmap(color_ave[to_blend])[:, :3])
     facecolors[~to_blend, :3] = greymap(curv_ave[~to_blend])[:, :3]
-    ax.set_title(time_label % times[time_idx], color='w')
+    ax.set_title(time_label % (times[time_idx] * scaler), color='w')
     ax.set_aspect('equal')
     ax.axis('off')
     ax.set_xlim(-80, 80)
