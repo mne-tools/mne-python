@@ -501,6 +501,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
     vecs = np.zeros((nchan, nvec))
     nvec = 0
     nonzero = 0
+    bads = set(bads)
     for k, p in enumerate(projs):
         if not p['active'] or include_active:
             if (len(p['data']['col_names']) !=
@@ -512,15 +513,11 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
             # the projection vectors omitting bad channels
             sel = []
             vecsel = []
+            p_set = set(p['data']['col_names'])  # faster membership access
             for c, name in enumerate(ch_names):
-                if name not in bads:
-                    try:
-                        idx = p['data']['col_names'].index(name)
-                    except ValueError:
-                        pass
-                    else:
-                        sel.append(c)
-                        vecsel.append(idx)
+                if name not in bads and name in p_set:
+                    sel.append(c)
+                    vecsel.append(p['data']['col_names'].index(name))
 
             # If there is something to pick, pickit
             nrow = p['data']['nrow']

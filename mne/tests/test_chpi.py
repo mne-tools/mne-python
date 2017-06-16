@@ -244,6 +244,7 @@ def test_calculate_chpi_positions_on_chpi5_in_one_second_steps():
     _assert_quats(py_quats, mf_quats, dist_tol=0.0008, angle_tol=.5)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_calculate_chpi_positions_on_chpi5_in_shorter_steps():
     """Comparing estimated cHPI positions with MF results (smaller steps)."""

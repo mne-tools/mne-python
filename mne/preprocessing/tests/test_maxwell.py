@@ -542,49 +542,50 @@ def test_spatiotemporal():
 def test_spatiotemporal_only():
     """Test tSSS-only processing."""
     # Load raw testing data
-    raw = read_crop(raw_fname, (0, 1)).load_data()
+    tmax = 0.5
+    raw = read_crop(raw_fname, (0, tmax)).load_data()
     picks = pick_types(raw.info, meg=True, exclude='bads')[::2]
     raw.pick_channels([raw.ch_names[pick] for pick in picks])
     mag_picks = pick_types(raw.info, meg='mag', exclude=())
     power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
     # basics
-    raw_tsss = maxwell_filter(raw, st_duration=0.5, st_only=True)
+    raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True)
     assert_equal(len(raw.info['projs']), len(raw_tsss.info['projs']))
     assert_equal(raw_tsss.estimate_rank(), len(picks))
-    _assert_shielding(raw_tsss, power, 10)
+    _assert_shielding(raw_tsss, power, 9)
     # with movement
     head_pos = read_head_pos(pos_fname)
-    raw_tsss = maxwell_filter(raw, st_duration=0.5, st_only=True,
+    raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                               head_pos=head_pos)
     assert_equal(raw_tsss.estimate_rank(), len(picks))
-    _assert_shielding(raw_tsss, power, 10)
+    _assert_shielding(raw_tsss, power, 9)
     with warnings.catch_warnings(record=True):  # st_fixed False
-        raw_tsss = maxwell_filter(raw, st_duration=0.5, st_only=True,
+        raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                                   head_pos=head_pos, st_fixed=False)
     assert_equal(raw_tsss.estimate_rank(), len(picks))
-    _assert_shielding(raw_tsss, power, 10)
+    _assert_shielding(raw_tsss, power, 9)
     # should do nothing
-    raw_tsss = maxwell_filter(raw, st_duration=1., st_correlation=1.,
+    raw_tsss = maxwell_filter(raw, st_duration=tmax, st_correlation=1.,
                               st_only=True)
     assert_allclose(raw[:][0], raw_tsss[:][0])
     # degenerate
     assert_raises(ValueError, maxwell_filter, raw, st_only=True)  # no ST
     # two-step process equivalent to single-step process
-    raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True)
+    raw_tsss = maxwell_filter(raw, st_duration=tmax, st_only=True)
     raw_tsss = maxwell_filter(raw_tsss)
-    raw_tsss_2 = maxwell_filter(raw, st_duration=1.)
+    raw_tsss_2 = maxwell_filter(raw, st_duration=tmax)
     assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
     # now also with head movement, and a bad MEG channel
     assert_equal(len(raw.info['bads']), 0)
     bads = [raw.ch_names[0]]
     raw.info['bads'] = list(bads)
-    raw_tsss = maxwell_filter(raw, st_duration=1., st_only=True,
+    raw_tsss = maxwell_filter(raw, st_duration=tmax, st_only=True,
                               head_pos=head_pos)
     assert_equal(raw.info['bads'], bads)
     assert_equal(raw_tsss.info['bads'], bads)  # don't reset
     raw_tsss = maxwell_filter(raw_tsss, head_pos=head_pos)
     assert_equal(raw_tsss.info['bads'], [])  # do reset MEG bads
-    raw_tsss_2 = maxwell_filter(raw, st_duration=1., head_pos=head_pos)
+    raw_tsss_2 = maxwell_filter(raw, st_duration=tmax, head_pos=head_pos)
     assert_equal(raw_tsss_2.info['bads'], [])
     assert_meg_snr(raw_tsss, raw_tsss_2, 1e5)
 
