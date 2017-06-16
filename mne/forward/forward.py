@@ -579,11 +579,6 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 5. sol_grad['ncol']
     # 6. source_ori
     if is_fixed_orient(fwd, orig=True) or force_fixed:  # Fixed
-        if not all([src['type'] == 'surf' for src in fwd['src']]):
-            raise ValueError('Forcing fixed orientation is not allowed '
-                             'when working with volume or discrete source '
-                             'spaces.')
-
         nuse = 0
         fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
                                            for s in fwd['src']], axis=0)
@@ -906,7 +901,8 @@ def _check_loose(forward, loose):
                      'coordinates. A loose inverse operator requires a '
                      'surface-oriented forward operator with free '
                      'orientation.')
-                forward = convert_forward_solution(forward, surf_ori=True)
+                forward = convert_forward_solution(forward, surf_ori=True,
+                                                   force_fixed=False)
         else:
             raise ValueError('loose value must be None for not loose '
                              'orientations, a float smaller than 1 and '
