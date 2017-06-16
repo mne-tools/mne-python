@@ -22,8 +22,7 @@ from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
-                 pick_channels_cov, pick_channels, pick_types, pick_info,
-                 make_ad_hoc_cov)
+                 pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov)
 from mne.io import read_raw_fif, RawArray, read_info
 from mne.tests.common import assert_naming, assert_snr
 from mne.utils import (_TempDir, slow_test, requires_sklearn_0_15,
