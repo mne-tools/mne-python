@@ -8,7 +8,7 @@ import numpy as np
 from scipy import linalg
 
 import warnings
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_equal
 
 import mne
@@ -27,29 +27,23 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-def _read_forward_solution_meg(fname_fwd, **kwargs):
-    fwd = mne.read_forward_solution(fname_fwd, **kwargs)
-    return mne.pick_types_forward(fwd, meg=True, eeg=False,
-                                  exclude=['MEG 2443'])
-
-
-def _get_data(event_id=1):
+def _get_data(ch_decim=1):
     """Read in data used in tests."""
     # Read evoked
-    evoked = mne.read_evokeds(fname_ave, event_id)
-    evoked.pick_types(meg=True, eeg=False)
-    evoked.decimate(6)
-
-    forward = mne.read_forward_solution(fname_fwd)
-
-    forward_surf_ori = _read_forward_solution_meg(fname_fwd, surf_ori=True)
-    forward_fixed = _read_forward_solution_meg(fname_fwd, force_fixed=True,
-                                               surf_ori=True)
+    evoked = mne.read_evokeds(fname_ave, 0, baseline=(None, 0))
+    evoked.info['bads'] = ['MEG 2443']
+    evoked.info['lowpass'] = 20  # fake for decim
+    evoked.decimate(12)
+    evoked.crop(0.0, 0.3)
+    picks = mne.pick_types(evoked.info, meg=True, eeg=False)
+    picks = picks[::ch_decim]
+    evoked.pick_channels([evoked.ch_names[pick] for pick in picks])
+    evoked.info.normalize_proj()
 
     noise_cov = mne.read_cov(fname_cov)
+    noise_cov['projs'] = []
     noise_cov = regularize(noise_cov, evoked.info)
-
-    return evoked, noise_cov, forward, forward_surf_ori, forward_fixed
+    return evoked, noise_cov
 
 
 def simu_data(evoked, forward, noise_cov, n_dipoles, times, nave=1):
@@ -63,8 +57,8 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times, nave=1):
                                                    (2 * sigma ** 2))
 
     mu, sigma = 0.075, 0.008
-    s2 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(times - mu) ** 2 /
-                                                   (2 * sigma ** 2))
+    s2 = -1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(times - mu) ** 2 /
+                                                    (2 * sigma ** 2))
     data = np.array([s1, s2]) * 1e-9
 
     src = forward['src']
@@ -125,8 +119,12 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
 @testing.requires_testing_data
 def test_rap_music_simulated():
     """Test RAP-MUSIC with simulated evoked."""
-    evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
-        _get_data()
+    evoked, noise_cov = _get_data(ch_decim=16)
+    forward = mne.read_forward_solution(fname_fwd)
+    forward = mne.pick_channels_forward(forward, evoked.ch_names)
+    forward_surf_ori = mne.convert_forward_solution(forward, surf_ori=True)
+    forward_fixed = mne.convert_forward_solution(forward, force_fixed=True,
+                                                 surf_ori=True)
 
     n_dipoles = 2
     sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
@@ -158,26 +156,22 @@ def test_rap_music_simulated():
 
 
 @testing.requires_testing_data
-def test_rap_music_simulated_sphere():
-    """Test RAP-MUSIC with sphere model and MEG only."""
-    noise_cov = mne.read_cov(fname_cov)
-    evoked = mne.read_evokeds(fname_ave, baseline=(None, 0))[0]
-
-    sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.070)
+def test_rap_music_sphere():
+    """Test RAP-MUSIC with real data, sphere model, MEG only."""
+    evoked, noise_cov = _get_data(ch_decim=8)
+    sphere = mne.make_sphere_model(r0=(0., 0., 0.04))
     src = mne.setup_volume_source_space(subject=None, pos=10.,
-                                        sphere=(0.0, 0.0, 0.0, 65.0),
+                                        sphere=(0.0, 0.0, 40, 65.0),
                                         mindist=5.0, exclude=0.0)
     forward = mne.make_forward_solution(evoked.info, trans=None, src=src,
-                                        bem=sphere, eeg=False, meg=True)
+                                        bem=sphere)
 
-    evoked.pick_types(meg=True)
-    evoked.crop(0.0, 0.3)
-
-    n_dipoles = 2
-    dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=n_dipoles)
+    dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=2)
     # Test that there is one dipole on each hemisphere
-    assert_true(dipoles[0].pos[0, 0] < 0.)
-    assert_true(dipoles[1].pos[0, 0] > 0.)
+    pos = np.array([dip.pos[0] for dip in dipoles])
+    assert_equal(pos.shape, (2, 3))
+    assert_equal((pos[:, 0] < 0).sum(), 1)
+    assert_equal((pos[:, 0] > 0).sum(), 1)
     # Check the amplitude scale
     assert_true(1e-10 < dipoles[0].amplitude[0] < 1e-7)
 

@@ -9,7 +9,8 @@ import warnings
 from numpy.testing import assert_raises, assert_equal
 
 from mne import read_events, pick_types, Annotations
-from mne.io import read_raw_fif
+from mne.datasets import testing
+from mne.io import read_raw_fif, read_raw_ctf
 from mne.utils import requires_version, run_tests_if_main
 from mne.viz.utils import _fake_click, _annotation_radio_clicked
 from mne.viz import plot_raw, plot_sensors
@@ -19,6 +20,9 @@ import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
+ctf_dir = op.join(testing.data_path(download=False), 'CTF')
+ctf_fname_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -189,6 +193,16 @@ def test_plot_raw():
         plt.close('all')
 
 
+@testing.requires_testing_data
+def test_plot_ref_meg():
+    """Test plotting ref_meg."""
+    import matplotlib.pyplot as plt
+    raw_ctf = read_raw_ctf(ctf_fname_continuous).crop(0, 1).load_data()
+    raw_ctf.plot()
+    plt.close('all')
+    assert_raises(ValueError, raw_ctf.plot, order='selection')
+
+
 def test_plot_annotations():
     """Test annotation mode of the plotter."""
     raw = _get_raw()
@@ -289,5 +303,6 @@ def test_plot_sensors():
     _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # deselect
     assert_equal(len(fig.lasso.selection), 1)
     plt.close('all')
+
 
 run_tests_if_main()
