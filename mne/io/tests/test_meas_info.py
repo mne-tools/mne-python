@@ -340,13 +340,12 @@ def test_check_consistency():
     assert_raises(RuntimeError, info2._check_consistency)
 
     # Duplicates appended with running numbers
-    info2['ch_names'][2] = 'b'
     with warnings.catch_warnings(record=True) as w:
-        info2._check_consistency()
+        info3 = create_info(ch_names=['a', 'b', 'b', 'c', 'b'], sfreq=1000.)
     assert_equal(len(w), 1)
     assert_true(all(ww.message.message.startswith('Channel names are not '
                                                   'unique') for ww in w))
-    assert_true(info2['ch_names'][2] == 'b-1')
+    assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
 
 
 def test_anonymize():
