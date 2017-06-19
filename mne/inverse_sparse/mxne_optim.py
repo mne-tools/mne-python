@@ -90,7 +90,7 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     return Y, active_set
 
 
-def prox_l1(Y, alpha, n_orient):
+def prox_l1(Y, alpha, n_orient, remove_nonactive=True):
     """Proximity operator for l1 norm with multiple orientation support.
 
     L2 over orientation and L1 over position (space + time)
@@ -117,10 +117,11 @@ def prox_l1(Y, alpha, n_orient):
     shrink = np.maximum(1.0 - alpha / np.maximum(norms, alpha), 0.0)
     shrink = shrink.reshape(-1, n_positions).T
     active_set = np.any(shrink > 0.0, axis=1)
-    shrink = shrink[active_set]
     if n_orient > 1:
         active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
-    Y = Y[active_set]
+    if remove_nonactive:
+        shrink = shrink[active_set]
+        Y = Y[active_set]
     if len(Y) > 0:
         for o in range(n_orient):
             Y[o::n_orient] *= shrink
@@ -168,10 +169,12 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     penalty = norm_l21(X, n_orient, copy=True)
     nR2 = sum_squared(R)
     p_obj = 0.5 * nR2 + alpha * penalty
+
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
     scaling = min(scaling, 1.0)
     d_obj = (scaling - 0.5 * (scaling ** 2)) * nR2 + scaling * np.sum(R * GX)
+
     gap = p_obj - d_obj
     return gap, p_obj, d_obj, R
 
@@ -720,48 +723,15 @@ def norm_l1_tf(Z, shape, n_orient):
     return l1_norm
 
 
-def prox_l1_full(Y, alpha, n_orient):
-    """Proximity operator for l1 norm with multiple orientation support.
-
-    L2 over orientation and L1 over position (space + time)
-
-    Example
-    -------
-    >>> Y = np.tile(np.array([1, 2, 3, 2, 0], dtype=np.float), (2, 1))
-    >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print(Y)
-    [[ 1.  2.  3.  2.  0.]
-     [ 1.  2.  3.  2.  0.]
-     [ 0.  0.  0.  0.  0.]
-     [ 0.  0.  0.  0.  0.]]
-    >>> Yp, active_set = prox_l1(Y, 2, 2)
-    >>> print(Yp)
-    [[ 0.          0.58578644  1.58578644  0.58578644  0.        ]
-     [ 0.          0.58578644  1.58578644  0.58578644  0.        ]]
-    >>> print(active_set)
-    [ True  True False False]
-    """
-    n_positions = Y.shape[0] // n_orient
-    norms = np.sqrt((Y * Y.conj()).real.T.reshape(-1, n_orient).sum(axis=1))
-    shrink = np.maximum(1.0 - alpha / np.maximum(norms, alpha), 0.0)
-    shrink = shrink.reshape(-1, n_positions).T
-    active_set = np.any(shrink > 0.0, axis=1)
-    if n_orient > 1:
-        active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
-    for o in range(n_orient):
-        Y[o::n_orient] *= shrink
-    return Y
-
-
 def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
-               n_orient, highest_d_obj, screening):
+               n_orient, highest_d_obj):
     """Duality gap for the time-frequency mixed norm inverse problem.
 
     Parameters
     ----------
     M : array of shape (n_sensors, n_times)
         The data.
-    G : array of shape (n_sensors, n_active)
+    G : array of shape (n_sensors, n_sources)
         Gain matrix a.k.a. lead field.
     Z : array of shape (n_active, n_coefs)
         Sources in TF domain.
@@ -782,8 +752,6 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
         Number of dipoles per locations (typically 1 or 3).
     highest_d_obj : float
         The highest value of the dual objective so far.
-    screening : array of bool
-        Mask of screened-out sources by dynamic screening.
 
     Returns
     -------
@@ -795,8 +763,6 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
         Dual objective. gap = p_obj - d_obj
     R : array of shape (n_sensors, n_times)
         Current residual of M - G * X
-    screening : array of bool
-        Mask of screened-out sources by dynamic screening.
 
     References
     ----------
@@ -818,21 +784,18 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     nR2 = sum_squared(R)
     p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
 
-    GRPhi = prox_l1_full(phi(np.dot(G[:, screening].T, R)), alpha_time,
-                         n_orient)
-    GRPhi = stft_norm2(GRPhi.reshape(*shape)).reshape(-1, n_orient)
-    GRPhi = np.sqrt(GRPhi.sum(axis=1))
-    dual_norm = np.amax(GRPhi)
+    GRPhi_norm, _ = prox_l1(phi(np.dot(G.T, R)), alpha_time, n_orient,
+                            remove_nonactive=False)
+    GRPhi_norm = stft_norm2(GRPhi_norm.reshape(*shape)).reshape(-1, n_orient)
+    GRPhi_norm = np.sqrt(GRPhi_norm.sum(axis=1))
+    dual_norm = np.amax(GRPhi_norm)
     scaling = alpha_space / dual_norm
     scaling = min(scaling, 1.0)
     d_obj = (scaling - 0.5 * (scaling ** 2)) * nR2 + scaling * np.sum(R * GX)
     d_obj = max(d_obj, highest_d_obj)
 
     gap = p_obj - d_obj
-    Gnorm = np.sqrt(groups_norm2(G[:, screening].copy().T, n_orient))
-    screening_ = (GRPhi + np.sqrt(2. * gap) * Gnorm) > alpha_space
-    screening[screening] = np.repeat(screening_, n_orient)
-    return gap, p_obj, d_obj, R, screening
+    return gap, p_obj, d_obj, R
 
 
 def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
@@ -862,23 +825,22 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 
     converged = False
     d_obj = -np.Inf
-    screening = np.ones_like(active_set)
 
-    i = -1
+    ii = -1
     while True:
-        i += 1
-        for j in candidates:
-            ids = j * n_orient
+        ii += 1
+        for jj in candidates:
+            ids = jj * n_orient
             ide = ids + n_orient
 
-            G_j = G[j]
-            Z_j = Z[j]
+            G_j = G[jj]
+            Z_j = Z[jj]
             active_set_j = active_set[ids:ide]
 
             was_active = np.any(active_set_j)
 
             # gradient step
-            GTR = np.dot(G_j.T, R) / lipschitz_constant[j]
+            GTR = np.dot(G_j.T, R) / lipschitz_constant[jj]
             X_j_new = GTR.copy()
 
             if was_active:
@@ -887,9 +849,9 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                 X_j_new += X_j
 
             rows_norm = linalg.norm(X_j_new, 'fro')
-            if rows_norm <= alpha_space_lc[j]:
+            if rows_norm <= alpha_space_lc[jj]:
                 if was_active:
-                    Z[j] = 0.0
+                    Z[jj] = 0.0
                     active_set_j[:] = False
             else:
                 if was_active:
@@ -898,61 +860,52 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                     Z_j_new = phi(GTR)
                 col_norm = np.sqrt(np.sum(np.abs(Z_j_new) ** 2, axis=0))
 
-                if np.all(col_norm <= alpha_time_lc[j]):
-                    Z[j] = 0.0
+                if np.all(col_norm <= alpha_time_lc[jj]):
+                    Z[jj] = 0.0
                     active_set_j[:] = False
                 else:
                     # l1
-                    shrink = np.maximum(1.0 - alpha_time_lc[j] / np.maximum(
-                                        col_norm, alpha_time_lc[j]), 0.0)
+                    shrink = np.maximum(1.0 - alpha_time_lc[jj] / np.maximum(
+                                        col_norm, alpha_time_lc[jj]), 0.0)
                     Z_j_new *= shrink[np.newaxis, :]
 
                     # l21
                     shape_init = Z_j_new.shape
                     Z_j_new = Z_j_new.reshape(*shape)
                     row_norm = np.sqrt(stft_norm2(Z_j_new).sum())
-                    if row_norm <= alpha_space_lc[j]:
-                        Z[j] = 0.0
+                    if row_norm <= alpha_space_lc[jj]:
+                        Z[jj] = 0.0
                         active_set_j[:] = False
                     else:
-                        shrink = np.maximum(1.0 - alpha_space_lc[j] /
+                        shrink = np.maximum(1.0 - alpha_space_lc[jj] /
                                             np.maximum(row_norm,
-                                            alpha_space_lc[j]), 0.0)
+                                            alpha_space_lc[jj]), 0.0)
                         Z_j_new *= shrink
-                        Z[j] = Z_j_new.reshape(-1, *shape_init[1:]).copy()
+                        Z[jj] = Z_j_new.reshape(-1, *shape_init[1:]).copy()
                         active_set_j[:] = True
-                        R -= np.dot(G_j, phiT(Z[j]))
+                        R -= np.dot(G_j, phiT(Z[jj]))
 
         if log_objective:
-            if np.remainder(i + 1, 10) == 0:
+            if (ii + 1) % 10 == 0:
                 Zd = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
-                gap, p_obj, d_obj, _, screening = dgap_l21l1(
+                gap, p_obj, d_obj, _ = dgap_l21l1(
                     M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
-                    shape, n_orient, d_obj, screening)
+                    shape, n_orient, d_obj)
                 converged = (gap < tol)
                 E.append(p_obj)
-                logger.info("Iteration %d :: n_active %d" % (
-                            i + 1, np.sum(active_set) / n_orient))
-                logger.info("dgap %.2e :: p_obj %f :: d_obj %f\n" % (
+                logger.info("\n    Iteration %d :: n_active %d" % (
+                            ii + 1, np.sum(active_set) / n_orient))
+                logger.info("    dgap %.2e :: p_obj %f :: d_obj %f" % (
                             gap, p_obj, d_obj))
-
-                candidates = np.where(screening[::n_orient])[0]
-                inactive = np.where(np.invert(screening[::n_orient]))[0]
-                if len(inactive):
-                    active_set[np.invert(screening)] = False
-                    Z.update(dict(zip(inactive, [0.0 for inact in inactive])))
         else:
-            logger.info("Iteration %d :: n_active %d" % (
-                        i + 1, np.sum(active_set) / n_orient))
+            if (ii + 1) % 10 == 0:
+                logger.info("\n    Iteration %d :: n_active %d" % (
+                            ii + 1, np.sum(active_set) / n_orient))
 
         if converged:
-            logger.info("Convergence reached!\n")
             break
 
-        if (i == maxit - 1):
-            if i > 0:
-                logger.info("Maximum number of %d iterations reached" % maxit)
-                logger.info("Computation stopped!\n")
+        if (ii == maxit - 1):
             converged = False
             break
 
@@ -960,7 +913,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
             if np.sum(active_set) / float(n_orient) <= perc * n_positions:
                 break
 
-    return Z, active_set, screening, E, converged
+    return Z, active_set, E, converged
 
 
 @verbose
@@ -981,10 +934,10 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
     else:
         active_set = np.zeros(n_sources, dtype=np.bool)
         active = list()
-        for i in range(n_positions):
-            if np.any(Z_init[i * n_orient:(i + 1) * n_orient]):
-                active_set[i * n_orient:(i + 1) * n_orient] = True
-                active.append(i)
+        for ii in range(n_positions):
+            if np.any(Z_init[ii * n_orient:(ii + 1) * n_orient]):
+                active_set[ii * n_orient:(ii + 1) * n_orient] = True
+                active.append(ii)
         Z = dict.fromkeys(np.arange(n_positions), 0.0)
         if len(active):
             Z.update(dict(zip(active, np.vsplit(Z_init[active_set],
@@ -993,13 +946,12 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
     E = []
 
     candidates = range(n_positions)
-    screening = np.ones(n_sources, dtype=np.bool)
     d_obj = -np.inf
 
     while True:
         Z_init = dict.fromkeys(np.arange(n_positions), 0.0)
         Z_init.update(dict(zip(active, list(Z.values()))))
-        Z, active_set, screening_, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
+        Z, active_set, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
             M, G, Z_init, active_set, candidates, alpha_space, alpha_time,
             lipschitz_constant, phi, phiT, shape, n_orient=n_orient,
             maxit=1, tol=tol, log_objective=False, perc=None,
@@ -1009,7 +961,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         active = np.where(active_set[::n_orient])[0]
         Z_init = dict(zip(range(len(active)), [Z[idx] for idx in active]))
         candidates_ = range(len(active))
-        Z, as_, screening_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
+        Z, as_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
             M, G[:, active_set], Z_init,
             np.ones(len(active) * n_orient, dtype=np.bool),
             candidates_, alpha_space, alpha_time,
@@ -1020,18 +972,17 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         active_set[active_set] = as_.copy()
         E += E_tmp
 
+        converged = True
         if converged:
             Zd = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
-            gap, p_obj, d_obj, _, screening = dgap_l21l1(
+            gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, G, Zd, active_set, alpha_space, alpha_time,
-                phi, phiT, shape, n_orient, d_obj, screening)
-            logger.info("dgap %.2e :: p_obj %f :: d_obj %f :: n_active %d" % (
-                gap, p_obj, d_obj, np.sum(active_set) / n_orient))
+                phi, phiT, shape, n_orient, d_obj)
+            logger.info("\ndgap %.2e :: p_obj %f :: d_obj %f :: n_active %d"
+                        % (gap, p_obj, d_obj, np.sum(active_set) / n_orient))
             if gap < tol:
-                logger.info("Convergence reached!\n")
+                logger.info("\nConvergence reached!\n")
                 break
-            candidates = np.where(screening[::n_orient])[0]
-            logger.info("%d sources kept after screening!\n" % len(candidates))
 
     if active_set.sum():
         Z = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
