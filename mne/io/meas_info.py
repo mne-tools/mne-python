@@ -451,8 +451,10 @@ class Info(dict):
             for ch_stem in dups:
                 overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
                 for idx, ch_idx in enumerate(overlaps):
-                    self['ch_names'][ch_idx] = ch_stem + str(idx)
-                    self['chs'][ch_idx]['ch_name'] = ch_stem + str(idx)
+                    ch_name = ch_stem + '-%s' % idx
+                    assert ch_name not in self['ch_names']
+                    self['ch_names'][ch_idx] = ch_name
+                    self['chs'][ch_idx]['ch_name'] = ch_name
 
         if 'filename' in self:
             warn('the "filename" key is misleading\

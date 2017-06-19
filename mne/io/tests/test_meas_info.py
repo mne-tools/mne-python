@@ -346,6 +346,7 @@ def test_check_consistency():
     assert_equal(len(w), 1)
     assert_true(all(ww.message.message.startswith('Channel names are not '
                                                   'unique') for ww in w))
+    assert_true(info2['ch_names'][2] == 'b-1')
 
 
 def test_anonymize():
