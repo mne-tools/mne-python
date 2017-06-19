@@ -972,43 +972,70 @@ def _handle_time(time_label, time_unit, times):
     return time_label, times
 
 
-def _smooth_plot(this_time, ax, stc, coords, faces, hemi_idx, vertices, e,
-                 smoothing_steps, n_verts, inuse, maps, cmap, curv, ctrl_pts,
-                 greymap, time_label, time_unit):
+def _key_pressed_slider(event, params):
+    """Handle key presses for time_viewer slider."""
+    step = 1
+    if event.key.startswith('ctrl'):
+        step = 10
+        event.key = event.key.split('+')[-1]
+    if event.key not in ['left', 'right']:
+        return
+    time_viewer = event.canvas.figure
+    value = time_viewer.slider.val
+    times = params['stc'].times
+    if params['time_unit'] == 'ms':
+        times = times * 1000.
+    time_idx = np.argmin(np.abs(times - value))
+    if event.key == 'left':
+        time_idx = np.max((0, time_idx - step))
+    elif event.key == 'right':
+        time_idx = np.min((len(times) - 1, time_idx + step))
+    this_time = times[time_idx]
+    time_viewer.slider.set_val(this_time)
+
+
+def _smooth_plot(this_time, params):
     """Smooth source estimate data and plot with mpl."""
     from ..source_estimate import _morph_buffer
     from mpl_toolkits.mplot3d import art3d
+    ax = params['ax']
+    stc = params['stc']
     ax.clear()
     times = stc.times
-    scaler = 1000. if time_unit == 'ms' else 1.
+    scaler = 1000. if params['time_unit'] == 'ms' else 1.
     if this_time is None:
         time_idx = 0
     else:
         time_idx = np.argmin(np.abs(times - this_time / scaler))
 
-    if hemi_idx == 0:
+    if params['hemi_idx'] == 0:
         data = stc.data[:len(stc.vertices[0]), time_idx:time_idx + 1]
     else:
         data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
 
-    array_plot = _morph_buffer(data, vertices, e, smoothing_steps, n_verts,
-                               inuse, maps)
+    array_plot = _morph_buffer(data, params['vertices'], params['e'],
+                               params['smoothing_steps'], params['n_verts'],
+                               params['inuse'], params['maps'])
 
     vmax = np.max(array_plot)
     colors = array_plot / vmax
 
     transp = 0.8
-    polyc = ax.plot_trisurf(*coords.T, triangles=faces, antialiased=False)
+    faces = params['faces']
+    greymap = params['greymap']
+    cmap = params['cmap']
+    polyc = ax.plot_trisurf(*params['coords'].T, triangles=faces,
+                            antialiased=False)
     color_ave = np.mean(colors[faces], axis=1).flatten()
-    curv_ave = np.mean(curv[faces], axis=1).flatten()
+    curv_ave = np.mean(params['curv'][faces], axis=1).flatten()
     facecolors = art3d.PolyCollection.get_facecolors(polyc)
 
-    to_blend = color_ave > ctrl_pts[0] / vmax
+    to_blend = color_ave > params['ctrl_pts'][0] / vmax
     facecolors[to_blend, :3] = ((1 - transp) *
                                 greymap(curv_ave[to_blend])[:, :3] +
                                 transp * cmap(color_ave[to_blend])[:, :3])
     facecolors[~to_blend, :3] = greymap(curv_ave[~to_blend])[:, :3]
-    ax.set_title(time_label % (times[time_idx] * scaler), color='w')
+    ax.set_title(params['time_label'] % (times[time_idx] * scaler), color='w')
     ax.set_aspect('equal')
     ax.axis('off')
     ax.set_xlim(-80, 80)
@@ -1065,7 +1092,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         coords = surf['rr'][inuse]
         shape = faces.shape
         faces = stats.rankdata(faces, 'dense').reshape(shape) - 1
-
+    del surf
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
     tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
@@ -1080,9 +1107,13 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     curv = nib.freesurfer.read_morph_data(
         op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
     curv = np.clip(np.array(curv > 0, np.int), 0.2, 0.8)
-    _smooth_plot(initial_time, ax, stc, coords, faces, hemi_idx, vertices, e,
-                 smoothing_steps, n_verts, inuse, maps, cmap, curv, ctrl_pts,
-                 greymap, time_label, time_unit)
+    params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
+                  hemi_idx=hemi_idx, vertices=vertices, e=e,
+                  smoothing_steps=smoothing_steps, n_verts=n_verts,
+                  inuse=inuse, maps=maps, cmap=cmap, curv=curv,
+                  ctrl_pts=ctrl_pts, greymap=greymap, time_label=time_label,
+                  time_unit=time_unit)
+    _smooth_plot(initial_time, params)
 
     ax.view_init(**kwargs[views])
 
@@ -1092,7 +1123,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         ax.set_axis_bgcolor(background)
 
     if time_viewer:
-        time_viewer = figure_nobar(figsize=(4.5, 1.))
+        time_viewer = figure_nobar(figsize=(4.5, .25))
         fig.time_viewer = time_viewer
         ax_time = plt.axes()
         if initial_time is None:
@@ -1100,13 +1131,12 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         slider = Slider(ax=ax_time, label='Time', valmin=times[0],
                         valmax=times[-1], valinit=initial_time,
                         valfmt=time_label)
-        slider_cb = partial(_smooth_plot, ax=ax, stc=stc, coords=coords,
-                            faces=faces, hemi_idx=hemi_idx, vertices=vertices,
-                            e=e, smoothing_steps=smoothing_steps,
-                            n_verts=n_verts, inuse=inuse, maps=maps, cmap=cmap,
-                            curv=curv, ctrl_pts=ctrl_pts, greymap=greymap,
-                            time_label=time_label, time_unit=time_unit)
-        slider.on_changed(slider_cb)
+        time_viewer.slider = slider
+        callback_slider = partial(_smooth_plot, params=params)
+        slider.on_changed(callback_slider)
+        callback_key = partial(_key_pressed_slider, params=params)
+        time_viewer.canvas.mpl_connect('key_press_event', callback_key)
+
         plt.subplots_adjust(left=0.12, bottom=0.05, right=0.75, top=0.95)
 
     plt.show()

@@ -245,7 +245,7 @@ def test_limits_to_control_points():
 @testing.requires_testing_data
 @requires_nibabel
 def test_stc_mpl():
-    """Test plotting with matplotlib."""
+    """Test plotting source estimates with matplotlib."""
     import matplotlib.pyplot as plt
     sample_src = read_source_spaces(src_fname)
 
@@ -264,6 +264,8 @@ def test_stc_mpl():
                    backend='matplotlib', spacing='ico2', time_viewer=True)
     time_viewer = fig.time_viewer
     _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change time
+    time_viewer.canvas.key_press_event('ctrl+right')
+    time_viewer.canvas.key_press_event('left')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   hemi='both', subject='sample', backend='matplotlib')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
