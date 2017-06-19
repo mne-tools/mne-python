@@ -776,9 +776,8 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
 @testing.requires_testing_data
 def test_shielding_factor():
     """Test Maxwell filter shielding factor using empty room."""
-    raw_erm = read_crop(erm_fname).load_data()
-    picks = pick_types(raw_erm.info, meg='mag')
-    erm_power = raw_erm[picks][0]
+    raw_erm = read_crop(erm_fname).load_data().pick_types(meg=True)
+    erm_power = raw_erm[pick_types(raw_erm.info, meg='mag')][0]
     erm_power = np.sqrt(np.sum(erm_power * erm_power))
     erm_power_grad = raw_erm[pick_types(raw_erm.info, meg='grad')][0]
     erm_power_grad = np.sqrt(np.sum(erm_power * erm_power))

@@ -304,7 +304,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     for k in range(nchan):
         kind = info['chs'][k]['kind']
         # XXX eventually we should de-duplicate this with channel_type!
-        if kind == FIFF.FIFFV_MEG_CH:
+        if kind == FIFF.FIFFV_MEG_CH and meg:
             pick[k] = _triage_meg_pick(info['chs'][k], meg)
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True

@@ -23,6 +23,7 @@ from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF
+from ..io.meas_info import _simplify_info
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, BaseRaw
@@ -560,8 +561,8 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
         else:
             # Find our physical distance between gradiometer pickup loops
             # ("base line")
-            coils = _create_meg_coils(pick_info(info, meg_picks)['chs'],
-                                      'accurate')
+            coils = _create_meg_coils([info['chs'][pick]
+                                       for pick in meg_picks], 'accurate')
             grad_base = set(coils[pick]['base'] for pick in grad_picks)
             if len(grad_base) != 1 or list(grad_base)[0] <= 0:
                 raise RuntimeError('Could not automatically determine '
@@ -619,7 +620,7 @@ def _prep_mf_coils(info, ignore_ref=True):
     """Get all coil integration information loaded and sorted."""
     coils, comp_coils = _prep_meg_channels(
         info, accurate=True, elekta_defs=True, head_frame=False,
-        ignore_ref=ignore_ref, verbose=False)[:2]
+        ignore_ref=ignore_ref, do_picking=False, verbose=False)[:2]
     mag_mask = _get_mag_mask(coils)
     if len(comp_coils) > 0:
         meg_picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
@@ -883,7 +884,7 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
     # Get indices of channels to use in multipolar moment calculation
     ref = not ignore_ref
     meg_picks = pick_types(info, meg=True, ref_meg=ref, exclude=[])
-    meg_info = pick_info(info, meg_picks)
+    meg_info = pick_info(_simplify_info(info), meg_picks)
     del info
     good_picks = pick_types(meg_info, meg=True, ref_meg=ref, exclude='bads')
     n_bases = _get_n_moments([int_order, ext_order]).sum()
@@ -1604,7 +1605,7 @@ def _get_grad_point_coilsets(info, n_types, ignore_ref):
     """Get point-type coilsets for gradiometers."""
     grad_coilsets = list()
     grad_info = pick_info(
-        info, pick_types(info, meg='grad', exclude=[]), copy=True)
+        _simplify_info(info), pick_types(info, meg='grad', exclude=[]))
     # Coil_type values for x, y, z point magnetometers
     # Note: 1D correction files only have x-direction corrections
     pt_types = [FIFF.FIFFV_COIL_POINT_MAGNETOMETER_X,

@@ -460,7 +460,8 @@ class Info(dict):
 
 def _simplify_info(info):
     """Return a simplified info structure to speed up picking."""
-    chs = [{key: ch[key] for key in ('ch_name', 'kind', 'unit')}
+    chs = [{key: ch[key] for key in ('ch_name', 'kind', 'unit', 'coil_type',
+                                     'loc')}
            for ch in info['chs']]
     sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
     sub_info._update_redundant()
