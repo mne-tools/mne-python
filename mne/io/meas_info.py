@@ -446,8 +446,14 @@ class Info(dict):
         if len(unique_ids) != self['nchan']:
             dups = set(self['ch_names'][x]
                        for x in np.setdiff1d(range(self['nchan']), unique_ids))
-            raise RuntimeError('Channel names are not unique, found '
-                               'duplicates for: %s' % dups)
+            warn('Channel names are not unique, found duplicates for: '
+                 '%s. Applying running numbers for duplicates.' % dups)
+            for ch_stem in dups:
+                overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
+                for idx, ch_idx in enumerate(overlaps):
+                    self['ch_names'][ch_idx] = ch_stem + str(idx)
+                    self['chs'][ch_idx]['ch_name'] = ch_stem + str(idx)
+
         if 'filename' in self:
             warn('the "filename" key is misleading\
                  and info should not have it')
