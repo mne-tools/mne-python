@@ -661,18 +661,25 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         source_cov = source_cov[src_sel]
 
     if pick_ori == "normal":
-        if not inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-            raise ValueError('Picking normal orientation can only be done '
-                             'with a free orientation inverse operator.')
+        if all([src['type'] == 'surf' for src in inv['src']]):
+            if not inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+                raise ValueError('Picking normal orientation can only be '
+                                 'done with a free orientation inverse '
+                                 'operator.')
 
-        is_loose = 0 < inv['orient_prior']['data'][0] < 1
-        if not is_loose:
-            raise ValueError('Picking normal orientation can only be done '
-                             'when working with loose orientations.')
+            is_loose = 0 < np.min(inv['orient_prior']['data']) < 1
+            if not is_loose:
+                raise ValueError('Picking normal orientation can only be '
+                                 'done when working with loose orientations.')
 
-        # keep only the normal components
-        eigen_leads = eigen_leads[2::3]
-        source_cov = source_cov[2::3]
+            # keep only the normal components
+            eigen_leads = eigen_leads[2::3]
+            source_cov = source_cov[2::3]
+        else:
+            raise ValueError('Picking normal orientation can only be '
+                             'done with a free orientation inverse '
+                             'operator based on surface-based source '
+                             'spaces.')
 
     trans = inv['reginv'][:, None] * reduce(np.dot,
                                             [inv['eigen_fields']['data'],
@@ -1246,6 +1253,13 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     and without this information.
     """  # noqa: E501
     forward, loose = _check_loose(forward, loose)
+
+    if fixed and not all([src['type'] == 'surf' for src in forward['src']]):
+        raise ValueError('Using fixed = True in the construction of the '
+                         'inverse operator is only supported for surface-'
+                         'based source spaces. In mixed source spaces, a '
+                         'fixed orientation constraint for surface-based '
+                         'source spaces is enabled by setting loose=0.0')
 
     if fixed and loose is not None:
         warn('When invoking make_inverse_operator with fixed=True, the loose '

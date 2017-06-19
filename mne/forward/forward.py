@@ -604,8 +604,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         fwd['surf_ori'] = True
     elif surf_ori:  # Free, surf-oriented
         if any([src['type'] == 'surf' for src in fwd['src']]):
-            logger.info('    Converting to surface-based source orientations '
-                        '(surface-based source spaces only)...')
+            logger.info('    Converting surface-based source spaces to '
+                        'surface-based source orientations.')
         else:
             logger.info('    No surface-based source space available. '
                         'Convertion to surface-based source orientations '
@@ -886,29 +886,31 @@ def write_forward_meas_info(fid, info):
 
 def _check_loose(forward, loose):
     """Check loose parameter input."""
+    if is_fixed_orient(forward) and loose is not None:
+        warn('Ignoring loose parameter with forward operator '
+             'with fixed orientation.')
+        loose = None
+
     if loose is not None:
-        if is_fixed_orient(forward):
-            warn('Ignoring loose parameter with forward operator '
-                 'with fixed orientation.')
-            loose = None
-        if isinstance(loose, float):
-            if not (0 <= loose <= 1):
-                raise ValueError('Loose value should be smaller than 1 and '
-                                 'bigger than 0, or None for not loose '
-                                 'orientations.')
-            if loose < 1 and not forward['surf_ori']:
-                warn('Forward operator is not oriented in surface '
-                     'coordinates. A loose inverse operator requires a '
-                     'surface-oriented forward operator with free '
-                     'orientation.')
-                forward = convert_forward_solution(forward, surf_ori=True,
-                                                   force_fixed=False)
-        else:
+        if not isinstance(loose, float):
             raise ValueError('loose value must be None for not loose '
                              'orientations, a float smaller than 1 and '
                              'bigger than 0, or a dict with loose values '
                              'for each type of source space.'
                              'Got %s' % type(loose))
+
+        if not (0 <= loose <= 1):
+            raise ValueError('Loose value must be smaller than 1 and bigger '
+                             'than 0, or None for not loose orientations. '
+                             'Got %f' % loose)
+
+        if not forward['surf_ori']:
+            warn('Forward operator is not oriented in surface '
+                 'coordinates. A loose inverse operator requires a '
+                 'surface-oriented forward operator with free '
+                 'orientation. Converting now.')
+            forward = convert_forward_solution(forward, surf_ori=True,
+                                                force_fixed=False)
     return forward, loose
 
 
