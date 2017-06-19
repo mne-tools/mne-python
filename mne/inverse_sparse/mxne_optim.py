@@ -936,7 +936,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 
         if log_objective:
             if (ii + 1) % 10 == 0:
-                Zd = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
+                Zd = np.vstack([Z_ for Z_ in Z.values() if np.any(Z_)])
                 gap, p_obj, d_obj, _ = dgap_l21l1(
                     M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
                     shape, n_orient, d_obj)
@@ -976,18 +976,17 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
     n_sources = G.shape[1]
     n_positions = n_sources // n_orient
 
-    if Z_init is None:
-        Z = dict.fromkeys(np.arange(n_positions), 0.0)
-        active_set = np.zeros(n_sources, dtype=np.bool)
-        active = []
-    else:
-        active_set = np.zeros(n_sources, dtype=np.bool)
-        active = list()
+    Z = dict.fromkeys(np.arange(n_positions), 0.0)
+    active_set = np.zeros(n_sources, dtype=np.bool)
+    active = []
+    if Z_init is not None:
+        if Z_init.shape != (n_sources, shape[1] * shape[2]):
+            raise Exception('Z_init must be None or an array with shape '
+                            '(n_sources, n_coefs).')
         for ii in range(n_positions):
             if np.any(Z_init[ii * n_orient:(ii + 1) * n_orient]):
                 active_set[ii * n_orient:(ii + 1) * n_orient] = True
                 active.append(ii)
-        Z = dict.fromkeys(np.arange(n_positions), 0.0)
         if len(active):
             Z.update(dict(zip(active, np.vsplit(Z_init[active_set],
                      len(active)))))
@@ -999,7 +998,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
 
     while True:
         Z_init = dict.fromkeys(np.arange(n_positions), 0.0)
-        Z_init.update(dict(zip(active, list(Z.values()))))
+        Z_init.update(dict(zip(active, Z.values())))
         Z, active_set, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
             M, G, Z_init, active_set, candidates, alpha_space, alpha_time,
             lipschitz_constant, phi, phiT, shape, n_orient=n_orient,
@@ -1023,7 +1022,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
 
         converged = True
         if converged:
-            Zd = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
+            Zd = np.vstack([Z_ for Z_ in Z.values() if np.any(Z_)])
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, G, Zd, active_set, alpha_space, alpha_time,
                 phi, phiT, shape, n_orient, d_obj)
@@ -1034,7 +1033,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                 break
 
     if active_set.sum():
-        Z = np.vstack([Z_ for Z_ in list(Z.values()) if np.any(Z_)])
+        Z = np.vstack([Z_ for Z_ in Z.values() if np.any(Z_)])
         X = phiT(Z)
     else:
         n_step = shape[2]
