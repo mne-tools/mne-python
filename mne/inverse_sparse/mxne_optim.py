@@ -47,6 +47,26 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     It can eventually take into account the negative frequencies
     when a complex value is passed and is_stft=True.
 
+    Parameters
+    ----------
+    Y : array, shape (n_sources, n_coefs)
+        The input data.
+    alpha : float
+        The regularization parameter.
+    n_orient : int
+        Number of dipoles per locations (typically 1 or 3).
+    shape : None | tuple
+        Shape of TF coefficients matrix.
+    is_stft : bool
+        If True, Y contains TF coefficients.
+
+    Returns
+    -------
+    Y : array, shape (n_sources, n_coefs)
+        The output data.
+    active_set : array of bool
+        Mask of active sources
+
     Example
     -------
     >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float), (2, 1))
@@ -93,7 +113,35 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
 def prox_l1(Y, alpha, n_orient, remove_nonactive=True):
     """Proximity operator for l1 norm with multiple orientation support.
 
-    L2 over orientation and L1 over position (space + time)
+    Please note that this function computes a soft-thresholding if
+    n_orient == 1 and a block soft-thresholding (L2 over orientation and
+    L1 over position (space + time)) if n_orient == 3. See also [1]_.
+
+    Parameters
+    ----------
+    Y : array, shape (n_sources, n_coefs)
+        The input data.
+    alpha : float
+        The regularization parameter.
+    n_orient : int
+        Number of dipoles per locations (typically 1 or 3).
+    remove_nonactive : bool
+        If True, Y contains only blocks containing non-zero coefficients.
+
+    Returns
+    -------
+    Y : array, shape (n_sources, n_coefs)
+        The output data.
+    active_set : array of bool
+        Mask of active sources.
+
+    References
+    ----------
+    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+       "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
+       non-stationary source activations",
+       Neuroimage, Volume 70, pp. 410-422, 15 April 2013. ISSN 1053-8119,
+       DOI: 10.1016/j.neuroimage.2012.12.051.
 
     Example
     -------
@@ -117,10 +165,11 @@ def prox_l1(Y, alpha, n_orient, remove_nonactive=True):
     shrink = np.maximum(1.0 - alpha / np.maximum(norms, alpha), 0.0)
     shrink = shrink.reshape(-1, n_positions).T
     active_set = np.any(shrink > 0.0, axis=1)
+    if remove_nonactive:
+        shrink = shrink[active_set]
     if n_orient > 1:
         active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
     if remove_nonactive:
-        shrink = shrink[active_set]
         Y = Y[active_set]
     if len(Y) > 0:
         for o in range(n_orient):
@@ -138,24 +187,24 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     G : array, shape (n_sensors, n_active)
         The gain matrix a.k.a. lead field.
     X : array, shape (n_active, n_times)
-        Sources
+        Sources.
     active_set : array of bool
-        Mask of active sources
+        Mask of active sources.
     alpha : float
-        Regularization parameter
+        The regularization parameter.
     n_orient : int
-        Number of dipoles per locations (typically 1 or 3)
+        Number of dipoles per locations (typically 1 or 3).
 
     Returns
     -------
     gap : float
-        Dual gap
+        Dual gap.
     p_obj : float
-        Primal objective
+        Primal objective.
     d_obj : float
-        Dual objective. gap = p_obj - d_obj
+        Dual objective. gap = p_obj - d_obj.
     R : array, shape (n_sensors, n_times)
-        Current residual of M - G * X
+        Current residual (M - G * X).
 
     References
     ----------
