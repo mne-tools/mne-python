@@ -4,8 +4,6 @@
 Computing covariance matrix
 ===========================
 """
-from copy import deepcopy
-
 import os.path as op
 
 import mne
@@ -17,7 +15,7 @@ from mne.datasets import sample
 # construct a noise covariance matrix that can be used when computing the
 # inverse solution. For more information, see :ref:`BABDEEEB`.
 data_path = sample.data_path()
-
+raw.info['projs'][0]['data']['col_names']
 raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
@@ -49,7 +47,7 @@ raw.info['bads'] += ['EEG 053']  # bads + 1 more
 raw_empty_room.info['bads'] = [
     bb for bb in raw.info['bads'] if 'EEG' not in bb]
 raw_empty_room.add_proj(
-    [deepcopy(pp) for pp in raw.info['projs'] if 'EEG' not in pp['desc']])
+    [pp.copy() for pp in raw.info['projs'] if 'EEG' not in pp['desc']])
 
 noise_cov = mne.compute_raw_covariance(raw_empty_room, tmin=0, tmax=None)
 
@@ -97,8 +95,8 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # described in [1]_. For this the 'auto' option can be used. With this
 # option cross-validation will be used to learn the optimal regularization:
 
-nois_cov_reg = mne.compute_covariance(epochs, tmax=0.,
-                                      method='auto')
+noise_cov_reg = mne.compute_covariance(epochs, tmax=0.,
+                                       method='auto')
 
 
 ###############################################################################

@@ -924,7 +924,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     import matplotlib.pyplot as plt
     if scalings is None:
         scalings = dict(mag=1e12, grad=1e11, eeg=1e5)
-
+    if rank is None:
+        rank = {}
     ch_used = [ch for ch in ['eeg', 'grad', 'mag'] if ch in evoked]
     has_meg = 'mag' in ch_used and 'grad' in ch_used
 
@@ -938,7 +939,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         # if SSSed, mags and grad are not longer independent
         # for correct display of the whitening we will drop the cross-terms
         # (the gradiometer * magnetometer covariance)
-        has_sss = 'max_info' in evoked.info['proc_history'][0] and has_meg
+        has_sss = (evoked.info['proc_history'][0].get('max_info') is not None
+                   and has_meg)
     if has_sss:
         logger.info('SSS has been applied to data. Showing mag and grad '
                     'whitening jointly.')
@@ -973,18 +975,18 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         rank_ = {}
         C = cov['data'].copy()
         picks_list2 = [k for k in picks_list]
-        if rank is None:
-            if has_meg and not has_sss:
-                picks_list2 += _picks_by_type(evoked.info,
-                                              meg_combined=True)
-            for ch_type, this_picks in picks_list2:
+        if has_meg and not has_sss:
+            picks_list2 += _picks_by_type(evoked.info,
+                                          meg_combined=True)
+        for ch_type, this_picks in picks_list2:
+            if rank.get(ch_type) is None:
                 this_info = pick_info(evoked.info, this_picks)
                 idx = np.ix_(this_picks, this_picks)
                 this_estimated_rank = _estimate_rank_meeg_cov(
                     C[idx], this_info, scalings)
                 expected_rank = len(this_picks)
                 expected_rank_reduction = 0
-                if has_meg and has_sss and ch_type in ('meg', 'grad', 'mag'):
+                if has_meg and has_sss:
                     sss_rank = _get_rank_sss(evoked)
                     expected_rank_reduction += (expected_rank - sss_rank)
                 n_ssp = sum(pp['active'] for pp in cov['projs'] if
@@ -992,17 +994,16 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                 expected_rank_reduction += n_ssp
                 expected_rank -= expected_rank_reduction
                 if this_estimated_rank != expected_rank:
-                    msg = (
+                    logger.warning(
                         'For (%s) the expected and estimated rank diverge '
                         '(%i VS %i). \nThis may lead to surprising reults. '
                         '\nPlease consider using the `rank` parameter to '
-                        'manually specify the spatial degrees of freedom.'
-                    )
-                    msg %= (ch_type, expected_rank, this_estimated_rank)
-                    logger.warning(msg)
+                        'manually specify the spatial degrees of freedom.' % (
+                            ch_type, expected_rank, this_estimated_rank
+                        ))
                 rank_[ch_type] = this_estimated_rank
-        if rank is not None:
-            rank_.update(rank)
+            if rank.get(ch_type) is not None:
+                rank_[ch_type] = rank[ch_type]
         rank_list.append(rank_)
     evokeds_white = [whiten_evoked(evoked, n, picks, rank=r)
                      for n, r in zip(noise_cov, rank_list)]

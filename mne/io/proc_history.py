@@ -331,15 +331,18 @@ def _get_rank_sss(inst):
 
     max_infos = list()
     for proc_info in info.get('proc_history', list()):
-        max_info = proc_info.get('max_info', {})
-        if len(max_info['sss_info']) > 0:
-            max_infos.append(max_info)
-    if len(max_info) > 1:
-        logger.info('found multiple SSS records. Using the first.')
-    elif len(max_info) == 0:
-        raise ValueError(
-            'Did not find any SSS record. You should use data-based '
-            'rank estimate instead')
-
-    max_info = max_infos[0]
+        max_info = proc_info.get('max_info')
+        if max_info is not None:
+            if len(max_info) > 0:
+                max_infos.append(max_info)
+            elif len(max_info) > 1:
+                logger.info('found multiple SSS records. Using the first.')
+            elif len(max_info) == 0:
+                raise ValueError(
+                    'Did not find any SSS record. You should use data-based '
+                    'rank estimate instead')
+    if len(max_infos) > 0:
+        max_info = max_infos[0]
+    else:
+        raise ValueError('There is no `max_info` here. Sorry.')
     return _get_sss_rank(max_info)

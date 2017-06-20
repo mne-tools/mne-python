@@ -167,6 +167,8 @@ def test_plot_evoked():
         evoked_sss.info['proc_history'] = [dict(max_info=None)]
         evoked_sss.plot_white(cov)
         evoked_sss.plot_white(cov_fname)
+        evoked_sss.plot_white(cov_fname, rank=dict(mag=99))
+        evoked_sss.plot_white(cov_fname, rank=dict(grad=203))
 
         # plot with bad channels excluded, spatial_colors, zorder & pos. layout
         evoked.rename_channels({'MEG 0133': 'MEG 0000'})
