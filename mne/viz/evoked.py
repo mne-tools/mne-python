@@ -32,6 +32,7 @@ from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
 from ..channels.layout import _pair_grad_sensors, _auto_topomap_coords
+from ..io.proc_history import get_rank_sss
 
 
 def _butterfly_onpick(event, params):
@@ -971,8 +972,16 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             for ch_type, this_picks in picks_list2:
                 this_info = pick_info(evoked.info, this_picks)
                 idx = np.ix_(this_picks, this_picks)
-                this_rank = _estimate_rank_meeg_cov(C[idx], this_info,
-                                                    scalings)
+                if has_meg and has_sss and ch_type in ('meg', 'grad', 'mag'):
+                    logger.info('Reading SSS rank from proc info')
+                    this_rank = get_rank_sss(evoked)
+                    logger.info('Looking for SSP vectors')
+                    n_ssp = sum(pp['active'] for pp in cov['projs'])
+                    this_rank -= n_ssp
+                    logger.info('final rank (%s) = %i' % (ch_type, this_rank))
+                else:
+                    this_rank = _estimate_rank_meeg_cov(C[idx], this_info,
+                                                        scalings)
                 rank_[ch_type] = this_rank
         if rank is not None:
             rank_.update(rank)
@@ -1589,7 +1598,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         raise TypeError(msg.format(type(ci)))
 
     # if we have a dict/list of lists, we compute the grand average and the CI
-    if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
+    if not all(isinstance(evoked_, Evoked) for evoked_ in evokeds.values()):
         if ci is not None and gfp is not True:
             # calculate the CI
             sem_array = dict()
