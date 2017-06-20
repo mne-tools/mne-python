@@ -64,7 +64,7 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     -------
     Y : array, shape (n_sources, n_coefs)
         The output data.
-    active_set : array of bool
+    active_set : array of bool, shape (n_sources, )
         Mask of active sources
 
     Example
@@ -110,7 +110,7 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     return Y, active_set
 
 
-def prox_l1(Y, alpha, n_orient, remove_nonactive=True):
+def prox_l1(Y, alpha, n_orient):
     """Proximity operator for l1 norm with multiple orientation support.
 
     Please note that this function computes a soft-thresholding if
@@ -125,14 +125,12 @@ def prox_l1(Y, alpha, n_orient, remove_nonactive=True):
         The regularization parameter.
     n_orient : int
         Number of dipoles per locations (typically 1 or 3).
-    remove_nonactive : bool
-        If True, Y contains only blocks containing non-zero coefficients.
 
     Returns
     -------
     Y : array, shape (n_sources, n_coefs)
         The output data.
-    active_set : array of bool
+    active_set : array of bool, shape (n_sources, )
         Mask of active sources.
 
     References
@@ -165,12 +163,10 @@ def prox_l1(Y, alpha, n_orient, remove_nonactive=True):
     shrink = np.maximum(1.0 - alpha / np.maximum(norms, alpha), 0.0)
     shrink = shrink.reshape(-1, n_positions).T
     active_set = np.any(shrink > 0.0, axis=1)
-    if remove_nonactive:
-        shrink = shrink[active_set]
+    shrink = shrink[active_set]
     if n_orient > 1:
         active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
-    if remove_nonactive:
-        Y = Y[active_set]
+    Y = Y[active_set]
     if len(Y) > 0:
         for o in range(n_orient):
             Y[o::n_orient] *= shrink
@@ -188,7 +184,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
         The gain matrix a.k.a. lead field.
     X : array, shape (n_active, n_times)
         Sources.
-    active_set : array of bool
+    active_set : array of bool, shape (n_sources, )
         Mask of active sources.
     alpha : float
         The regularization parameter.
@@ -784,7 +780,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
         Gain matrix a.k.a. lead field.
     Z : array of shape (n_active, n_coefs)
         Sources in TF domain.
-    active_set : array of bool
+    active_set : array of bool, shape (n_sources, )
         Mask of active sources.
     alpha_space : float
         The spatial regularization parameter.
@@ -833,8 +829,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     nR2 = sum_squared(R)
     p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
 
-    GRPhi_norm, _ = prox_l1(phi(np.dot(G.T, R)), alpha_time, n_orient,
-                            remove_nonactive=False)
+    GRPhi_norm, _ = prox_l1(phi(np.dot(G.T, R)), alpha_time, n_orient)
     GRPhi_norm = stft_norm2(GRPhi_norm.reshape(*shape)).reshape(-1, n_orient)
     GRPhi_norm = np.sqrt(GRPhi_norm.sum(axis=1))
     dual_norm = np.amax(GRPhi_norm)
@@ -862,6 +857,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 
     Gd = G.copy()
     G = dict(zip(np.arange(n_positions), np.hsplit(G, n_positions)))
+
     R = M.copy()  # residual
     active = np.where(active_set[::n_orient])[0]
     for idx in active:
