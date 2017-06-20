@@ -32,7 +32,7 @@ from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
 from ..channels.layout import _pair_grad_sensors, _auto_topomap_coords
-from ..io.proc_history import get_rank_sss
+from ..io.proc_history import _get_rank_sss
 
 
 def _butterfly_onpick(event, params):
@@ -853,7 +853,7 @@ def _plot_update_evoked(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_evoked_white(evoked, noise_cov, show=True):
+def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
     """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
@@ -875,6 +875,11 @@ def plot_evoked_white(evoked, noise_cov, show=True):
         The noise covariance as computed by ``mne.cov.compute_covariance``.
     show : bool
         Show figure if True.
+    rank : dict of int | None
+        Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
+        the rank is detected automatically. Defaults to None. Note.
+        The rank estimation will be printed by the logger for each noise
+        covariance estimator that is passed.
 
     Returns
     -------
@@ -889,6 +894,13 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     """
     return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
                               scalings=None, rank=None, show=show)
+
+
+def _match_proj_type(proj, ch_names):
+    """see if proj should be counted"""
+    proj_ch_names = proj['data']['col_names']
+    select = any(kk in ch_names for kk in proj_ch_names)
+    return select
 
 
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
@@ -906,11 +918,6 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         Note. Theses values were tested on different datests across various
         conditions. You should not need to update them.
 
-    rank : dict of int | None
-        Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
-        the rank is detected automatically. Defaults to None. Note.
-        The rank estimation will be printed by the logger for each noise
-        covariance estimator that is passed.
     """
     from ..cov import whiten_evoked, read_cov  # recursive import
     from ..cov import _estimate_rank_meeg_cov
@@ -960,6 +967,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     n_ch_used = len(ch_used)
 
     # make sure we use the same rank estimates for GFP and whitening
+
     rank_list = []
     for cov in noise_cov:
         rank_ = {}
@@ -972,17 +980,27 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             for ch_type, this_picks in picks_list2:
                 this_info = pick_info(evoked.info, this_picks)
                 idx = np.ix_(this_picks, this_picks)
+                this_estimated_rank = _estimate_rank_meeg_cov(
+                    C[idx], this_info, scalings)
+                expected_rank = len(this_picks)
+                expected_rank_reduction = 0
                 if has_meg and has_sss and ch_type in ('meg', 'grad', 'mag'):
-                    logger.info('Reading SSS rank from proc info')
-                    this_rank = get_rank_sss(evoked)
-                    logger.info('Looking for SSP vectors')
-                    n_ssp = sum(pp['active'] for pp in cov['projs'])
-                    this_rank -= n_ssp
-                    logger.info('final rank (%s) = %i' % (ch_type, this_rank))
-                else:
-                    this_rank = _estimate_rank_meeg_cov(C[idx], this_info,
-                                                        scalings)
-                rank_[ch_type] = this_rank
+                    sss_rank = _get_rank_sss(evoked)
+                    expected_rank_reduction += (expected_rank - sss_rank)
+                n_ssp = sum(pp['active'] for pp in cov['projs'] if
+                            _match_proj_type(pp, this_info['ch_names']))
+                expected_rank_reduction += n_ssp
+                expected_rank -= expected_rank_reduction
+                if this_estimated_rank != expected_rank:
+                    msg = (
+                        'For (%s) the expected and estimated rank diverge '
+                        '(%i VS %i). \nThis may lead to surprising reults. '
+                        '\nPlease consider using the `rank` parameter to '
+                        'manually specify the spatial degrees of freedom.'
+                    )
+                    msg %= (ch_type, expected_rank, this_estimated_rank)
+                    logger.warning(msg)
+                rank_[ch_type] = this_estimated_rank
         if rank is not None:
             rank_.update(rank)
         rank_list.append(rank_)

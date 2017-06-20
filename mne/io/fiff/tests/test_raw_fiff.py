@@ -27,7 +27,7 @@ from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.pick import _picks_by_type
 from mne.annotations import Annotations
 from mne.tests.common import assert_naming
-from mne import get_rank_sss
+from mne import _get_rank_sss
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -173,7 +173,7 @@ def test_rank_estimation():
         if len(raw.info['proc_history']) == 0:
             expected_rank = n_meg + n_eeg
         else:
-            expected_rank = get_rank_sss(raw.info) + n_eeg
+            expected_rank = _get_rank_sss(raw.info) + n_eeg
         assert_array_equal(raw.estimate_rank(scalings=scalings), expected_rank)
         assert_array_equal(raw.estimate_rank(picks=picks_eeg,
                                              scalings=scalings), n_eeg)

@@ -6,7 +6,7 @@ import numpy as np
 import os.path as op
 from mne.io import read_info, read_raw_fif
 from mne.io.constants import FIFF
-from mne import get_rank_sss
+from mne import _get_rank_sss
 from nose.tools import assert_true, assert_equal
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -45,5 +45,5 @@ def test_maxfilter_get_rank():
     mf = raw.info['proc_history'][0]['max_info']
     rank1 = mf['sss_info']['nfree']
 
-    rank2 = get_rank_sss(raw)
+    rank2 = _get_rank_sss(raw)
     assert_equal(rank1, rank2)

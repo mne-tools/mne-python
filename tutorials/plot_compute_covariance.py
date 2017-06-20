@@ -21,7 +21,6 @@ data_path = sample.data_path()
 raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
-
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference()
@@ -66,7 +65,7 @@ noise_cov = mne.compute_raw_covariance(raw_empty_room, tmin=0, tmax=None)
 # just to be sure, we define it here manually.
 events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
-                    baseline=(-0.2, 0.0), decim=3)
+                    baseline=(-0.2, 0.0), decim=3)  # we'll decimate for speed
 
 ###############################################################################
 # Note that this method also attenuates any activity in your

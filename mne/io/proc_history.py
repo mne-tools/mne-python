@@ -308,7 +308,7 @@ def _get_sss_rank(sss):
     return nfree
 
 
-def get_rank_sss(inst):
+def _get_rank_sss(inst):
     """Look up rank from SSS data.
 
     .. note::
