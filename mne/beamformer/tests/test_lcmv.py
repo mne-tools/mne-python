@@ -79,6 +79,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         info = raw.info
 
     noise_cov = mne.read_cov(fname_cov)
+    noise_cov['projs'] = []  # avoid warning
     with warnings.catch_warnings(record=True):  # bad proj
         noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
                                        eeg=0.1, proj=True)

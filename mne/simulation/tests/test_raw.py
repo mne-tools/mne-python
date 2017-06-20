@@ -262,7 +262,7 @@ def test_simulate_raw_chpi():
     picks_meg = pick_types(raw.info, meg=True, eeg=False)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
 
-    for picks in [picks_meg, picks_eeg]:
+    for picks in [picks_meg[:3], picks_eeg[:3]]:
         psd_sim, freqs_sim = psd_welch(raw_sim, picks=picks)
         psd_chpi, freqs_chpi = psd_welch(raw_chpi, picks=picks)
 
@@ -276,7 +276,7 @@ def test_simulate_raw_chpi():
             assert_allclose(psd_sim, psd_chpi, atol=1e-20)
 
     # test localization based on cHPI information
-    quats_sim = _calculate_chpi_positions(raw_chpi)
+    quats_sim = _calculate_chpi_positions(raw_chpi, t_step_min=10.)
     quats = read_head_pos(pos_fname)
     _assert_quats(quats, quats_sim, dist_tol=5e-3, angle_tol=3.5)
 

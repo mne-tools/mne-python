@@ -192,6 +192,7 @@ def test_plot_trans():
 def test_limits_to_control_points():
     """Test functionality for determing control points."""
     sample_src = read_source_spaces(src_fname)
+    kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5
@@ -202,57 +203,39 @@ def test_limits_to_control_points():
 
     # Test for simple use cases
     mlab = _import_mlab()
-    stc.plot(subjects_dir=subjects_dir)
-    stc.plot(clim=dict(pos_lims=(10, 50, 90)), subjects_dir=subjects_dir)
-    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,
-             subjects_dir=subjects_dir)
-    stc.plot(colormap='hot', clim='auto', subjects_dir=subjects_dir)
-    stc.plot(colormap='mne', clim='auto', subjects_dir=subjects_dir)
+    stc.plot(**kwargs)
+    stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
+    stc.plot(colormap='hot', clim='auto', **kwargs)
+    stc.plot(colormap='mne', clim='auto', **kwargs)
     figs = [mlab.figure(), mlab.figure()]
-    assert_raises(ValueError, stc.plot, clim='auto', figure=figs,
-                  subjects_dir=subjects_dir)
+    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
+    assert_raises(ValueError, stc.plot, clim='auto', figure=figs, **kwargs)
 
     # Test both types of incorrect limits key (lims/pos_lims)
     assert_raises(KeyError, plot_source_estimates, stc, colormap='mne',
-                  clim=dict(kind='value', lims=(5, 10, 15)),
-                  subjects_dir=subjects_dir)
+                  clim=dict(kind='value', lims=(5, 10, 15)), **kwargs)
     assert_raises(KeyError, plot_source_estimates, stc, colormap='hot',
-                  clim=dict(kind='value', pos_lims=(5, 10, 15)),
-                  subjects_dir=subjects_dir)
+                  clim=dict(kind='value', pos_lims=(5, 10, 15)), **kwargs)
 
     # Test for correct clim values
     assert_raises(ValueError, stc.plot,
-                  clim=dict(kind='value', pos_lims=[0, 1, 0]),
-                  subjects_dir=subjects_dir)
+                  clim=dict(kind='value', pos_lims=[0, 1, 0]), **kwargs)
     assert_raises(ValueError, stc.plot, colormap='mne',
-                  clim=dict(pos_lims=(5, 10, 15, 20)),
-                  subjects_dir=subjects_dir)
+                  clim=dict(pos_lims=(5, 10, 15, 20)), **kwargs)
     assert_raises(ValueError, stc.plot,
-                  clim=dict(pos_lims=(5, 10, 15), kind='foo'),
-                  subjects_dir=subjects_dir)
-    assert_raises(ValueError, stc.plot, colormap='mne', clim='foo',
-                  subjects_dir=subjects_dir)
-    assert_raises(ValueError, stc.plot, clim=(5, 10, 15),
-                  subjects_dir=subjects_dir)
+                  clim=dict(pos_lims=(5, 10, 15), kind='foo'), **kwargs)
+    assert_raises(ValueError, stc.plot, colormap='mne', clim='foo', **kwargs)
+    assert_raises(ValueError, stc.plot, clim=(5, 10, 15), **kwargs)
     assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto',
-                  subjects_dir=subjects_dir)
-    assert_raises(ValueError, stc.plot, hemi='foo', clim='auto',
-                  subjects_dir=subjects_dir)
+                  **kwargs)
+    assert_raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
 
     # Test handling of degenerate data
-    stc.plot(clim=dict(kind='value', lims=[0, 0, 1]),
-             subjects_dir=subjects_dir)  # ok
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # thresholded maps
-        stc._data.fill(1.)
-        plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
-        assert_equal(len(w), 0)
-        stc._data[0].fill(0.)
-        plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
-        assert_equal(len(w), 0)
         stc._data.fill(0.)
-        plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
+        plot_source_estimates(stc, **kwargs)
         assert_equal(len(w), 1)
     mlab.close(all=True)
 

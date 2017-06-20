@@ -181,7 +181,6 @@ def apply_trans(trans, pts, move=True):
     """
     if isinstance(trans, dict):
         trans = trans['trans']
-    trans = np.asarray(trans)
     pts = np.asarray(pts)
     if pts.size == 0:
         return pts.copy()
@@ -189,10 +188,8 @@ def apply_trans(trans, pts, move=True):
     # apply rotation & scale
     out_pts = np.dot(pts, trans[:3, :3].T)
     # apply translation
-    if move is True:
-        transl = trans[:3, 3]
-        if np.any(transl != 0):
-            out_pts += transl
+    if move:
+        out_pts += trans[:3, 3]
 
     return out_pts
 
