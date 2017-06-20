@@ -343,8 +343,7 @@ def test_check_consistency():
     with warnings.catch_warnings(record=True) as w:
         info3 = create_info(ch_names=['a', 'b', 'b', 'c', 'b'], sfreq=1000.)
     assert_equal(len(w), 1)
-    assert_true(all(ww.message.message.startswith('Channel names are not '
-                                                  'unique') for ww in w))
+    assert_true(all('Channel names are not' in '%s' % ww.message for ww in w))
     assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
 
 
