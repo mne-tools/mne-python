@@ -50,10 +50,10 @@ class ReceptiveField(BaseEstimator):
 
     Attributes
     ----------
-    ``coef_`` : array, shape (n_outputs, n_features, n_delays)
+    ``coef_`` : array, shape ([n_outputs, ]n_features, n_delays)
         The coefficients from the model fit, reshaped for easy visualization.
-        If you want the raw (1d) coefficients, access them from the estimator
-        stored in ``self.estimator_``.
+        If ``y`` during :meth:`mne.decoding.ReceptiveField.fit` has one
+        dimension (time), the ``n_outputs`` dimension here is omitted.
     ``delays_``: array, shape (n_delays,), dtype int
         The delays used to fit the model, in indices. To return the delays
         in seconds, use ``self.delays_ / self.sfreq``
@@ -140,7 +140,7 @@ class ReceptiveField(BaseEstimator):
         ----------
         X : array, shape (n_times[, n_epochs], n_features)
             The input features for the model.
-        y : array, shape (n_times[, n_epochs], n_outputs)
+        y : array, shape (n_times[, n_epochs][, n_outputs])
             The output features for the model.
 
         Returns
@@ -152,7 +152,7 @@ class ReceptiveField(BaseEstimator):
             raise ValueError('scoring must be one of %s, got'
                              '%s ' % (sorted(_SCORERS.keys()), self.scoring))
         from sklearn.base import is_regressor, clone
-        X, y = self._check_dimensions(X, y)
+        X, y, _, self._y_dim = self._check_dimensions(X, y)
 
         # Initialize delays
         self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
@@ -209,8 +209,10 @@ class ReceptiveField(BaseEstimator):
         X, y = self._delay_and_reshape(X, y)
         self.estimator_.fit(X, y)
         del X, y
-        coefs = get_coef(self.estimator_, 'coef_')  # (n_targets, n_features)
-        self.coef_ = coefs.reshape([-1, n_feats, len(self.delays_)])
+        coef = get_coef(self.estimator_, 'coef_')  # (n_targets, n_features)
+        shape = [n_feats, len(self.delays_)]
+        shape = ([-1] if self._y_dim > 1 else []) + shape
+        self.coef_ = coef.reshape(shape)
         return self
 
     def predict(self, X):
@@ -223,26 +225,37 @@ class ReceptiveField(BaseEstimator):
 
         Returns
         -------
-        y_pred : array, shape (n_times[, n_epochs], n_outputs)
+        y_pred : array, shape (n_times[, n_epochs][, n_outputs])
             The output predictions. "Note that valid samples (those
             unaffected by edge artifacts during the time delaying step) can
             be obtained using ``y_pred[rf.valid_samples_]``.
         """
         if not hasattr(self, 'delays_'):
             raise ValueError('Estimator has not been fit yet.')
-        X = self._check_dimensions(X, None, predict=True)[0]
+        X, _, X_dim = self._check_dimensions(X, None, predict=True)[:3]
+        del _
         # zero-pad if necessary
         if isinstance(self.estimator, TimeDelayingRidge):
             X = _pad_time_series(X, n_delays=len(self.delays_),
                                  fill_mean=self.fit_intercept)
         # convert to sklearn and back
-        pred_shape = X.shape[:-1] + (self.coef_.shape[0],)
+        pred_shape = X.shape[:-1]
+        if self._y_dim > 1:
+            pred_shape = pred_shape + (self.coef_.shape[0],)
         X, _ = self._delay_and_reshape(X)
         y_pred = self.estimator_.predict(X)
         y_pred = y_pred.reshape(pred_shape, order='F')
         # undo padding
         if isinstance(self.estimator, TimeDelayingRidge):
             y_pred = y_pred[:-(len(self.delays_) - 1)]
+        shape = list(y_pred.shape)
+        if X_dim <= 2:
+            shape.pop(1)  # epochs
+            extra = 0
+        else:
+            extra = 1
+        shape = shape[:self._y_dim + extra]
+        y_pred.shape = shape
         return y_pred
 
     def score(self, X, y):
@@ -256,7 +269,7 @@ class ReceptiveField(BaseEstimator):
         ----------
         X : array, shape (n_times[, n_epochs], n_channels)
             The input features for the model.
-        y : array, shape (n_times[, n_epochs], n_outputs)
+        y : array, shape (n_times[, n_epochs][, n_outputs])
             Used for scikit-learn compatibility.
 
         Returns
@@ -269,7 +282,7 @@ class ReceptiveField(BaseEstimator):
         scorer_ = _SCORERS[self.scoring]
 
         # Generate predictions, then reshape so we can mask time
-        X, y = self._check_dimensions(X, y, predict=True)
+        X, y = self._check_dimensions(X, y, predict=True)[:2]
         n_times, n_epochs, n_outputs = y.shape
         y_pred = self.predict(X)
         y_pred = y_pred[self.valid_samples_]
@@ -283,46 +296,40 @@ class ReceptiveField(BaseEstimator):
         return scores
 
     def _check_dimensions(self, X, y, predict=False):
-        if X.ndim == 1:
-            raise ValueError('X must be shape (n_times[, n_epochs],'
-                             ' n_features)')
-        elif X.ndim == 2:
+        X_dim = X.ndim
+        y_dim = y.ndim if y is not None else 0
+        if X_dim == 2:
             # Ensure we have a 3D input by adding singleton epochs dimension
             X = X[:, np.newaxis, :]
-            if y is None:
-                pass
-            elif y.ndim == 1:
-                y = y[:, np.newaxis, np.newaxis]  # Add epochs and outputs dim
-            elif y.ndim == 2:
-                y = y[:, np.newaxis]  # Only add epochs dim
-            else:
-                raise ValueError('y must be shape (n_times[, n_epochs],'
-                                 ' n_outputs')
+            if y is not None:
+                if y_dim == 1:
+                    y = y[:, np.newaxis, np.newaxis]  # epochs, outputs
+                elif y_dim == 2:
+                    y = y[:, np.newaxis, :]  # epochs
+                else:
+                    raise ValueError('y must be shape (n_times[, n_epochs]'
+                                     '[,n_outputs], got %s' % (y.shape,))
         elif X.ndim == 3:
-            if y is None:
-                pass
-            elif y.ndim == 2:
-                y = y[:, :, np.newaxis]  # Add an outputs dim
-            elif y.ndim != 3:
-                raise ValueError('If X has 3 dimensions, '
-                                 'y must have 2 or 3 dimensions')
+            if y is not None:
+                if y.ndim == 2:
+                    y = y[:, :, np.newaxis]  # Add an outputs dim
+                elif y.ndim != 3:
+                    raise ValueError('If X has 3 dimensions, '
+                                     'y must have 2 or 3 dimensions')
         else:
-            raise ValueError('X must be of shape '
-                             '(n_times[, n_epochs], n_features)')
-        if y is None:
-            # If y is None, then we don't need any more checks
-            pass
-        elif X.shape[0] != y.shape[0]:
-            raise ValueError('X any y do not have the same n_times\n'
-                             '%s != %s' % (X.shape[0], y.shape[0]))
-        elif X.shape[1] != y.shape[1]:
-            raise ValueError('X any y do not have the same n_epochs\n'
-                             '%s != %s' % (X.shape[1], y.shape[1]))
-        elif predict is True:
-            if y.shape[-1] != len(self.estimator_.coef_):
-                raise ValueError('Number of outputs does not match'
-                                 ' estimator coefficients dimensions')
-        return X, y
+            raise ValueError('X must be shape (n_times[, n_epochs],'
+                             ' n_features), got %s' % (X.shape,))
+        if y is not None:
+            if X.shape[0] != y.shape[0]:
+                raise ValueError('X any y do not have the same n_times\n'
+                                 '%s != %s' % (X.shape[0], y.shape[0]))
+            if X.shape[1] != y.shape[1]:
+                raise ValueError('X any y do not have the same n_epochs\n'
+                                 '%s != %s' % (X.shape[1], y.shape[1]))
+            if predict and y.shape[-1] != len(self.estimator_.coef_):
+                    raise ValueError('Number of outputs does not match'
+                                     ' estimator coefficients dimensions')
+        return X, y, X_dim, y_dim
 
 
 def _pad_time_series(X, n_delays, fill_mean=True):

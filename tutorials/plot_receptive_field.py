@@ -209,7 +209,7 @@ times = rf.delays_ / float(rf.sfreq)
 ix_best_alpha = np.argmax(scores)
 best_mod = models[ix_best_alpha]
 coefs = best_mod.coef_[0]
-best_pred = best_mod.predict(X_test)[:, 0, 0]
+best_pred = best_mod.predict(X_test)[:, 0]
 
 # Plot the original STRF, and the one that we recovered with modeling.
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
