@@ -20,6 +20,7 @@ from ..source_space import label_src_vertno_sel
 from ..utils import logger, verbose, warn, estimate_rank
 from .. import Epochs
 from ..externals import six
+from ..channels.channels import _contains_ch_type
 
 
 def _reg_pinv(x, reg):
@@ -34,7 +35,6 @@ def _reg_pinv(x, reg):
     # This adds it to the diagonal without using np.eye
     d = reg * np.trace(x) / len(x)
     x.flat[::x.shape[0] + 1] += d
-    # TODO: change other calls
     return linalg.pinv(x), d
 
 
@@ -66,9 +66,9 @@ def _setup_picks(picks, info, forward, noise_cov=None):
 
 
 @verbose
-def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None, 
-                data_cov=None, label=None, picks=None, pick_ori=None, 
-                rank=None, apply_noise_norm=False, weight_norm=None, 
+def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
+                data_cov=None, label=None, picks=None, pick_ori=None,
+                rank=None, apply_noise_norm=False, weight_norm=None,
                 verbose=None):
     """LCMV beamformer for evoked data, single epochs, and raw data."""
     is_free_ori, ch_names, proj, vertno, G = \
@@ -76,30 +76,27 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
 
     # data covariance
     if data_cov is None:
-         raise ValueError('Source reconstruction with beamformers requires '
-                         'a data covariance matrix.')       
+        raise ValueError('Source reconstruction with beamformers requires '
+                         'a data covariance matrix.')
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
 
     # apply SSPs
     if info['projs']:
-      Cm = np.dot(proj, np.dot(Cm, proj.T))
-
+        Cm = np.dot(proj, np.dot(Cm, proj.T))
 
     # check number of sensor types
-    ch_types = [d['coil_type'] for d in info['chs']]
-    ch_types = set(ch_types)
-    
-    if len(ch_types) > 1 and noise_cov is None:
-         raise ValueError('Source reconstruction with several sensor types '
+    ch_types = [_contains_ch_type(info, tt) for tt in ('mag', 'grad', 'eeg')]
+    if sum(ch_types) > 1 and noise_cov is None:
+        raise ValueError('Source reconstruction with several sensor types '
                          'requires a noise covariance matrix to be able to '
-                         'apply whitening.')         
+                         'apply whitening.')
 
-    if noise_cov:
+    if noise_cov is not None:
         # Handle whitening + data covariance
-        whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)    
+        whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
         # whiten the leadfield
-        G = np.dot(whitener, G)    
+        G = np.dot(whitener, G)
         # whiten  data covariance
         Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
@@ -107,23 +104,21 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
     # trade-off between spatial resolution and noise sensitivity
     Cm_inv, d = _reg_pinv(Cm.copy(), reg)
 
-    if weight_norm:
-        # estimate noise level based on covariance matrix, taking the 
-        # smallest eigenvalue that is not zero       
+    if weight_norm is not None:
+        # estimate noise level based on covariance matrix, taking the
+        # smallest eigenvalue that is not zero
         noise, _ = linalg.eigh(Cm)
-        rank_Cm = estimate_rank(Cm, tol='auto', norm=False, 
+        rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
                                 return_singular=False)
         noise = noise[len(noise) - rank_Cm]
-        
+
         # use either noise floor or regularization parameter d
-        noise = np.max([noise, d])   
-        
+        noise = np.max([noise, d])
+
         # Compute square of Cm_inv used for weight normalization
         Cm_inv_sq = np.dot(Cm_inv, Cm_inv)
 
     del Cm
-
-
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -137,19 +132,20 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
         Ck = np.dot(Wk, Gk)
 
         # Find source orientation maximizing output source power
-        if pick_ori == 'max-power':
-            if weight_norm:  
-                # finding optimal orientation for NAI and unit-noise gain 
-                # based on Sekihara & Nagarajan 2008, Eq. 4.47            
-                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))                
-                eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp), 
+
+        # with weight normalization:
+        if weight_norm is not None:
+            if pick_ori == 'max-power':
+                # finding optimal orientation for NAI and unit-noise gain
+                # based on Sekihara & Nagarajan 2008, Eq. 4.47
+                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+                eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),
                                                        np.dot(Wk, Gk)))
-                eig_vals = np.real(eig_vals)
                 idx_max = eig_vals.argmax()
-                max_ori = eig_vecs[:, idx_max]            
-                Wk[:] = np.dot(max_ori, Wk)    
+                max_ori = eig_vecs[:, idx_max]
+                Wk[:] = np.dot(max_ori, Wk)
                 Gk = np.dot(Gk, max_ori)
-                
+
                 if weight_norm == 'nai':
                     # compute spatial filter for NAI
                     tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
@@ -159,36 +155,41 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
                     # compute spatial filter for unit-noise gain
                     tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
                     denom = np.sqrt(tmp)
-                    Wk /= denom                                       
-                    
-                is_free_ori = False    
-                
+                    Wk /= denom
+
+                is_free_ori = False
             else:
+                    raise ValueError('Weight normalization is not implemented '
+                                     'yet with free or normal orientation.')
+
+        # without weight normalization:
+        else:
+            if pick_ori == 'max-power':
                 eig_vals, eig_vecs = linalg.eigh(Ck)
 
-                # Choosing the eigenvector associated with the middle 
-                # eigenvalue. The middle and not the minimal eigenvalue is used 
-                # because MEG is insensitive to one (radial) of the three dipole
-                # orientations and therefore the smallest eigenvalue reflects 
-                # mostly noise.
+                # Choosing the eigenvector associated with the middle
+                # eigenvalue. The middle and not the minimal eigenvalue is used
+                # because MEG is insensitive to one (radial) of the three
+                # dipole orientations and therefore the smallest eigenvalue
+                # reflects mostly noise.
                 for ii in range(3):
                     if ii != eig_vals.argmax() and ii != eig_vals.argmin():
                         idx_middle = ii
-    
+
                 # TODO: The eigenvector associated with the smallest eigenvalue
                 # should probably be used when using combined EEG and MEG data
                 max_ori = eig_vecs[:, idx_middle]
-    
+
                 Wk[:] = np.dot(max_ori, Wk)
                 Ck = np.dot(max_ori, np.dot(Ck, max_ori))
                 is_free_ori = False
 
-                if is_free_ori:
-                    # Free source orientation
-                    Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
-                else:
-                    # Fixed source orientation
-                    Wk /= Ck
+            if is_free_ori:
+                # Free source orientation
+                Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+            else:
+                # Fixed source orientation
+                Wk /= Ck
 
     # Pick source orientation maximizing output source power
     if pick_ori == 'max-power':
@@ -208,6 +209,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
 
     if apply_noise_norm:
         # Applying noise normalization
+        noise_norm[noise_norm == 0.] = 1e-40  # avoid division by 0
         noise_norm_inv = 1. / noise_norm
         noise_norm_inv[noise_norm == 0.] = 0.
         if not is_free_ori:
@@ -227,11 +229,10 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
         if not return_single:
             logger.info("Processing epoch : %d" % (i + 1))
 
-
-        # SSP and whitening        
+        # SSP and whitening
         if info['projs']:
             M = np.dot(proj, M)
-        if noise_cov:
+        if noise_cov is not None:
             M = np.dot(whitener, M)
 
         # project to source space using beamformer weights
@@ -239,7 +240,6 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
-
             if apply_noise_norm:
                 sol *= noise_norm_inv[:, None]
         else:
@@ -247,7 +247,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
             if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
                 sol = (W, M)
             else:
-                sol = np.dot(W, M)         
+                sol = np.dot(W, M)
             if pick_ori == 'max-power':
                 sol = np.abs(sol)
 
@@ -354,10 +354,10 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
     apply_noise_norm: False | True
-        Whether noise normalization should be applied.
-    weight_norm: None | 'nai' | 'unit_noise_gain'    
+        If True, a noise-normalized beamformer will be computed.
+    weight_norm: None | 'nai' | 'unit_noise_gain*
         If 'nai', the Neural Activity Index (Van Veen, 1997) will be computed,
-        if 'unit_noise_gain', the unit-noise gain minimum variance beamformer 
+        if 'unit_noise_gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer)
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
@@ -395,9 +395,9 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     data = data[picks]
 
     stc = _apply_lcmv(
-        data=data, info=info, tmin=tmin, forward=forward, reg=reg, 
-        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks, 
-        rank=rank, pick_ori=pick_ori, apply_noise_norm=apply_noise_norm, 
+        data=data, info=info, tmin=tmin, forward=forward, reg=reg,
+        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
+        rank=rank, pick_ori=pick_ori, apply_noise_norm=apply_noise_norm,
         weight_norm=weight_norm)
 
     return six.advance_iterator(stc)
@@ -479,7 +479,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     data = epochs.get_data()[:, picks, :]
     stcs = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, reg=reg,
-        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks, 
+        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
         rank=rank, pick_ori=pick_ori)
 
     if not return_generator:
@@ -566,7 +566,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     stc = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, reg=reg,
-        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks, 
+        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
         rank=rank, pick_ori=pick_ori)
 
     return six.advance_iterator(stc)

@@ -101,7 +101,8 @@ def test_lcmv():
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     for fwd in [forward, forward_vol]:
-        stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01)
+        stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
+                   apply_noise_norm=True)
         stc.crop(0.02, None)
 
         stc_pow = np.sum(stc.data, axis=1)
@@ -115,7 +116,8 @@ def test_lcmv():
         if fwd is forward:
             # Test picking normal orientation (surface source space only)
             stc_normal = lcmv(evoked, forward_surf_ori, noise_cov,
-                              data_cov, reg=0.01, pick_ori="normal")
+                              data_cov, reg=0.01, pick_ori="normal",
+                              apply_noise_norm=True)
             stc_normal.crop(0.02, None)
 
             stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
@@ -132,7 +134,7 @@ def test_lcmv():
 
         # Test picking source orientation maximizing output source power
         stc_max_power = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
-                             pick_ori="max-power")
+                             pick_ori="max-power", apply_noise_norm=True)
         stc_max_power.crop(0.02, None)
         stc_pow = np.sum(stc_max_power.data, axis=1)
         idx = np.argmax(stc_pow)
