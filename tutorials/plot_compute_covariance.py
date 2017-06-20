@@ -161,7 +161,7 @@ evoked_meg.plot_white([noise_cov_meg, noise_cov])
 
 
 ##############################################################################
-# Based on the negative log-likelihood, the baseline covariance3
+# Based on the negative log-likelihood, the baseline covariance
 # seems more appropriate.
 
 ###############################################################################

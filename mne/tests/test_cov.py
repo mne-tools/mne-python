@@ -576,6 +576,33 @@ def test_compute_covariance_auto_reg():
                               method_params=method_params,
                               return_estimators=True)
 
+    # make sure regularization changes something everywhere.
+    diag_mask = np.eye(len(epochs.ch_names)).astype(bool)
+    off_diag_mask = np.invert(diag_mask)
+    for cov_a, cov_b in itt.combinations(covs, 2):
+        if (cov_a['method'] == 'diagonal_fixed' and
+            # here we have diagnoal or no regularization.
+                cov_b['method'] == 'empirical'):
+
+            assert_true(not np.any(
+                            cov_a['data'][diag_mask] ==
+                            cov_b['data'][diag_mask]))
+
+            # but the rest is the same
+            assert_array_equal(
+                 cov_a['data'][off_diag_mask],
+                 cov_b['data'][off_diag_mask])
+
+        else:
+            # and here we have shrinkage everywhere.
+            assert_true(not np.any(
+                            cov_a['data'][diag_mask] ==
+                            cov_b['data'][diag_mask]))
+
+            assert_true(not np.any(
+                            cov_a['data'][diag_mask] ==
+                            cov_b['data'][diag_mask]))
+
     logliks = [c['loglik'] for c in covs]
     assert_true(np.diff(logliks).max() <= 0)  # descending order
 
@@ -589,7 +616,6 @@ def test_compute_covariance_auto_reg():
 
     assert_equal(set([c['method'] for c in cov3]),
                  set(methods))
-
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')
 
