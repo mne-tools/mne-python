@@ -34,6 +34,7 @@ def _reg_pinv(x, reg):
     # This adds it to the diagonal without using np.eye
     d = reg * np.trace(x) / len(x)
     x.flat[::x.shape[0] + 1] += d
+    # TODO: change other calls
     return linalg.pinv(x), d
 
 
@@ -65,46 +66,62 @@ def _setup_picks(picks, info, forward, noise_cov=None):
 
 
 @verbose
-def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                label=None, picks=None, pick_ori=None, rank=None,
-                noise_norm = False, whitening=False, weight_norm=None, 
+def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None, 
+                data_cov=None, label=None, picks=None, pick_ori=None, 
+                rank=None, apply_noise_norm=False, weight_norm=None, 
                 verbose=None):
     """LCMV beamformer for evoked data, single epochs, and raw data."""
     is_free_ori, ch_names, proj, vertno, G = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     # data covariance
+    if data_cov is None:
+         raise ValueError('Source reconstruction with beamformers requires '
+                         'a data covariance matrix.')       
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
 
-    if whitening:
+    # apply SSPs
+    if info['projs']:
+      Cm = np.dot(proj, np.dot(Cm, proj.T))
+
+
+    # check number of sensor types
+    ch_types = [d['coil_type'] for d in info['chs']]
+    ch_types = set(ch_types)
+    
+    if len(ch_types) > 1 and noise_cov is None:
+         raise ValueError('Source reconstruction with several sensor types '
+                         'requires a noise covariance matrix to be able to '
+                         'apply whitening.')         
+
+    if noise_cov:
         # Handle whitening + data covariance
-        whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
-    
+        whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)    
         # whiten the leadfield
-        G = np.dot(whitener, G)
-    
-        # Apply SSPs + whitener to data covariance
-        if info['projs']:
-            Cm = np.dot(proj, np.dot(Cm, proj.T))
+        G = np.dot(whitener, G)    
+        # whiten  data covariance
         Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
     # Tikhonov regularization using reg parameter d to control for
     # trade-off between spatial resolution and noise sensitivity
     Cm_inv, d = _reg_pinv(Cm.copy(), reg)
 
-    # estimate noise level based on covariance matrix, taking the smallest
-    # eigenvalue that is not zero       
-    _, noise, _ = np.linalg.svd(Cm)
-    noise = noise[np.linalg.matrix_rank(Cm)-1]
-    
-    # use either noise floor or regularization parameter d
-    noise = np.max([noise, d])           
-    del Cm
-    
-    # Compute square of Cm_inv used for weight normalization
-    Cm_inv_sq = np.linalg.matrix_power(Cm_inv,2)
+    if weight_norm:
+        # estimate noise level based on covariance matrix, taking the 
+        # smallest eigenvalue that is not zero       
+        noise, _ = linalg.eigh(Cm)
+        rank_Cm = estimate_rank(Cm, tol='auto', norm=False, 
+                                return_singular=False)
+        noise = noise[len(noise) - rank_Cm]
+        
+        # use either noise floor or regularization parameter d
+        noise = np.max([noise, d])   
+        
+        # Compute square of Cm_inv used for weight normalization
+        Cm_inv_sq = np.dot(Cm_inv, Cm_inv)
 
+    del Cm
 
 
 
@@ -125,7 +142,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 # finding optimal orientation for NAI and unit-noise gain 
                 # based on Sekihara & Nagarajan 2008, Eq. 4.47            
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))                
-                eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),np.dot(Wk,Gk)))
+                eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp), 
+                                                       np.dot(Wk, Gk)))
                 eig_vals = np.real(eig_vals)
                 idx_max = eig_vals.argmax()
                 max_ori = eig_vecs[:, idx_max]            
@@ -133,24 +151,29 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 Gk = np.dot(Gk, max_ori)
                 
                 if weight_norm == 'nai':
+                    # compute spatial filter for NAI
                     tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
                     denom = np.sqrt(noise * tmp)
                     Wk /= denom
-                elif weight_norm == 'unitnoisegain':
-                    raise ValueError('not implemented yet.')                    
+                elif weight_norm == 'unit_noise_gain':
+                    # compute spatial filter for unit-noise gain
+                    tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+                    denom = np.sqrt(tmp)
+                    Wk /= denom                                       
                     
                 is_free_ori = False    
                 
             else:
                 eig_vals, eig_vecs = linalg.eigh(Ck)
 
-                # Choosing the eigenvector associated with the middle eigenvalue.
-                # The middle and not the minimal eigenvalue is used because MEG is
-                # insensitive to one (radial) of the three dipole orientations and
-                # therefore the smallest eigenvalue reflects mostly noise.
-                for i in range(3):
-                    if i != eig_vals.argmax() and i != eig_vals.argmin():
-                        idx_middle = i
+                # Choosing the eigenvector associated with the middle 
+                # eigenvalue. The middle and not the minimal eigenvalue is used 
+                # because MEG is insensitive to one (radial) of the three dipole
+                # orientations and therefore the smallest eigenvalue reflects 
+                # mostly noise.
+                for ii in range(3):
+                    if ii != eig_vals.argmax() and ii != eig_vals.argmin():
+                        idx_middle = ii
     
                 # TODO: The eigenvector associated with the smallest eigenvalue
                 # should probably be used when using combined EEG and MEG data
@@ -171,11 +194,11 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     if pick_ori == 'max-power':
         W = W[0::3]
 
-    if noise_norm:
+    if apply_noise_norm:
         # Preparing noise normalization
         noise_norm = np.sum(W ** 2, axis=1)
         if is_free_ori:
-            noise_norm = np.sum(np.reshape(noise_norm, (-1, 3)), axis=1)
+            noise_norm = np.sum(noise_norm.reshape(-1, 3), axis=1)
         noise_norm = np.sqrt(noise_norm)
 
     # Pick source orientation normal to cortical surface
@@ -183,7 +206,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         W = W[2::3]
         is_free_ori = False
 
-    if noise_norm:
+    if apply_noise_norm:
         # Applying noise normalization
         noise_norm_inv = 1. / noise_norm
         noise_norm_inv[noise_norm == 0.] = 0.
@@ -205,26 +228,26 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             logger.info("Processing epoch : %d" % (i + 1))
 
 
-        # SSP and whitening
-        if whitening:
-            if info['projs']:
-                M = np.dot(proj, M)
+        # SSP and whitening        
+        if info['projs']:
+            M = np.dot(proj, M)
+        if noise_cov:
             M = np.dot(whitener, M)
 
         # project to source space using beamformer weights
-
         if is_free_ori:
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
-            sol *= noise_norm_inv[:, None]
+
+            if apply_noise_norm:
+                sol *= noise_norm_inv[:, None]
         else:
             # Linear inverse: do computation here or delayed
             if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
                 sol = (W, M)
             else:
-                sol = np.dot(W, M)
-         
+                sol = np.dot(W, M)         
             if pick_ori == 'max-power':
                 sol = np.abs(sol)
 
@@ -293,9 +316,9 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 
 
 @verbose
-def lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, label=None,
-         pick_ori=None, picks=None, rank=None, noise_norm = False,
-         whitening=False, weight_norm=None, verbose=None):
+def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
+         pick_ori=None, picks=None, rank=None, apply_noise_norm=False,
+         weight_norm=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -311,7 +334,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, label=None,
     forward : dict
         Forward operator
     noise_cov : Covariance
-        The noise covariance
+        The noise covariance. If provided, whitening will be done.
     data_cov : Covariance
         The data covariance
     reg : float
@@ -330,11 +353,11 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, label=None,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    whitening: False | True
-        whiten leadfield / covariance matrix
-    weight_norm: None | 'nai' | 'unitnoisegain'    
+    apply_noise_norm: False | True
+        Whether noise normalization should be applied.
+    weight_norm: None | 'nai' | 'unit_noise_gain'    
         If 'nai', the Neural Activity Index (Van Veen, 1997) will be computed,
-        if 'unitnoisegain', the unit-noise gain minimum variance beamformer 
+        if 'unit_noise_gain', the unit-noise gain minimum variance beamformer 
         will be computed (Borgiotti-Kaplan beamformer)
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
@@ -372,9 +395,9 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, label=None,
     data = data[picks]
 
     stc = _apply_lcmv(
-        data=data, info=info, tmin=tmin, forward=forward, noise_cov=noise_cov,
-        data_cov=data_cov, reg=reg, label=label, picks=picks, rank=rank,
-        pick_ori=pick_ori, noise_norm=noise_norm, whitening = whitening, 
+        data=data, info=info, tmin=tmin, forward=forward, reg=reg, 
+        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks, 
+        rank=rank, pick_ori=pick_ori, apply_noise_norm=apply_noise_norm, 
         weight_norm=weight_norm)
 
     return six.advance_iterator(stc)
@@ -455,9 +478,9 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     data = epochs.get_data()[:, picks, :]
     stcs = _apply_lcmv(
-        data=data, info=info, tmin=tmin, forward=forward, noise_cov=noise_cov,
-        data_cov=data_cov, reg=reg, label=label, picks=picks, rank=rank,
-        pick_ori=pick_ori)
+        data=data, info=info, tmin=tmin, forward=forward, reg=reg,
+        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks, 
+        rank=rank, pick_ori=pick_ori)
 
     if not return_generator:
         stcs = [s for s in stcs]
@@ -542,9 +565,9 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     tmin = times[0]
 
     stc = _apply_lcmv(
-        data=data, info=info, tmin=tmin, forward=forward, noise_cov=noise_cov,
-        data_cov=data_cov, reg=reg, label=label, picks=picks, rank=rank,
-        pick_ori=pick_ori)
+        data=data, info=info, tmin=tmin, forward=forward, reg=reg,
+        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks, 
+        rank=rank, pick_ori=pick_ori)
 
     return six.advance_iterator(stc)
 
@@ -581,7 +604,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # This modifies Cm inplace, regularizing it
-    Cm_inv = _reg_pinv(Cm, reg)
+    Cm_inv, d = _reg_pinv(Cm, reg)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)

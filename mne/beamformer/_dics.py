@@ -35,7 +35,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-    Cm_inv = _reg_pinv(Cm, reg)
+    Cm_inv, _ = _reg_pinv(Cm, reg)
     del Cm
 
     # Compute spatial filters
@@ -375,7 +375,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
         # Tikhonov regularization using reg parameter to control for
         # trade-off between spatial resolution and noise sensitivity
         # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-        Cm_inv = _reg_pinv(Cm, reg)
+        Cm_inv, _ = _reg_pinv(Cm, reg)
         del Cm
 
         # Compute spatial filters
