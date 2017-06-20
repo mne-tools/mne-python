@@ -20,7 +20,8 @@ class LinearModel(BaseEstimator):
     The linear model coefficients (filters) are used to extract discriminant
     neural sources from the measured data. This class computes the
     corresponding patterns of these linear filters to make them more
-    interpretable [1]_.
+    interpretable [1]_. Note that X and Y need to be normalized for the
+    patterns to be interpretable.
 
     Parameters
     ----------
@@ -88,17 +89,11 @@ class LinearModel(BaseEstimator):
         self.model.fit(X, y)
 
         # computes the patterns
-        if (
-            not hasattr(self.model, 'coef_') or  # missing attribute
-            self.model.coef_.ndim > 2 or         # weird case
-            (self.model.coef_.size not in
-             self.model.coef_.shape)             # shape (n), (n, 1) or (1, n)
-        ):
-
+        if not hasattr(self.model, 'coef_'):
             raise ValueError('model needs a unidimensional coef_ attribute to '
                              'compute the patterns')
         self.filters_ = np.squeeze(self.model.coef_)
-        self.patterns_ = np.cov(X.T).dot(self.filters_)
+        self.patterns_ = np.dot(np.cov(X.T), np.dot(self.filters_.T, np.cov(y.T))).T
 
         return self
 
