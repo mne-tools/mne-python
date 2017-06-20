@@ -1013,15 +1013,6 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         nn_idx = from_tri[tri_inds]
         weights = np.array(weights)
 
-        # from sklearn.neighbors import BallTree
-        # bt = BallTree(from_rr)
-        # weights_2, nn_idx_2 = bt.query(to_rr, k=3, return_distance=True)
-        # order = np.argsort(weights, axis=1)[:, ::-1]
-        # weights = weights[np.arange(len(weights))[:, np.newaxis], order]
-        # nn_idx = nn_idx[np.arange(len(weights))[:, np.newaxis], order]
-        # mv = np.mean(nn_idx == nn_idx_2)
-        # assert mv > 0.999
-
         row_ind = np.repeat(np.arange(len(to_rr)), 3)
         this_map = csr_matrix((weights.ravel(), (row_ind, nn_idx.ravel())),
                               shape=(len(to_rr), len(from_rr)))
