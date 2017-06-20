@@ -15,7 +15,6 @@ from mne.datasets import sample
 # construct a noise covariance matrix that can be used when computing the
 # inverse solution. For more information, see :ref:`BABDEEEB`.
 data_path = sample.data_path()
-raw.info['projs'][0]['data']['col_names']
 raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)

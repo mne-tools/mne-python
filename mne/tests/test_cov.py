@@ -597,4 +597,5 @@ def test_compute_covariance_auto_reg():
     assert_raises(ValueError, compute_covariance, epochs, method='shrunk',
                   scalings=dict(misc=123))
 
+
 run_tests_if_main()
