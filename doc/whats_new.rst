@@ -116,6 +116,8 @@ API
 
     - :func:`mne.find_events` ``mask_type`` parameter will change from ``'not_and'`` to ``'and'`` in 0.16.
 
+    - Instead of raising an error, duplicate channel names in the data file are now appended with a running number by `Jaakko Leppakangas`_
+
 .. _changes_0_14:
 
 Version 0.14
