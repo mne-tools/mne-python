@@ -318,6 +318,7 @@ def _get_rank_sss(inst):
     ----------
     inst : instance of Raw, Epochs or Evoked, or Info
         Any MNE object with an .info attribute
+
     Returns
     -------
     rank : int

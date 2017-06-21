@@ -576,7 +576,7 @@ def test_compute_covariance_auto_reg():
                               method_params=method_params,
                               return_estimators=True)
 
-    # make sure regularization produces strutured differencess
+    # make sure regularization produces structured differencess
     diag_mask = np.eye(len(epochs.ch_names)).astype(bool)
     off_diag_mask = np.invert(diag_mask)
     for cov_a, cov_b in itt.combinations(covs, 2):
