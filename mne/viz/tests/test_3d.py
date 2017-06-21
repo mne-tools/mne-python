@@ -15,7 +15,7 @@ import numpy as np
 from numpy.testing import assert_raises, assert_equal
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
-                 read_trans, read_dipole, SourceEstimate)
+                 read_trans, read_dipole, SourceEstimate, make_sphere_model)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
@@ -186,6 +186,15 @@ def test_plot_trans():
                    brain='white', head=True, subjects_dir=subjects_dir)
     mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
+
+    # bem parameter
+    assert_raises(ValueError, plot_trans, info=evoked.info, trans=trans_fname,
+                  source=None, bem=None, subject='sample',
+                  subjects_dir=subjects_dir)
+    sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
+    plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
+               subjects_dir=subjects_dir, skull=['inner_skull', 'outer_skull'],
+               source=None, bem=sphere)
 
 
 @testing.requires_testing_data

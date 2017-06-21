@@ -40,6 +40,7 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _ensure_int)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
                     tight_layout, figure_nobar)
+from ..bem import ConductorModel, _bem_find_surface, _surf_dict
 
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
@@ -390,11 +391,11 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 @verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
-               source=('bem', 'head', 'outer_skin'),
-               coord_frame='head', meg_sensors=('helmet', 'sensors'),
-               eeg_sensors='original', dig=False, ref_meg=False,
-               ecog_sensors=True, head=None, brain=None, skull=False,
-               src=None, mri_fiducials=False, verbose=None):
+               source=('bem', 'head', 'outer_skin'), coord_frame='head',
+               meg_sensors=('helmet', 'sensors'), eeg_sensors='original',
+               dig=False, ref_meg=False, ecog_sensors=True, head=None,
+               brain=None, skull=False, src=None, mri_fiducials=False,
+               bem=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -418,7 +419,8 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
         `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
         the subjects bem and bem/flash folders are searched. Defaults to 'bem'.
-        Note. For single layer bems it is recommended to use 'head'.
+        Note. For single layer bems it is recommended to use 'head'. If None,
+        ``bem`` keyword argument is used.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
     meg_sensors : bool | str | list
@@ -465,6 +467,12 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
 
         .. versionadded:: 0.14
 
+    bem : list of dict | Instance of ConductorModel | None
+        Can be either the BEM surfaces (list of dict), a BEM solution or a
+        sphere model. If not None, ``source`` must be None. Defaults to None.
+
+        .. versionadded:: 0.15
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -503,6 +511,34 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info, got %s'
                         % type(info))
+    if not (source is None) ^ (bem is None):
+        raise ValueError('source must be None if bem is not None '
+                         '(and vice versa)!')
+    if skull is True:
+        if bem is None or bem['is_sphere']:
+            skull = 'outer_skull'
+        else:
+            skull = _bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL)
+    if isinstance(skull, string_types):
+        skull = [skull]
+    elif not skull:
+        skull = []
+    if len(skull) > 0 and not isinstance(skull[0], dict):  # list of str
+        skull = sorted(skull)
+        if isinstance(bem, ConductorModel):
+            if not bem['is_sphere']:
+                for idx, this_skull in enumerate(skull):
+                    skull[idx] = _bem_find_surface(bem, _surf_dict[this_skull])
+        elif bem is not None:  # list of dict
+            for idx, surf_name in enumerate(skull):
+                for this_surf in bem:
+                    if this_surf['id'] == _surf_dict[surf_name]:
+                        skull[idx] = this_surf
+                        break
+                else:
+                    raise ValueError('Could not find the surface for '
+                                     '%s.' % surf_name)
+
     valid_coords = ['head', 'meg', 'mri']
     if coord_frame not in valid_coords:
         raise ValueError('coord_frame must be one of %s' % (valid_coords,))
@@ -572,9 +608,26 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     surfs = dict()
     if head:
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        head_surf = _get_head_surface(subject, source=source,
-                                      subjects_dir=subjects_dir,
-                                      raise_error=False)
+        if bem is not None:
+            if isinstance(bem, ConductorModel):
+                if bem['is_sphere']:
+                    head_surf = bem.copy()
+                    head_surf['layers'] = bem['layers'][3]
+                else:
+                    head_surf = _bem_find_surface(bem,
+                                                  FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                    complete_surface_info(head_surf, copy=False, verbose=False)
+            elif bem is not None:  # list of dict
+                for this_surf in bem:
+                    if this_surf['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD:
+                        head_surf = this_surf
+                        break
+                else:
+                    raise ValueError('Could not find the surface for head.')
+        else:  # BEM solution
+            head_surf = _get_head_surface(subject, source=source,
+                                          subjects_dir=subjects_dir,
+                                          raise_error=False)
         if head_surf is None:
             if isinstance(source, string_types):
                 source = [source]
@@ -634,14 +687,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                                coord_frame=FIFF.FIFFV_COORD_MRI)
             complete_surface_info(surfs[hemi], copy=False, verbose=False)
 
-    if skull is True:
-        skull = 'outer_skull'
-    if isinstance(skull, string_types):
-        skull = [skull]
-    elif not skull:
-        skull = []
-    if len(skull) > 0 and not isinstance(skull[0], dict):
-        skull = sorted(skull)
     skull_alpha = dict()
     skull_colors = dict()
     hemi_val = 0.5
@@ -653,7 +698,11 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             from ..bem import _surf_name
             skull_surf = this_skull
             this_skull = _surf_name[skull_surf['id']]
-        else:
+        elif bem is not None and bem['is_sphere']:  # bem == str
+            skull_surf = bem.copy()
+            this_idx = 1 if this_skull == 'inner_skull' else 2
+            skull_surf['layers'] = bem['layers'][this_idx]
+        else:  # str
             skull_fname = op.join(subjects_dir, subject, 'bem', 'flash',
                                   '%s.surf' % this_skull)
             if not op.exists(skull_fname):
@@ -756,6 +805,15 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
     for key, surf in surfs.items():
+        if isinstance(surf, ConductorModel):  # sphere
+            r = surf['layers']['rad']
+            phi, theta = np.mgrid[0:np.pi:101j, 0:2 * np.pi:101j]
+            r0 = surf['r0']
+            x = r * np.sin(phi) * np.cos(theta) + r0[0]
+            y = r * np.sin(phi) * np.sin(theta) + r0[1]
+            z = r * np.cos(phi) + r0[2]
+            mlab.mesh(x, y, z, color=colors[key], opacity=alphas[key])
+            continue
         # Make a solid surface
         mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits

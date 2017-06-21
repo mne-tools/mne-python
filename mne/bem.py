@@ -11,6 +11,7 @@ import os
 import os.path as op
 import shutil
 import sys
+from copy import deepcopy
 
 import numpy as np
 from scipy import linalg
@@ -59,6 +60,10 @@ class ConductorModel(dict):
             extra = ('BEM (%s layer%s)' % (len(self['surfs']),
                                            _pl(self['surfs'])))
         return '<ConductorModel  |  %s>' % extra
+
+    def copy(self):
+        """Return copy of ConductorModel instance."""
+        return deepcopy(self)
 
     @property
     def radius(self):
