@@ -1264,3 +1264,14 @@ def _get_solids(tri_rrs, fros):
         ss += np.einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
         tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
     return tot_angle
+
+
+def _complete_sphere_surf(sphere, idx, level):
+    """Convert sphere conductor model to surface."""
+    rad = sphere['layers'][idx]['rad']
+    r0 = sphere['r0']
+    surf = _tessellate_sphere_surf(level, rad=rad)
+    surf['rr'] += r0
+    complete_surface_info(surf)
+    surf['coord_frame'] = sphere['coord_frame']
+    return surf

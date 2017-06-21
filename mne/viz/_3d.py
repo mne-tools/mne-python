@@ -31,7 +31,8 @@ from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
 
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
-                       complete_surface_info, mesh_edges)
+                       complete_surface_info, mesh_edges,
+                       _complete_sphere_surf)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
@@ -611,8 +612,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         if bem is not None:
             if isinstance(bem, ConductorModel):
                 if bem['is_sphere']:
-                    head_surf = bem.copy()
-                    head_surf['layers'] = bem['layers'][3]
+                    head_surf = _complete_sphere_surf(bem, 3, 4)
                 else:
                     head_surf = _bem_find_surface(bem,
                                                   FIFF.FIFFV_BEM_SURF_ID_HEAD)
@@ -676,16 +676,19 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         else:
             brain = False
     if brain:
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        brain = 'pial' if brain is True else brain
-        for hemi in ['lh', 'rh']:
-            fname = op.join(subjects_dir, subject, 'surf',
-                            '%s.%s' % (hemi, brain))
-            rr, tris = read_surface(fname)
-            rr *= 1e-3
-            surfs[hemi] = dict(rr=rr, tris=tris, ntri=len(tris), np=len(rr),
-                               coord_frame=FIFF.FIFFV_COORD_MRI)
-            complete_surface_info(surfs[hemi], copy=False, verbose=False)
+        if bem is not None and bem['is_sphere']:
+            surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # we only plot 1
+        else:
+            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+            brain = 'pial' if brain is True else brain
+            for hemi in ['lh', 'rh']:
+                fname = op.join(subjects_dir, subject, 'surf',
+                                '%s.%s' % (hemi, brain))
+                rr, tris = read_surface(fname)
+                rr *= 1e-3
+                surfs[hemi] = dict(rr=rr, ntri=len(tris), np=len(rr),
+                                   coord_frame=FIFF.FIFFV_COORD_MRI, tris=tris)
+                complete_surface_info(surfs[hemi], copy=False, verbose=False)
 
     skull_alpha = dict()
     skull_colors = dict()
@@ -698,10 +701,9 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             from ..bem import _surf_name
             skull_surf = this_skull
             this_skull = _surf_name[skull_surf['id']]
-        elif bem is not None and bem['is_sphere']:  # bem == str
-            skull_surf = bem.copy()
+        elif bem is not None and bem['is_sphere']:  # this_skull == str
             this_idx = 1 if this_skull == 'inner_skull' else 2
-            skull_surf['layers'] = bem['layers'][this_idx]
+            skull_surf = _complete_sphere_surf(bem, this_idx, 4)
         else:  # str
             skull_fname = op.join(subjects_dir, subject, 'bem', 'flash',
                                   '%s.surf' % this_skull)
@@ -805,15 +807,14 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
     for key, surf in surfs.items():
-        if isinstance(surf, ConductorModel):  # sphere
-            r = surf['layers']['rad']
-            phi, theta = np.mgrid[0:np.pi:101j, 0:2 * np.pi:101j]
-            r0 = surf['r0']
-            x = r * np.sin(phi) * np.cos(theta) + r0[0]
-            y = r * np.sin(phi) * np.sin(theta) + r0[1]
-            z = r * np.cos(phi) + r0[2]
-            mlab.mesh(x, y, z, color=colors[key], opacity=alphas[key])
-            continue
+        # if isinstance(surf, ConductorModel):  # sphere
+        #     from ..surface import _tessellate_sphere_surf
+        #     rad = surf['layers']['rad']
+        #     r0 = surf['r0']
+        #     surf = _tessellate_sphere_surf(4, rad=rad)
+        #     surf['rr'] += r0
+        #     complete_surface_info(surf)
+
         # Make a solid surface
         mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
