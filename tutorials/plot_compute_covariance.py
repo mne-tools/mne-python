@@ -37,8 +37,8 @@ raw.info['bads'] += ['EEG 053']  # bads + 1 more
 #
 # Keep in mind that you want to match your empty room dataset to your
 # actual MEG data, processing-wise. Ensure that filters
-# are all the same and if you use ICA, apply it ot both your nois and
-# your MEG recordign. In this case we did not filter the data and
+# are all the same and if you use ICA, apply it ot both your noise and
+# your MEG recording. In this case we did not filter the data and
 # we don't use ICA. However, we do have bad channels and projections in
 # the MEG data, and, hence, we want to make sure they get stored in the
 # covariance object.

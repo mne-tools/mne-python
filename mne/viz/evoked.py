@@ -897,10 +897,32 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
 
 
 def _match_proj_type(proj, ch_names):
-    """see if proj should be counted"""
+    """See if proj should be counted."""
     proj_ch_names = proj['data']['col_names']
     select = any(kk in ch_names for kk in proj_ch_names)
     return select
+
+
+def _check_estimated_rank(this_estimated_rank, this_picks, this_info, evoked,
+                          cov, ch_type, has_meg, has_sss):
+    """Compare estimated against expected rank."""
+    expected_rank = len(this_picks)
+    expected_rank_reduction = 0
+    if has_meg and has_sss:
+        sss_rank = _get_rank_sss(evoked)
+        expected_rank_reduction += (expected_rank - sss_rank)
+    n_ssp = sum(pp['active'] for pp in cov['projs'] if
+                _match_proj_type(pp, this_info['ch_names']))
+    expected_rank_reduction += n_ssp
+    expected_rank -= expected_rank_reduction
+    if this_estimated_rank != expected_rank:
+        logger.warning(
+            'For (%s) the expected and estimated rank diverge '
+            '(%i VS %i). \nThis may lead to surprising reults. '
+            '\nPlease consider using the `rank` parameter to '
+            'manually specify the spatial degrees of freedom.' % (
+                ch_type, expected_rank, this_estimated_rank
+            ))
 
 
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
@@ -984,23 +1006,9 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                 idx = np.ix_(this_picks, this_picks)
                 this_estimated_rank = _estimate_rank_meeg_cov(
                     C[idx], this_info, scalings)
-                expected_rank = len(this_picks)
-                expected_rank_reduction = 0
-                if has_meg and has_sss:
-                    sss_rank = _get_rank_sss(evoked)
-                    expected_rank_reduction += (expected_rank - sss_rank)
-                n_ssp = sum(pp['active'] for pp in cov['projs'] if
-                            _match_proj_type(pp, this_info['ch_names']))
-                expected_rank_reduction += n_ssp
-                expected_rank -= expected_rank_reduction
-                if this_estimated_rank != expected_rank:
-                    logger.warning(
-                        'For (%s) the expected and estimated rank diverge '
-                        '(%i VS %i). \nThis may lead to surprising reults. '
-                        '\nPlease consider using the `rank` parameter to '
-                        'manually specify the spatial degrees of freedom.' % (
-                            ch_type, expected_rank, this_estimated_rank
-                        ))
+                _check_estimated_rank(
+                    this_estimated_rank, this_picks, this_info, evoked,
+                    cov, ch_type, has_meg, has_sss)
                 rank_[ch_type] = this_estimated_rank
             if rank.get(ch_type) is not None:
                 rank_[ch_type] = rank[ch_type]
