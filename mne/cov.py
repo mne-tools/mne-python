@@ -1114,8 +1114,8 @@ class _ShrunkCovariance(BaseEstimator):
                  shrinkage=0.1):
         from sklearn.covariance import EmpiricalCovariance
         self.estimator = EmpiricalCovariance(
-                store_precision=store_precision,
-                assume_centered=assume_centered)
+            store_precision=store_precision,
+            assume_centered=assume_centered)
 
         self.store_precision = store_precision
         self.assume_centered = assume_centered

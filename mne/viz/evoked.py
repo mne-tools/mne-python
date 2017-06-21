@@ -961,8 +961,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         # if SSSed, mags and grad are not longer independent
         # for correct display of the whitening we will drop the cross-terms
         # (the gradiometer * magnetometer covariance)
-        has_sss = (evoked.info['proc_history'][0].get('max_info') is not None
-                   and has_meg)
+        has_sss = (evoked.info['proc_history'][0].get('max_info') is not
+                   None and has_meg)
     if has_sss:
         logger.info('SSS has been applied to data. Showing mag and grad '
                     'whitening jointly.')
