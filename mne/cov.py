@@ -1099,11 +1099,11 @@ class _RegCovariance(BaseEstimator):
         return self
 
     def score(self, X_test, y=None):
-        """Delegation to modified EmpiricalCovariance instance"""
+        """Delegate call to modified EmpiricalCovariance instance."""
         return self.estimator.score(X_test, y=y)
 
     def get_precision(self):
-        """Delegation to modified EmpiricalCovariance instance"""
+        """Delegate call to modified EmpiricalCovariance instance."""
         return self.estimator.get_precision()
 
 
@@ -1162,27 +1162,7 @@ class _ShrunkCovariance(BaseEstimator):
         return self
 
     def score(self, X_test, y=None):
-        """Compute the log-likelihood of a Gaussian data set.
-
-        This uses `self.covariance_` as an estimator of the data's
-        covariance matrix.
-
-        Parameters
-        ----------
-        X_test : array-like, shape = [n_samples, n_features]
-            Test data of which we compute the likelihood, where n_samples
-            is the number of samples and n_features is the number of
-            features. X_test is assumed to be drawn from the same
-            distribution as the data used in fit (including centering).
-
-        y : not used, present for API consistence purpose.
-
-        Returns
-        -------
-        res : float
-            The likelihood of the data set with `self.covariance_` as an
-            estimator of its covariance matrix.
-        """
+        """Delegate to modified EmpiricalCovariance instance."""
         from sklearn.covariance import empirical_covariance, log_likelihood
         # compute empirical covariance of the test set
         test_cov = empirical_covariance(X_test - self.estimator.location_,
@@ -1193,7 +1173,7 @@ class _ShrunkCovariance(BaseEstimator):
         return res
 
     def get_precision(self):
-        """Delegation to modified EmpiricalCovariance instance"""
+        """Delegate to modified EmpiricalCovariance instance."""
         return self.estimator.get_precision()
 
 
