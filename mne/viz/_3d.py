@@ -807,14 +807,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
     for key, surf in surfs.items():
-        # if isinstance(surf, ConductorModel):  # sphere
-        #     from ..surface import _tessellate_sphere_surf
-        #     rad = surf['layers']['rad']
-        #     r0 = surf['r0']
-        #     surf = _tessellate_sphere_surf(4, rad=rad)
-        #     surf['rr'] += r0
-        #     complete_surface_info(surf)
-
         # Make a solid surface
         mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
