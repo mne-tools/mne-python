@@ -84,6 +84,11 @@ class LinearModel(BaseEstimator):
         if X.ndim != 2:
             raise ValueError('LinearModel only accepts 2-dimensional X, got '
                              '%s instead.' % (X.shape,))
+        # Check that X and y are normalized (necessary for patterns reconstructions)
+        if not (np.allclose(np.r_[y.mean(0), X.mean(0)], 0) and
+                np.allclose(np.r_[y.std(0), X.std(0)], 1)):
+            warn("Patterns may not be valid if X and y have not been z-scored"
+                 " first. Used sklearn.preprocessing.StandardScaler in model.")
 
         # fit the Model
         self.model.fit(X, y)
@@ -93,7 +98,12 @@ class LinearModel(BaseEstimator):
             raise ValueError('model needs a unidimensional coef_ attribute to '
                              'compute the patterns')
         self.filters_ = np.squeeze(self.model.coef_)
-        self.patterns_ = np.dot(np.cov(X.T), np.dot(self.filters_.T, np.cov(y.T))).T
+        cov_X = np.cov(X.T)
+        inv_Y = 1.
+        if y.ndim > 1:
+            y_norm = (y - y.mean(0)) / y.std(0)
+            inv_Y = np.linalg.pinv(np.cov(y_norm.T))
+        self.patterns_ = cov_X.dot(self.filters_.T.dot(inv_Y)).T
 
         return self
 

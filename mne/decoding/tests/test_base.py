@@ -22,6 +22,8 @@ def test_get_coef():
     from sklearn.preprocessing import StandardScaler
     from sklearn.linear_model import LinearRegression
 
+    scale = lambda x: (x - x.mean(0, keepdims=True)) / x.std(0, keepdims=True)
+
     # Define a classifier, an invertible transformer and an non-invertible one.
 
     class Clf(BaseEstimator):
@@ -37,13 +39,14 @@ def test_get_coef():
 
     class Inv(NoInv):
         def inverse_transform(self, X):
-            return X
+            return X * 666.
 
     np.random.RandomState(0)
     n_samples, n_features = 20, 3
-    y = (np.arange(n_samples) % 2) * 2 - 1
+    y = scale(np.arange(n_samples) % 2)
     w = np.random.randn(n_features, 1)
     X = w.dot(y[np.newaxis, :]).T + np.random.randn(n_samples, n_features)
+    X = scale(X)
 
     # I. Test inverse function
 
@@ -72,7 +75,7 @@ def test_get_coef():
         assert_equal(invs, list())
 
     # II. Test get coef for simple estimator and pipelines
-    for clf in (LinearModel(), make_pipeline(StandardScaler(), LinearModel())):
+    for clf in (LinearModel(), make_pipeline(Inv(), StandardScaler(), LinearModel())):
         clf.fit(X, y)
         # Retrieve final linear model
         filters = get_coef(clf, 'filters_', False)
@@ -96,16 +99,14 @@ def test_get_coef():
     clf = make_pipeline(StandardScaler(), LinearModel(LinearRegression()))
     clf.fit(X, y)
     patterns = get_coef(clf, 'patterns_', True)
-    mean, std = X.mean(0), X.std(0)
-    X = (X - mean) / std
     coef = np.linalg.pinv(X.T.dot(X)).dot(X.T.dot(y))
     patterns_manual = np.cov(X.T).dot(coef)
-    # assert_array_almost_equal(patterns, patterns_manual * std + mean)
+    assert_array_almost_equal(patterns, patterns_manual)
 
     # Check with search_light and combination of preprocessing ending with sl:
     n_samples, n_features, n_times = 20, 3, 5
-    y = np.arange(n_samples) % 2
-    X = np.random.rand(n_samples, n_features, n_times)
+    y = scale(np.arange(n_samples) % 2)
+    X = scale(np.random.rand(n_samples, n_features, n_times))
     slider = SlidingEstimator(make_pipeline(StandardScaler(), LinearModel()))
 
     clfs = (make_pipeline(Scaler(None, scalings='mean'), slider), slider)
@@ -121,24 +122,20 @@ def test_get_coef():
                            filters[:, t])
 
     # Check patterns with more than 1 regressor
-    scale = lambda x: (x-x.mean(0)) / x.std(0)
-    n_samples, n_features, n_regressors = 20, 3, 2
+    n_samples, n_features, n_regressors = 2000, 3, 2
     y = np.transpose([(np.arange(n_samples) % 2) * 2 - 1] * n_regressors)
-    X = np.dot(np.random.randn(n_samples, n_regressors), y.T).T
+    noise = np.random.randn(n_samples, n_features)
+    X = np.random.randn(n_features, n_regressors).dot(y.T).T + noise
     # normalization is necessary for filters and patterns to be dual
+    X, y = scale(X), scale(y)
     # We normalize outside the pipeline to check that we find the same results
     # as a subtraction.
-    X, y = scale(X), scale(y)
-    n_classes = 4
-    subtraction = (X[y[:, 0]==1].mean(0) - X[y[:, 0]==-1].mean(0)) / n_classes
-
-    lm = LinearModel()
+    lm = LinearModel(LinearRegression())
     lm.fit(X, y)
-    filters = lm.coef_
-    cov = np.cov(X.T)
-    patterns = np.dot(cov, filters.T).dot(np.cov(y.T))
-    assert_array_equal(patterns, lm.patterns_)
-    assert_array_almost_equal(subtraction, lm.patterns_)
+    assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
+    assert_array_equal(lm.filters_.shape, [n_regressors, n_features])
+    subtraction = (X[y[:, 0]==1].mean(0) - X[y[:, 0]==-1].mean(0)) / 4.
+    assert_array_almost_equal(subtraction, lm.patterns_[0])
 
 
 @requires_sklearn_0_15
@@ -147,7 +144,9 @@ def test_linearmodel():
     """
     clf = LinearModel()
     X = np.random.rand(20, 3)
+    X = (X - X.mean(0)) / X.std(0)
     y = np.arange(20) % 2
+    y = (y - y.mean(0)) / y.std(0)
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (3,))
     assert_equal(clf.patterns_.shape, (3,))
