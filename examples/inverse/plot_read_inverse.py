@@ -1,16 +1,18 @@
 """
-=======================================================
-Reading an inverse operator and view source space in 3D
-=======================================================
+===========================
+Reading an inverse operator
+===========================
+
+The inverse operator's source space is shown in 3D.
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator
+
+print(__doc__)
 
 data_path = sample.data_path()
 fname = data_path
@@ -29,13 +31,13 @@ lh_points = inv['src'][0]['rr']
 lh_faces = inv['src'][0]['use_tris']
 rh_points = inv['src'][1]['rr']
 rh_faces = inv['src'][1]['use_tris']
-try:
-    from enthought.mayavi import mlab
-except:
-    from mayavi import mlab
+from mayavi import mlab  # noqa
 
 mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
-mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
-                     lh_faces)
-mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
-                     rh_faces)
+mesh = mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
+                            lh_faces, colormap='RdBu')
+mesh.module_manager.scalar_lut_manager.reverse_lut = True
+
+mesh = mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
+                            rh_faces, colormap='RdBu')
+mesh.module_manager.scalar_lut_manager.reverse_lut = True

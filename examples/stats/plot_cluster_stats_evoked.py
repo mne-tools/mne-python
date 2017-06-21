@@ -8,17 +8,18 @@ between conditions. Multiple comparison problem is addressed
 with cluster level permutation test.
 
 """
-
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
 from mne.stats import permutation_cluster_test
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -30,7 +31,7 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 channel = 'MEG 1332'  # include only this channel in analysis
@@ -58,14 +59,12 @@ condition2 = condition2[:, 0, :]  # take only one channel to get a 2D array
 # Compute statistic
 threshold = 6.0
 T_obs, clusters, cluster_p_values, H0 = \
-                permutation_cluster_test([condition1, condition2],
-                            n_permutations=1000, threshold=threshold, tail=1,
-                            n_jobs=2)
+    permutation_cluster_test([condition1, condition2], n_permutations=1000,
+                             threshold=threshold, tail=1, n_jobs=1)
 
 ###############################################################################
 # Plot
 times = epochs1.times
-import matplotlib.pyplot as plt
 plt.close('all')
 plt.subplot(211)
 plt.title('Channel : ' + channel)

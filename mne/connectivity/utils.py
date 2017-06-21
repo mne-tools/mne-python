@@ -5,8 +5,7 @@ import numpy as np
 
 
 def check_indices(indices):
-    """Check indices parameter"""
-
+    """Check indices parameter."""
     if not isinstance(indices, tuple) or len(indices) != 2:
         raise ValueError('indices must be a tuple of length 2')
 

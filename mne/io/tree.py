@@ -1,12 +1,11 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-import struct
 import numpy as np
 
-from ..constants import FIFF
+from .constants import FIFF
 from .tag import Tag
 from .tag import read_tag
 from .write import write_id, start_block, end_block, _write
@@ -14,11 +13,19 @@ from ..utils import logger, verbose
 
 
 def dir_tree_find(tree, kind):
-    """[nodes] = dir_tree_find(tree,kind)
+    """Find nodes of the given kind from a directory tree structure.
 
-       Find nodes of the given kind from a directory tree structure
+    Parameters
+    ----------
+    tree : dict
+        Directory tree.
+    kind : int
+        Kind to find.
 
-       Returns a list of matching nodes
+    Returns
+    -------
+    nodes : list
+        List of matching nodes.
     """
     nodes = []
 
@@ -38,8 +45,7 @@ def dir_tree_find(tree, kind):
 
 @verbose
 def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
-    """Create the directory tree structure
-    """
+    """Create the directory tree structure."""
     FIFF_BLOCK_START = 104
     FIFF_BLOCK_END = 105
     FIFF_FILE_ID = 100
@@ -101,17 +107,17 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
         tree['directory'] = None
 
     logger.debug('    ' * (indent + 1) + 'block = %d nent = %d nchild = %d'
-                % (tree['block'], tree['nent'], tree['nchild']))
+                 % (tree['block'], tree['nent'], tree['nchild']))
     logger.debug('    ' * indent + 'end } %d' % block)
     last = this
     return tree, last
+
 
 ###############################################################################
 # Writing
 
 def copy_tree(fidin, in_id, nodes, fidout):
-    """Copies directory subtrees from fidin to fidout"""
-
+    """Copy directory subtrees from fidin to fidout."""
     if len(nodes) <= 0:
         return
 
@@ -124,7 +130,7 @@ def copy_tree(fidin, in_id, nodes, fidout):
             if in_id is not None:
                 write_id(fidout, FIFF.FIFF_PARENT_FILE_ID, in_id)
 
-            write_id(fidout, FIFF.FIFF_BLOCK_ID)
+            write_id(fidout, FIFF.FIFF_BLOCK_ID, in_id)
             write_id(fidout, FIFF.FIFF_PARENT_BLOCK_ID, node['id'])
 
         if node['directory'] is not None:
@@ -139,7 +145,7 @@ def copy_tree(fidin, in_id, nodes, fidout):
                 fidin.seek(d.pos, 0)
 
                 s = fidin.read(4 * 4)
-                tag = Tag(*struct.unpack(">iIii", s))
+                tag = Tag(*np.fromstring(s, dtype=('>i4,>I4,>i4,>i4'))[0])
                 tag.data = np.fromstring(fidin.read(tag.size), dtype='>B')
 
                 _write(fidout, tag.data, tag.kind, 1, tag.type, '>B')

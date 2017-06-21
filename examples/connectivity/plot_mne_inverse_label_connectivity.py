@@ -8,22 +8,29 @@ source space based on dSPM inverse solutions and a FreeSurfer cortical
 parcellation. The connectivity is visualized using a circular graph which
 is ordered based on the locations of the regions.
 """
-
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
 from mne.viz import circular_layout, plot_connectivity_circle
+
+print(__doc__)
+
+###############################################################################
+# Load our data
+# -------------
+#
+# First we'll load the data we'll use in connectivity estimation. We'll use
+# the sample MEG data provided with MNE.
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -33,7 +40,7 @@ fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # Add a bad channel
@@ -49,6 +56,28 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,
                                                     eog=150e-6))
 
+###############################################################################
+# Compute inverse solutions and their connectivity
+# ------------------------------------------------
+#
+# Next, we need to compute the inverse solution for this data. This will return
+# the sources / source activity that we'll use in computing connectivity. We'll
+# compute the connectivity in the alpha band of these sources. We can specify
+# particular frequencies to include in the connectivity with the ``fmin`` and
+# ``fmax`` flags. Notice from the status messages how mne-python:
+#
+# 1. reads an epoch from the raw file
+# 2. applies SSP and baseline correction
+# 3. computes the inverse to obtain a source estimate
+# 4. averages the source estimate to obtain a time series for each label
+# 5. includes the label time series in the connectivity computation
+# 6. moves to the next epoch.
+#
+# This behaviour is because we are using generators. Since we only need to
+# operate on the data one epoch at a time, using a generator allows us to
+# compute connectivity in a computationally efficient manner where the amount
+# of memory (RAM) needed is independent from the number of epochs.
+
 # Compute inverse solution and for each epoch. By using "return_generator=True"
 # stcs will be a generator object instead of a list.
 snr = 1.0  # use lower SNR for single epochs
@@ -58,7 +87,8 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_ori="normal", return_generator=True)
 
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
-labels = mne.read_annot('sample', parc='aparc', subjects_dir=subjects_dir)
+labels = mne.read_labels_from_annot('sample', parc='aparc',
+                                    subjects_dir=subjects_dir)
 label_colors = [label.color for label in labels]
 
 # Average the source estimates within each label using sign-flips to reduce
@@ -67,22 +97,13 @@ src = inverse_operator['src']
 label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
                                          return_generator=True)
 
-# Now we are ready to compute the connectivity in the alpha band. Notice
-# from the status messages, how mne-python: 1) reads an epoch from the raw
-# file, 2) applies SSP and baseline correction, 3) computes the inverse to
-# obtain a source estimate, 4) averages the source estimate to obtain a
-# time series for each label, 5) includes the label time series in the
-# connectivity computation, and then moves to the next epoch. This
-# behaviour is because we are using generators and allows us to
-# compute connectivity in computationally efficient manner where the amount
-# of memory (RAM) needed is independent from the number of epochs.
 fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['pli', 'wpli2_debiased']
-con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
-        method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
-        fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
+con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+    label_ts, method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
+    fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=1)
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
 # for each method
@@ -90,7 +111,11 @@ con_res = dict()
 for method, c in zip(con_methods, con):
     con_res[method] = c[:, :, 0]
 
-# Now, we visualize the connectivity using a circular graph layout
+###############################################################################
+# Make a connectivity plot
+# ------------------------
+#
+# Now, we visualize this connectivity using a circular graph layout.
 
 # First, we reorder the labels based on their location in the left hemi
 label_names = [label.name for label in labels]
@@ -105,7 +130,7 @@ for name in lh_labels:
     label_ypos.append(ypos)
 
 # Reorder the labels based on their location
-lh_labels = [label for (ypos, label) in sorted(zip(label_ypos, lh_labels))]
+lh_labels = [label for (yp, label) in sorted(zip(label_ypos, lh_labels))]
 
 # For the right hemi
 rh_labels = [label[:-2] + 'rh' for label in lh_labels]
@@ -124,10 +149,15 @@ plot_connectivity_circle(con_res['pli'], label_names, n_lines=300,
                          node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition (PLI)')
-import matplotlib.pyplot as plt
 plt.savefig('circle.png', facecolor='black')
 
-# Plot connectivity for both methods in the same plot
+###############################################################################
+# Make two connectivity plots in the same figure
+# ----------------------------------------------
+#
+# We can also assign these connectivity plots to axes in a figure. Below we'll
+# show the connectivity plot using two different connectivity methods.
+
 fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
 no_names = [''] * len(label_names)
 for ii, method in enumerate(con_methods):

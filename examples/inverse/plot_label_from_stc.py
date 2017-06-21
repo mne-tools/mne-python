@@ -11,8 +11,6 @@ functional label. As expected the time course in the functional
 label yields higher values.
 
 """
-print(__doc__)
-
 # Author: Luke Bloy <luke.bloy@gmail.com>
 #         Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
 # License: BSD (3-clause)
@@ -22,8 +20,9 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.minimum_norm import read_inverse_operator, apply_inverse
-from mne.io import read_evokeds
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -42,13 +41,13 @@ aparc_label_name = 'bankssts-lh'
 tmin, tmax = 0.080, 0.120
 
 # Load data
-evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
+evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']  # get the source space
 
 # Compute inverse solution
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
-                    pick_normal=True)
+                    pick_ori='normal')
 
 # Make an STC in the time interval of interest and take the mean
 stc_mean = stc.copy().crop(tmin, tmax).mean()
@@ -56,8 +55,9 @@ stc_mean = stc.copy().crop(tmin, tmax).mean()
 # use the stc_mean to generate a functional label
 # region growing is halted at 60% of the peak value within the
 # anatomical label / ROI specified by aparc_label_name
-label = mne.read_annot(subject, parc='aparc', subjects_dir=subjects_dir,
-                       regexp=aparc_label_name)[0]
+label = mne.read_labels_from_annot(subject, parc='aparc',
+                                   subjects_dir=subjects_dir,
+                                   regexp=aparc_label_name)[0]
 stc_mean_label = stc_mean.in_label(label)
 data = np.abs(stc_mean_label.data)
 stc_mean_label.data[data < 0.6 * np.max(data)] = 0.
@@ -69,8 +69,9 @@ func_labels, _ = mne.stc_to_label(stc_mean_label, src=src, smooth=True,
 func_label = func_labels[0]
 
 # load the anatomical ROI for comparison
-anat_label = mne.read_annot(subject, parc='aparc', subjects_dir=subjects_dir,
-                            regexp=aparc_label_name)[0]
+anat_label = mne.read_labels_from_annot(subject, parc='aparc',
+                                        subjects_dir=subjects_dir,
+                                        regexp=aparc_label_name)[0]
 
 # extract the anatomical time course for each label
 stc_anat_label = stc.in_label(anat_label)
@@ -94,10 +95,8 @@ plt.legend()
 plt.show()
 
 ###############################################################################
-# Plot brain in 3D with PySurfer if available. Note that the subject name
-# is already known by the SourceEstimate stc object.
-brain = stc_mean.plot(surface='inflated', hemi='lh', subjects_dir=subjects_dir)
-brain.scale_data_colormap(fmin=0, fmid=350, fmax=700, transparent=True)
+# plot brain in 3D with PySurfer if available
+brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir)
 brain.show_view('lateral')
 
 # show both labels

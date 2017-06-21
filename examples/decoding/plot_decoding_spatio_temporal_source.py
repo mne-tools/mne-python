@@ -9,13 +9,10 @@ selection is employed to confine the classification to the potentially
 relevant features. The classifier then is trained to selected features of
 epochs in source space.
 """
-
-# Author: Denis A. Engemann <d.engemann@fz-juelich.de>
-#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Denis A. Engemann <denis.engemann@gmail.com>
+#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import mne
 import os
@@ -23,6 +20,8 @@ import numpy as np
 from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
+
+print(__doc__)
 
 data_path = sample.data_path()
 fname_fwd = data_path + 'MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
@@ -44,8 +43,8 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_r=2, vis_r=4)  # load contra-lateral conditions
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname, preload=True)
-raw.filter(2, None, method='iir')  # replace baselining with high-pass
+raw = io.read_raw_fif(raw_fname, preload=True)
+raw.filter(2, None, fir_design='firwin')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 # Set up pick list: MEG - bad channels (modify to your needs)
@@ -56,9 +55,10 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True,
-                    reject=dict(grad=4000e-13, eog=150e-6))
+                    reject=dict(grad=4000e-13, eog=150e-6),
+                    decim=5)  # decimate to save memory and increase speed
 
-epochs.equalize_event_counts(list(event_id.keys()), 'mintime', copy=False)
+epochs.equalize_event_counts(list(event_id.keys()))
 epochs_list = [epochs[k] for k in event_id]
 
 # Compute inverse solution
@@ -76,7 +76,7 @@ inverse_operator = read_inverse_operator(fname_inv)
 X = np.zeros([n_epochs, n_vertices, n_times])
 
 # to save memory, we'll load and transform our epochs step by step.
-for condition_count, ep in zip([0, n_epochs / 2], epochs_list):
+for condition_count, ep in zip([0, n_epochs // 2], epochs_list):
     stcs = apply_inverse_epochs(ep, inverse_operator, lambda2,
                                 method, pick_ori="normal",  # saves us memory
                                 return_generator=True)
@@ -99,8 +99,8 @@ X -= X.mean(axis=0)
 X /= X.std(axis=0)
 
 # prepare classifier
-from sklearn.svm import SVC
-from sklearn.cross_validation import ShuffleSplit
+from sklearn.svm import SVC  # noqa
+from sklearn.cross_validation import ShuffleSplit  # noqa
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 n_splits = 10
@@ -108,8 +108,8 @@ clf = SVC(C=1, kernel='linear')
 cv = ShuffleSplit(len(X), n_splits, test_size=0.2)
 
 # setup feature selection and classification pipeline
-from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.pipeline import Pipeline
+from sklearn.feature_selection import SelectKBest, f_classif  # noqa
+from sklearn.pipeline import Pipeline  # noqa
 
 # we will use an ANOVA f-test to preselect relevant spatio-temporal units
 feature_selection = SelectKBest(f_classif, k=500)  # take the best 500
@@ -143,12 +143,10 @@ feature_weights -= feature_weights.mean(axis=1)[:, None]
 # unmask, take absolute values, emulate f-value scale
 feature_weights = np.abs(feature_weights.data) * 10
 
-vertices = [stc.lh_vertno, np.array([])]  # empty array for right hemisphere
+vertices = [stc.lh_vertno, np.array([], int)]  # empty array for right hemi
 stc_feat = mne.SourceEstimate(feature_weights, vertices=vertices,
                               tmin=stc.tmin, tstep=stc.tstep,
                               subject='sample')
 
-brain = stc_feat.plot(subject=subject, fmin=1, fmid=5.5, fmax=20)
-brain.set_time(100)
-brain.show_view('l')
-# take the medial view to further explore visual areas
+brain = stc_feat.plot(views=['lat'], transparent=True,
+                      initial_time=0.1, time_unit='s')

@@ -1,54 +1,29 @@
-"""File data sources for traits GUIs"""
+"""File data sources for traits GUIs."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
 import os
+import os.path as op
 
 import numpy as np
-from ..externals.six.moves import map
-from ..externals.six.moves import zip
 
-# allow import without traits
-try:
-    from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
-                            on_trait_change, Array, Bool, Button, DelegatesTo,
-                            Directory, Enum, Event, File, Instance, Int, List,
-                            Property, Str)
-    from traitsui.api import View, Item, VGroup
-    from pyface.api import (DirectoryDialog, OK, ProgressDialog, error,
-                            information)
-except:
-    from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    cached_property = trait_wraith
-    on_trait_change = trait_wraith
-    Any = trait_wraith
-    Array = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    DelegatesTo = trait_wraith
-    Directory = trait_wraith
-    Enum = trait_wraith
-    Event = trait_wraith
-    File = trait_wraith
-    Instance = trait_wraith
-    Int = trait_wraith
-    List = trait_wraith
-    Property = trait_wraith
-    Str = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    VGroup = trait_wraith
+from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
+                        on_trait_change, Array, Bool, Button, DelegatesTo,
+                        Directory, Enum, Event, File, Instance, Int, List,
+                        Property, Str)
+from traitsui.api import View, Item, VGroup, HGroup, Label
+from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
-from ..constants import FIFF
-from ..io import Raw, read_fiducials
-from ..surface import read_bem_surfaces
+from ..bem import read_bem_surfaces
+from ..io.constants import FIFF
+from ..io import read_info, read_fiducials
+from ..surface import read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
+from ..viz._3d import _fiducial_coords
 
 
 fid_wildcard = "*.fif"
@@ -59,11 +34,11 @@ trans_wildcard = "*.fif"
 
 
 def _expand_path(p):
-    return os.path.abspath(os.path.expandvars(os.path.expanduser(p)))
+    return op.abspath(op.expandvars(op.expanduser(p)))
 
 
 def get_fs_home():
-    """Get the FREESURFER_HOME directory
+    """Get the FREESURFER_HOME directory.
 
     Returns
     -------
@@ -76,27 +51,31 @@ def get_fs_home():
     If specified successfully, the resulting path is stored with
     mne.set_config().
     """
-    fs_home = get_config('FREESURFER_HOME')
-    problem = _fs_home_problem(fs_home)
+    return _get_root_home('FREESURFER_HOME', 'freesurfer', _fs_home_problem)
+
+
+def _get_root_home(cfg, name, check_fun):
+    root = get_config(cfg)
+    problem = check_fun(root)
     while problem:
-        info = ("Please select the FREESURFER_HOME directory. This is the "
-                "root directory of the freesurfer installation.")
+        info = ("Please select the %s directory. This is the root "
+                "directory of the %s installation." % (cfg, name))
         msg = '\n\n'.join((problem, info))
-        information(None, msg, "Select the FREESURFER_HOME Directory")
-        msg = "Please select the FREESURFER_HOME Directory"
+        information(None, msg, "Select the %s Directory" % cfg)
+        msg = "Please select the %s Directory" % cfg
         dlg = DirectoryDialog(message=msg, new_directory=False)
         if dlg.open() == OK:
-            fs_home = dlg.path
-            problem = _fs_home_problem(fs_home)
+            root = dlg.path
+            problem = check_fun(root)
             if problem is None:
-                set_config('FREESURFER_HOME', fs_home)
+                set_config(cfg, root, set_env=False)
         else:
             return None
+    return root
 
-    return fs_home
 
 def set_fs_home():
-    """Set the FREESURFER_HOME environment variable
+    """Set the FREESURFER_HOME environment variable.
 
     Returns
     -------
@@ -117,132 +96,87 @@ def set_fs_home():
         os.environ['FREESURFER_HOME'] = fs_home
         return True
 
+
 def _fs_home_problem(fs_home):
-    "Check FREESURFER_HOME path"
-    test_dir = os.path.join(fs_home, 'subjects', 'fsaverage')
+    """Check FREESURFER_HOME path.
+
+    Return str describing problem or None if the path is okay.
+    """
     if fs_home is None:
-        problem = "FREESURFER_HOME is not set."
-    elif not os.path.exists(fs_home):
-        problem = "FREESURFER_HOME (%s) does not exist." % fs_home
-    elif not os.path.exists(test_dir):
-        problem = ("FREESURFER_HOME (%s) does not contain the fsaverage "
-                   "subject." % fs_home)
+        return "FREESURFER_HOME is not set."
+    elif not op.exists(fs_home):
+        return "FREESURFER_HOME (%s) does not exist." % fs_home
     else:
-        problem = None
-    return problem
+        test_dir = op.join(fs_home, 'subjects', 'fsaverage')
+        if not op.exists(test_dir):
+            return ("FREESURFER_HOME (%s) does not contain the fsaverage "
+                    "subject." % fs_home)
 
-
-def get_mne_root():
-    """Get the MNE_ROOT directory
-
-    Returns
-    -------
-    mne_root : None | str
-        The MNE_ROOT path or None if the user cancels.
-
-    Notes
-    -----
-    If MNE_ROOT can't be found, the user is prompted with a file dialog.
-    If specified successfully, the resulting path is stored with
-    mne.set_config().
-    """
-    mne_root = get_config('MNE_ROOT')
-    problem = _mne_root_problem(mne_root)
-    while problem:
-        info = ("Please select the MNE_ROOT directory. This is the root "
-                "directory of the MNE installation.")
-        msg = '\n\n'.join((problem, info))
-        information(None, msg, "Select the MNE_ROOT Directory")
-        msg = "Please select the MNE_ROOT Directory"
-        dlg = DirectoryDialog(message=msg, new_directory=False)
-        if dlg.open() == OK:
-            mne_root = dlg.path
-            problem = _mne_root_problem(mne_root)
-            if problem is None:
-                set_config('MNE_ROOT', mne_root)
-        else:
-            return None
-
-    return mne_root
-
-def set_mne_root(set_mne_bin=False):
-    """Set the MNE_ROOT environment variable
-
-    Parameters
-    ----------
-    set_mne_bin : bool
-        Also add the MNE binary directory to the PATH (default: False).
-
-    Returns
-    -------
-    success : bool
-        True if the environment variable could be set, False if MNE_ROOT
-        could not be found.
-
-    Notes
-    -----
-    If MNE_ROOT can't be found, the user is prompted with a file dialog.
-    If specified successfully, the resulting path is stored with
-    mne.set_config().
-    """
-    mne_root = get_mne_root()
-    if mne_root is None:
-        return False
-    else:
-        os.environ['MNE_ROOT'] = mne_root
-        if set_mne_bin:
-            mne_bin = os.path.realpath(os.path.join(mne_root, 'bin'))
-            if mne_bin not in map(_expand_path, os.environ['PATH'].split(':')):
-                os.environ['PATH'] += ':' + mne_bin
-        return True
 
 def _mne_root_problem(mne_root):
-    "Check MNE_ROOT path"
-    test_dir = os.path.join(mne_root, 'share', 'mne', 'mne_analyze')
+    """Check MNE_ROOT path.
+
+    Return str describing problem or None if the path is okay.
+    """
     if mne_root is None:
-        problem = "MNE_ROOT is not set."
-    elif not os.path.exists(mne_root):
-        problem = "MNE_ROOT (%s) does not exist." % mne_root
-    elif not os.path.exists(test_dir):
-        problem = ("MNE_ROOT (%s) is missing files. If this is your MNE "
-                   "installation, consider reinstalling." % mne_root)
+        return "MNE_ROOT is not set."
+    elif not op.exists(mne_root):
+        return "MNE_ROOT (%s) does not exist." % mne_root
     else:
-        problem = None
-    return problem
+        test_dir = op.join(mne_root, 'share', 'mne', 'mne_analyze')
+        if not op.exists(test_dir):
+            return ("MNE_ROOT (%s) is missing files. If this is your MNE "
+                    "installation, consider reinstalling." % mne_root)
 
 
-class BemSource(HasTraits):
-    """Expose points and tris of a given BEM file
+class SurfaceSource(HasTraits):
+    """Expose points and tris of a file storing a surface.
 
     Parameters
     ----------
     file : File
-        Path to the BEM file (*.fif).
+        Path to a *-bem.fif file or a surface containing a Freesurfer surface.
 
     Attributes
     ----------
     pts : Array, shape = (n_pts, 3)
-        BEM file points.
-    tri : Array, shape = (n_tri, 3)
-        BEM file triangles.
+        Point coordinates.
+    tris : Array, shape = (n_tri, 3)
+        Triangles.
 
     Notes
     -----
     tri is always updated after pts, so in case downstream objects depend on
-    both, they should sync to a change in tri.
+    both, they should sync to a change in tris.
     """
-    file = File(exists=True, filter=['*.fif'])
+
+    file = File(exists=True, filter=['*.fif', '*.*'])
     points = Array(shape=(None, 3), value=np.empty((0, 3)))
     norms = Array
     tris = Array(shape=(None, 3), value=np.empty((0, 3)))
 
     @on_trait_change('file')
     def read_file(self):
-        if os.path.exists(self.file):
-            bem = read_bem_surfaces(self.file)[0]
-            self.points = bem['rr']
-            self.norms = bem['nn']
-            self.tris = bem['tris']
+        """Read the file."""
+        if op.exists(self.file):
+            if self.file.endswith('.fif'):
+                bem = read_bem_surfaces(self.file, verbose=False)[0]
+                self.points = bem['rr']
+                self.norms = bem['nn']
+                self.tris = bem['tris']
+            else:
+                try:
+                    points, tris = read_surface(self.file)
+                    points /= 1e3
+                    self.points = points
+                    self.norms = []
+                    self.tris = tris
+                except Exception:
+                    error(message="Error loading surface from %s (see "
+                                  "Terminal for details).",
+                          title="Error Loading Surface")
+                    self.reset_traits(['file'])
+                    raise
         else:
             self.points = np.empty((0, 3))
             self.norms = np.empty((0, 3))
@@ -250,7 +184,7 @@ class BemSource(HasTraits):
 
 
 class FiducialsSource(HasTraits):
-    """Expose points of a given fiducials fif file
+    """Expose points of a given fiducials fif file.
 
     Parameters
     ----------
@@ -262,35 +196,36 @@ class FiducialsSource(HasTraits):
     points : Array, shape = (n_points, 3)
         Fiducials file points.
     """
+
     file = File(filter=[fid_wildcard])
     fname = Property(depends_on='file')
     points = Property(depends_on='file')
 
     @cached_property
     def _get_fname(self):
-        fname = os.path.basename(self.file)
+        fname = op.basename(self.file)
         return fname
 
     @cached_property
     def _get_points(self):
-        if not os.path.exists(self.file):
+        if not op.exists(self.file):
             return None
 
-        points = np.zeros((3, 3))
-        fids, _ = read_fiducials(self.file)
-        for fid in fids:
-            ident = fid['ident']
-            if ident == FIFF.FIFFV_POINT_LPA:
-                points[0] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_NASION:
-                points[1] = fid['r']
-            elif ident == FIFF.FIFFV_POINT_RPA:
-                points[2] = fid['r']
-        return points
+        try:
+            fids, coord_frame = read_fiducials(self.file)
+            points = _fiducial_coords(fids, coord_frame)
+            assert points.shape == (3, 3)
+            return points
+        except Exception as err:
+            error(None, "Error reading fiducials from %s: %s (See terminal "
+                  "for more information)" % (self.fname, str(err)),
+                  "Error Reading Fiducials")
+            self.reset_traits(['file'])
+            raise
 
 
-class RawSource(HasPrivateTraits):
-    """Expose measurement information from a raw file
+class DigSource(HasPrivateTraits):
+    """Expose digitization information from a file.
 
     Parameters
     ----------
@@ -303,24 +238,26 @@ class RawSource(HasPrivateTraits):
         Each row contains the coordinates for one fiducial point, in the order
         Nasion, RAP, LAP. If no file is set all values are 0.
     """
+
     file = File(exists=True, filter=['*.fif'])
 
-    raw_fname = Property(Str, depends_on='file')
-    raw_dir = Property(depends_on='file')
-    raw = Property(depends_on='file')
+    inst_fname = Property(Str, depends_on='file')
+    inst_dir = Property(depends_on='file')
+    inst = Property(depends_on='file')
 
     points_filter = Any(desc="Index to select a subset of the head shape "
                         "points")
     n_omitted = Property(Int, depends_on=['points_filter'])
 
     # head shape
-    raw_points = Property(depends_on='raw', desc="Head shape points in the "
-                          "raw file(n x 3 array)")
-    points = Property(depends_on=['raw_points', 'points_filter'], desc="Head "
+    inst_points = Property(depends_on='inst', desc="Head shape points in the "
+                           "inst file(n x 3 array)")
+    points = Property(depends_on=['inst_points', 'points_filter'], desc="Head "
                       "shape points selected by the filter (n x 3 array)")
 
     # fiducials
-    fid_dig = Property(depends_on='raw', desc="Fiducial points (list of dict)")
+    fid_dig = Property(depends_on='inst', desc="Fiducial points "
+                       "(list of dict)")
     fid_points = Property(depends_on='fid_dig', desc="Fiducial points {ident: "
                           "point} dict}")
     lpa = Property(depends_on='fid_points', desc="LPA coordinates (1 x 3 "
@@ -330,63 +267,83 @@ class RawSource(HasPrivateTraits):
     rpa = Property(depends_on='fid_points', desc="RPA coordinates (1 x 3 "
                    "array)")
 
+    # EEG
+    eeg_dig = Property(depends_on='inst', desc="EEG points (list of dict)")
+    eeg_points = Property(depends_on='eeg_dig', desc="EEG coordinates (N x 3 "
+                          "array)")
+
     view = View(VGroup(Item('file'),
-                       Item('raw_fname', show_label=False, style='readonly')))
+                       Item('inst_fname', show_label=False, style='readonly')))
 
     @cached_property
     def _get_n_omitted(self):
         if self.points_filter is None:
             return 0
         else:
-            return np.sum(self.points_filter == False)
+            return np.sum(self.points_filter == False)  # noqa: E712
 
     @cached_property
-    def _get_raw(self):
+    def _get_inst(self):
         if self.file:
-            return Raw(self.file)
+            info = read_info(self.file, verbose=False)
+            if info['dig'] is None:
+                error(None, "The selected FIFF file does not contain "
+                      "digitizer information. Please select a different "
+                      "file.", "Error Reading FIFF File")
+                self.reset_traits(['file'])
+            else:
+                return info
 
     @cached_property
-    def _get_raw_dir(self):
-        return os.path.dirname(self.file)
+    def _get_inst_dir(self):
+        return op.dirname(self.file)
 
     @cached_property
-    def _get_raw_fname(self):
+    def _get_inst_fname(self):
         if self.file:
-            return os.path.basename(self.file)
+            return op.basename(self.file)
         else:
             return '-'
 
     @cached_property
-    def _get_raw_points(self):
-        if not self.raw:
+    def _get_inst_points(self):
+        if not self.inst:
             return np.zeros((1, 3))
 
-        points = np.array([d['r'] for d in self.raw.info['dig']
+        points = np.array([d['r'] for d in self.inst['dig']
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
         return points
 
     @cached_property
     def _get_points(self):
         if self.points_filter is None:
-            return self.raw_points
+            return self.inst_points
         else:
-            return self.raw_points[self.points_filter]
+            return self.inst_points[self.points_filter]
 
     @cached_property
     def _get_fid_dig(self):
-        """Fiducials for info['dig']"""
-        if not self.raw:
+        """Get fiducials from info['dig']."""
+        if not self.inst:
             return []
-        dig = self.raw.info['dig']
-        dig = [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_CARDINAL]
+        dig = [d for d in self.inst['dig']
+               if d['kind'] == FIFF.FIFFV_POINT_CARDINAL]
+        return dig
+
+    @cached_property
+    def _get_eeg_dig(self):
+        """Get EEG from info['dig']."""
+        if not self.inst:
+            return []
+        dig = [d for d in self.inst['dig']
+               if d['kind'] == FIFF.FIFFV_POINT_EEG]
         return dig
 
     @cached_property
     def _get_fid_points(self):
-        if not self.raw:
+        if not self.inst:
             return {}
-        digs = dict((d['ident'], d) for d in self.fid_dig)
-        return digs
+        return dict((d['ident'], d) for d in self.fid_dig)
 
     @cached_property
     def _get_nasion(self):
@@ -409,12 +366,19 @@ class RawSource(HasPrivateTraits):
         else:
             return np.zeros((1, 3))
 
+    @cached_property
+    def _get_eeg_points(self):
+        if not self.inst or not self.eeg_dig:
+            return np.empty((0, 3))
+        dig = np.array([d['r'] for d in self.eeg_dig])
+        return dig
+
     def _file_changed(self):
         self.reset_traits(('points_filter',))
 
 
 class MRISubjectSource(HasPrivateTraits):
-    """Find subjects in SUBJECTS_DIR and select one
+    """Find subjects in SUBJECTS_DIR and select one.
 
     Parameters
     ----------
@@ -423,6 +387,7 @@ class MRISubjectSource(HasPrivateTraits):
     subject : str
         Subject, corresponding to a folder in SUBJECTS_DIR.
     """
+
     refresh = Event(desc="Refresh the subject list based on the directory "
                     "structure of subjects_dir.")
 
@@ -430,6 +395,7 @@ class MRISubjectSource(HasPrivateTraits):
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
+    use_high_res_head = Bool(True)
 
     # info
     can_create_fsaverage = Property(Bool, depends_on=['subjects_dir',
@@ -441,9 +407,7 @@ class MRISubjectSource(HasPrivateTraits):
 
     @cached_property
     def _get_can_create_fsaverage(self):
-        if not os.path.exists(self.subjects_dir):
-            return False
-        if 'fsaverage' in self.subjects:
+        if not op.exists(self.subjects_dir) or 'fsaverage' in self.subjects:
             return False
         return True
 
@@ -454,12 +418,12 @@ class MRISubjectSource(HasPrivateTraits):
         elif not self.subjects_dir:
             return
         else:
-            return os.path.join(self.subjects_dir, self.subject)
+            return op.join(self.subjects_dir, self.subject)
 
     @cached_property
     def _get_subjects(self):
         sdir = self.subjects_dir
-        is_dir = sdir and os.path.isdir(sdir)
+        is_dir = sdir and op.isdir(sdir)
         if is_dir:
             dir_content = os.listdir(sdir)
             subjects = [s for s in dir_content if _is_mri_subject(s, sdir)]
@@ -468,7 +432,7 @@ class MRISubjectSource(HasPrivateTraits):
         else:
             subjects = ['']
 
-        return subjects
+        return sorted(subjects)
 
     @cached_property
     def _get_subject_has_bem(self):
@@ -476,45 +440,57 @@ class MRISubjectSource(HasPrivateTraits):
             return False
         return _mri_subject_has_bem(self.subject, self.subjects_dir)
 
-    def create_fsaverage(self):
+    def create_fsaverage(self):  # noqa: D102
         if not self.subjects_dir:
             err = ("No subjects directory is selected. Please specify "
                    "subjects_dir first.")
             raise RuntimeError(err)
 
-        mne_root = get_mne_root()
-        if mne_root is None:
-            err = ("MNE contains files that are needed for copying the "
-                   "fsaverage brain. Please install MNE and try again.")
-            raise RuntimeError(err)
         fs_home = get_fs_home()
         if fs_home is None:
             err = ("FreeSurfer contains files that are needed for copying the "
                    "fsaverage brain. Please install FreeSurfer and try again.")
             raise RuntimeError(err)
 
-        create_default_subject(mne_root, fs_home,
-                               subjects_dir=self.subjects_dir)
+        create_default_subject(fs_home=fs_home, subjects_dir=self.subjects_dir)
         self.refresh = True
+        self.use_high_res_head = False
         self.subject = 'fsaverage'
+
+    @on_trait_change('subjects_dir')
+    def _emit_subject(self):
+        # This silliness is the only way I could figure out to get the
+        # on_trait_change('subject_panel.subject') in CoregFrame to work!
+        self.subject = self.subject
 
 
 class SubjectSelectorPanel(HasPrivateTraits):
+    """Subject selector panel."""
+
     model = Instance(MRISubjectSource)
 
     can_create_fsaverage = DelegatesTo('model')
     subjects_dir = DelegatesTo('model')
     subject = DelegatesTo('model')
     subjects = DelegatesTo('model')
+    use_high_res_head = DelegatesTo('model')
 
-    create_fsaverage = Button("Copy FsAverage to Subjects Folder",
-                              desc="Copy the files for the fsaverage subject "
-                              "to the subjects directory.")
+    create_fsaverage = Button(
+        "Copy 'fsaverage' to subjects directory",
+        desc="Copy the files for the fsaverage subject to the subjects "
+             "directory. This button is disabled if a subject called "
+             "fsaverage already exists in the selected subjects-directory.")
 
-    view = View(VGroup(Item('subjects_dir', label='subjects_dir'),
-                       'subject',
-                       Item('create_fsaverage', show_label=False,
-                            enabled_when='can_create_fsaverage')))
+    view = View(VGroup(Label('Subjects directory and subject:',
+                             show_label=True),
+                       HGroup('subjects_dir', show_labels=False),
+                       HGroup('subject', show_labels=False),
+                       HGroup(Item('use_high_res_head',
+                                   label='High Resolution Head',
+                                   show_label=True)),
+                       Item('create_fsaverage',
+                            enabled_when='can_create_fsaverage'),
+                       show_labels=False))
 
     def _create_fsaverage_fired(self):
         # progress dialog with indefinite progress bar
@@ -527,8 +503,17 @@ class SubjectSelectorPanel(HasPrivateTraits):
         try:
             self.model.create_fsaverage()
         except Exception as err:
-            msg = str(err)
-            error(None, msg, "Error Creating FsAverage")
+            error(None, str(err), "Error Creating FsAverage")
             raise
         finally:
             prog.close()
+
+    def _subjects_dir_changed(self, old, new):
+        if new and self.subjects == ['']:
+            information(None, "The directory selected as subjects-directory "
+                        "(%s) does not contain any valid MRI subjects. If "
+                        "this is not expected make sure all MRI subjects have "
+                        "head surface model files which "
+                        "can be created by running:\n\n    $ mne "
+                        "make_scalp_surfaces" % self.subjects_dir,
+                        "No Subjects Found")

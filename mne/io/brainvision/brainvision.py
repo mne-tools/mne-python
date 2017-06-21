@@ -1,223 +1,133 @@
-"""Conversion tool from Brain Vision EEG to FIF"""
+# -*- coding: utf-8 -*-
+"""Conversion tool from Brain Vision EEG to FIF."""
 
-# Authors: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Phillip Alday <phillip.alday@unisa.edu.au>
 #
 # License: BSD (3-clause)
 
 import os
-import time
 import re
-import warnings
-from ...externals.six import StringIO, u
-from ...externals.six.moves import configparser
+import time
 
 import numpy as np
 
-from ...coreg import get_ras_to_neuromag_trans, read_elp
-from ...transforms import als_ras_trans, apply_trans
-from ...utils import verbose, logger
-from ...constants import FIFF
-from ..meas_info import Info
-from ..base import _BaseRaw
+from ...utils import verbose, logger, warn
+from ..constants import FIFF
+from ..meas_info import _empty_info
+from ..base import BaseRaw, _check_update_montage
+from ..utils import (_read_segments_file, _synthesize_stim_channel,
+                     _mult_cal_one)
+
+from ...externals.six import StringIO, string_types
+from ...externals.six.moves import configparser
 
 
-class RawBrainVision(_BaseRaw):
-    """Raw object from Brain Vision EEG file
+class RawBrainVision(BaseRaw):
+    """Raw object from Brain Vision EEG file.
 
     Parameters
     ----------
-    vdhr_fname : str
+    vhdr_fname : str
         Path to the EEG header file.
-    elp_fname : str | None
-        Path to the elp file containing electrode positions.
-        If None, sensor locations are (0,0,0).
-    elp_names : list | None
-        A list of channel names in the same order as the points in the elp
-        file. Electrode positions should be specified with the same names as
-        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
-        "rpa". ELP positions with other names are ignored. If elp_names is not
-        None and channels are missing, a KeyError is raised.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions.
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated
+        EOG channels. Values should correspond to the vhdr file.
+        Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
+    misc : list or tuple of str | 'auto'
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to the electrodes
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
+    scale : float
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    reference : None | str
-        Name of the electrode which served as the reference in the recording.
-        If a name is provided, a corresponding channel is added and its data
-        is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names.
-    eog : list of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
+    response_trig_shift : int | None
+        An integer that will be added to all response triggers when reading
+        events (stimulus triggers will be unaffected). If None, response
+        triggers will be ignored. Default is 0 for backwards compatibility, but
+        typically another value or None will be necessary.
+    event_id : dict | None
+        The id of special events to consider in addition to those that
+        follow the normal Brainvision trigger format ('S###').
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
+        or an empty dict (default), only stimulus events are added to the
+        stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     @verbose
-    def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
-                 preload=False, reference=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], ch_names=None, verbose=None):
-        # backwards compatibility
-        if ch_names is not None:
-            if elp_names is not None:
-                err = ("ch_names is a deprecated parameter, don't specify "
-                       "ch_names if elp_names are specified.")
-                raise TypeError(err)
-            msg = "The ch_names parameter is deprecated. Use elp_names."
-            warnings.warn(msg, DeprecationWarning)
-            elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None,
-                         None] + list(ch_names)
-
-        # Preliminary Raw attributes
-        self._events = np.empty((0, 3))
-        self._preloaded = False
-
+    def __init__(self, vhdr_fname, montage=None,
+                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
+                 scale=1., preload=False, response_trig_shift=0,
+                 event_id=None, verbose=None):  # noqa: D102
         # Channel info and events
-        logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
+        logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
-                                                          elp_fname, elp_names,
-                                                          reference, eog)
-        self.set_brainvision_events(events)
-        logger.info('Creating Raw.info structure...')
+        info, data_filename, fmt, self._order, mrk_fname, montage = \
+            _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
+        events = _read_vmrk_events(mrk_fname, event_id, response_trig_shift)
+        _check_update_montage(info, montage)
+        with open(data_filename, 'rb') as f:
+            if isinstance(fmt, dict):  # ASCII, this will be slow :(
+                n_skip = 0
+                for ii in range(int(fmt['skiplines'])):
+                    n_skip += len(f.readline())
+                offsets = np.cumsum([n_skip] + [len(line) for line in f])
+                n_samples = len(offsets) - 1
+            else:
+                f.seek(0, os.SEEK_END)
+                n_samples = f.tell()
+                dtype_bytes = _fmt_byte_dict[fmt]
+                offsets = None
+                n_samples = n_samples // (dtype_bytes * (info['nchan'] - 1))
+        self.preload = False  # so the event-setting works
+        self._create_event_ch(events, n_samples)
+        super(RawBrainVision, self).__init__(
+            info, last_samps=[n_samples - 1], filenames=[data_filename],
+            orig_format=fmt, preload=preload, verbose=verbose,
+            raw_extras=[offsets])
 
-        # Raw attributes
-        self.verbose = verbose
-        self._filenames = list()
-        self._projector = None
-        self.comp = None  # no compensation for EEG
-        self.proj = False
-        self.first_samp = 0
-        with open(self.info['file_id'], 'rb') as f:
-            f.seek(0, os.SEEK_END)
-            n_samples = f.tell()
-        dtype = int(self._eeg_info['dtype'][-1])
-        n_chan = self.info['nchan']
-        self.last_samp = (n_samples // (dtype * (n_chan - 1))) - 1
-        self._reference = reference
-
-        if preload:
-            self._preloaded = preload
-            logger.info('Reading raw data from %s...' % vhdr_fname)
-            self._data, _ = self._read_segment()
-            assert len(self._data) == self.info['nchan']
-
-            # Add time info
-            self._times = np.arange(self.first_samp, self.last_samp + 1,
-                                    dtype=np.float64)
-            self._times /= self.info['sfreq']
-            logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
-                        % (self.first_samp, self.last_samp,
-                           float(self.first_samp) / self.info['sfreq'],
-                           float(self.last_samp) / self.info['sfreq']))
-        logger.info('Ready.')
-
-    def __repr__(self):
-        n_chan = self.info['nchan']
-        data_range = self.last_samp - self.first_samp + 1
-        s = ('%r' % os.path.basename(self.info['file_id']),
-             "n_channels x n_times : %s x %s" % (n_chan, data_range))
-        return "<RawEEG  |  %s>" % ', '.join(s)
-
-    def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
-                      projector=None):
-        """Read a chunk of raw data
-
-        Parameters
-        ----------
-        start : int, (optional)
-            first sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int, (optional)
-            First sample to not include.
-            If omitted, data is included to the end.
-        sel : array, optional
-            Indices of channels to select.
-        projector : array
-            SSP operator to apply to the data.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        data : array, shape (n_channels, n_samples)
-           The data.
-        times : array, shape (n_samples,)
-            returns the time values corresponding to the samples.
-        """
-        if sel is not None:
-            if len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
-                return (666, 666)
-        if projector is not None:
-            raise NotImplementedError('Currently does not handle projections.')
-        if stop is None:
-            stop = self.last_samp + 1
-        elif stop > self.last_samp + 1:
-            stop = self.last_samp + 1
-
-        #  Initial checks
-        start = int(start)
-        stop = int(stop)
-        if start >= stop:
-            raise ValueError('No data in this range')
-
-        # assemble channel information
-        eeg_info = self._eeg_info
-        sfreq = self.info['sfreq']
-        chs = self.info['chs']
-        if self._reference:
-            chs = chs[:-1]
-        if len(self._events):
-            chs = chs[:-1]
-        n_eeg = len(chs)
-        cals = np.atleast_2d([chan_info['cal'] for chan_info in chs])
-        mults = np.atleast_2d([chan_info['unit_mul'] for chan_info in chs])
-
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(sfreq),
-                     (stop - 1) / float(sfreq)))
-
+    def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a chunk of raw data."""
         # read data
-        dtype = np.dtype(eeg_info['dtype'])
-        buffer_size = (stop - start)
-        pointer = start * n_eeg * dtype.itemsize
-        with open(self.info['file_id'], 'rb') as f:
-            f.seek(pointer)
-            # extract data
-            data = np.fromfile(f, dtype=dtype, count=buffer_size * n_eeg)
-        if eeg_info['data_orientation'] == 'MULTIPLEXED':
-            data = data.reshape((n_eeg, -1), order='F')
-        elif eeg_info['data_orientation'] == 'VECTORIZED':
-            data = data.reshape((n_eeg, -1), order='C')
+        if isinstance(self.orig_format, string_types):
+            dtype = _fmt_dtype_dict[self.orig_format]
+            n_data_ch = len(self.ch_names) - 1
+            _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
+                                dtype=dtype, n_channels=n_data_ch,
+                                trigger_ch=self._event_ch)
+        else:
+            offsets = self._raw_extras[fi]
+            with open(self._filenames[fi], 'rb') as fid:
+                fid.seek(offsets[start])
+                block = np.empty((len(self.ch_names), stop - start))
+                for ii in range(stop - start):
+                    line = fid.readline().decode('ASCII')
+                    line = line.strip().replace(',', '.').split()
+                    block[:-1, ii] = list(map(float, line))
+            block[-1] = self._event_ch[start:stop]
+            _mult_cal_one(data, block, idx, cals, mult)
 
-        gains = cals * mults
-        data = data * gains.T
-
-        # add reference channel and stim channel (if applicable)
-        data_segments = [data]
-        if self._reference:
-            shape = (1, data.shape[1])
-            ref_channel = np.zeros(shape)
-            data_segments.append(ref_channel)
-        if len(self._events):
-            stim_channel = _synthesize_stim_channel(self._events, start, stop)
-            data_segments.append(stim_channel)
-        if len(data_segments) > 1:
-            data = np.vstack(data_segments)
-
-        if sel is not None:
-            data = data[sel]
-
-        logger.info('[done]')
-        times = np.arange(start, stop, dtype=float) / sfreq
-
-        return data, times
-
-    def get_brainvision_events(self):
-        """Retrieve the events associated with the Brain Vision Raw object
+    def _get_brainvision_events(self):
+        """Retrieve the events associated with the Brain Vision Raw object.
 
         Returns
         -------
@@ -227,8 +137,8 @@ class RawBrainVision(_BaseRaw):
         """
         return self._events.copy()
 
-    def set_brainvision_events(self, events):
-        """Set the events (automatically updates the synthesized stim channel)
+    def _set_brainvision_events(self, events):
+        """Set the events and update the synthesized stim channel.
 
         Parameters
         ----------
@@ -236,57 +146,38 @@ class RawBrainVision(_BaseRaw):
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
         """
-        events = np.copy(events)
-        if not events.ndim == 2 and events.shape[1] == 3:
+        self._create_event_ch(events)
+
+    def _create_event_ch(self, events, n_samp=None):
+        """Create the event channel."""
+        if n_samp is None:
+            n_samp = self.last_samp - self.first_samp + 1
+        events = np.array(events, int)
+        if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError("[n_events x 3] shaped array required")
-
-        # update info based on presence of stim channel
-        had_events = bool(len(self._events))
-        has_events = bool(len(events))
-        if had_events and not has_events:  # remove stim channel
-            if self.info['ch_names'][-1] != 'STI 014':
-                err = "Last channel is not stim channel; info was modified"
-                raise RuntimeError(err)
-            self.info['nchan'] -= 1
-            del self.info['ch_names'][-1]
-            del self.info['chs'][-1]
-            if self._preloaded:
-                self._data = self._data[:-1]
-        elif has_events and not had_events:  # add stim channel
-            idx = len(self.info['chs']) + 1
-            chan_info = {'ch_name': 'STI 014',
-                         'kind': FIFF.FIFFV_STIM_CH,
-                         'coil_type': FIFF.FIFFV_COIL_NONE,
-                         'logno': idx,
-                         'scanno': idx,
-                         'cal': 1,
-                         'range': 1,
-                         'unit_mul':  0,
-                         'unit': FIFF.FIFF_UNIT_NONE,
-                         'eeg_loc': np.zeros(3),
-                         'loc': np.zeros(12)}
-            self.info['nchan'] += 1
-            self.info['ch_names'].append(chan_info['ch_name'])
-            self.info['chs'].append(chan_info)
-            if self._preloaded:
-                shape = (1, self._data.shape[1])
-                self._data = np.vstack((self._data, np.empty(shape)))
-
         # update events
+        self._event_ch = _synthesize_stim_channel(events, n_samp)
         self._events = events
-        if has_events and self._preloaded:
-            start = self.first_samp
-            stop = self.last_samp + 1
-            self._data[-1] = _synthesize_stim_channel(events, start, stop)
+        if self.preload:
+            self._data[-1] = self._event_ch
 
 
-def _read_vmrk_events(fname):
-    """Read events from a vmrk file
+def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
+    """Read events from a vmrk file.
 
     Parameters
     ----------
     fname : str
         vmrk file to be read.
+    event_id : dict | None
+        The id of special events to consider in addition to those that
+        follow the normal Brainvision trigger format ('S###').
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
+        or an empty dict (default), only stimulus events are added to the
+        stimulus channel. Keys are case sensitive.
+    response_trig_shift : int | None
+        Integer to shift response triggers by. None ignores response triggers.
 
     Returns
     -------
@@ -294,13 +185,42 @@ def _read_vmrk_events(fname):
         An array containing the whole recording's events, each row representing
         an event as (onset, duration, trigger) sequence.
     """
+    if event_id is None:
+        event_id = dict()
     # read vmrk file
-    with open(fname) as fid:
+    with open(fname, 'rb') as fid:
         txt = fid.read()
 
-    start_tag = 'Brain Vision Data Exchange Marker File, Version 1.0'
-    if not txt.startswith(start_tag):
-        raise ValueError("vmrk file should start with %r" % start_tag)
+    # we don't actually need to know the coding for the header line.
+    # the characters in it all belong to ASCII and are thus the
+    # same in Latin-1 and UTF-8
+    header = txt.decode('ascii', 'ignore').split('\n')[0].strip()
+    _check_mrk_version(header)
+    if (response_trig_shift is not None and
+            not isinstance(response_trig_shift, int)):
+        raise TypeError("response_trig_shift must be an integer or None")
+
+    # although the markers themselves are guaranteed to be ASCII (they
+    # consist of numbers and a few reserved words), we should still
+    # decode the file properly here because other (currently unused)
+    # blocks, such as that the filename are specifying are not
+    # guaranteed to be ASCII.
+
+    codepage = 'utf-8'
+    try:
+        # if there is an explicit codepage set, use it
+        # we pretend like it's ascii when searching for the codepage
+        cp_setting = re.search('Codepage=(.+)',
+                               txt.decode('ascii', 'ignore'),
+                               re.IGNORECASE & re.MULTILINE)
+        if cp_setting:
+            codepage = cp_setting.group(1).strip()
+        txt = txt.decode(codepage)
+    except UnicodeDecodeError:
+        # if UTF-8 (new standard) or explicit codepage setting fails,
+        # fallback to Latin-1, which is Windows default and implicit
+        # standard in older recordings
+        txt = txt.decode('latin-1')
 
     # extract Marker Infos block
     m = re.search("\[Marker Infos\]", txt)
@@ -313,153 +233,147 @@ def _read_vmrk_events(fname):
 
     # extract event information
     items = re.findall("^Mk\d+=(.*)", mk_txt, re.MULTILINE)
-    events = []
+    events, dropped = list(), list()
     for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
-        if mtype == 'Stimulus':
-            trigger = int(re.findall('S\s*?(\d+)', mdesc)[0])
-            onset = int(onset)
-            duration = int(duration)
+        onset = int(onset)
+        duration = (int(duration) if duration.isdigit() else 1)
+        if mdesc in event_id:
+            trigger = event_id[mdesc]
+        else:
+            try:
+                trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
+            except IndexError:
+                trigger = None
+            if mtype.lower().startswith('response'):
+                if response_trig_shift is not None:
+                    trigger += response_trig_shift
+                else:
+                    trigger = None
+        if trigger:
             events.append((onset, duration, trigger))
+        else:
+            if len(mdesc) > 0:
+                dropped.append(mdesc)
 
-    events = np.array(events)
+    if len(dropped) > 0:
+        dropped = list(set(dropped))
+        examples = ", ".join(dropped[:5])
+        if len(dropped) > 5:
+            examples += ", ..."
+        warn("Currently, {0} trigger(s) will be dropped, such as [{1}]. "
+             "Consider using ``event_id`` to parse triggers that "
+             "do not follow the 'S###' pattern.".format(
+                 len(dropped), examples))
+
+    events = np.array(events).reshape(-1, 3)
     return events
 
 
-def _synthesize_stim_channel(events, start, stop):
-    """Synthesize a stim channel from events read from a vmrk file
-
-    Parameters
-    ----------
-    events : array, shape (n_events, 3)
-        Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by _read_vmrk_events).
-    start : int
-        First sample to return.
-    stop : int
-        Last sample to return.
-
-    Returns
-    -------
-    stim_channel : array, shape (n_samples,)
-        An array containing the whole recording's event marking
-    """
-    # select events overlapping buffer
-    onset = events[:, 0]
-    offset = onset + events[:, 1]
-    idx = np.logical_and(onset < stop, offset > start)
-    events = events[idx]
-
-    # make onset relative to buffer
-    events[:, 0] -= start
-
-    # fix onsets before buffer start
-    idx = events[:, 0] < 0
-    events[idx, 0] = 0
-
-    # create output buffer
-    stim_channel = np.zeros(stop - start)
-    for onset, duration, trigger in events:
-        stim_channel[onset:onset + duration] = trigger
-
-    return stim_channel
+def _check_hdr_version(header):
+    """Check the header version."""
+    tags = ['Brain Vision Data Exchange Header File Version 1.0',
+            'Brain Vision Data Exchange Header File Version 2.0']
+    if header not in tags:
+        raise ValueError("Currently only support %r, not %r"
+                         "Contact MNE-Developers for support."
+                         % (str(tags), header))
 
 
-def _get_elp_locs(elp_fname, elp_names):
-    """Read a Polhemus ascii file
-
-    Parameters
-    ----------
-    elp_fname : str
-        Path to head shape file acquired from Polhemus system and saved in
-        ascii format.
-    elp_names : list
-        A list in order of EEG electrodes found in the Polhemus digitizer file.
-
-    Returns
-    -------
-    ch_locs : dict
-        Dictionary whose keys are the names from elp_names and whose values
-        are the coordinates from the elp file transformed to Neuromag space.
-    """
-    coords_orig = read_elp(elp_fname)
-    coords_ras = apply_trans(als_ras_trans, coords_orig)
-    chs_ras = dict(zip(elp_names, coords_ras))
-    nasion = chs_ras['nasion']
-    lpa = chs_ras['lpa']
-    rpa = chs_ras['rpa']
-    trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-    coords_neuromag = apply_trans(trans, coords_ras)
-    chs_neuromag = dict(zip(elp_names, coords_neuromag))
-    return chs_neuromag
+def _check_mrk_version(header):
+    """Check the marker version."""
+    tags = ['Brain Vision Data Exchange Marker File, Version 1.0',
+            'Brain Vision Data Exchange Marker File, Version 2.0']
+    if header not in tags:
+        raise ValueError("Currently only support %r, not %r"
+                         "Contact MNE-Developers for support."
+                         % (str(tags), header))
 
 
-def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
-    """Extracts all the information from the header file.
+_orientation_dict = dict(MULTIPLEXED='F', VECTORIZED='C')
+_fmt_dict = dict(INT_16='short', INT_32='int', IEEE_FLOAT_32='single')
+_fmt_byte_dict = dict(short=2, int=4, single=4)
+_fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
+_unit_dict = {'V': 1.,  # V stands for Volt
+              u'µV': 1e-6,
+              'uV': 1e-6,
+              'C': 1,  # C stands for celsius
+              u'µS': 1e-6,  # S stands for Siemens
+              u'uS': 1e-6,
+              u'ARU': 1,  # ARU is the unity for the breathing data
+              'S': 1,
+              'N': 1}  # Newton
+
+
+def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
+    """Extract all the information from the header file.
 
     Parameters
     ----------
     vhdr_fname : str
         Raw EEG header to be read.
-    elp_fname : str | None
-        Path to the elp file containing electrode positions.
-        If None, sensor locations are (0, 0, 0).
-    elp_names : list | None
-        A list of channel names in the same order as the points in the elp
-        file. Electrode positions should be specified with the same names as
-        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
-        "rpa". ELP positions with other names are ignored. If elp_names is not
-        None and channels are missing, a KeyError is raised.
-    reference : None | str
-        Name of the electrode which served as the reference in the recording.
-        If a name is provided, a corresponding channel is added and its data
-        is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names.
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
+    misc : list or tuple of str | 'auto'
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to the electrodes
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
+    scale : float
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
+    montage : str | True | None | instance of Montage
+        Path or instance of montage containing electrode positions.
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
 
     Returns
     -------
     info : Info
         The measurement info.
+    fmt : str
+        The data format in the file.
     edf_info : dict
         A dict containing Brain Vision specific parameters.
     events : array, shape (n_events, 3)
         Events from the corresponding vmrk file.
     """
-
-    info = Info()
-    # Some keys to be consistent with FIF measurement info
-    info['meas_id'] = None
-    info['projs'] = []
-    info['comps'] = []
-    info['bads'] = []
-    info['acq_pars'], info['acq_stim'] = None, None
-    info['filename'] = vhdr_fname
-    info['ctf_head_t'] = None
-    info['dev_ctf_t'] = []
-    info['dig'] = None
-    info['dev_head_t'] = None
-    info['proj_id'] = None
-    info['proj_name'] = None
-    info['experimenter'] = None
-    info['description'] = None
-    info['buffer_size_sec'] = 10.
-    info['orig_blocks'] = None
-    info['orig_fid_str'] = None
-    info['line_freq'] = None
-    info['subject_info'] = None
-
-    eeg_info = {}
-
-    with open(vhdr_fname, 'r') as f:
+    scale = float(scale)
+    ext = os.path.splitext(vhdr_fname)[-1]
+    if ext != '.vhdr':
+        raise IOError("The header file must be given to read the data, "
+                      "not a file with extension '%s'." % ext)
+    with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
-        l = f.readline().strip()
-        assert l == 'Brain Vision Data Exchange Header File Version 1.0'
-        settings = f.read()
+        header = f.readline()
+        codepage = 'utf-8'
+        # we don't actually need to know the coding for the header line.
+        # the characters in it all belong to ASCII and are thus the
+        # same in Latin-1 and UTF-8
+        header = header.decode('ascii', 'ignore').strip()
+        _check_hdr_version(header)
 
-    params, settings = settings.split('[Comment]')
+        settings = f.read()
+        try:
+            # if there is an explicit codepage set, use it
+            # we pretend like it's ascii when searching for the codepage
+            cp_setting = re.search('Codepage=(.+)',
+                                   settings.decode('ascii', 'ignore'),
+                                   re.IGNORECASE & re.MULTILINE)
+            if cp_setting:
+                codepage = cp_setting.group(1).strip()
+            settings = settings.decode(codepage)
+        except UnicodeDecodeError:
+            # if UTF-8 (new standard) or explicit codepage setting fails,
+            # fallback to Latin-1, which is Windows default and implicit
+            # standard in older recordings
+            settings = settings.decode('latin-1')
+
+    if settings.find('[Comment]') != -1:
+        params, settings = settings.split('[Comment]')
+    else:
+        params, settings = settings, ''
     cfg = configparser.ConfigParser()
     if hasattr(cfg, 'read_file'):  # newer API
         cfg.read_file(StringIO(params))
@@ -469,216 +383,335 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
     # get sampling info
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
-    sfreq = int(sfreq)
-    n_data_chan = cfg.getint('Common Infos', 'NumberOfChannels')
-    n_eeg_chan = n_data_chan + bool(reference)
+    info = _empty_info(sfreq)
 
-    # check binary format
-    assert cfg.get('Common Infos', 'DataFormat') == 'BINARY'
-    eeg_info['data_orientation'] = cfg.get('Common Infos', 'DataOrientation')
-    if not (eeg_info['data_orientation'] == 'MULTIPLEXED' or
-            eeg_info['data_orientation'] == 'VECTORIZED'):
+    order = cfg.get('Common Infos', 'DataOrientation')
+    if order not in _orientation_dict:
         raise NotImplementedError('Data Orientation %s is not supported'
-                                  % eeg_info['data_orientation'])
+                                  % order)
+    order = _orientation_dict[order]
 
-    binary_format = cfg.get('Binary Infos', 'BinaryFormat')
-    if binary_format == 'INT_16':
-        eeg_info['dtype'] = '<i2'
-    elif binary_format == 'INT_32':
-        eeg_info['dtype'] = '<i4'
-    elif binary_format == 'IEEE_FLOAT_32':
-        eeg_info['dtype'] = '<f4'
+    data_format = cfg.get('Common Infos', 'DataFormat')
+    if data_format == 'BINARY':
+        fmt = cfg.get('Binary Infos', 'BinaryFormat')
+        if fmt not in _fmt_dict:
+            raise NotImplementedError('Datatype %s is not supported' % fmt)
+        fmt = _fmt_dict[fmt]
     else:
-        raise NotImplementedError('Datatype %s is not supported'
-                                  % binary_format)
+        fmt = dict((key, cfg.get('ASCII Infos', key))
+                   for key in cfg.options('ASCII Infos'))
 
     # load channel labels
-    ch_names = ['UNKNOWN'] * n_eeg_chan
-    cals = np.empty(n_eeg_chan)
-    cals[:] = np.nan
-    units = ['UNKNOWN'] * n_eeg_chan
+    nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
+    ch_names = [''] * nchan
+    cals = np.empty(nchan)
+    ranges = np.empty(nchan)
+    cals.fill(np.nan)
+    ch_dict = dict()
+    misc_chs = dict()
     for chan, props in cfg.items('Channel Infos'):
-        n = int(re.findall(r'ch(\d+)', chan)[0])
-        name, _, resolution, unit = props.split(',')[:4]
-        ch_names[n - 1] = name
-        cals[n - 1] = float(resolution)
-        unit = unit.replace('\xc2', '')  # Remove unwanted control characters
-        if u(unit) == u('\xb5V'):
-            units[n - 1] = 1e-6
-        elif unit == 'V':
-            units[n - 1] = 0
-        else:
-            units[n - 1] = unit
+        n = int(re.findall(r'ch(\d+)', chan)[0]) - 1
+        props = props.split(',')
+        # default to microvolts because that's what the older brainvision
+        # standard explicitly assumed; the unit is only allowed to be
+        # something else if explicitly stated (cf. EEGLAB export below)
+        if len(props) < 4:
+            props += (u'µV',)
+        name, _, resolution, unit = props[:4]
+        ch_dict[chan] = name
+        ch_names[n] = name
+        if resolution == "":
+            if not(unit):  # For truncated vhdrs (e.g. EEGLAB export)
+                resolution = 0.000001
+            else:
+                resolution = 1.  # for files with units specified, but not res
+        unit = unit.replace(u'\xc2', u'')  # Remove unwanted control characters
+        cals[n] = float(resolution)
+        ranges[n] = _unit_dict.get(unit, 1) * scale
+        if unit not in ('V', u'µV', 'uV'):
+            misc_chs[name] = (FIFF.FIFF_UNIT_CEL if unit == 'C'
+                              else FIFF.FIFF_UNIT_NONE)
+    misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
-    # add reference channel info
-    if reference:
-        ch_names[-1] = reference
-        cals[-1] = cals[-2]
-        units[-1] = units[-2]
+    # create montage
+    if montage is True:
+        from ...transforms import _sphere_to_cartesian
+        from ...channels.montage import Montage
+        montage_pos = list()
+        montage_names = list()
+        for ch in cfg.items('Coordinates'):
+            montage_names.append(ch_dict[ch[0]])
+            radius, theta, phi = map(float, ch[1].split(','))
+            # 1: radius, 2: theta, 3: phi
+            pos = _sphere_to_cartesian(r=radius, theta=theta, phi=phi)
+            montage_pos.append(pos)
+        montage_sel = np.arange(len(montage_pos))
+        montage = Montage(montage_pos, montage_names, 'Brainvision',
+                          montage_sel)
+
+    ch_names[-1] = 'STI 014'
+    cals[-1] = 1.
+    ranges[-1] = 1.
+    if np.isnan(cals).any():
+        raise RuntimeError('Missing channel units')
 
     # Attempts to extract filtering info from header. If not found, both are
     # set to zero.
     settings = settings.splitlines()
     idx = None
+
     if 'Channels' in settings:
         idx = settings.index('Channels')
         settings = settings[idx + 1:]
+        hp_col, lp_col = 4, 5
         for idx, setting in enumerate(settings):
             if re.match('#\s+Name', setting):
                 break
             else:
                 idx = None
+
+    # If software filters are active, then they override the hardware setup
+    # But we still want to be able to double check the channel names
+    # for alignment purposes, we keep track of the hardware setting idx
+    idx_amp = idx
+
+    if 'S o f t w a r e  F i l t e r s' in settings:
+        idx = settings.index('S o f t w a r e  F i l t e r s')
+        for idx, setting in enumerate(settings[idx + 1:], idx + 1):
+            if re.match('#\s+Low Cutoff', setting):
+                hp_col, lp_col = 1, 2
+                warn('Online software filter detected. Using software '
+                     'filter settings and ignoring hardware values')
+                break
+            else:
+                idx = idx_amp
+
     if idx:
         lowpass = []
         highpass = []
-        for i, ch in enumerate(ch_names, 1):
-            if ch == reference:
-                continue
-            line = settings[idx + i].split()
-            assert ch in line
-            highpass.append(line[5])
-            lowpass.append(line[6])
+
+        # extract filter units and convert s to Hz if necessary
+        # this cannot be done as post-processing as the inverse t-f
+        # relationship means that the min/max comparisons don't make sense
+        # unless we know the units
+        header = re.split('\s\s+', settings[idx])
+        hp_s = '[s]' in header[hp_col]
+        lp_s = '[s]' in header[lp_col]
+
+        for i, ch in enumerate(ch_names[:-1], 1):
+            line = re.split('\s\s+', settings[idx + i])
+            # double check alignment with channel by using the hw settings
+            # the actual divider is multiple spaces -- for newer BV
+            # files, the unit is specified for every channel separated
+            # by a single space, while for older files, the unit is
+            # specified in the column headers
+            if idx == idx_amp:
+                line_amp = line
+            else:
+                line_amp = re.split('\s\s+', settings[idx_amp + i])
+            assert ch in line_amp
+            highpass.append(line[hp_col])
+            lowpass.append(line[lp_col])
         if len(highpass) == 0:
-            info['highpass'] = None
-        elif all(highpass):
-            if highpass[0] == 'NaN':
-                info['highpass'] = None
+            pass
+        elif len(set(highpass)) == 1:
+            if highpass[0] in ('NaN', 'Off'):
+                pass  # Placeholder for future use. Highpass set in _empty_info
             elif highpass[0] == 'DC':
-                info['highpass'] = 0
+                info['highpass'] = 0.
             else:
-                info['highpass'] = int(highpass[0])
+                info['highpass'] = float(highpass[0])
+                if hp_s:
+                    info['highpass'] = 1. / info['highpass']
         else:
-            info['highpass'] = np.min(highpass)
-            warnings.warn('%s' % ('Channels contain different highpass '
-                                  'filters. Highest filter setting will '
-                                  'be stored.'))
+            heterogeneous_hp_filter = True
+            if hp_s:
+                # We convert channels with disabled filters to having
+                # highpass relaxed / no filters
+                highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
+                            else np.Inf for filt in highpass]
+                info['highpass'] = np.max(np.array(highpass, dtype=np.float))
+                # Coveniently enough 1 / np.Inf = 0.0, so this works for
+                # DC / no highpass filter
+                info['highpass'] = 1. / info['highpass']
+
+                # not exactly the cleanest use of FP, but this makes us
+                # more conservative in *not* warning.
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
+                    heterogeneous_hp_filter = False
+            else:
+                highpass = [float(filt) if filt not in ('NaN', 'Off', 'DC')
+                            else 0.0 for filt in highpass]
+                info['highpass'] = np.min(np.array(highpass, dtype=np.float))
+                if info['highpass'] == 0.0 and len(set(highpass)) == 1:
+                    # not actually heterogeneous in effect
+                    # ... just heterogeneously disabled
+                    heterogeneous_hp_filter = False
+
+            if heterogeneous_hp_filter:
+                warn('Channels contain different highpass filters. '
+                     'Lowest (weakest) filter setting (%0.2f Hz) '
+                     'will be stored.' % info['highpass'])
+
         if len(lowpass) == 0:
-            info['lowpass'] = None
-        elif all(lowpass):
-            if lowpass[0] == 'NaN':
-                info['lowpass'] = None
+            pass
+        elif len(set(lowpass)) == 1:
+            if lowpass[0] in ('NaN', 'Off'):
+                pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
-                info['lowpass'] = int(lowpass[0])
+                info['lowpass'] = float(lowpass[0])
+                if lp_s:
+                    info['lowpass'] = 1. / info['lowpass']
         else:
-            info['lowpass'] = np.min(lowpass)
-            warnings.warn('%s' % ('Channels contain different lowpass filters.'
-                                  ' Lowest filter setting will be stored.'))
-    else:
-        info['highpass'] = None
-        info['lowpass'] = None
+            heterogeneous_lp_filter = True
+            if lp_s:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                           else 0.0 for filt in lowpass]
+                info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
+                try:
+                    info['lowpass'] = 1. / info['lowpass']
+                except ZeroDivisionError:
+                    if len(set(lowpass)) == 1:
+                        # No lowpass actually set for the weakest setting
+                        # so we set lowpass to the Nyquist frequency
+                        info['lowpass'] = info['sfreq'] / 2.
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
+                    else:
+                        # no lowpass filter is the weakest filter,
+                        # but it wasn't the only filter
+                        pass
+            else:
+                # We convert channels with disabled filters to having
+                # infinitely relaxed / no filters
+                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                           else np.Inf for filt in lowpass]
+                info['lowpass'] = np.max(np.array(lowpass, dtype=np.float))
+
+                if np.isinf(info['lowpass']):
+                    # No lowpass actually set for the weakest setting
+                    # so we set lowpass to the Nyquist frequency
+                    info['lowpass'] = info['sfreq'] / 2.
+                    if len(set(lowpass)) == 1:
+                        # not actually heterogeneous in effect
+                        # ... just heterogeneously disabled
+                        heterogeneous_lp_filter = False
+
+            if heterogeneous_lp_filter:
+                # this isn't clean FP, but then again, we only want to provide
+                # the Nyquist hint when the lowpass filter was actually
+                # calculated from dividing the sampling frequency by 2, so the
+                # exact/direct comparison (instead of tolerance) makes sense
+                if info['lowpass'] == info['sfreq'] / 2.0:
+                    nyquist = ', Nyquist limit'
+                else:
+                    nyquist = ""
+                warn('Channels contain different lowpass filters. '
+                     'Highest (weakest) filter setting (%0.2f Hz%s) '
+                     'will be stored.' % (info['lowpass'], nyquist))
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
-    info['file_id'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
-    eeg_info['marker_id'] = os.path.join(path, cfg.get('Common Infos',
-                                                       'MarkerFile'))
+    data_filename = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
     info['meas_date'] = int(time.time())
+    info['buffer_size_sec'] = 1.  # reasonable default
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    info['nchan'] = n_eeg_chan
-    info['ch_names'] = ch_names
-    info['sfreq'] = sfreq
-    if elp_fname and elp_names:
-        ch_locs = _get_elp_locs(elp_fname, elp_names)
-        info['dig'] = [{'r': ch_locs['nasion'],
-                        'ident': FIFF.FIFFV_POINT_NASION,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame':  FIFF.FIFFV_COORD_HEAD},
-                       {'r': ch_locs['lpa'], 'ident': FIFF.FIFFV_POINT_LPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD},
-                       {'r': ch_locs['rpa'], 'ident': FIFF.FIFFV_POINT_RPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD}]
-    else:
-        ch_locs = None
-
-    missing_positions = []
-    idxs = range(1, len(ch_names) + 1)
-    for idx, ch_name, cal, unit_mul in zip(idxs, ch_names, cals, units):
-        is_eog = ch_name in eog
-        if ch_locs is None:
-            loc = np.zeros(3)
-        elif ch_name in ch_locs:
-            loc = ch_locs[ch_name]
-        else:
-            loc = np.zeros(3)
-            if not is_eog:
-                missing_positions.append(ch_name)
-
-        if is_eog:
+    for idx, ch_name in enumerate(ch_names):
+        if ch_name in eog or idx in eog or idx - nchan in eog:
             kind = FIFF.FIFFV_EOG_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
+            unit = FIFF.FIFF_UNIT_V
+        elif ch_name in misc or idx in misc or idx - nchan in misc:
+            kind = FIFF.FIFFV_MISC_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
+            if ch_name in misc_chs:
+                unit = misc_chs[ch_name]
+            else:
+                unit = FIFF.FIFF_UNIT_NONE
+        elif ch_name == 'STI 014':
+            kind = FIFF.FIFFV_STIM_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
+            unit = FIFF.FIFF_UNIT_NONE
         else:
             kind = FIFF.FIFFV_EEG_CH
-
-        chan_info = {'ch_name': ch_name,
-                     'coil_type': FIFF.FIFFV_COIL_EEG,
-                     'kind': kind,
-                     'logno': idx,
-                     'scanno': idx,
-                     'cal': cal,
-                     'range': 1.,
-                     'unit_mul': unit_mul,
-                     'unit': FIFF.FIFF_UNIT_V,
-                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                     'eeg_loc': loc,
-                     'loc': np.hstack((loc, np.zeros(9)))}
-
-        info['chs'].append(chan_info)
-
-    # raise error if positions are missing
-    if missing_positions:
-        err = ("The following positions are missing from the ELP "
-               "definitions: %s. If those channels lack positions because "
-               "they are EOG channels use the eog "
-               "parameter" % str(missing_positions))
-        raise KeyError(err)
+            coil_type = FIFF.FIFFV_COIL_EEG
+            unit = FIFF.FIFF_UNIT_V
+        info['chs'].append(dict(
+            ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
+            scanno=idx + 1, cal=cals[idx], range=ranges[idx], loc=np.zeros(12),
+            unit=unit, unit_mul=0.,  # always zero- mne manual pg. 273
+            coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     # for stim channel
-    events = _read_vmrk_events(eeg_info['marker_id'])
+    mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    info._update_redundant()
+    info._check_consistency()
+    return info, data_filename, fmt, order, mrk_fname, montage
 
-    return info, eeg_info, events
 
-
-def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
-                         preload=False, reference=None,
-                         eog=['HEOGL', 'HEOGR', 'VEOGb'], ch_names=None,
-                         verbose=None):
-    """Reader for Brain Vision EEG file
+def read_raw_brainvision(vhdr_fname, montage=None,
+                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
+                         scale=1., preload=False, response_trig_shift=0,
+                         event_id=None, verbose=None):
+    """Reader for Brain Vision EEG file.
 
     Parameters
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    elp_fname : str | None
-        Path to the elp file containing electrode positions.
-        If None, sensor locations are (0,0,0).
-    elp_names : list | None
-        A list of channel names in the same order as the points in the elp
-        file. Electrode positions should be specified with the same names as
-        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
-        "rpa". ELP positions with other names are ignored. If elp_names is not
-        None and channels are missing, a KeyError is raised.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions.
+        If None, sensor locations are (0,0,0). See the documentation of
+        :func:`mne.channels.read_montage` for more information.
+    eog : list or tuple of str
+        Names of channels or list of indices that should be designated
+        EOG channels. Values should correspond to the vhdr file
+        Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
+    misc : list or tuple of str | 'auto'
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to the electrodes
+        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        misc channels. Default is ``'auto'``.
+    scale : float
+        The scaling factor for EEG data. Unless specified otherwise by
+        header file, units are in microvolts. Default scale factor is 1.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-    reference : None | str
-        Name of the electrode which served as the reference in the recording.
-        If a name is provided, a corresponding channel is added and its data
-        is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names.
-    eog : list of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
+    response_trig_shift : int | None
+        An integer that will be added to all response triggers when reading
+        events (stimulus triggers will be unaffected). If None, response
+        triggers will be ignored. Default is 0 for backwards compatibility, but
+        typically another value or None will be necessary.
+    event_id : dict | None
+        The id of special events to consider in addition to those that
+        follow the normal Brainvision trigger format ('S###').
+        If dict, the keys will be mapped to trigger values on the stimulus
+        channel. Example: {'SyncStatus': 1; 'Pulse Artifact': 3}. If None
+        or an empty dict (default), only stimulus events are added to the
+        stimulus channel. Keys are case sensitive.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    raw : instance of RawBrainVision
+        A Raw object containing BrainVision data.
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
-                         reference, eog, ch_names, verbose)
-    return raw
+    return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
+                          misc=misc, scale=scale, preload=preload,
+                          response_trig_shift=response_trig_shift,
+                          event_id=event_id, verbose=verbose)

@@ -1,32 +1,34 @@
-"""Coregistration between different coordinate frames"""
+"""Coregistration between different coordinate frames."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
 from .externals.six.moves import configparser
+from .externals.six import string_types
 import fnmatch
 from glob import glob, iglob
 import os
+import stat
+import sys
 import re
 import shutil
 from warnings import warn
+from functools import reduce
 
 import numpy as np
 from numpy import dot
-from scipy.optimize import leastsq
-from scipy.spatial.distance import cdist
-from scipy.linalg import norm
 
-from .io.meas_info import read_fiducials, write_fiducials
+from .io import read_fiducials, write_fiducials, read_info
+from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
-from .surface import (read_surface, write_surface, read_bem_surfaces,
-                      write_bem_surface)
-from .transforms import rotation, rotation3d, scaling, translation
+from .surface import read_surface, write_surface, _normalize_vectors
+from .bem import read_bem_surfaces, write_bem_surfaces
+from .transforms import rotation, rotation3d, scaling, translation, Transform
 from .utils import get_config, get_subjects_dir, logger, pformat
-from functools import reduce
+from .viz._3d import _fiducial_coords
 from .externals.six.moves import zip
 
 
@@ -40,20 +42,79 @@ head_bem_fname = pformat(bem_fname, name='head')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
+_head_fnames = (head_bem_fname, pformat(bem_fname, name='head-medium'))
+_high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
+                         os.path.join(surf_dirname, 'lh.seghead'),
+                         os.path.join(surf_dirname, 'lh.smseghead'))
 
 
-def create_default_subject(mne_root=None, fs_home=None, update=False,
+def _make_writable(fname):
+    """Make a file writable."""
+    os.chmod(fname, stat.S_IMODE(os.lstat(fname)[stat.ST_MODE]) | 128)  # write
+
+
+def _make_writable_recursive(path):
+    """Recursively set writable."""
+    if sys.platform.startswith('win'):
+        return  # can't safely set perms
+    for root, dirs, files in os.walk(path, topdown=False):
+        for f in dirs + files:
+            _make_writable(os.path.join(root, f))
+
+
+def _find_head_bem(subject, subjects_dir, high_res=False):
+    """Find a high resolution head."""
+    # XXX this should be refactored with mne.surface.get_head_surf ...
+    fnames = _high_res_head_fnames if high_res else _head_fnames
+    for fname in fnames:
+        path = fname.format(subjects_dir=subjects_dir, subject=subject)
+        if os.path.exists(path):
+            return path
+
+
+def coregister_fiducials(info, fiducials, tol=0.01):
+    """Create a head-MRI transform by aligning 3 fiducial points.
+
+    Parameters
+    ----------
+    info : Info
+        Measurement info object with fiducials in head coordinate space.
+    fiducials : str | list of dict
+        Fiducials in MRI coordinate space (either path to a ``*-fiducials.fif``
+        file or list of fiducials as returned by :func:`read_fiducials`.
+
+    Returns
+    -------
+    trans : Transform
+        The device-MRI transform.
+    """
+    if isinstance(info, string_types):
+        info = read_info(info)
+    if isinstance(fiducials, string_types):
+        fiducials, coord_frame_to = read_fiducials(fiducials)
+    else:
+        coord_frame_to = FIFF.FIFFV_COORD_MRI
+    frames_from = {d['coord_frame'] for d in info['dig']}
+    if len(frames_from) > 1:
+        raise ValueError("info contains fiducials from different coordinate "
+                         "frames")
+    else:
+        coord_frame_from = frames_from.pop()
+    coords_from = _fiducial_coords(info['dig'])
+    coords_to = _fiducial_coords(fiducials, coord_frame_to)
+    trans = fit_matched_points(coords_from, coords_to, tol=tol)
+    return Transform(coord_frame_from, coord_frame_to, trans)
+
+
+def create_default_subject(fs_home=None, update=False,
                            subjects_dir=None):
-    """Create an average brain subject for subjects without structural MRI
+    """Create an average brain subject for subjects without structural MRI.
 
     Create a copy of fsaverage from the Freesurfer directory in subjects_dir
     and add auxiliary files from the mne package.
 
     Parameters
     ----------
-    mne_root : None | str
-        The mne root directory (only needed if MNE_ROOT is not specified as
-        environment variable).
     fs_home : None | str
         The freesurfer home directory (only needed if FREESURFER_HOME is not
         specified as environment variable).
@@ -69,97 +130,67 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     -----
     When no structural MRI is available for a subject, an average brain can be
     substituted. Freesurfer comes with such an average brain model, and MNE
-    comes with some auxiliary files which make coregistration easier.
-    :py:func:`create_default_subject` copies the relevant files from Freesurfer
-    into the current subjects_dir, and also adds the auxiliary files provided
-    by MNE.
-
-    The files provided by MNE are listed below and can be found under
-    ``share/mne/mne_analyze/fsaverage`` in the MNE directory (see MNE manual
-    section 7.19 Working with the average brain):
-
-    fsaverage_head.fif:
-        The approximate head surface triangulation for fsaverage.
-    fsaverage_inner_skull-bem.fif:
-        The approximate inner skull surface for fsaverage.
-    fsaverage-fiducials.fif:
-        The locations of the fiducial points (LPA, RPA, and nasion).
-    fsaverage-trans.fif:
-        Contains a default MEG-MRI coordinate transformation suitable for
-        fsaverage.
+    comes with some auxiliary files which make coregistration easier (see
+    :ref:`CACGEAFI`). :py:func:`create_default_subject` copies the relevant
+    files from Freesurfer into the current subjects_dir, and also adds the
+    auxiliary files provided by MNE.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
         fs_home = get_config('FREESURFER_HOME', fs_home)
         if fs_home is None:
-            err = ("FREESURFER_HOME environment variable not found. Please "
-                   "specify the fs_home parameter in your call to "
-                   "create_default_subject().")
-            raise ValueError(err)
-    if mne_root is None:
-        mne_root = get_config('MNE_ROOT', mne_root)
-        if mne_root is None:
-            err = ("MNE_ROOT environment variable not found. Please "
-                   "specify the mne_root parameter in your call to "
-                   "create_default_subject().")
-            raise ValueError(err)
+            raise ValueError(
+                "FREESURFER_HOME environment variable not found. Please "
+                "specify the fs_home parameter in your call to "
+                "create_default_subject().")
 
     # make sure freesurfer files exist
     fs_src = os.path.join(fs_home, 'subjects', 'fsaverage')
     if not os.path.exists(fs_src):
-        err = ('fsaverage not found at %r. Is fs_home specified '
-               'correctly?' % fs_src)
-        raise IOError(err)
+        raise IOError('fsaverage not found at %r. Is fs_home specified '
+                      'correctly?' % fs_src)
     for name in ('label', 'mri', 'surf'):
         dirname = os.path.join(fs_src, name)
         if not os.path.isdir(dirname):
-            err = ("Freesurfer fsaverage seems to be incomplete: No directory "
-                   "named %s found in %s" % (name, fs_src))
-            raise IOError(err)
+            raise IOError("Freesurfer fsaverage seems to be incomplete: No "
+                          "directory named %s found in %s" % (name, fs_src))
 
     # make sure destination does not already exist
     dest = os.path.join(subjects_dir, 'fsaverage')
     if dest == fs_src:
-        err = ("Your subjects_dir points to the freesurfer subjects_dir (%r). "
-               "The default subject can not be created in the freesurfer "
-               "installation directory; please specify a different "
-               "subjects_dir." % subjects_dir)
-        raise IOError(err)
+        raise IOError(
+            "Your subjects_dir points to the freesurfer subjects_dir (%r). "
+            "The default subject can not be created in the freesurfer "
+            "installation directory; please specify a different "
+            "subjects_dir." % subjects_dir)
     elif (not update) and os.path.exists(dest):
-        err = ("Can not create fsaverage because %r already exists in "
-               "subjects_dir %r. Delete or rename the existing fsaverage "
-               "subject folder." % ('fsaverage', subjects_dir))
-        raise IOError(err)
-
-    # make sure mne files exist
-    mne_fname = os.path.join(mne_root, 'share', 'mne', 'mne_analyze',
-                             'fsaverage', 'fsaverage-%s.fif')
-    mne_files = ('fiducials', 'head', 'inner_skull-bem', 'trans')
-    for name in mne_files:
-        fname = mne_fname % name
-        if not os.path.isfile(fname):
-            err = ("MNE fsaverage incomplete: %s file not found at "
-                   "%s" % (name, fname))
-            raise IOError(err)
+        raise IOError(
+            "Can not create fsaverage because %r already exists in "
+            "subjects_dir %r. Delete or rename the existing fsaverage "
+            "subject folder." % ('fsaverage', subjects_dir))
 
     # copy fsaverage from freesurfer
     logger.info("Copying fsaverage subject from freesurfer directory...")
     if (not update) or not os.path.exists(dest):
         shutil.copytree(fs_src, dest)
+        _make_writable_recursive(dest)
 
-    # add files from mne
+    # copy files from mne
+    source_fname = os.path.join(os.path.dirname(__file__), 'data', 'fsaverage',
+                                'fsaverage-%s.fif')
     dest_bem = os.path.join(dest, 'bem')
     if not os.path.exists(dest_bem):
         os.mkdir(dest_bem)
-    logger.info("Copying auxiliary fsaverage files from mne directory...")
+    logger.info("Copying auxiliary fsaverage files from mne...")
     dest_fname = os.path.join(dest_bem, 'fsaverage-%s.fif')
-    for name in mne_files:
+    _make_writable_recursive(dest_bem)
+    for name in ('fiducials', 'head', 'inner_skull-bem', 'trans'):
         if not os.path.exists(dest_fname % name):
-            shutil.copy(mne_fname % name, dest_bem)
+            shutil.copy(source_fname % name, dest_bem)
 
 
 def _decimate_points(pts, res=10):
-    """Decimate the number of points using a voxel grid
+    """Decimate the number of points using a voxel grid.
 
     Create a voxel grid with a specified resolution and retain at most one
     point per voxel. For each voxel, the point closest to its center is
@@ -167,7 +198,7 @@ def _decimate_points(pts, res=10):
 
     Parameters
     ----------
-    pts : array, shape = (n_points, 3)
+    pts : array, shape (n_points, 3)
         The points making up the head shape.
     res : scalar
         The resolution of the voxel space (side length of each voxel).
@@ -177,6 +208,7 @@ def _decimate_points(pts, res=10):
     pts : array, shape = (n_points, 3)
         The decimated points.
     """
+    from scipy.spatial.distance import cdist
     pts = np.asarray(pts)
 
     # find the bin edges for the voxel space
@@ -212,7 +244,7 @@ def _decimate_points(pts, res=10):
 
 
 def _trans_from_params(param_info, params):
-    """Convert transformation parameters into a transformation matrix
+    """Convert transformation parameters into a transformation matrix.
 
     Parameters
     ----------
@@ -254,8 +286,9 @@ def _trans_from_params(param_info, params):
 
 def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
                        scale=False, tol=None, x0=None, out='trans'):
-    """Find a transform that minimizes the squared distance between two
-    matching sets of points.
+    """Find a transform between matched sets of points.
+
+    This minimizes the squared distance between two matching sets of points.
 
     Uses :func:`scipy.optimize.leastsq` to find a transformation involving
     a combination of rotation, translation, and scaling (in that order).
@@ -297,12 +330,12 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         A single tuple containing the translation, rotation and scaling
         parameters in that order.
     """
+    from scipy.optimize import leastsq
     src_pts = np.atleast_2d(src_pts)
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
-        err = ("src_pts and tgt_pts must have same shape "
-               "(got {0}, {1})".format(src_pts.shape, tgt_pts.shape))
-        raise ValueError(err)
+        raise ValueError("src_pts and tgt_pts must have same shape (got "
+                         "{0}, {1})".format(src_pts.shape, tgt_pts.shape))
 
     rotate = bool(rotate)
     translate = bool(translate)
@@ -345,9 +378,9 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         if x0 is None:
             x0 = (0, 0, 0, 0, 0, 0, 1)
     else:
-        err = ("The specified parameter combination is not implemented: "
-               "rotate=%r, translate=%r, scale=%r" % param_info)
-        raise NotImplementedError(err)
+        raise NotImplementedError(
+            "The specified parameter combination is not implemented: "
+            "rotate=%r, translate=%r, scale=%r" % param_info)
 
     x, _, _, _, _ = leastsq(error, x0, full_output=True)
 
@@ -369,66 +402,12 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif out == 'trans':
         return trans
     else:
-        err = ("Invalid out parameter: %r. Needs to be 'params' or "
-               "'trans'." % out)
-        raise ValueError(err)
-
-
-def get_ras_to_neuromag_trans(nasion, lpa, rpa):
-    """Construct a transformation matrix to the MNE head coordinate system
-
-    Construct a transformation matrix from an arbitrary RAS coordinate system
-    to the MNE head coordinate system, in which the x axis passes through the
-    two preauricular points, and the y axis passes through the nasion and is
-    normal to the x axis. (see mne manual, pg. 97)
-
-    Parameters
-    ----------
-    nasion : array_like, shape = (3,)
-        Nasion point coordinate.
-    lpa : array_like, shape = (3,)
-        Left peri-auricular point coordinate.
-    rpa : array_like, shape = (3,)
-        Right peri-auricular point coordinate.
-
-    Returns
-    -------
-    trans : numpy.array, shape = (4, 4)
-        Transformation matrix to MNE head space.
-    """
-    # check input args
-    nasion = np.asarray(nasion)
-    lpa = np.asarray(lpa)
-    rpa = np.asarray(rpa)
-    for pt in (nasion, lpa, rpa):
-        if pt.ndim != 1 or len(pt) != 3:
-            err = ("Points have to be provided as one dimensional arrays of "
-                   "length 3.")
-            raise ValueError(err)
-
-    right = rpa - lpa
-    right_unit = right / norm(right)
-
-    origin = lpa + np.dot(nasion - lpa, right_unit) * right_unit
-
-    anterior = nasion - origin
-    anterior_unit = anterior / norm(anterior)
-
-    superior_unit = np.cross(right_unit, anterior_unit)
-
-    x, y, z = -origin
-    origin_trans = translation(x, y, z)
-
-    trans_l = np.vstack((right_unit, anterior_unit, superior_unit, [0, 0, 0]))
-    trans_r = np.reshape([0, 0, 0, 1], (4, 1))
-    rot_trans = np.hstack((trans_l, trans_r))
-
-    trans = np.dot(rot_trans, origin_trans)
-    return trans
+        raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
+                         "'trans'." % out)
 
 
 def _point_cloud_error(src_pts, tgt_pts):
-    """Find the distance from each source point to its closest target point
+    """Find the distance from each source point to its closest target point.
 
     Parameters
     ----------
@@ -443,13 +422,14 @@ def _point_cloud_error(src_pts, tgt_pts):
         For each point in ``src_pts``, the distance to the closest point in
         ``tgt_pts``.
     """
+    from scipy.spatial.distance import cdist
     Y = cdist(src_pts, tgt_pts, 'euclidean')
     dist = Y.min(axis=1)
     return dist
 
 
 def _point_cloud_error_balltree(src_pts, tgt_tree):
-    """Find the distance from each source point to its closest target point
+    """Find the distance from each source point to its closest target point.
 
     Uses sklearn.neighbors.BallTree for greater efficiency
 
@@ -472,11 +452,11 @@ def _point_cloud_error_balltree(src_pts, tgt_tree):
 
 def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
                     scale=0, x0=None, leastsq_args={}, out='params'):
-    """Find a transform that minimizes the squared distance from each source
-    point to its closest target point
+    """Find a transform between unmatched sets of points.
 
-    Uses :func:`scipy.optimize.leastsq` to find a transformation involving
-    a combination of rotation, translation, and scaling (in that order).
+    This minimizes the squared distance from each source point to its closest
+    target point, using :func:`scipy.optimize.leastsq` to find a
+    transformation using rotation, translation, and scaling (in that order).
 
     Parameters
     ----------
@@ -513,6 +493,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     the distance of each src_pt to the closest tgt_pt can be used as an
     estimate of the distance of src_pt to tgt_pts.
     """
+    from scipy.optimize import leastsq
     kwargs = {'epsfcn': 0.01}
     kwargs.update(leastsq_args)
 
@@ -539,6 +520,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     param_info = (rotate, translate, scale)
     if param_info == (True, False, 0):
         x0 = x0 or (0, 0, 0)
+
         def error(x):
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
@@ -547,6 +529,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             return err
     elif param_info == (True, False, 1):
         x0 = x0 or (0, 0, 0, 1)
+
         def error(x):
             rx, ry, rz, s = x
             trans = rotation3d(rx, ry, rz) * s
@@ -555,6 +538,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             return err
     elif param_info == (True, False, 3):
         x0 = x0 or (0, 0, 0, 1, 1, 1)
+
         def error(x):
             rx, ry, rz, sx, sy, sz = x
             trans = rotation3d(rx, ry, rz) * [sx, sy, sz]
@@ -563,6 +547,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             return err
     elif param_info == (True, True, 0):
         x0 = x0 or (0, 0, 0, 0, 0, 0)
+
         def error(x):
             rx, ry, rz, tx, ty, tz = x
             trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
@@ -570,9 +555,9 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             err = errfunc(est[:, :3], tgt_pts)
             return err
     else:
-        err = ("The specified parameter combination is not implemented: "
-               "rotate=%r, translate=%r, scale=%r" % param_info)
-        raise NotImplementedError(err)
+        raise NotImplementedError(
+            "The specified parameter combination is not implemented: "
+            "rotate=%r, translate=%r, scale=%r" % param_info)
 
     est, _, info, msg, _ = leastsq(error, x0, full_output=True, **kwargs)
     logger.debug("fit_point_cloud leastsq (%i calls) info: %s", info['nfev'],
@@ -583,13 +568,12 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     elif out == 'trans':
         return _trans_from_params(param_info, est)
     else:
-        err = ("Invalid out parameter: %r. Needs to be 'params' or "
-               "'trans'." % out)
-        raise ValueError(err)
+        raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
+                         "'trans'." % out)
 
 
 def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
-    """Find paths to label files in a subject's label directory
+    """Find paths to label files in a subject's label directory.
 
     Parameters
     ----------
@@ -604,7 +588,7 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
         (sys.environ['SUBJECTS_DIR'])
 
     Returns
-    ------
+    -------
     paths : list
         List of paths relative to the subject's label directory
     """
@@ -625,20 +609,23 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
     return paths
 
 
-def _find_mri_paths(subject='fsaverage', subjects_dir=None):
-    """Find all files of an mri relevant for source transformation
+def _find_mri_paths(subject, skip_fiducials, subjects_dir):
+    """Find all files of an mri relevant for source transformation.
 
     Parameters
     ----------
     subject : str
         Name of the mri subject.
+    skip_fiducials : bool
+        Do not scale the MRI fiducials. If False, an IOError will be raised
+        if no fiducials file can be found.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
 
     Returns
     -------
-    paths | dict
+    paths : dict
         Dictionary whose keys are relevant file type names (str), and whose
         values are lists of paths.
     """
@@ -651,16 +638,18 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
     # surf/ files
     paths['surf'] = surf = []
     surf_fname = os.path.join(surf_dirname, '{name}')
-    surf_names = ('orig', 'orig_avg',
-                  'inflated', 'inflated_avg', 'inflated_pre',
-                  'pial', 'pial_avg',
-                  'smoothwm',
-                  'white', 'white_avg',
-                  'sphere', 'sphere.reg', 'sphere.reg.avg')
-    for name in surf_names:
+    surf_names = ('inflated', 'sphere', 'sphere.reg', 'white', 'orig',
+                  'orig_avg', 'inflated_avg', 'inflated_pre', 'pial',
+                  'pial_avg', 'smoothwm', 'white_avg', 'sphere.reg.avg')
+    if os.getenv('_MNE_FEW_SURFACES', '') == 'true':  # for testing
+        surf_names = surf_names[:4]
+    for surf_name in surf_names:
         for hemi in ('lh.', 'rh.'):
-            fname = pformat(surf_fname, name=hemi + name)
-            surf.append(fname)
+            name = hemi + surf_name
+            path = surf_fname.format(subjects_dir=subjects_dir,
+                                     subject=subject, name=name)
+            if os.path.exists(path):
+                surf.append(pformat(surf_fname, name=name))
 
     # BEM files
     paths['bem'] = bem = []
@@ -670,14 +659,24 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
     bem_pattern = pformat(bem_fname, subjects_dir=subjects_dir,
                           subject=subject, name='*-bem')
     re_pattern = pformat(bem_fname, subjects_dir=subjects_dir, subject=subject,
-                         name='(.+)')
+                         name='(.+)').replace('\\', '\\\\')
     for path in iglob(bem_pattern):
         match = re.match(re_pattern, path)
         name = match.group(1)
         bem.append(name)
 
     # fiducials
-    paths['fid'] = [fid_fname]
+    if skip_fiducials:
+        paths['fid'] = []
+    else:
+        paths['fid'] = _find_fiducials_files(subject, subjects_dir)
+        # check that we found at least one
+        if len(paths['fid']) == 0:
+            raise IOError("No fiducials file found for %s. The fiducials "
+                          "file should be named "
+                          "{subject}/bem/{subject}-fiducials.fif. In "
+                          "order to scale an MRI without fiducials set "
+                          "skip_fiducials=True." % subject)
 
     # duplicate curvature files
     paths['duplicate'] = dup = []
@@ -687,7 +686,7 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
         dup.append(fname)
 
     # check presence of required files
-    for ftype in ['surf', 'fid', 'duplicate']:
+    for ftype in ['surf', 'duplicate']:
         for fname in paths[ftype]:
             path = fname.format(subjects_dir=subjects_dir, subject=subject)
             path = os.path.realpath(path)
@@ -708,8 +707,27 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
     return paths
 
 
+def _find_fiducials_files(subject, subjects_dir):
+    """Find fiducial files."""
+    fid = []
+    # standard fiducials
+    if os.path.exists(fid_fname.format(subjects_dir=subjects_dir,
+                                       subject=subject)):
+        fid.append(fid_fname)
+    # fiducials with subject name
+    pattern = pformat(fid_fname_general, subjects_dir=subjects_dir,
+                      subject=subject, head='*')
+    regex = pformat(fid_fname_general, subjects_dir=subjects_dir,
+                    subject=subject, head='(.+)').replace('\\', '\\\\')
+    for path in iglob(pattern):
+        match = re.match(regex, path)
+        head = match.group(1).replace(subject, '{subject}')
+        fid.append(pformat(fid_fname_general, head=head))
+    return fid
+
+
 def _is_mri_subject(subject, subjects_dir=None):
-    """Check whether a directory in subjects_dir is an mri subject directory
+    """Check whether a directory in subjects_dir is an mri subject directory.
 
     Parameters
     ----------
@@ -724,16 +742,34 @@ def _is_mri_subject(subject, subjects_dir=None):
         Whether ``subject`` is an mri subject.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    return bool(_find_head_bem(subject, subjects_dir) or
+                _find_head_bem(subject, subjects_dir, high_res=True))
 
-    fname = head_bem_fname.format(subjects_dir=subjects_dir, subject=subject)
-    if not os.path.exists(fname):
+
+def _is_scaled_mri_subject(subject, subjects_dir=None):
+    """Check whether a directory in subjects_dir is a scaled mri subject.
+
+    Parameters
+    ----------
+    subject : str
+        Name of the potential subject/directory.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+
+    Returns
+    -------
+    is_scaled_mri_subject : bool
+        Whether ``subject`` is a scaled mri subject.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if not _is_mri_subject(subject, subjects_dir):
         return False
-
-    return True
+    fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.cfg')
+    return os.path.exists(fname)
 
 
 def _mri_subject_has_bem(subject, subjects_dir=None):
-    """Check whether an mri subject has a file matching the bem pattern
+    """Check whether an mri subject has a file matching the bem pattern.
 
     Parameters
     ----------
@@ -754,33 +790,8 @@ def _mri_subject_has_bem(subject, subjects_dir=None):
     return bool(len(fnames))
 
 
-def read_elp(fname):
-    """Read point coordinates from a text file
-
-    Parameters
-    ----------
-    fname : str
-        Absolute path to laser point file (*.txt).
-
-    Returns
-    -------
-    elp_points : array, [n_points x 3]
-        Point coordinates.
-    """
-    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    with open(fname) as fid:
-        elp_points = pattern.findall(fid.read())
-    elp_points = np.array(elp_points, dtype=float)
-    if elp_points.shape[1] != 3:
-        err = ("File %r does not contain 3 columns as required; got shape "
-               "%s." % (fname, elp_points.shape))
-        raise ValueError(err)
-
-    return elp_points
-
-
 def read_mri_cfg(subject, subjects_dir=None):
-    """Read information from the cfg file of a scaled MRI brain
+    """Read information from the cfg file of a scaled MRI brain.
 
     Parameters
     ----------
@@ -798,9 +809,8 @@ def read_mri_cfg(subject, subjects_dir=None):
     fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.cfg')
 
     if not os.path.exists(fname):
-        err = ("%r does not seem to be a scaled mri subject: %r does not "
-               "exist." % (subject, fname))
-        raise IOError(err)
+        raise IOError("%r does not seem to be a scaled mri subject: %r does "
+                      "not exist." % (subject, fname))
 
     logger.info("Reading MRI cfg file %s" % fname)
     config = configparser.RawConfigParser()
@@ -820,7 +830,7 @@ def read_mri_cfg(subject, subjects_dir=None):
 
 
 def _write_mri_config(fname, subject_from, subject_to, scale):
-    """Write the cfg file describing a scaled MRI subject
+    """Write the cfg file describing a scaled MRI subject.
 
     Parameters
     ----------
@@ -854,11 +864,26 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
 
 
 def _scale_params(subject_to, subject_from, scale, subjects_dir):
-    subjects_dir = get_subjects_dir(subjects_dir, True)
+    """Assemble parameters for scaling.
+
+    Returns
+    -------
+    subjects_dir : str
+        Subjects directory.
+    subject_from : str
+        Name of the source subject.
+    scale : array
+        Scaling factor, either shape=() for uniform scaling or shape=(3,) for
+        non-uniform scaling.
+    nn_scale : None | array
+        Scaling factor for surface normal. If scaling is uniform, normals are
+        unchanged and nn_scale is None. If scaling is non-uniform nn_scale is
+        an array of shape (3,).
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if (subject_from is None) != (scale is None):
-        err = ("Need to provide either both subject_from and scale "
-               "parameters, or neither.")
-        raise TypeError(err)
+        raise TypeError("Need to provide either both subject_from and scale "
+                        "parameters, or neither.")
 
     if subject_from is None:
         cfg = read_mri_cfg(subject_to, subjects_dir)
@@ -872,16 +897,23 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         elif scale.shape == (3,):
             n_params = 3
         else:
-            err = ("Invalid shape for scale parameer. Need scalar or array of "
-                   "length 3. Got %s." % str(scale))
-            raise ValueError(err)
+            raise ValueError("Invalid shape for scale parameer. Need scalar "
+                             "or array of length 3. Got %s." % str(scale))
 
-    return subjects_dir, subject_from, n_params, scale
+    # prepare scaling parameter for normals
+    if n_params == 1:
+        nn_scale = None
+    elif n_params == 3:
+        nn_scale = 1. / scale
+    else:
+        raise RuntimeError("Invalid n_params value: %s" % repr(n_params))
+
+    return subjects_dir, subject_from, scale, nn_scale
 
 
 def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
               subjects_dir=None):
-    """Scale a bem file
+    """Scale a bem file.
 
     Parameters
     ----------
@@ -900,9 +932,8 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
-    subjects_dir, subject_from, _, scale = _scale_params(subject_to,
-                                                         subject_from, scale,
-                                                         subjects_dir)
+    subjects_dir, subject_from, scale, nn_scale = \
+        _scale_params(subject_to, subject_from, scale, subjects_dir)
 
     src = bem_fname.format(subjects_dir=subjects_dir, subject=subject_from,
                            name=bem_name)
@@ -913,17 +944,18 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
         raise IOError("File alredy exists: %s" % dst)
 
     surfs = read_bem_surfaces(src)
-    if len(surfs) != 1:
-        err = ("BEM file with more than one surface: %r" % src)
-        raise NotImplementedError(err)
-    surf0 = surfs[0]
-    surf0['rr'] = surf0['rr'] * scale
-    write_bem_surface(dst, surf0)
+    for surf in surfs:
+        surf['rr'] *= scale
+        if nn_scale is not None:
+            assert len(surf['nn']) > 0
+            surf['nn'] *= nn_scale
+            _normalize_vectors(surf['nn'])
+    write_bem_surfaces(dst, surfs)
 
 
 def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
                  scale=None, subjects_dir=None):
-    """Scale labels to match a brain that was previously created by scaling
+    r"""Scale labels to match a brain that was previously created by scaling.
 
     Parameters
     ----------
@@ -932,7 +964,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
     pattern : str | None
         Pattern for finding the labels relative to the label directory in the
         MRI subject directory (e.g., "lh.BA3a.label" will scale
-        "fsaverage/label/lh.BA3a.label"; "aparc/*.label" will find all labels
+        "fsaverage/label/lh.BA3a.label"; "aparc/\*.label" will find all labels
         in the "fsaverage/label/aparc" directory). With None, scale all labels.
     overwrite : bool
         Overwrite any label file that already exists for subject_to (otherwise
@@ -982,8 +1014,9 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
 
 
 def scale_mri(subject_from, subject_to, scale, overwrite=False,
-              subjects_dir=None):
-    """Create a scaled copy of an MRI subject
+              subjects_dir=None, skip_fiducials=False, labels=True,
+              annot=False):
+    """Create a scaled copy of an MRI subject.
 
     Parameters
     ----------
@@ -997,6 +1030,13 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         If an MRI already exists for subject_to, overwrite it.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
+    skip_fiducials : bool
+        Do not scale the MRI fiducials. If False (default), an IOError will be
+        raised if no fiducials file can be found.
+    labels : bool
+        Also scale all labels (default True).
+    annot : bool
+        Copy ``*.annot`` files to the new location (default False).
 
     See Also
     --------
@@ -1004,7 +1044,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     scale_source_space : add a source space to a scaled MRI
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    paths = _find_mri_paths(subject_from, subjects_dir=subjects_dir)
+    paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
     scale = np.asarray(scale)
 
     # make sure we have an empty target directory
@@ -1014,10 +1054,10 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         if overwrite:
             shutil.rmtree(dest)
         else:
-            err = ("Subject directory for %s already exists: "
-                   "%r" % (subject_to, dest))
-            raise IOError(err)
+            raise IOError("Subject directory for %s already exists: %r"
+                          % (subject_to, dest))
 
+    # create empty directory structure
     for dirname in paths['dirs']:
         dir_ = dirname.format(subject=subject_to, subjects_dir=subjects_dir)
         os.makedirs(dir_)
@@ -1061,13 +1101,23 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
                            subjects_dir)
 
     # labels [in m]
-    scale_labels(subject_to, subject_from=subject_from, scale=scale,
-                 subjects_dir=subjects_dir)
+    os.mkdir(os.path.join(subjects_dir, subject_to, 'label'))
+    if labels:
+        scale_labels(subject_to, subject_from=subject_from, scale=scale,
+                     subjects_dir=subjects_dir)
+
+    # copy *.annot files (they don't contain scale-dependent information)
+    if annot:
+        src_pattern = os.path.join(subjects_dir, subject_from, 'label',
+                                   '*.annot')
+        dst_dir = os.path.join(subjects_dir, subject_to, 'label')
+        for src_file in iglob(src_pattern):
+            shutil.copy(src_file, dst_dir)
 
 
 def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
                        subjects_dir=None, n_jobs=1):
-    """Scale a source space for an mri created with scale_mri()
+    """Scale a source space for an mri created with scale_mri().
 
     Parameters
     ----------
@@ -1092,10 +1142,8 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         applies if scale is an array of length 3, and will not use more cores
         than there are source spaces).
     """
-    subjects_dir, subject_from, n_params, scale = _scale_params(subject_to,
-                                                                subject_from,
-                                                                scale,
-                                                                subjects_dir)
+    subjects_dir, subject_from, scale, nn_scale = \
+        _scale_params(subject_to, subject_from, scale, subjects_dir)
 
     # find the source space file names
     if src_name.isdigit():
@@ -1115,15 +1163,6 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
     dst = src_pattern.format(subjects_dir=subjects_dir, subject=subject_to,
                              spacing=spacing)
 
-    # prepare scaling parameters
-    if n_params == 1:
-        norm_scale = None
-    elif n_params == 3:
-        norm_scale = 1. / scale
-    else:
-        err = ("Invalid n_params entry in MRI cfg file: %s" % str(n_params))
-        raise RuntimeError(err)
-
     # read and scale the source space [in m]
     sss = read_source_spaces(src)
     logger.info("scaling source space %s:  %s -> %s", spacing, subject_from,
@@ -1135,21 +1174,20 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         ss['rr'] *= scale
 
         # distances and patch info
-        if norm_scale is None:
+        if nn_scale is None:  # i.e. uniform scaling
             if ss['dist'] is not None:
                 ss['dist'] *= scale
                 ss['nearest_dist'] *= scale
                 ss['dist_limit'] *= scale
-        else:
-            nn = ss['nn']
-            nn *= norm_scale
-            norm = np.sqrt(np.sum(nn ** 2, 1))
-            nn /= norm[:, np.newaxis]
+        else:  # non-uniform scaling
+            ss['nn'] *= nn_scale
+            _normalize_vectors(ss['nn'])
             if ss['dist'] is not None:
                 add_dist = True
 
     if add_dist:
         logger.info("Recomputing distances, this might take a while")
-        add_source_space_distances(sss, sss[0]['dist_limit'], n_jobs)
+        dist_limit = np.asscalar(sss[0]['dist_limit'])
+        add_source_space_distances(sss, dist_limit, n_jobs)
 
     write_source_spaces(dst, sss)

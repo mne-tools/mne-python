@@ -1,6 +1,6 @@
-"""Non-Linear sparse inverse solvers"""
+"""Non-Linear sparse inverse solvers."""
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: Simplified BSD
 

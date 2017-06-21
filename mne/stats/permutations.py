@@ -1,7 +1,6 @@
-"""T-test with permutations
-"""
+"""T-test with permutations."""
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Fernando Perez (bin_perm_rep function)
 #
 # License: Simplified BSD
@@ -14,14 +13,14 @@ from .. import verbose
 
 
 def bin_perm_rep(ndim, a=0, b=1):
-    """bin_perm_rep(ndim) -> ndim permutations with repetitions of (a,b).
+    """Ndim permutations with repetitions of (a,b).
 
     Returns an array with all the possible permutations with repetitions of
     (0,1) in ndim dimensions.  The array is shaped as (2**ndim,ndim), and is
     ordered with the last index changing fastest.  For examble, for ndim=3:
 
-    Examples:
-
+    Examples
+    --------
     >>> bin_perm_rep(3)
     array([[0, 0, 0],
            [0, 0, 1],
@@ -32,7 +31,6 @@ def bin_perm_rep(ndim, a=0, b=1):
            [1, 1, 0],
            [1, 1, 1]])
     """
-
     # Create the leftmost column as 0,0,...,1,1,...
     nperms = 2 ** ndim
     perms = np.empty((nperms, ndim), type(a))
@@ -49,7 +47,7 @@ def bin_perm_rep(ndim, a=0, b=1):
 
 
 def _max_stat(X, X2, perms, dof_scaling):
-    """Aux function for permutation_t_test (for parallel comp)"""
+    """Aux function for permutation_t_test (for parallel comp)."""
     n_samples = len(X)
     mus = np.dot(perms, X) / float(n_samples)
     stds = np.sqrt(X2[None, :] - mus ** 2) * dof_scaling  # std with splitting
@@ -90,7 +88,8 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     n_jobs : int
         Number of CPUs to use for computation.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

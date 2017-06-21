@@ -3,30 +3,29 @@
 Compute DICS beamfomer on evoked data
 =====================================
 
-Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer from single
-trial activity in a time-frequency window to estimate source time courses based
-on evoked data.
+Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ beamformer from
+single-trial activity in a time-frequency window to estimate source time
+courses based on evoked data.
 
-The original reference for DICS is:
-Gross et al. Dynamic imaging of coherent sources: Studying neural interactions
-in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+References
+----------
+.. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
+       interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
-
 # Author: Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import mne
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from mne.io import Raw
 from mne.datasets import sample
-from mne.time_frequency import compute_epochs_csd
+from mne.time_frequency import csd_epochs
 from mne.beamformer import dics
+
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -38,7 +37,7 @@ subjects_dir = data_path + '/subjects'
 
 ###############################################################################
 # Read raw data
-raw = Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
 # Set picks
@@ -59,15 +58,15 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # Computing the data and noise cross-spectral density matrices
 # The time-frequency window was chosen on the basis of spectrograms from
 # example time_frequency/plot_time_frequency.py
-data_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                              fmin=6, fmax=10)
-noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
-                               fmin=6, fmax=10)
+data_csd = csd_epochs(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
+                      fmin=6, fmax=10)
+noise_csd = csd_epochs(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
+                       fmin=6, fmax=10)
 
 evoked = epochs.average()
 
 # Compute DICS spatial filter and estimate source time courses on evoked data
-stc = dics(evoked, forward, noise_csd, data_csd)
+stc = dics(evoked, forward, noise_csd, data_csd, reg=0.05)
 
 plt.figure()
 ts_show = -30  # show the 40 largest responses
@@ -78,12 +77,10 @@ plt.ylabel('DICS value')
 plt.title('DICS time course of the 30 largest sources.')
 plt.show()
 
-# Plot brain in 3D with PySurfer if available. Note that the subject name
-# is already known by the SourceEstimate stc object.
-brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir)
-brain.set_data_time_index(180)
-brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
+# Plot brain in 3D with PySurfer if available
+brain = stc.plot(hemi='rh', subjects_dir=subjects_dir,
+                 initial_time=0.1, time_unit='s')
 brain.show_view('lateral')
 
 # Uncomment to save image
-#brain.save_image('DICS_map.png')
+# brain.save_image('DICS_map.png')

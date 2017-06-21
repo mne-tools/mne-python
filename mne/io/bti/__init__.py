@@ -1,5 +1,5 @@
-"""Bti module for conversion to FIF"""
+"""BTi module for conversion to FIF."""
 
-# Author: Denis A. Engemann <d.engemann@fz-juelich.de>
+# Author: Denis A. Engemann <denis.engemann@gmail.com>
 
 from .bti import read_raw_bti

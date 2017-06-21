@@ -1,36 +1,56 @@
+from glob import glob
 import os
 
-from nose.tools import assert_raises, assert_true, assert_equal
+from nose.tools import assert_equal, assert_raises, assert_true
 import numpy as np
-from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_array_less)
+from numpy.testing import assert_array_almost_equal, assert_array_less
 
-from mne.transforms import apply_trans, rotation, translation, scaling
+import mne
+from mne.transforms import (Transform, apply_trans, rotation, translation,
+                            scaling)
 from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _point_cloud_error, _decimate_points,
                        create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
-                       read_elp)
-from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
+                       coregister_fiducials)
+from mne.io.constants import FIFF
+from mne.utils import (requires_freesurfer, _TempDir, run_tests_if_main,
+                       requires_version)
+from mne.source_space import write_source_spaces
 from functools import reduce
 
 
-tempdir = _TempDir()
+def test_coregister_fiducials():
+    """Test coreg.coregister_fiducials()"""
+    # prepare head and MRI fiducials
+    trans = Transform('head', 'mri',
+                      rotation(.4, .1, 0).dot(translation(.1, -.1, .1)))
+    coords_orig = np.array([[-0.08061612, -0.02908875, -0.04131077],
+                            [0.00146763, 0.08506715, -0.03483611],
+                            [0.08436285, -0.02850276, -0.04127743]])
+    coords_trans = apply_trans(trans, coords_orig)
+
+    def make_dig(coords, cf):
+        return ({'coord_frame': cf, 'ident': 1, 'kind': 1, 'r': coords[0]},
+                {'coord_frame': cf, 'ident': 2, 'kind': 1, 'r': coords[1]},
+                {'coord_frame': cf, 'ident': 3, 'kind': 1, 'r': coords[2]})
+
+    mri_fiducials = make_dig(coords_trans, FIFF.FIFFV_COORD_MRI)
+    info = {'dig': make_dig(coords_orig, FIFF.FIFFV_COORD_HEAD)}
+
+    # test coregister_fiducials()
+    trans_est = coregister_fiducials(info, mri_fiducials)
+    assert_equal(trans_est.from_str, trans.from_str)
+    assert_equal(trans_est.to_str, trans.to_str)
+    assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
-def test_read_elp():
-    """Test reading an ELP file"""
-    path = os.path.join(kit_data_dir, 'test_elp.txt')
-    points = read_elp(path)
-    assert_equal(points.shape, (8, 3))
-    assert_array_equal(points[0], [1.3930, 13.1613, -4.6967])
-
-
-@requires_mne_fs_in_env
+@requires_freesurfer
+@requires_version('scipy', '0.11')
 def test_scale_mri():
     """Test creating fsaverage and scaling it"""
     # create fsaverage
+    tempdir = _TempDir()
     create_default_subject(subjects_dir=tempdir)
     is_mri = _is_mri_subject('fsaverage', tempdir)
     assert_true(is_mri, "Creating fsaverage failed")
@@ -41,34 +61,52 @@ def test_scale_mri():
     create_default_subject(update=True, subjects_dir=tempdir)
     assert_true(os.path.exists(fid_path), "Updating fsaverage")
 
+    # remove redundant label files
+    label_temp = os.path.join(tempdir, 'fsaverage', 'label', '*.label')
+    label_paths = glob(label_temp)
+    for label_path in label_paths[1:]:
+        os.remove(label_path)
+
     # create source space
-    path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-6-src.fif')
-    if not os.path.exists(path):
-        cmd = ['mne_setup_source_space', '--subject', 'fsaverage', '--ico',
-               '6']
-        env = os.environ.copy()
-        env['SUBJECTS_DIR'] = tempdir
-        run_subprocess(cmd, env=env)
+    path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-0-src.fif')
+    src = mne.setup_source_space('fsaverage', 'ico0', subjects_dir=tempdir,
+                                 add_dist=False)
+    src_path = os.path.join(tempdir, 'fsaverage', 'bem',
+                            'fsaverage-ico-0-src.fif')
+    write_source_spaces(src_path, src)
 
     # scale fsaverage
-    scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True, subjects_dir=tempdir)
+    os.environ['_MNE_FEW_SURFACES'] = 'true'
+    scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True,
+              subjects_dir=tempdir)
+    del os.environ['_MNE_FEW_SURFACES']
     is_mri = _is_mri_subject('flachkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
     src_path = os.path.join(tempdir, 'flachkopf', 'bem',
-                            'flachkopf-ico-6-src.fif')
+                            'flachkopf-ico-0-src.fif')
+
     assert_true(os.path.exists(src_path), "Source space was not scaled")
     scale_labels('flachkopf', subjects_dir=tempdir)
 
     # scale source space separately
     os.remove(src_path)
-    scale_source_space('flachkopf', 'ico-6', subjects_dir=tempdir)
+    scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
     assert_true(os.path.exists(src_path), "Source space was not scaled")
 
+    # add distances to source space
+    src = mne.read_source_spaces(path)
+    mne.add_source_space_distances(src)
+    src.save(path, overwrite=True)
+
+    # scale with distances
+    os.remove(src_path)
+    scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
+    assert_true(os.path.exists(src_path), "Source space was not scaled")
 
 
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points"""
-    tgt_pts = np.random.uniform(size=(6, 3))
+    tgt_pts = np.random.RandomState(42).uniform(size=(6, 3))
 
     # rotation only
     trans = rotation(2, 6, 3)
@@ -83,7 +121,7 @@ def test_fit_matched_points():
     trans = np.dot(rotation(2, 6, 3), scaling(.5, .5, .5))
     src_pts = apply_trans(trans, tgt_pts)
     trans_est = fit_matched_points(src_pts, tgt_pts, translate=False, scale=1,
-                                out='trans')
+                                   out='trans')
     est_pts = apply_trans(trans_est, src_pts)
     assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with "
                               "rotation and scaling.")
@@ -164,3 +202,6 @@ def test_fit_point_cloud():
     err = _point_cloud_error(est_pts, tgt_pts)
     assert_array_less(err, .1, "fit_point_cloud with rotation and 3 scaling "
                       "parameters.")
+
+
+run_tests_if_main()

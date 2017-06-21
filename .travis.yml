@@ -1,67 +1,110 @@
-language: python
-
+language: c
+sudo: false
 env:
-    # Enable python 2 and python 3 builds
-    # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
-    #            scikit-learn, patsy, nibabel; in the case of Python 2, also
-    #            nitime
-    # DEPS=minimal: don't build optional dependencies; tests that require those
-    #               dependencies are supposed to be skipped
-    - PYTHON=2.7 DEPS=full
-    - PYTHON=3.3 DEPS=full
-    - PYTHON=2.6 DEPS=full
-    - PYTHON=2.7 DEPS=minimal
+    global: PYTHON_VERSION=2.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
+
+matrix:
+    include:
+        # Full (Linux, 2.7)
+        - os: linux
+          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi"
+               PIP_DEPENDENCIES="pysurfer nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler"
+
+        # OSX
+        - os: osx
+          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi"
+               PIP_DEPENDENCIES="pysurfer nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler"
+        # Py3k + non-default stim channel
+        - os: linux
+          env: PYTHON_VERSION=3.5 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels"
+               PIP_DEPENDENCIES="nitime joblib nibabel codecov nose-timer"
+        # Old dependencies
+        - os: linux
+          env: CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14"
+               PIP_DEPENDENCIES="codecov nose-timer nose-faulthandler"
+        # Minimal
+        - os: linux
+          env: DEPS=minimial
+               CONDA_DEPENDENCIES="numpy scipy matplotlib"
+               PIP_DEPENDENCIES="codecov nose-timer nose-faulthandler"
+        # No data + style testing
+        - os: linux
+          env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov nose-timer nose-faulthandler"
+
 # Setup anaconda
 before_install:
-  - wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh
-  - chmod +x miniconda.sh
-  - ./miniconda.sh -b
-  - export PATH=/home/travis/anaconda/bin:$PATH
-  - conda update --yes conda
-  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
-  - sudo rm -rf /dev/shm
-  - sudo ln -s /run/shm /dev/shm
+    - git clone https://github.com/astropy/ci-helpers.git
+    - source ci-helpers/travis/setup_conda.sh
+    - if [ "${DEPS}" == "" && "${TRAVIS_OS_NAME}" == "linux" ]; then
+        curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
+        export MNE_ROOT="${PWD}/minimal_cmds";
+        export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
+        source ${MNE_ROOT}/bin/mne_setup_sh;
+      fi;
+    - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+      fi;
 
 install:
-    - conda create -n testenv --yes pip python=$PYTHON
-    - source activate testenv
-    - conda install --yes ipython==1.1.0 numpy scipy nose matplotlib
-    - if [ "${DEPS}" == "full" ]; then
-        conda install --yes pandas statsmodels scikit-learn patsy;
-        pip install nibabel;
-        if [ ${PYTHON:0:1} == "2" ]; then
-          pip install nitime;
-        fi;
-      fi;
-    - pip install coverage; pip install coveralls; pip install nose-timer
-    - MNE_FORCE_SERIAL=1
-    - MNE_SKIP_SAMPLE_DATASET_TESTS=1
+    # Suppress the parallel outputs for logging cleanliness
     - python setup.py build
     - python setup.py install
-    - myscripts='browse_raw bti2fiff surf2bem'
-    - for script in $myscripts; do mne $script --help >/dev/null; done;
+    - python -c "import mne; mne.sys_info()"
     - SRC_DIR=$(pwd)
     - cd ~
+    # Trigger download of testing data. Note that
+    # the testing dataset has been constructed to contain the necessary
+    # files to act as a FREESURFER_HOME for the coreg tests
+    - if [ "${DEPS}" != "nodata" ]; then
+        python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
+        if [ "${DEPS}" == "" && "${TRAVIS_OS_NAME}" == "linux" ]; then
+          export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
+          export MNE_SKIP_FS_FLASH_CALL=1;
+        fi;
+      else
+        export MNE_SKIP_TESTING_DATASET_TESTS=true;
+      fi;
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
-    - ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data
-    - ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data
-    - ln -s ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data
-    - ln -s ${SRC_DIR}/mne/io/kit/tests/data ${MNE_DIR}/io/kit/tests/data
-    - ln -s ${SRC_DIR}/mne/io/brainvision/tests/data ${MNE_DIR}/io/brainvision/tests/data
-    - ln -s ${SRC_DIR}/mne/io/egi/tests/data ${MNE_DIR}/io/egi/tests/data
-    - ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg
-    - ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc
-    # Link coverage to src dir, coveralls should be run from there (needs git calls)
-    - ln -s ${MNE_DIR}/../.coverage ${SRC_DIR}/.coverage
+    # We run two versions: one out of the source directory (that makes
+    # coveralls coverage work), and one out of the install directory (that
+    # ensures we have included all necessary files).
+    - if [ "${TEST_LOCATION}" == "install" ]; then
+        ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data;
+        ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data;
+        ln -s ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data;
+        ln -s ${SRC_DIR}/mne/io/kit/tests/data ${MNE_DIR}/io/kit/tests/data;
+        ln -s ${SRC_DIR}/mne/io/brainvision/tests/data ${MNE_DIR}/io/brainvision/tests/data;
+        ln -s ${SRC_DIR}/mne/io/egi/tests/data ${MNE_DIR}/io/egi/tests/data;
+        ln -s ${SRC_DIR}/mne/io/nicolet/tests/data ${MNE_DIR}/io/nicolet/tests/data;
+        ln -s ${SRC_DIR}/mne/preprocessing/tests/data ${MNE_DIR}/preprocessing/tests/data;
+        ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg;
+        ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc;
+        cd ${MNE_DIR}/../;
+        COVERAGE=;
+      else
+        cd ${SRC_DIR};
+        COVERAGE=--with-coverage;
+      fi;
+
 
 script:
-    # Suppress the parallel outputs for logging cleanliness
-    - export MNE_LOGGING_LEVEL=warning
-    - cd ${MNE_DIR}/../
-    - nosetests --with-timer --timer-top-n 30;
+    # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
+    - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        nosetests -a '!slow_test' --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 $COVERAGE;
+      else
+        nosetests -a '!ultra_slow_test' --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 $COVERAGE;
+      fi;
+    - if [ "${DEPS}" == "nodata" ]; then
+        make pep;
+      fi;
 
 after_success:
     # Need to run from source dir to exectue "git" commands
-    - echo "Running coveralls";
-    - cd ${SRC_DIR};
-    - coveralls;
+    - if [ "${TEST_LOCATION}" == "src" ]; then
+        echo "Running codecov";
+        cd ${SRC_DIR};
+        codecov;
+      fi;

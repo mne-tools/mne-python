@@ -32,30 +32,30 @@ Lecture Notes in Computer Science, 2011, Volume 6801/2011,
 600-611, DOI: 10.1007/978-3-642-22092-0_49
 http://dx.doi.org/10.1007/978-3-642-22092-0_49
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
-from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.inverse_sparse import tf_mixed_norm
 from mne.viz import plot_sparse_source_estimates
 
+print(__doc__)
+
 data_path = sample.data_path()
+subjects_dir = data_path + '/subjects'
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
+cov_fname = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
 
 # Read noise covariance matrix
 cov = mne.read_cov(cov_fname)
 
 # Handling average file
 condition = 'Left visual'
-evoked = io.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
+evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked = mne.pick_channels_evoked(evoked)
 # We make the window slightly larger than what you'll eventually be interested
 # in ([-0.05, 0.3]) to avoid edge effects.
@@ -64,8 +64,6 @@ evoked.crop(tmin=-0.1, tmax=0.4)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname, force_fixed=False,
                                     surf_ori=True)
-
-cov = mne.cov.regularize(cov, evoked.info)
 
 ###############################################################################
 # Run solver
@@ -96,14 +94,15 @@ stc.crop(tmin=-0.05, tmax=0.3)
 evoked.crop(tmin=-0.05, tmax=0.3)
 residual.crop(tmin=-0.05, tmax=0.3)
 
-ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-picks = mne.pick_types(evoked.info, meg='grad', exclude='bads')
-evoked.plot(picks=picks, ylim=ylim, proj=True,
-            titles=dict(grad='Evoked Response (grad)'))
+# Show the evoked response and the residual for gradiometers
+ylim = dict(grad=[-120, 120])
+evoked.pick_types(meg='grad', exclude='bads')
+evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
+            proj=True)
 
-picks = mne.pick_types(residual.info, meg='grad', exclude='bads')
-residual.plot(picks=picks, ylim=ylim, proj=True,
-              titles=dict(grad='Residual (grad)'))
+residual.pick_types(meg='grad', exclude='bads')
+residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
+              proj=True)
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
@@ -112,10 +111,9 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              % condition, modes=['sphere'], scale_factors=[1.])
 
 time_label = 'TF-MxNE time=%0.2f ms'
-brain = stc.plot('sample', 'inflated', 'rh', fmin=10e-9, fmid=15e-9,
-                 fmax=20e-9, time_label=time_label, smoothing_steps=5,
-                 subjects_dir=data_path + '/subjects')
-brain.show_view('medial')
-brain.set_data_time_index(120)
+clim = dict(kind='value', lims=[10e-9, 15e-9, 20e-9])
+brain = stc.plot('sample', 'inflated', 'rh', views='medial',
+                 clim=clim, time_label=time_label, smoothing_steps=5,
+                 subjects_dir=subjects_dir, initial_time=150, time_unit='ms')
 brain.add_label("V1", color="yellow", scalar_thresh=.5, borders=True)
 brain.add_label("V2", color="red", scalar_thresh=.5, borders=True)

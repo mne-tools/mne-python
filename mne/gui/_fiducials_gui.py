@@ -1,61 +1,43 @@
-"""Mayavi/traits GUI for setting MRI fiducials"""
+"""Mayavi/traits GUI for setting MRI fiducials."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
-from glob import glob
 import os
 from ..externals.six.moves import map
-from ..externals.six.moves import zip
 
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    import numpy as np
-    from pyface.api import confirm, FileDialog, OK, YES
-    from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
-                            cached_property, DelegatesTo, Event, Instance,
-                            Property, Array, Bool, Button, Enum)
-    from traitsui.api import HGroup, Item, VGroup, View
-    from traitsui.menu import NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except:
-    from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    cached_property = trait_wraith
-    on_trait_change = trait_wraith
-    MayaviScene = trait_wraith
-    MlabSceneModel = trait_wraith
-    Array = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    DelegatesTo = trait_wraith
-    Enum = trait_wraith
-    Event = trait_wraith
-    Instance = trait_wraith
-    Property = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    HGroup = trait_wraith
-    VGroup = trait_wraith
-    SceneEditor = trait_wraith
-    NoButtons = trait_wraith
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+import numpy as np
+from pyface.api import confirm, error, FileDialog, OK, YES
+from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
+                        cached_property, DelegatesTo, Event, Instance,
+                        Property, Array, Bool, Button, Enum)
+from traitsui.api import HGroup, Item, VGroup, View, ArrayEditor
+from traitsui.menu import NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
-from ..coreg import fid_fname, fid_fname_general, head_bem_fname
+from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
+from ..defaults import DEFAULTS
 from ..io import write_fiducials
-from ..constants import FIFF
+from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
-from ._file_traits import (BemSource, fid_wildcard, FiducialsSource,
+from ..viz._3d import _toggle_mlab_render
+from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
-from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
+from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       headview_borders)
+defaults = DEFAULTS['coreg']
+
+
+def _mm_fmt(x):
+    """Format mm data."""
+    return '%0.5f' % x
 
 
 class MRIHeadWithFiducialsModel(HasPrivateTraits):
-    """Represent an MRI head shape with fiducials
+    """Represent an MRI head shape with fiducials.
 
     Attributes
     ----------
@@ -70,8 +52,9 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     rpa : array (1, 3)
         Right peri-auricular point coordinates.
     """
+
     subject_source = Instance(MRISubjectSource, ())
-    bem = Instance(BemSource, ())
+    bem = Instance(SurfaceSource, ())
     fid = Instance(FiducialsSource, ())
 
     fid_file = DelegatesTo('fid', 'file')
@@ -80,6 +63,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     subjects_dir = DelegatesTo('subject_source')
     subject = DelegatesTo('subject_source')
     subject_has_bem = DelegatesTo('subject_source')
+    use_high_res_head = DelegatesTo('subject_source')
     points = DelegatesTo('bem')
     norms = DelegatesTo('bem')
     tris = DelegatesTo('bem')
@@ -105,14 +89,14 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
                           "model.")
 
     @on_trait_change('fid_points')
-    def reset_fiducials(self):
+    def reset_fiducials(self):  # noqa: D102
         if self.fid_points is not None:
             self.lpa = self.fid_points[0:1]
             self.nasion = self.fid_points[1:2]
             self.rpa = self.fid_points[2:3]
 
     def save(self, fname=None):
-        """Save the current fiducials to a file
+        """Save the current fiducials to a file.
 
         Parameters
         ----------
@@ -125,9 +109,15 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         if not fname:
             fname = self.default_fid_fname
 
-        dig = [{'kind': 1, 'ident': 1, 'r': np.array(self.lpa[0])},
-               {'kind': 1, 'ident': 2, 'r': np.array(self.nasion[0])},
-               {'kind': 1, 'ident': 3, 'r': np.array(self.rpa[0])}]
+        dig = [{'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_LPA,
+                'r': np.array(self.lpa[0])},
+               {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_NASION,
+                'r': np.array(self.nasion[0])},
+               {'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'ident': FIFF.FIFFV_POINT_RPA,
+                'r': np.array(self.rpa[0])}]
         write_fiducials(fname, dig, FIFF.FIFFV_COORD_MRI)
         self.fid_file = fname
 
@@ -145,9 +135,9 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
     @cached_property
     def _get_can_save_as(self):
-        can = not (np.all(self.nasion == self.lpa)
-                   or np.all(self.nasion == self.rpa)
-                   or np.all(self.lpa == self.rpa))
+        can = not (np.all(self.nasion == self.lpa) or
+                   np.all(self.nasion == self.rpa) or
+                   np.all(self.lpa == self.rpa))
         return can
 
     @cached_property
@@ -176,41 +166,49 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
     # if subject changed because of a change of subjects_dir this was not
     # triggered
-    @on_trait_change('subjects_dir,subject')
+    @on_trait_change('subjects_dir,subject,use_high_res_head')
     def _subject_changed(self):
         subject = self.subject
         subjects_dir = self.subjects_dir
         if not subjects_dir or not subject:
             return
 
-        # update bem head
-        path = head_bem_fname.format(subjects_dir=subjects_dir,
-                                     subject=subject)
+        # find head model
+        if self.use_high_res_head:
+            path = _find_head_bem(subject, subjects_dir, high_res=True)
+            if not path:
+                error(None, "No high resolution head model was found for "
+                      "subject {0}, using standard head instead. In order to "
+                      "generate a high resolution head model, run:\n\n"
+                      "    $ mne make_scalp_surfaces -s {0}"
+                      "\n\n".format(subject), "No High Resolution Head")
+                path = _find_head_bem(subject, subjects_dir)
+        else:
+            path = _find_head_bem(subject, subjects_dir)
+            if not path:
+                error(None, "No standard head model was found for subject "
+                      "{0}, using high resolution head model instead."
+                      .format(subject), "No Standard Resolution Head")
+                path = _find_head_bem(subject, subjects_dir, high_res=True)
         self.bem.file = path
 
         # find fiducials file
-        path = fid_fname.format(subjects_dir=subjects_dir, subject=subject)
-        if os.path.exists(path):
-            self.fid_file = path
-            self.lock_fiducials = True
+        fid_files = _find_fiducials_files(subject, subjects_dir)
+        if len(fid_files) == 0:
+            self.fid.reset_traits(['file'])
+            self.lock_fiducials = False
         else:
-            path = fid_fname_general.format(subjects_dir=subjects_dir,
-                                            subject=subject, head='*')
-            fnames = glob(path)
-            if fnames:
-                path = fnames[0]
-                self.fid.file = path
-                self.lock_fiducials = True
-            else:
-                self.fid.reset_traits(['file'])
-                self.lock_fiducials = False
+            self.fid_file = fid_files[0].format(subjects_dir=subjects_dir,
+                                                subject=subject)
+            self.lock_fiducials = True
 
         # does not seem to happen by itself ... so hard code it:
         self.reset_fiducials()
 
 
 class FiducialsPanel(HasPrivateTraits):
-    """Set fiducials on an MRI surface"""
+    """Set fiducials on an MRI surface."""
+
     model = Instance(MRIHeadWithFiducialsModel)
 
     fid_file = DelegatesTo('model')
@@ -225,7 +223,7 @@ class FiducialsPanel(HasPrivateTraits):
     locked = DelegatesTo('model', 'lock_fiducials')
 
     set = Enum('LPA', 'Nasion', 'RPA')
-    current_pos = Array(float, (1, 3))  # for editing
+    current_pos = Array(float, (1, 3), editor=ArrayEditor(width=50))
 
     save_as = Button(label='Save As...')
     save = Button(label='Save')
@@ -237,20 +235,25 @@ class FiducialsPanel(HasPrivateTraits):
     picker = Instance(object)
 
     # the layout of the dialog created
-    view = View(VGroup(Item('fid_file', label='Fiducials File'),
+    view = View(VGroup(Item('fid_file', label='File'),
                        Item('fid_fname', show_label=False, style='readonly'),
-                       Item('set', style='custom'),
-                       Item('current_pos', label='Pos'),
+                       Item('set', style='custom', width=50,
+                            format_func=lambda x: x),
+                       Item('current_pos', label='Pos', width=50,
+                            format_func=_mm_fmt),
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="If a filename is currently "
                                    "specified, save to that file, otherwise "
-                                   "save to the default file name"),
-                              Item('save_as', enabled_when='can_save_as'),
-                              Item('reset_fid', enabled_when='can_reset'),
+                                   "save to the default file name",
+                                   width=10),
+                              Item('save_as', enabled_when='can_save_as',
+                                   width=10),
+                              Item('reset_fid', enabled_when='can_reset',
+                                   width=10),
                               show_labels=False),
                        enabled_when="locked==False"))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         super(FiducialsPanel, self).__init__(*args, **kwargs)
         self.sync_trait('lpa', self, 'current_pos', mutual=True)
 
@@ -306,7 +309,9 @@ class FiducialsPanel(HasPrivateTraits):
         else:
             logger.debug("GUI: picked object other than MRI")
 
-        round_ = lambda x: round(x, 3)
+        def round_(x):
+            return round(x, 3)
+
         poss = [map(round_, pos) for pos in picker.picked_positions]
         pos = map(round_, picker.pick_position)
         msg = ["Pick Event: %i picked_positions:" % n_pos]
@@ -359,7 +364,7 @@ view2 = View(VGroup(Item('fid_file', label='Fiducials File'),
 
 
 class FiducialsFrame(HasTraits):
-    """GUI for interpolating between two KIT marker files
+    """GUI for interpolating between two KIT marker files.
 
     Parameters
     ----------
@@ -368,6 +373,7 @@ class FiducialsFrame(HasTraits):
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
+
     model = Instance(MRIHeadWithFiducialsModel, ())
 
     scene = Instance(MlabSceneModel, ())
@@ -408,7 +414,8 @@ class FiducialsFrame(HasTraits):
                 resizable=True,
                 buttons=NoButtons)
 
-    def __init__(self, subject=None, subjects_dir=None, **kwargs):
+    def __init__(self, subject=None, subjects_dir=None,
+                 **kwargs):  # noqa: D102
         super(FiducialsFrame, self).__init__(**kwargs)
 
         subjects_dir = get_subjects_dir(subjects_dir)
@@ -421,7 +428,7 @@ class FiducialsFrame(HasTraits):
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
-        self.scene.disable_render = True
+        _toggle_mlab_render(self, False)
 
         lpa_color = defaults['lpa_color']
         nasion_color = defaults['nasion_color']
@@ -452,7 +459,7 @@ class FiducialsFrame(HasTraits):
         self.sync_trait('point_scale', self.rpa_obj, mutual=False)
 
         self.headview.left = True
-        self.scene.disable_render = False
+        _toggle_mlab_render(self, True)
 
         # picker
         self.scene.mayavi_scene.on_mouse_pick(self.panel._on_pick, type='cell')

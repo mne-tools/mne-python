@@ -3,43 +3,48 @@ import warnings
 import os.path as op
 import copy as cp
 
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import mne
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.beamformer import dics, dics_epochs, dics_source_power, tf_dics
-from mne.time_frequency import compute_epochs_csd
+from mne.time_frequency import csd_epochs
 from mne.externals.six import advance_iterator
+from mne.utils import run_tests_if_main
 
 # Note that this is the first test file, this will apply to all subsequent
 # tests in a full nosetest:
 warnings.simplefilter("always")  # ensure we can verify expected warnings
 
-data_path = sample.data_path(download=False)
-fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+data_path = testing.data_path(download=False)
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
-label = 'Aud-lh'
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_event = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc_raw-eve.fif')
+fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+
+
+def _read_forward_solution_meg(*args, **kwargs):
+    fwd = mne.read_forward_solution(*args, **kwargs)
+    return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
 def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
-    """Read in data used in tests
-    """
+    """Read in data used in tests."""
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)[:10]
-    raw = mne.io.Raw(fname_raw, preload=False)
+    raw = mne.io.read_raw_fif(fname_raw, preload=False)
+    raw.add_proj([], remove_existing=True)  # we'll subselect so remove proj
     forward = mne.read_forward_solution(fname_fwd)
     if read_all_forward:
-        forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
-        forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
-                                                  surf_ori=True)
+        forward_surf_ori = _read_forward_solution_meg(fname_fwd, surf_ori=True)
+        forward_fixed = _read_forward_solution_meg(fname_fwd, force_fixed=True,
+                                                   surf_ori=True)
         forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
     else:
         forward_surf_ori = None
@@ -54,24 +59,24 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True, eeg=False,
-                                stim=True, eog=True, exclude='bads',
-                                selection=left_temporal_channels)
+                           stim=True, eog=True, exclude='bads',
+                           selection=left_temporal_channels)
 
     # Read epochs
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                         picks=picks, baseline=(None, 0), preload=True,
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
     epochs.resample(200, npad=0, n_jobs=2)
-    evoked = epochs.average()
+    evoked = epochs.average().crop(0, None)
 
     # Computing the data and noise cross-spectral density matrices
     if compute_csds:
-        data_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04,
-                                      tmax=None, fmin=8, fmax=12,
-                                      mt_bandwidth=72.72)
-        noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=None,
-                                       tmax=0.0, fmin=8, fmax=12,
-                                       mt_bandwidth=72.72)
+        data_csd = csd_epochs(epochs, mode='multitaper', tmin=0.045,
+                              tmax=None, fmin=8, fmax=12,
+                              mt_bandwidth=72.72)
+        noise_csd = csd_epochs(epochs, mode='multitaper', tmin=None,
+                               tmax=0.0, fmin=8, fmax=12,
+                               mt_bandwidth=72.72)
     else:
         data_csd, noise_csd = None, None
 
@@ -79,27 +84,34 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
         forward_surf_ori, forward_fixed, forward_vol
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_dics():
-    """Test DICS with evoked data and single trials
-    """
+    """Test DICS with evoked data and single trials."""
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
+    epochs.crop(0, None)
+    reg = 0.5  # Heavily regularize due to low SNR
 
-    stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
-               label=label)
+    for real_filter in (True, False):
+        stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
+                   label=label, real_filter=real_filter, reg=reg)
+        stc_pow = np.sum(stc.data, axis=1)
+        idx = np.argmax(stc_pow)
+        max_stc = stc.data[idx]
+        tmax = stc.times[np.argmax(max_stc)]
 
-    stc_pow = np.sum(stc.data, axis=1)
-    idx = np.argmax(stc_pow)
-    max_stc = stc.data[idx]
-    tmax = stc.times[np.argmax(max_stc)]
-
-    assert_true(0.09 < tmax < 0.11)
-    assert_true(10 < np.max(max_stc) < 11)
+        # Incorrect due to limited number of epochs
+        assert_true(0.04 < tmax < 0.06, msg=tmax)
+        assert_true(3. < np.max(max_stc) < 6., msg=np.max(max_stc))
 
     # Test picking normal orientation
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
-                      pick_ori="normal", label=label)
+                      pick_ori="normal", label=label, real_filter=True,
+                      reg=reg)
+    assert_true(stc_normal.data.min() < 0)  # this doesn't take abs
+    stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
+                      pick_ori="normal", label=label, reg=reg)
+    assert_true(stc_normal.data.min() >= 0)  # this does take abs
 
     # The amplitude of normal orientation results should always be smaller than
     # free orientation results
@@ -122,20 +134,19 @@ def test_dics():
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
-    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
-                       label=label)
+    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, label=label)
 
     # Testing returning of generator
-    stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
+    stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd,
                         return_generator=True, label=label)
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     # Test whether correct number of trials was returned
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     assert_true(len(epochs.events) == len(stcs))
 
     # Average the single trial estimates
-    stc_avg = np.zeros_like(stcs[0].data)
+    stc_avg = np.zeros_like(stc.data)
     for this_stc in stcs:
         stc_avg += this_stc.data
     stc_avg /= len(stcs)
@@ -144,31 +155,32 @@ def test_dics():
     max_stc = stc_avg[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    assert_true(0.045 < tmax < 0.055)  # odd due to limited number of epochs
-    assert_true(17.5 < np.max(max_stc) < 18.5)
+    assert_true(0.120 < tmax < 0.150, msg=tmax)  # incorrect due to limited #
+    assert_true(12 < np.max(max_stc) < 18.5)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_dics_source_power():
-    """Test DICS source power computation
-    """
+    """Test DICS source power computation."""
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
+    epochs.crop(0, None)
+    reg = 0.05
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
-                                         data_csd, label=label)
+                                         data_csd, label=label, reg=reg)
 
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
 
     # TODO: Maybe these could be more directly compared to dics() results?
-    assert_true(max_source_idx == 18)
-    assert_true(1.05 < max_source_power < 1.15)
+    assert_true(max_source_idx == 1)
+    assert_true(0.004 < max_source_power < 0.005, msg=max_source_power)
 
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = dics_source_power(epochs.info, forward_surf_ori,
                                    [noise_csd] * 2, [data_csd] * 2,
-                                   pick_ori="normal", label=label)
+                                   pick_ori="normal", label=label, reg=reg)
 
     assert_true(stc_normal.data.shape == (stc_source_power.data.shape[0], 2))
 
@@ -210,49 +222,49 @@ def test_dics_source_power():
     noise_csds = data_csds
     with warnings.catch_warnings(record=True) as w:
         dics_source_power(epochs.info, forward, noise_csds, data_csds)
-    assert len(w) == 1
+    assert_equal(len(w), 1)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_tf_dics():
-    """Test TF beamforming based on DICS
-    """
+    """Test TF beamforming based on DICS."""
     tmin, tmax, tstep = -0.2, 0.2, 0.1
     raw, epochs, _, _, _, label, forward, _, _, _ =\
         _get_data(tmin, tmax, read_all_forward=False, compute_csds=False)
 
     freq_bins = [(4, 20), (30, 55)]
     win_lengths = [0.2, 0.2]
-    reg = 0.001
+    reg = 0.05
 
     noise_csds = []
     for freq_bin, win_length in zip(freq_bins, win_lengths):
-        noise_csd = compute_epochs_csd(epochs, mode='fourier',
-                                       fmin=freq_bin[0], fmax=freq_bin[1],
-                                       fsum=True, tmin=tmin,
-                                       tmax=tmin + win_length)
+        noise_csd = csd_epochs(epochs, mode='fourier',
+                               fmin=freq_bin[0], fmax=freq_bin[1],
+                               fsum=True, tmin=tmin,
+                               tmax=tmin + win_length)
         noise_csds.append(noise_csd)
 
     stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                    freq_bins, reg=reg, label=label)
 
     assert_true(len(stcs) == len(freq_bins))
-    print(stcs[0].shape)
     assert_true(stcs[0].shape[1] == 4)
+    assert_true(2.2 < stcs[0].data.max() < 2.3)
+    assert_true(0.94 < stcs[0].data.min() < 0.95)
 
     # Manually calculating source power in several time windows to compare
     # results and test overlapping
     source_power = []
     time_windows = [(-0.1, 0.1), (0.0, 0.2)]
     for time_window in time_windows:
-        data_csd = compute_epochs_csd(epochs, mode='fourier',
-                                      fmin=freq_bins[0][0],
-                                      fmax=freq_bins[0][1], fsum=True,
-                                      tmin=time_window[0], tmax=time_window[1])
-        noise_csd = compute_epochs_csd(epochs, mode='fourier',
-                                       fmin=freq_bins[0][0],
-                                       fmax=freq_bins[0][1], fsum=True,
-                                       tmin=-0.2, tmax=0.0)
+        data_csd = csd_epochs(epochs, mode='fourier',
+                              fmin=freq_bins[0][0],
+                              fmax=freq_bins[0][1], fsum=True,
+                              tmin=time_window[0], tmax=time_window[1])
+        noise_csd = csd_epochs(epochs, mode='fourier',
+                               fmin=freq_bins[0][0],
+                               fmax=freq_bins[0][1], fsum=True,
+                               tmin=-0.2, tmax=0.0)
         data_csd.data /= data_csd.n_fft
         noise_csd.data /= noise_csd.n_fft
         stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
@@ -296,3 +308,6 @@ def test_tf_dics():
                    label=label)
 
     assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))
+
+
+run_tests_if_main()

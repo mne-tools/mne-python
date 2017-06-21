@@ -1,5 +1,5 @@
 # Authors: Josef Pktd and example from H Raja and rewrite from Vincent Davis
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # Code borrowed from statsmodels
 #
@@ -9,14 +9,13 @@ import numpy as np
 
 
 def _ecdf(x):
-    '''no frills empirical cdf used in fdrcorrection
-    '''
+    """No frills empirical cdf used in fdrcorrection."""
     nobs = len(x)
     return np.arange(1, nobs + 1) / float(nobs)
 
 
 def fdr_correction(pvals, alpha=0.05, method='indep'):
-    """P-value correction with False Discovery Rate (FDR)
+    """P-value correction with False Discovery Rate (FDR).
 
     Correction for multiple comparison using FDR.
 
@@ -79,11 +78,11 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
 
 
 def bonferroni_correction(pval, alpha=0.05):
-    """P-value correction with Bonferroni method
+    """P-value correction with Bonferroni method.
 
     Parameters
     ----------
-    pvals : array_like
+    pval : array_like
         set of p-values of the individual tests.
     alpha : float
         error rate
@@ -98,5 +97,5 @@ def bonferroni_correction(pval, alpha=0.05):
     """
     pval = np.asarray(pval)
     pval_corrected = pval * float(pval.size)
-    reject = pval < alpha
+    reject = pval_corrected < alpha
     return reject, pval_corrected

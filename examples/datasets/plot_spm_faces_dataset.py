@@ -1,31 +1,34 @@
+# doc:slow-example
 """
 ==========================================
 From raw data to dSPM on SPM Faces dataset
 ==========================================
 
 Runs a full pipeline using MNE-Python:
-- artifact removal
-- averaging Epochs
-- forward model computation
-- source reconstruction using dSPM on the contrast : "faces - scrambled"
 
+    - artifact removal
+    - averaging Epochs
+    - forward model computation
+    - source reconstruction using dSPM on the contrast : "faces - scrambled"
+
+.. note:: This example does quite a bit of processing, so even on a
+          fast machine it can take several minutes to complete.
 """
-print(__doc__)
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-import numpy as np
+import os.path as op
 import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import spm_face
-from mne.preprocessing import ICA
-from mne import io
+from mne.preprocessing import ICA, create_eog_epochs
+from mne import io, combine_evoked
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
+print(__doc__)
 
 data_path = spm_face.data_path()
 subjects_dir = data_path + '/subjects'
@@ -33,45 +36,45 @@ subjects_dir = data_path + '/subjects'
 ###############################################################################
 # Load and filter data, set up epochs
 
-raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
+raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
 
-raw = io.Raw(raw_fname % 1, preload=True) # Take first run
+raw = io.read_raw_ctf(raw_fname % 1, preload=True)  # Take first run
+# Here to save memory and time we'll downsample heavily -- this is not
+# advised for real data as it can effectively jitter events!
+raw.resample(120., npad='auto')
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
-raw.filter(1, 45, method='iir')
+raw.filter(1, 30, method='iir')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
 
 # plot the events to get an idea of the paradigm
 mne.viz.plot_events(events, raw.info['sfreq'])
 
-event_ids = {"faces":1, "scrambled":2}
+event_ids = {"faces": 1, "scrambled": 2}
 
 tmin, tmax = -0.2, 0.6
 baseline = None  # no baseline as high-pass is applied
-reject = dict(mag=1.5e-12)
+reject = dict(mag=5e-12)
 
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
 # Fit ICA, find and remove major artifacts
+ica = ICA(n_components=0.95, random_state=0).fit(raw, decim=1, reject=reject)
 
-ica = ICA(None, 50).decompose_epochs(epochs, decim=2)
-
-for ch_name in ['MRT51-2908', 'MLF14-2908']:  # ECG, EOG contaminated chs
-    scores = ica.find_sources_epochs(epochs, ch_name, 'pearsonr')
-    ica.exclude += list(np.argsort(np.abs(scores))[-2:])
-
-ica.plot_topomap(np.unique(ica.exclude))  # plot components found
-
-
-# select ICA sources and reconstruct MEG signals, compute clean ERFs
-
-epochs = ica.pick_sources_epochs(epochs)
+# compute correlation scores, get bad indices sorted by score
+eog_epochs = create_eog_epochs(raw, ch_name='MRT31-2908', reject=reject)
+eog_inds, eog_scores = ica.find_bads_eog(eog_epochs, ch_name='MRT31-2908')
+ica.plot_scores(eog_scores, eog_inds)  # see scores the selection is based on
+ica.plot_components(eog_inds)  # view topographic sensitivity of components
+ica.exclude += eog_inds[:1]  # we saw the 2nd ECG component looked too dipolar
+ica.plot_overlay(eog_epochs.average())  # inspect artifact removal
+ica.apply(epochs)  # clean data, default in place
 
 evoked = [epochs[k].average() for k in event_ids]
 
-contrast = evoked[1] - evoked[0]
+contrast = combine_evoked(evoked, weights=[-1, 1])  # Faces - scrambled
 
 evoked.append(contrast)
 
@@ -81,16 +84,16 @@ for e in evoked:
 plt.show()
 
 # estimate noise covarariance
-noise_cov = mne.compute_covariance(epochs.crop(None, 0, copy=True))
+noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk')
 
 ###############################################################################
 # Visualize fields on MEG helmet
 
-trans_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
+trans_fname = data_path + ('/MEG/spm/SPM_CTF_MEG_example_faces1_3D_'
+                           'raw-trans.fif')
 
-maps = mne.make_field_map(evoked[0], trans_fname=trans_fname,
-                          subject='spm', subjects_dir=subjects_dir,
-                          n_jobs=1)
+maps = mne.make_field_map(evoked[0], trans_fname, subject='spm',
+                          subjects_dir=subjects_dir, n_jobs=1)
 
 evoked[0].plot_field(maps, time=0.170)
 
@@ -99,18 +102,22 @@ evoked[0].plot_field(maps, time=0.170)
 # Compute forward model
 
 # Make source space
-src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
-                             overwrite=True)
+src_fname = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
+if not op.isfile(src_fname):
+    src = mne.setup_source_space('spm', spacing='oct6',
+                                 subjects_dir=subjects_dir)
+    mne.write_source_spaces(src_fname, src)
+else:
+    src = mne.read_source_spaces(src_fname)
 
-mri = trans_fname
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
-forward = mne.make_forward_solution(contrast.info, mri=mri, src=src, bem=bem)
+forward = mne.make_forward_solution(contrast.info, trans_fname, src, bem)
 forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 ###############################################################################
 # Compute inverse solution
 
-snr = 5.0
+snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = 'dSPM'
 
@@ -118,15 +125,10 @@ inverse_operator = make_inverse_operator(contrast.info, forward, noise_cov,
                                          loose=0.2, depth=0.8)
 
 # Compute inverse solution on contrast
-stc = apply_inverse(contrast, inverse_operator, lambda2, method,
-                    pick_normal=False)
+stc = apply_inverse(contrast, inverse_operator, lambda2, method, pick_ori=None)
 # stc.save('spm_%s_dSPM_inverse' % constrast.comment)
 
-# plot constrast
-# Plot brain in 3D with PySurfer if available. Note that the subject name
-# is already known by the SourceEstimate stc object.
-brain = stc.plot(surface='inflated', hemi='both', subjects_dir=subjects_dir)
-brain.set_data_time_index(173)
-brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
-brain.show_view('ventral')
+# Plot contrast in 3D with PySurfer if available
+brain = stc.plot(hemi='both', subjects_dir=subjects_dir, initial_time=0.170,
+                 views=['ven'])
 # brain.save_image('dSPM_map.png')

@@ -1,11 +1,11 @@
 import numpy as np
+from scipy import linalg
 
-from ..constants import FIFF
+from .constants import FIFF
 
 
 def get_current_comp(info):
-    """Get the current compensation in effect in the data
-    """
+    """Get the current compensation in effect in the data."""
     comp = None
     first_comp = -1
     for k, chan in enumerate(info['chs']):
@@ -20,8 +20,7 @@ def get_current_comp(info):
 
 
 def set_current_comp(info, comp):
-    """Set the current compensation in effect in the data
-    """
+    """Set the current compensation in effect in the data."""
     comp_now = get_current_comp(info)
     for k, chan in enumerate(info['chs']):
         if chan['kind'] == FIFF.FIFFV_MEG_CH:
@@ -29,11 +28,10 @@ def set_current_comp(info, comp):
             chan['coil_type'] = int(rem + (comp << 16))
 
 
-def _make_compensator(info, kind):
-    """Auxiliary function for make_compensator
-    """
+def _make_compensator(info, grade):
+    """Auxiliary function for make_compensator."""
     for k in range(len(info['comps'])):
-        if info['comps'][k]['kind'] == kind:
+        if info['comps'][k]['kind'] == grade:
             this_data = info['comps'][k]['data']
 
             #   Create the preselector
@@ -48,7 +46,7 @@ def _make_compensator(info, kind):
                     raise ValueError('Ambiguous channel %s' % col_name)
                 presel[col, ind[0]] = 1.0
 
-            #   Create the postselector
+            #   Create the postselector (zero entries for channels not found)
             postsel = np.zeros((info['nchan'], this_data['nrow']))
             for c, ch_name in enumerate(info['ch_names']):
                 ind = [k for k, ch in enumerate(this_data['row_names'])
@@ -57,15 +55,16 @@ def _make_compensator(info, kind):
                     raise ValueError('Ambiguous channel %s' % ch_name)
                 elif len(ind) == 1:
                     postsel[c, ind[0]] = 1.0
+                # else, don't use it at all (postsel[c, ?] = 0.0) by allocation
             this_comp = np.dot(postsel, np.dot(this_data['data'], presel))
             return this_comp
 
-    raise ValueError('Desired compensation matrix (kind = %d) not'
-                     ' found' % kind)
+    raise ValueError('Desired compensation matrix (grade = %d) not'
+                     ' found' % grade)
 
 
 def make_compensator(info, from_, to, exclude_comp_chs=False):
-    """Returns compensation matrix eg. for CTF system.
+    """Return compensation matrix eg. for CTF system.
 
     Create a compensation matrix to bring the data from one compensation
     state to another.
@@ -90,20 +89,26 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
     if from_ == to:
         return None
 
-    if from_ == 0:
-        C1 = np.zeros((info['nchan'], info['nchan']))
-    else:
-        C1 = _make_compensator(info, from_)
-
-    if to == 0:
-        C2 = np.zeros((info['nchan'], info['nchan']))
-    else:
-        C2 = _make_compensator(info, to)
-
     #   s_orig = s_from + C1*s_from = (I + C1)*s_from
     #   s_to   = s_orig - C2*s_orig = (I - C2)*s_orig
     #   s_to   = (I - C2)*(I + C1)*s_from = (I + C1 - C2 - C2*C1)*s_from
-    comp = np.eye(info['nchan']) + C1 - C2 - np.dot(C2, C1)
+    if from_ != 0:
+        C1 = _make_compensator(info, from_)
+        comp_from_0 = linalg.inv(np.eye(info['nchan']) - C1)
+    if to != 0:
+        C2 = _make_compensator(info, to)
+        comp_0_to = np.eye(info['nchan']) - C2
+    if from_ != 0:
+        if to != 0:
+            # This is mathematically equivalent, but has higher numerical
+            # error than using the inverse to always go to zero and back
+            # comp = np.eye(info['nchan']) + C1 - C2 - np.dot(C2, C1)
+            comp = np.dot(comp_0_to, comp_from_0)
+        else:
+            comp = comp_from_0
+    else:
+        # from == 0, to != 0 guaranteed here
+        comp = comp_0_to
 
     if exclude_comp_chs:
         pick = [k for k, c in enumerate(info['chs'])

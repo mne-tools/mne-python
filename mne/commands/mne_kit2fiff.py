@@ -1,21 +1,22 @@
 #!/usr/bin/env python
-# Authors: Teon Brooks  <teon@nyu.edu>
+# Authors: Teon Brooks  <teon.brooks@gmail.com>
 
-""" Import KIT / NYU data to fif file.
+"""Import KIT / NYU data to fif file.
 
 example usage:  $ mne kit2fiff --input input.sqd --output output.fif
 Use without arguments to invoke GUI:  $ mne kt2fiff
 
 """
 
-import os
 import sys
 
 import mne
 from mne.io import read_raw_kit
+from mne.utils import ETSContext
 
-if __name__ == '__main__':
 
+def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -39,13 +40,19 @@ if __name__ == '__main__':
     parser.add_option('--output', dest='out_fname',
                       help='Name of the resulting fiff file',
                       metavar='filename')
+    parser.add_option('--debug', dest='debug', action='store_true',
+                      default=False,
+                      help='Set logging level for terminal output to debug')
 
     options, args = parser.parse_args()
 
+    if options.debug:
+        mne.set_log_level('debug')
+
     input_fname = options.input_fname
     if input_fname is None:
-        os.environ['ETS_TOOLKIT'] = 'qt4'
-        mne.gui.kit2fiff()
+        with ETSContext():
+            mne.gui.kit2fiff()
         sys.exit(0)
 
     hsp_fname = options.hsp_fname
@@ -57,7 +64,7 @@ if __name__ == '__main__':
     out_fname = options.out_fname
 
     if isinstance(stim, str):
-        stim = stim.split(':')
+        stim = map(int, stim.split(':'))
 
     raw = read_raw_kit(input_fname=input_fname, mrk=mrk_fname, elp=elp_fname,
                        hsp=hsp_fname, stim=stim, slope=slope,
@@ -66,3 +73,7 @@ if __name__ == '__main__':
     raw.save(out_fname)
     raw.close()
     sys.exit(0)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

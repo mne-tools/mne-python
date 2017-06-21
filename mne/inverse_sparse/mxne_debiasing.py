@@ -1,5 +1,5 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -11,7 +11,7 @@ from ..utils import check_random_state, logger, verbose
 
 
 def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
-    """Find the largest singular value for the matrix kron(C.T, A)
+    """Find the largest singular value for the matrix kron(C.T, A).
 
     It uses power iterations.
 
@@ -56,7 +56,7 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
 
 @verbose
 def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
-    """Compute scaling to correct amplitude bias
+    """Compute scaling to correct amplitude bias.
 
     It solves the following optimization problem using FISTA:
 
@@ -84,7 +84,8 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
     n_orient : int
         The number of orientations (1 for fixed and 3 otherwise).
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -121,9 +122,15 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
         Y.fill(0.0)
         dt = (t0 - 1.0) / t
         Y = D + dt * (D - D0)
-        if linalg.norm(D - D0, np.inf) < tol:
-            logger.info("Debiasing converged after %d iterations" % i)
+
+        Ddiff = linalg.norm(D - D0, np.inf)
+
+        if Ddiff < tol:
+            logger.info("Debiasing converged after %d iterations "
+                        "max(|D - D0| = %e < %e)" % (i, Ddiff, tol))
             break
     else:
-        logger.info("Debiasing did not converge")
+        Ddiff = linalg.norm(D - D0, np.inf)
+        logger.info("Debiasing did not converge after %d iterations! "
+                    "max(|D - D0| = %e >= %e)" % (max_iter, Ddiff, tol))
     return D

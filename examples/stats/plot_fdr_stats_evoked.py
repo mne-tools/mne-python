@@ -8,19 +8,20 @@ Multiple comparison problem is addressed with
 False Discovery Rate (FDR) correction.
 
 """
-
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 from scipy import stats
+import matplotlib.pyplot as plt
+
 import mne
 from mne import io
 from mne.datasets import sample
 from mne.stats import bonferroni_correction, fdr_correction
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -30,7 +31,7 @@ event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 #   Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)[:30]
 
 channel = 'MEG 1332'  # include only this channel in analysis
@@ -65,7 +66,6 @@ threshold_fdr = np.min(np.abs(T)[reject_fdr])
 # Plot
 times = 1e3 * epochs.times
 
-import matplotlib.pyplot as plt
 plt.close('all')
 plt.plot(times, T, 'k', label='T-stat')
 xmin, xmax = plt.xlim()

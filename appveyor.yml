@@ -1,0 +1,26 @@
+environment:
+  global:
+      PYTHON: "C:\\conda"
+      MINICONDA_VERSION: "latest"
+      CONDA_DEPENDENCIES: "setuptools numpy scipy matplotlib scikit-learn nose mayavi pandas h5py PIL pyside"
+      PIP_DEPENDENCIES: "nibabel nitime nose-timer nose-faulthandler"
+  matrix:
+      - PYTHON_VERSION: "2.7"
+        PYTHON_ARCH: "64"
+
+install:
+  - "git clone git://github.com/astropy/ci-helpers.git"
+  - "powershell ci-helpers/appveyor/install-miniconda.ps1"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "activate test"
+  - "python setup.py develop"
+  - "SET MNE_SKIP_NETWORK_TESTS=1"
+  - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
+  - "SET MNE_LOGGING_LEVEL=warning"
+  - "python -c \"import mne; mne.datasets.testing.data_path()\""
+
+build: false  # Not a C# project, build stuff at the test step instead.
+
+test_script:
+  # Run the project tests, but (sadly) exclude ones that take a long time
+  - "nosetests --verbosity=2 -a !slow_test --with-timer --timer-top-n=30 --timer-ok 5 --timer-warning 30"

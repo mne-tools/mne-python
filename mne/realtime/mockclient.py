@@ -1,6 +1,6 @@
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Denis Engemann <d.engemann@fz-juelich.de>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis Engemann <denis.engemann@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -10,18 +10,18 @@ from ..event import find_events
 
 
 class MockRtClient(object):
-    """Mock Realtime Client
+    """Mock Realtime Client.
 
-    Attributes
+    Parameters
     ----------
     raw : instance of Raw object
         The raw object which simulates the RtClient
-    info : dict
-        Measurement info.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
-    def __init__(self, raw, verbose=None):
+
+    def __init__(self, raw, verbose=None):  # noqa: D102
         self.raw = raw
         self.info = copy.deepcopy(self.raw.info)
         self.verbose = verbose
@@ -30,7 +30,7 @@ class MockRtClient(object):
         self._last = dict()  # Last index for the event
 
     def get_measurement_info(self):
-        """Returns the measurement info.
+        """Return the measurement info.
 
         Returns
         -------
@@ -72,13 +72,10 @@ class MockRtClient(object):
             data, times = self.raw[:, start:stop]
 
             # to undo the calibration done in _process_raw_buffer
-            cals = np.zeros(self.info['nchan'])
-            for k in range(self.info['nchan']):
-                cals[k] = (self.info['chs'][k]['range']
-                           * self.info['chs'][k]['cal'])
+            cals = np.array([[self.info['chs'][k]['range'] *
+                              self.info['chs'][k]['cal'] for k in picks]]).T
 
-            self._cals = cals[:, None]
-            data[picks, :] = data[picks, :] / self._cals
+            data[picks, :] = data[picks, :] / cals
 
             epochs._process_raw_buffer(data)
 
@@ -103,6 +100,8 @@ class MockRtClient(object):
             Start time before event.
         tmax : float
             End time after event.
+        picks : array-like of int
+            Indices of channels.
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
@@ -118,7 +117,6 @@ class MockRtClient(object):
         data : 2D array with shape [n_channels, n_times]
             The epochs that are being simulated
         """
-
         # Get the list of all events
         events = find_events(self.raw, stim_channel=stim_channel,
                              verbose=False, output='onset',
@@ -159,17 +157,35 @@ class MockRtClient(object):
             return None
 
     def register_receive_callback(self, x):
-        """API boilerplate"""
+        """Fake API boilerplate.
+
+        Parameters
+        ----------
+        x : None
+            Not used.
+        """
         pass
 
     def start_receive_thread(self, x):
-        """API boilerplate"""
+        """Fake API boilerplate.
+
+        Parameters
+        ----------
+        x : None
+            Not used.
+        """
         pass
 
     def unregister_receive_callback(self, x):
-        """API boilerplate"""
+        """Fake API boilerplate.
+
+        Parameters
+        ----------
+        x : None
+            Not used.
+        """  # noqa: D401
         pass
 
     def _stop_receive_thread(self):
-        """API boilerplate"""
+        """Fake API boilerplate."""
         pass

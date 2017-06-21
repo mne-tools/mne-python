@@ -5,7 +5,8 @@
 PYTHON ?= python
 NOSETESTS ?= nosetests
 CTAGS ?= ctags
-
+CODESPELL_SKIPS ?= "*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii,*.pyc,*.doctree,*.pickle,*.inv,*.png,*.edf,*.touch,*.thickness,*.nofix,*.volume,*.defect_borders,*.mgh,lh.*,rh.*,COR-*,FreeSurferColorLUT.txt,*.examples,.xdebug_mris_calc,bad.segments,BadChannels,*.hist,empty_file,*.orig,*.js,*.map,*.ipynb,searchindex.dat"
+CODESPELL_DIRS ?= mne/ doc/ tutorials/ examples/
 all: clean inplace test test-doc
 
 clean-pyc:
@@ -16,52 +17,65 @@ clean-so:
 	find . -name "*.pyd" | xargs rm -f
 
 clean-build:
-	rm -rf build
+	rm -rf _build
 
 clean-ctags:
 	rm -f tags
 
-clean: clean-build clean-pyc clean-so clean-ctags
+clean-cache:
+	find . -name "__pycache__" | xargs rm -rf
+
+clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 
 in: inplace # just a shortcut
 inplace:
 	$(PYTHON) setup.py build_ext -i
 
-sample_data: $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif
-	@echo "Target needs sample data"
+sample_data:
+	@python -c "import mne; mne.datasets.sample.data_path(verbose=True);"
 
-$(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif:
-	wget -c ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE-sample-data-processed.tar.gz
-	tar xvzf MNE-sample-data-processed.tar.gz
-	mv MNE-sample-data examples/
-	ln -sf ${PWD}/examples/MNE-sample-data ${PWD}/MNE-sample-data
+testing_data:
+	@python -c "import mne; mne.datasets.testing.data_path(verbose=True);"
 
-test: in sample_data
+test: in
+	rm -f .coverage
+	$(NOSETESTS) -a '!ultra_slow_test' mne
+
+test-verbose: in
+	rm -f .coverage
+	$(NOSETESTS) -a '!ultra_slow_test' mne --verbose
+
+test-fast: in
+	rm -f .coverage
+	$(NOSETESTS) -a '!slow_test' mne
+
+test-full: in
 	rm -f .coverage
 	$(NOSETESTS) mne
 
-test-no-sample: in
-	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
+test-no-network: in
+	sudo unshare -n -- sh -c 'MNE_SKIP_NETWORK_TESTS=1 nosetests mne'
+
+test-no-testing-data: in
+	@MNE_SKIP_TESTING_DATASET_TESTS=true \
 	$(NOSETESTS) mne
 
-
-test-no-sample-with-coverage: in
-	rm -rf coverage .coverage
-	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
-	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
-
-test-doc: sample_data
-	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
-
-test-coverage: sample_data
+test-no-sample-with-coverage: in testing_data
 	rm -rf coverage .coverage
 	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
-test-profile: sample_data
+test-doc: sample_data testing_data
+	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/
+
+test-coverage: testing_data
+	rm -rf coverage .coverage
+	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
+
+test-profile: testing_data
 	$(NOSETESTS) --with-profile --profile-stats-file stats.pf mne
 	hotshot2dot stats.pf | dot -Tpng -o profile.png
 
-test-mem: in sample_data
+test-mem: in testing_data
 	ulimit -v 1097152 && $(NOSETESTS)
 
 trailing-spaces:
@@ -75,16 +89,50 @@ ctags:
 upload-pipy:
 	python setup.py sdist bdist_egg register upload
 
-codespell:
-	# The *.fif had to be there twice to be properly ignored (!)
-	codespell.py -w -i 3 -S="*.fif,*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.coverage,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii" ./dictionary.txt -r .
+flake:
+	@if command -v flake8 > /dev/null; then \
+		echo "Running flake8"; \
+		flake8 --count mne examples tutorials; \
+	else \
+		echo "flake8 not found, please install it!"; \
+		exit 1; \
+	fi;
+	@echo "flake8 passed"
+
+codespell:  # running manually
+	@codespell -w -i 3 -q 3 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
+
+codespell-error:  # running on travis
+	@codespell -i 0 -q 7 -S $(CODESPELL_SKIPS) -D ./dictionary.txt $(CODESPELL_DIRS)
+
+pydocstyle:
+	@echo "Running pydocstyle"
+	@pydocstyle
+
+docstring:
+	@echo "Running docstring tests"
+	@$(NOSETESTS) mne/tests/test_docstring_parameters.py
+
+pep:
+	@$(MAKE) -k flake pydocstyle docstring codespell-error
 
 manpages:
 	@echo "I: generating manpages"
-	set -e; mkdir -p build/manpages && \
+	set -e; mkdir -p _build/manpages && \
 	cd bin && for f in mne*; do \
 			descr=$$(grep -h -e "^ *'''" -e 'DESCRIP =' $$f -h | sed -e "s,.*' *\([^'][^']*\)'.*,\1,g" | head -n 1); \
 	PYTHONPATH=../ \
 			help2man -n "$$descr" --no-discard-stderr --no-info --version-string "$(uver)" ./$$f \
-			>| ../build/manpages/$$f.1; \
+			>| ../_build/manpages/$$f.1; \
 	done
+
+build-doc-dev:
+	cd doc; make clean
+	cd doc; DISPLAY=:1.0 xvfb-run -n 1 -s "-screen 0 1280x1024x24 -noreset -ac +extension GLX +render" make html_dev
+
+build-doc-stable:
+	cd doc; make clean
+	cd doc; DISPLAY=:1.0 xvfb-run -n 1 -s "-screen 0 1280x1024x24 -noreset -ac +extension GLX +render" make html_stable
+
+docstyle:
+	@pydocstyle

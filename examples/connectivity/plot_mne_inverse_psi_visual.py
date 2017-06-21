@@ -19,21 +19,19 @@ References
 Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
 pp. 1-4, Jun. 2008.
 """
-
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import numpy as np
+
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.minimum_norm import read_inverse_operator, apply_inverse_epochs
 from mne.connectivity import seed_target_indices, phase_slope_index
-from mne.viz import mne_analyze_colormap
 
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -47,7 +45,7 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
-raw = Raw(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 
 # pick MEG channels
@@ -94,8 +92,9 @@ fmax = 30.
 tmin_con = 0.
 sfreq = raw.info['sfreq']  # the sampling frequency
 
-psi, freqs, times, n_epochs, _ = phase_slope_index(comb_ts, mode='multitaper',
-    indices=indices, sfreq=sfreq, fmin=fmin, fmax=fmax, tmin=tmin_con)
+psi, freqs, times, n_epochs, _ = phase_slope_index(
+    comb_ts, mode='multitaper', indices=indices, sfreq=sfreq,
+    fmin=fmin, fmax=fmax, tmin=tmin_con)
 
 # Generate a SourceEstimate with the PSI. This is simple since we used a single
 # seed (inspect the indices variable to see how the PSI scores are arranged in
@@ -106,10 +105,9 @@ psi_stc = mne.SourceEstimate(psi, vertices=vertices, tmin=0, tstep=1,
 # Now we can visualize the PSI using the plot method. We use a custom colormap
 # to show signed values
 v_max = np.max(np.abs(psi))
-colormap = mne_analyze_colormap(limits=[0, v_max / 3, v_max])
 brain = psi_stc.plot(surface='inflated', hemi='lh',
                      time_label='Phase Slope Index (PSI)',
-                     subjects_dir=subjects_dir, colormap=colormap)
-brain.scale_data_colormap(fmin=-v_max, fmid=0., fmax=v_max, transparent=False)
+                     subjects_dir=subjects_dir,
+                     clim=dict(kind='percent', pos_lims=(95, 97.5, 100)))
 brain.show_view('medial')
 brain.add_label(fname_label, color='green', alpha=0.7)

@@ -1,4 +1,5 @@
 include *.rst
+include LICENSE.txt
 include mne/__init__.py
 # recursive-include doc *
 recursive-include examples *.py
@@ -6,13 +7,25 @@ recursive-include examples *.txt
 recursive-include mne *.py
 recursive-include mne/data *.dat
 recursive-include mne/data *.sel
+recursive-include mne/data *.fif
 recursive-include mne/data *.fif.gz
-recursive-include mne/layouts *.lout
-recursive-include mne/layouts *.lay
+recursive-include mne/channels/data/montages *.elc
+recursive-include mne/channels/data/montages *.txt
+recursive-include mne/channels/data/montages *.csd
+recursive-include mne/channels/data/montages *.sfp
+recursive-include mne/channels/data/layouts *.lout
+recursive-include mne/channels/data/layouts *.lay
+recursive-include mne/channels/data/neighbors *.mat
+recursive-include mne/preprocessing/tests/data *.mat
+recursive-include mne/html *.js
+recursive-include mne/html *.css
+recursive-include mne/gui/help *.json
 recursive-exclude examples/MNE-sample-data *
-# recursive-include mne/fiff/tests/data *
-recursive-exclude mne/fiff/tests/data *
-recursive-exclude mne/fiff/bti/tests/data *
-recursive-exclude mne/fiff/kit/tests/data *
-recursive-exclude mne/fiff/edf/tests/data *
-recursive-exclude mne/fiff/brainvision/tests/data *
+recursive-exclude examples/MNE-testing-data *
+recursive-exclude examples/MNE-spm-face *
+recursive-exclude examples/MNE-somato-data *
+# recursive-exclude mne/io/tests/data *
+# recursive-exclude mne/io/bti/tests/data *
+# recursive-exclude mne/io/kit/tests/data *
+# recursive-exclude mne/io/edf/tests/data *
+# recursive-exclude mne/io/brainvision/tests/data *
