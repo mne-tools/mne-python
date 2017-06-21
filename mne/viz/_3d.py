@@ -516,10 +516,11 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         raise ValueError('source must be None if bem is not None '
                          '(and vice versa)!')
     if skull is True:
-        if bem is None or bem['is_sphere']:
-            skull = 'outer_skull'
+        if isinstance(bem, ConductorModel) and not bem['is_sphere']:
+            skull = [_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL)]
         else:
-            skull = _bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL)
+            skull = 'outer_skull'
+
     if isinstance(skull, string_types):
         skull = [skull]
     elif not skull:
@@ -676,7 +677,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         else:
             brain = False
     if brain:
-        if bem is not None and bem['is_sphere']:
+        if isinstance(bem, ConductorModel) and bem['is_sphere']:
             surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # we only plot 1
         else:
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)

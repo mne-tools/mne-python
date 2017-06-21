@@ -25,6 +25,7 @@ from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
+from mne.bem import read_bem_solution, read_bem_surfaces
 
 
 # Set our plotters to test mode
@@ -192,9 +193,20 @@ def test_plot_trans():
                   source=None, bem=None, subject='sample',
                   subjects_dir=subjects_dir)
     sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
+    bem_sol = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
+                                        'sample-1280-1280-1280-bem-sol.fif'))
+    bem_surfs = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
+                                          'sample-1280-1280-1280-bem.fif'))
     plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
-               subjects_dir=subjects_dir, skull=['inner_skull', 'outer_skull'],
+               subjects_dir=subjects_dir, head=True, brain=True,
+               eeg_sensors='projected', skull=['inner_skull', 'outer_skull'],
                source=None, bem=sphere)
+    plot_trans(info, trans_fname, subject='sample', meg_sensors=False,
+               subjects_dir=subjects_dir, head=True, brain='inflated',
+               skull=True, source=None, bem=bem_sol)
+    plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
+               subjects_dir=subjects_dir, head=True, brain=False,
+               skull=True, source=None, bem=bem_surfs)
 
 
 @testing.requires_testing_data
