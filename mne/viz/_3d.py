@@ -529,8 +529,14 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if not (source is None) ^ (bem is None):
         raise ValueError('source must be None if bem is not None '
                          '(and vice versa)!')
+    is_sphere = False
+    if isinstance(bem, ConductorModel) and bem['is_sphere']:
+        if len(bem['layers']) != 4:
+            raise ValueError('The sphere conductor model must have three '
+                             'layers for plotting.')
+        is_sphere = True
     if skull is True:
-        if isinstance(bem, ConductorModel) and not bem['is_sphere']:
+        if not is_sphere:
             skull = [_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL)]
         else:
             skull = 'outer_skull'
@@ -542,7 +548,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if len(skull) > 0 and not isinstance(skull[0], dict):  # list of str
         skull = sorted(skull)
         if isinstance(bem, ConductorModel):
-            if not bem['is_sphere']:
+            if not is_sphere:
                 for idx, this_skull in enumerate(skull):
                     skull[idx] = _bem_find_surface(bem, _surf_dict[this_skull])
         elif bem is not None:  # list of dict
@@ -626,7 +632,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         if bem is not None:
             if isinstance(bem, ConductorModel):
-                if bem['is_sphere']:
+                if is_sphere:
                     head_surf = _complete_sphere_surf(bem, 3, 4)
                 else:
                     head_surf = _bem_find_surface(bem,
@@ -691,7 +697,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         else:
             brain = False
     if brain:
-        if isinstance(bem, ConductorModel) and bem['is_sphere']:
+        if is_sphere:
             surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # we only plot 1
         else:
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -715,7 +721,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         if isinstance(this_skull, dict):
             skull_surf = this_skull
             this_skull = _surf_name[skull_surf['id']]
-        elif bem is not None and bem['is_sphere']:  # this_skull == str
+        elif is_sphere:  # this_skull == str
             this_idx = 1 if this_skull == 'inner_skull' else 2
             skull_surf = _complete_sphere_surf(bem, this_idx, 4)
         else:  # str
