@@ -247,7 +247,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.csd':
         # CSD toolbox
-        dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
+        dtype = [('label', 'S7'), ('theta', 'f8'), ('phi', 'f8'),
                  ('radius', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
                  ('off_sph', 'f8')]
         try:  # newer version
