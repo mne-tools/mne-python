@@ -1385,9 +1385,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         rows = 2
     else:
         rows, height_ratios = 1, None
-    gs = gridspec.GridSpec(rows, cols, height_ratios=height_ratios)
+    gs = gridspec.GridSpec(rows, cols, height_ratios=height_ratios, left=0.2,
+                           right=1., bottom=0.05, top=0.95)
     if axes is None:
-        plt.figure(figsize=(width, height))
+        figure_nobar(figsize=(width * 1.5, height * 1.5))
         axes = list()
         for ax_idx in range(len(times)):
             axes.append(plt.subplot(gs[0]))
@@ -1484,13 +1485,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if interactive:
         axes.append(plt.subplot(gs[2]))
         slider = Slider(axes[-1], 'Time', evoked.times[0], evoked.times[-1],
-                        times[0])
+                        times[0], valfmt='%1.2fs')
         func = _merge_grad_data if merge_grads else lambda x: x
         changed_callback = partial(_slider_changed, ax=axes[0],
                                    data=evoked.data, times=evoked.times,
                                    pos=pos, scale=scale, func=func,
-                                   kwargs=kwargs)
+                                   time_format=time_format,
+                                   scale_time=scale_time, kwargs=kwargs)
         slider.on_changed(changed_callback)
+        ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
+        axes[-1].plot(ts, evoked.data, color='k')
     if title is not None:
         plt.suptitle(title, verticalalignment='top', size='x-large')
 
@@ -1533,7 +1537,8 @@ def _resize_cbar(cax, n_fig_axes, size=1):
     cax.set_position(cpos)
 
 
-def _slider_changed(val, ax, data, times, pos, scale, func, kwargs):
+def _slider_changed(val, ax, data, times, pos, scale, func, time_format,
+                    scale_time, kwargs):
     """Handle selection in interactive topomap."""
     idx = np.argmin(np.abs(times - val))
     data = func(data[:, idx]).ravel() * scale
@@ -1542,6 +1547,8 @@ def _slider_changed(val, ax, data, times, pos, scale, func, kwargs):
     if hasattr(ax, 'CB'):
         ax.CB.mappable = im
         _resize_cbar(ax.CB.cbar.ax, 2)
+    if time_format is not None:
+            ax.set_title(time_format % (val * scale_time))
 
 
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
