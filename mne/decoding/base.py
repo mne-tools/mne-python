@@ -20,8 +20,7 @@ class LinearModel(BaseEstimator):
     The linear model coefficients (filters) are used to extract discriminant
     neural sources from the measured data. This class computes the
     corresponding patterns of these linear filters to make them more
-    interpretable [1]_. Note that X and Y need to be normalized for the
-    patterns to be interpretable.
+    interpretable [1]_.
 
     Parameters
     ----------
@@ -32,9 +31,9 @@ class LinearModel(BaseEstimator):
 
     Attributes
     ----------
-    ``filters_`` : ndarray
+    ``filters_`` : ndarray, shape (n_targets, n_features)
         If fit, the filters used to decompose the data.
-    ``patterns_`` : ndarray
+    ``patterns_`` : ndarray, shape (n_targets, n_features)
         If fit, the patterns used to restore M/EEG signals.
 
     Notes
@@ -84,28 +83,26 @@ class LinearModel(BaseEstimator):
         if X.ndim != 2:
             raise ValueError('LinearModel only accepts 2-dimensional X, got '
                              '%s instead.' % (X.shape,))
-        # Check that X and y are normalized (necessary for patterns reconstructions)
-        if not (np.allclose(np.r_[y.mean(0), X.mean(0)], 0) and
-                np.allclose(np.r_[y.std(0), X.std(0)], 1)):
-            warn("Patterns may not be valid if X and y have not been z-scored"
-                 " first. Used sklearn.preprocessing.StandardScaler in model.")
-
         # fit the Model
         self.model.fit(X, y)
 
-        # computes the patterns
-        if not hasattr(self.model, 'coef_'):
-            raise ValueError('model needs a unidimensional coef_ attribute to '
-                             'compute the patterns')
-        self.filters_ = np.squeeze(self.model.coef_)
-        cov_X = np.cov(X.T)
+        # Computes patterns using Haufe's trick:
+        # A = Covariance_X . W . Precision_Y
+
         inv_Y = 1.
-        if y.ndim > 1:
-            y_norm = (y - y.mean(0)) / y.std(0)
-            inv_Y = np.linalg.pinv(np.cov(y_norm.T))
-        self.patterns_ = cov_X.dot(self.filters_.T.dot(inv_Y)).T
+        X = X - X.mean(0, keepdims=True)
+        if np.squeeze(y).ndim > 1:
+            y = y - y.mean(0, keepdims=True)
+            inv_Y = np.linalg.pinv(np.cov(y.T))
+        self.patterns_ = np.cov(X.T).dot(self.filters_.T.dot(inv_Y)).T
 
         return self
+
+    @property
+    def filters_(self):
+        if not hasattr(self.model, 'coef_'):
+            raise ValueError('model does not have a `coef_` attribute.')
+        return np.squeeze(self.model.coef_)
 
     def transform(self, X):
         """Transform the data using the linear model.
