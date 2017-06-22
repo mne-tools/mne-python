@@ -6,6 +6,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Phillip Alday <phillip.alday@unisa.edu.au>
+#          Okba Bekhelifi <okba.bekhelifi@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -239,6 +240,11 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
                                re.IGNORECASE & re.MULTILINE)
         if cp_setting:
             codepage = cp_setting.group(1).strip()
+        # BrainAmp Recorder also uses ANSI codepage
+        # an ANSI codepage raises a LookupError exception
+        # python recognize ANSI decoding as cp1252
+        if codepage == 'ANSI':
+            codepage = 'cp1252'
         txt = txt.decode(codepage)
     except UnicodeDecodeError:
         # if UTF-8 (new standard) or explicit codepage setting fails,
@@ -388,6 +394,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                                    re.IGNORECASE & re.MULTILINE)
             if cp_setting:
                 codepage = cp_setting.group(1).strip()
+            # BrainAmp Recorder also uses ANSI codepage
+            # an ANSI codepage raises a LookupError exception
+            # python recognize ANSI decoding as cp1252
+            if codepage == 'ANSI':
+                codepage = 'cp1252'
             settings = settings.decode(codepage)
         except UnicodeDecodeError:
             # if UTF-8 (new standard) or explicit codepage setting fails,
