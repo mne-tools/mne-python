@@ -95,6 +95,8 @@ BUG
 
     - Fix :func:`mne.transforms.transform_surface_to` to actually copy when ``copy=True`` by `Eric Larson`_
 
+    - Fix :func:`mne.compute_covariance` to support multiprocessing for shrinkage estimators by `Denis Engemann`_
+
 API
 ~~~
 
@@ -115,6 +117,8 @@ API
     - Make function `mne.io.eeglab.read_events_eeglab` public to allow loading overlapping events from EEGLAB files, by `Jona Sassenhagen`_.
 
     - :func:`mne.find_events` ``mask_type`` parameter will change from ``'not_and'`` to ``'and'`` in 0.16.
+
+    - :func:`mne.viz.evoked.plot_evoked_white` now exposes a rank parameter to allow manually specifying the spatial degrees of freedom. The function issues a warning when the apparent rank of the covariance differs from the expected rank of the data, as indicated by SSP and SSS processing histories. By `Denis Engemann`_
 
     - Instead of raising an error, duplicate channel names in the data file are now appended with a running number by `Jaakko Leppakangas`_
 
