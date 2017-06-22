@@ -1495,6 +1495,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         slider.on_changed(changed_callback)
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color='k')
+        axes[-1].slider = slider
     if title is not None:
         plt.suptitle(title, verticalalignment='top', size='x-large')
 
@@ -1548,7 +1549,7 @@ def _slider_changed(val, ax, data, times, pos, scale, func, time_format,
         ax.CB.mappable = im
         _resize_cbar(ax.CB.cbar.ax, 2)
     if time_format is not None:
-            ax.set_title(time_format % (val * scale_time))
+        ax.set_title(time_format % (val * scale_time))
 
 
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
