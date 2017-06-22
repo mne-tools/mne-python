@@ -41,7 +41,7 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _ensure_int)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
                     tight_layout, figure_nobar)
-from ..bem import ConductorModel, _bem_find_surface, _surf_dict
+from ..bem import ConductorModel, _bem_find_surface, _surf_dict, _surf_name
 
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
@@ -399,6 +399,16 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                bem=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
+    This function serves the purpose of checking the validity of the many
+    different steps of source reconstruction:
+
+    - Transform matrix (keywords ``trans``, ``meg_sensors`` and
+      ``mri_fiducials``),
+    - BEM surfaces (keywords ``source``, ``bem``, ``skull`` and ``head``),
+    - sphere conductor model (keywords ``bem``, ``head``, ``skull`` and
+      ``brain``) and
+    - source space (keywords ``brain`` and ``src``).
+
     Parameters
     ----------
     info : dict
@@ -482,6 +492,10 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
+
+    See Also
+    --------
+    :func:`mne.viz.plot_bem`
     """
     from ..forward import _create_meg_coils
     mlab = _import_mlab()
@@ -699,7 +713,6 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     alphas = (4 - np.arange(len(skull) + 1)) * (0.5 / 4.)
     for idx, this_skull in enumerate(skull):
         if isinstance(this_skull, dict):
-            from ..bem import _surf_name
             skull_surf = this_skull
             this_skull = _surf_name[skull_surf['id']]
         elif bem is not None and bem['is_sphere']:  # this_skull == str
