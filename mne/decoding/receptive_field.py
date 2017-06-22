@@ -52,7 +52,7 @@ class ReceptiveField(BaseEstimator):
     ----------
     ``coef_`` : array, shape ([n_outputs, ]n_features, n_delays)
         The coefficients from the model fit, reshaped for easy visualization.
-        If ``y`` during :meth:`mne.decoding.ReceptiveField.fit` has one
+        During :meth:`mne.decoding.ReceptiveField.fit`, if ``y`` has one
         dimension (time), the ``n_outputs`` dimension here is omitted.
     ``delays_``: array, shape (n_delays,), dtype int
         The delays used to fit the model, in indices. To return the delays
