@@ -536,7 +536,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                              'layers for plotting.')
         is_sphere = True
     if skull is True:
-        if not is_sphere:
+        if isinstance(bem, ConductorModel) and not bem['is_sphere']:
             skull = [_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL)]
         else:
             skull = 'outer_skull'
