@@ -41,10 +41,12 @@ class RawEDF(BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | None
-        The channel name or channel index (starting at 0).
-        -1 corresponds to the last channel (default).
-        If None, there will be no stim channel added.
+    stim_channel : str | int | 'auto' | None
+        The channel name or channel index (starting at 0). -1 corresponds to
+        the last channel. If None, there will be no stim channel added. If
+        'auto' (default), the stim channel will be added as the last channel if
+        the header contains ``'EDF Annotations`` or GDF events (otherwise stim
+        channel will not be added).
     annot : str | None
         Path to annotation file.
         If None, no derived stim channel will be added (for files requiring
@@ -79,10 +81,9 @@ class RawEDF(BaseRaw):
     been made to decode these in MNE.
 
     For GDF files, the stimulus channel is constructed from the events in the
-    header. You should use keyword ``stim_channel=-1`` to add it at the end of
-    the channel list. The id numbers of overlapping events are simply combined
-    through addition. To get the original events from the header, use method
-    ``raw.get_gdf_events``.
+    header. The id numbers of overlapping events are simply combined through
+    addition. To get the original events from the header, use method
+    ``raw.get_edf_events``.
 
     See Also
     --------
@@ -91,8 +92,14 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None, exclude=(),
+                 stim_channel=True, annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
+        if stim_channel is True:
+            warn("stim_channel will default to 'auto' in version 0.16. "
+                 "Set stim_channel explicitly to avoid this warning.",
+                 DeprecationWarning)
+            stim_channel = 'auto' if input_fname[-4:] == '.gdf' else -1
+
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,
@@ -268,10 +275,10 @@ class RawEDF(BaseRaw):
                                       2**17 - 1)
                 data[stim_channel_idx, :] = stim
 
-    def get_gdf_events(self):
-        """Get original events as read from the GDF header.
+    def get_edf_events(self):
+        """Get original events as read from the header.
 
-        The values are returned in form
+        For GDF, the values are returned in form
         [n_events, pos, typ, chn, dur]
         where:
 
@@ -284,10 +291,20 @@ class RawEDF(BaseRaw):
         chn       The associated channels (0 for all)  array
         dur       The durations of the events          array
         ========  ===================================  =======
+
+        For EDF+, the values are returned in form
+        n_events * [onset, dur, desc]
+        where:
+
+        ========  ===================================  =======
+        name      description                          type
+        ========  ===================================  =======
+        onset     Onset of the event in seconds        float
+        dur       Duration of the event in seconds     float
+        desc      Description of the event             str
+        ========  ===================================  =======
+
         """
-        if self._raw_extras[0]['subtype'].lower() != 'gdf':
-            raise TypeError('get_gdf_events is intended for GDF files only. '
-                            'Use mne.find_events instead.')
         return self._raw_extras[0]['events']
 
 
@@ -362,13 +379,12 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     ext = os.path.splitext(fname)[1][1:].lower()
     logger.info('%s file detected' % ext.upper())
     if ext in ('bdf', 'edf'):
-        edf_info = _read_edf_header(fname, stim_channel, annot, annotmap,
-                                    exclude)
+        edf_info = _read_edf_header(fname, annot, annotmap, exclude)
     elif ext in ('gdf'):
         if annot is not None:
             warn('Annotations not yet supported for GDF files.')
         edf_info = _read_gdf_header(fname, stim_channel, exclude)
-        if 'stim_data' not in edf_info and stim_channel == -1:
+        if 'stim_data' not in edf_info and stim_channel == 'auto':
             stim_channel = None  # Cannot construct stim channel.
     else:
         raise NotImplementedError(
@@ -385,9 +401,12 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         warn('Scaling factor is not defined in following channels:\n' +
              ', '.join(ch_names[i] for i in idx))
         cals[idx] = 1
-    if 'stim_data' in edf_info and stim_channel == -1:  # For GDF events.
+    if 'stim_data' in edf_info and stim_channel == 'auto':  # For GDF events.
         cals = np.append(cals, 1)
     # Check that stimulus channel exists in dataset
+    if not ('stim_data' in edf_info or
+            'EDF Annotations' in ch_names) and stim_channel == 'auto':
+        stim_channel = None
     if stim_channel is not None:
         stim_channel = _check_stim_channel(stim_channel, ch_names, include)
 
@@ -521,7 +540,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     return info, edf_info
 
 
-def _read_edf_header(fname, stim_channel, annot, annotmap, exclude):
+def _read_edf_header(fname, annot, annotmap, exclude):
     """Read header information from EDF+ or BDF file."""
     edf_info = dict()
     edf_info.update(annot=annot, annotmap=annotmap, events=[])
@@ -1007,7 +1026,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 events = [n_events, pos, typ, chn, dur]
                 edf_info['event_sfreq'] = event_sr
 
-    if stim_channel == -1 and edf_info['nchan'] not in exclude:
+    if stim_channel == 'auto' and edf_info['nchan'] not in exclude:
         if len(events) == 0:
             warn('No events found. Cannot construct a stimulus channel.')
             edf_info['events'] = list()
@@ -1079,7 +1098,12 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 def _check_stim_channel(stim_channel, ch_names, include):
     """Check that the stimulus channel exists in the current datafile."""
     if isinstance(stim_channel, str):
-        if stim_channel not in ch_names:
+        if stim_channel == 'auto':
+            if 'auto' in ch_names:
+                raise ValueError("'auto' exists as a channel name. Change "
+                                 "stim_channel parameter!")
+            stim_channel = len(include) - 1
+        elif stim_channel not in ch_names:
             err = 'Could not find a channel named "{}" in datafile.' \
                   .format(stim_channel)
             casematch = [ch for ch in ch_names
@@ -1089,8 +1113,6 @@ def _check_stim_channel(stim_channel, ch_names, include):
                 err += ' Closest match is "{}".'.format(casematch[0])
             raise ValueError(err)
     else:
-        if stim_channel is True:
-            stim_channel = -1
         if stim_channel == -1:
             stim_channel = len(include) - 1
         elif stim_channel > len(ch_names):
@@ -1102,7 +1124,7 @@ def _check_stim_channel(stim_channel, ch_names, include):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None, exclude=(),
+                 stim_channel=True, annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
