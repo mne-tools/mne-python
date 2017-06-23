@@ -1138,11 +1138,11 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
 ##############################################################################
 # Volume to MNI conversion
 
+
 @verbose
 def aseg_vertex_to_mni(vertices, subject, subjects_dir=None, mode=None,
                        verbose=None):
     """Convert the array of vertices for a hemisphere to MNI coordinates.
-
     Parameters
     ----------
     vertices : int, or list of int
@@ -1159,12 +1159,10 @@ def aseg_vertex_to_mni(vertices, subject, subjects_dir=None, mode=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-
     Returns
     -------
     coordinates : n_vertices x 3 array of float
         The MNI coordinates (in mm) of the vertices
-
     Notes
     -----
     This function requires either nibabel (in Python) or Freesurfer
@@ -2464,7 +2462,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
         roi_str = src[nr]['seg_name']
         try:
             ind = all_labels_aseg[0].index(roi_str)
-            color = np.array(all_labels_aseg[1][ind]) / 255
+            color = tuple(np.array(all_labels_aseg[1][ind]) / 255.)
         except ValueError:
             pass
 
