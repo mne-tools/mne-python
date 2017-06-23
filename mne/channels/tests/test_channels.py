@@ -182,6 +182,23 @@ def test_read_ch_connectivity():
     assert_false(np.any(x[0, 1:]))
     assert_false(np.any(x[1:, 0]))
 
+    # Check for neighbours consistency. If a sensor is marked as a neighbour,
+    # then it should also have its neighbours defined.
+    a = partial(np.array)
+    nbh = np.array([[(['E31'], []),
+                     (['E1'], [[a(['E8'])],
+                               [a(['E3'])]]),
+                     (['E2'], [[a(['E1'])],
+                               [a(['E3'])]]),
+                     (['E3'], [[a(['E1'])],
+                               [a(['E2'])]])]],
+                   dtype=[('label', 'O'), ('neighblabel', 'O')])
+    mat = dict(neighbours=nbh)
+    mat_fname = op.join(tempdir, 'test_error_mat.mat')
+    savemat(mat_fname, mat, oned_as='row')
+    assert_raises(ValueError, read_ch_connectivity, mat_fname)
+
+
 def test_get_set_sensor_positions():
     """Test get/set functions for sensor positions"""
     raw1 = read_raw_fif(raw_fname)
