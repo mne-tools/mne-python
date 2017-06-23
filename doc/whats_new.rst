@@ -53,6 +53,7 @@ Changelog
 
     - Add ``background_color`` parameter to :meth:`mne.Epochs.plot_topo` and :func:`mne.viz.plot_evoked_topo` and improve axes rendering as done in :func:`mne.viz.plot_compare_evokeds` by `Alex Gramfort`_
 
+    - Add :func:`mne.io.get_edf_events` for getting the events as they are in the EDF/GDF header by `Jaakko Leppakangas`_
 
 BUG
 ~~~
@@ -117,6 +118,8 @@ API
     - :func:`mne.find_events` ``mask_type`` parameter will change from ``'not_and'`` to ``'and'`` in 0.16.
 
     - Instead of raising an error, duplicate channel names in the data file are now appended with a running number by `Jaakko Leppakangas`_
+
+    - :func:`mne.io.read_raw_edf` has now ``'auto'`` option for ``stim_channel`` (default in version 0.16) that automatically detects if EDF annotations or GDF events exist in the header and constructs the stim channel based on these events by `Jaakko Leppakangas`_
 
 .. _changes_0_14:
 

@@ -49,6 +49,7 @@ Reading raw data
   :template: function.rst
 
   anonymize_info
+  get_edf_events
   read_events_eeglab
   read_raw_artemis123
   read_raw_bti
