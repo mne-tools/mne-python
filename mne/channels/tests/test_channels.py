@@ -12,7 +12,7 @@ import warnings
 import numpy as np
 from scipy.io import savemat
 from numpy.testing import assert_array_equal
-from nose.tools import assert_raises, assert_true, assert_equal
+from nose.tools import assert_raises, assert_true, assert_equal, assert_false
 
 from mne.channels import rename_channels, read_ch_connectivity
 from mne.channels.channels import _ch_neighbor_connectivity
@@ -161,6 +161,26 @@ def test_read_ch_connectivity():
     assert_equal(len(ch_names), 102)
     assert_raises(ValueError, read_ch_connectivity, 'bananas!')
 
+    # In EGI 256, E31 sensor has no neighbour
+    a = partial(np.array)
+    nbh = np.array([[(['E31'], []),
+                     (['E1'], [[a(['E2'])],
+                               [a(['E3'])]]),
+                     (['E2'], [[a(['E1'])],
+                               [a(['E3'])]]),
+                     (['E3'], [[a(['E1'])],
+                               [a(['E2'])]])]],
+                   dtype=[('label', 'O'), ('neighblabel', 'O')])
+    mat = dict(neighbours=nbh)
+    mat_fname = op.join(tempdir, 'test_isolated_mat.mat')
+    savemat(mat_fname, mat, oned_as='row')
+    ch_connectivity, ch_names = read_ch_connectivity(mat_fname)
+    x = ch_connectivity.todense()
+    assert_equal(x.shape[0], len(ch_names))
+    assert_equal(x.shape, (4, 4))
+    assert_true(np.all(x.diagonal()))
+    assert_false(np.any(x[0, 1:]))
+    assert_false(np.any(x[1:, 0]))
 
 def test_get_set_sensor_positions():
     """Test get/set functions for sensor positions"""
