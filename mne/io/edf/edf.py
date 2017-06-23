@@ -26,31 +26,31 @@ from ...utils import copy_function_doc_to_method_doc
 def get_edf_events(raw):
     """Get original EDF events as read from the header.
 
-        For GDF, the values are returned in form
-        [n_events, pos, typ, chn, dur]
-        where:
+    For GDF, the values are returned in form
+    [n_events, pos, typ, chn, dur]
+    where:
 
-        ========  ===================================  =======
-        name      description                          type
-        ========  ===================================  =======
-        n_events  The number of all events             integer
-        pos       Beginnning of the events in samples  array
-        typ       The event identifiers                array
-        chn       The associated channels (0 for all)  array
-        dur       The durations of the events          array
-        ========  ===================================  =======
+    ========  ===================================  =======
+    name      description                          type
+    ========  ===================================  =======
+    n_events  The number of all events             integer
+    pos       Beginnning of the events in samples  array
+    typ       The event identifiers                array
+    chn       The associated channels (0 for all)  array
+    dur       The durations of the events          array
+    ========  ===================================  =======
 
-        For EDF+, the values are returned in form
-        n_events * [onset, dur, desc]
-        where:
+    For EDF+, the values are returned in form
+    n_events * [onset, dur, desc]
+    where:
 
-        ========  ===================================  =======
-        name      description                          type
-        ========  ===================================  =======
-        onset     Onset of the event in seconds        float
-        dur       Duration of the event in seconds     float
-        desc      Description of the event             str
-        ========  ===================================  =======
+    ========  ===================================  =======
+    name      description                          type
+    ========  ===================================  =======
+    onset     Onset of the event in seconds        float
+    dur       Duration of the event in seconds     float
+    desc      Description of the event             str
+    ========  ===================================  =======
 
     Parameters
     ----------
@@ -88,7 +88,7 @@ class RawEDF(BaseRaw):
         The channel name or channel index (starting at 0). -1 corresponds to
         the last channel. If None, there will be no stim channel added. If
         'auto' (default), the stim channel will be added as the last channel if
-        the header contains ``'EDF Annotations`` or GDF events (otherwise stim
+        the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
         channel will not be added).
     annot : str | None
         Path to annotation file.
@@ -125,8 +125,8 @@ class RawEDF(BaseRaw):
 
     For GDF files, the stimulus channel is constructed from the events in the
     header. The id numbers of overlapping events are simply combined through
-    addition. To get the original events from the header, use method
-    ``raw.get_edf_events``.
+    addition. To get the original events from the header, use function
+    :func:`mne.io.get_edf_events`.
 
     See Also
     --------

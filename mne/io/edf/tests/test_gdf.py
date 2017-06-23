@@ -31,7 +31,7 @@ gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
     raw = read_raw_edf(gdf1_path + '.gdf', eog=None,
-                       misc=None, preload=True, stim_channel=-1)
+                       misc=None, preload=True, stim_channel='auto')
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
@@ -50,7 +50,7 @@ def test_gdf_data():
 
     # Test events are encoded to stim channel.
     events = find_events(raw)
-    evs = raw.get_gdf_events()
+    evs = raw.get_edf_events()
     assert_true(all([event in evs[1] for event in events[:, 0]]))
 
 
@@ -80,7 +80,8 @@ def test_gdf2_data():
     assert_array_equal(events[:, 2], [20, 28])
 
     with warnings.catch_warnings(record=True) as w:
-        raw = read_raw_edf(gdf2_path + '.gdf')  # header contains no events
+        # header contains no events
+        raw = read_raw_edf(gdf2_path + '.gdf', stim_channel='auto')
         assert_equal(len(w), 1)
         assert_true(str(w[0].message).startswith('No events found.'))
     assert_equal(nchan, raw.info['nchan'])  # stim channel not constructed
