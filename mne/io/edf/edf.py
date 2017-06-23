@@ -24,7 +24,7 @@ from ...utils import copy_function_doc_to_method_doc
 
 
 def get_edf_events(raw):
-    """Get original events as read from the header.
+    """Get original EDF events as read from the header.
 
         For GDF, the values are returned in form
         [n_events, pos, typ, chn, dur]
@@ -51,10 +51,16 @@ def get_edf_events(raw):
         dur       Duration of the event in seconds     float
         desc      Description of the event             str
         ========  ===================================  =======
+
     Parameters
     ----------
     raw : Instance of RawEDF
         The raw object for finding the events.
+
+    Returns
+    -------
+    events : ndarray
+        The events as they are in the file header.
     """
     return raw.get_edf_events()
 
