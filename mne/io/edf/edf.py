@@ -20,6 +20,43 @@ from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...filter import resample
 from ...externals.six.moves import zip
+from ...utils import copy_function_doc_to_method_doc
+
+
+def get_edf_events(raw):
+    """Get original events as read from the header.
+
+        For GDF, the values are returned in form
+        [n_events, pos, typ, chn, dur]
+        where:
+
+        ========  ===================================  =======
+        name      description                          type
+        ========  ===================================  =======
+        n_events  The number of all events             integer
+        pos       Beginnning of the events in samples  array
+        typ       The event identifiers                array
+        chn       The associated channels (0 for all)  array
+        dur       The durations of the events          array
+        ========  ===================================  =======
+
+        For EDF+, the values are returned in form
+        n_events * [onset, dur, desc]
+        where:
+
+        ========  ===================================  =======
+        name      description                          type
+        ========  ===================================  =======
+        onset     Onset of the event in seconds        float
+        dur       Duration of the event in seconds     float
+        desc      Description of the event             str
+        ========  ===================================  =======
+    Parameters
+    ----------
+    raw : Instance of RawEDF
+        The raw object for finding the events.
+    """
+    return raw.get_edf_events()
 
 
 class RawEDF(BaseRaw):
@@ -275,36 +312,8 @@ class RawEDF(BaseRaw):
                                       2**17 - 1)
                 data[stim_channel_idx, :] = stim
 
+    @copy_function_doc_to_method_doc(get_edf_events)
     def get_edf_events(self):
-        """Get original events as read from the header.
-
-        For GDF, the values are returned in form
-        [n_events, pos, typ, chn, dur]
-        where:
-
-        ========  ===================================  =======
-        name      description                          type
-        ========  ===================================  =======
-        n_events  The number of all events             integer
-        pos       Beginnning of the events in samples  array
-        typ       The event identifiers                array
-        chn       The associated channels (0 for all)  array
-        dur       The durations of the events          array
-        ========  ===================================  =======
-
-        For EDF+, the values are returned in form
-        n_events * [onset, dur, desc]
-        where:
-
-        ========  ===================================  =======
-        name      description                          type
-        ========  ===================================  =======
-        onset     Onset of the event in seconds        float
-        dur       Duration of the event in seconds     float
-        desc      Description of the event             str
-        ========  ===================================  =======
-
-        """
         return self._raw_extras[0]['events']
 
 
