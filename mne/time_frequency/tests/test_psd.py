@@ -1,19 +1,32 @@
 import numpy as np
 import os.path as op
-from numpy.testing import assert_array_almost_equal, assert_raises
-from nose.tools import assert_true
+from numpy.testing import (assert_array_almost_equal, assert_raises,
+                           assert_allclose)
+from nose.tools import assert_true, assert_equal
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
 from mne.utils import requires_version, slow_test, run_tests_if_main
-from mne.time_frequency import psd_welch, psd_multitaper
+from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 
 
-@requires_version('scipy', '0.12')
+def test_psd_nan():
+    """Test handling of NaN in psd_array_welch."""
+    n_samples, n_fft, n_overlap = 2048,  1024, 512
+    x = np.random.RandomState(0).randn(1, n_samples)
+    psds, freqs = psd_array_welch(
+        x[:n_fft + n_overlap], float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    x[n_fft + n_overlap:] = np.nan  # what Raw.get_data() will give us
+    psds_2, freqs_2 = psd_array_welch(
+        x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    assert_allclose(freqs, freqs_2)
+    assert_allclose(psds, psds_2)
+
+
 def test_psd():
     """Tests the welch and multitaper PSD."""
     raw = read_raw_fif(raw_fname)
@@ -46,9 +59,9 @@ def test_psd():
         psds, freqs = func(raw, proj=False, **kws)
         psds_proj, freqs_proj = func(raw, proj=True, **kws)
 
-        assert_true(psds.shape == (len(kws['picks']), len(freqs)))
-        assert_true(np.sum(freqs < 0) == 0)
-        assert_true(np.sum(psds < 0) == 0)
+        assert_equal(psds.shape, (len(kws['picks']), len(freqs)))
+        assert_equal(np.sum(freqs < 0), 0)
+        assert_equal(np.sum(psds < 0), 0)
 
         # Is power found where it should be
         ixs_max = np.argmax(psds, axis=1)
@@ -143,7 +156,6 @@ def test_psd():
 
 
 @slow_test
-@requires_version('scipy', '0.12')
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch."""
     raw = read_raw_fif(raw_fname)
