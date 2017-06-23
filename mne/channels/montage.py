@@ -247,16 +247,14 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.csd':
         # CSD toolbox
-        dtype = [('label', 'S7'), ('theta', 'f8'), ('phi', 'f8'),
-                 ('radius', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
-                 ('off_sph', 'f8')]
         try:  # newer version
-            table = np.loadtxt(fname, skip_header=2, dtype=dtype)
+            data = np.genfromtxt(fname, dtype='str', skip_header=2)
         except TypeError:
-            table = np.loadtxt(fname, skiprows=2, dtype=dtype)
-        ch_names_ = table['label']
-        az = np.deg2rad(table['theta'])
-        pol = np.deg2rad(90. - table['phi'])
+            data = np.genfromtxt(fname, dtype='str', skiprows=2)
+
+        ch_names_ = list(data[:, 0])
+        az = np.deg2rad(data[:, 1].astype(float))
+        pol = np.deg2rad(90. - data[:, 2].astype(float))
         pos = _sph_to_cart(np.array([np.ones(len(az)), az, pol]).T)
     elif ext == '.elp':
         # standard BESA spherical
