@@ -8,12 +8,12 @@ matrix:
         # Full (Linux, 2.7)
         - os: linux
           env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi"
-               PIP_DEPENDENCIES="pysurfer nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler"
+               PIP_DEPENDENCIES="https://github.com/christianbrodbeck/PySurfer/archive/set_surface.zip nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler"
 
         # OSX
         - os: osx
           env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi"
-               PIP_DEPENDENCIES="pysurfer nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler"
+               PIP_DEPENDENCIES="https://github.com/christianbrodbeck/PySurfer/archive/set_surface.zip nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler"
         # Py3k + non-default stim channel
         - os: linux
           env: PYTHON_VERSION=3.5 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
