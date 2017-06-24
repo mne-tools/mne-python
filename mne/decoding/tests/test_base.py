@@ -37,6 +37,7 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     """
 
     # Define Y latent factors
+    np.random.seed(0)
     cov_Y = np.eye(n_targets) * 10 + np.random.rand(n_targets, n_targets)
     mean_Y = np.random.rand(n_targets)
     Y = np.random.multivariate_normal(mean_Y, cov_Y, size=n_samples)
@@ -52,54 +53,6 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     X += np.random.rand(n_features)  # Put an offset
 
     return X, Y, A
-
-
-def __make_data(n_samples=1000, n_features=5, n_targets=3, noise_scale=2):
-    """Generate some testing data.
-
-    Parameters
-    ----------
-    noise_scale : float
-        The amount of noise (in standard deviations) to add to the data.
-
-    Returns
-    -------
-    X : ndarray, shape (n_samples, n_features)
-        The measured data.
-    Y : ndarray, shape (n_samples, n_targets)
-        The latent variables generating the data.
-    A : ndarray, shape (n_features, n_targets)
-        The forward model, mapping the latent variables (=Y) to the measured
-        data (=X).
-    """
-    N = 1000  # Number of samples
-    M = 5  # Number of features
-
-    # Y has 3 targets and the following covariance:
-    cov_Y = np.array([
-        [10, 1, 2],
-        [1, 5, 1],
-        [2, 1, 3],
-    ])
-    mean_Y = np.array([1, -3, 7])
-    Y = np.random.multivariate_normal(mean_Y, cov_Y, size=N)
-    Y += [1, 4, 2]  # Put an offset
-
-    # The pattern (=forward model)
-    A = np.array([
-        [1, 10, -3],
-        [4,  1,  8],
-        [3, -2,  4],
-        [1,  1,  1],
-        [7,  6,  0],
-    ]).astype(float)
-    # A = np.random.randn(5, 3)
-
-    X = Y.dot(A.T)
-    X += noise_scale * np.random.randn(N, M)
-    X += [5, 2, 6, 3, 9]  # Put an offset
-
-    return X, Y[:, :n_targets], A[:, :n_targets]
 
 
 @requires_sklearn_0_15
@@ -131,7 +84,6 @@ def test_get_coef():
         def inverse_transform(self, X):
             return X
 
-    np.random.RandomState(0)
     X, y, A = _make_data(n_samples=2000, n_features=3, n_targets=1)
 
     # I. Test inverse function
