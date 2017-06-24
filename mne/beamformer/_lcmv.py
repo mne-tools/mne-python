@@ -81,16 +81,18 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
 
-    # apply SSPs
-    if info['projs']:
-        Cm = np.dot(proj, np.dot(Cm, proj.T))
-
-    # check number of sensor types
-    ch_types = [_contains_ch_type(info, tt) for tt in ('mag', 'grad', 'eeg')]
+    # check number of sensor types present in the data
+    info_pick = pick_info(info, sel=picks)
+    ch_types =\
+        [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
     if sum(ch_types) > 1 and noise_cov is None:
         raise ValueError('Source reconstruction with several sensor types '
                          'requires a noise covariance matrix to be able to '
                          'apply whitening.')
+
+    # apply SSPs
+    if info['projs']:
+        Cm = np.dot(proj, np.dot(Cm, proj.T))
 
     if noise_cov is not None:
         # Handle whitening + data covariance
@@ -353,10 +355,10 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    apply_noise_norm: False | True
-        If True, a noise-normalized beamformer will be computed.
-    weight_norm: None | 'nai' | 'unit_noise_gain*
-        If 'nai', the Neural Activity Index (Van Veen, 1997) will be computed,
+    apply_noise_norm : bool
+        Compute noise-normalized beamformer.
+    weight_norm: None | 'nai' | 'unit_noise_gain'
+        If 'nai', the Neural Activity Index [1]_ will be computed,
         if 'unit_noise_gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer)
     verbose : bool, str, int, or None
@@ -374,15 +376,18 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 
     Notes
     -----
-    The original reference is:
-    Van Veen et al. Localization of brain electrical activity via linearly
-    constrained minimum variance spatial filtering.
-    Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    The original reference is [1]_
 
     The reference for finding the max-power orientation is:
     Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
     beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
+
+    References
+    ----------
+    .. [1] Van Veen et al. Localization of brain electrical activity via
+           linearly constrained minimum variance spatial filtering.
+           Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
     """
     _check_reference(evoked)
 

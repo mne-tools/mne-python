@@ -2,7 +2,8 @@ import os.path as op
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_almost_equal)
 import warnings
 
 import mne
@@ -148,6 +149,34 @@ def test_lcmv():
         # free orientation results
         assert_true((stc_max_power.data - stc.data < 1).all())
 
+        if fwd is forward_vol:
+            # Test weight normalization: NAI and unit-noise-gain
+            # choose only gradiometers:
+            picks_nai = mne.pick_types(evoked.info, meg='grad')
+
+            # Test NAI weight normalization:
+            stc_nai = lcmv(evoked, fwd, noise_cov=None, data_cov=data_cov,
+                           reg=0.01, pick_ori='max-power', weight_norm='nai',
+                           picks=picks_nai)
+            stc_nai.crop(0.02, None)
+
+            stc_pow = np.sum(stc_nai.data, axis=1)
+            idx = np.argmax(stc_pow)
+            max_stc = stc_nai.data[idx]
+            tmax = stc_nai.times[np.argmax(max_stc)]
+
+            assert_true(0.09 < tmax < 0.11, tmax)
+            assert_true(0.8 < np.max(max_stc) < 5., np.max(max_stc))
+
+            # Test whether unit-noise-gain solution is a scaled version of NAI
+            stc_ung = lcmv(evoked, fwd, noise_cov=None, data_cov=data_cov,
+                           reg=0.01, pick_ori='max-power',
+                           weight_norm='unit_noise_gain', picks=picks_nai)
+            stc_ung = stc_ung.crop(0.02, None)
+            pearsoncorr = np.corrcoef(np.concatenate(stc_nai.data),
+                                      np.concatenate(stc_ung.data))
+            assert_almost_equal(pearsoncorr[0, 1], 1.)
+
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
     assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
@@ -164,6 +193,22 @@ def test_lcmv():
     # orientation
     assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov, data_cov,
                   reg=0.01, pick_ori="normal")
+
+    # Test if missing of data covariance matrix is detected
+    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov=noise_cov,
+                  data_cov=None, reg=0.01, pick_ori="max-power")
+
+    # Test if missing of noise covariance matrix is detected when more than
+    # one channel type is present in the data
+    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov=None,
+                  data_cov=data_cov, reg=0.01, pick_ori="max-power")
+
+    # Test if not-yet-implemented orientation selections raise error with
+    # weight normalization
+    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov,
+                  data_cov, reg=0.01, pick_ori="normal", weight_norm='nai')
+    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov,
+                  data_cov, reg=0.01, pick_ori=None, weight_norm='nai')
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
