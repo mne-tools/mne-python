@@ -908,8 +908,9 @@ def rename_channels(info, mapping):
 
 def _recursive_flatten(cell, dtype):
     """Unpack mat files in Python."""
-    while not isinstance(cell[0], dtype):
-        cell = [c for d in cell for c in d]
+    if len(cell) > 0:
+        while not isinstance(cell[0], dtype):
+            cell = [c for d in cell for c in d]
     return cell
 
 
@@ -993,7 +994,7 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
         raise ValueError('`ch_names` and `neighbors` must '
                          'have the same length')
     set_neighbors = set([c for d in neighbors for c in d])
-    rest = set(ch_names) - set_neighbors
+    rest = set_neighbors - set(ch_names)
     if len(rest) > 0:
         raise ValueError('Some of your neighbors are not present in the '
                          'list of channel names')
