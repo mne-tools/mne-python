@@ -581,7 +581,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=None, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
                  average=None, show=True, n_jobs=1, line_alpha=None,
-                 spatial_colors=None, xscale='linear', verbose=None):
+                 spatial_colors=None, xscale='linear',
+                 reject_by_annotation=True, verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -639,6 +640,13 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Whether to use spatial colors. Only used when ``average=False``.
     xscale : str
         Can be 'linear' (default) or 'log'.
+    reject_by_annotation : bool
+        Whether to omit bad segments from the data while computing the
+        PSD. If True, annotated segments with a description that starts
+        with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
+        Evoked object. Defaults to True.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -675,7 +683,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         ax = ax_list[ii]
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
                                 fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
-                                n_overlap=n_overlap, n_jobs=n_jobs)
+                                n_overlap=n_overlap, n_jobs=n_jobs,
+                                reject_by_annotation=reject_by_annotation)
 
         ylabel = _convert_psds(psds, dB, scalings_list[ii], units_list[ii],
                                [raw.ch_names[pi] for pi in picks])

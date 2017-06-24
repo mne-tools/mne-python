@@ -121,6 +121,8 @@ API
 
     - :func:`mne.io.read_raw_edf` has now ``'auto'`` option for ``stim_channel`` (default in version 0.16) that automatically detects if EDF annotations or GDF events exist in the header and constructs the stim channel based on these events by `Jaakko Leppakangas`_
 
+    - :meth:`mne.io.Raw.plot_psd` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Eric Larson`_
+
 .. _changes_0_14:
 
 Version 0.14

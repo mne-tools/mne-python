@@ -33,7 +33,7 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     return n_fft, n_per_seg, n_overlap
 
 
-def _check_psd_data(inst, tmin, tmax, picks, proj):
+def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
     """Check PSD data / pull arrays from inst."""
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
@@ -52,7 +52,8 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
     sfreq = inst.info['sfreq']
     if isinstance(inst, BaseRaw):
         start, stop = np.where(time_mask)[0][[0, -1]]
-        data, times = inst[picks, start:(stop + 1)]
+        rba = 'NaN' if reject_by_annotation else reject_by_annotation
+        data = inst.get_data(picks, start, stop + 1, reject_by_annotation=rba)
     elif isinstance(inst, BaseEpochs):
         data = inst.get_data()[:, picks][:, :, time_mask]
     else:  # Evoked
@@ -128,7 +129,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 
     # Combining, reducing windows and reshaping to original data shape
     # XXX : we can certainly avoid the allocation before the mean
-    psds = np.concatenate(f_spectrogram, axis=0).mean(axis=-1)
+    psds = np.nanmean(np.concatenate(f_spectrogram, axis=0), axis=-1)
     psds = psds.reshape(np.hstack([dshape, -1]))
     return psds, freqs
 
@@ -136,7 +137,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
-              verbose=None):
+              reject_by_annotation=True, verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodigrams for a sliding window over the
@@ -173,6 +174,13 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Apply SSP projection vectors. If inst is ndarray this is not used.
     n_jobs : int
         Number of CPUs to use in the computation.
+    reject_by_annotation : bool
+        Whether to omit bad segments from the data while computing the
+        PSD. If True, annotated segments with a description that starts
+        with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
+        Evoked object. Defaults to True.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -196,7 +204,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     .. versionadded:: 0.12.0
     """
     # Prep data
-    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
+    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj,
+                                  reject_by_annotation=reject_by_annotation)
     return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
                            n_overlap=n_overlap, n_per_seg=n_per_seg,
                            n_jobs=n_jobs, verbose=verbose)
