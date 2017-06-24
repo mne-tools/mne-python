@@ -105,6 +105,7 @@ def test_plot_raw():
     """Test plotting of raw data."""
     import matplotlib.pyplot as plt
     raw = _get_raw()
+    raw.info['lowpass'] = 10.  # allow heavy decim during plotting
     events = _get_events()
     plt.close('all')  # ensure all are closed
     with warnings.catch_warnings(record=True):
@@ -206,6 +207,7 @@ def test_plot_ref_meg():
 def test_plot_annotations():
     """Test annotation mode of the plotter."""
     raw = _get_raw()
+    raw.info['lowpass'] = 10.
     _annotation_helper(raw)
 
     raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])

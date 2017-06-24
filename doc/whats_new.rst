@@ -55,6 +55,8 @@ Changelog
 
     - Add :func:`mne.io.get_edf_events` for getting the events as they are in the EDF/GDF header by `Jaakko Leppakangas`_
 
+    - Speed up :meth:`mne.io.Raw.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_
+
 BUG
 ~~~
 

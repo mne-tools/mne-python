@@ -128,9 +128,9 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
                              for d in x_splits)
 
     # Combining, reducing windows and reshaping to original data shape
-    # XXX : we can certainly avoid the allocation before the mean
-    psds = np.nanmean(np.concatenate(f_spectrogram, axis=0), axis=-1)
-    psds = psds.reshape(np.hstack([dshape, -1]))
+    psds = np.concatenate([np.nanmean(f_s, axis=-1)
+                           for f_s in f_spectrogram], axis=0)
+    psds.shape = np.hstack([dshape, -1])
     return psds, freqs
 
 
