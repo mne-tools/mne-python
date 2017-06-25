@@ -198,10 +198,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Amount to decimate the data during display for speed purposes.
         You should only decimate if the data are sufficiently low-passed,
         otherwise aliasing can occur. The 'auto' mode (default) uses
-        the decimation that results in a Nyquist frequency at least 1.5 times
+        the decimation that results in a sampling rate least three times
         larger than ``min(info['lowpass'], lowpass)`` (e.g., a 40 Hz lowpass
-        will result in at least a 60 Hz Nyquist frequency and thus 120 Hz
-        displayed sample rate).
+        will result in at least a 120 Hz displayed sample rate).
 
     Returns
     -------
