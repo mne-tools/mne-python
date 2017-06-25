@@ -37,7 +37,8 @@ event_id = dict(hands=2, feet=3)  # motor imagery: hands vs feet
 subject = 1
 runs = [6, 10, 14]
 raw_fnames = eegbci.load_data(subject, runs)
-raw_files = [read_raw_edf(f, preload=True) for f in raw_fnames]
+raw_files = [read_raw_edf(f, stim_channel='auto', preload=True)
+             for f in raw_fnames]
 raw = concatenate_raws(raw_files)
 
 # Extract information from the raw file
@@ -83,7 +84,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
 
     # Apply band-pass filter to isolate the specified frequencies
-    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1)
+    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin')
 
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
@@ -94,9 +95,9 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     X = epochs.get_data()
 
     # Save mean scores over folds for each frequency and time window
-    freq_scores[freq, ] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
-                                                  scoring='roc_auc', cv=cv,
-                                                  n_jobs=1), axis=0)
+    freq_scores[freq] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
+                                                scoring='roc_auc', cv=cv,
+                                                n_jobs=1), axis=0)
 
 ###############################################################################
 # Plot frequency results
@@ -104,6 +105,10 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 plt.bar(left=freqs[:-1], height=freq_scores, width=np.diff(freqs)[0],
         align='edge', edgecolor='black')
 plt.xticks(freqs)
+plt.ylim([0, 1])
+plt.axhline(len(epochs['feet']) / len(epochs), color='k', linestyle='--',
+            label='chance level')
+plt.legend()
 plt.xlabel('Frequency (Hz)')
 plt.ylabel('Decoding Scores')
 plt.title('Frequency Decoding Scores')
