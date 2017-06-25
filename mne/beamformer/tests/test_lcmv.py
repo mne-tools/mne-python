@@ -102,8 +102,7 @@ def test_lcmv():
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     for fwd in [forward, forward_vol]:
-        stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
-                   apply_noise_norm=True)
+        stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01)
         stc.crop(0.02, None)
 
         stc_pow = np.sum(stc.data, axis=1)
@@ -117,8 +116,7 @@ def test_lcmv():
         if fwd is forward:
             # Test picking normal orientation (surface source space only)
             stc_normal = lcmv(evoked, forward_surf_ori, noise_cov,
-                              data_cov, reg=0.01, pick_ori="normal",
-                              apply_noise_norm=True)
+                              data_cov, reg=0.01, pick_ori="normal")
             stc_normal.crop(0.02, None)
 
             stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
@@ -133,9 +131,10 @@ def test_lcmv():
             # smaller than free orientation results
             assert_true((np.abs(stc_normal.data) <= stc.data).all())
 
+        # TODO: this fails now since orientation selection is done differently
         # Test picking source orientation maximizing output source power
         stc_max_power = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
-                             pick_ori="max-power", apply_noise_norm=True)
+                             pick_ori="max-power")
         stc_max_power.crop(0.02, None)
         stc_pow = np.sum(stc_max_power.data, axis=1)
         idx = np.argmax(stc_pow)
@@ -171,7 +170,7 @@ def test_lcmv():
             # Test whether unit-noise-gain solution is a scaled version of NAI
             stc_ung = lcmv(evoked, fwd, noise_cov=None, data_cov=data_cov,
                            reg=0.01, pick_ori='max-power',
-                           weight_norm='unit_noise_gain', picks=picks_nai)
+                           weight_norm='unit-noise-gain', picks=picks_nai)
             stc_ung = stc_ung.crop(0.02, None)
             pearsoncorr = np.corrcoef(np.concatenate(stc_nai.data),
                                       np.concatenate(stc_ung.data))
@@ -204,7 +203,7 @@ def test_lcmv():
                   data_cov=data_cov, reg=0.01, pick_ori="max-power")
 
     # Test if not-yet-implemented orientation selections raise error with
-    # weight normalization
+    # Neural Activity Index
     assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov,
                   data_cov, reg=0.01, pick_ori="normal", weight_norm='nai')
     assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov,

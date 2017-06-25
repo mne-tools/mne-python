@@ -68,8 +68,7 @@ def _setup_picks(picks, info, forward, noise_cov=None):
 @verbose
 def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
                 data_cov=None, label=None, picks=None, pick_ori=None,
-                rank=None, apply_noise_norm=False, weight_norm=None,
-                verbose=None):
+                rank=None, weight_norm=None, verbose=None):
     """LCMV beamformer for evoked data, single epochs, and raw data."""
     is_free_ori, ch_names, proj, vertno, G = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
@@ -135,36 +134,38 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
 
         # Find source orientation maximizing output source power
 
-        # with weight normalization:
-        if weight_norm is not None:
-            if pick_ori == 'max-power':
-                # finding optimal orientation for NAI and unit-noise gain
-                # based on Sekihara & Nagarajan 2008, Eq. 4.47
+        # special case 1: weight normalization and orientation selection
+        if weight_norm is not None and pick_ori == 'max-power':
+            # finding optimal orientation for NAI and unit-noise gain
+            # based on [2]_, Eq. 4.47
+            tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+            eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),
+                                                   np.dot(Wk, Gk)))
+            idx_max = eig_vals.argmax()
+            max_ori = eig_vecs[:, idx_max]
+            Wk[:] = np.dot(max_ori, Wk)
+            Gk = np.dot(Gk, max_ori)
+
+            if weight_norm == 'nai':
+                # compute spatial filter for NAI
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),
-                                                       np.dot(Wk, Gk)))
-                idx_max = eig_vals.argmax()
-                max_ori = eig_vecs[:, idx_max]
-                Wk[:] = np.dot(max_ori, Wk)
-                Gk = np.dot(Gk, max_ori)
+                denom = np.sqrt(noise * tmp)
+                Wk /= denom
+            elif weight_norm == 'unit-noise-gain':
+                # compute spatial filter for unit-noise gain
+                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+                denom = np.sqrt(tmp)
+                Wk /= denom
 
-                if weight_norm == 'nai':
-                    # compute spatial filter for NAI
-                    tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                    denom = np.sqrt(noise * tmp)
-                    Wk /= denom
-                elif weight_norm == 'unit_noise_gain':
-                    # compute spatial filter for unit-noise gain
-                    tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                    denom = np.sqrt(tmp)
-                    Wk /= denom
+            is_free_ori = False
 
-                is_free_ori = False
-            else:
-                    raise ValueError('Weight normalization is not implemented '
-                                     'yet with free or normal orientation.')
+        # special case 2: NAI without orientation selection
+        elif weight_norm == 'nai' and pick_ori != 'max-power':
+            raise ValueError('Weight normalization with Neural activity index '
+                             'is not implemented yet with free or normal '
+                             'orientation.')
 
-        # without weight normalization:
+        # all other combinations are handled here:
         else:
             if pick_ori == 'max-power':
                 eig_vals, eig_vecs = linalg.eigh(Ck)
@@ -197,7 +198,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
     if pick_ori == 'max-power':
         W = W[0::3]
 
-    if apply_noise_norm:
+    if weight_norm == 'unit-noise-gain' and pick_ori != 'max-power':
         # Preparing noise normalization
         noise_norm = np.sum(W ** 2, axis=1)
         if is_free_ori:
@@ -209,7 +210,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
         W = W[2::3]
         is_free_ori = False
 
-    if apply_noise_norm:
+    if weight_norm == 'unit-noise-gain' and pick_ori != 'max-power':
         # Applying noise normalization
         noise_norm[noise_norm == 0.] = 1e-40  # avoid division by 0
         noise_norm_inv = 1. / noise_norm
@@ -242,7 +243,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
-            if apply_noise_norm:
+            if weight_norm == 'unit-noise-gain' and pick_ori != 'max-power':
                 sol *= noise_norm_inv[:, None]
         else:
             # Linear inverse: do computation here or delayed
@@ -319,8 +320,8 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 
 @verbose
 def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
-         pick_ori=None, picks=None, rank=None, apply_noise_norm=False,
-         weight_norm=None, verbose=None):
+         pick_ori=None, picks=None, rank=None, weight_norm='unit-noise-gain',
+         verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -355,12 +356,10 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    apply_noise_norm : bool
-        Compute noise-normalized beamformer.
-    weight_norm: None | 'nai' | 'unit_noise_gain'
-        If 'nai', the Neural Activity Index [1]_ will be computed,
-        if 'unit_noise_gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer)
+    weight_norm: 'unit-noise-gain'| 'nai' | None
+        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
+        will be computed (Borgiotti-Kaplan beamformer) [2]_,
+        if 'nai', the Neural Activity Index [1]_ will be computed
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -388,6 +387,8 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     .. [1] Van Veen et al. Localization of brain electrical activity via
            linearly constrained minimum variance spatial filtering.
            Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
+           brain imaging (2008) Springer Science & Business Media
     """
     _check_reference(evoked)
 
@@ -402,8 +403,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     stc = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, reg=reg,
         noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
-        rank=rank, pick_ori=pick_ori, apply_noise_norm=apply_noise_norm,
-        weight_norm=weight_norm)
+        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm)
 
     return six.advance_iterator(stc)
 
@@ -411,7 +411,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 @verbose
 def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
                 pick_ori=None, return_generator=False, picks=None, rank=None,
-                verbose=None):
+                weight_norm='unit-noise-gain', verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -485,7 +485,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     stcs = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, reg=reg,
         noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
-        rank=rank, pick_ori=pick_ori)
+        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm)
 
     if not return_generator:
         stcs = [s for s in stcs]
@@ -496,7 +496,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 @verbose
 def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
              start=None, stop=None, picks=None, pick_ori=None, rank=None,
-             verbose=None):
+             weight_norm='unit-noise-gain', verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -572,7 +572,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     stc = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, reg=reg,
         noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
-        rank=rank, pick_ori=pick_ori)
+        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm)
 
     return six.advance_iterator(stc)
 
