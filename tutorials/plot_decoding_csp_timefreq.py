@@ -3,10 +3,12 @@
 Decoding in time-frequency space data using the Common Spatial Pattern (CSP)
 ============================================================================
 
+
 The time-frequency decomposition is estimated by iterating over raw data that
 has been band-passed at different frequencies. This is used to compute a
-covariance matrix over a rolling time-window and extract the CSP filtered
-signals. A linear discriminant classifier is then applied to these signals.
+covariance matrix over each epoch or a rolling time-window and extract the CSP
+filtered signals. A linear discriminant classifier is then applied to these
+signals.
 """
 # Authors: Laura Gwilliams <laura.gwilliams@nyu.edu>
 #          Jean-Remi King <jeanremi.king@gmail.com>
@@ -25,8 +27,9 @@ from mne.decoding import CSP
 from mne.time_frequency import AverageTFR
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.model_selection import KFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import LabelEncoder
 
 ###############################################################################
 # Set parameters and read data
@@ -46,7 +49,7 @@ raw.pick_types(meg=False, eeg=True, stim=False, eog=False, exclude='bads')
 clf = make_pipeline(CSP(n_components=4, reg=None, log=True),
                     LinearDiscriminantAnalysis())
 n_splits = 5  # how many folds to use for cross-validation
-cv = KFold(n_splits=n_splits, shuffle=True)
+cv = StratifiedKFold(n_splits=n_splits, shuffle=True)
 
 # Classification & Time-frequency parameters
 tmin, tmax = -.200, 2.000
@@ -57,18 +60,59 @@ n_freqs = 8  # how many frequency bins to use
 
 # Assemble list of frequency range tuples
 freqs = np.linspace(min_freq, max_freq, n_freqs)  # assemble frequencies
-freq_ranges = zip(freqs[:-1], freqs[1:])  # make freqs into a list of tuples
+freq_ranges = list(zip(freqs[:-1], freqs[1:]))  # make freqs list of tuples
 
 # Infer window spacing from the max freq and number of cycles to avoid gaps
 window_spacing = (n_cycles / np.max(freqs) / 2.)
 centered_w_times = np.arange(tmin, tmax, window_spacing)[1:]
 n_windows = len(centered_w_times)
 
+# Instantiate label encoder
+le = LabelEncoder()
+
+###############################################################################
+# Loop through frequencies, apply classifier and save scores
+
+# init scores
+freq_scores = np.zeros((n_freqs - 1,))
+
+# Loop through each frequency range of interest
+for freq, (fmin, fmax) in enumerate(freq_ranges):
+
+    # Infer window size based on the frequency being used
+    w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
+
+    # Apply band-pass filter to isolate the specified frequencies
+    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1)
+
+    # Extract epochs from filtered data, padded by window size
+    epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
+                    proj=False, baseline=None, preload=True)
+    epochs.drop_bad()
+    y = le.fit_transform(epochs.events[:, 2])
+
+    X = epochs.get_data()
+
+    # Save mean scores over folds for each frequency and time window
+    freq_scores[freq, ] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
+                                                  scoring='roc_auc', cv=cv,
+                                                  n_jobs=1), axis=0)
+
+###############################################################################
+# Plot frequency results
+
+plt.bar(left=freqs[:-1], height=freq_scores, width=np.diff(freqs)[0],
+        align='edge', edgecolor='black')
+plt.xticks(freqs)
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Decoding Scores')
+plt.title('Frequency Decoding Scores')
+
 ###############################################################################
 # Loop through frequencies and time, apply classifier and save scores
 
 # init scores
-scores = np.zeros((n_freqs - 1, n_windows))
+tf_scores = np.zeros((n_freqs - 1, n_windows))
 
 # Loop through each frequency range of interest
 for freq, (fmin, fmax) in enumerate(freq_ranges):
@@ -83,7 +127,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
                     proj=False, baseline=None, preload=True)
     epochs.drop_bad()
-    y = epochs.events[:, 2] - 2
+    y = le.fit_transform(epochs.events[:, 2])
 
     # Roll covariance, csp and lda over time
     for t, w_time in enumerate(centered_w_times):
@@ -96,14 +140,15 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
         X = epochs.copy().crop(w_tmin, w_tmax).get_data()
 
         # Save mean scores over folds for each frequency and time window
-        scores[freq, t] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
-                                                  cv=cv, n_jobs=1), axis=0)
+        tf_scores[freq, t] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
+                                                     scoring='roc_auc', cv=cv,
+                                                     n_jobs=1), axis=0)
 
 ###############################################################################
-# Plot results
+# Plot time-frequency results
 
 # Set up time frequency object
-av_tfr = AverageTFR(create_info(['freq'], sfreq), scores[np.newaxis, :],
+av_tfr = AverageTFR(create_info(['freq'], sfreq), tf_scores[np.newaxis, :],
                     centered_w_times, freqs[1:], 1)
 
 chance = np.mean(y)  # set chance level to white in the plot
