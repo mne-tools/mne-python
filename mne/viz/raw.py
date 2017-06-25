@@ -93,7 +93,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False):
+             butterfly=False, decim='auto'):
     """Plot raw data.
 
     Parameters
@@ -194,6 +194,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         modes are overrided with ``order`` keyword.
     butterfly : bool
         Whether to start in butterfly mode. Defaults to False.
+    decim : int | 'auto'
+        Amount to decimate the data during display for speed purposes.
+        You should only decimate if the data are sufficiently low-passed,
+        otherwise aliasing can occur. The 'auto' mode (default) uses
+        the decimation that results in a sampling rate least three times
+        larger than ``min(info['lowpass'], lowpass)`` (e.g., a 40 Hz lowpass
+        will result in at least a 120 Hz displayed sample rate).
 
     Returns
     -------
@@ -223,6 +230,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from scipy.signal import butter
+    from ..evoked import _check_decim
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
@@ -255,7 +263,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                         analog=False)
 
     # make a copy of info, remove projection (for now)
-    info = copy.deepcopy(raw.info)
+    info = raw.info.copy()
     projs = info['projs']
     info['projs'] = []
     n_times = raw.n_times
@@ -334,6 +342,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         if key <= 0 and key != -1:
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
                            % key)
+    if isinstance(decim, string_types) and decim == 'auto':
+        lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
+        lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
+        info['lowpass'] = lp
+        decim = max(int(info['sfreq'] / (lp * 3) + 1e-6), 1)
+    decim = _ensure_int(decim, 'decim', must_be='an int or "auto"')
+    if decim <= 0:
+        raise ValueError('decim must be "auto" or a positive integer, got %s'
+                         % (decim,))
+    decim = _check_decim(info, decim, 0)[0]
+    data_picks = _pick_data_channels(info, exclude=())
 
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
@@ -345,7 +364,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False,
-                  group_by=group_by, orig_inds=inds.copy())
+                  group_by=group_by, orig_inds=inds.copy(), decim=decim,
+                  data_picks=data_picks)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -899,8 +919,13 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 this_color = this_color[params['types'][inds[ch_ind]]]
 
             # subtraction here gets correct orientation for flipped ylim
-            lines[ii].set_ydata(offset - this_data)
-            lines[ii].set_xdata(params['times'] + params['first_time'])
+            if inds[ch_ind] in params['data_picks']:
+                this_decim = params['decim']
+            else:
+                this_decim = 1
+            this_t = params['times'][::this_decim] + params['first_time']
+            lines[ii].set_ydata(offset - this_data[..., ::this_decim])
+            lines[ii].set_xdata(this_t)
             lines[ii].set_color(this_color)
             vars(lines[ii])['ch_name'] = ch_name
             vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]
