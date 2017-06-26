@@ -78,8 +78,8 @@ ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency',
 plt.show()
 
 ###############################################################################
-# To see the difference between `psd_multitaper` and `psd_welch` - we are
-# going to compare PSDs obtained with each function.
+# To see the difference between :func:`psd_multitaper` and :func:`psd_welch`
+# - we are going to compare PSDs obtained with each function.
 ch_index = epochs.ch_names.index('MEG 2333')
 
 psds_m, freqs_m = psd_multitaper(epochs, picks=[ch_index],
@@ -106,7 +106,7 @@ plt.show()
 
 ###############################################################################
 # We can observe that multitaper estimation yields smoother spectrum - the
-# amount of smoothing can be controlled with `bandwidth` argument:
+# amount of smoothing can be controlled with ``bandwidth`` argument:
 bandwidths = np.arange(1, 7)
 colors = plt.cm.viridis(bandwidths / 7)
 
@@ -127,7 +127,7 @@ plt.show()
 # While in multitaper the averaging is done across independent realizations of
 # the signal (using slepian tapers), welch method averages across time
 # segments of the signal (often overlapping). Instead of averaging the windows
-# you can choose a different reduction by specifying `combine`:
+# you can choose a different reduction by specifying ``combine``:
 welch_args = dict(picks=[ch_index], n_fft=epochs.info['sfreq'],
                   n_overlap=int(epochs.info['sfreq'] / 2), fmin=2, fmax=25)
 psds_w, freqs = psd_welch(epochs, combine='mean', **welch_args)
@@ -153,7 +153,7 @@ plt.show()
 # The reduction in power that can be seen in the figure above is due to the
 # fact that values for power spectral density follow a positive skewed
 # gamma-like distribution. Lets take a look at this distribution. First we will
-# use `combine=None` to get all the welch windows without averaging. Notice
+# use ``combine=None`` to get all the welch windows without averaging. Notice
 # the dimensions of the output.
 psds_windows, freqs = psd_welch(epochs, combine=None, **welch_args)
 n_epochs, n_windows, n_channels, n_freqs = psds_windows.shape
