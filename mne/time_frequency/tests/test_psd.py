@@ -6,7 +6,7 @@ from nose.tools import assert_true, assert_equal
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.fixes import get_trim_mean
+from mne.fixes import _trim_mean
 from mne.utils import slow_test, run_tests_if_main
 from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
 
@@ -97,9 +97,8 @@ def test_psd():
     windows, freqs = psd_welch(raw, proj=False, combine=None, **kws_psd)
     windows_mean, _ = psd_welch(raw, proj=False, combine='mean', **kws_psd)
     assert_array_almost_equal(windows.mean(axis=-3), windows_mean)
-    trim_mean = get_trim_mean()
     windows_trim, _ = psd_welch(raw, proj=False, combine=0.2, **kws_psd)
-    assert_array_almost_equal(trim_mean(windows, 0.2, axis=-3), windows_trim)
+    assert_array_almost_equal(_trim_mean(windows, 0.2, axis=-3), windows_trim)
 
     # test combine with function
     windows_max, freqs = psd_welch(

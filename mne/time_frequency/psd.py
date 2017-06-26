@@ -148,6 +148,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         psds = np.concatenate([combine(f_s) for f_s in f_spectrogram],
                               axis=0).reshape(dshape + (-1,))
     else:
+        psds = np.concatenate(f_spectrogram, axis=0)
         n_windows = psds.shape[-1]
         psds = psds.reshape(dshape + (-1, n_windows))
         # windows are put at -3 position so that the output is of shape
