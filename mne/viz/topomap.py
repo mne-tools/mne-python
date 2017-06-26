@@ -1385,15 +1385,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                              "times='interactive'.")
         height_ratios = [5, 1]
         rows = 2
+        g_kwargs = {'left': 0.2, 'right': 1., 'bottom': 0.05, 'top': 0.95}
     else:
-        rows, height_ratios = 1, None
-    gs = gridspec.GridSpec(rows, cols, height_ratios=height_ratios, left=0.2,
-                           right=1., bottom=0.05, top=0.95)
+        rows, height_ratios, g_kwargs = 1, None, {}
+
+    gs = gridspec.GridSpec(rows, cols, height_ratios=height_ratios, **g_kwargs)
     if axes is None:
         figure_nobar(figsize=(width * 1.5, height * 1.5))
         axes = list()
         for ax_idx in range(len(times)):
-            axes.append(plt.subplot(gs[0]))
+            axes.append(plt.subplot(gs[ax_idx]))
     elif colorbar:
         warn('Colorbar is drawn to the rightmost column of the figure. Be '
              'sure to provide enough space for it or turn it off with '
