@@ -1063,7 +1063,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 warn_overlap = True  # Warn only once.
             data[samp:samp + dur] += id
         if warn_overlap:
-            warn('Overlapping events detected. Use get_gdf_events for the '
+            warn('Overlapping events detected. Use get_edf_events for the '
                  'original events.')
         edf_info['stim_data'] = data
     edf_info['events'] = events
@@ -1205,7 +1205,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     header. You should use keyword ``stim_channel=-1`` to add it at the end of
     the channel list. The id numbers of overlapping events are simply combined
     through addition. To get the original events from the header, use method
-    ``raw.get_gdf_events``.
+    ``raw.get_edf_events``.
 
     See Also
     --------
