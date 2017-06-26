@@ -49,7 +49,7 @@ epochs.resample(150., npad='auto')  # resample to reduce computation time
 
 
 ###############################################################################
-# Let's first check out all channel types by averaging across epochs.
+# Let's first check out spectrum by averaging across epochs.
 epochs.plot_psd(fmin=2., fmax=40.)
 
 ###############################################################################
@@ -70,9 +70,93 @@ psds_std = psds.mean(0).std(0)
 
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
-                color='k', alpha=.5)
+                color='k', alpha=.15, lw=0)
 ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency',
        ylabel='Power Spectral Density (dB)')
+plt.show()
+
+###############################################################################
+# To see the difference between `psd_multitaper` and `psd_welch` - we are
+# going to compare PSDs obtained with each function.
+from mne.time_frequency import psd_welch
+ch_index = epochs.ch_names.index('MEG 2333')
+
+psds_m, freqs_m = psd_multitaper(epochs, picks=[ch_index], fmin=2, fmax=17, n_jobs=1)
+psds_w, freqs_w = psd_welch(epochs, n_fft=epochs.info['sfreq'] * 2, picks=[ch_index],
+                            fmin=2, fmax=17, n_jobs=1)
+
+# drop channel dimension and average epochs
+psd_m = psds_m.squeeze(axis=1).mean(axis=0)
+psd_w = psds_w.squeeze(axis=1).mean(axis=0)
+
+# normalize multitaper and welch to put them on the same scale
+psd_m /= psd_m.sum() / len(freqs_m)
+psd_w /= psd_w.sum() / len(freqs_w)
+
+# plot
+f, ax = plt.subplots()
+ax.plot(freqs_m, psd_m, label='multitaper', lw=2)
+ax.plot(freqs_w, psd_w, label='welch', lw=2)
+ax.set(title='Multitaper vs Welch PSD (gradiometers)', xlabel='Frequency',
+       ylabel='Power Spectral Density')
+ax.legend()
+plt.show()
+
+###############################################################################
+# We can observe that multitaper estimation yields smoother spectrum - the
+# amount of smoothing can be controlled with `bandwidth` argument:
+bandwidths = np.arange(1, 7)
+colors = plt.cm.viridis(bandwidths / 7)
+
+fig, ax = plt.subplots()
+
+for bnd_idx, bnd in enumerate(bandwidths):
+    psd, freqs = psd_multitaper(epochs, picks=[ch_index],
+                                  fmin=2, fmax=17, bandwidth=bnd)
+    ax.plot(freqs, psd[:, 0].mean(axis=0), label='bandwidth={}'.format(bnd),
+             color=colors[bnd_idx], lw=2)
+
+ax.set(title='Multitaper with different bandwidth', xlabel='Frequency',
+       ylabel='Power Spectral Density')
+plt.legend(loc='best')
+plt.show()
+
+###############################################################################
+# While in multitaper the averaging is done across independent realizations of
+# the signal (using slepian tapers), welch method averages across time
+# segments of the signal (often overlapping). Instead of averaging the windows
+# you can choose a different reduction by specifying `reduction`:
+welch_args = dict(picks=[ch_index], n_fft=epochs.info['sfreq'],
+                  n_overlap=int(epochs.info['sfreq'] / 2), fmin=2, fmax=25)
+psds_w, freqs = psd_welch(epochs, reduction='mean', **welch_args)
+psds_w_trimmed, _ = psd_welch(epochs, reduction=0.15, **welch_args)
+psds_w_median, _ = psd_welch(epochs, reduction='median', **welch_args)
+
+psd_w = psds_w[:, 0].mean(axis=0)
+psd_w_trim = psds_w_trimmed[:, 0].mean(axis=0)
+psd_w_med = psds_w_median[:, 0].mean(axis=0)
+
+# plot
+f, ax = plt.subplots()
+ax.plot(freqs, psd_w, color='cornflowerblue', label='welch, mean')
+ax.plot(freqs, psd_w_trim, color='seagreen', label='welch, trimmed mean')
+ax.plot(freqs, psd_w_med, color='crimson', label='welch, median')
+
+ax.set(title='Welch with mean and median reductions', xlabel='Frequency',
+       ylabel='Power Spectral Density')
+ax.legend()
+plt.show()
+
+###############################################################################
+# The reduction is due to the fact that values for power spectral density
+# follow a positive skewed gamma-like distribution.
+psds_windows, freqs = psd_welch(epochs, reduction=None, **welch_args)
+n_epochs, n_windows, n_channels, n_freqs = psds_windows.shape
+print(n_epochs, n_windows, n_channels, n_freqs, sep=', ')
+
+alpha = np.where(freqs == 10)[0][0]
+counts, bins, patches = plt.hist(
+    psds_windows[...,alpha].reshape(n_epochs * n_windows), bins=50)
 plt.show()
 
 ###############################################################################
