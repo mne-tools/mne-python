@@ -40,7 +40,7 @@ from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO, integer_types
 from .externals.decorator import decorator
 
-from .fixes import _get_args, get_trim_mean
+from .fixes import _get_args, _trim_mean
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -2430,8 +2430,7 @@ def _get_reduction(reduction, axis=-1):
             raise ValueError('reduction, if float, means proportion to trim in'
                              ' trimmed mean, which has to be > 0 and < 0.5, '
                              'got {}'.format(reduction))
-        trim_mean = get_trim_mean()
-        return lambda x: trim_mean(x, reduction, axis=axis)
+        return lambda x: _trim_mean(x, reduction, axis=axis)
     elif hasattr(reduction, '__call__'):
         return reduction
     else:

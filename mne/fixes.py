@@ -951,17 +951,7 @@ def _trim_mean(a, proportiontocut, axis=0):
 
     sl = [slice(None)] * atmp.ndim
     sl[axis] = slice(lowercut, uppercut)
-    return np.mean(atmp[sl], axis=axis)
-
-
-def get_trim_mean():
-    '''helper function to get relevant trim_mean'''
-    from .utils import check_version
-    if check_version('scipy', '0.13.0'):
-        from scipy.stats import trim_mean
-    else:
-        trim_mean = _trim_mean
-    return trim_mean
+    return np.nanmean(atmp[sl], axis=axis)
 
 
 ###############################################################################
