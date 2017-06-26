@@ -24,7 +24,8 @@ from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
-from ..io.pick import channel_type, channel_indices_by_type, pick_channels
+from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
+                       _pick_data_channels)
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
@@ -2176,3 +2177,21 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.invert_yaxis()
     axes.spines['right'].set_color('none')
     axes.set_xlim(tmin, tmax)
+
+
+def _handle_decim(info, decim, lowpass):
+    """Handle decim parameter for plotters."""
+    from ..evoked import _check_decim
+    from ..utils import _ensure_int
+    if isinstance(decim, string_types) and decim == 'auto':
+        lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
+        lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
+        info['lowpass'] = lp
+        decim = max(int(info['sfreq'] / (lp * 3) + 1e-6), 1)
+    decim = _ensure_int(decim, 'decim', must_be='an int or "auto"')
+    if decim <= 0:
+        raise ValueError('decim must be "auto" or a positive integer, got %s'
+                         % (decim,))
+    decim = _check_decim(info, decim, 0)[0]
+    data_picks = _pick_data_channels(info, exclude=())
+    return decim, data_picks
