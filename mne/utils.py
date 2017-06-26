@@ -2418,9 +2418,9 @@ def _get_fast_dot():
 def _get_reduction(reduction, axis=-1):
     if isinstance(reduction, string_types):
         if reduction == 'mean':
-            return lambda x: np.mean(x, axis=axis)
+            return lambda x: np.nanmean(x, axis=axis)
         elif reduction == 'median':
-            return lambda x: np.median(x, axis=axis)
+            return lambda x: np.nanmedian(x, axis=axis)
         else:
             raise ValueError('reduction, if string, must be "mean" or "median"'
                              ', got {}'.format(reduction))
