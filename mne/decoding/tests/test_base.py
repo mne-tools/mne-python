@@ -4,7 +4,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true, assert_equal, assert_raises
 from mne.utils import requires_sklearn_0_15
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
@@ -42,9 +42,6 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     mean_Y = np.random.rand(n_targets)
     Y = np.random.multivariate_normal(mean_Y, cov_Y, size=n_samples)
 
-    # Put a scale and offset to Y
-    Y += np.random.rand(n_targets)  # Put an offset
-
     # The Forward model
     A = np.random.randn(n_features, n_targets)
 
@@ -63,7 +60,7 @@ def test_get_coef():
     from sklearn.base import TransformerMixin, BaseEstimator
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
-    from sklearn.linear_model import Ridge
+    from sklearn.linear_model import Ridge, LinearRegression
 
     lm = LinearModel(Ridge())
 
@@ -151,10 +148,12 @@ def test_get_coef():
                            filters[:, t])
 
     # Check patterns with more than 1 regressor
-    X, Y, A = _make_data(n_samples=2000, n_targets=2)
-    lm.fit(X, Y)
+    X, Y, A = _make_data(n_samples=5000, n_features=5, n_targets=3)
+    lm = LinearModel(LinearRegression()).fit(X, Y)
     assert_array_equal(lm.filters_.shape, lm.patterns_.shape, [2, 5])
-    assert_array_equal(np.round(A * 10), np.round(lm.patterns_.T * 10))
+    assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
+    lm = LinearModel(Ridge(alpha=1)).fit(X, Y)
+    assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
 
 
 @requires_sklearn_0_15
