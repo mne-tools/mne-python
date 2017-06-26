@@ -17,6 +17,7 @@ import json
 import logging
 from math import log, ceil
 import multiprocessing
+import numbers
 import operator
 import os
 import os.path as op
@@ -2424,7 +2425,7 @@ def _get_reduction(reduction, axis=-1):
         else:
             raise ValueError('reduction, if string, must be "mean" or "median"'
                              ', got {}'.format(reduction))
-    elif isinstance(reduction, (float, np.float64, np.float32)):
+    elif isinstance(reduction, numbers.Real):
         if reduction < 0 or reduction >= 0.5:
             raise ValueError('reduction, if float, means proportion to trim in'
                              ' trimmed mean, which has to be > 0 and < 0.5, '
