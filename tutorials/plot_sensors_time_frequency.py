@@ -12,6 +12,7 @@ We will use the somatosensory dataset that contains so
 called event related synchronizations (ERS) / desynchronizations (ERD) in
 the beta band.
 """
+from __future__ import print_function
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -45,22 +46,23 @@ epochs.resample(150., npad='auto')  # resample to reduce computation time
 # Frequency analysis
 # ------------------
 #
-# We start by exploring the frequence content of our epochs.
-
-
-###############################################################################
-# Let's first check out spectrum by averaging across epochs.
+# We start by exploring the frequency content of our epochs.
+# Let's first check out average spectrum by taking the mean across epochs:
 epochs.plot_psd(fmin=2., fmax=40.)
 
 ###############################################################################
-# Now let's take a look at the spatial distributions of the PSD.
+# Now let's take a look at the spatial distributions of the PSD in various
+# frequency bands:
 epochs.plot_psd_topomap(ch_type='grad', normalize=True)
 
 ###############################################################################
-# Alternatively, you can also create PSDs from Epochs objects with functions
-# that start with ``psd_`` such as
+# Alternatively, you can also create PSDs from Raw or Epochs objects with
+# functions that start with ``psd_`` such as:
 # :func:`mne.time_frequency.psd_multitaper` and
 # :func:`mne.time_frequency.psd_welch`.
+# These functions return arrays of shape n_channels x n_frequencies for Raw and
+# n_epochs x n_channels x n_frequencies for Epochs. The second output is always
+# a vector of frequency bins.
 
 f, ax = plt.subplots()
 psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=1)
@@ -81,9 +83,10 @@ plt.show()
 from mne.time_frequency import psd_welch
 ch_index = epochs.ch_names.index('MEG 2333')
 
-psds_m, freqs_m = psd_multitaper(epochs, picks=[ch_index], fmin=2, fmax=17, n_jobs=1)
-psds_w, freqs_w = psd_welch(epochs, n_fft=epochs.info['sfreq'] * 2, picks=[ch_index],
-                            fmin=2, fmax=17, n_jobs=1)
+psds_m, freqs_m = psd_multitaper(epochs, picks=[ch_index],
+                                 fmin=2, fmax=17, n_jobs=1)
+psds_w, freqs_w = psd_welch(epochs, n_fft=epochs.info['sfreq'] * 2,
+                            picks=[ch_index], fmin=2, fmax=17, n_jobs=1)
 
 # drop channel dimension and average epochs
 psd_m = psds_m.squeeze(axis=1).mean(axis=0)
@@ -112,13 +115,13 @@ fig, ax = plt.subplots()
 
 for bnd_idx, bnd in enumerate(bandwidths):
     psd, freqs = psd_multitaper(epochs, picks=[ch_index],
-                                  fmin=2, fmax=17, bandwidth=bnd)
+                                fmin=2, fmax=17, bandwidth=bnd)
     ax.plot(freqs, psd[:, 0].mean(axis=0), label='bandwidth={}'.format(bnd),
-             color=colors[bnd_idx], lw=2)
+            color=colors[bnd_idx], lw=2)
 
 ax.set(title='Multitaper with different bandwidth', xlabel='Frequency',
        ylabel='Power Spectral Density')
-plt.legend(loc='best')
+ax.legend(loc='best')
 plt.show()
 
 ###############################################################################
@@ -149,14 +152,21 @@ plt.show()
 
 ###############################################################################
 # The reduction is due to the fact that values for power spectral density
-# follow a positive skewed gamma-like distribution.
+# follow a positive skewed gamma-like distribution. Lets take a look at this
+# distribution. First we will use `reduction=None` to get all the welch windows
+# without averaging. Notice the dimensions of the output.
 psds_windows, freqs = psd_welch(epochs, reduction=None, **welch_args)
 n_epochs, n_windows, n_channels, n_freqs = psds_windows.shape
+print('dimensions of returned PSDs: n_epochs, n_windows, n_channels, n_freqs')
+print('PSDs shape in each dimension: ', end='')
 print(n_epochs, n_windows, n_channels, n_freqs, sep=', ')
 
+###############################################################################
+# Now we'll pick power only at 10 Hz and unroll epochs and welch windows into
+# one vector whose histogram we plot.
 alpha = np.where(freqs == 10)[0][0]
 counts, bins, patches = plt.hist(
-    psds_windows[...,alpha].reshape(n_epochs * n_windows), bins=50)
+    psds_windows[..., alpha].reshape(n_epochs * n_windows), bins=50)
 plt.show()
 
 ###############################################################################
@@ -207,7 +217,9 @@ itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 # .. note::
 #     Baseline correction can be applied to power or done in plots
 #     To illustrate the baseline correction in plots the next line is
-#     commented power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
+#     commented:
+
+# power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
 
 ###############################################################################
 # Exercise
