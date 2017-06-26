@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne.time_frequency import tfr_morlet, psd_multitaper
+from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch
 from mne.datasets import somato
 
 ###############################################################################
@@ -80,7 +80,6 @@ plt.show()
 ###############################################################################
 # To see the difference between `psd_multitaper` and `psd_welch` - we are
 # going to compare PSDs obtained with each function.
-from mne.time_frequency import psd_welch
 ch_index = epochs.ch_names.index('MEG 2333')
 
 psds_m, freqs_m = psd_multitaper(epochs, picks=[ch_index],
