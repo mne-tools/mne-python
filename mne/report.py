@@ -1581,7 +1581,7 @@ class Report(object):
             kwargs = dict(show=False)
             logger.debug('Evoked: Plotting instance %s/%s'
                          % (ei + 1, len(evokeds)))
-            img = _fig_to_img(ev.plot, **kwargs)
+            img = _fig_to_img(ev.plot, image_format='svg', **kwargs)
 
             caption = u'Evoked : %s (%s)' % (evoked_fname, ev.comment)
             div_klass = 'evoked'
@@ -1601,7 +1601,8 @@ class Report(object):
                 has_types.append('mag')
             for ch_type in has_types:
                 logger.debug('    Topomap type %s' % ch_type)
-                img = _fig_to_img(ev.plot_topomap, ch_type=ch_type, **kwargs)
+                img = _fig_to_img(ev.plot_topomap, ch_type=ch_type,
+                                  image_format='svg', **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(img=img,
                                                       div_klass=div_klass,
@@ -1617,7 +1618,7 @@ class Report(object):
         events = read_events(eve_fname)
 
         kwargs = dict(events=events, sfreq=sfreq, show=False)
-        img = _fig_to_img(plot_events, **kwargs)
+        img = _fig_to_img(plot_events, image_format='svg', **kwargs)
 
         caption = 'Events : ' + eve_fname
         div_klass = 'events'
@@ -1637,7 +1638,7 @@ class Report(object):
 
         epochs = read_epochs(epo_fname)
         kwargs = dict(subject=self.subject, show=False)
-        img = _fig_to_img(epochs.plot_drop_log, **kwargs)
+        img = _fig_to_img(epochs.plot_drop_log, image_format='png', **kwargs)
         caption = 'Epochs : ' + epo_fname
         div_klass = 'epochs'
         img_klass = 'epochs'
@@ -1654,7 +1655,7 @@ class Report(object):
         global_id = self._get_id()
         cov = read_cov(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
-        img = _fig_to_img(fig=fig)
+        img = _fig_to_img(fig=fig, image_format='svg')
         caption = 'Covariance : %s (n_samples: %s)' % (cov_fname, cov.nfree)
         div_klass = 'covariance'
         img_klass = 'covariance'
@@ -1681,7 +1682,7 @@ class Report(object):
             global_id = self._get_id()
 
             kwargs = dict(noise_cov=noise_cov, show=False)
-            img = _fig_to_img(ev.plot_white, **kwargs)
+            img = _fig_to_img(ev.plot_white, image_format='svg', **kwargs)
 
             caption = u'Whitened evoked : %s (%s)' % (evoked_fname, ev.comment)
             div_klass = 'evoked'

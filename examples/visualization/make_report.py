@@ -31,7 +31,8 @@ for time in times:
     figs.append(evoked.plot_topomap(time, vmin=-300, vmax=300,
                                     res=100, show=False))
     plt.close(figs[-1])
-report.add_slider_to_section(figs, times, 'Evoked Response')
+report.add_slider_to_section(figs, times, 'Evoked Response',
+                             image_format='svg')
 
 # # to save report
 # report.save('foobar.html', True)
