@@ -45,6 +45,10 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
     time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
     if picks is None:
         picks = _pick_data_channels(inst.info, with_ref_meg=False)
+    if isinstance(picks, int):
+        # Raw get_data() method doesn't guarantee 2d data if picks is int
+        # the same for epochs.get_data()[:, picks]
+        picks = [picks]
     if proj:
         # Copy first so it's not modified
         inst = inst.copy().apply_proj()
@@ -108,11 +112,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     psds : ndarray, shape (..., n_freqs)
         The power spectral densities. All dimensions up to the last will
         be the same as input unless combine is None. When combine is None
-        and input data ndim > 1 the -3 dimension corresponds to welch windows
-        (for example n_windows x n_channels x n_freqs or n_epochs x n_windows
-        x n_channels x n_freqs or when input data was n_epochs x n_times:
-        n_windows x n_epochs x n_times). For 1d input data the output is
-        n_windows x n_freqs if combine is None.
+        the psds are of shape (..., n_freqs, n_windows)
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
@@ -151,15 +151,6 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         psds = np.concatenate(f_spectrogram, axis=0)
         n_windows = psds.shape[-1]
         psds = psds.reshape(dshape + (-1, n_windows))
-        # windows are put at -3 position so that the output is of shape
-        # windows x channels x frequencies for raw data and
-        # epochs x windows x channels x frequencies for epochs
-        if psds.ndim > 2:
-            # we assume that 2d input data are channels x times, if they are
-            # epochs x times the output is windows x epochs x freqs
-            psds = np.rollaxis(psds, -1, -3)
-        else:
-            psds = np.rollaxis(psds, -1, -2) # transpose
     return psds, freqs
 
 
@@ -226,10 +217,13 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs) or (..., n_windows, ..., n_freqs)
-        The power spectral densities. If input is of type Raw,
-        then psds will be shape (n_channels, n_freqs), if input is type Epochs
-        then psds will be shape (n_epochs, n_channels, n_freqs).
+    psds : ndarray, shape (..., n_freqs)
+        The power spectral densities. If input is of type Raw, returned psds
+        are shaped (n_channels, n_freqs), if input is type Epochs returned psds
+        are shaped (n_epochs, n_channels, n_freqs). However if combine is None
+        then if input is of type Raw, returned psds will be shaped (n_windows,
+        n_channels, n_freqs), if input is type Epochs then psds will be shaped
+        (n_epochs, n_windows, n_channels, n_freqs).
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
@@ -245,9 +239,17 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj,
                                   reject_by_annotation=reject_by_annotation)
-    return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                           n_overlap=n_overlap, n_per_seg=n_per_seg,
-                           combine=combine, n_jobs=n_jobs, verbose=verbose)
+    psds, freq = psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
+                                 n_overlap=n_overlap, n_per_seg=n_per_seg,
+                                 combine=combine, n_jobs=n_jobs,
+                                 verbose=verbose)
+    # reshape if combine is None:
+    if combine is None:
+        # windows are put at -3 position so that the output is of shape
+        # windows x channels x frequencies for raw data and
+        # epochs x windows x channels x frequencies for epochs
+        psds = np.rollaxis(psds, -1, -3)
+    return psds, freq
 
 
 @verbose
