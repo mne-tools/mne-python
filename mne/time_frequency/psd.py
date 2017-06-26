@@ -64,7 +64,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
 
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-                    n_per_seg=None, reduction='mean', n_jobs=1, verbose=None):
+                    n_per_seg=None, combine='mean', n_jobs=1, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Parameters
@@ -87,14 +87,16 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         Length of each Welch segment. The smaller it is with respect to the
         signal length the smoother are the PSDs. Defaults to None, which sets
         n_per_seg equal to n_fft.
-    reduction : str | float | callable | None
-        The type of reduction to perform on windows. If string it can be 'mean'
-        or 'median'. If float it is understood as % of values to trim before
-        performing mean (has to be > 0 and < 0.5) ie. trimmed-mean. If function
-        it has to perform the reduction along last dimension. If None - no
-        reduction is performed and psd's for individual windows are returned
-        In such case the output psds have one more dimension than the input
-        array with windows at -3 dimension.
+    combine : str | float | callable | None
+        The type of reduction to perform on welch windows. If string it can be
+        'mean' or 'median'. If float it is understood as % of values to trim
+        before performing mean (has to be > 0 and < 0.5) ie. trimmed-mean. If
+        function it has to perform the reduction along last dimension.
+        If None - no reduction is performed and psd's for individual windows
+        are returned. In such case the output psds have one more dimension than
+        the input array with windows at -3 dimension.
+
+        .. versionadded:: 0.15.0
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -139,9 +141,9 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     # XXX : we can certainly avoid the allocation before the mean
     #       (this would require pushing reduction into fixes._spectrogram)
     psds = np.concatenate(f_spectrogram, axis=0)
-    if reduction is not None:
-        reduction = _get_reduction(reduction)
-        psds = reduction(psds).reshape(dshape + (-1,))
+    if combine is not None:
+        combine = _get_reduction(combine)
+        psds = combine(psds).reshape(dshape + (-1,))
     else:
         n_windows = psds.shape[-1]
         psds = psds.reshape(dshape + (-1, n_windows))
@@ -155,7 +157,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
-              reject_by_annotation=True, reduction='mean', verbose=None):
+              reject_by_annotation=True, combine='mean', verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodigrams for a sliding window over the
@@ -199,15 +201,14 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
-    reduction : str | float | callable | None
-        The type of reduction to perform on windows. If string it can be 'mean'
-        or 'median'. If float it is understood as % of values to trim before
-        performing mean (has to be > 0 and < 0.5) ie. trimmed-mean. If function
-        it has to perform the reduction along last dimension. If None - no
-        reduction is performed and psd's for individual windows are returned
-        In such case the output psds are of shape (windows, channels,
-        frequencies) for raw data and (epochs, windows, channels, frequencies)
-        for epochs.
+    combine : str | float | callable | None
+        The type of reduction to perform on welch windows. If string it can be
+        'mean' or 'median'. If float it is understood as % of values to trim
+        before performing mean (has to be > 0 and < 0.5) ie. trimmed-mean. If
+        function it has to perform the reduction along last dimension.
+        If None - no reduction is performed and psd's for individual windows
+        are returned. In such case the output psds have one more dimension than
+        the input array with windows at -3 dimension.
 
         .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
@@ -237,7 +238,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
                                   reject_by_annotation=reject_by_annotation)
     return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
                            n_overlap=n_overlap, n_per_seg=n_per_seg,
-                           reduction=reduction, n_jobs=n_jobs, verbose=verbose)
+                           combine=combine, n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose

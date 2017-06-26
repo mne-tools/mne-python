@@ -128,12 +128,12 @@ plt.show()
 # While in multitaper the averaging is done across independent realizations of
 # the signal (using slepian tapers), welch method averages across time
 # segments of the signal (often overlapping). Instead of averaging the windows
-# you can choose a different reduction by specifying `reduction`:
+# you can choose a different reduction by specifying `combine`:
 welch_args = dict(picks=[ch_index], n_fft=epochs.info['sfreq'],
                   n_overlap=int(epochs.info['sfreq'] / 2), fmin=2, fmax=25)
-psds_w, freqs = psd_welch(epochs, reduction='mean', **welch_args)
-psds_w_trimmed, _ = psd_welch(epochs, reduction=0.15, **welch_args)
-psds_w_median, _ = psd_welch(epochs, reduction='median', **welch_args)
+psds_w, freqs = psd_welch(epochs, combine='mean', **welch_args)
+psds_w_trimmed, _ = psd_welch(epochs, combine=0.15, **welch_args)
+psds_w_median, _ = psd_welch(epochs, combine='median', **welch_args)
 
 psd_w = psds_w[:, 0].mean(axis=0)
 psd_w_trim = psds_w_trimmed[:, 0].mean(axis=0)
@@ -145,17 +145,18 @@ ax.plot(freqs, psd_w, color='cornflowerblue', label='welch, mean')
 ax.plot(freqs, psd_w_trim, color='seagreen', label='welch, trimmed mean')
 ax.plot(freqs, psd_w_med, color='crimson', label='welch, median')
 
-ax.set(title='Welch with mean and median reductions', xlabel='Frequency',
+ax.set(title='Welch with mean and median combine', xlabel='Frequency',
        ylabel='Power Spectral Density')
 ax.legend()
 plt.show()
 
 ###############################################################################
-# The reduction is due to the fact that values for power spectral density
-# follow a positive skewed gamma-like distribution. Lets take a look at this
-# distribution. First we will use `reduction=None` to get all the welch windows
-# without averaging. Notice the dimensions of the output.
-psds_windows, freqs = psd_welch(epochs, reduction=None, **welch_args)
+# The reduction in power that can be seen in the figure above is due to the
+# fact that values for power spectral density follow a positive skewed
+# gamma-like distribution. Lets take a look at this distribution. First we will
+# use `combine=None` to get all the welch windows without averaging. Notice
+# the dimensions of the output.
+psds_windows, freqs = psd_welch(epochs, combine=None, **welch_args)
 n_epochs, n_windows, n_channels, n_freqs = psds_windows.shape
 print('dimensions of returned PSDs: n_epochs, n_windows, n_channels, n_freqs')
 print('PSDs shape in each dimension: ', end='')

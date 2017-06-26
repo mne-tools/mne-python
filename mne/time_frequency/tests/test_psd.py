@@ -94,17 +94,17 @@ def test_psd():
     kws_psd_temp.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
     assert_raises(ValueError, psd_welch, raw, proj=False, **kws_psd_temp)
 
-    # test reduction
-    windows, freqs = psd_welch(raw, proj=False, reduction=None, **kws_psd)
-    windows_mean, _ = psd_welch(raw, proj=False, reduction='mean', **kws_psd)
+    # test combine
+    windows, freqs = psd_welch(raw, proj=False, combine=None, **kws_psd)
+    windows_mean, _ = psd_welch(raw, proj=False, combine='mean', **kws_psd)
     assert_array_almost_equal(windows.mean(axis=-3), windows_mean)
     trim_mean = get_trim_mean()
-    windows_trim, _ = psd_welch(raw, proj=False, reduction=0.2, **kws_psd)
+    windows_trim, _ = psd_welch(raw, proj=False, combine=0.2, **kws_psd)
     assert_array_almost_equal(trim_mean(windows, 0.2, axis=-3), windows_trim)
 
-    # test reduction with function
+    # test combine with function
     windows_max, freqs = psd_welch(
-        raw, proj=False, reduction=lambda x: x.max(axis=-1), **kws_psd)
+        raw, proj=False, combine=lambda x: x.max(axis=-1), **kws_psd)
     assert_array_almost_equal(np.max(windows, axis=-3), windows_max)
 
     # -- Epochs/Evoked --
