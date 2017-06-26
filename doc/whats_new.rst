@@ -81,6 +81,8 @@ Changelog
 
     - :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` now use anti-aliasing to draw signals by `Clemens Brunner`_
 
+    - Add ``bem`` parameter for :func:`mne.viz.plot_trans` for plotting conductor model by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
