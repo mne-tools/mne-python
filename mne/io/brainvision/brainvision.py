@@ -272,12 +272,13 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
 
 def _check_hdr_version(header):
     """Check the header version."""
-    tags = ['Brain Vision Data Exchange Header File Version 1.0',
-            'Brain Vision Data Exchange Header File Version 2.0']
-    if header not in tags:
-        raise ValueError("Currently only support %r, not %r"
-                         "Contact MNE-Developers for support."
-                         % (str(tags), header))
+    if header == 'Brain Vision Data Exchange Header File Version 1.0':
+        return 1
+    elif header == 'Brain Vision Data Exchange Header File Version 2.0':
+        return 2
+    else:
+        raise ValueError("Currently only support versions 1.0 and 2.0, not %r "
+                         "Contact MNE-Developers for support." % header)
 
 
 def _check_mrk_version(header):
@@ -352,7 +353,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         # the characters in it all belong to ASCII and are thus the
         # same in Latin-1 and UTF-8
         header = header.decode('ascii', 'ignore').strip()
-        _check_hdr_version(header)
+        version = _check_hdr_version(header)
 
         settings = f.read()
         try:
@@ -463,7 +464,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     if 'Channels' in settings:
         idx = settings.index('Channels')
         settings = settings[idx + 1:]
-        hp_col, lp_col = 4, 5
+        if version == 1:
+            hp_col, lp_col = 5, 6  # +1 for unit column
+        elif version == 2:
+            hp_col, lp_col = 4, 5
         for idx, setting in enumerate(settings):
             if re.match('#\s+Name', setting):
                 break
@@ -499,7 +503,12 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         lp_s = '[s]' in header[lp_col]
 
         for i, ch in enumerate(ch_names[:-1], 1):
-            line = re.split('\s\s+', settings[idx + i])
+            if version == 1:
+                divider = '\s+'
+            elif version == 2:
+                divider = '\s\s+'
+
+            line = re.split(divider, settings[idx + i])
             # double check alignment with channel by using the hw settings
             # the actual divider is multiple spaces -- for newer BV
             # files, the unit is specified for every channel separated
@@ -508,7 +517,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             if idx == idx_amp:
                 line_amp = line
             else:
-                line_amp = re.split('\s\s+', settings[idx_amp + i])
+                line_amp = re.split(divider, settings[idx_amp + i])
             assert ch in line_amp
             highpass.append(line[hp_col])
             lowpass.append(line[lp_col])
