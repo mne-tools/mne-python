@@ -353,7 +353,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         # the characters in it all belong to ASCII and are thus the
         # same in Latin-1 and UTF-8
         header = header.decode('ascii', 'ignore').strip()
-        version = _check_hdr_version(header)
+        _check_hdr_version(header)
 
         settings = f.read()
         try:
@@ -464,10 +464,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     if 'Channels' in settings:
         idx = settings.index('Channels')
         settings = settings[idx + 1:]
-        if version == 1:
-            hp_col, lp_col = 5, 6  # +1 for unit column
-        elif version == 2:
-            hp_col, lp_col = 4, 5
+        hp_col, lp_col = 4, 5
         for idx, setting in enumerate(settings):
             if re.match('#\s+Name', setting):
                 break
@@ -494,6 +491,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         lowpass = []
         highpass = []
 
+        # for newer BV files, the unit is specified for every channel
+        # separated by a single space, while for older files, the unit is
+        # specified in the column headers
+        divider = '\s+'
+        if 'Resolution / Unit' in settings[idx]:
+            shift = 1  # shift for unit
+        else:
+            shift = 0
+
         # extract filter units and convert s to Hz if necessary
         # this cannot be done as post-processing as the inverse t-f
         # relationship means that the min/max comparisons don't make sense
@@ -503,24 +509,16 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         lp_s = '[s]' in header[lp_col]
 
         for i, ch in enumerate(ch_names[:-1], 1):
-            if version == 1:
-                divider = '\s+'
-            elif version == 2:
-                divider = '\s\s+'
-
             line = re.split(divider, settings[idx + i])
             # double check alignment with channel by using the hw settings
-            # the actual divider is multiple spaces -- for newer BV
-            # files, the unit is specified for every channel separated
-            # by a single space, while for older files, the unit is
-            # specified in the column headers
             if idx == idx_amp:
                 line_amp = line
             else:
                 line_amp = re.split(divider, settings[idx_amp + i])
             assert ch in line_amp
-            highpass.append(line[hp_col])
-            lowpass.append(line[lp_col])
+
+            highpass.append(line[hp_col + shift])
+            lowpass.append(line[lp_col + shift])
         if len(highpass) == 0:
             pass
         elif len(set(highpass)) == 1:
