@@ -1567,16 +1567,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             surf['rr'] *= 1e-3  # must be converted to meters
         else:  # Load an icosahedron and use that as the surface
             logger.info('Setting up the sphere...')
-            surf = _get_ico_surface(3)
-
-            # Scale and shift
-
-            # center at origin and make radius 1
-            _normalize_vectors(surf['rr'])
-
-            # normalize to sphere (in MRI coord frame)
-            surf['rr'] *= sphere[3] / 1000.0  # scale by radius
-            surf['rr'] += sphere[:3] / 1000.0  # move by center
+            surf = dict(R=sphere[3] / 1000., r0=sphere[:3] / 1000.)
         # Make the grid of sources in MRI space
         if volume_label is not None:
             sp = []
@@ -1674,12 +1665,18 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                               volume_label=None, do_neighbors=True, n_jobs=1):
     """Make a source space which covers the volume bounded by surf."""
     # Figure out the grid size in the MRI coordinate frame
-    mins = np.min(surf['rr'], axis=0)
-    maxs = np.max(surf['rr'], axis=0)
-    cm = np.mean(surf['rr'], axis=0)  # center of mass
+    if 'rr' in surf:
+        mins = np.min(surf['rr'], axis=0)
+        maxs = np.max(surf['rr'], axis=0)
+        cm = np.mean(surf['rr'], axis=0)  # center of mass
+        maxdist = np.linalg.norm(surf['rr'] - cm, axis=1).max()
+    else:
+        mins = surf['r0'] - surf['R']
+        maxs = surf['r0'] + surf['R']
+        cm = surf['r0'].copy()
+        maxdist = surf['R']
 
     # Define the sphere which fits the surface
-    maxdist = np.linalg.norm(surf['rr'] - cm, axis=1).max()
 
     logger.info('Surface CM = (%6.1f %6.1f %6.1f) mm'
                 % (1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
@@ -1724,7 +1721,17 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     sp['nuse'] -= len(bads)
     logger.info('%d sources after omitting infeasible sources.', sp['nuse'])
 
-    _filter_source_spaces(surf, mindist, None, [sp], n_jobs)
+    if 'rr' in surf:
+        _filter_source_spaces(surf, mindist, None, [sp], n_jobs)
+    else:  # sphere
+        vertno = np.where(sp['inuse'])[0]
+        bads = (np.linalg.norm(sp['rr'][vertno] - surf['r0'], axis=-1) >=
+                surf['R'] - mindist / 1000.)
+        sp['nuse'] -= bads.sum()
+        sp['inuse'][vertno[bads]] = False
+        sp['vertno'] = np.where(sp['inuse'])[0]
+        del vertno
+    del surf
     logger.info('%d sources remaining after excluding the sources outside '
                 'the surface and less than %6.1f mm inside.'
                 % (sp['nuse'], mindist))
