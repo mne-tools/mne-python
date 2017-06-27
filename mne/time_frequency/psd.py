@@ -239,10 +239,10 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj,
                                   reject_by_annotation=reject_by_annotation)
-    psds, freq = psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                                 n_overlap=n_overlap, n_per_seg=n_per_seg,
-                                 combine=combine, n_jobs=n_jobs,
-                                 verbose=verbose)
+    psds, freq = psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax,
+                                 n_fft=n_fft, n_overlap=n_overlap,
+                                 n_per_seg=n_per_seg, combine=combine,
+                                 n_jobs=n_jobs, verbose=verbose)
     # reshape if combine is None:
     if combine is None:
         # windows are put at -3 position so that the output is of shape
