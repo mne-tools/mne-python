@@ -978,3 +978,18 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
 
     layout = Layout(box, loc_params, ch_names, ch_indices, name)
     return layout
+
+
+def _find_neighbors(xy):
+    """Find neighbors for each coordinate."""
+    from scipy.spatial import Delaunay
+    neighbors = list()
+    tri = Delaunay(xy)
+    for idx in range(len(xy)):
+        indices = np.where(tri.simplices == idx)[0]
+        this_n = list()
+        for ii in indices:
+            this_n.append(tri.simplices[ii])
+        this_n = np.unique(np.array(this_n).flatten())
+        neighbors.append(this_n[this_n != idx])
+    return neighbors

@@ -936,6 +936,10 @@ def read_ch_connectivity(fname, picks=None):
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
+
+    See Also
+    --------
+    compute_connectivity
     """
     from scipy.io import loadmat
     if not op.isabs(fname):
@@ -1007,9 +1011,50 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
     ch_connectivity = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
         ch_connectivity[ii, [ch_names.index(i) for i in neigbs]] = True
-
     ch_connectivity = sparse.csr_matrix(ch_connectivity)
     return ch_connectivity
+
+
+def compute_connectivity(info, ch_type):
+    """Compute sensor connectivity matrix using Delaunay triangulation based on
+    2d sensor locations.
+
+    Parameters
+    ----------
+    info : instance of mne.measuerment_info.Info
+        The measurement info.
+    ch_type : str
+        The channel type for computing the connectivity matrix. Currently
+        supports 'mag', 'grad' and 'eeg'.
+
+    Returns
+    -------
+    ch_connectivity : scipy.sparse matrix
+        The connectivity matrix.
+    ch_names : list
+        The list of channel names present in connectivity matrix.
+
+    See Also
+    --------
+    read_ch_connectivity
+    """
+    from ..channels.layout import _auto_topomap_coords, _find_neighbors
+    if ch_type in ['mag', 'grad']:
+        picks = pick_types(info, meg=ch_type, ref_meg=False, exclude=[])
+    elif ch_type == 'eeg':
+        picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                           exclude=[])
+    else:
+        raise ValueError("ch_type must be 'mag', 'grad' or 'eeg'. "
+                         "Got %s." % ch_type)
+    ch_names = [info['ch_names'][pick] for pick in picks]
+    xy = _auto_topomap_coords(info, picks, ignore_overlap=True)
+    neighbors = _find_neighbors(xy)
+    ch_connectivity = np.eye(len(picks), dtype=bool)
+    for ii, neigbs in enumerate(neighbors):
+        ch_connectivity[ii, neigbs] = True
+    ch_connectivity = sparse.csr_matrix(ch_connectivity)
+    return ch_connectivity, ch_names
 
 
 def fix_mag_coil_types(info):
