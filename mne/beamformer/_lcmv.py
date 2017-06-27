@@ -146,23 +146,19 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
             Wk[:] = np.dot(max_ori, Wk)
             Gk = np.dot(Gk, max_ori)
 
+            # compute spatial filter for NAI
+            tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+            denom = np.sqrt(tmp)
+            Wk /= denom
             if weight_norm == 'nai':
-                # compute spatial filter for NAI
-                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                denom = np.sqrt(noise * tmp)
-                Wk /= denom
-            elif weight_norm == 'unit-noise-gain':
-                # compute spatial filter for unit-noise gain
-                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                denom = np.sqrt(tmp)
-                Wk /= denom
+                Wk /= np.sqrt(noise)
 
             is_free_ori = False
 
         # special case 2: NAI without orientation selection
         elif weight_norm == 'nai' and pick_ori != 'max-power':
             raise ValueError('Weight normalization with Neural activity index '
-                             'is not implemented yet with free or normal '
+                             'is not implemented yet with free or fixed '
                              'orientation.')
 
         # all other combinations are handled here:
@@ -337,7 +333,9 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     forward : dict
         Forward operator
     noise_cov : Covariance
-        The noise covariance. If provided, whitening will be done.
+        The noise covariance. If provided, whitening will be done. Providing a
+        noise covariance is mandatory if you mix sensor types, e.g.
+        gradiometers with magnetometers or EEG with MEG.
     data_cov : Covariance
         The data covariance
     reg : float
