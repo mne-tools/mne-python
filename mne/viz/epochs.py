@@ -932,7 +932,7 @@ def _plot_traces(params):
             num_epochs = np.min([params['n_epochs'], len(epochs.events)])
 
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
-            segments = np.array(segments)[:, ::this_decim]
+            segments = [segment[::this_decim] for segment in segments]
 
             ch_name = params['ch_names'][ch_idx]
             if ch_name in params['info']['bads']:
