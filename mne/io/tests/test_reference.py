@@ -82,13 +82,13 @@ def test_apply_reference():
     # The CAR reference projection should have been removed by the function
     assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
 
-    # Test that disabling the reference does not break anything
-    reref, ref_data = _apply_reference(raw, [])
-    assert_array_equal(raw._data, reref._data)
-
     # Test that data is modified in place when copy=False
     reref, ref_data = _apply_reference(raw, ['EEG 001', 'EEG 002'])
     assert_true(raw is reref)
+
+    # Test that disabling the reference does not change anything
+    reref, ref_data = _apply_reference(raw.copy(), [])
+    assert_array_equal(raw._data, reref._data)
 
     # Test re-referencing Epochs object
     raw = read_raw_fif(fif_fname, preload=False)
@@ -195,6 +195,10 @@ def test_set_eeg_reference():
     reref, _ = set_eeg_reference(reref, ['EEG 001', 'EEG 002'])
     assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
     assert_equal(reref.info['custom_ref_applied'], True)
+
+    # Test that disabling the reference does not change anything
+    reref, ref_data = set_eeg_reference(raw, [])
+    assert_array_equal(raw._data, reref._data)
 
 
 @testing.requires_testing_data

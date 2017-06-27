@@ -136,22 +136,22 @@ def _apply_reference(inst, ref_from, ref_to=None):
     inst._projector, _ = \
         setup_proj(inst.info, add_eeg_ref=False, activate=False)
 
-    ref_from = pick_channels(inst.ch_names, ref_from)
-    ref_to = pick_channels(inst.ch_names, ref_to)
-    data = inst._data
-
     # Compute reference
     if len(ref_from) > 0:
+        ref_from = pick_channels(inst.ch_names, ref_from)
+        ref_to = pick_channels(inst.ch_names, ref_to)
+
+        data = inst._data
         ref_data = data[..., ref_from, :].mean(-2, keepdims=True)
         data[..., ref_to, :] -= ref_data
         ref_data = ref_data[..., 0, :]
+
+        # If the reference touches EEG electrodes, note in the info that a
+        # non-CAR has been applied.
+        if len(np.intersect1d(ref_to, eeg_idx)) > 0:
+            inst.info['custom_ref_applied'] = True
     else:
         ref_data = None
-
-    # If the reference touches EEG electrodes, note in the info that a non-CAR
-    # has been applied.
-    if len(np.intersect1d(ref_to, eeg_idx)) > 0:
-        inst.info['custom_ref_applied'] = True
 
     return inst, ref_data
 
@@ -385,15 +385,17 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
 
             return inst, None
 
+    inst = inst.copy() if copy else inst
+
     if ref_channels == []:
         logger.info('EEG data marked as already having the desired reference. '
                     'Preventing automatic future re-referencing to an average '
                     'reference.')
+        inst.info['custom_ref_applied'] = True
+        return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
-
-    inst = inst.copy() if copy else inst
-    return _apply_reference(inst, ref_channels)
+        return _apply_reference(inst, ref_channels)
 
 
 @verbose
