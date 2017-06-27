@@ -130,9 +130,9 @@ install:
 script:
     # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        ATTRIBUTES="-a '!slow_test'"
+        CONDITIONS="-a '!slow_test'"
       else
-        ATTRIBUTES="-a '!ultra_slow_test'"
+        CONDITIONS="-a '!ultra_slow_test'"
       fi;
     # Determine directories to test
     - if [ "MNE_DIRS" != "" ]; then
@@ -143,8 +143,8 @@ script:
       else
         USE_DIRS="mne";
       fi;
-    - echo "Testing with $ATTRIBUTES $COVERAGE: $USE_DIRS"
-    - nosetests $ATTRIBUTES --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 $COVERAGE $USE_DIRS;
+    - echo 'Testing with $CONDITIONS $COVERAGE $USE_DIRS'
+    - nosetests $CONDITIONS --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 $COVERAGE $USE_DIRS;
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;
