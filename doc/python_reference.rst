@@ -944,6 +944,7 @@ Decoding
    TimeDelayingRidge
    SlidingEstimator
    GeneralizingEstimator
+   SPoC
 
 Functions that assist with decoding and model fitting:
 

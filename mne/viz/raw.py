@@ -27,7 +27,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
-                    _change_channel_group, _plot_annotations, _setup_butterfly)
+                    _change_channel_group, _plot_annotations, _setup_butterfly,
+                    _handle_decim)
 from .evoked import _plot_lines
 
 
@@ -230,7 +231,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from scipy.signal import butter
-    from ..evoked import _check_decim
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
@@ -342,18 +342,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         if key <= 0 and key != -1:
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
                            % key)
-    if isinstance(decim, string_types) and decim == 'auto':
-        lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
-        lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
-        info['lowpass'] = lp
-        decim = max(int(info['sfreq'] / (lp * 3) + 1e-6), 1)
-    decim = _ensure_int(decim, 'decim', must_be='an int or "auto"')
-    if decim <= 0:
-        raise ValueError('decim must be "auto" or a positive integer, got %s'
-                         % (decim,))
-    decim = _check_decim(info, decim, 0)[0]
-    data_picks = _pick_data_channels(info, exclude=())
-
+    decim, data_picks = _handle_decim(info, decim, lowpass)
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
     first_time = raw._first_time if show_first_samp else 0
@@ -918,12 +907,12 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             if isinstance(this_color, dict):
                 this_color = this_color[params['types'][inds[ch_ind]]]
 
-            # subtraction here gets correct orientation for flipped ylim
             if inds[ch_ind] in params['data_picks']:
                 this_decim = params['decim']
             else:
                 this_decim = 1
             this_t = params['times'][::this_decim] + params['first_time']
+            # subtraction here gets correct orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data[..., ::this_decim])
             lines[ii].set_xdata(this_t)
             lines[ii].set_color(this_color)

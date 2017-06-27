@@ -47,15 +47,15 @@ Changelog
 
     - Add ``axes`` parameter to plot_topo functions by `Jaakko Leppakangas`_
 
-    - Add options to change time windowing in :func:`mne.filter.filter_chpi` by `Eric Larson`_
+    - Add options to change time windowing in :func:`mne.chpi.filter_chpi` by `Eric Larson`_
 
     - :meth:`mne.channels.Montage.plot`, :meth:`mne.channels.DigMontage.plot`, and :func:`mne.viz.montage.plot_montage` now allow plotting channel locations as a topomap by `Clemens Brunner`_
 
-    - Add ``background_color`` parameter to :meth:`mne.Epochs.plot_topo` and :func:`mne.viz.plot_evoked_topo` and improve axes rendering as done in :func:`mne.viz.plot_compare_evokeds` by `Alex Gramfort`_
+    - Add ``background_color`` parameter to :meth:`mne.Evoked.plot_topo` and :func:`mne.viz.plot_evoked_topo` and improve axes rendering as done in :func:`mne.viz.plot_compare_evokeds` by `Alex Gramfort`_
 
     - Add :func:`mne.io.get_edf_events` for getting the events as they are in the EDF/GDF header by `Jaakko Leppakangas`_
 
-    - Speed up :meth:`mne.io.Raw.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_
+    - Speed up :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_ and `Jaakko Leppakangas`_
 
 BUG
 ~~~
@@ -96,7 +96,7 @@ BUG
 
     - Fix :func:`mne.read_bem_surfaces` for BEM files missing normals by `Christian Brodbeck`_
 
-    - Fix :func:`mne.transforms.transform_surface_to` to actually copy when ``copy=True`` by `Eric Larson`_
+    - Fix :func:`mne.transform_surface_to` to actually copy when ``copy=True`` by `Eric Larson`_
 
 API
 ~~~

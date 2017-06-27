@@ -900,7 +900,9 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
               'orig_data': data,
               'bads': list(),
               'bad_color': (1., 0., 0.),
-              't_start': start * len(epochs.times)}
+              't_start': start * len(epochs.times),
+              'data_picks': [],
+              'decim': 1}
     params['label_click_fun'] = partial(_label_clicked, params=params)
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
