@@ -220,7 +220,7 @@ def test_get_set_sensor_positions():
 def test_compute_connectivity():
     """Computing connectivity matrix."""
     raw = read_raw_fif(raw_fname)
-    for ch_type in ['mag', 'eeg']:
+    for ch_type in ['mag', 'grad', 'eeg']:
         conn, ch_names = compute_connectivity(raw.info, ch_type)
 
 run_tests_if_main()

@@ -1038,7 +1038,11 @@ def compute_connectivity(info, ch_type):
     --------
     read_ch_connectivity
     """
-    from ..channels.layout import _auto_topomap_coords, _find_neighbors
+    from ..channels.layout import (_auto_topomap_coords, _find_neighbors,
+                                   _pair_grad_sensors)
+    combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
+                     np.unique([ch['coil_type'] for ch in info['chs']]))
+
     if ch_type in ['mag', 'grad']:
         picks = pick_types(info, meg=ch_type, ref_meg=False, exclude=[])
     elif ch_type == 'eeg':
@@ -1048,11 +1052,27 @@ def compute_connectivity(info, ch_type):
         raise ValueError("ch_type must be 'mag', 'grad' or 'eeg'. "
                          "Got %s." % ch_type)
     ch_names = [info['ch_names'][pick] for pick in picks]
-    xy = _auto_topomap_coords(info, picks, ignore_overlap=True)
+
+    if combine_grads:
+        pairs = _pair_grad_sensors(info, topomap_coords=False, exclude=[])
+        if len(pairs) != len(picks):
+            raise RuntimeError('Cannot find a pair for some of the '
+                               'gradiometers. Cannot compute connectivity '
+                               'matrix.')
+        xy = _auto_topomap_coords(info, picks[::2])  # only for one of the pair
+    else:
+        xy = _auto_topomap_coords(info, picks)
     neighbors = _find_neighbors(xy)
     ch_connectivity = np.eye(len(picks), dtype=bool)
-    for ii, neigbs in enumerate(neighbors):
-        ch_connectivity[ii, neigbs] = True
+    if combine_grads:
+        for idx, neigbs in enumerate(neighbors):
+            for ii in range(2):  # make sure each pair is included
+                for jj in range(2):
+                    ch_connectivity[idx * 2 + ii, neigbs * 2 + jj] = True
+                    ch_connectivity[idx * 2 + ii, idx * 2 + jj] = True  # pair
+    else:
+        for idx, neigbs in enumerate(neighbors):
+            ch_connectivity[idx, neigbs] = True
     ch_connectivity = sparse.csr_matrix(ch_connectivity)
     return ch_connectivity, ch_names
 
