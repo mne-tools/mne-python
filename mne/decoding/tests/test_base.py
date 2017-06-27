@@ -160,14 +160,25 @@ def test_get_coef():
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns.
     """
+    from sklearn.linear_model import LinearRegression
     np.random.seed(42)
     clf = LinearModel()
-    X = np.random.rand(20, 3)
-    y = np.arange(20) % 2
+    n, n_features = 20, 3
+    X = np.random.rand(n, n_features)
+    y = np.arange(n) % 2
     clf.fit(X, y)
-    assert_equal(clf.filters_.shape, (3,))
-    assert_equal(clf.patterns_.shape, (3,))
-    assert_raises(ValueError, clf.fit, np.random.rand(20, 3, 2), y)
+    assert_equal(clf.filters_.shape, (n_features,))
+    assert_equal(clf.patterns_.shape, (n_features,))
+    assert_raises(ValueError, clf.fit, np.random.rand(n, n_features, 99), y)
+
+    # check multi-target fit
+    n_targets = 5
+    clf = LinearModel(LinearRegression())
+    Y = np.random.rand(n, n_targets)
+    clf.fit(X, Y)
+    assert_equal(clf.filters_.shape, (n_targets, n_features))
+    assert_equal(clf.patterns_.shape, (n_targets, n_features))
+    assert_raises(ValueError, clf.fit, X, np.random.rand(n, n_features, 99))
 
 
 @requires_sklearn_0_15

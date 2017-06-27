@@ -31,9 +31,9 @@ class LinearModel(BaseEstimator):
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape (n_targets, n_features)
+    ``filters_`` : ndarray, shape (n_features,) or (n_targets, n_features)
         If fit, the filters used to decompose the data.
-    ``patterns_`` : ndarray, shape (n_targets, n_features)
+    ``patterns_`` : ndarray, shape (n_features,) or (n_targets, n_features)
         If fit, the patterns used to restore M/EEG signals.
 
     Notes
@@ -71,7 +71,7 @@ class LinearModel(BaseEstimator):
         ----------
         X : array, shape (n_samples, n_features)
             The training input samples to estimate the linear coefficients.
-        y : array, shape (n_samples,)
+        y : array, shape (n_samples,) or (n_samples, n_targets)
             The target values.
 
         Returns
@@ -79,19 +79,22 @@ class LinearModel(BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        X = np.asarray(X)
+        X, y = np.asarray(X), np.asarray(y)
         if X.ndim != 2:
             raise ValueError('LinearModel only accepts 2-dimensional X, got '
                              '%s instead.' % (X.shape,))
+        if y.ndim > 2:
+            raise ValueError('LinearModel only accepts up to 2-dimensional y, '
+                             'got %s instead.' % (y.shape,))
+
         # fit the Model
         self.model.fit(X, y)
 
-        # Computes patterns using Haufe's trick:
-        # A = Covariance_X . W . Precision_Y
+        # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
 
         inv_Y = 1.
         X = X - X.mean(0, keepdims=True)
-        if np.squeeze(y).ndim > 1:
+        if y.ndim == 2 and y.shape[1] != 1:
             y = y - y.mean(0, keepdims=True)
             inv_Y = np.linalg.pinv(np.cov(y.T))
         self.patterns_ = np.cov(X.T).dot(self.filters_.T.dot(inv_Y)).T
