@@ -135,16 +135,16 @@ script:
         CONDITIONS="-a '!ultra_slow_test'";
       fi;
     # Determine directories to test
-    - if [ "MNE_DIRS" != "" ]; then
+    - if [ "${MNE_DIRS}" != "" ]; then
         USE_DIRS="";
-        for DIR in $MNE_DIRS; do
-          USE_DIRS="mne/$DIR $USE_DIRS";
+        for DIR in ${MNE_DIRS}; do
+          USE_DIRS="mne/${DIR} ${USE_DIRS}";
         done;
       else
         USE_DIRS="mne";
       fi;
-    - echo 'Testing with $CONDITIONS $COVERAGE $USE_DIRS'
-    - nosetests $CONDITIONS --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 $COVERAGE $USE_DIRS;
+    - echo Testing with ${CONDITIONS} ${COVERAGE} ${USE_DIRS}
+    - nosetests ${CONDITIONS} --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 ${COVERAGE} ${USE_DIRS};
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;
