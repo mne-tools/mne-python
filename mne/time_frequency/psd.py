@@ -97,8 +97,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         values to trim before performing mean (has to be > 0 and < 0.5) ie.
         trimmed-mean. If function it has to perform the reduction along last
         dimension. If None, no reduction is performed and psd's for individual
-        windows are returned. In such case the output psds have one more
-        dimension than the input array with windows at -3 dimension.
+        windows are returned. In such case the output PSDs have one more
+        dimension than the input array with windows as the last dimension.
 
         .. versionadded:: 0.15.0
     n_jobs : int
@@ -207,7 +207,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         values to trim before performing mean (has to be > 0 and < 0.5) ie.
         trimmed-mean. If function it has to perform the reduction along last
         dimension. If None, no reduction is performed and psd's for individual
-        windows are returned. In such case the output psds have one more
+        windows are returned. In such case the output PSDs have one more
         dimension than the input array with windows at -3 dimension.
 
         .. versionadded:: 0.15.0
