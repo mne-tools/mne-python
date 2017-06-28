@@ -15,7 +15,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal, assert_false
 
 from mne.channels import (rename_channels, read_ch_connectivity,
-                          compute_connectivity)
+                          find_ch_connectivity)
 from mne.channels.channels import _ch_neighbor_connectivity
 from mne.io import read_info, read_raw_fif
 from mne.io.constants import FIFF
@@ -217,10 +217,10 @@ def test_get_set_sensor_positions():
                        raw2.info['chs'][13]['loc'])
 
 
-def test_compute_connectivity():
-    """Computing connectivity matrix."""
+def test_find_ch_connectivity():
+    """Test computing the connectivity matrix."""
     raw = read_raw_fif(raw_fname)
     for ch_type in ['mag', 'grad', 'eeg']:
-        conn, ch_names = compute_connectivity(raw.info, ch_type)
+        conn, ch_names = find_ch_connectivity(raw.info, ch_type)
 
 run_tests_if_main()
