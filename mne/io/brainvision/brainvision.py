@@ -113,7 +113,7 @@ class RawBrainVision(BaseRaw):
             n_data_ch = len(self.ch_names) - 1
             _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                                 dtype=dtype, n_channels=n_data_ch,
-                                trigger_ch=self._event_ch)
+                                trigger_ch=self._event_ch, order=self._order)
         else:
             offsets = self._raw_extras[fi]
             with open(self._filenames[fi], 'rb') as fid:
