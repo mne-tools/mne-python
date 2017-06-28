@@ -175,13 +175,13 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     trigger_ch = raw._event_ch
     block = np.zeros((n_channels, stop - start))
     with open(raw._filenames[fi], 'rb', buffering=0) as fid:
-        for id in np.arange(n_channels)[idx]:
-            if id == n_channels - 1:  # stim channel
+        for chid in np.arange(n_channels)[idx]:
+            if chid == n_channels - 1:  # stim channel
                 stim_ch = trigger_ch[start:stop]
-                block[id] = stim_ch
+                block[chid] = stim_ch
                 continue
-            fid.seek(start * n_bytes + id * n_bytes * n_samples)
-            block[id] = np.fromfile(fid, dtype, stop - start)
+            fid.seek(start * n_bytes + chid * n_bytes * n_samples)
+            block[chid] = np.fromfile(fid, dtype, stop - start)
 
         _mult_cal_one(data, block, idx, cals, mult)
 
