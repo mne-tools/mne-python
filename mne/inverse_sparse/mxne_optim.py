@@ -774,11 +774,11 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
 
     Parameters
     ----------
-    M : array of shape (n_sensors, n_times)
+    M : array, shape (n_sensors, n_times)
         The data.
-    G : array of shape (n_sensors, n_sources)
+    G : array, shape (n_sensors, n_sources)
         Gain matrix a.k.a. lead field.
-    Z : array of shape (n_active, n_coefs)
+    Z : array, shape (n_active, n_coefs)
         Sources in TF domain.
     active_set : array of bool, shape (n_sources, )
         Mask of active sources.
@@ -806,8 +806,8 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
         Primal objective
     d_obj : float
         Dual objective. gap = p_obj - d_obj
-    R : array of shape (n_sensors, n_times)
-        Current residual of M - G * X
+    R : array, shape (n_sensors, n_times)
+        Current residual (M - G * X)
 
     References
     ----------
@@ -932,7 +932,8 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 
         if log_objective:
             if (ii + 1) % 10 == 0:
-                Zd = np.vstack([Z_ for Z_ in Z.values() if np.any(Z_)])
+                Zd = np.vstack([Z[pos] for pos in range(n_positions)
+                               if np.any(Z[pos])])
                 gap, p_obj, d_obj, _ = dgap_l21l1(
                     M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
                     shape, n_orient, d_obj)
@@ -1018,7 +1019,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
 
         converged = True
         if converged:
-            Zd = np.vstack([Z_ for Z_ in Z.values() if np.any(Z_)])
+            Zd = np.vstack([Z[pos] for pos in range(len(Z)) if np.any(Z[pos])])
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, G, Zd, active_set, alpha_space, alpha_time,
                 phi, phiT, shape, n_orient, d_obj)
@@ -1029,7 +1030,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                 break
 
     if active_set.sum():
-        Z = np.vstack([Z_ for Z_ in Z.values() if np.any(Z_)])
+        Z = np.vstack([Z[pos] for pos in range(len(Z)) if np.any(Z[pos])])
         X = phiT(Z)
     else:
         n_step = shape[2]
