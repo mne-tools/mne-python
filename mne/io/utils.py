@@ -142,7 +142,7 @@ def _blk_read_lims(start, stop, buf_len):
 
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
                         dtype='<i2', n_channels=None, offset=0,
-                        trigger_ch=None, order='F'):
+                        trigger_ch=None):
     """Read a chunk of raw data."""
     if n_channels is None:
         n_channels = raw.info['nchan']
@@ -161,7 +161,7 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
         for sample_start in np.arange(0, data_left, block_size) // n_channels:
             count = min(block_size, data_left - sample_start * n_channels)
             block = np.fromfile(fid, dtype, count)
-            block = block.reshape(n_channels, -1, order=order)
+            block = block.reshape(n_channels, -1, order='F')
             n_samples = block.shape[1]  # = count // n_channels
             sample_stop = sample_start + n_samples
             if trigger_ch is not None:

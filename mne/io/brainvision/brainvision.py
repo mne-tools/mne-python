@@ -81,8 +81,10 @@ class RawBrainVision(BaseRaw):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        info, data_filename, fmt, self._order, mrk_fname, montage = \
+        info, data_filename, fmt, order, mrk_fname, montage, n_samples = \
             _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
+        self._order = order
+        self._n_samples = n_samples
         events = _read_vmrk_events(mrk_fname, event_id, response_trig_shift)
         _check_update_montage(info, montage)
         with open(data_filename, 'rb') as f:
@@ -108,12 +110,14 @@ class RawBrainVision(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         # read data
-        if isinstance(self.orig_format, string_types):
+        if self._order == 'C':
+            _read_segments_c(self, data, idx, fi, start, stop, cals, mult)
+        elif isinstance(self.orig_format, string_types):
             dtype = _fmt_dtype_dict[self.orig_format]
             n_data_ch = len(self.ch_names) - 1
             _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                                 dtype=dtype, n_channels=n_data_ch,
-                                trigger_ch=self._event_ch, order=self._order)
+                                trigger_ch=self._event_ch)
         else:
             offsets = self._raw_extras[fi]
             with open(self._filenames[fi], 'rb') as fid:
@@ -160,6 +164,26 @@ class RawBrainVision(BaseRaw):
         self._events = events
         if self.preload:
             self._data[-1] = self._event_ch
+
+
+def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
+    """Read chunk of vectorized raw data."""
+    n_samples = raw._n_samples
+    dtype = _fmt_dtype_dict[raw.orig_format]
+    n_bytes = _fmt_byte_dict[raw.orig_format]
+    n_channels = len(raw.ch_names)
+    trigger_ch = raw._event_ch
+    with open(raw._filenames[fi], 'rb', buffering=0) as fid:
+        block = list()
+        for id in np.arange(n_channels):
+            if id == n_channels - 1:  # stim channel
+                stim_ch = trigger_ch[start:stop]
+                block.append(stim_ch)
+                continue
+            fid.seek(start * n_bytes + id * n_bytes * n_samples)
+            block.append(np.fromfile(fid, dtype, stop - start))
+
+        _mult_cal_one(data, block, idx, cals, mult)
 
 
 def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
@@ -402,8 +426,26 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         fmt = dict((key, cfg.get('ASCII Infos', key))
                    for key in cfg.options('ASCII Infos'))
 
+    # locate EEG and marker files
+    path = os.path.dirname(vhdr_fname)
+    data_filename = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
+    info['meas_date'] = int(time.time())
+    info['buffer_size_sec'] = 1.  # reasonable default
+
     # load channel labels
     nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
+    n_samples = None
+    if order.lower() == 'c':
+        try:
+            n_samples = cfg.getint('Common Infos', 'DataPoints')
+        except configparser.NoOptionError:
+            logger.warning('No info on DataPoints found. Inferring number of '
+                           'samples from the data file size.')
+            with open(data_filename, 'rb') as fid:
+                fid.seek(0, 2)
+                n_bytes = fid.tell()
+                n_samples = n_bytes / _fmt_byte_dict[fmt] / (nchan - 1)
+
     ch_names = [''] * nchan
     cals = np.empty(nchan)
     ranges = np.empty(nchan)
@@ -622,12 +664,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                      'Highest (weakest) filter setting (%0.2f Hz%s) '
                      'will be stored.' % (info['lowpass'], nyquist))
 
-    # locate EEG and marker files
-    path = os.path.dirname(vhdr_fname)
-    data_filename = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
-    info['meas_date'] = int(time.time())
-    info['buffer_size_sec'] = 1.  # reasonable default
-
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
@@ -661,7 +697,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info._update_redundant()
     info._check_consistency()
-    return info, data_filename, fmt, order, mrk_fname, montage
+    return info, data_filename, fmt, order, mrk_fname, montage, n_samples
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,
