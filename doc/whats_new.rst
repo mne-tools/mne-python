@@ -98,6 +98,8 @@ BUG
 
     - Fix :func:`mne.transform_surface_to` to actually copy when ``copy=True`` by `Eric Larson`_
 
+    - Fix :func:`mne.io.read_raw_brainvision` to read vectorized data correctly by `Jaakko Leppakangas`_ and `Phillip Alday`_
+
 API
 ~~~
 
