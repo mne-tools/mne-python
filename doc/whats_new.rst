@@ -57,6 +57,8 @@ Changelog
 
     - Speed up :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_ and `Jaakko Leppakangas`_
 
+   - Add ``combine`` keyword argument to :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` that allows specifying the reduction to apply to welch windows. This allows for example to get median of welch windows or do not reduce the windows at all (``combine=None``). The default value is ``'mean'`` which corresponds to nan-safe mean. Added by `Mikołaj Magnuski`_
+
 BUG
 ~~~
 
