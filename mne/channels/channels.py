@@ -940,7 +940,6 @@ def read_ch_connectivity(fname, picks=None):
     See Also
     --------
     find_ch_connectivity
-    compute_ch_connectivity
     """
     from scipy.io import loadmat
     if not op.isabs(fname):
@@ -1041,7 +1040,6 @@ def find_ch_connectivity(info, ch_type):
     See Also
     --------
     read_ch_connectivity
-    compute_ch_connectivity
 
     Notes
     -----
@@ -1081,10 +1079,10 @@ def find_ch_connectivity(info, ch_type):
         return read_ch_connectivity(conn_name)
     logger.info('Could not find a connectivity matrix for the data. '
                 'Computing connectivity based on Delaunay triangulations.')
-    return compute_ch_connectivity(info, ch_type)
+    return _compute_ch_connectivity(info, ch_type)
 
 
-def compute_ch_connectivity(info, ch_type):
+def _compute_ch_connectivity(info, ch_type):
     """Compute channel connectivity matrix using Delaunay triangulations.
 
      Parameters
@@ -1101,15 +1099,6 @@ def compute_ch_connectivity(info, ch_type):
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
-
-    See Also
-    --------
-    find_ch_connectivity
-    read_ch_connectivity
-
-    Notes
-    -----
-    .. versionadded:: 0.15
     """
     from ..channels.layout import (_auto_topomap_coords, _find_neighbors,
                                    _pair_grad_sensors)

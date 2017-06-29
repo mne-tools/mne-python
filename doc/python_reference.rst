@@ -315,7 +315,6 @@ Projections:
    make_grid_layout
    find_ch_connectivity
    read_ch_connectivity
-   compute_ch_connectivity
    equalize_channels
    rename_channels
    generate_2d_layout
