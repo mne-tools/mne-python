@@ -175,13 +175,13 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     trigger_ch = raw._event_ch
     block = np.zeros((n_channels, stop - start))
     with open(raw._filenames[fi], 'rb', buffering=0) as fid:
-        for chid in np.arange(n_channels)[idx]:
-            if chid == n_channels - 1:  # stim channel
+        for ch_id in np.arange(n_channels)[idx]:
+            if ch_id == n_channels - 1:  # stim channel
                 stim_ch = trigger_ch[start:stop]
-                block[chid] = stim_ch
+                block[ch_id] = stim_ch
                 continue
-            fid.seek(start * n_bytes + chid * n_bytes * n_samples)
-            block[chid] = np.fromfile(fid, dtype, stop - start)
+            fid.seek(start * n_bytes + ch_id * n_bytes * n_samples)
+            block[ch_id] = np.fromfile(fid, dtype, stop - start)
 
         _mult_cal_one(data, block, idx, cals, mult)
 
@@ -435,7 +435,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # load channel labels
     nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
     n_samples = None
-    if order.lower() == 'c':
+    if order == 'C':
         try:
             n_samples = cfg.getint('Common Infos', 'DataPoints')
         except configparser.NoOptionError:
@@ -444,7 +444,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             with open(data_filename, 'rb') as fid:
                 fid.seek(0, 2)
                 n_bytes = fid.tell()
-                n_samples = n_bytes / _fmt_byte_dict[fmt] / (nchan - 1)
+                n_samples = n_bytes // _fmt_byte_dict[fmt] // (nchan - 1)
 
     ch_names = [''] * nchan
     cals = np.empty(nchan)
