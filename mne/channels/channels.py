@@ -1085,7 +1085,7 @@ def find_ch_connectivity(info, ch_type):
 def _compute_ch_connectivity(info, ch_type):
     """Compute channel connectivity matrix using Delaunay triangulations.
 
-     Parameters
+    Parameters
     ----------
     info : instance of mne.measuerment_info.Info
         The measurement info.
