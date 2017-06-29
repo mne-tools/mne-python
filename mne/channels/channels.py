@@ -1054,9 +1054,9 @@ def find_ch_connectivity(info, ch_type):
     elif has_vv_grad and ch_type == 'grad':
         conn_name = 'neuromag306planar'
     elif ctf_other_types and ch_type == 'mag':
-        if info['cnhan'] < 100:
+        if info['nchan'] < 100:
             conn_name = 'ctf64'
-        elif info['cnhan'] > 200:
+        elif info['nchan'] > 200:
             conn_name = 'ctf275'
         else:
             conn_name = 'ctf151'

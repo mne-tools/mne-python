@@ -18,10 +18,11 @@ from mne.channels import (rename_channels, read_ch_connectivity,
                           find_ch_connectivity)
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
-from mne.io import read_info, read_raw_fif
+from mne.io import read_info, read_raw_fif, read_raw_ctf, read_raw_bti
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, pick_channels
+from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -218,8 +219,11 @@ def test_get_set_sensor_positions():
                        raw2.info['chs'][13]['loc'])
 
 
+@testing.requires_testing_data
 def test_find_ch_connectivity():
     """Test computing the connectivity matrix."""
+    data_path = testing.data_path()
+
     raw = read_raw_fif(raw_fname)
     sizes = {'mag': 828, 'grad': 1700, 'eeg': 386}
     nchans = {'mag': 102, 'grad': 204, 'eeg': 60}
@@ -232,6 +236,15 @@ def test_find_ch_connectivity():
     # Test computing the conn matrix with gradiometers.
     conn, ch_names = _compute_ch_connectivity(raw.info, 'grad')
     assert_equal(conn.getnnz(), 2680)
+
+    bti_fname = op.join(data_path, 'BTi', 'erm_HFH', 'c,rfDC')
+    bti_config_name = op.join(data_path, 'BTi', 'erm_HFH', 'config')
+    raw = read_raw_bti(bti_fname, bti_config_name, None)
+    find_ch_connectivity(raw.info, 'mag')
+
+    ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
+    raw = read_raw_ctf(ctf_fname)
+    find_ch_connectivity(raw.info, 'mag')
 
 
 run_tests_if_main()
