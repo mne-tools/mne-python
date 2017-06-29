@@ -47,8 +47,8 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
     if picks is None:
         picks = _pick_data_channels(inst.info, with_ref_meg=False)
     if isinstance(picks, int):
-        # Raw get_data() method doesn't guarantee 2d data if picks is int
-        # the same for epochs.get_data()[:, picks]
+        # Just to be on the safe side if picks is int: in that case
+        # epochs.get_data()[:, picks] would drop channels dimension
         picks = [picks]
     if proj:
         # Copy first so it's not modified
@@ -97,7 +97,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         'mean' or 'median'. If float it is understood as the proportion of
         values to trim before performing mean (has to be > 0 and < 0.5) ie.
         trimmed-mean. If function it has to perform the reduction along last
-        dimension. If None, no reduction is performed and psd's for individual
+        dimension. If None, no reduction is performed and PSDs for individual
         windows are returned. In such case the output PSDs have one more
         dimension than the input array with windows as the last dimension.
 
@@ -113,12 +113,21 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     psds : ndarray, shape (..., n_freqs)
         The power spectral densities. All dimensions up to the last will
         be the same as input unless combine is None. When combine is None
-        the psds are of shape (..., n_freqs, n_windows)
+        the PSDs are of shape (..., n_freqs, n_windows)
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
     Notes
     -----
+    Please note that if using ``combine=None`` the ``psds`` output shape will
+    be different from the shape of :func:`mne.time_frequency.psd_welch`
+    ``psds`` output. This function returns windows as the last dimension of
+    ``psds`` while :func:`mne.time_frequency.psd_welch` returns windows at -3
+    dimesion. This difference is caused by the fact that possible shapes of
+    input to this function are much more variable than inputs to
+    :func:`mne.time_frequency.psd_welch` - and placing windows at -3 dimension
+    would lead to inconsistencies anyway. Enjoy!
+
     .. versionadded:: 0.14.0
     """
     spectrogram = get_spectrogram()
@@ -207,7 +216,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         'mean' or 'median'. If float it is understood as the proportion of
         values to trim before performing mean (has to be > 0 and < 0.5) ie.
         trimmed-mean. If function it has to perform the reduction along last
-        dimension. If None, no reduction is performed and psd's for individual
+        dimension. If None, no reduction is performed and PSDs for individual
         windows are returned. In such case the output PSDs have one more
         dimension than the input array with windows at -3 dimension.
 
@@ -219,11 +228,11 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     Returns
     -------
     psds : ndarray, shape (..., n_freqs)
-        The power spectral densities. If input is of type Raw, returned psds
-        are shaped (n_channels, n_freqs), if input is type Epochs returned psds
+        The power spectral densities. If input is of type Raw, returned PSDs
+        are shaped (n_channels, n_freqs), if input is type Epochs returned PSDs
         are shaped (n_epochs, n_channels, n_freqs). However if combine is None
-        then if input is of type Raw, returned psds will be shaped (n_windows,
-        n_channels, n_freqs), if input is type Epochs then psds will be shaped
+        then if input is of type Raw, returned PSDs will be shaped (n_windows,
+        n_channels, n_freqs), if input is type Epochs then PSDs will be shaped
         (n_epochs, n_windows, n_channels, n_freqs).
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
