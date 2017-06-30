@@ -240,11 +240,13 @@ def test_find_ch_connectivity():
     bti_fname = op.join(data_path, 'BTi', 'erm_HFH', 'c,rfDC')
     bti_config_name = op.join(data_path, 'BTi', 'erm_HFH', 'config')
     raw = read_raw_bti(bti_fname, bti_config_name, None)
-    find_ch_connectivity(raw.info, 'mag')
+    _, ch_names = find_ch_connectivity(raw.info, 'mag')
+    assert_true('A1' in ch_names)
 
     ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
     raw = read_raw_ctf(ctf_fname)
-    find_ch_connectivity(raw.info, 'mag')
+    _, ch_names = find_ch_connectivity(raw.info, 'mag')
+    assert_true('MLC11' in ch_names)
 
 
 run_tests_if_main()

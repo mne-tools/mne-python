@@ -932,7 +932,7 @@ def read_ch_connectivity(fname, picks=None):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix
+    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
@@ -1032,7 +1032,7 @@ def find_ch_connectivity(info, ch_type):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix
+    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
@@ -1053,13 +1053,6 @@ def find_ch_connectivity(info, ch_type):
         conn_name = 'neuromag306mag'
     elif has_vv_grad and ch_type == 'grad':
         conn_name = 'neuromag306planar'
-    elif ctf_other_types and ch_type == 'mag':
-        if info['nchan'] < 100:
-            conn_name = 'ctf64'
-        elif info['nchan'] > 200:
-            conn_name = 'ctf275'
-        else:
-            conn_name = 'ctf151'
     elif has_4D_mag:
         if 'MEG 248' in info['ch_names']:
             idx = info['ch_names'].index('MEG 248')
@@ -1073,6 +1066,13 @@ def find_ch_connectivity(info, ch_type):
             idx = info['ch_names'].index('MEG 148')
             if info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_MAGNES_MAG:
                 conn_name = 'bti148'
+    elif has_CTF_grad and ch_type == 'mag':
+        if info['nchan'] < 100:
+            conn_name = 'ctf64'
+        elif info['nchan'] > 200:
+            conn_name = 'ctf275'
+        else:
+            conn_name = 'ctf151'
 
     if conn_name is not None:
         logger.info('Reading connectivity matrix for %s.' % conn_name)
@@ -1095,7 +1095,7 @@ def _compute_ch_connectivity(info, ch_type):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix
+    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
