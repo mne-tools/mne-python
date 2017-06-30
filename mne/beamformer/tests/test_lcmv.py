@@ -198,6 +198,11 @@ def test_lcmv():
     assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov,
                   data_cov, reg=0.01, pick_ori=None, weight_norm='nai')
 
+    # Test if no weight-normalization and max-power source orientation throw
+    # an error
+    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov,
+                  data_cov, reg=0.01, pick_ori="max-power", weight_norm=None)
+
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
     stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,

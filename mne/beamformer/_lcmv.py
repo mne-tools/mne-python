@@ -133,7 +133,6 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
         Ck = np.dot(Wk, Gk)
 
         # Find source orientation maximizing output source power
-
         # weight normalization and orientation selection
         if weight_norm is not None and pick_ori == 'max-power':
             # finding optimal orientation for NAI and unit-noise gain
@@ -164,24 +163,9 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
         # all other combinations are handled here:
         else:
             if pick_ori == 'max-power':
-                eig_vals, eig_vecs = linalg.eigh(Ck)
-
-                # Choosing the eigenvector associated with the middle
-                # eigenvalue. The middle and not the minimal eigenvalue is used
-                # because MEG is insensitive to one (radial) of the three
-                # dipole orientations and therefore the smallest eigenvalue
-                # reflects mostly noise.
-                for ii in range(3):
-                    if ii != eig_vals.argmax() and ii != eig_vals.argmin():
-                        idx_middle = ii
-
-                # TODO: The eigenvector associated with the smallest eigenvalue
-                # should probably be used when using combined EEG and MEG data
-                max_ori = eig_vecs[:, idx_middle]
-
-                Wk[:] = np.dot(max_ori, Wk)
-                Ck = np.dot(max_ori, np.dot(Ck, max_ori))
-                is_free_ori = False
+                raise ValueError('The unit-gain constraint beamformer is not '
+                                 'yet implemented with max-power orientation '
+                                 'selection.')
 
             if is_free_ori:
                 # Free source orientation
@@ -194,7 +178,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
     if pick_ori == 'max-power':
         W = W[0::3]
     else:
-        if weight_norm is not None:
+        if weight_norm == 'unit-noise-gain':
             # Preparing noise normalization
             noise_norm = np.sum(W ** 2, axis=1)
             if is_free_ori:
@@ -206,7 +190,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
             W = W[2::3]
             is_free_ori = False
 
-        if weight_norm is not None:
+        if weight_norm == 'unit-noise-gain':
             # Applying noise normalization
             noise_norm[noise_norm == 0.] = 1e-40  # avoid division by 0
             noise_norm_inv = 1. / noise_norm
@@ -240,6 +224,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
             if weight_norm is not None:
+                assert weight_norm == 'unit-noise-gain'
                 sol *= noise_norm_inv[:, None]
         else:
             # Linear inverse: do computation here or delayed
