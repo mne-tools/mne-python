@@ -243,7 +243,7 @@ def test_limits_to_control_points():
 
 
 @testing.requires_testing_data
-@requires_nibabel
+@requires_nibabel()
 def test_stc_mpl():
     """Test plotting source estimates with matplotlib."""
     import matplotlib.pyplot as plt
@@ -274,7 +274,7 @@ def test_stc_mpl():
 
 
 @testing.requires_testing_data
-@requires_nibabel
+@requires_nibabel()
 def test_plot_dipole_mri_orthoview():
     """Test mpl dipole plotting."""
     import matplotlib.pyplot as plt
