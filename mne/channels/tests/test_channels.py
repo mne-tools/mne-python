@@ -248,5 +248,7 @@ def test_find_ch_connectivity():
     _, ch_names = find_ch_connectivity(raw.info, 'mag')
     assert_true('MLC11' in ch_names)
 
+    assert_raises(ValueError, find_ch_connectivity, raw.info, 'eog')
+
 
 run_tests_if_main()

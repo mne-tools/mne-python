@@ -20,7 +20,7 @@ from ..utils import _check_preload
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info
-from ..io.pick import (channel_type, pick_info, pick_types,
+from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _PICK_TYPES_KEYS)
 
 
@@ -1045,6 +1045,9 @@ def find_ch_connectivity(info, ch_type):
     -----
     .. versionadded:: 0.15
     """
+    if ch_type not in ['mag', 'grad', 'eeg']:
+        raise ValueError("ch_type must be 'mag', 'grad' or 'eeg'. "
+                         "Got %s." % ch_type)
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
      has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
      has_eeg_coils_and_meg, has_eeg_coils_only) = _get_ch_info(info)
@@ -1105,16 +1108,8 @@ def _compute_ch_connectivity(info, ch_type):
     combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
                      np.unique([ch['coil_type'] for ch in info['chs']]))
 
-    if ch_type in ['mag', 'grad']:
-        picks = pick_types(info, meg=ch_type, ref_meg=False, exclude=[])
-    elif ch_type == 'eeg':
-        picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                           exclude=[])
-    else:
-        raise ValueError("ch_type must be 'mag', 'grad' or 'eeg'. "
-                         "Got %s." % ch_type)
+    picks = dict(_picks_by_type(info, exclude=[]))[ch_type]
     ch_names = [info['ch_names'][pick] for pick in picks]
-
     if combine_grads:
         pairs = _pair_grad_sensors(info, topomap_coords=False, exclude=[])
         if len(pairs) != len(picks):
