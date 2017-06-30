@@ -133,40 +133,37 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
         Ck = np.dot(Wk, Gk)
 
         # Find source orientation maximizing output source power
-        # weight normalization and orientation selection
-        if weight_norm is not None and pick_ori == 'max-power':
-            # finding optimal orientation for NAI and unit-noise gain
-            # based on [2]_, Eq. 4.47
-            tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-            eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),
-                                                   np.dot(Wk, Gk)))
-            idx_max = eig_vals.argmax()
-            max_ori = eig_vecs[:, idx_max]
-            Wk[:] = np.dot(max_ori, Wk)
-            Gk = np.dot(Gk, max_ori)
+        if pick_ori == 'max-power':
+            # weight normalization and orientation selection:
+            if weight_norm is not None and pick_ori == 'max-power':
+                # finding optimal orientation for NAI and unit-noise gain
+                # based on [2]_, Eq. 4.47
+                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+                eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),
+                                                       np.dot(Wk, Gk)))
+                idx_max = eig_vals.argmax()
+                max_ori = eig_vecs[:, idx_max]
+                Wk[:] = np.dot(max_ori, Wk)
+                Gk = np.dot(Gk, max_ori)
 
-            # compute spatial filter for NAI
-            tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-            denom = np.sqrt(tmp)
-            Wk /= denom
-            if weight_norm == 'nai':
-                Wk /= np.sqrt(noise)
+                # compute spatial filter for NAI
+                tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
+                denom = np.sqrt(tmp)
+                Wk /= denom
+                if weight_norm == 'nai':
+                    Wk /= np.sqrt(noise)
 
-            is_free_ori = False
+                is_free_ori = False
 
-        # NAI without orientation selection
-        elif weight_norm == 'nai' and pick_ori != 'max-power':
-            raise ValueError('Weight normalization with neural activity index '
-                             'is not implemented yet with free or fixed '
-                             'orientation.')
+            # no weight-normalization and max-power is not implemented yet:
+            else:
+                raise ValueError('The max-power orientation selection is not '
+                                 'yet implemented with weight_norm set to'
+                                 'None.')
 
-        # all other combinations are handled here:
+        # free orientation and normal orientation
         else:
-            if pick_ori == 'max-power':
-                raise ValueError('The unit-gain constraint beamformer is not '
-                                 'yet implemented with max-power orientation '
-                                 'selection.')
-
+            # compute the filters:
             if is_free_ori:
                 # Free source orientation
                 Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
@@ -174,29 +171,28 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
                 # Fixed source orientation
                 Wk /= Ck
 
+            # handle noise normalization with free/normal source orientation:
+            if weight_norm == 'nai':
+                raise ValueError('Weight normalization with neural activity '
+                                 'index is not implemented yet with free or '
+                                 'fixed orientation.')
+            if weight_norm == 'unit-noise-gain':
+                noise_norm = np.sum(Wk ** 2, axis=1)
+                if is_free_ori:
+                    noise_norm = np.sum(noise_norm)
+                noise_norm = np.sqrt(noise_norm)
+                if noise_norm == 0.:
+                    noise_norm_inv = 0  # avoid division by 0
+                else:
+                    noise_norm_inv = 1. / noise_norm
+                Wk[:] *= noise_norm_inv
+
     # Pick source orientation maximizing output source power
     if pick_ori == 'max-power':
         W = W[0::3]
-    else:
-        if weight_norm == 'unit-noise-gain':
-            # Preparing noise normalization
-            noise_norm = np.sum(W ** 2, axis=1)
-            if is_free_ori:
-                noise_norm = np.sum(noise_norm.reshape(-1, 3), axis=1)
-            noise_norm = np.sqrt(noise_norm)
-
-        # Pick source orientation normal to cortical surface
-        if pick_ori == 'normal':
-            W = W[2::3]
-            is_free_ori = False
-
-        if weight_norm == 'unit-noise-gain':
-            # Applying noise normalization
-            noise_norm[noise_norm == 0.] = 1e-40  # avoid division by 0
-            noise_norm_inv = 1. / noise_norm
-            noise_norm_inv[noise_norm == 0.] = 0.
-            if not is_free_ori:
-                W *= noise_norm_inv[:, None]
+    elif pick_ori == 'normal':
+        W = W[2::3]
+        is_free_ori = False
 
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
@@ -223,9 +219,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
-            if weight_norm is not None:
-                assert weight_norm == 'unit-noise-gain'
-                sol *= noise_norm_inv[:, None]
+
         else:
             # Linear inverse: do computation here or delayed
             if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
