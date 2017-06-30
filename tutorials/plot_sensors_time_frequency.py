@@ -156,17 +156,16 @@ plt.show()
 # use ``combine=None`` to get all the welch windows without averaging. Notice
 # the dimensions of the output.
 psds_windows, freqs = psd_welch(epochs, combine=None, **welch_args)
-n_epochs, n_windows, n_channels, n_freqs = psds_windows.shape
-print('dimensions of returned PSDs: n_epochs, n_windows, n_channels, n_freqs')
+n_epochs, n_channels, n_freqs, n_windows = psds_windows.shape
+print('dimensions of returned PSDs: n_epochs, n_channels, n_freqs, n_windows')
 print('PSDs shape in each dimension: ', end='')
-print(n_epochs, n_windows, n_channels, n_freqs, sep=', ')
+print(n_epochs, n_channels, n_freqs, n_windows, sep=', ')
 
 ###############################################################################
 # Now we'll pick power only at 10 Hz and unroll epochs and welch windows into
 # one vector whose histogram we plot.
 alpha = np.where(freqs == 10)[0][0]
-counts, bins, patches = plt.hist(
-    psds_windows[..., alpha].reshape(n_epochs * n_windows), bins=50)
+counts, bins, patches = plt.hist(psds_windows[:, 0, alpha, :].ravel(), bins=50)
 plt.show()
 
 ###############################################################################

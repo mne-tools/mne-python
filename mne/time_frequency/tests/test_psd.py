@@ -75,7 +75,7 @@ def test_psd():
         # Array input shouldn't work
         assert_raises(ValueError, func, raw[:3, :20][0])
 
-    # test n_per_seg in psd_welch (and padding)
+    # test n_per_seg_ psd_welch (and padding)
     psds1, freqs1 = psd_welch(raw, proj=False, n_fft=128, n_per_seg=128,
                               **kws_psd)
     psds2, freqs2 = psd_welch(raw, proj=False, n_fft=256, n_per_seg=128,
@@ -95,14 +95,14 @@ def test_psd():
     # test combine
     windows, freqs = psd_welch(raw, proj=False, combine=None, **kws_psd)
     windows_mean, _ = psd_welch(raw, proj=False, combine='mean', **kws_psd)
-    assert_array_almost_equal(windows.mean(axis=-3), windows_mean)
+    assert_array_almost_equal(windows.mean(axis=-1), windows_mean)
     windows_trim, _ = psd_welch(raw, proj=False, combine=0.2, **kws_psd)
-    assert_array_almost_equal(_trim_mean(windows, 0.2, axis=-3), windows_trim)
+    assert_array_almost_equal(_trim_mean(windows, 0.2, axis=-1), windows_trim)
 
     # test combine with function
-    windows_max, freqs = psd_welch(
+    windows_max, _ = psd_welch(
         raw, proj=False, combine=lambda x: x.max(axis=-1), **kws_psd)
-    assert_array_almost_equal(np.max(windows, axis=-3), windows_max)
+    assert_array_almost_equal(np.max(windows, axis=-1), windows_max)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)

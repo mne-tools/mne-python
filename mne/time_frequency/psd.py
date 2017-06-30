@@ -113,21 +113,12 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     psds : ndarray, shape (..., n_freqs)
         The power spectral densities. All dimensions up to the last will
         be the same as input unless combine is None. When combine is None
-        the PSDs are of shape (..., n_freqs, n_windows)
+        the PSDs are of shape (..., n_freqs, n_windows).
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
     Notes
     -----
-    Please note that if using ``combine=None`` the ``psds`` output shape will
-    be different from the shape of :func:`mne.time_frequency.psd_welch`
-    ``psds`` output. This function returns windows as the last dimension of
-    ``psds`` while :func:`mne.time_frequency.psd_welch` returns windows at -3
-    dimesion. This difference is caused by the fact that possible shapes of
-    input to this function are much more variable than inputs to
-    :func:`mne.time_frequency.psd_welch` - and placing windows at -3 dimension
-    would lead to inconsistencies anyway. Enjoy!
-
     .. versionadded:: 0.14.0
     """
     spectrogram = get_spectrogram()
@@ -218,7 +209,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         trimmed-mean. If function it has to perform the reduction along last
         dimension. If None, no reduction is performed and PSDs for individual
         windows are returned. In such case the output PSDs have one more
-        dimension than the input array with windows at -3 dimension.
+        dimension than the input array with windows as the last dimension.
 
         .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
@@ -227,13 +218,12 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs)
-        The power spectral densities. If input is of type Raw, returned PSDs
-        are shaped (n_channels, n_freqs), if input is type Epochs returned PSDs
-        are shaped (n_epochs, n_channels, n_freqs). However if combine is None
-        then if input is of type Raw, returned PSDs will be shaped (n_windows,
-        n_channels, n_freqs), if input is type Epochs then PSDs will be shaped
-        (n_epochs, n_windows, n_channels, n_freqs).
+    psds : ndarray, shape (..., n_freqs) or (..., n_freqs, n_windows)
+        The power spectral densities. If combine is not None and input is of
+        type Raw, returned PSDs are shaped (n_channels, n_freqs), if input is
+        of type Epochs returned PSDs are shaped (n_epochs, n_channels,
+        n_freqs). When combine is None the PSDs are of shape (..., n_freqs,
+        n_windows).
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
@@ -254,11 +244,6 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
                                  n_per_seg=n_per_seg, combine=combine,
                                  n_jobs=n_jobs, verbose=verbose)
     # reshape if combine is None:
-    if combine is None:
-        # windows are put at -3 position so that the output is of shape
-        # windows x channels x frequencies for raw data and
-        # epochs x windows x channels x frequencies for epochs
-        psds = np.rollaxis(psds, -1, -3)
     return psds, freq
 
 
