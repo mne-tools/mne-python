@@ -148,12 +148,15 @@ def test_get_coef():
                            filters[:, t])
 
     # Check patterns with more than 1 regressor
-    X, Y, A = _make_data(n_samples=5000, n_features=5, n_targets=3)
-    lm = LinearModel(LinearRegression()).fit(X, Y)
-    assert_array_equal(lm.filters_.shape, lm.patterns_.shape, [2, 5])
-    assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
-    lm = LinearModel(Ridge(alpha=1)).fit(X, Y)
-    assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
+    for n_features in [1, 5]:
+        for n_targets in [1, 3]:
+            X, Y, A = _make_data(n_samples=5000, n_features=5, n_targets=3)
+            lm = LinearModel(LinearRegression()).fit(X, Y)
+            assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
+            assert_array_equal(lm.filters_.shape, [3, 5])
+            assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
+            lm = LinearModel(Ridge(alpha=1)).fit(X, Y)
+            assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
 
 
 @requires_sklearn_0_15

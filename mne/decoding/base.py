@@ -31,9 +31,9 @@ class LinearModel(BaseEstimator):
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape (n_features,) or (n_targets, n_features)
+    ``filters_`` : ndarray, shape ([n_targets], n_features)
         If fit, the filters used to decompose the data.
-    ``patterns_`` : ndarray, shape (n_features,) or (n_targets, n_features)
+    ``patterns_`` : ndarray, shape ([n_targets], n_features)
         If fit, the patterns used to restore M/EEG signals.
 
     Notes
@@ -71,7 +71,7 @@ class LinearModel(BaseEstimator):
         ----------
         X : array, shape (n_samples, n_features)
             The training input samples to estimate the linear coefficients.
-        y : array, shape (n_samples,) or (n_samples, n_targets)
+        y : array, shape (n_samples, [n_targets])
             The target values.
 
         Returns
@@ -105,7 +105,10 @@ class LinearModel(BaseEstimator):
     def filters_(self):
         if not hasattr(self.model, 'coef_'):
             raise ValueError('model does not have a `coef_` attribute.')
-        return np.squeeze(self.model.coef_)
+        filters = self.model.coef_
+        if filters.ndim == 2 and filters.shape[0] == 1:
+            filters = filters[0]
+        return filters
 
     def transform(self, X):
         """Transform the data using the linear model.
