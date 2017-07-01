@@ -5,7 +5,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 
 from mne.connectivity import spectral_connectivity
-from mne.connectivity.spectral import _CohEst
+from mne.connectivity.spectral import _CohEst, _get_n_epochs
 
 from mne import SourceEstimate
 from mne.utils import run_tests_if_main, slow_test
@@ -215,6 +215,12 @@ def test_spectral_connectivity():
                             freq_idx = np.searchsorted(freqs2, freqs3[i])
                             con2_avg = np.mean(con2[j][:, freq_idx], axis=1)
                             assert_array_almost_equal(con2_avg, con3[j][:, i])
-
+    # test _get_n_epochs
+    full_list = list(range(10))
+    out_lens = np.array([len(x) for x in _get_n_epochs(full_list, 4)])
+    assert_true((out_lens == np.array([4, 4, 2])).all())
+    out_lens = np.array([len(x) for x in _get_n_epochs(full_list, 11)])
+    assert_true(len(out_lens) > 0)
+    assert_true(out_lens[0] == 10)
 
 run_tests_if_main()
