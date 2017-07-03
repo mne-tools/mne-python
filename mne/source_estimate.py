@@ -2071,6 +2071,11 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         """
         # extract surface source spaces
         surf = [s for s in src if s['type'] == 'surf']
+        if len(surf) != 2:
+            raise ValueError('MixedSourceEstimate must contain exactly two '
+                             'surface-based source estimates (left and right '
+                             'hemisphere). Got %d surface-based source '
+                             'estimates.' % len(surf))
 
         # extract surface source estimate
         data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]

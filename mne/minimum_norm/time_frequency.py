@@ -360,7 +360,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         and :ref:`Logging documentation <tut_logging>` for more).
     """  # noqa
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori)
+    pick_ori = _check_ori(pick_ori, inverse_operator)
 
     power, plv, vertno = _source_induced_power(epochs,
                                                inverse_operator, frequencies,
@@ -434,7 +434,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         The PSD (in dB) of each of the sources.
     """
     from scipy.signal import hanning
-    pick_ori = _check_ori(pick_ori)
+    pick_ori = _check_ori(pick_ori, inverse_operator)
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 

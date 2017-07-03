@@ -940,7 +940,12 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     """
     forward, loose = _check_loose(forward, loose)
     n_sources = forward['sol']['data'].shape[1]
-    orient_prior = np.ones(n_sources, dtype=np.float) / np.sqrt(3.)
+    orient_prior = np.ones(n_sources, dtype=np.float)
+    normalize = False
+    if (any(src['type'] == 'surf' for src in forward['src']) and
+            not all(src['type'] == 'surf' for src in forward['src'])):
+        normalize = True
+        orient_prior /= np.sqrt(3.)
     if loose is not None and loose < 1.:
         assert not is_fixed_orient(forward)
         if loose == 0.0:
@@ -955,7 +960,8 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
             idx_end = idx_start + n_points * 3
             if src['type'] == 'surf':
                 loose_vec = np.array([loose, loose, 1.])
-                loose_vec /= linalg.norm(loose_vec)
+                if normalize:
+                    loose_vec /= linalg.norm(loose_vec)
                 orient_prior[idx_start:idx_end] = np.tile(loose_vec, n_points)
             idx_start = idx_end
     return orient_prior
