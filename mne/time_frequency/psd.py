@@ -3,6 +3,7 @@
 #           Mikolaj Magnuski <mmagnuski@swps.edu.pl>
 # License : BSD 3-clause
 
+import numbers
 import numpy as np
 
 from ..parallel import parallel_func
