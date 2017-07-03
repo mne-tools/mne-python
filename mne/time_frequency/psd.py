@@ -46,9 +46,9 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
     time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
     if picks is None:
         picks = _pick_data_channels(inst.info, with_ref_meg=False)
-    if isinstance(picks, int):
-        # Just to be on the safe side if picks is int: in that case
-        # epochs.get_data()[:, picks] would drop channels dimension
+    if isinstance(picks, numbers.Integral):
+        # Fix for IndexError when picks is int: in that case inst.data[picks]
+        # or epochs.get_data()[:, picks] would drop channels dimension
         picks = [picks]
     if proj:
         # Copy first so it's not modified
