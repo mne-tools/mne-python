@@ -84,6 +84,8 @@ print('the src space contains %d spaces and %d points' % (len(src), n))
 #    >>> write_source_spaces(fname_mixed_src, src, overwrite=True)
 #
 
+mne.write_source_spaces(fname_mixed_src, src, overwrite=True)
+
 ###############################################################################
 # Export source positions to nift file:
 nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
@@ -96,6 +98,11 @@ plt.show()
 fwd = make_forward_solution(fname_evoked, fname_trans, src, fname_bem,
                             mindist=5.0,  # ignore sources<=5mm from innerskull
                             meg=True, eeg=False, n_jobs=1)
+
+# We could write the forward operator with::
+#
+#    >>> write_forward_solution(fname_fwd, fwd, overwrite=True)
+#
 
 leadfield = fwd['sol']['data']
 print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
@@ -122,8 +129,13 @@ inverse_operator = make_inverse_operator(evoked.info, fwd, noise_cov,
                                          loose=None, depth=None,
                                          fixed=False)
 
-stcs = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
-                     pick_ori=None)
+stc_mixed = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
+                          pick_ori=None)
+
+# We could write the forward operator with::
+#
+#    >>> stc_mixed.save('mixed_mne-mx.stc')
+#
 
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
 labels_parc = mne.read_labels_from_annot(subject, parc=parc,
@@ -134,15 +146,26 @@ labels_parc = mne.read_labels_from_annot(subject, parc=parc,
 # If mode = 'mean_flip' this option is used only for the surface cortical label
 src = inverse_operator['src']
 
-label_ts = mne.extract_label_time_course([stcs], labels_parc, src,
+view_idx = 181
+view_time = stc_mixed.times[view_idx]
+stc_mixed.plot_surface(src, subject=subject, surface='inflated',
+                       subjects_dir=subjects_dir, initial_time=view_time)
+
+t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
+labels = None
+stc_mixed.plot_volume(src, t1_fname, view_idx, dest='mri',
+                      mri_resolution=False, threshold=1e-13,
+                      title='MNE (t=%.1f s.)' % view_time, labels=labels)
+
+label_ts = mne.extract_label_time_course([stc_mixed], labels_parc, src,
                                          mode='mean',
                                          allow_empty=True,
                                          return_generator=False)
 
 # plot the times series of 2 labels
 fig, axes = plt.subplots(1)
-axes.plot(1e3 * stcs.times, label_ts[0][0, :], 'k', label='bankssts-lh')
-axes.plot(1e3 * stcs.times, label_ts[0][71, :].T, 'r',
+axes.plot(1e3 * stc_mixed.times, label_ts[0][0, :], 'k', label='bankssts-lh')
+axes.plot(1e3 * stc_mixed.times, label_ts[0][71, :].T, 'r',
           label='Brain-stem')
 axes.set(xlabel='Time (ms)', ylabel='MNE current (nAm)')
 axes.legend()

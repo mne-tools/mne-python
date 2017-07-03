@@ -3,14 +3,14 @@
 #
 # License: Simplified BSD
 
-from copy import deepcopy
 import numpy as np
 from scipy import linalg, signal
 
 from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..minimum_norm.inverse import _check_reference
-from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
+from ..forward import (compute_orient_prior, is_fixed_orient,
+                       _check_loose, convert_forward_solution)
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import logger, verbose
@@ -358,10 +358,13 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                for i in range(1, len(evoked))):
         raise Exception('All the datasets must have the same good channels.')
 
-    # put the forward solution in fixed orientation if it's not already
-    if loose is None and not is_fixed_orient(forward):
-        forward = deepcopy(forward)
-        _to_fixed_ori(forward)
+    # Check loose parameter setting
+    forward, loose = _check_loose(forward, loose)
+    if loose == 0.0 and all([src['type'] == 'surf'
+                            for src in forward['src']]):
+        forward = convert_forward_solution(
+            forward, surf_ori=forward['surf_ori'], force_fixed=True)
+        loose = None
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked[0].info, noise_cov, pca, depth, loose, weights,
@@ -580,10 +583,13 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         raise Exception('alpha_time must be in range [0, 100].'
                         ' Got alpha_time = %f' % alpha_time)
 
-    # put the forward solution in fixed orientation if it's not already
-    if loose is None and not is_fixed_orient(forward):
-        forward = deepcopy(forward)
-        _to_fixed_ori(forward)
+    # Check loose parameter setting
+    forward, loose = _check_loose(forward, loose)
+    if loose == 0.0 and all([src['type'] == 'surf'
+                            for src in forward['src']]):
+        forward = convert_forward_solution(
+            forward, surf_ori=forward['surf_ori'], force_fixed=True)
+        loose = None
 
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
 

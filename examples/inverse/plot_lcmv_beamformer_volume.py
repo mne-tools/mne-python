@@ -18,9 +18,6 @@ import mne
 from mne.datasets import sample
 from mne.beamformer import make_lcmv, apply_lcmv
 
-from nilearn.plotting import plot_stat_map
-from nilearn.image import index_img
-
 print(__doc__)
 
 data_path = sample.data_path()
@@ -84,18 +81,12 @@ stc.data[:, :] = np.abs(stc.data)
 
 # Save result in stc files
 stc.save('lcmv-vol')
-
 stc.crop(0.0, 0.2)
 
-# Save result in a 4D nifti file
-img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
-                             forward['src'], mri_resolution=False)
-
 t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
-
-# Plotting with nilearn ######################################################
-plot_stat_map(index_img(img, 61), t1_fname, threshold=1.35,
-              title='LCMV (t=%.1f s.)' % stc.times[61])
+stc.plot_volume(forward['src'], t1_fname, 61, dest='mri',
+                mri_resolution=False, threshold=0.8,
+                title='MNE (t=%.1f s.)' % stc.times[61])
 
 # plot source time courses with the maximum peak amplitudes
 plt.figure()

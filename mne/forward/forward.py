@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 
@@ -891,18 +892,18 @@ def _check_loose(forward, loose):
              'with fixed orientation.')
         loose = None
 
+    if not is_fixed_orient(forward) and loose is None:
+        loose = 1.0
+
     if loose is not None:
         if not isinstance(loose, float):
-            raise ValueError('loose value must be None for not loose '
-                             'orientations, a float smaller than 1 and '
-                             'bigger than 0, or a dict with loose values '
-                             'for each type of source space.'
-                             'Got %s' % type(loose))
+            raise ValueError('loose value must be a float bigger than 0 and '
+                             'smaller than 1, or None if forward operator '
+                             'is not to be modified. Got %s' % type(loose))
 
         if not (0 <= loose <= 1):
-            raise ValueError('Loose value must be smaller than 1 and bigger '
-                             'than 0, or None for not loose orientations. '
-                             'Got %f' % loose)
+            raise ValueError('loose value must be bigger than 0 and smaller '
+                             'than 1. Got %f' % loose)
 
         if not forward['surf_ori']:
             warn('Forward operator is not oriented in surface '
@@ -910,7 +911,7 @@ def _check_loose(forward, loose):
                  'surface-oriented forward operator with free '
                  'orientation. Converting now.')
             forward = convert_forward_solution(forward, surf_ori=True,
-                                                force_fixed=False)
+                                               force_fixed=False)
     return forward, loose
 
 
@@ -937,10 +938,11 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     orient_prior : array
         Orientation priors.
     """
-    n_sources = forward['sol']['data'].shape[1]
     forward, loose = _check_loose(forward, loose)
-    orient_prior = np.ones(n_sources, dtype=np.float)
+    n_sources = forward['sol']['data'].shape[1]
+    orient_prior = np.ones(n_sources, dtype=np.float) / np.sqrt(3.)
     if loose is not None and loose < 1.:
+        assert not is_fixed_orient(forward)
         if loose == 0.0:
             logger.info('Applying fixed dipole orientations for surface-based '
                         'source spaces.')
@@ -953,6 +955,7 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
             idx_end = idx_start + n_points * 3
             if src['type'] == 'surf':
                 loose_vec = np.array([loose, loose, 1.])
+                loose_vec /= linalg.norm(loose_vec)
                 orient_prior[idx_start:idx_end] = np.tile(loose_vec, n_points)
             idx_start = idx_end
     return orient_prior

@@ -225,13 +225,15 @@ def read_source_estimate(fname, subject=None):
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
+    stc : SourceEstimate | VolSourceEstimate | MixedSourceEstimate
         The soure estimate object loaded from file.
 
     Notes
     -----
      - for volume source estimates, ``fname`` should provide the path to a
        single file named '*-vl.stc` or '*-vol.stc'
+     - for mixed source estimates, ``fname`` should provide the path to a
+       single file named '*-mx.stc` or '*-mx.stc'
      - for surface source estimates, ``fname`` should either provide the
        path to the file corresponding to a single hemisphere ('*-lh.stc',
        '*-rh.stc') or only specify the asterisk part in these patterns. In any
@@ -249,6 +251,9 @@ def read_source_estimate(fname, subject=None):
         if fname.endswith('-vl.stc') or fname.endswith('-vol.stc') or \
                 fname.endswith('-vl.w') or fname.endswith('-vol.w'):
             ftype = 'volume'
+        elif fname.endswith('-mx.stc') or fname.endswith('-mixed.stc') or \
+                fname.endswith('-mx.w') or fname.endswith('-mixed.w'):
+            ftype = 'mixed'
         elif fname.endswith('.stc'):
             ftype = 'surface'
             if fname.endswith(('-lh.stc', '-rh.stc')):
@@ -273,7 +278,7 @@ def read_source_estimate(fname, subject=None):
         else:
             raise RuntimeError('Unknown extension for file %s' % fname_arg)
 
-    if ftype is not 'volume':
+    if ftype not in ['volume', 'mixed']:
         stc_exist = [op.exists(f)
                      for f in [fname + '-rh.stc', fname + '-lh.stc']]
         w_exist = [op.exists(f)
@@ -302,6 +307,62 @@ def read_source_estimate(fname, subject=None):
             kwargs['tstep'] = 0.0
         else:
             raise IOError('Volume source estimate must end with .stc or .w')
+    elif ftype == 'mixed':  # mixed source space
+        ii = 0
+        kwargs_ = list()
+        data = list()
+        vertices = list()
+        if fname.endswith('.stc'):
+            if fname.endswith('-mx.stc'):
+                fname = fname[:-7]
+            elif fname.endswith('-mixed.stc'):
+                fname = fname[:-10]
+            else:
+                raise IOError('Mixed source estimate must end with -mx.stc, '
+                              '-mixed.stc, -mx.w, or -mixed.w')
+            while True:
+                fname_ = fname + '-mx%d.stc' % ii
+                try:
+                    kwargs_.append(_read_stc(fname_))
+                    data.append(kwargs_[-1]['data'])
+                    vertices.append(kwargs_[-1]['vertices'])
+                    if ii > 0:
+                        assert kwargs_[ii]['tmin'] == kwargs_[0]['tmin']
+                        assert kwargs_[ii]['tstep'] == kwargs_[0]['tstep']
+                    ii += 1
+                except IOError:
+                    break
+            kwargs = kwargs_[0].copy()
+            kwargs['data'] = np.vstack(data)
+            kwargs['vertices'] = vertices
+        elif fname.endswith('.w'):
+            if fname.endswith('-mx.w'):
+                fname = fname[:-5]
+            elif fname.endswith('-mixed.w'):
+                fname = fname[:-8]
+            else:
+                raise IOError('Mixed source estimate must end with -mx.stc, '
+                              '-mixed.stc, -mx.w, or -mixed.w')
+            while True:
+                fname_ = fname + '-mx%d.w' % ii
+                try:
+                    kwargs_.append(_read_w(fname_))
+                    data.append(kwargs_[-1]['data'][:, np.newaxis])
+                    vertices.append(kwargs_[-1]['vertices'])
+                    if ii > 0:
+                        assert kwargs_[ii]['tmin'] == kwargs_[0]['tmin']
+                        assert kwargs_[ii]['tstep'] == kwargs_[0]['tstep']
+                    ii += 1
+                except IOError:
+                    break
+            kwargs = kwargs_[0].copy()
+            kwargs['data'] = np.vstack(data)
+            kwargs['vertices'] = vertices
+            kwargs['tmin'] = 0.0
+            kwargs['tstep'] = 0.0
+        else:
+            raise IOError('Mixed source estimate must end with -mx.stc, '
+                          '-mixed.stc, -mx.w, or -mixed.w')
     elif ftype == 'surface':  # stc file with surface source spaces
         lh = _read_stc(fname + '-lh.stc')
         rh = _read_stc(fname + '-rh.stc')
@@ -322,7 +383,7 @@ def read_source_estimate(fname, subject=None):
     elif ftype == 'h5':
         kwargs = read_hdf5(fname + '-stc.h5', title='mnepython')
 
-    if ftype != 'volume':
+    if ftype not in ['volume', 'mixed']:
         # Make sure the vertices are ordered
         vertices = kwargs['vertices']
         if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
@@ -341,6 +402,8 @@ def read_source_estimate(fname, subject=None):
 
     if ftype == 'volume':
         stc = VolSourceEstimate(**kwargs)
+    elif ftype == 'mixed':
+        stc = MixedSourceEstimate(**kwargs)
     else:
         stc = SourceEstimate(**kwargs)
 
@@ -1705,6 +1768,59 @@ class VolSourceEstimate(_BaseSourceEstimate):
         return save_stc_as_volume(None, self, src, dest=dest,
                                   mri_resolution=mri_resolution)
 
+    def plot_volume(self, src, bg_img, idx, dest='mri', mri_resolution=False,
+                    threshold=None, title=None):
+        """Export volume source estimate as a nifti object.
+
+        Parameters
+        ----------
+        src : list
+            The list of source spaces (should actually be of length 1)
+        bg_img : Niimg-like object
+            See http://nilearn.github.io/manipulating_images/input_output.html
+            The background image that the ROI/mask will be plotted on top of.
+            If nothing is specified, the MNI152 template will be used.
+            To turn off background image, just pass "bg_img=False".
+        idx : int
+            The time index which is selected for plotting.
+        dest : 'mri' | 'surf'
+            If 'mri' the volume is defined in the coordinate system of
+            the original T1 image. If 'surf' the coordinate system
+            of the FreeSurfer surface is used (Surface RAS).
+        mri_resolution: bool
+            It True the image is saved in MRI resolution.
+            WARNING: if you have many time points the file produced can be
+            huge.
+        threshold : a number, None, or 'auto'
+            If None is given, the image is not thresholded.
+            If a number is given, it is used to threshold the image:
+            values below the threshold (in absolute value) are plotted
+            as transparent. If auto is given, the threshold is determined
+            magically by analysis of the image.
+        title : string, optional
+            The title displayed on the figure.
+
+
+        Returns
+        -------
+        fig : A matplotlib figure
+            The figure showing the source activity.
+
+        """
+        try:
+            from nilearn.plotting import plot_stat_map  # noqa: F401,E501
+        except ImportError:
+            raise ImportError('Plotting volume source estimates requires '
+                              'nilearn, which is not available on this '
+                              'system.')
+        from nilearn.image import index_img
+
+        # Plotting with nilearn
+        img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution)
+        fig = plot_stat_map(index_img(img, idx), bg_img,
+                            threshold=threshold, title=title)
+        return fig
+
     def __repr__(self):  # noqa: D105
         if isinstance(self.vertices, list):
             nv = sum([len(v) for v in self.vertices])
@@ -1807,13 +1923,60 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      tstep=tstep, subject=subject,
                                      verbose=verbose)
 
+    @verbose
+    def save(self, fname, ftype='stc', verbose=None):
+        """Save the source estimates to a file.
+
+        Parameters
+        ----------
+        fname : string
+            The stem of the file name. The stem is extended with "-vl.stc"
+            or "-vl.w".
+        ftype : string
+            File format to use. Allowed values are "stc" (default) and "w".
+            The "w" format only supports a single time point.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
+        """
+        if ftype not in ['stc', 'w']:
+            raise ValueError('ftype must be "stc" or "w", not "%s"' % ftype)
+
+        n_src_per_sp = np.array([len(vert) for vert in self.vertices])
+        data = np.split(self.data, np.cumsum(n_src_per_sp[:-1]))
+
+        if ftype == 'stc':
+            logger.info('Writing STC to disk...')
+            if fname.endswith('-mx.stc'):
+                fname = fname[:-7]
+            if fname.endswith('-mixed.stc'):
+                fname = fname[:-10]
+            for ii in range(len(self.vertices)):
+                fname_ = fname + '-mx%d.stc' % ii
+                _write_stc(fname_, tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.vertices[ii], data=data[ii])
+        elif ftype == 'w':
+            logger.info('Writing STC to disk (w format)...')
+            if fname.endswith('-mx.stc'):
+                fname = fname[:-7]
+            if fname.endswith('-mixed.stc'):
+                fname = fname[:-10]
+            for ii in range(len(self.vertices)):
+                fname_ = fname + '-mx%d.w' % ii
+                _write_stc(fname_, tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.vertices[ii], data=data[ii])
+
+        logger.info('[done]')
+
     def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
-                     colormap='auto', time_label='time=%02.f ms',
-                     smoothing_steps=10,
+                     colormap='auto', time_label='auto', smoothing_steps=10,
                      transparent=None, alpha=1.0, time_viewer=False,
-                     config_opts=None, subjects_dir=None, figure=None,
-                     views='lat', colorbar=True, clim='auto'):
-        """Plot surface source estimates with PySurfer.
+                     subjects_dir=None, figure=None, views='lat',
+                     colorbar=True, clim='auto', cortex="classic", size=800,
+                     background="black", foreground="white", initial_time=None,
+                     time_unit='s'):
+        """Plot SourceEstimates with PySurfer.
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
         which will automatically be set by this function. Plotting multiple
@@ -1834,14 +1997,18 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         surface : str
             The type of surface (inflated, white etc.).
         hemi : str, 'lh' | 'rh' | 'split' | 'both'
-            The hemisphere to display. Using 'both' or 'split' requires
-            PySurfer version 0.4 or above.
+            The hemisphere to display.
         colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-            Name of colormap to use. See `plot_source_estimates`.
-        time_label : str
-            How to print info about the time instant visualized.
+            Name of colormap to use or a custom look up table. If array, must
+            be (n x 3) or (n x 4) array for with RGB or RGBA values between
+            0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
+            based on whether 'lims' or 'pos_lims' are specified in `clim`.
+        time_label : str | callable | None
+            Format of the time label (a format string, a function that maps
+            floating point time values to strings, or None for no label). The
+            default is ``time=%0.2f ms``.
         smoothing_steps : int
-            The amount of smoothing.
+            The amount of smoothing
         transparent : bool | None
             If True, use a linear transparency between fmin and fmid.
             None will choose automatically based on colormap type.
@@ -1849,21 +2016,53 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             Alpha value to apply globally to the overlay.
         time_viewer : bool
             Display time viewer GUI.
-        config_opts : dict
-            Keyword arguments for Brain initialization.
-            See pysurfer.viz.Brain.
         subjects_dir : str
-            The path to the FreeSurfer subjects reconstructions.
-            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
-        figure : instance of mayavi.core.scene.Scene | None
-            If None, the last figure will be cleaned and a new figure will
-            be created.
+            The path to the freesurfer subjects reconstructions.
+            It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+        figure : instance of mayavi.core.scene.Scene | list | int | None
+            If None, a new figure will be created. If multiple views or a
+            split view is requested, this must be a list of the appropriate
+            length. If int is provided it will be used to identify the Mayavi
+            figure by it's id or create a new figure with the given id.
         views : str | list
             View to use. See surfer.Brain().
         colorbar : bool
             If True, display colorbar on scene.
         clim : str | dict
-            Colorbar properties specification. See `plot_source_estimates`.
+            Colorbar properties specification. If 'auto', set clim
+            automatically based on data percentiles. If dict, should contain:
+
+                ``kind`` : str
+                    Flag to specify type of limits. 'value' or 'percent'.
+                ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Note: Only use this if 'colormap' is not 'mne'.
+                    Left, middle, and right bound for colormap.
+                ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                    Note: Only use this if 'colormap' is 'mne'.
+                    Left, middle, and right bound for colormap. Positive values
+                    will be mirrored directly across zero during colormap
+                    construction to obtain negative control points.
+
+        cortex : str or tuple
+            specifies how binarized curvature values are rendered.
+            either the name of a preset PySurfer cortex colorscheme (one of
+            'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
+            name of mayavi colormap, or a tuple with values (colormap, min,
+            max, reverse) to fully specify the curvature colors.
+        size : float or pair of floats
+            The size of the window, in pixels. can be one number to specify
+            a square window, or the (width, height) of a rectangular window.
+        background : matplotlib color
+            Color of the background of the display window.
+        foreground : matplotlib color
+            Color of the foreground of the display window.
+        initial_time : float | None
+            The time to display on the plot initially. ``None`` to display the
+            first time sample (default).
+        time_unit : 's' | 'ms'
+            Whether time is represented in seconds ("s", default) or
+            milliseconds ("ms").
+
 
         Returns
         -------
@@ -1871,7 +2070,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             A instance of surfer.viz.Brain from PySurfer.
         """
         # extract surface source spaces
-        surf = _ensure_src(src, kind='surf')
+        surf = [s for s in src if s['type'] == 'surf']
 
         # extract surface source estimate
         data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
@@ -1880,20 +2079,207 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         stc = SourceEstimate(data, vertices, self.tmin, self.tstep,
                              self.subject, self.verbose)
 
-        return plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
-                                     colormap=colormap, time_label=time_label,
-                                     smoothing_steps=smoothing_steps,
-                                     transparent=transparent, alpha=alpha,
-                                     time_viewer=time_viewer,
-                                     config_opts=config_opts,
-                                     subjects_dir=subjects_dir, figure=figure,
-                                     views=views, colorbar=colorbar, clim=clim)
+        brain = plot_source_estimates(
+            stc, subject, surface=surface, hemi=hemi, colormap=colormap,
+            time_label=time_label, smoothing_steps=smoothing_steps,
+            transparent=transparent, alpha=alpha, time_viewer=time_viewer,
+            subjects_dir=subjects_dir, figure=figure, views=views,
+            colorbar=colorbar, clim=clim, cortex=cortex, size=size,
+            background=background, foreground=foreground,
+            initial_time=initial_time, time_unit=time_unit)
+        return brain
+
+    def save_as_volume(self, fname, src, dest='mri', mri_resolution=False,
+                       labels=None):
+        """Save a volume source estimate in a NIfTI file.
+
+        Parameters
+        ----------
+        fname : string
+            The name of the generated nifti file.
+        src : list
+            The list of source spaces (should actually be of length 1)
+        dest : 'mri' | 'surf'
+            If 'mri' the volume is defined in the coordinate system of
+            the original T1 image. If 'surf' the coordinate system
+            of the FreeSurfer surface is used (Surface RAS).
+        mri_resolution: bool
+            It True the image is saved in MRI resolution.
+            WARNING: if you have many time points the file produced can be
+            huge.
+        labels : None | list of strings
+            The labels indicating the parts of the volume source space that
+            are are used for plotting. If None all volume source spaces are
+            used.
+
+        Returns
+        -------
+        img : instance Nifti1Image
+            The image object.
+        """
+        if labels is not None and not isinstance(labels, list):
+            labels = [labels]
+
+        data = []
+        vertices = []
+        src_vol = []
+
+        idx_start = 0
+        for j, s in enumerate(src):
+            n_points = len(self.vertices[j])
+            idx_end = idx_start + n_points
+            if s['type'] == 'vol':
+                if labels is None:
+                    data.append(self.data[idx_start:idx_end])
+                    vertices.append(self.vertices[j])
+                    src_vol.append(s.copy())
+                elif s['seg_name'] in labels:
+                    data.append(self.data[idx_start:idx_end])
+                    vertices.append(self.vertices[j])
+                    src_vol.append(s.copy())
+            idx_start = idx_end
+
+        data = np.vstack(data)
+        vertices = np.concatenate(vertices)
+
+        inuse = np.zeros_like(src_vol[0]['inuse'])
+        for s in src_vol:
+            inuse += s['inuse']
+        src_vol = [src_vol[0]]
+        src_vol[0].update(inuse=inuse, vertno=vertices)
+
+        stc_vol = VolSourceEstimate(
+            data, vertices, self.tmin, self.tstep, self.subject, self.verbose)
+
+        return save_stc_as_volume(fname, stc_vol, src_vol, dest=dest,
+                                  mri_resolution=mri_resolution)
+
+    def as_volume(self, src, dest='mri', mri_resolution=False, labels=None):
+        """Export volume source estimate as a nifti object.
+
+        Parameters
+        ----------
+        src : list
+            The list of source spaces (should actually be of length 1)
+        dest : 'mri' | 'surf'
+            If 'mri' the volume is defined in the coordinate system of
+            the original T1 image. If 'surf' the coordinate system
+            of the FreeSurfer surface is used (Surface RAS).
+        mri_resolution: bool
+            It True the image is saved in MRI resolution.
+            WARNING: if you have many time points the file produced can be
+            huge.
+        labels : None | list of strings
+            The labels indicating the parts of the volume source space that
+            are are used for plotting. If None all volume source spaces are
+            used.
+
+        Returns
+        -------
+        img : instance Nifti1Image
+            The image object.
+        """
+        if labels is not None and not isinstance(labels, list):
+            labels = [labels]
+
+        data = []
+        vertices = []
+        src_vol = []
+
+        idx_start = 0
+        for j, s in enumerate(src):
+            n_points = len(self.vertices[j])
+            idx_end = idx_start + n_points
+            if s['type'] == 'vol':
+                if labels is None:
+                    data.append(self.data[idx_start:idx_end])
+                    vertices.append(self.vertices[j])
+                    src_vol.append(s.copy())
+                elif s['seg_name'] in labels:
+                    data.append(self.data[idx_start:idx_end])
+                    vertices.append(self.vertices[j])
+                    src_vol.append(s.copy())
+            idx_start = idx_end
+
+        data = np.vstack(data)
+        vertices = np.concatenate(vertices)
+
+        inuse = np.zeros_like(src_vol[0]['inuse'])
+        for s in src_vol:
+            inuse += s['inuse']
+        src_vol = [src_vol[0]]
+        src_vol[0].update(inuse=inuse, vertno=vertices)
+
+        stc_vol = VolSourceEstimate(
+            data, vertices, self.tmin, self.tstep, self.subject, self.verbose)
+
+        return save_stc_as_volume(None, stc_vol, src_vol, dest=dest,
+                                  mri_resolution=mri_resolution)
+
+    def plot_volume(self, src, bg_img, idx, labels=None, dest='mri',
+                    mri_resolution=False, threshold=None, title=None):
+        """Plots volume source estimate using nilearn.
+
+        Parameters
+        ----------
+        src : list
+            The list of source spaces (should actually be of length 1)
+        bg_img : Niimg-like object
+            See http://nilearn.github.io/manipulating_images/input_output.html
+            The background image that the ROI/mask will be plotted on top of.
+            If nothing is specified, the MNI152 template will be used.
+            To turn off background image, just pass "bg_img=False".
+        idx : int
+            The time index which is selected for plotting.
+        labels : None | list of strings
+            The labels indicating the parts of the volume source space that
+            are are used for plotting. If None all volume source spaces are
+            used.
+        dest : 'mri' | 'surf'
+            If 'mri' the volume is defined in the coordinate system of
+            the original T1 image. If 'surf' the coordinate system
+            of the FreeSurfer surface is used (Surface RAS).
+        mri_resolution: bool
+            It True the image is saved in MRI resolution.
+            WARNING: if you have many time points the file produced can be
+            huge.
+        threshold : a number, None, or 'auto'
+            If None is given, the image is not thresholded.
+            If a number is given, it is used to threshold the image:
+            values below the threshold (in absolute value) are plotted
+            as transparent. If auto is given, the threshold is determined
+            magically by analysis of the image.
+        title : string, optional
+            The title displayed on the figure.
+
+
+        Returns
+        -------
+        fig : A matplotlib figure
+            The figure showing the source activity.
+
+        """
+        try:
+            from nilearn.plotting import plot_stat_map  # noqa: F401,E501
+        except ImportError:
+            raise ImportError('Plotting volume source estimates requires '
+                              'nilearn, which is not available on this '
+                              'system.')
+        from nilearn.image import index_img
+
+        if labels is not None and not isinstance(labels, list):
+            labels = [labels]
+
+        # Plotting with nilearn
+        img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
+                             labels=labels)
+        fig = plot_stat_map(index_img(img, idx), bg_img, threshold=threshold,
+                            title=title)
+        return fig
 
 
 ###############################################################################
 # Morphing
-
-
 @verbose
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
                   warn=True, verbose=None):

@@ -378,14 +378,16 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
         raise ValueError('Normal or max-power orientation can only be picked '
                          'when a forward operator with free orientation is '
                          'used.')
-    if pick_ori == 'normal' and not forward['surf_ori']:
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator oriented in surface coordinates is '
-                         'used.')
-    if pick_ori == 'normal' and not forward['src'][0]['type'] == 'surf':
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator with a surface-based source space '
-                         'is used.')
+    if all([src['type'] == 'surf' for src in forward['src']]):
+        if pick_ori == 'normal' and not forward['surf_ori']:
+            raise ValueError('Normal orientation can only be picked when a '
+                             'forward operator oriented in surface coordinates'
+                             'is used.')
+    elif pick_ori == 'normal':
+        raise ValueError('Normal orientation can only be picked when the '
+                         'forward operator was generated only from '
+                         'surface-based source spaces.')
+
     # Restrict forward solution to selected channels
     info_ch_names = [c['ch_name'] for c in info['chs']]
     ch_names = [info_ch_names[k] for k in picks]

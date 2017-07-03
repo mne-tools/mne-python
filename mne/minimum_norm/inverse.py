@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 
@@ -643,8 +644,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     if method != "MNE":
         noise_norm = inv['noisenorm'][:, None]
 
-    src = inv['src']
-    vertno = _get_vertno(src)
+    vertno = _get_vertno(inv['src'])
 
     if label is not None:
         vertno, src_sel = label_src_vertno_sel(label, inv['src'])
@@ -667,19 +667,9 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
                                  'done with a free orientation inverse '
                                  'operator.')
 
-            is_loose = 0 < np.min(inv['orient_prior']['data']) < 1
-            if not is_loose:
-                raise ValueError('Picking normal orientation can only be '
-                                 'done when working with loose orientations.')
-
             # keep only the normal components
             eigen_leads = eigen_leads[2::3]
             source_cov = source_cov[2::3]
-        else:
-            raise ValueError('Picking normal orientation can only be '
-                             'done with a free orientation inverse '
-                             'operator based on surface-based source '
-                             'spaces.')
 
     trans = inv['reginv'][:, None] * reduce(np.dot,
                                             [inv['eigen_fields']['data'],
@@ -716,11 +706,17 @@ def _check_method(method):
     return method
 
 
-def _check_ori(pick_ori):
+def _check_ori(pick_ori, inverse_operator):
     """Check pick_ori."""
-    if pick_ori is not None and pick_ori != 'normal':
-        raise RuntimeError('pick_ori must be None or "normal", not %s'
-                           % pick_ori)
+    if all([src['type'] == 'surf' for src in inverse_operator['src']]):
+        if pick_ori is not None and pick_ori != 'normal':
+            raise ValueError('pick_ori must be None or "normal", not %s'
+                             % pick_ori)
+    else:
+        if pick_ori is not None:
+            raise ValueError('pick_ori must be None if the source space '
+                             'contains volume or discrete source spaces, '
+                             'not %s.' % pick_ori)
     return pick_ori
 
 
@@ -781,7 +777,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
     """
     _check_reference(evoked)
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori)
+    pick_ori = _check_ori(pick_ori, inverse_operator)
     #
     #   Set up the inverse according to the parameters
     #
@@ -884,7 +880,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     """
     _check_reference(raw)
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori)
+    pick_ori = _check_ori(pick_ori, inverse_operator)
 
     _check_ch_names(inverse_operator, raw.info)
 
@@ -953,7 +949,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               prepared=False, verbose=None):
     """Generate for apply_inverse_epochs."""
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori)
+    pick_ori = _check_ori(pick_ori, inverse_operator)
 
     _check_ch_names(inverse_operator, epochs.info)
 
@@ -1252,8 +1248,6 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     weighting. Thus slightly different results are to be expected with
     and without this information.
     """  # noqa: E501
-    forward, loose = _check_loose(forward, loose)
-
     if fixed and not all([src['type'] == 'surf' for src in forward['src']]):
         raise ValueError('Using fixed = True in the construction of the '
                          'inverse operator is only supported for surface-'
@@ -1332,6 +1326,9 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
             is_fixed_ori = is_fixed_orient(forward)
             gain_info, gain, noise_cov, whitener, n_nzero = \
                 _prepare_forward(forward, info, noise_cov, verbose=False)
+
+    # Check loose parameter setting
+    forward, loose = _check_loose(forward, loose)
 
     logger.info("Computing inverse operator with %d channels."
                 % len(gain_info['ch_names']))
