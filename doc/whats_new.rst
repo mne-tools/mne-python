@@ -100,6 +100,8 @@ BUG
 
     - Fix :func:`mne.io.read_raw_brainvision` to read vectorized data correctly by `Jaakko Leppakangas`_ and `Phillip Alday`_
 
+    - Fix :func:`mne.connectivity.spectral_connectivity` so that if ``n_jobs > 1`` it does not ignore last ``n_epochs % n_jobs`` epochs by `Mikołaj Magnuski`_
+
 API
 ~~~
 
