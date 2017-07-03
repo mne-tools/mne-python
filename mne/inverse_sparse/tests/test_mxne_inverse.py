@@ -46,7 +46,7 @@ def test_mxne_inverse():
     cov = read_cov(fname_cov)
 
     # Handling average file
-    loose = None
+    loose = 0.0
     depth = 0.9
 
     evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))

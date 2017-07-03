@@ -82,7 +82,7 @@ def test_gamma_map():
     # force fixed orientation
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=2,
-                    loose=None, return_residual=False)
+                    loose=0.0, return_residual=False)
     _check_stc(stc, evoked, 85739, 20)
 
 run_tests_if_main()

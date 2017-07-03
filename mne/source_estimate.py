@@ -2,6 +2,7 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Mads Jensen <mje.mads@gmail.com>
+#          Daniel Storhmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 
@@ -1770,7 +1771,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
     def plot_volume(self, src, bg_img, idx, dest='mri', mri_resolution=False,
                     threshold=None, title=None):
-        """Export volume source estimate as a nifti object.
+        """Plot volume source estimate using nilearn.
 
         Parameters
         ----------
@@ -2223,7 +2224,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 
     def plot_volume(self, src, bg_img, idx, labels=None, dest='mri',
                     mri_resolution=False, threshold=None, title=None):
-        """Plots volume source estimate using nilearn.
+        """Plot volume source estimate using nilearn.
 
         Parameters
         ----------

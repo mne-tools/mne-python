@@ -3,6 +3,8 @@
 #
 # License: Simplified BSD
 
+from copy import deepcopy
+
 import numpy as np
 from scipy import linalg
 
@@ -242,11 +244,12 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     _check_reference(evoked)
 
     # Check loose parameter setting
-    forward, loose = _check_loose(forward, loose)
+    forward, loose = _check_loose(forward.copy(), loose)
+    print('loose = %s' % loose)
     if loose == 0.0 and all([src['type'] == 'surf'
                             for src in forward['src']]):
         forward = convert_forward_solution(
-            forward, surf_ori=forward['surf_ori'], force_fixed=True)
+            forward, surf_ori=True, force_fixed=True)
         loose = None
 
     if is_fixed_orient(forward) or not xyz_same_gamma:
