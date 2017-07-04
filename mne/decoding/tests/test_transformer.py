@@ -206,8 +206,8 @@ def test_unsupervised_spatial_filter():
     assert_equal(usf.transform(X).ndim, 3)
     # test fit_transform
     assert_array_almost_equal(usf.transform(X), usf1.fit_transform(X))
-    # assert shape
     assert_equal(usf.transform(X).shape[1], n_components)
+    assert_array_almost_equal(usf.inverse_transform(usf.transform(X)), X)
 
     # Test with average param
     usf = UnsupervisedSpatialFilter(PCA(4), average=True)
