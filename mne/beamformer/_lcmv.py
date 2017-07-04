@@ -109,12 +109,15 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
         # estimate noise level based on covariance matrix, taking the
         # smallest eigenvalue that is not zero
         noise, _ = linalg.eigh(Cm)
-        rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
-                                return_singular=False)
+        if rank is not None:
+            rank_Cm = rank
+        else:
+            rank_Cm = estimate_rank(Cm, tol='auto', norm=False,
+                                    return_singular=False)
         noise = noise[len(noise) - rank_Cm]
 
         # use either noise floor or regularization parameter d
-        noise = np.max([noise, d])
+        noise = max(noise, d)
 
         # Compute square of Cm_inv used for weight normalization
         Cm_inv_sq = np.dot(Cm_inv, Cm_inv)
@@ -132,11 +135,12 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
             continue
         Ck = np.dot(Wk, Gk)
 
-        # Find source orientation maximizing output source power
+        # Compute scalar beamformer by finding the source orientation which
+        # maximizes output source power
         if pick_ori == 'max-power':
             # weight normalization and orientation selection:
             if weight_norm is not None and pick_ori == 'max-power':
-                # finding optimal orientation for NAI and unit-noise gain
+                # finding optimal orientation for NAI and unit-noise-gain
                 # based on [2]_, Eq. 4.47
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
                 eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),
@@ -146,7 +150,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
                 Wk[:] = np.dot(max_ori, Wk)
                 Gk = np.dot(Gk, max_ori)
 
-                # compute spatial filter for NAI
+                # compute spatial filter for NAI or unit-noise-gain
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
                 denom = np.sqrt(tmp)
                 Wk /= denom
@@ -161,8 +165,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
                                  'yet implemented with weight_norm set to'
                                  'None.')
 
-        # free orientation and normal orientation
-        else:
+        else:  # do vector beamformer
             # compute the filters:
             if is_free_ori:
                 # Free source orientation
@@ -176,6 +179,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
                 raise ValueError('Weight normalization with neural activity '
                                  'index is not implemented yet with free or '
                                  'fixed orientation.')
+
             if weight_norm == 'unit-noise-gain':
                 noise_norm = np.sum(Wk ** 2, axis=1)
                 if is_free_ori:

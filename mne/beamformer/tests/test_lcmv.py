@@ -140,7 +140,7 @@ def test_lcmv():
         max_stc = stc_max_power.data[idx]
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert_true(0.04 < tmax < 0.11, tmax)
+        assert_true(0.08 < tmax < 0.11, tmax)
         assert_true(0.8 < np.max(max_stc) < 3., np.max(max_stc))
 
         if fwd is forward:
@@ -153,7 +153,7 @@ def test_lcmv():
             mean_stc_max_pow = \
                 stc_max_power.extract_label_time_course(label, fwd['src'],
                                                         mode='mean')
-            assert_true((abs(mean_stc - mean_stc_max_pow) < 0.5).all())
+            assert_true((np.abs(mean_stc - mean_stc_max_pow) < 0.5).all())
 
         # Test NAI weight normalization:
         stc_nai = lcmv(evoked, fwd, noise_cov=noise_cov, data_cov=data_cov,
