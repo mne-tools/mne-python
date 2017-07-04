@@ -630,7 +630,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        X : array, shape (n_trials, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
             The transformed data.
         """
         return self.fit(X).transform(X)
@@ -645,14 +645,47 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        X : array, shape (n_trials, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
+            The transformed data.
+        """
+        return self._apply_method(X, 'transform')
+
+    def inverse_transform(self, X):
+        """Inverse transform the data to its original space.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_components, n_times)
+            The data to be inverted.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The transformed data.
+        """
+        return self._apply_method(X, 'inverse_transform')
+
+    def _apply_method(self, X, method):
+        """Vectorize time samples as trials, apply method and reshape back.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_dims, n_times)
+            The data to be inverted.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_dims, n_times)
             The transformed data.
         """
         n_epochs, n_channels, n_times = X.shape
         # trial as time samples
-        X = np.transpose(X, [1, 0, 2]).reshape([n_channels, n_epochs *
-                                                n_times]).T
-        X = self.estimator.transform(X)
+        X = np.transpose(X, [1, 0, 2])
+        X = np.reshape(X, [n_channels, n_epochs * n_times]).T
+        # apply method
+        method = getattr(self.estimator, method)
+        X = method(X)
+        # put it back to n_epochs, n_dimensions
         X = np.reshape(X.T, [-1, n_epochs, n_times]).transpose([1, 0, 2])
         return X
 
