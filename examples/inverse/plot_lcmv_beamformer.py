@@ -69,8 +69,10 @@ descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
 colors = ['b', 'k', 'r']
 
 for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
+    # compute unit-noise-gain beamformer with whitening of the leadfield and
+    # data (enabled by passing a noise covariance matrix)
     stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
-               pick_ori=pick_ori)
+               pick_ori=pick_ori, weight_norm='unit-noise-gain')
 
     # View activation time-series
     label = mne.read_label(fname_label)

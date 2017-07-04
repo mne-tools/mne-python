@@ -61,10 +61,13 @@ noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
 
-# Run free orientation (vector) beamformer. Source orientation can be
-# restricted by setting pick_ori to 'max-power' (or 'normal' but only when
+# Run free orientation (vector) beamformer with weight normalization (unit-
+# noise-gain beamformer). Providing a noise covariance matrix enables whitening
+# of the data and foward solution. Source orientation can be restricted by
+# setting pick_ori to 'max-power' (or 'normal' but only when
 # using a surface-based source space)
-stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, pick_ori=None)
+stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, pick_ori=None,
+           weight_norm='unit-noise-gain')
 
 # Save result in stc files
 stc.save('lcmv-vol')
