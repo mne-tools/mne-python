@@ -63,7 +63,7 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
 
 # Run free orientation (vector) beamformer with weight normalization (neural
 # activity index, NAI). Providing a noise covariance matrix enables whitening
-# of the data and foward solution. Source orientation is optimized by
+# of the data and forward solution. Source orientation is optimized by
 # setting pick_ori to 'max-power'.
 # weight_norm can also be set to 'unit-noise-gain'. Source orientation can also
 # be 'normal' (but only when using a surface-based source space) or None,
