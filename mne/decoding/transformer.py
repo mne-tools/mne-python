@@ -690,7 +690,6 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         return X
 
 
-
 class TemporalFilter(TransformerMixin):
     """Estimator to filter data array along the last dimension.
 
