@@ -84,7 +84,7 @@ img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
 t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
 
 # Plotting with nilearn ######################################################
-plot_stat_map(index_img(img, 61), t1_fname, threshold=1.4,
+plot_stat_map(index_img(img, 61), t1_fname, threshold=1.35,
               title='LCMV (t=%.1f s.)' % stc.times[61])
 
 # plot source time courses with the maximum peak amplitudes
