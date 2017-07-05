@@ -571,6 +571,9 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     """
     fwd = fwd.copy() if copy else fwd
 
+    if force_fixed:
+        surf_ori = True
+
     # We need to change these entries (only):
     # 1. source_nn
     # 2. sol['data']
@@ -578,30 +581,13 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 4. sol_grad['data']
     # 5. sol_grad['ncol']
     # 6. source_ori
-    if is_fixed_orient(fwd, orig=True) or force_fixed:  # Fixed
-        nuse = 0
+
+    if is_fixed_orient(fwd, orig=True):  # Fixed
         fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
                                            for s in fwd['src']], axis=0)
-
-        #   Modify the forward solution for fixed source orientations
-        if not is_fixed_orient(fwd, orig=True):
-            logger.info('    Changing to fixed-orientation forward '
-                        'solution with surface-based source orientations...')
-            fix_rot = _block_diag(fwd['source_nn'].T, 1)
-            # newer versions of numpy require explicit casting here, so *= no
-            # longer works
-            fwd['sol']['data'] = (fwd['_orig_sol'] *
-                                  fix_rot).astype('float32')
-            fwd['sol']['ncol'] = fwd['nsource']
-            fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
-
-            if fwd['sol_grad'] is not None:
-                x = sparse.block_diag([fix_rot] * 3)
-                fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
-                fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
-            logger.info('    [done]')
         fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
         fwd['surf_ori'] = True
+
     elif surf_ori:  # Free, surf-oriented
         #   Rotate the local source coordinate systems
         nuse_total = sum([s['nuse'] for s in fwd['src']])
@@ -615,7 +601,6 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             use_ave_nn = False
 
         #   Actually determine the source orientations
-        nuse = 0
         pp = 0
         for s in fwd['src']:
             for p in range(s['nuse']):
@@ -632,19 +617,33 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
                     U *= -1.0
                 fwd['source_nn'][pp:pp + 3, :] = U.T
                 pp += 3
-            nuse += s['nuse']
 
         #   Rotate the solution components as well
-        surf_rot = _block_diag(fwd['source_nn'].T, 3)
-        fwd['sol']['data'] = fwd['_orig_sol'] * surf_rot
-        fwd['sol']['ncol'] = 3 * fwd['nsource']
-        if fwd['sol_grad'] is not None:
-            x = sparse.block_diag([surf_rot] * 3)
-            fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
-            fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
-        logger.info('[done]')
-        fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
-        fwd['surf_ori'] = True
+        if force_fixed:
+            fwd['source_nn'] = fwd['source_nn'][2::3, :]
+            fix_rot = _block_diag(fwd['source_nn'].T, 1)
+            # newer versions of numpy require explicit casting here, so *= no
+            # longer works
+            fwd['sol']['data'] = (fwd['_orig_sol'] *
+                                  fix_rot).astype('float32')
+            fwd['sol']['ncol'] = fwd['nsource']
+            if fwd['sol_grad'] is not None:
+                x = sparse.block_diag([fix_rot] * 3)
+                fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
+                fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
+            fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+            fwd['surf_ori'] = True
+        else:
+            surf_rot = _block_diag(fwd['source_nn'].T, 3)
+            fwd['sol']['data'] = fwd['_orig_sol'] * surf_rot
+            fwd['sol']['ncol'] = 3 * fwd['nsource']
+            if fwd['sol_grad'] is not None:
+                x = sparse.block_diag([surf_rot] * 3)
+                fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
+                fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
+            fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
+            fwd['surf_ori'] = True
+
     else:  # Free, cartesian
         logger.info('    Cartesian source orientations...')
         fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
@@ -655,7 +654,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
         fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
         fwd['surf_ori'] = False
-        logger.info('[done]')
+
+    logger.info('    [done]')
 
     return fwd
 
