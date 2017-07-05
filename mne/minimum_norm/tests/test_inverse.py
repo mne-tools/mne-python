@@ -62,14 +62,16 @@ last_keys = [None] * 10
 
 def read_forward_solution_meg(*args, **kwargs):
     """Read MEG forward."""
-    fwd = read_forward_solution(*args, **kwargs)
+    fwd = read_forward_solution(*args)
+    fwd = convert_forward_solution(fwd, **kwargs)
     fwd = pick_types_forward(fwd, meg=True, eeg=False)
     return fwd
 
 
 def read_forward_solution_eeg(*args, **kwargs):
     """Read EEG forward."""
-    fwd = read_forward_solution(*args, **kwargs)
+    fwd = read_forward_solution(*args)
+    fwd = convert_forward_solution(fwd, **kwargs)
     fwd = pick_types_forward(fwd, meg=False, eeg=True)
     return fwd
 
@@ -175,7 +177,8 @@ def test_warn_inverse_operator():
     """Test MNE inverse warning without average EEG projection."""
     bad_info = copy.deepcopy(_get_evoked().info)
     bad_info['projs'] = list()
-    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
+    fwd_op = read_forward_solution(fname_fwd)
+    fwd_op = convert_forward_solution(fwd_op, surf_ori=True)
     noise_cov = read_cov(fname_cov)
     noise_cov['projs'].pop(-1)  # get rid of avg EEG ref proj
     with warnings.catch_warnings(record=True) as w:
@@ -327,7 +330,7 @@ def test_make_inverse_operator_fixed():
     fwd_1 = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                       force_fixed=False)
     fwd_2 = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                      force_fixed=True)
+                                      force_fixed=True, use_cps=False)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 
@@ -340,7 +343,7 @@ def test_make_inverse_operator_fixed():
 
     # now compare to C solution
     # note that the forward solution must not be surface-oriented
-    # to get equivalency (surf_ori=True changes the normals)
+    # to get equivalency (surf_ori=True changes the normals if use_cps=True)
     inv_op = make_inverse_operator(evoked.info, fwd_2, noise_cov, depth=None,
                                    loose=None, fixed=True)
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
@@ -356,7 +359,7 @@ def test_make_inverse_operator_free():
     fwd_loose = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                           force_fixed=False)
     fwd_fixed = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                          force_fixed=True)
+                                          force_fixed=True, use_cps=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 
@@ -428,7 +431,8 @@ def test_make_inverse_operator_diag():
     """
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov).as_diag()
-    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
+    fwd_op = read_forward_solution(fname_fwd)
+    fwd_op = convert_forward_solution(fwd_op, surf_ori=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                    loose=0.2, depth=0.8)
     _compare_io(inv_op)
@@ -556,7 +560,8 @@ def test_apply_mne_inverse_fixed_raw():
                                     surf_ori=True)
     noise_cov = read_cov(fname_cov)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
-                                   loose=None, depth=0.8, fixed=True)
+                                   loose=None, depth=0.8, fixed=True,
+                                   use_cps=True)
 
     inv_op2 = prepare_inverse_operator(inv_op, nave=1,
                                        lambda2=lambda2, method="dSPM")

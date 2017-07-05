@@ -30,7 +30,8 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 
 def _read_forward_solution_meg(*args, **kwargs):
-    fwd = mne.read_forward_solution(*args, **kwargs)
+    fwd = mne.read_forward_solution(*args)
+    fwd = mne.convert_forward_solution(fwd, **kwargs)
     return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
@@ -42,10 +43,12 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     raw.add_proj([], remove_existing=True)  # we'll subselect so remove proj
     forward = mne.read_forward_solution(fname_fwd)
     if read_all_forward:
-        forward_surf_ori = _read_forward_solution_meg(fname_fwd, surf_ori=True)
-        forward_fixed = _read_forward_solution_meg(fname_fwd, force_fixed=True,
-                                                   surf_ori=True)
-        forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
+        forward_surf_ori = _read_forward_solution_meg(
+            fname_fwd, surf_ori=True)
+        forward_fixed = _read_forward_solution_meg(
+            fname_fwd, force_fixed=True, use_cps=False)
+        forward_vol = mne.read_forward_solution(fname_fwd_vol)
+        forward_vol = mne.convert_forward_solution(forward_vol, surf_ori=True)
     else:
         forward_surf_ori = None
         forward_fixed = None

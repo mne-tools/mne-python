@@ -1,10 +1,11 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 # License: Simplified BSD
+
 import numpy as np
 from scipy import linalg
 
-from ..forward import is_fixed_orient
+from ..forward import is_fixed_orient, convert_forward_solution
 
 from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose, warn
@@ -241,6 +242,11 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     _check_reference(evoked)
 
     loose, forward = _check_loose_forward(loose, forward)
+
+    # make forward solution in fixed orientation if necessary
+    if loose == 0. and not is_fixed_orient(forward):
+        forward = convert_forward_solution(
+            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
 
     if is_fixed_orient(forward) or not xyz_same_gamma:
         group_size = 1

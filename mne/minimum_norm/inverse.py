@@ -1260,7 +1260,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                           fixed=False, limit_depth_chs=True, rank=None,
-                          verbose=None):
+                          use_cps=None, verbose=None):
     """Assemble inverse operator.
 
     Parameters
@@ -1294,6 +1294,9 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
+    use_cps : None | bool (default None)
+        Whether to use cortical patch statistics to define normal
+        orientations. Only used when surf_ori and/or force_fixed are True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`).
 
@@ -1412,7 +1415,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
             # Convert to the fixed orientation forward solution now
             depth_prior = depth_prior[2::3]
             forward = convert_forward_solution(
-                forward, surf_ori=forward['surf_ori'], force_fixed=True)
+                forward, surf_ori=forward['surf_ori'], force_fixed=True,
+                use_cps=use_cps)
             is_fixed_ori = is_fixed_orient(forward)
             gain_info, gain, noise_cov, whitener, n_nzero = \
                 _prepare_forward(forward, info, noise_cov, verbose=False)

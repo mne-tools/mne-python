@@ -92,7 +92,8 @@ epochs_noise = mne.Epochs(raw_noise, events_noise, event_id, tmin, tmax,
 epochs_noise = epochs_noise[:len(epochs.events)]
 
 # Read forward operator
-forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
+forward = mne.read_forward_solution(fname_fwd)
+forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 # Read label
 label = mne.read_label(fname_label)

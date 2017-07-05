@@ -124,7 +124,7 @@ def test_rap_music_simulated():
     forward = mne.pick_channels_forward(forward, evoked.ch_names)
     forward_surf_ori = mne.convert_forward_solution(forward, surf_ori=True)
     forward_fixed = mne.convert_forward_solution(forward, force_fixed=True,
-                                                 surf_ori=True)
+                                                 surf_ori=True, use_cps=True)
 
     n_dipoles = 2
     sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,

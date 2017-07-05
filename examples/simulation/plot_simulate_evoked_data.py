@@ -33,7 +33,9 @@ fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
-fwd = mne.read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
+fwd = mne.read_forward_solution(fwd_fname)
+fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True,
+                                   use_cps=False)
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
 cov = mne.read_cov(cov_fname)
 info = mne.io.read_info(ave_fname)
