@@ -40,7 +40,7 @@ events = mne.read_events(event_fname)
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
 left_temporal_channels = mne.read_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
-                       exclude='bads', selection=left_temporal_channels)
+                       exclude='bads')
 
 # Pick the channels of interest
 raw.pick_channels([raw.ch_names[pick] for pick in picks])
@@ -64,8 +64,8 @@ plt.close('all')
 
 pick_oris = [None, 'normal', 'max-power']
 names = ['free', 'normal', 'max-power']
-descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
-                'orientation']
+descriptions = ['Free orientation, voxel: %i', 'Normal orientation, voxel: %i',
+                'Max-power orientation, voxel: %i']
 colors = ['b', 'k', 'r']
 
 for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
@@ -74,16 +74,16 @@ for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
                pick_ori=pick_ori, weight_norm='unit-noise-gain')
 
-    # View activation time-series
-    label = mne.read_label(fname_label)
-    stc_label = stc.in_label(label)
-    plt.plot(1e3 * stc_label.times, np.mean(stc_label.data, axis=0), color,
-             hold=True, label=desc)
+    # View activation time-series in maximum voxel at 100 ms:
+    time_idx = stc.time_as_index(0.1)
+    max_vox = np.argmax(stc.data[:, time_idx])
+    plt.plot(stc.times, stc.data[max_vox, :], color, hold=True,
+             label=desc % max_vox)
 
 plt.xlabel('Time (ms)')
 plt.ylabel('LCMV value')
 plt.ylim(-0.8, 2.2)
-plt.title('LCMV in %s' % label_name)
+plt.title('LCMV in maximum voxel')
 plt.legend()
 plt.show()
 

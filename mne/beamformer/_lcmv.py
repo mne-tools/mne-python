@@ -161,9 +161,9 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
 
             # no weight-normalization and max-power is not implemented yet:
             else:
-                raise ValueError('The max-power orientation selection is not '
-                                 'yet implemented with weight_norm set to'
-                                 'None.')
+                raise NotImplementedError('The max-power orientation '
+                                          'selection is not yet implemented '
+                                          'with weight_norm set to None.')
 
         else:  # do vector beamformer
             # compute the filters:
@@ -176,9 +176,10 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
 
             # handle noise normalization with free/normal source orientation:
             if weight_norm == 'nai':
-                raise ValueError('Weight normalization with neural activity '
-                                 'index is not implemented yet with free or '
-                                 'fixed orientation.')
+                raise NotImplementedError('Weight normalization with neural '
+                                          'activity index is not implemented '
+                                          'yet with free or fixed '
+                                          'orientation.')
 
             if weight_norm == 'unit-noise-gain':
                 noise_norm = np.sum(Wk ** 2, axis=1)

@@ -193,14 +193,15 @@ def test_lcmv():
 
     # Test if not-yet-implemented orientation selections raise error with
     # neural activity index
-    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov,
-                  data_cov, reg=0.01, pick_ori="normal", weight_norm='nai')
-    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov,
+    assert_raises(NotImplementedError, lcmv, evoked, forward_surf_ori,
+                  noise_cov, data_cov, reg=0.01, pick_ori="normal",
+                  weight_norm='nai')
+    assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
                   data_cov, reg=0.01, pick_ori=None, weight_norm='nai')
 
     # Test if no weight-normalization and max-power source orientation throw
     # an error
-    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov,
+    assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
                   data_cov, reg=0.01, pick_ori="max-power", weight_norm=None)
 
     # Now test single trial using fixed orientation forward solution
