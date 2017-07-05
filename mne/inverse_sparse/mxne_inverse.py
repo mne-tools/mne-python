@@ -3,14 +3,14 @@
 #
 # License: Simplified BSD
 
-from copy import deepcopy
 import numpy as np
 from scipy import linalg, signal
 
 from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..minimum_norm.inverse import _check_reference
-from ..forward import compute_orient_prior, is_fixed_orient
+from ..forward import (compute_orient_prior, is_fixed_orient,
+                       convert_forward_solution)
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import logger, verbose
@@ -360,7 +360,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     # put the forward solution in fixed orientation if it's not already
     if loose is None and not is_fixed_orient(forward):
-        forward = mne.convert_forward_solution(
+        forward = convert_forward_solution(
             forward, surf_ori=True, force_fixed=True, copy=True)
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
@@ -582,7 +582,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
 
     # put the forward solution in fixed orientation if it's not already
     if loose is None and not is_fixed_orient(forward):
-        forward = mne.convert_forward_solution(
+        forward = convert_forward_solution(
             forward, surf_ori=True, force_fixed=True, copy=True)
 
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
