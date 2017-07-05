@@ -593,7 +593,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         nuse_total = sum([s['nuse'] for s in fwd['src']])
         fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
         logger.info('    Converting to surface-based source orientations...')
-        if fwd['src'][0]['patch_inds'] is not None:
+        if ('patch_inds' in fwd['src'][0] and
+                fwd['src'][0]['patch_inds'] is not None):
             use_ave_nn = True
             logger.info('    Average patch normals will be employed in the '
                         'rotation to the local surface coordinates....')
@@ -809,19 +810,6 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
     end_block(fid, FIFF.FIFFB_MNE)
     end_file(fid)
-
-
-def _to_fixed_ori(forward):
-    """Convert the forward solution to fixed ori from free."""
-    if not forward['surf_ori'] or is_fixed_orient(forward):
-        raise ValueError('Only surface-oriented, free-orientation forward '
-                         'solutions can be converted to fixed orientaton')
-    forward['sol']['data'] = forward['sol']['data'][:, 2::3]
-    forward['sol']['ncol'] = forward['sol']['ncol'] / 3
-    forward['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
-    logger.info('    Converted the forward solution into the '
-                'fixed-orientation mode.')
-    return forward
 
 
 def is_fixed_orient(forward, orig=False):
