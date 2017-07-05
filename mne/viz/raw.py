@@ -591,7 +591,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
                  average=None, show=True, n_jobs=1, line_alpha=None,
                  spatial_colors=None, xscale='linear',
-                 reject_by_annotation=True, verbose=None):
+                 reject_by_annotation=True, combine='mean', verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -656,6 +656,14 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
+    combine : str | float | callable
+        The type of reduction to perform on welch windows. If string it can be
+        'mean' or 'median'. If float it is understood as the proportion of
+        values to trim before performing mean (has to be > 0 and < 0.5) ie.
+        trimmed-mean. If function it has to perform the reduction along last
+        dimension.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -674,6 +682,10 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     if average and spatial_colors:
         raise ValueError('Average and spatial_colors cannot be enabled '
                          'simultaneously.')
+    if combine is None:
+        raise ValueError('`combine` cannot be None plot_raw_psd - you have to'
+                         ' specify a way to combine welch windows (for'
+                         ' example `"mean"`).')
     if spatial_colors is None:
         spatial_colors = False if average else True
 
@@ -693,7 +705,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
                                 fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
                                 n_overlap=n_overlap, n_jobs=n_jobs,
-                                reject_by_annotation=reject_by_annotation)
+                                reject_by_annotation=reject_by_annotation,
+                                combine=combine)
 
         ylabel = _convert_psds(psds, dB, scalings_list[ii], units_list[ii],
                                [raw.ch_names[pi] for pi in picks])

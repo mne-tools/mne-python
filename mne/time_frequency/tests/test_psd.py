@@ -6,7 +6,7 @@ from nose.tools import assert_true, assert_equal
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.utils import slow_test, run_tests_if_main
+from mne.utils import slow_test, run_tests_if_main, _trim_mean
 from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -75,7 +75,7 @@ def test_psd():
         # Array input shouldn't work
         assert_raises(ValueError, func, raw[:3, :20][0])
 
-    # test n_per_seg in psd_welch (and padding)
+    # test n_per_seg_ psd_welch (and padding)
     psds1, freqs1 = psd_welch(raw, proj=False, n_fft=128, n_per_seg=128,
                               **kws_psd)
     psds2, freqs2 = psd_welch(raw, proj=False, n_fft=256, n_per_seg=128,
@@ -84,12 +84,25 @@ def test_psd():
     assert_true(psds1.shape[-1] == np.floor(psds2.shape[-1] / 2.))
 
     # tests ValueError when n_per_seg=None and n_fft > signal length
-    kws_psd.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
+    kws_psd_temp = kws_psd.copy()
+    kws_psd_temp.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
     assert_raises(ValueError, psd_welch, raw, proj=False, n_per_seg=None,
-                  **kws_psd)
+                  **kws_psd_temp)
     # ValueError when n_overlap > n_per_seg
-    kws_psd.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
-    assert_raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
+    kws_psd_temp.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
+    assert_raises(ValueError, psd_welch, raw, proj=False, **kws_psd_temp)
+
+    # test combine
+    windows, freqs = psd_welch(raw, proj=False, combine=None, **kws_psd)
+    windows_mean, _ = psd_welch(raw, proj=False, combine='mean', **kws_psd)
+    assert_array_almost_equal(windows.mean(axis=-1), windows_mean)
+    windows_trim, _ = psd_welch(raw, proj=False, combine=0.2, **kws_psd)
+    assert_array_almost_equal(_trim_mean(windows, 0.2, axis=-1), windows_trim)
+
+    # test combine with function
+    windows_max, _ = psd_welch(
+        raw, proj=False, combine=lambda x: x.max(axis=-1), **kws_psd)
+    assert_array_almost_equal(np.max(windows, axis=-1), windows_max)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)

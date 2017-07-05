@@ -1,12 +1,14 @@
 # Authors : Alexandre Gramfort, alexandre.gramfort@telecom-paristech.fr (2011)
 #           Denis A. Engemann <denis.engemann@gmail.com>
+#           Mikolaj Magnuski <mmagnuski@swps.edu.pl>
 # License : BSD 3-clause
 
+import numbers
 import numpy as np
 
 from ..parallel import parallel_func
 from ..io.pick import _pick_data_channels
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, _get_reduction
 from ..fixes import get_spectrogram
 from .multitaper import psd_array_multitaper
 
@@ -27,9 +29,9 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     n_per_seg = n_fft if n_per_seg is None or n_per_seg > n_fft else n_per_seg
     n_per_seg = n if n_per_seg > n else n_per_seg
     if n_overlap >= n_per_seg:
-        raise ValueError(('n_overlap cannot be greater than n_per_seg (or '
-                          'n_fft). Got n_overlap of %d while n_per_seg is '
-                          '%d.') % (n_overlap, n_per_seg))
+        raise ValueError(('n_overlap cannot be greater than or equal to '
+                          'n_per_seg (or n_fft). Got n_overlap of %d while '
+                          'n_per_seg is %d.') % (n_overlap, n_per_seg))
     return n_fft, n_per_seg, n_overlap
 
 
@@ -45,6 +47,10 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
     time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
     if picks is None:
         picks = _pick_data_channels(inst.info, with_ref_meg=False)
+    if isinstance(picks, numbers.Integral):
+        # Fix for IndexError when picks is int: in that case inst.data[picks]
+        # or epochs.get_data()[:, picks] would drop channels dimension
+        picks = [picks]
     if proj:
         # Copy first so it's not modified
         inst = inst.copy().apply_proj()
@@ -64,7 +70,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
 
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-                    n_per_seg=None, n_jobs=1, verbose=None):
+                    n_per_seg=None, combine='mean', n_jobs=1, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Parameters
@@ -81,12 +87,22 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
     n_overlap : int
-        The number of points of overlap between segments. Will be adjusted
-        to be <= n_per_seg. The default value is 0.
+        The number of points of overlap between segments. Must be < n_per_seg.
+        The default value is 0.
     n_per_seg : int | None
         Length of each Welch segment. The smaller it is with respect to the
         signal length the smoother are the PSDs. Defaults to None, which sets
         n_per_seg equal to n_fft.
+    combine : str | float | callable | None
+        The type of reduction to perform on welch windows. If string it can be
+        'mean' or 'median'. If float it is understood as the proportion of
+        values to trim before performing mean (has to be > 0 and < 0.5) ie.
+        trimmed-mean. If function it has to perform the reduction along last
+        dimension. If None, no reduction is performed and PSDs for individual
+        windows are returned. In such case the output PSDs have one more
+        dimension than the input array with windows as the last dimension.
+
+        .. versionadded:: 0.15.0
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -95,9 +111,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs) or
+    psds : ndarray, shape (..., n_freqs)
         The power spectral densities. All dimensions up to the last will
-        be the same as input.
+        be the same as input unless combine is None. When combine is None
+        the PSDs are of shape (..., n_freqs, n_windows).
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
@@ -119,7 +136,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
 
-    # Parallelize across first N-1 dimensions
+    # Parallelize across first N-1 dimensions (channels or epochs * channels)
     parallel, my_psd_func, n_jobs = parallel_func(_psd_func, n_jobs=n_jobs)
     x_splits = np.array_split(x, n_jobs)
     f_spectrogram = parallel(my_psd_func(d, noverlap=n_overlap, nfft=n_fft,
@@ -128,16 +145,21 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
                              for d in x_splits)
 
     # Combining, reducing windows and reshaping to original data shape
-    psds = np.concatenate([np.nanmean(f_s, axis=-1)
-                           for f_s in f_spectrogram], axis=0)
-    psds.shape = np.hstack([dshape, -1])
+    if combine is not None:
+        combine = _get_reduction(combine)
+        psds = np.concatenate([combine(f_s) for f_s in f_spectrogram],
+                              axis=0).reshape(dshape + (-1,))
+    else:
+        psds = np.concatenate(f_spectrogram, axis=0)
+        n_windows = psds.shape[-1]
+        psds = psds.reshape(dshape + (-1, n_windows))
     return psds, freqs
 
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
-              reject_by_annotation=True, verbose=None):
+              reject_by_annotation=True, combine='mean', verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodigrams for a sliding window over the
@@ -161,8 +183,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         If n_per_seg is None, n_fft must be >= number of time points
         in the data.
     n_overlap : int
-        The number of points of overlap between segments. Will be adjusted
-        to be <= n_per_seg. The default value is 0.
+        The number of points of overlap between segments. Must be < n_per_seg.
+        The default value is 0.
     n_per_seg : int | None
         Length of each Welch segment. The smaller it is with respect to the
         signal length the smoother are the PSDs. Defaults to None, which sets
@@ -181,16 +203,28 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
+    combine : str | float | callable | None
+        The type of reduction to perform on welch windows. If string it can be
+        'mean' or 'median'. If float it is understood as the proportion of
+        values to trim before performing mean (has to be > 0 and < 0.5) ie.
+        trimmed-mean. If function it has to perform the reduction along last
+        dimension. If None, no reduction is performed and PSDs for individual
+        windows are returned. In such case the output PSDs have one more
+        dimension than the input array with windows as the last dimension.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
-    psds : ndarray, shape (..., n_freqs)
-        The power spectral densities. If input is of type Raw,
-        then psds will be shape (n_channels, n_freqs), if input is type Epochs
-        then psds will be shape (n_epochs, n_channels, n_freqs).
+    psds : ndarray, shape (..., n_freqs) or (..., n_freqs, n_windows)
+        The power spectral densities. If combine is not None and input is of
+        type Raw, returned PSDs are shaped (n_channels, n_freqs), if input is
+        of type Epochs returned PSDs are shaped (n_epochs, n_channels,
+        n_freqs). When combine is None the PSDs are of shape (..., n_freqs,
+        n_windows).
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
@@ -206,9 +240,12 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj,
                                   reject_by_annotation=reject_by_annotation)
-    return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                           n_overlap=n_overlap, n_per_seg=n_per_seg,
-                           n_jobs=n_jobs, verbose=verbose)
+    psds, freq = psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax,
+                                 n_fft=n_fft, n_overlap=n_overlap,
+                                 n_per_seg=n_per_seg, combine=combine,
+                                 n_jobs=n_jobs, verbose=verbose)
+    # reshape if combine is None:
+    return psds, freq
 
 
 @verbose

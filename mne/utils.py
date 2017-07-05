@@ -17,6 +17,7 @@ import json
 import logging
 from math import log, ceil
 import multiprocessing
+import numbers
 import operator
 import os
 import os.path as op
@@ -2413,6 +2414,75 @@ def _get_fast_dot():
     except ImportError:
         fast_dot = np.dot
     return fast_dot
+
+
+# nan-safe scipy trim_mean (used in mne.time_frequency.psd_welch)
+def _trim_mean(a, proportiontocut, axis=0):
+    """
+    Return mean of array after trimming distribution from both tails.
+
+    If `proportiontocut` = 0.1, slices off 'leftmost' and 'rightmost' 10% of
+    scores. The input is sorted before slicing. Slices off less if proportion
+    results in a non-integer slice index (i.e., conservatively slices off
+    `proportiontocut` ).
+
+    Parameters
+    ----------
+    a : array_like
+        Input array
+    proportiontocut : float
+        Fraction to cut off of both tails of the distribution
+    axis : int or None, optional
+        Axis along which the trimmed means are computed. Default is 0.
+        If None, compute over the whole array `a`.
+
+    Returns
+    -------
+    trim_mean : ndarray
+        Mean of trimmed array.
+    """
+    a = np.asarray(a)
+
+    if a.size == 0:
+        return np.nan
+
+    if axis is None:
+        a = a.ravel()
+        axis = 0
+
+    nobs = a.shape[axis]
+    lowercut = int(proportiontocut * nobs)
+    uppercut = nobs - lowercut
+    if (lowercut > uppercut):
+        raise ValueError("Proportion too big.")
+
+    atmp = np.partition(a, (lowercut, uppercut - 1), axis)
+
+    sl = [slice(None)] * atmp.ndim
+    sl[axis] = slice(lowercut, uppercut)
+    return np.nanmean(atmp[sl], axis=axis)
+
+
+def _get_reduction(reduction, axis=-1):
+    if isinstance(reduction, string_types):
+        if reduction == 'mean':
+            return lambda x: np.nanmean(x, axis=axis)
+        elif reduction == 'median':
+            return lambda x: np.nanmedian(x, axis=axis)
+        else:
+            raise ValueError('reduction, if string, must be "mean" or "median"'
+                             ', got {}'.format(reduction))
+    elif isinstance(reduction, numbers.Real):
+        if reduction < 0 or reduction >= 0.5:
+            raise ValueError('reduction, if float, means proportion to trim in'
+                             ' trimmed mean, which has to be > 0 and < 0.5, '
+                             'got {}'.format(reduction))
+        return lambda x: _trim_mean(x, reduction, axis=axis)
+    elif hasattr(reduction, '__call__'):
+        return reduction
+    else:
+        raise TypeError('unrecognized reduction type. Has to be string, '
+                        'float or callable, got {}'.format(reduction))
 
 
 def random_permutation(n_samples, random_state=None):
