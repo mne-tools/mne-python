@@ -236,15 +236,15 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     References
     ----------
-    .. [1] Gramfort A., Kowalski M. and Hamalainen, M.,
+    .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
        http://dx.doi.org/10.1088/0031-9155/57/7/1937
 
-    .. [2] Strohmeier D., Haueisen J., and Gramfort A.,
-       "Improved MEG/EEG source localization with reweighted mixed-norms",
-       4th International Workshop on Pattern Recognition in Neuroimaging,
-       Tuebingen, 2014.
+    .. [2] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
+       "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
+       MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
+       Volume 35 (10), pp. 2218-2228, 2016.
     """
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
@@ -445,18 +445,17 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     References
     ----------
     .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-       Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-       non-stationary source activations
-       Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
+       "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
+       non-stationary source activations",
+       Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
        DOI: 10.1016/j.neuroimage.2012.12.051.
 
     .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-       Functional Brain Imaging with M/EEG Using Structured Sparsity in
-       Time-Frequency Dictionaries
+       "Functional Brain Imaging with M/EEG Using Structured Sparsity in
+       Time-Frequency Dictionaries",
        Proceedings Information Processing in Medical Imaging
-       Lecture Notes in Computer Science, 2011, Volume 6801/2011,
-       600-611, DOI: 10.1007/978-3-642-22092-0_49
-       http://dx.doi.org/10.1007/978-3-642-22092-0_49
+       Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
+       DOI: 10.1007/978-3-642-22092-0_49
     """
     _check_reference(evoked)
 
@@ -501,7 +500,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     X, active_set, E = tf_mixed_norm_solver(
         M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
         maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
-        log_objective=False, debias=debias)
+        log_objective=True, debias=debias)
 
     if active_set.sum() == 0:
         raise Exception("No active dipoles found. "

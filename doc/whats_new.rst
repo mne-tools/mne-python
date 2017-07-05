@@ -57,6 +57,8 @@ Changelog
 
     - Speed up :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_ and `Jaakko Leppakangas`_
 
+    - Add :func:`mne.inverse_sparse.mxne_optim.dgap_l21l1` for computing the duality gap for TF-MxNE as the new stopping criterion by `Daniel Strohmeier`_
+    
 BUG
 ~~~
 

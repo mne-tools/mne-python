@@ -84,7 +84,7 @@ stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 
 # Compute TF-MxNE inverse solution
 stc, residual = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
-                              loose=loose, depth=depth, maxit=200, tol=1e-4,
+                              loose=loose, depth=depth, maxit=200, tol=1e-8,
                               weights=stc_dspm, weights_min=8., debias=True,
                               wsize=16, tstep=4, window=0.05,
                               return_residual=True)
