@@ -12,8 +12,8 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises
-
+from numpy.testing import assert_raises, assert_equal
+from nose.tools import assert_true
 
 from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
@@ -177,5 +177,11 @@ def test_plot_evoked():
         plt.close('all')
     evoked.plot_sensors()  # Test plot_sensors
     plt.close('all')
+
+    evoked.pick_channels(evoked.ch_names[:4])
+    with warnings.catch_warnings(record=True) as ws:
+        evoked.plot()
+    assert_equal(len(ws), 2)
+    assert_true(all('No topography available' in str(w.message) for w in ws))
 
 run_tests_if_main()
