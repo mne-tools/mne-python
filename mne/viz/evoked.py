@@ -305,7 +305,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
         for type_idx, this_type in enumerate(ch_types_used):
             idx = picks[types == this_type]
             if len(idx) < 2 or (this_type == 'grad' and len(idx) < 4):
-                warn('No topography available for %s. '
+                warn('Need more than one channel to make topography for %s. '
                      'Disabling interactivity.' % this_type)
                 selectables[type_idx] = False
 

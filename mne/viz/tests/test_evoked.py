@@ -182,6 +182,6 @@ def test_plot_evoked():
     with warnings.catch_warnings(record=True) as ws:
         evoked.plot()
     assert_equal(len(ws), 2)
-    assert_true(all('No topography available' in str(w.message) for w in ws))
+    assert_true(all('Need more than one' in str(w.message) for w in ws))
 
 run_tests_if_main()
