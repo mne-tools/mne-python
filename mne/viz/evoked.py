@@ -110,6 +110,9 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
             continue
         picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(
             info, ch_type, layout=None)
+        if len(pos) < 2:
+            fig.delaxes(axarr[0][idx])
+            continue
         this_data = data[picks, minidx:maxidx]
         if merge_grads:
             from ..channels.layout import _merge_grad_data
@@ -297,6 +300,14 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                            alpha=0.75)]
     gfp_path_effects = [patheffects.withStroke(linewidth=5, foreground="w",
                                                alpha=0.75)]
+    if selectable:
+        selectables = np.ones(len(ch_types_used), dtype=bool)
+        for type_idx, this_type in enumerate(ch_types_used):
+            idx = picks[types == this_type]
+            if len(idx) < 2 or (this_type == 'grad' and len(idx) < 4):
+                warn('Need more than one channel to make topography for %s. '
+                     'Disabling interactivity.' % this_type)
+                selectables[type_idx] = False
 
     if selectable:
         # Parameters for butterfly interactive plots
@@ -317,6 +328,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             ch_unit = 'NA'  # no unit
         idx = list(picks[types == this_type])
         idxs.append(idx)
+
         if len(idx) > 0:
             # Set amplitude scaling
             D = this_scaling * data[idx, :]
@@ -413,7 +425,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
         lines.append(line_list)
     if selectable:
         import matplotlib.pyplot as plt
-        for ax in axes:
+        for ax in np.array(axes)[selectables]:
             if len(ax.lines) == 1:
                 continue
             text = ax.annotate('Loading...', xy=(0.01, 0.1),
