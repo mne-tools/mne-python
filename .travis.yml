@@ -95,6 +95,7 @@ install:
     - python setup.py build
     - python setup.py install
     - python -c "import mne; mne.sys_info()"
+    - python -c "import numpy;print(numpy.__version__)"
     - SRC_DIR=$(pwd)
     - cd ~
     # Trigger download of testing data. Note that
