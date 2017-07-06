@@ -441,7 +441,7 @@ def _layout_figure(params):
     l_border = 100
     r_border = 10
     t_border = 35
-    b_border = 40
+    b_border = 45
 
     # only bother trying to reset layout if it's reasonable to do so
     if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
