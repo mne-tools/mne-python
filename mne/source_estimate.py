@@ -1815,11 +1815,14 @@ class VolSourceEstimate(_BaseSourceEstimate):
                               'nilearn, which is not available on this '
                               'system.')
         from nilearn.image import index_img
+        import matplotlib.pyplot as plt
 
         # Plotting with nilearn
         img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution)
         fig = plot_stat_map(index_img(img, idx), bg_img,
                             threshold=threshold, title=title)
+        plt.show()
+
         return fig
 
     def __repr__(self):  # noqa: D105
@@ -2093,6 +2096,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             colorbar=colorbar, clim=clim, cortex=cortex, size=size,
             background=background, foreground=foreground,
             initial_time=initial_time, time_unit=time_unit)
+
         return brain
 
     def save_as_volume(self, fname, src, dest='mri', mri_resolution=False,
@@ -2272,6 +2276,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                               'nilearn, which is not available on this '
                               'system.')
         from nilearn.image import index_img
+        import matplotlib.pyplot as plt
 
         if labels is not None and not isinstance(labels, list):
             labels = [labels]
@@ -2281,6 +2286,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                              labels=labels)
         fig = plot_stat_map(index_img(img, idx), bg_img, threshold=threshold,
                             title=title)
+        plt.show()
+
         return fig
 
 
