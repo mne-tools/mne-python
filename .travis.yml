@@ -95,11 +95,6 @@ install:
     - python setup.py build
     - python setup.py install
     - python -c "import mne; mne.sys_info()"
-    - python -c "import numpy;print(numpy.__version__)"
-    - python -c "import scipy;print(scipy.__version__)"
-    - python -c "import pandas;print(pandas.__version__)"
-    - python -c "import matplotlib;print(matplotlib.__version__)"
-    - python -c "import sklearn;print(sklearn.__version__)"
     - SRC_DIR=$(pwd)
     - cd ~
     # Trigger download of testing data. Note that

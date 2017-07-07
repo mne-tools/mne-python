@@ -102,10 +102,11 @@ def test_lcmv():
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     for fwd in [forward, forward_vol]:
-        stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01)
+        stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
+                   max_ori_out='signed')
         stc.crop(0.02, None)
 
-        stc_pow = np.sum(stc.data, axis=1)
+        stc_pow = np.sum(np.abs(stc.data), axis=1)
         idx = np.argmax(stc_pow)
         max_stc = stc.data[idx]
         tmax = stc.times[np.argmax(max_stc)]
@@ -133,15 +134,17 @@ def test_lcmv():
 
         # Test picking source orientation maximizing output source power
         stc_max_power = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
-                             pick_ori="max-power")
+                             pick_ori="max-power", max_ori_out='signed')
         stc_max_power.crop(0.02, None)
-        stc_pow = np.sum(stc_max_power.data, axis=1)
+        stc_pow = np.sum(np.abs(stc_max_power.data), axis=1)
         idx = np.argmax(stc_pow)
-        max_stc = stc_max_power.data[idx]
+        max_stc = np.abs(stc_max_power.data[idx])
         tmax = stc.times[np.argmax(max_stc)]
 
         assert_true(0.08 < tmax < 0.11, tmax)
         assert_true(0.8 < np.max(max_stc) < 3., np.max(max_stc))
+
+        stc_max_power.data[:,:] = np.abs(stc_max_power.data)
 
         if fwd is forward:
             # Maximum output source power orientation results should be
@@ -157,11 +160,12 @@ def test_lcmv():
 
         # Test NAI weight normalization:
         stc_nai = lcmv(evoked, fwd, noise_cov=noise_cov, data_cov=data_cov,
-                       reg=0.01, pick_ori='max-power', weight_norm='nai')
+                       reg=0.01, pick_ori='max-power', weight_norm='nai',
+                       max_ori_out='signed')
         stc_nai.crop(0.02, None)
 
         # Test whether unit-noise-gain solution is a scaled version of NAI
-        pearsoncorr = np.corrcoef(np.concatenate(stc_nai.data),
+        pearsoncorr = np.corrcoef(np.concatenate(np.abs(stc_nai.data)),
                                   np.concatenate(stc_max_power.data))
         assert_almost_equal(pearsoncorr[0, 1], 1.)
 
@@ -170,7 +174,7 @@ def test_lcmv():
     assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
                   reg=0.01, pick_ori="normal")
     assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
-                  reg=0.01, pick_ori="max-power")
+                  reg=0.01, pick_ori="max-power", max_ori_out='signed')
 
     # Test if non-surface oriented forward operator is detected when picking
     # normal orientation
@@ -184,12 +188,14 @@ def test_lcmv():
 
     # Test if missing of data covariance matrix is detected
     assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov=noise_cov,
-                  data_cov=None, reg=0.01, pick_ori="max-power")
+                  data_cov=None, reg=0.01, pick_ori="max-power",
+                  max_ori_out='signed')
 
     # Test if missing of noise covariance matrix is detected when more than
     # one channel type is present in the data
     assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov=None,
-                  data_cov=data_cov, reg=0.01, pick_ori="max-power")
+                  data_cov=data_cov, reg=0.01, pick_ori="max-power",
+                  max_ori_out='signed')
 
     # Test if not-yet-implemented orientation selections raise error with
     # neural activity index
@@ -202,7 +208,8 @@ def test_lcmv():
     # Test if no weight-normalization and max-power source orientation throw
     # an error
     assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
-                  data_cov, reg=0.01, pick_ori="max-power", weight_norm=None)
+                  data_cov, reg=0.01, pick_ori="max-power", weight_norm=None,
+                  max_ori_out='signed')
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution

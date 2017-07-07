@@ -17,7 +17,7 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, verbose, warn, estimate_rank
+from ..utils import logger, verbose, warn, estimate_rank, deprecated
 from .. import Epochs
 from ..externals import six
 from ..channels.channels import _contains_ch_type
@@ -68,10 +68,16 @@ def _setup_picks(picks, info, forward, noise_cov=None):
 @verbose
 def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
                 data_cov=None, label=None, picks=None, pick_ori=None,
-                rank=None, weight_norm=None, verbose=None):
+                rank=None, weight_norm=None, max_ori_out=None, verbose=None):
     """LCMV beamformer for evoked data, single epochs, and raw data."""
     is_free_ori, ch_names, proj, vertno, G = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
+
+    if max_ori_out == 'abs':
+        warn('max_ori_out and abs is deprecated and will be removed in 0.16. '
+             'Set it to signed to remove this warning, this will return '
+             'signed time series.',
+             DeprecationWarning)
 
     # data covariance
     if data_cov is None:
@@ -231,7 +237,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
                 sol = (W, M)
             else:
                 sol = np.dot(W, M)
-            if pick_ori == 'max-power':
+            if pick_ori == 'max-power' and max_ori_out == 'abs':
                 sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
@@ -301,7 +307,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 @verbose
 def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
          pick_ori=None, picks=None, rank=None, weight_norm='unit-noise-gain',
-         verbose=None):
+         max_ori_out='abs', verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -342,6 +348,13 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed
+    max_ori_out: 'abs' | 'signed'
+        Specify in case of pick_ori='max-power'.
+        If 'abs', the absolute value of the source space time series will be
+        returned,
+        if 'signed', the signed source space time series will be returned.
+        'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
+        'signed' to remove this warning.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -385,7 +398,8 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     stc = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, reg=reg,
         noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
-        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm)
+        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm,
+        max_ori_out=max_ori_out)
 
     return six.advance_iterator(stc)
 
@@ -393,7 +407,8 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 @verbose
 def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
                 pick_ori=None, return_generator=False, picks=None, rank=None,
-                weight_norm='unit-noise-gain', verbose=None):
+                weight_norm='unit-noise-gain', max_ori_out='abs',
+                verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -437,6 +452,13 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed
+    max_ori_out: 'abs' | 'signed'
+        Specify in case of pick_ori='max-power'.
+        If 'abs', the absolute value of the source space time series will be
+        returned,
+        if 'signed', the signed source space time series will be returned.
+        'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
+        'signed' to remove this warning.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -478,7 +500,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     stcs = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, reg=reg,
         noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
-        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm)
+        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm,
+        max_ori_out=max_ori_out)
 
     if not return_generator:
         stcs = [s for s in stcs]
@@ -489,7 +512,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 @verbose
 def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
              start=None, stop=None, picks=None, pick_ori=None, rank=None,
-             weight_norm='unit-noise-gain', verbose=None):
+             weight_norm='unit-noise-gain', max_ori_out='abs', verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -534,6 +557,13 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed
+    max_ori_out: 'abs' | 'signed'
+        Specify in case of pick_ori='max-power'.
+        If 'abs', the absolute value of the source space time series will be
+        returned,
+        if 'signed', the signed source space time series will be returned.
+        'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
+        'signed' to remove this warning.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -576,7 +606,8 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     stc = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, reg=reg,
         noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
-        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm)
+        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm,
+        max_ori_out=max_ori_out)
 
     return six.advance_iterator(stc)
 
