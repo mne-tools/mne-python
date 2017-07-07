@@ -17,7 +17,7 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
-from ..utils import logger, verbose, warn, estimate_rank, deprecated
+from ..utils import logger, verbose, warn, estimate_rank
 from .. import Epochs
 from ..externals import six
 from ..channels.channels import _contains_ch_type

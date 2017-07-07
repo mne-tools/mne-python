@@ -144,7 +144,7 @@ def test_lcmv():
         assert_true(0.08 < tmax < 0.11, tmax)
         assert_true(0.8 < np.max(max_stc) < 3., np.max(max_stc))
 
-        stc_max_power.data[:,:] = np.abs(stc_max_power.data)
+        stc_max_power.data[:, :] = np.abs(stc_max_power.data)
 
         if fwd is forward:
             # Maximum output source power orientation results should be
