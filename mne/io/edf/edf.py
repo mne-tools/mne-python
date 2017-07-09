@@ -273,8 +273,8 @@ class RawEDF(BaseRaw):
                             # it forces edge artifacts to appear at
                             # each buffer boundary :(
                             # it can also be very slow...
-                            ch_data = resample(
-                                ch_data, buf_len, n_samps[ci], npad=0, axis=-1)
+                            ch_data = resample(ch_data, buf_len, n_samps[ci],
+                                               npad=0, axis=-1)
                     assert ch_data.shape == (len(ch_data), buf_len)
                     data[ii, d_sidx:d_eidx] = ch_data.ravel()[r_sidx:r_eidx]
 
@@ -502,10 +502,14 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         edf_info['max_samp'] = max_samp = n_samps.max()
 
     # Info structure
-    # --------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
 
-    # sfreq defined as the max sampling rate of eeg
-    sfreq = n_samps.max() * \
+    # sfreq defined as the max sampling rate of eeg (stim_ch not included)
+    if stim_channel is None:
+        data_samps = n_samps
+    else:
+        data_samps = np.delete(n_samps, slice(stim_channel, stim_channel + 1))
+    sfreq = data_samps.max() * \
         edf_info['record_length'][1] / edf_info['record_length'][0]
 
     info = _empty_info(sfreq)
