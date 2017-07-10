@@ -546,7 +546,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
 @verbose
 def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
-                             copy=True, verbose=None):
+                             copy=True, use_cps=True, verbose=None):
     """Convert forward solution between different source orientations.
 
     Parameters
@@ -560,6 +560,9 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         Force fixed source orientation mode?
     copy : bool
         Whether to return a new instance or modify in place.
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal
+        orientations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -582,9 +585,24 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 5. sol_grad['ncol']
     # 6. source_ori
 
-    if is_fixed_orient(fwd, orig=True):  # Fixed
+    if is_fixed_orient(fwd, orig=True) or (force_fixed and not use_cps):
+        # Fixed
         fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
                                            for s in fwd['src']], axis=0)
+        if not is_fixed_orient(fwd, orig=True):
+            logger.info('    Changing to fixed-orientation forward '
+                        'solution with surface-based source orientations...')
+            fix_rot = _block_diag(fwd['source_nn'].T, 1)
+            # newer versions of numpy require explicit casting here, so *= no
+            # longer works
+            fwd['sol']['data'] = (fwd['_orig_sol'] *
+                                  fix_rot).astype('float32')
+            fwd['sol']['ncol'] = fwd['nsource']
+            fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+            if fwd['sol_grad'] is not None:
+                x = sparse.block_diag([fix_rot] * 3)
+                fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
+                fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
         fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
         fwd['surf_ori'] = True
 
@@ -593,7 +611,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         nuse_total = sum([s['nuse'] for s in fwd['src']])
         fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
         logger.info('    Converting to surface-based source orientations...')
-        if ('patch_inds' in fwd['src'][0] and
+        if (use_cps and 'patch_inds' in fwd['src'][0] and
                 fwd['src'][0]['patch_inds'] is not None):
             use_ave_nn = True
             logger.info('    Average patch normals will be employed in the '
