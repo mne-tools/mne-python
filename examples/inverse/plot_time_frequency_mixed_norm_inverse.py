@@ -112,7 +112,7 @@ dipoles = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
                         loose=loose, depth=depth, maxit=200, tol=1e-4,
                         weights=stc_dspm, weights_min=8., debias=True,
                         wsize=16, tstep=4, window=0.05,
-                        return_as_dipoles=True, return_residual=True)
+                        return_as_dipoles=True, return_residual=False)
 
 # Crop to remove edges
 for dip in dipoles:
