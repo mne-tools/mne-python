@@ -35,9 +35,9 @@ mlab.view(40, 60)
 # If you're using a sphere model, ``bem`` parameter can be used to pass it to
 # the plotting function.
 
-sphere = mne.make_sphere_model(info=raw.info, r0='auto',
-                               head_radius='auto',
+sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto',
                                relative_radii=[0.8353, 0.847, 0.93, 1],
                                sigmas=(0.33, 1.0, 0.0042, 0.33))
 mne.viz.plot_trans(raw.info, trans=None, source=None, bem=sphere,
-                   head=True, skull=['inner_skull', 'outer_skull'])
+                   subjects_dir=subjects_dir, head=True,
+                   skull=['inner_skull', 'outer_skull'])
