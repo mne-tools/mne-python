@@ -58,6 +58,10 @@ Changelog
     - Speed up :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_ and `Jaakko Leppakangas`_
 
     - Add :func:`mne.inverse_sparse.mxne_optim.dgap_l21l1` for computing the duality gap for TF-MxNE as the new stopping criterion by `Daniel Strohmeier`_
+
+    - Add option to return dipole objects in sparse source imaging methods by `Daniel Strohmeier`_
+
+    - Add :func:`mne.inverse_sparse.mxne_inverse.make_sparse_stc_from_dipoles` to generate stc objects from lists of dipoles by `Daniel Strohmeier`_
     
     - Add :func:`mne.channels.find_ch_connectivity` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
 
