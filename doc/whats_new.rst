@@ -59,7 +59,7 @@ Changelog
 
     - Add :func:`mne.inverse_sparse.mxne_optim.dgap_l21l1` for computing the duality gap for TF-MxNE as the new stopping criterion by `Daniel Strohmeier`_
 
-    - Add option to return dipole objects in sparse source imaging methods by `Daniel Strohmeier`_
+    - Add option to return a list of :class:`Dipole` objects in sparse source imaging methods by `Daniel Strohmeier`_
 
     - Add :func:`mne.inverse_sparse.mxne_inverse.make_sparse_stc_from_dipoles` to generate stc objects from lists of dipoles by `Daniel Strohmeier`_
     

@@ -21,6 +21,7 @@ References
    Tuebingen, 2014. 10.1109/PRNI.2014.6858545
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 

@@ -3,10 +3,15 @@
 Compute a sparse inverse solution using the Gamma-Map empirical Bayesian method
 ===============================================================================
 
-See Wipf et al. "A unified Bayesian framework for MEG/EEG source imaging."
-NeuroImage, vol. 44, no. 3, pp. 947?66, Mar. 2009.
+References:
+----------
+.. [1] D. Wipf, S. Nagarajan
+   "A unified Bayesian framework for MEG/EEG source imaging",
+   Neuroimage, Volume 44, Number 3, pp. 947-966, Feb. 2009.
+   DOI: 10.1016/j.neuroimage.2008.02.059
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 

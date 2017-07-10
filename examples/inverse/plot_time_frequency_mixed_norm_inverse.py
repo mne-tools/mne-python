@@ -17,22 +17,22 @@ The benefit of this approach is that:
     trapped in local minima.
 
 References:
+----------
+.. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+   "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
+   non-stationary source activations",
+   Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
+   DOI: 10.1016/j.neuroimage.2012.12.051
 
-A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-non-stationary source activations
-Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
-DOI: 10.1016/j.neuroimage.2012.12.051.
-
-A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-Functional Brain Imaging with M/EEG Using Structured Sparsity in
-Time-Frequency Dictionaries
-Proceedings Information Processing in Medical Imaging
-Lecture Notes in Computer Science, 2011, Volume 6801/2011,
-600-611, DOI: 10.1007/978-3-642-22092-0_49
-http://dx.doi.org/10.1007/978-3-642-22092-0_49
+.. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+   "Functional Brain Imaging with M/EEG Using Structured Sparsity in
+   Time-Frequency Dictionaries",
+   Proceedings Information Processing in Medical Imaging
+   Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
+   DOI: 10.1007/978-3-642-22092-0_49
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 

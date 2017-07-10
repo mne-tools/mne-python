@@ -233,8 +233,10 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
            Neuroelectromagnetic Source Localization, Advances in Neural
            Information Process. Systems (2007)
 
-    .. [2] Wipf et al. A unified Bayesian framework for MEG/EEG source
-           imaging, NeuroImage, vol. 44, no. 3, pp. 947-66, Mar. 2009.
+    .. [2] D. Wipf, S. Nagarajan
+           "A unified Bayesian framework for MEG/EEG source imaging",
+           Neuroimage, Volume 44, Number 3, pp. 947-966, Feb. 2009.
+           DOI: 10.1016/j.neuroimage.2008.02.059
     """
     _check_reference(evoked)
 
