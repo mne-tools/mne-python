@@ -2406,15 +2406,6 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     return mask
 
 
-def _get_fast_dot():
-    """Get fast dot."""
-    try:
-        from sklearn.utils.extmath import fast_dot
-    except ImportError:
-        fast_dot = np.dot
-    return fast_dot
-
-
 def random_permutation(n_samples, random_state=None):
     """Emulate the randperm matlab function.
 
@@ -2455,7 +2446,6 @@ def compute_corr(x, y):
     """Compute pearson correlations between a vector and a matrix."""
     if len(x) == 0 or len(y) == 0:
         raise ValueError('x or y has zero length')
-    fast_dot = _get_fast_dot()
     X = np.array(x, float)
     Y = np.array(y, float)
     X -= X.mean(0)
@@ -2464,7 +2454,7 @@ def compute_corr(x, y):
     # if covariance matrix is fully expanded, Y needs a
     # transpose / broadcasting else Y is correct
     y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
-    return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
+    return (np.dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
 
 
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):

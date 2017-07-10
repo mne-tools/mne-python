@@ -46,7 +46,7 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     _get_fast_dot, compute_corr, _get_inst_data,
+                     compute_corr, _get_inst_data,
                      copy_function_doc_to_method_doc, _pl, warn)
 
 from ..fixes import _get_args
@@ -484,7 +484,6 @@ class ICA(ContainsMixin):
 
     def _pre_whiten(self, data, info, picks):
         """Aux function."""
-        fast_dot = _get_fast_dot()
         has_pre_whitener = hasattr(self, '_pre_whitener')
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
@@ -514,12 +513,12 @@ class ICA(ContainsMixin):
         elif not has_pre_whitener and self.noise_cov is not None:
             pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
             assert data.shape[0] == pre_whitener.shape[1]
-            data = fast_dot(pre_whitener, data)
+            data = np.dot(pre_whitener, data)
         elif has_pre_whitener and self.noise_cov is None:
             data /= self._pre_whitener
             pre_whitener = self._pre_whitener
         else:
-            data = fast_dot(self._pre_whitener, data)
+            data = np.dot(self._pre_whitener, data)
             pre_whitener = self._pre_whitener
 
         return data, pre_whitener
@@ -604,14 +603,13 @@ class ICA(ContainsMixin):
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
-        fast_dot = _get_fast_dot()
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
         # Apply first PCA
-        pca_data = fast_dot(self.pca_components_[:self.n_components_], data)
+        pca_data = np.dot(self.pca_components_[:self.n_components_], data)
         # Apply unmixing to low dimension PCA
-        sources = fast_dot(self.unmixing_matrix_, pca_data)
+        sources = np.dot(self.unmixing_matrix_, pca_data)
         return sources
 
     def _transform_raw(self, raw, start, stop, reject_by_annotation=False):
@@ -689,9 +687,8 @@ class ICA(ContainsMixin):
         components : array, shape (n_channels, n_components)
             The ICA components (maps).
         """
-        fast_dot = _get_fast_dot()
-        return fast_dot(self.mixing_matrix_[:, :self.n_components_].T,
-                        self.pca_components_[:self.n_components_]).T
+        return np.dot(self.mixing_matrix_[:, :self.n_components_].T,
+                      self.pca_components_[:self.n_components_]).T
 
     def get_sources(self, inst, add_channels=None, start=None, stop=None):
         """Estimate sources given the unmixing matrix.
@@ -1294,7 +1291,6 @@ class ICA(ContainsMixin):
 
     def _pick_sources(self, data, include, exclude):
         """Aux function."""
-        fast_dot = _get_fast_dot()
         if exclude is None:
             exclude = self.exclude
         else:
@@ -1336,7 +1332,7 @@ class ICA(ContainsMixin):
 
         proj_mat = np.dot(mixing[:, sel_keep], unmixing[sel_keep, :])
 
-        data = fast_dot(proj_mat, data)
+        data = np.dot(proj_mat, data)
 
         if self.pca_mean_ is not None:
             data += self.pca_mean_[:, None]
@@ -1345,7 +1341,7 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self._pre_whitener
         else:
-            data = fast_dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
+            data = np.dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
 
         return data
 
