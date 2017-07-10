@@ -24,9 +24,11 @@ References
 #
 # License: BSD (3-clause)
 
+import numpy as np
+
 import mne
 from mne.datasets import sample
-from mne.inverse_sparse import mixed_norm
+from mne.inverse_sparse import mixed_norm, make_sparse_stc_from_dipoles
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.viz import (plot_sparse_source_estimates,
                      plot_dipole_locations, plot_dipole_amplitudes)
@@ -48,9 +50,6 @@ evoked.crop(tmin=0, tmax=0.3)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
 
-ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
-evoked.plot(ylim=ylim, proj=True)
-
 ###############################################################################
 # Run solver
 alpha = 50  # regularization parameter between 0 and 100 (100 is high)
@@ -64,12 +63,40 @@ inverse_operator = make_inverse_operator(evoked.info, forward, cov,
 stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 
-# Compute (ir)MxNE inverse solution
-stc, residual = mixed_norm(
+# Compute (ir)MxNE inverse solution with dipole output
+dipoles, residual = mixed_norm(
     evoked, forward, cov, alpha, loose=loose, depth=depth, maxit=3000,
     tol=1e-4, active_set_size=10, debias=True, weights=stc_dspm,
-    weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=True)
+    weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=True,
+    return_as_dipoles=True)
+
+###############################################################################
+# Plot dipole activations
+plot_dipole_amplitudes(dipoles)
+
+# Plot dipole location of the strongest dipole with MRI slices
+idx = np.argmax(np.array([np.amax(np.abs(dip.amplitude)) for dip in dipoles]))
+plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
+                      subjects_dir=subjects_dir, mode='orthoview',
+                      idx='amplitude')
+
+# # Plot dipole locations of all dipoles with MRI slices
+# for dip in dipoles:
+#     plot_dipole_locations(dip, forward['mri_head_t'], 'sample',
+#                           subjects_dir=subjects_dir, mode='orthoview',
+#                           idx='amplitude')
+
+###############################################################################
+# Plot residual
+ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
+evoked.pick_types(meg=True, eeg=True, exclude='bads')
+evoked.plot(ylim=ylim, proj=True)
+residual.pick_types(meg=True, eeg=True, exclude='bads')
 residual.plot(ylim=ylim, proj=True)
+
+###############################################################################
+# Generate stc from dipoles
+stc = make_sparse_stc_from_dipoles(dipoles, forward)
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
@@ -87,21 +114,3 @@ src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
                              fig_name="Morphed MxNE (cond %s)" % condition,
                              opacity=0.1)
-
-###############################################################################
-# Run solver returning dipoles
-# Compute (ir)MxNE inverse solution
-dipoles = mixed_norm(
-    evoked, forward, cov, alpha, loose=loose, depth=depth, maxit=3000,
-    tol=1e-4, active_set_size=10, debias=True, weights=stc_dspm,
-    weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=False,
-    return_as_dipoles=True)
-
-###############################################################################
-# View dipoles and MRI
-plot_dipole_amplitudes(dipoles)
-
-trans = forward['mri_head_t']
-for dip in dipoles:
-    plot_dipole_locations(dip, trans, 'sample', subjects_dir=subjects_dir,
-                          mode='orthoview', idx='amplitude')

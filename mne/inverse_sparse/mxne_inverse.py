@@ -247,7 +247,8 @@ def make_sparse_stc_from_dipoles(dipoles, forward, verbose=None):
             lh_vertno.append(src[0]['vertno'][idx])
         else:
             rh_vertno.append(src[1]['vertno'][idx - n_lh_points])
-    vertices = [np.array(lh_vertno), np.array(rh_vertno)]
+    vertices = [np.array(lh_vertno).astype(int),
+                np.array(rh_vertno).astype(int)]
     stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
     logger.info('[done]')
     return stc
