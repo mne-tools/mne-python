@@ -380,7 +380,7 @@ def _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=None):
 
 @verbose
 def read_forward_solution(fname, force_fixed=False, surf_ori=False,
-                          include=[], exclude=[], verbose=None):
+                          use_cps=True, include=[], exclude=[], verbose=None):
     """Read a forward solution a.k.a. lead field.
 
     Parameters
@@ -392,6 +392,9 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     surf_ori : bool, optional (default False)
         Use surface-based source coordinate system? Note that force_fixed=True
         implies surf_ori=True.
+    use_cps : bool
+        Whether to use cortical patch statistics to define normal
+        orientations.
     include : list, optional
         List of names of channels to include. If empty all channels
         are included.
@@ -538,7 +541,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     # deal with transformations, storing orig copies so transforms can be done
     # as necessary later
     fwd['_orig_source_ori'] = fwd['source_ori']
-    convert_forward_solution(fwd, surf_ori, force_fixed, copy=False)
+    convert_forward_solution(fwd, surf_ori, force_fixed, copy=False,
+                             use_cps=use_cps)
     fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
 
     return Forward(fwd)

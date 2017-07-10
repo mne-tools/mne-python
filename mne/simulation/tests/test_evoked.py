@@ -37,7 +37,7 @@ def test_simulate_evoked():
     """Test simulation of evoked data."""
 
     raw = read_raw_fif(raw_fname)
-    fwd = read_forward_solution(fwd_fname, force_fixed=True)
+    fwd = read_forward_solution(fwd_fname, force_fixed=True, use_cps=False)
     fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
     cov = read_cov(cov_fname)
 

@@ -327,7 +327,7 @@ def test_make_inverse_operator_fixed():
     fwd_1 = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                       force_fixed=False)
     fwd_2 = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                      force_fixed=True)
+                                      force_fixed=True, use_cps=False)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 
@@ -340,7 +340,7 @@ def test_make_inverse_operator_fixed():
 
     # now compare to C solution
     # note that the forward solution must not be surface-oriented
-    # to get equivalency (surf_ori=True changes the normals)
+    # to get equivalency (surf_ori=True changes the normals if use_cps=True)
     inv_op = make_inverse_operator(evoked.info, fwd_2, noise_cov, depth=None,
                                    loose=None, fixed=True)
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
