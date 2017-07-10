@@ -1233,18 +1233,20 @@ def _find_peaks(evoked, npeaks):
 def _process_times(inst, use_times, n_peaks=None, few=False):
     """Return a list of times for topomaps."""
     if isinstance(use_times, string_types):
-        if use_times == "peaks":
+        if use_times == 'interactive':
+            use_times, n_peaks = 'peaks', 1
+        if use_times == 'peaks':
             if n_peaks is None:
                 n_peaks = min(3 if few else 7, len(inst.times))
             use_times = _find_peaks(inst, n_peaks)
-        elif use_times == "auto":
+        elif use_times == 'auto':
             if n_peaks is None:
                 n_peaks = min(5 if few else 10, len(use_times))
             use_times = np.linspace(inst.times[0], inst.times[-1], n_peaks)
         else:
             raise ValueError("Got an unrecognized method for `times`. Only "
-                             "'peaks' and 'auto' are supported (or directly "
-                             "passing numbers).")
+                             "'peaks', 'auto' and 'interactive' are supported "
+                             "(or directly passing numbers).")
     elif np.isscalar(use_times):
         use_times = [use_times]
 
