@@ -165,7 +165,30 @@ class SourceSpaces(list):
 
     def __add__(self, other):
         """Combine source spaces."""
-        return SourceSpaces(list.__add__(self, other))
+        if all(src_type in ['vol', 'discrete'] for
+                src_type in list(set([ss['type'] for ss in other]))):
+            src = SourceSpaces(list.__add__(self, other))
+        elif other.kind == 'surf':
+            if 'surf' in list(set([ss['type'] for ss in self])):
+                raise ValueError('The source space already contains '
+                                 'surface-based source spaces for the left '
+                                 'and right hemisphere.')
+            if len(other) != 2:
+                raise ValueError('A surface-based source space must contain '
+                                 'two separate source spaces for the left and '
+                                 'right hemisphere.')
+            src = SourceSpaces(list.__add__(other, self))
+        else:
+            if 'surf' in list(set([ss['type'] for ss in self])):
+                raise ValueError('The source space already contains '
+                                 'surface-based source spaces for the left '
+                                 'and right hemisphere.')
+            src = SourceSpaces(list.__add__(other[:2], self))
+            src = SourceSpaces(list.__add__(src, other[2:]))
+        return src
+
+    def __iadd__(self, other):
+        return self.__add__(other)
 
     def copy(self):
         """Make a copy of the source spaces.
