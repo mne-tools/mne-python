@@ -13,15 +13,14 @@ import numpy as np
 from scipy import sparse
 
 from ..externals.six import string_types
-
 from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..utils import _check_preload
-
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info
-from ..io.pick import (channel_type, pick_info, pick_types,
-                       _check_excludes_includes, _PICK_TYPES_KEYS)
+from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
+                       _check_excludes_includes, _PICK_TYPES_KEYS,
+                       channel_indices_by_type)
 
 
 def _get_meg_system(info):
@@ -932,10 +931,20 @@ def read_ch_connectivity(fname, picks=None):
 
     Returns
     -------
-    ch_connectivity : scipy.sparse matrix
+    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
         The connectivity matrix.
     ch_names : list
         The list of channel names present in connectivity matrix.
+
+    See Also
+    --------
+    find_ch_connectivity
+
+    Notes
+    -----
+    This function is closely related to ``find_ch_connectivity``. In case you
+    don't know the correct file for the neighbor definitions, the use of
+    ``find_ch_connectivity`` is preferred.
     """
     from scipy.io import loadmat
     if not op.isabs(fname):
@@ -1007,9 +1016,138 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
     ch_connectivity = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
         ch_connectivity[ii, [ch_names.index(i) for i in neigbs]] = True
-
     ch_connectivity = sparse.csr_matrix(ch_connectivity)
     return ch_connectivity
+
+
+def find_ch_connectivity(info, ch_type):
+    """Find the connectivity matrix for the given channels.
+
+    This function tries to infer the appropriate connectivity matrix template
+    for the given channels. If a template is not found, the connectivity matrix
+    is computed using Delaunay triangulation based on 2d sensor locations.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info.
+    ch_type : str | None
+        The channel type for computing the connectivity matrix. Currently
+        supports 'mag', 'grad', 'eeg' and None. If None, the info must contain
+        only one channel type.
+
+    Returns
+    -------
+    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
+        The connectivity matrix.
+    ch_names : list
+        The list of channel names present in connectivity matrix.
+
+    See Also
+    --------
+    read_ch_connectivity
+
+    Notes
+    -----
+    .. versionadded:: 0.15
+    """
+    if ch_type is None:
+        picks = channel_indices_by_type(info)
+        if sum([len(p) != 0 for p in picks.values()]) != 1:
+            raise ValueError('info must contain only one channel type if '
+                             'ch_type is None.')
+        ch_type = channel_type(info, 0)
+    elif ch_type not in ['mag', 'grad', 'eeg']:
+        raise ValueError("ch_type must be 'mag', 'grad' or 'eeg'. "
+                         "Got %s." % ch_type)
+    (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
+     has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
+     has_eeg_coils_and_meg, has_eeg_coils_only) = _get_ch_info(info)
+    conn_name = None
+    if has_vv_mag and ch_type == 'mag':
+        conn_name = 'neuromag306mag'
+    elif has_vv_grad and ch_type == 'grad':
+        conn_name = 'neuromag306planar'
+    elif has_4D_mag:
+        if 'MEG 248' in info['ch_names']:
+            idx = info['ch_names'].index('MEG 248')
+            grad = info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_MAGNES_GRAD
+            mag = info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_MAGNES_MAG
+            if ch_type == 'grad' and grad:
+                conn_name = 'bti248grad'
+            elif ch_type == 'mag' and mag:
+                conn_name = 'bti248'
+        elif 'MEG 148' in info['ch_names'] and ch_type == 'mag':
+            idx = info['ch_names'].index('MEG 148')
+            if info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_MAGNES_MAG:
+                conn_name = 'bti148'
+    elif has_CTF_grad and ch_type == 'mag':
+        if info['nchan'] < 100:
+            conn_name = 'ctf64'
+        elif info['nchan'] > 200:
+            conn_name = 'ctf275'
+        else:
+            conn_name = 'ctf151'
+
+    if conn_name is not None:
+        logger.info('Reading connectivity matrix for %s.' % conn_name)
+        return read_ch_connectivity(conn_name)
+    logger.info('Could not find a connectivity matrix for the data. '
+                'Computing connectivity based on Delaunay triangulations.')
+    return _compute_ch_connectivity(info, ch_type)
+
+
+def _compute_ch_connectivity(info, ch_type):
+    """Compute channel connectivity matrix using Delaunay triangulations.
+
+    Parameters
+    ----------
+    info : instance of mne.measuerment_info.Info
+        The measurement info.
+    ch_type : str
+        The channel type for computing the connectivity matrix. Currently
+        supports 'mag', 'grad' and 'eeg'.
+
+    Returns
+    -------
+    ch_connectivity : scipy.sparse matrix, shape (n_channels, n_channels)
+        The connectivity matrix.
+    ch_names : list
+        The list of channel names present in connectivity matrix.
+    """
+    from scipy.spatial import Delaunay
+    from .. import spatial_tris_connectivity
+    from ..channels.layout import _auto_topomap_coords, _pair_grad_sensors
+    combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
+                     np.unique([ch['coil_type'] for ch in info['chs']]))
+
+    picks = dict(_picks_by_type(info, exclude=[]))[ch_type]
+    ch_names = [info['ch_names'][pick] for pick in picks]
+    if combine_grads:
+        pairs = _pair_grad_sensors(info, topomap_coords=False, exclude=[])
+        if len(pairs) != len(picks):
+            raise RuntimeError('Cannot find a pair for some of the '
+                               'gradiometers. Cannot compute connectivity '
+                               'matrix.')
+        xy = _auto_topomap_coords(info, picks[::2])  # only for one of the pair
+    else:
+        xy = _auto_topomap_coords(info, picks)
+    tri = Delaunay(xy)
+    neighbors = spatial_tris_connectivity(tri.simplices)
+
+    if combine_grads:
+        ch_connectivity = np.eye(len(picks), dtype=bool)
+        for idx, neigbs in zip(neighbors.row, neighbors.col):
+            for ii in range(2):  # make sure each pair is included
+                for jj in range(2):
+                    ch_connectivity[idx * 2 + ii, neigbs * 2 + jj] = True
+                    ch_connectivity[idx * 2 + ii, idx * 2 + jj] = True  # pair
+        ch_connectivity = sparse.csr_matrix(ch_connectivity)
+    else:
+        ch_connectivity = sparse.csr_matrix(neighbors)
+        ch_connectivity.setdiag(np.repeat(1, ch_connectivity.shape[0]))
+
+    return ch_connectivity, ch_names
 
 
 def fix_mag_coil_types(info):
@@ -1059,3 +1197,43 @@ def _get_T1T2_mag_inds(info):
                                FIFF.FIFFV_COIL_VV_MAG_T2):
             old_mag_inds.append(ii)
     return old_mag_inds
+
+
+def _get_ch_info(info):
+    """Get channel info for inferring acquisition device."""
+    chs = info['chs']
+    # Only take first 16 bits, as higher bits store CTF comp order
+    coil_types = set([ch['coil_type'] & 0xFFFF for ch in chs])
+    channel_types = set([ch['kind'] for ch in chs])
+
+    has_vv_mag = any(k in coil_types for k in
+                     [FIFF.FIFFV_COIL_VV_MAG_T1, FIFF.FIFFV_COIL_VV_MAG_T2,
+                      FIFF.FIFFV_COIL_VV_MAG_T3])
+    has_vv_grad = any(k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
+                                                FIFF.FIFFV_COIL_VV_PLANAR_T2,
+                                                FIFF.FIFFV_COIL_VV_PLANAR_T3])
+
+    is_old_vv = ' ' in chs[0]['ch_name']
+
+    has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
+    ctf_other_types = (FIFF.FIFFV_COIL_CTF_REF_MAG,
+                       FIFF.FIFFV_COIL_CTF_REF_GRAD,
+                       FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD)
+    has_CTF_grad = (FIFF.FIFFV_COIL_CTF_GRAD in coil_types or
+                    (FIFF.FIFFV_MEG_CH in channel_types and
+                     any(k in ctf_other_types for k in coil_types)))
+    # hack due to MNE-C bug in IO of CTF
+    # only take first 16 bits, as higher bits store CTF comp order
+    n_kit_grads = sum(ch['coil_type'] & 0xFFFF == FIFF.FIFFV_COIL_KIT_GRAD
+                      for ch in chs)
+
+    has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
+                       n_kit_grads])
+    has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
+                     FIFF.FIFFV_EEG_CH in channel_types)
+    has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
+    has_eeg_coils_only = has_eeg_coils and not has_any_meg
+
+    return (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
+            has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
+            has_eeg_coils_and_meg, has_eeg_coils_only)

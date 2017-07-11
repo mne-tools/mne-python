@@ -313,6 +313,7 @@ Projections:
    find_layout
    make_eeg_layout
    make_grid_layout
+   find_ch_connectivity
    read_ch_connectivity
    equalize_channels
    rename_channels

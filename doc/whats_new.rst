@@ -59,6 +59,8 @@ Changelog
 
     - Add :func:`mne.inverse_sparse.mxne_optim.dgap_l21l1` for computing the duality gap for TF-MxNE as the new stopping criterion by `Daniel Strohmeier`_
     
+    - Add :func:`mne.channels.find_ch_connectivity` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
