@@ -526,7 +526,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info, got %s'
                         % type(info))
-    if not (source is None) ^ (bem is None):  # XOR
+    if source is not None and bem is not None:
         raise ValueError('Only one of "source" and "bem" must be provided, '
                          'got %s and %s respectively.' % (source, bem))
     is_sphere = False
@@ -629,6 +629,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     # both the head and helmet will be in MRI coordinates after this
     surfs = dict()
     if head:
+        head_surf = None
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         if bem is not None:
             if isinstance(bem, ConductorModel):
@@ -645,7 +646,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                         break
                 else:
                     raise ValueError('Could not find the surface for head.')
-        else:  # search for head surfaces in the subjects directory
+        elif source is not None:  # search for head surfaces
             head_surf = _get_head_surface(subject, source=source,
                                           subjects_dir=subjects_dir,
                                           raise_error=False)

@@ -188,10 +188,6 @@ def test_plot_trans():
     mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 
-    # bem parameter
-    assert_raises(ValueError, plot_trans, info=evoked.info, trans=trans_fname,
-                  source=None, bem=None, subject='sample',
-                  subjects_dir=subjects_dir)
     sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
     bem_sol = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
                                         'sample-1280-1280-1280-bem-sol.fif'))
