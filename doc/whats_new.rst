@@ -61,6 +61,8 @@ Changelog
     
     - Add :func:`mne.channels.find_ch_connectivity` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
 
+    - Add IO support for EGI MFF format by `Jaakko Leppakangas`_  and `ramonapariciog`_
+
 BUG
 ~~~
 
@@ -2188,3 +2190,5 @@ of commits):
 .. _Jesper Duemose Nielsen: https://github.com/jdue
 
 .. _Mathurin Massias: https://mathurinm.github.io/
+
+.. _ramonapariciog: https://github.com/ramonapariciog
