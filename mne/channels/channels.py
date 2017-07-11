@@ -1145,7 +1145,7 @@ def _compute_ch_connectivity(info, ch_type):
         ch_connectivity = sparse.csr_matrix(ch_connectivity)
     else:
         ch_connectivity = sparse.csr_matrix(neighbors)
-        ch_connectivity.setdiag(1)
+        ch_connectivity.setdiag(np.repeat(1, ch_connectivity.shape[0]))
 
     return ch_connectivity, ch_names
 
