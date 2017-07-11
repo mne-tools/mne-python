@@ -13,15 +13,14 @@ import numpy as np
 from scipy import sparse
 
 from ..externals.six import string_types
-
 from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..utils import _check_preload
-
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
-                       _check_excludes_includes, _PICK_TYPES_KEYS)
+                       _check_excludes_includes, _PICK_TYPES_KEYS,
+                       channel_indices_by_type)
 
 
 def _get_meg_system(info):
@@ -940,6 +939,12 @@ def read_ch_connectivity(fname, picks=None):
     See Also
     --------
     find_ch_connectivity
+
+    Notes
+    -----
+    This function is closely related to ``find_ch_connectivity``. In case you
+    don't know the correct file for the neighbor definitions, the use of
+    ``find_ch_connectivity`` is preferred.
     """
     from scipy.io import loadmat
     if not op.isabs(fname):
@@ -1016,19 +1021,20 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
 
 def find_ch_connectivity(info, ch_type):
-    """Find the connectivity matrix for the given data.
+    """Find the connectivity matrix for the given channels.
 
     This function tries to infer the appropriate connectivity matrix template
-    for the given data. If a template is not found, the connectivity matrix is
-    computed using Delaunay triangulation based on 2d sensor locations.
+    for the given channels. If a template is not found, the connectivity matrix
+    is computed using Delaunay triangulation based on 2d sensor locations.
 
     Parameters
     ----------
-    info : instance of mne.measuerment_info.Info
+    info : instance of Info
         The measurement info.
-    ch_type : str
+    ch_type : str | None
         The channel type for computing the connectivity matrix. Currently
-        supports 'mag', 'grad' and 'eeg'.
+        supports 'mag', 'grad', 'eeg' and None. If None, the info must contain
+        only one channel type.
 
     Returns
     -------
@@ -1045,7 +1051,13 @@ def find_ch_connectivity(info, ch_type):
     -----
     .. versionadded:: 0.15
     """
-    if ch_type not in ['mag', 'grad', 'eeg']:
+    if ch_type is None:
+        picks = channel_indices_by_type(info)
+        if sum([len(p) != 0 for p in picks.values()]) != 1:
+            raise ValueError('info must contain only one channel type if '
+                             'ch_type is None.')
+        ch_type = channel_type(info, 0)
+    elif ch_type not in ['mag', 'grad', 'eeg']:
         raise ValueError("ch_type must be 'mag', 'grad' or 'eeg'. "
                          "Got %s." % ch_type)
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
@@ -1103,8 +1115,9 @@ def _compute_ch_connectivity(info, ch_type):
     ch_names : list
         The list of channel names present in connectivity matrix.
     """
-    from ..channels.layout import (_auto_topomap_coords, _find_neighbors,
-                                   _pair_grad_sensors)
+    from scipy.spatial import Delaunay
+    from .. import spatial_tris_connectivity
+    from ..channels.layout import _auto_topomap_coords, _pair_grad_sensors
     combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
                      np.unique([ch['coil_type'] for ch in info['chs']]))
 
@@ -1119,18 +1132,21 @@ def _compute_ch_connectivity(info, ch_type):
         xy = _auto_topomap_coords(info, picks[::2])  # only for one of the pair
     else:
         xy = _auto_topomap_coords(info, picks)
-    neighbors = _find_neighbors(xy)
-    ch_connectivity = np.eye(len(picks), dtype=bool)
+    tri = Delaunay(xy)
+    neighbors = spatial_tris_connectivity(tri.simplices)
+
     if combine_grads:
-        for idx, neigbs in enumerate(neighbors):
+        ch_connectivity = np.eye(len(picks), dtype=bool)
+        for idx, neigbs in zip(neighbors.row, neighbors.col):
             for ii in range(2):  # make sure each pair is included
                 for jj in range(2):
                     ch_connectivity[idx * 2 + ii, neigbs * 2 + jj] = True
                     ch_connectivity[idx * 2 + ii, idx * 2 + jj] = True  # pair
+        ch_connectivity = sparse.csr_matrix(ch_connectivity)
     else:
-        for idx, neigbs in enumerate(neighbors):
-            ch_connectivity[idx, neigbs] = True
-    ch_connectivity = sparse.csr_matrix(ch_connectivity)
+        ch_connectivity = sparse.csr_matrix(neighbors)
+        ch_connectivity.setdiag(1)
+
     return ch_connectivity, ch_names
 
 

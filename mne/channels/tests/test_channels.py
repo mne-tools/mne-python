@@ -224,7 +224,7 @@ def test_find_ch_connectivity():
     """Test computing the connectivity matrix."""
     data_path = testing.data_path()
 
-    raw = read_raw_fif(raw_fname)
+    raw = read_raw_fif(raw_fname, preload=True)
     sizes = {'mag': 828, 'grad': 1700, 'eeg': 386}
     nchans = {'mag': 102, 'grad': 204, 'eeg': 60}
     for ch_type in ['mag', 'grad', 'eeg']:
@@ -232,10 +232,15 @@ def test_find_ch_connectivity():
         # Silly test for checking the number of neighbors.
         assert_equal(conn.getnnz(), sizes[ch_type])
         assert_equal(len(ch_names), nchans[ch_type])
+    assert_raises(ValueError, find_ch_connectivity, raw.info, None)
 
     # Test computing the conn matrix with gradiometers.
     conn, ch_names = _compute_ch_connectivity(raw.info, 'grad')
     assert_equal(conn.getnnz(), 2680)
+
+    # Test ch_type=None.
+    raw.pick_types(meg='mag')
+    find_ch_connectivity(raw.info, None)
 
     bti_fname = op.join(data_path, 'BTi', 'erm_HFH', 'c,rfDC')
     bti_config_name = op.join(data_path, 'BTi', 'erm_HFH', 'config')
