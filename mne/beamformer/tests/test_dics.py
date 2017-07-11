@@ -30,7 +30,7 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 
 def _read_forward_solution_meg(*args, **kwargs):
-    fwd = mne.read_forward_solution(*args, **kwargs)
+    fwd = mne.forward.forward._read_forward_solution(*args, **kwargs)
     return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 

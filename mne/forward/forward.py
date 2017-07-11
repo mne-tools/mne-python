@@ -379,8 +379,9 @@ def _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=None):
 
 
 @verbose
-def read_forward_solution(fname, force_fixed=False, surf_ori=False,
-                          use_cps=True, include=[], exclude=[], verbose=None):
+def _read_forward_solution(fname, force_fixed=False, surf_ori=False,
+                           use_cps=True, include=[], exclude=[],
+                           verbose=None):
     """Read a forward solution a.k.a. lead field.
 
     Parameters
@@ -394,7 +395,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         implies surf_ori=True.
     use_cps : bool
         Whether to use cortical patch statistics to define normal
-        orientations.
+        orientations. Only used when surf_ori and/or force_fixed are True.
     include : list, optional
         List of names of channels to include. If empty all channels
         are included.
@@ -541,16 +542,54 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     # deal with transformations, storing orig copies so transforms can be done
     # as necessary later
     fwd['_orig_source_ori'] = fwd['source_ori']
-    convert_forward_solution(fwd, surf_ori, force_fixed, copy=False,
-                             use_cps=use_cps)
+    _convert_forward_solution(fwd, surf_ori, force_fixed, copy=False,
+                              use_cps=use_cps)
     fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
 
     return Forward(fwd)
 
 
+def read_forward_solution(fname, force_fixed=False, surf_ori=False,
+                          include=[], exclude=[], verbose=None):
+    """Read a forward solution a.k.a. lead field.
+
+    Parameters
+    ----------
+    fname : string
+        The file name, which should end with -fwd.fif or -fwd.fif.gz.
+    force_fixed : bool, optional (default False)
+        Force fixed source orientation mode?
+    surf_ori : bool, optional (default False)
+        Use surface-based source coordinate system? Note that force_fixed=True
+        implies surf_ori=True.
+    include : list, optional
+        List of names of channels to include. If empty all channels
+        are included.
+    exclude : list, optional
+        List of names of channels to exclude. If empty include all
+        channels.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    fwd : instance of Forward
+        The forward solution.
+
+    See Also
+    --------
+    write_forward_solution, make_forward_solution
+    """
+    return _read_forward_solution(fname, force_fixed=force_fixed,
+                                  surf_ori=surf_ori, use_cps=True,
+                                  include=include, exclude=exclude,
+                                  verbose=verbose)
+
+
 @verbose
-def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
-                             copy=True, use_cps=True, verbose=None):
+def _convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
+                              copy=True, use_cps=True, verbose=None):
     """Convert forward solution between different source orientations.
 
     Parameters
@@ -566,7 +605,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         Whether to return a new instance or modify in place.
     use_cps : bool
         Whether to use cortical patch statistics to define normal
-        orientations.
+        orientations. Only used when surf_ori and/or force_fixed are True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -681,6 +720,36 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     logger.info('    [done]')
 
     return fwd
+
+
+@verbose
+def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
+                             copy=True, verbose=None):
+    """Convert forward solution between different source orientations.
+
+    Parameters
+    ----------
+    fwd : Forward
+        The forward solution to modify.
+    surf_ori : bool, optional (default False)
+        Use surface-based source coordinate system? Note that force_fixed=True
+        implies surf_ori=True.
+    force_fixed : bool, optional (default False)
+        Force fixed source orientation mode?
+    copy : bool
+        Whether to return a new instance or modify in place.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    fwd : Forward
+        The modified forward solution.
+    """
+    return _convert_forward_solution(fwd, surf_ori=surf_ori,
+                                     force_fixed=force_fixed, copy=copy,
+                                     use_cps=True, verbose=verbose)
 
 
 @verbose

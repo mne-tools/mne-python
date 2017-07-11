@@ -17,6 +17,7 @@ from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution,
                  convert_forward_solution, Covariance, combine_evoked)
+from mne.forward.forward import _read_forward_solution
 from mne.io import read_raw_fif, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
@@ -62,14 +63,14 @@ last_keys = [None] * 10
 
 def read_forward_solution_meg(*args, **kwargs):
     """Read MEG forward."""
-    fwd = read_forward_solution(*args, **kwargs)
+    fwd = _read_forward_solution(*args, **kwargs)
     fwd = pick_types_forward(fwd, meg=True, eeg=False)
     return fwd
 
 
 def read_forward_solution_eeg(*args, **kwargs):
     """Read EEG forward."""
-    fwd = read_forward_solution(*args, **kwargs)
+    fwd = _read_forward_solution(*args, **kwargs)
     fwd = pick_types_forward(fwd, meg=False, eeg=True)
     return fwd
 

@@ -11,7 +11,7 @@ from nose.tools import assert_true, assert_raises
 import warnings
 
 from mne.datasets import testing
-from mne import read_forward_solution
+from mne.forward.forward import _read_forward_solution
 from mne.simulation import simulate_sparse_stc, simulate_evoked
 from mne import read_cov
 from mne.io import read_raw_fif
@@ -37,7 +37,7 @@ def test_simulate_evoked():
     """Test simulation of evoked data."""
 
     raw = read_raw_fif(raw_fname)
-    fwd = read_forward_solution(fwd_fname, force_fixed=True, use_cps=False)
+    fwd = _read_forward_solution(fwd_fname, force_fixed=True, use_cps=False)
     fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
     cov = read_cov(cov_fname)
 
