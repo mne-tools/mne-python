@@ -207,6 +207,10 @@ def test_plot_trans():
     plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
                subjects_dir=subjects_dir, head=True, brain=False,
                skull=True, source=None, bem=bem_surfs)
+    sphere = make_sphere_model('auto', None, evoked.info)  # one layer
+    plot_trans(info, trans_fname, subject='sample', meg_sensors='helmet',
+               subjects_dir=subjects_dir, head=False, brain=True,
+               skull=False, source=None, bem=sphere)
 
 
 @testing.requires_testing_data

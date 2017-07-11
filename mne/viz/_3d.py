@@ -430,8 +430,8 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
         `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
         the subjects bem and bem/flash folders are searched. Defaults to 'bem'.
-        Note. For single layer bems it is recommended to use 'head'. If None,
-        ``bem`` keyword argument is used.
+        .. note: For single layer bems it is recommended to use 'head'. If
+                 None, ``bem`` keyword argument is used.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
     meg_sensors : bool | str | list
@@ -495,7 +495,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
 
     See Also
     --------
-    :func:`mne.viz.plot_bem`
+    mne.viz.plot_bem
     """
     from ..forward import _create_meg_coils
     mlab = _import_mlab()
@@ -526,14 +526,14 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info, got %s'
                         % type(info))
-    if not (source is None) ^ (bem is None):
-        raise ValueError('source must be None if bem is not None '
-                         '(and vice versa)!')
+    if not (source is None) ^ (bem is None):  # XOR
+        raise ValueError('Only one of "source" and "bem" must be provided, '
+                         'got %s and %s respectively.' % (source, bem))
     is_sphere = False
     if isinstance(bem, ConductorModel) and bem['is_sphere']:
-        if len(bem['layers']) != 4:
+        if len(bem['layers']) != 4 and (skull or head):
             raise ValueError('The sphere conductor model must have three '
-                             'layers for plotting.')
+                             'layers for plotting skull and head.')
         is_sphere = True
     if skull is True:
         if isinstance(bem, ConductorModel) and not bem['is_sphere']:
@@ -634,7 +634,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             if isinstance(bem, ConductorModel):
                 if is_sphere:
                     head_surf = _complete_sphere_surf(bem, 3, 4)
-                else:
+                else:  # BEM solution
                     head_surf = _bem_find_surface(bem,
                                                   FIFF.FIFFV_BEM_SURF_ID_HEAD)
                     complete_surface_info(head_surf, copy=False, verbose=False)
@@ -645,7 +645,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                         break
                 else:
                     raise ValueError('Could not find the surface for head.')
-        else:  # BEM solution
+        else:  # search for head surfaces in the subjects directory
             head_surf = _get_head_surface(subject, source=source,
                                           subjects_dir=subjects_dir,
                                           raise_error=False)
@@ -698,7 +698,8 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             brain = False
     if brain:
         if is_sphere:
-            surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # we only plot 1
+            if len(bem['layers']) > 0:
+                surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # only plot 1
         else:
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             brain = 'pial' if brain is True else brain
@@ -834,6 +835,13 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                                             opacity=alphas[key], figure=fig)
         if key != 'helmet':
             surface.actor.property.backface_culling = True
+    if brain and 'lh' not in surfs:  # one layer sphere
+        assert bem['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+        center = bem['r0'].copy()
+        if coord_frame == 'mri':
+            center = apply_trans(head_mri_t, center)
+        mlab.points3d(*center, scale_factor=0.01, color=colors['lh'],
+                      opacity=alphas['lh'])
 
     # plot points
     defaults = DEFAULTS['coreg']
