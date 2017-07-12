@@ -976,7 +976,7 @@ def _key_pressed_slider(event, params):
     """Handle key presses for time_viewer slider."""
     step = 1
     if event.key.startswith('ctrl'):
-        step = 10
+        step = 5
         event.key = event.key.split('+')[-1]
     if event.key not in ['left', 'right']:
         return
