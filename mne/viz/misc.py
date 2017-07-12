@@ -575,7 +575,7 @@ def _get_presser(fig):
     return func
 
 
-def plot_dipole_amplitudes(dipoles, colors=None, show=True, linewidth=2):
+def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     """Plot the amplitude traces of a set of dipoles.
 
     Parameters
@@ -586,8 +586,6 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True, linewidth=2):
         Color to plot with each dipole. If None default colors are used.
     show : bool
         Show figure if True.
-    linewidth : int
-        Line width in 2D plot.
 
     Returns
     -------
@@ -604,8 +602,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True, linewidth=2):
     fig, ax = plt.subplots(1, 1)
     xlim = [np.inf, -np.inf]
     for dip, color in zip(dipoles, colors):
-        ax.plot(dip.times, dip.amplitude * 1e9, color=color,
-                linewidth=linewidth)
+        ax.plot(dip.times, dip.amplitude * 1e9, color=color, linewidth=1.5)
         xlim[0] = min(xlim[0], dip.times[0])
         xlim[1] = max(xlim[1], dip.times[-1])
     ax.set_xlim(xlim)

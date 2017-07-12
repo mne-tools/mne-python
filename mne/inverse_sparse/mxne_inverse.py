@@ -177,9 +177,10 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
         active_idx = np.unique(active_idx // n_dip_per_pos)
 
     gof = np.zeros(M_est.shape[1])
-    M_norm = np.sqrt(np.sum(M ** 2, axis=0))
-    gof[M_norm > 0.0] = (np.sqrt(np.sum(M_est ** 2., axis=0))[M_norm > 0.0] /
-                         M_norm[M_norm > 0.0] * 100.)
+    M_norm2 = np.sum(M ** 2, axis=0)
+    R_norm2 = np.sum((M - M_est) ** 2, axis=0)
+    gof[M_norm2 > 0.0] = 1. - R_norm2[M_norm2 > 0.0] / M_norm2[M_norm2 > 0.0]
+    gof *= 100.
 
     dipoles = []
     for k, i_dip in enumerate(active_idx):
