@@ -74,9 +74,9 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     if max_ori_out == 'abs':
-        warn('max_ori_out and abs is deprecated and will be removed in 0.16. '
-             'Set it to signed to remove this warning, this will return '
-             'signed time series.',
+        warn('max_ori_out and the return of absolute values is deprecated and '
+             'will be removed in 0.16. Set it to "signed" to remove this '
+             'warning, this will return signed time series.',
              DeprecationWarning)
 
     # data covariance

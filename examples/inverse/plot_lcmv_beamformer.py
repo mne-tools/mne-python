@@ -38,7 +38,6 @@ raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
-left_temporal_channels = mne.read_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
                        exclude='bads')
 
@@ -72,7 +71,8 @@ for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     # compute unit-noise-gain beamformer with whitening of the leadfield and
     # data (enabled by passing a noise covariance matrix)
     stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
-               pick_ori=pick_ori, weight_norm='unit-noise-gain')
+               pick_ori=pick_ori, weight_norm='unit-noise-gain',
+               max_ori_out='signed')
 
     # View activation time-series in maximum voxel at 100 ms:
     time_idx = stc.time_as_index(0.1)
@@ -86,6 +86,10 @@ plt.ylim(-0.8, 2.2)
 plt.title('LCMV in maximum voxel')
 plt.legend()
 plt.show()
+
+
+# take absolute value for plotting
+stc.data[:, :] = np.abs(stc.data)
 
 # Plot last stc in the brain in 3D with PySurfer if available
 brain = stc.plot(hemi='lh', subjects_dir=subjects_dir,

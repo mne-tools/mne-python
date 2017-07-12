@@ -70,7 +70,10 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
 # which computes a vector beamfomer. Note, however, that not all combinations
 # of orientation selection and weight normalization are implemented yet.
 stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
-           pick_ori='max-power', weight_norm='nai')
+           pick_ori='max-power', weight_norm='nai', max_ori_out='signed')
+
+# take absolute values for plotting
+stc.data[:, :] = np.abs(stc.data)
 
 # Save result in stc files
 stc.save('lcmv-vol')
