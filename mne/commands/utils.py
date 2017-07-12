@@ -15,10 +15,17 @@ import mne
 def load_module(name, path):
     if sys.version_info < (3, 3):
         import imp
-        return imp.load_source(name, path)
+        if path.endswidth('.pyc'):
+            return imp.load_compiled(name, path)
+        else:
+            return imp.load_source(name, path)
     elif sys.version_info < (3, 5):
-        from importlib.machinery import SourceFileLoader
-        return SourceFileLoader(name, path).load_module()
+        if path.endswidth('.pyc'):
+            from importlib.machinery import SourcelessFileLoader
+            return SourcelessFileLoader(name, path).load_module()
+        else:
+            from importlib.machinery import SourceFileLoader
+            return SourceFileLoader(name, path).load_module()
     else:  # Python 3.5 or greater
         from importlib.util import spec_from_file_location, module_from_spec
         spec = spec_from_file_location(name, path)
