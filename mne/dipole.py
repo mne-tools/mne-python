@@ -144,13 +144,9 @@ class Dipole(object):
 
     @verbose
     def plot_locations(self, trans, subject, subjects_dir=None,
-                       bgcolor=(1, 1, 1), opacity=0.3,
-                       brain_color=(1, 1, 0), fig_name=None,
-                       fig_size=(600, 600), mode='orthoview',
-                       scale_factor=0.1e-1, colors=None,
-                       coord_frame='mri', idx='gof',
-                       show_all=True, ax=None, block=False,
-                       show=True, verbose=None):
+                       mode='orthoview', coord_frame='mri', idx='gof',
+                       show_all=True, ax=None, block=False, show=True,
+                       verbose=None):
         """Plot dipole locations in 3d.
 
         Parameters
@@ -164,25 +160,10 @@ class Dipole(object):
             The path to the freesurfer subjects reconstructions.
             It corresponds to Freesurfer environment variable SUBJECTS_DIR.
             The default is None.
-        bgcolor : tuple of length 3
-            Background color in 3D.
-        opacity : float in [0, 1]
-            Opacity of brain mesh.
-        brain_color : tuple of length 3
-            Brain color.
-        fig_name : str
-            Mayavi figure name.
-        fig_size : tuple of length 2
-            Mayavi figure size.
         mode : str
             Currently only ``'orthoview'`` is supported.
 
             .. versionadded:: 0.14.0
-        scale_factor : float
-            The scaling applied to amplitudes for the plot. Only applies for
-            modes ``cone`` and ``sphere``.
-        colors: list of colors | None
-            Color to plot with each dipole. If None default colors are used.
         coord_frame : str
             Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
 
@@ -243,9 +224,8 @@ class Dipole(object):
             raise ValueError("mode must be 'cone', 'sphere' or 'orthoview'. "
                              "Got %s." % mode)
         return plot_dipole_locations(
-            dipoles, trans, subject, subjects_dir, bgcolor, opacity,
-            brain_color, fig_name, fig_size, mode, scale_factor,
-            colors, coord_frame, idx, show_all, ax, block, show)
+            dipoles, trans, subject, subjects_dir, mode, coord_frame, idx,
+            show_all, ax, block, show)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.

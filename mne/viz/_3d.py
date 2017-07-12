@@ -1344,11 +1344,7 @@ def _toggle_mlab_render(fig, render):
 
 
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
-                          bgcolor=(1, 1, 1), opacity=0.3,
-                          brain_color=(1, 1, 0), fig_name=None,
-                          fig_size=(600, 600), mode='orthoview',
-                          scale_factor=0.1e-1, colors=None,
-                          coord_frame='mri', idx='gof',
+                          mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False,
                           show=True, verbose=None):
     """Plot dipole locations.
@@ -1371,24 +1367,10 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
         The default is None.
-    bgcolor : tuple of length 3
-        Background color in 3D.
-    opacity : float in [0, 1]
-        Opacity of brain mesh.
-    brain_color : tuple of length 3
-        Brain color.
-    fig_name : str
-        Mayavi figure name.
-    fig_size : tuple of length 2
-        Mayavi figure size.
     mode : str
         Currently only ``'orthoview'`` is supported.
 
         .. versionadded:: 0.14.0
-    scale_factor : float
-        The scaling applied to amplitudes for the plot.
-    colors: list of colors | None
-        Color to plot with each dipole. If None default colors are used.
     coord_frame : str
         Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
 
