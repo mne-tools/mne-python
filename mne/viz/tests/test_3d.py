@@ -20,6 +20,7 @@ from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, snapshot_brain_montage, plot_head_positions)
+from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, _TempDir, requires_nibabel, check_version)
 from mne.datasets import testing
@@ -83,6 +84,7 @@ def test_plot_sparse_source_estimates():
         np.random.RandomState(0).rand(stc_data.size / 20)
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
+
     colormap = 'mne_analyze'
     plot_source_estimates(stc, 'sample', colormap=colormap,
                           background=(1, 1, 0),
@@ -241,7 +243,38 @@ def test_limits_to_control_points():
 
 
 @testing.requires_testing_data
-@requires_nibabel
+@requires_nibabel()
+def test_stc_mpl():
+    """Test plotting source estimates with matplotlib."""
+    import matplotlib.pyplot as plt
+    sample_src = read_source_spaces(src_fname)
+
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.ones((n_verts * n_time))
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
+    stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
+             hemi='rh', smoothing_steps=2, subject='sample',
+             backend='matplotlib', spacing='oct1', initial_time=0.001,
+             colormap='Reds')
+    fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
+                   hemi='lh', smoothing_steps=2, subject='sample',
+                   backend='matplotlib', spacing='ico2', time_viewer=True)
+    time_viewer = fig.time_viewer
+    _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change time
+    time_viewer.canvas.key_press_event('ctrl+right')
+    time_viewer.canvas.key_press_event('left')
+    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
+                  hemi='both', subject='sample', backend='matplotlib')
+    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
+                  time_unit='ss', subject='sample', backend='matplotlib')
+    plt.close('all')
+
+
+@testing.requires_testing_data
+@requires_nibabel()
 def test_plot_dipole_mri_orthoview():
     """Test mpl dipole plotting."""
     import matplotlib.pyplot as plt
