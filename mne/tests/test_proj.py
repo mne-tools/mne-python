@@ -103,7 +103,8 @@ def _check_warnings(raw, events, picks=None, count=3):
 @testing.requires_testing_data
 def test_sensitivity_maps():
     """Test sensitivity map computation."""
-    fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
+    fwd = mne.read_forward_solution(fwd_fname)
+    fwd = mne.convert_forward_solution(fwd, surf_ori=True, use_cps=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         projs = read_proj(eog_fname)

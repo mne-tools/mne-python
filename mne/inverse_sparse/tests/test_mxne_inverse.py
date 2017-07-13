@@ -11,7 +11,8 @@ import pytest
 
 from mne.datasets import testing
 from mne.label import read_label
-from mne import read_cov, read_forward_solution, read_evokeds
+from mne import (read_cov, read_forward_solution, read_evokeds,
+                 convert_forward_solution)
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm import apply_inverse, make_inverse_operator
@@ -57,8 +58,9 @@ def test_mxne_inverse():
     evoked_l21.crop(tmin=0.081, tmax=0.1)
     label = read_label(fname_label)
 
-    forward = read_forward_solution(fname_fwd, force_fixed=False,
-                                    surf_ori=True)
+    forward = read_forward_solution(fname_fwd)
+    forward = read_forward_solution(forward, force_fixed=False,
+                                    surf_ori=True, use_cps=True)
 
     # Reduce source space to make test computation faster
     inverse_operator = make_inverse_operator(evoked_l21.info, forward, cov,

@@ -68,7 +68,8 @@ evoked.plot_white(noise_cov)
 # Read the forward solution and compute the inverse operator
 
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
-fwd = mne.read_forward_solution(fname_fwd, surf_ori=True)
+fwd = mne.read_forward_solution(fname_fwd)
+fwd = mne.convert_forward_solution(fwd, surf_ori=True, use_cps=True)
 
 # Restrict forward solution as necessary for MEG
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=False)

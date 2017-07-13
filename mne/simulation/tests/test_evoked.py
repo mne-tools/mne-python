@@ -10,12 +10,11 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from nose.tools import assert_true, assert_raises
 import warnings
 
+from mne import (read_cov, read_forward_solution, convert_forward_solution,
+                 pick_types_forward, read_evokeds)
 from mne.datasets import testing
-from mne.forward.forward import _read_forward_solution
 from mne.simulation import simulate_sparse_stc, simulate_evoked
-from mne import read_cov
 from mne.io import read_raw_fif
-from mne import pick_types_forward, read_evokeds
 from mne.cov import regularize
 from mne.utils import run_tests_if_main
 
@@ -37,7 +36,8 @@ def test_simulate_evoked():
     """Test simulation of evoked data."""
 
     raw = read_raw_fif(raw_fname)
-    fwd = _read_forward_solution(fwd_fname, force_fixed=True, use_cps=False)
+    fwd = read_forward_solution(fwd_fname)
+    fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=False)
     fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
     cov = read_cov(cov_fname)
 

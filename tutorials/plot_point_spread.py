@@ -52,8 +52,9 @@ fname_evoked = op.join(data_path, 'MEG', 'sample',
 # Load the MEG data
 # -----------------
 
-fwd = mne.read_forward_solution(fname_fwd, force_fixed=True,
-                                surf_ori=True)
+fwd = mne.read_forward_solution(fname_fwd)
+fwd = mne.convert_forward_solution(fwd, force_fixed=True,
+                                   surf_ori=True, use_cps=True)
 fwd['info']['bads'] = []
 inv_op = read_inverse_operator(fname_inv)
 

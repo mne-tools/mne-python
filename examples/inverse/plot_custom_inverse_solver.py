@@ -40,8 +40,8 @@ evoked.crop(tmin=0.04, tmax=0.18)
 
 evoked = evoked.pick_types(eeg=False, meg=True)
 # Handling forward solution
-forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
-
+forward = mne.read_forward_solution(fwd_fname)
+forward = mne.convert_forward_solution(forward, surf_ori=True, use_cps=True)
 
 ###############################################################################
 # Auxiliary function to run the solver

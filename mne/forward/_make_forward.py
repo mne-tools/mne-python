@@ -682,7 +682,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
                                 verbose=verbose)
     # Convert from free orientations to fixed (in-place)
     convert_forward_solution(fwd, surf_ori=False, force_fixed=True,
-                             copy=False, verbose=None)
+                             copy=False, verbose=None, use_cps=True)
 
     # Check for omissions due to proximity to inner skull in
     # make_forward_solution, which will result in an exception
