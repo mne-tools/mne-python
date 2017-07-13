@@ -15,12 +15,12 @@ import mne
 def load_module(name, path):
     if sys.version_info < (3, 3):
         import imp
-        if path.endswidth('.pyc'):
+        if path.endswith('.pyc'):
             return imp.load_compiled(name, path)
         else:
             return imp.load_source(name, path)
     elif sys.version_info < (3, 5):
-        if path.endswidth('.pyc'):
+        if path.endswith('.pyc'):
             from importlib.machinery import SourcelessFileLoader
             return SourcelessFileLoader(name, path).load_module()
         else:
