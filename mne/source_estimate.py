@@ -8,6 +8,7 @@
 import copy
 import os.path as op
 from math import ceil
+import re
 import warnings
 
 import numpy as np
@@ -2448,6 +2449,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
+                         from_reg='sphere.reg', to_reg='sphere.reg',
                          verbose=None):
     """Get a matrix that morphs data from one subject to another.
 
@@ -2469,6 +2471,12 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Path to SUBJECTS_DIR is not set in the environment
     warn : bool
         If True, warn if not all vertices were used.
+    from_reg : str
+        Source FreeSurfer registration (default 'sphere.reg'). Prefix with
+        'lh.' or 'rh.' to load single hemisphere.
+    to_reg : str
+        Destination FreeSurfer registration (default 'sphere.reg'). Hemisphere
+        prefix needs to match ``from_reg``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2480,11 +2488,30 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     """
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
+    pattern = re.compile("(?:(lh|rh)\.)?(sphere\.(?:reg|left_right))")
+    from_match = pattern.match(from_reg)
+    if from_match is None:
+        raise ValueError("from_reg=%r" % (from_reg,))
+    to_match = pattern.match(to_reg)
+    if to_match is None:
+        raise ValueError("to_reg=%r" % (to_reg,))
+    from_hemi, from_regname = from_match.groups()
+    to_hemi, to_regname = to_match.groups()
+    if from_hemi != to_hemi:
+        raise ValueError(
+            "from_reg and to_reg need to have the same hemisphere; got "
+            "from_reg=%r, to_reg=%r" % (from_reg, to_reg))
+
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
-    maps = read_morph_map(subject_from, subject_to, subjects_dir)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir, from_regname,
+                          to_regname)
 
     morpher = [None] * 2
-    for hemi in [0, 1]:
+    for hemi, hemi_name in enumerate(('lh', 'rh')):
+        if from_hemi is not None and from_hemi != hemi_name:
+            morpher[hemi] = []
+            continue
         e = mesh_edges(tris[hemi])
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]

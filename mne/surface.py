@@ -821,6 +821,7 @@ def decimate_surface(points, triangles, n_triangles):
 
 @verbose
 def read_morph_map(subject_from, subject_to, subjects_dir=None,
+                   from_reg='sphere.reg', to_reg='sphere.reg',
                    verbose=None):
     """Read morph map.
 
@@ -836,6 +837,10 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment.
+    from_reg : str
+        Source FreeSurfer registration (default 'sphere.reg').
+    to_reg : str
+        Destination FreeSurfer registration (default 'sphere.reg').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -855,20 +860,27 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         except Exception:
             warn('Could not find or make morph map directory "%s"' % mmap_dir)
 
-    # Does the file exist
-    fname = op.join(mmap_dir, '%s-%s-morph.fif' % (subject_from, subject_to))
+    # filename
+    from_label = subject_from
+    if from_reg != 'sphere.reg':
+        from_label += '_' + from_reg
+    to_label = subject_to
+    if to_reg != 'sphere.reg':
+        to_label += '_' + to_reg
+    fname = op.join(mmap_dir, '%s-%s-morph.fif' % (from_label, to_label))
     if not op.exists(fname):
-        fname = op.join(mmap_dir, '%s-%s-morph.fif'
-                        % (subject_to, subject_from))
+        fname = op.join(mmap_dir, '%s-%s-morph.fif' % (to_label, from_label))
         if not op.exists(fname):
             warn('Morph map "%s" does not exist, creating it and saving it to '
                  'disk (this may take a few minutes)' % fname)
             logger.info('Creating morph map %s -> %s'
                         % (subject_from, subject_to))
-            mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir)
+            mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir,
+                                     from_reg, to_reg)
             logger.info('Creating morph map %s -> %s'
                         % (subject_to, subject_from))
-            mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir)
+            mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir,
+                                     to_reg, from_reg)
             try:
                 _write_morph_map(fname, subject_from, subject_to,
                                  mmap_1, mmap_2)
@@ -961,7 +973,7 @@ def _get_tri_supp_geom(surf):
 
 
 @verbose
-def _make_morph_map(subject_from, subject_to, subjects_dir=None):
+def _make_morph_map(subject_from, subject_to, subjects_dir, from_reg, to_reg):
     """Construct morph map from one subject to another.
 
     Note that this is close, but not exactly like the C version.
@@ -976,10 +988,10 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     morph_maps = list()
 
     # add speedy short-circuit for self-maps
-    if subject_from == subject_to:
+    if subject_from == subject_to and from_reg == to_reg:
         for hemi in ['lh', 'rh']:
             fname = op.join(subjects_dir, subject_from, 'surf',
-                            '%s.sphere.reg' % hemi)
+                            '%s.%s' % (hemi, from_reg))
             n_pts = len(read_surface(fname, verbose=False)[0])
             morph_maps.append(speye(n_pts, n_pts, format='csr'))
         return morph_maps
@@ -987,10 +999,10 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     for hemi in ['lh', 'rh']:
         # load surfaces and normalize points to be on unit sphere
         fname = op.join(subjects_dir, subject_from, 'surf',
-                        '%s.sphere.reg' % hemi)
+                        '%s.%s' % (hemi, from_reg))
         from_rr, from_tri = read_surface(fname, verbose=False)
         fname = op.join(subjects_dir, subject_to, 'surf',
-                        '%s.sphere.reg' % hemi)
+                        '%s.%s' % (hemi, to_reg))
         to_rr = read_surface(fname, verbose=False)[0]
         _normalize_vectors(from_rr)
         _normalize_vectors(to_rr)
