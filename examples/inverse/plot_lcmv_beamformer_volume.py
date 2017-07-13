@@ -61,10 +61,19 @@ noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
 
-# Run free orientation (vector) beamformer. Source orientation can be
-# restricted by setting pick_ori to 'max-power' (or 'normal' but only when
-# using a surface-based source space)
-stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05, pick_ori=None)
+# Run free orientation (vector) beamformer with weight normalization (neural
+# activity index, NAI). Providing a noise covariance matrix enables whitening
+# of the data and forward solution. Source orientation is optimized by
+# setting pick_ori to 'max-power'.
+# weight_norm can also be set to 'unit-noise-gain'. Source orientation can also
+# be 'normal' (but only when using a surface-based source space) or None,
+# which computes a vector beamfomer. Note, however, that not all combinations
+# of orientation selection and weight normalization are implemented yet.
+stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
+           pick_ori='max-power', weight_norm='nai', max_ori_out='signed')
+
+# take absolute values for plotting
+stc.data[:, :] = np.abs(stc.data)
 
 # Save result in stc files
 stc.save('lcmv-vol')
@@ -78,7 +87,7 @@ img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
 t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
 
 # Plotting with nilearn ######################################################
-plot_stat_map(index_img(img, 61), t1_fname, threshold=0.8,
+plot_stat_map(index_img(img, 61), t1_fname, threshold=1.35,
               title='LCMV (t=%.1f s.)' % stc.times[61])
 
 # plot source time courses with the maximum peak amplitudes

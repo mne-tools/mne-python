@@ -115,6 +115,8 @@ BUG
 API
 ~~~
 
+    - Add ``weight_norm'' parameter to enable both unit-noise-gain beamformer and neural activity index (weight normalization) and make whitening optional by allowing ``noise_cov=None'' in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, and :func:`mne.beamformer.lcmv_raw`, by `Britta Westner'_, `Alex Gramfort`_, and `Denis Engemann`_.
+
     - Add new filtering mode ``fir_design='firwin'`` (default in the next 0.16 release) that gets improved attenuation using fewer samples compared to ``fir_design='firwin2'`` (default in the current 0.15 release) by `Eric Larson`_
 
     - Make the goodness of fit (GOF) of the dipoles returned by :func:`mne.beamformer.rap_music` consistent with the GOF of dipoles returned by :func:`mne.fit_dipole` by `Alex Gramfort`_.
@@ -2194,3 +2196,5 @@ of commits):
 .. _Mathurin Massias: https://mathurinm.github.io/
 
 .. _ramonapariciog: https://github.com/ramonapariciog
+
+.. _Britta Westner: https://github.com/britta-wstnr
