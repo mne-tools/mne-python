@@ -40,7 +40,7 @@ evoked.crop(tmin=0.05, tmax=0.15)  # select N100
 evoked.pick_types(meg=True, eeg=False)
 
 # Read the forward solution
-forward = mne.read_forward_solution(fname_fwd)
+forward = mne.read_forward_solution(fwd_fname)
 forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 # Read noise covariance matrix
