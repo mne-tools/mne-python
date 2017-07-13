@@ -375,12 +375,11 @@ The Tufts EEG data is included in three files:
 
 See the options for the command-line utility :ref:`mne_tufts2fiff`.
 
-Converting eXimia EEG data
-==========================
+eXimia EEG data
+===============
 
-EEG data from the Nexstim eXimia system can be converted
-to the fif format with help of the :ref:`mne_eximia2fiff` script.
-It creates a BrainVision ``vhdr`` file and calls :ref:`mne_brain_vision2fiff`.
+EEG data from the Nexstim eXimia system can be read in using the
+:func:`mne.io.read_raw_eximia` function.
 
 
 Setting EEG references

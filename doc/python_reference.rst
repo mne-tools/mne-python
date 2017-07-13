@@ -61,6 +61,7 @@ Reading raw data
   read_raw_eeglab
   read_raw_brainvision
   read_raw_egi
+  read_raw_eximia
   read_raw_fif
 
 Base class:

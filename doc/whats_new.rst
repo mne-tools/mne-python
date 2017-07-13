@@ -58,12 +58,14 @@ Changelog
     - Speed up :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_ and `Jaakko Leppakangas`_
 
     - Add :func:`mne.inverse_sparse.mxne_optim.dgap_l21l1` for computing the duality gap for TF-MxNE as the new stopping criterion by `Daniel Strohmeier`_
-    
+
     - Add :func:`mne.channels.find_ch_connectivity` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
 
     - Add IO support for EGI MFF format by `Jaakko Leppakangas`_  and `ramonapariciog`_
 
     - Add option to use matplotlib backend when plotting with :func:`mne.viz.plot_source_estimates` by `Jaakko Leppakangas`_
+
+    - Add support for reading eXimia EEG data with :func:`mne.io.read_raw_eximia` by `Eric Larson`_
 
 BUG
 ~~~
