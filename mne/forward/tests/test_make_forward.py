@@ -57,10 +57,9 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
     _compare_source_spaces(fwd['src'], fwd_py['src'], mode='approx')
     for surf_ori, force_fixed in product([False, True], [False, True]):
         # use copy here to leave our originals unmodified
-        fwd = convert_forward_solution(fwd, surf_ori, force_fixed,
-                                       copy=True, use_cps=True)
+        fwd = convert_forward_solution(fwd, surf_ori, force_fixed, copy=True)
         fwd_py = convert_forward_solution(fwd_py, surf_ori, force_fixed,
-                                          copy=True, use_cps=True)
+                                          copy=True)
         check_src = n_src // 3 if force_fixed else n_src
 
         for key in ('nchan', 'source_rr', 'source_ori',

@@ -31,7 +31,7 @@ def read_forward_solution_meg(*args, **kwargs):
 @testing.requires_testing_data
 def test_simulate_stc():
     """ Test generation of source estimate """
-    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
     mylabels = []
@@ -101,7 +101,7 @@ def test_simulate_stc():
 @testing.requires_testing_data
 def test_simulate_sparse_stc():
     """ Test generation of sparse source estimate """
-    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
 
@@ -149,7 +149,7 @@ def test_simulate_sparse_stc():
 @testing.requires_testing_data
 def test_generate_stc_single_hemi():
     """ Test generation of source estimate, single hemi """
-    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample',
                                              'labels', '%s.label' % label))
                           for label in label_names_single_hemi]
@@ -210,7 +210,7 @@ def test_generate_stc_single_hemi():
 @testing.requires_testing_data
 def test_simulate_sparse_stc_single_hemi():
     """ Test generation of sparse source estimate """
-    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True, use_cps=True)
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     n_times = 10
     tmin = 0
     tstep = 1e-3

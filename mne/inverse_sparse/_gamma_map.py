@@ -242,7 +242,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     # make forward solution in fixed orientation if necessary
     if loose is None and not is_fixed_orient(forward):
         forward = convert_forward_solution(
-            forward, surf_ori=True, force_fixed=True, copy=True)
+            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
 
     if is_fixed_orient(forward) or not xyz_same_gamma:
         group_size = 1

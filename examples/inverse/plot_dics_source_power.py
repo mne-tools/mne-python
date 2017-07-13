@@ -49,7 +49,7 @@ evoked = epochs.average()
 
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd)
-forward = mne.convert_forward_solution(forward, surf_ori=True, use_cps=True)
+forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 # Computing the data and noise cross-spectral density matrices
 # The time-frequency window was chosen on the basis of spectrograms from

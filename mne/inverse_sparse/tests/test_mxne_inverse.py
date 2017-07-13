@@ -59,8 +59,7 @@ def test_mxne_inverse():
     label = read_label(fname_label)
 
     forward = read_forward_solution(fname_fwd)
-    forward = read_forward_solution(forward, force_fixed=False,
-                                    surf_ori=True, use_cps=True)
+    forward = convert_forward_solution(forward, surf_ori=True)
 
     # Reduce source space to make test computation faster
     inverse_operator = make_inverse_operator(evoked_l21.info, forward, cov,

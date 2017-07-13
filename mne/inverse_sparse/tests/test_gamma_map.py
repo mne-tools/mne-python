@@ -55,8 +55,8 @@ def _check_stcs(stc1, stc2):
 def test_gamma_map():
     """Test Gamma MAP inverse"""
     forward = read_forward_solution(fname_fwd)
-    forward = read_forward_solution(forward, force_fixed=False,
-                                    surf_ori=True, use_cps=True)
+    forward = convert_forward_solution(forward, surf_ori=True)
+
     forward = pick_types_forward(forward, meg=False, eeg=True)
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
                           proj=False)

@@ -41,7 +41,7 @@ evoked.pick_types(meg=True, eeg=False)
 
 # Read the forward solution
 forward = mne.read_forward_solution(fname_fwd)
-forward = mne.convert_forward_solution(forward, surf_ori=True, use_cps=True)
+forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 # Read noise covariance matrix
 noise_cov = mne.read_cov(cov_fname)

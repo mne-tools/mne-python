@@ -41,7 +41,7 @@ evoked.crop(tmin=-50e-3, tmax=300e-3)
 
 # Read the forward solution
 forward = mne.read_forward_solution(fname_fwd)
-forward = mne.convert_forward_solution(forward, surf_ori=True, use_cps=True)
+forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 # Read noise noise covariance matrix and regularize it
 cov = mne.read_cov(cov_fname)

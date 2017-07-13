@@ -361,8 +361,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         # must be fixed orientation
         # XXX eventually we could speed this up by allowing the forward
         # solution code to only compute the normal direction
-        fwd = convert_forward_solution(fwd, surf_ori=True,
-                                       force_fixed=True, verbose=False)
+        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                       verbose=False)
         if blink:
             fwd_blink = fwd_blink['sol']['data']
             for ii in range(len(blink_rrs)):

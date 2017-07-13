@@ -25,7 +25,7 @@ fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg-proj.fif'
 
 fwd = read_forward_solution(fname)
-fwd = convert_forward_solution(fwd, surf_ori=True, use_cps=True)
+fwd = convert_forward_solution(fwd, surf_ori=True)
 
 projs = read_proj(ecg_fname)
 # take only one projection per channel type
