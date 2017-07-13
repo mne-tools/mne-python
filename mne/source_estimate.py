@@ -411,23 +411,43 @@ def read_source_estimate(fname, subject=None):
     return stc
 
 
-def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
+def _make_stc(data, vertices, tmin=None, tstep=None, subject=None, src=None):
     """Generate a surface, volume or mixed source estimate."""
-    if isinstance(vertices, list) and len(vertices) == 2:
-        # make a surface source estimate
-        stc = SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep,
-                             subject=subject)
-    elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
-            and len(vertices) == 1:
-        stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
-                                tstep=tstep, subject=subject)
-    elif isinstance(vertices, list) and len(vertices) > 2:
-        # make a mixed source estimate
-        stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
-                                  tstep=tstep, subject=subject)
+    if isinstance(vertices, np.ndarray):
+        vertices = [vertices]
+
+    if src is None:
+        if isinstance(vertices, list) and len(vertices) == 2:
+            # make a surface source estimate
+            stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
+                                 tstep=tstep, subject=subject)
+        elif isinstance(vertices, list) and len(vertices) == 1:
+            stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
+                                    tstep=tstep, subject=subject)
+        elif isinstance(vertices, list) and len(vertices) > 2:
+            # make a mixed source estimate
+            stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
+                                      tstep=tstep, subject=subject)
+        else:
+            raise ValueError('vertices has to be either a list with one or '
+                             'more arrays or an array')
+    elif isinstance(src, SourceSpaces):
+        if len(vertices) != len(src):
+            ValueError('The lengths of vertices and src do not fit. '
+                       'Got %d and %d elements, respectively'
+                        % (len(vertices), len(src)))
+        if all([_src['type'] == 'surf' for _src in src]) and len(src) == 2:
+            stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
+                                 tstep=tstep, subject=subject)
+        elif all([_src['type'] == 'vol' for _src in src]) and len(src) == 1:
+            stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
+                                    tstep=tstep, subject=subject)
+        else:
+            stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
+                                      tstep=tstep, subject=subject)
     else:
-        raise ValueError('vertices has to be either a list with one or more '
-                         'arrays or an array')
+        raise ValueError('src hast to be either None or an instance of '
+                         'SourceSpace.')
     return stc
 
 
@@ -810,7 +830,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         """Return copy of SourceEstimate instance."""
         return copy.deepcopy(self)
 
-    def bin(self, width, tstart=None, tstop=None, func=np.mean):
+    def bin(self, width, tstart=None, tstop=None, func=np.mean,
+            stc_type='surf'):
         """Return a SourceEstimate object with data summarized over time bins.
 
         Time bins of ``width`` seconds. This method is intended for
@@ -831,6 +852,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         func : callable
             Function that is applied to summarize the data. Needs to accept a
             numpy.array as first input and an ``axis`` keyword argument.
+        stc_type : 'surf' | 'vol' | 'mixed'
+            The type of source estimate to be generated.
 
         Returns
         -------
@@ -851,8 +874,21 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             data[:, i] = func(self.data[:, idx], axis=1)
 
         tmin = times[0] + width / 2.
-        stc = _make_stc(data, vertices=self.vertices,
-                        tmin=tmin, tstep=width, subject=self.subject)
+
+        if stc_type == 'surf':
+            # make a surface source estimate
+            stc = SourceEstimate(data, vertices=self.vertices, tmin=tmin,
+                                 tstep=tstep, subject=self.subject)
+        elif stc_type == 'vol':
+            stc = VolSourceEstimate(data, vertices=self.vertices, tmin=tmin,
+                                    tstep=tstep, subject=self.subject)
+        elif stc_type == 'mixed':
+            # make a mixed source estimate
+            stc = MixedSourceEstimate(data, vertices=self.vertices, tmin=tmin,
+                                      tstep=tstep, subject=self.subject)
+        else:
+            raise ValueError('Unknown type of source estimate. '
+                             'Got %s.' % stc_type)
         return stc
 
     def transform_data(self, func, idx=None, tmin_idx=None, tmax_idx=None):
@@ -1623,6 +1659,37 @@ class SourceEstimate(_BaseSourceEstimate):
         return (vert_idx if vert_as_index else vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
 
+    def bin(self, width, tstart=None, tstop=None, func=np.mean):
+        """Return a SourceEstimate object with data summarized over time bins.
+
+        Time bins of ``width`` seconds. This method is intended for
+        visualization only. No filter is applied to the data before binning,
+        making the method inappropriate as a tool for downsampling data.
+
+        Parameters
+        ----------
+        width : scalar
+            Width of the individual bins in seconds.
+        tstart : scalar | None
+            Time point where the first bin starts. The default is the first
+            time point of the stc.
+        tstop : scalar | None
+            Last possible time point contained in a bin (if the last bin would
+            be shorter than width it is dropped). The default is the last time
+            point of the stc.
+        func : callable
+            Function that is applied to summarize the data. Needs to accept a
+            numpy.array as first input and an ``axis`` keyword argument.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The binned SourceEstimate.
+        """
+        stc  = _BaseSourceEstimate.bin(self, width, tstart=tstart, tstop=tstop,
+                                       func=func, stc_type='surf')
+        return stc
+
 
 class VolSourceEstimate(_BaseSourceEstimate):
     """Container for volume source estimates.
@@ -1873,6 +1940,37 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         return (vert_idx if vert_as_index else self.vertices[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
+
+    def bin(self, width, tstart=None, tstop=None, func=np.mean):
+        """Return a SourceEstimate object with data summarized over time bins.
+
+        Time bins of ``width`` seconds. This method is intended for
+        visualization only. No filter is applied to the data before binning,
+        making the method inappropriate as a tool for downsampling data.
+
+        Parameters
+        ----------
+        width : scalar
+            Width of the individual bins in seconds.
+        tstart : scalar | None
+            Time point where the first bin starts. The default is the first
+            time point of the stc.
+        tstop : scalar | None
+            Last possible time point contained in a bin (if the last bin would
+            be shorter than width it is dropped). The default is the last time
+            point of the stc.
+        func : callable
+            Function that is applied to summarize the data. Needs to accept a
+            numpy.array as first input and an ``axis`` keyword argument.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The binned SourceEstimate.
+        """
+        stc  = _BaseSourceEstimate.bin(self, width, tstart=tstart, tstop=tstop,
+                                       func=func, stc_type='vol')
+        return stc
 
 
 class MixedSourceEstimate(_BaseSourceEstimate):
@@ -2289,6 +2387,37 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         plt.show()
 
         return fig
+
+    def bin(self, width, tstart=None, tstop=None, func=np.mean):
+        """Return a SourceEstimate object with data summarized over time bins.
+
+        Time bins of ``width`` seconds. This method is intended for
+        visualization only. No filter is applied to the data before binning,
+        making the method inappropriate as a tool for downsampling data.
+
+        Parameters
+        ----------
+        width : scalar
+            Width of the individual bins in seconds.
+        tstart : scalar | None
+            Time point where the first bin starts. The default is the first
+            time point of the stc.
+        tstop : scalar | None
+            Last possible time point contained in a bin (if the last bin would
+            be shorter than width it is dropped). The default is the last time
+            point of the stc.
+        func : callable
+            Function that is applied to summarize the data. Needs to accept a
+            numpy.array as first input and an ``axis`` keyword argument.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The binned SourceEstimate.
+        """
+        stc  = _BaseSourceEstimate.bin(self, width, tstart=tstart, tstop=tstop,
+                                       func=func, stc_type='mixed')
+        return stc
 
 
 ###############################################################################
