@@ -19,7 +19,7 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.inverse_sparse import gamma_map, make_sparse_stc_from_dipoles
+from mne.inverse_sparse import gamma_map, make_stc_from_dipoles
 from mne.viz import (plot_sparse_source_estimates,
                      plot_dipole_locations, plot_dipole_amplitudes)
 
@@ -80,7 +80,7 @@ residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
 
 ###############################################################################
 # Generate stc from dipoles
-stc = make_sparse_stc_from_dipoles(dipoles, forward)
+stc = make_stc_from_dipoles(dipoles, forward['src'])
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)

@@ -205,15 +205,15 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
 
 
 @verbose
-def make_sparse_stc_from_dipoles(dipoles, forward, verbose=None):
+def make_stc_from_dipoles(dipoles, src, verbose=None):
     """Convert a list of spatio-temporal dipoles into a SourceEstimate.
 
     Parameters
     ----------
     dipoles : Dipole | list of instances of Dipole
-        Dipoles to convert.
-    forward : dict
-        Forward operator.
+        The dipoles to convert.
+    src : instance of SourceSpaces
+        The source space used to generate the forward operator.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -233,7 +233,8 @@ def make_sparse_stc_from_dipoles(dipoles, forward, verbose=None):
     tmin = dipoles[0].times[0]
     tstep = dipoles[0].times[1] - tmin
     X = np.zeros((len(dipoles), len(dipoles[0].times)))
-    src = forward['src']
+    source_rr = np.concatenate([_src['rr'][_src['vertno'], :] for _src in src],
+                               axis=0)
     n_lh_points = len(src[0]['vertno'])
     lh_vertno = list()
     rh_vertno = list()
@@ -242,7 +243,7 @@ def make_sparse_stc_from_dipoles(dipoles, forward, verbose=None):
             raise ValueError('Only dipoles with fixed position over time '
                              'are supported!')
         X[i] = dipoles[i].amplitude
-        idx = np.all(forward['source_rr'] == dipoles[i].pos[0], axis=1)
+        idx = np.all(source_rr == dipoles[i].pos[0], axis=1)
         idx = np.where(idx)[0][0]
         if idx < n_lh_points:
             lh_vertno.append(src[0]['vertno'][idx])

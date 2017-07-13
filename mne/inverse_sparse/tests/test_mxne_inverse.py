@@ -12,7 +12,7 @@ from mne.datasets import testing
 from mne.label import read_label
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
-from mne.inverse_sparse.mxne_inverse import make_sparse_stc_from_dipoles
+from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.utils import run_tests_if_main, slow_test
 from mne.dipole import Dipole
@@ -98,7 +98,7 @@ def test_mxne_inverse():
                       depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                       weights=stc_dspm, weights_min=weights_min,
                       solver='cd', return_as_dipoles=True)
-    stc_dip = make_sparse_stc_from_dipoles(dips, forward)
+    stc_dip = make_stc_from_dipoles(dips, forward['src'])
     assert_true(isinstance(dips[0], Dipole))
     _check_stcs(stc_cd, stc_dip)
 

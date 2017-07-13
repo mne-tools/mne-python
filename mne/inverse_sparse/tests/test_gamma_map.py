@@ -13,7 +13,7 @@ from mne.datasets import testing
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
-from mne.inverse_sparse.mxne_inverse import make_sparse_stc_from_dipoles
+from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne import pick_types_forward
 from mne.utils import run_tests_if_main, slow_test
 from mne.dipole import Dipole
@@ -76,7 +76,7 @@ def test_gamma_map():
                      xyz_same_gamma=False, update_mode=1,
                      return_as_dipoles=True)
     assert_true(isinstance(dips[0], Dipole))
-    stc_dip = make_sparse_stc_from_dipoles(dips, forward)
+    stc_dip = make_stc_from_dipoles(dips, forward['src'])
     _check_stcs(stc, stc_dip)
 
     # force fixed orientation
