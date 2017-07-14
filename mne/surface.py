@@ -9,7 +9,6 @@ from distutils.version import LooseVersion
 from glob import glob
 import os
 from os import path as op
-import re
 import sys
 from struct import pack
 
@@ -899,23 +898,6 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
         raise ValueError('Could not find both hemispheres in %s' % fname)
 
     return left_map, right_map
-
-
-def _reg_args(reg_from, reg_to):
-    pattern = re.compile("(?:(lh|rh)\.)?(sphere\.(?:reg|left_right))")
-    match = pattern.match(reg_from)
-    if match is None:
-        raise ValueError("from_reg=%r" % (reg_from,))
-    hemi_from, regname_from = match.groups()
-    match = pattern.match(reg_to)
-    if match is None:
-        raise ValueError("to_reg=%r" % (reg_to,))
-    hemi_to, regname_to = match.groups()
-    if (hemi_from is None) != (hemi_to is None):
-        raise ValueError(
-            "Hemisphere has to be specified in both or neither of reg_from "
-            "and reg_to; got from_reg=%r, to_reg=%r" % (reg_from, reg_to))
-    return hemi_from, hemi_to, regname_from, regname_to
 
 
 def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):

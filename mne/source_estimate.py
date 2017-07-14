@@ -8,7 +8,6 @@
 import copy
 import os.path as op
 from math import ceil
-import re
 import warnings
 
 import numpy as np
@@ -19,7 +18,7 @@ from .filter import resample
 from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
-                      _reg_args, _compute_nearest, mesh_edges)
+                      _compute_nearest, mesh_edges)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
