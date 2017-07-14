@@ -2494,26 +2494,31 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     maps = read_morph_map(subject_from, subject_to, subjects_dir, reg_from,
                           reg_to)
 
-    morpher = [None] * 2
-    for hemi, hemi_name in enumerate(('lh', 'rh')):
-        if hemi_from is not None and hemi_from != hemi_name:
-            morpher[hemi] = []
+    if hemi_to != hemi_from:
+        hemi_indexes = [(0, 1) if hemi_to == 'rh' else (1, 0)]
+    elif hemi_to is None:
+        hemi_indexes = [(0, 0), (1, 1)]
+    else:
+        hemi_indexes = [(0, 0) if hemi_to == 'lh' else (1, 1)]
+
+    morpher = []
+    for i_from, i_to in hemi_indexes:
+        idx_use = vertices_from[i_from]
+        if len(idx_use) == 0:
             continue
-        e = mesh_edges(tris[hemi])
+        e = mesh_edges(tris[i_from])
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = vertices_from[hemi]
-        if len(idx_use) == 0:
-            morpher[hemi] = []
-            continue
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
-        morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                                      vertices_to[hemi], maps[hemi], warn=warn)
+        mm = _morph_buffer(m, idx_use, e, smooth, n_vertices,
+                           vertices_to[i_to], maps[i_from], warn=warn)
+        morpher.append(mm)
+
     # be careful about zero-length arrays
-    if isinstance(morpher[0], list):
-        morpher = morpher[1]
-    elif isinstance(morpher[1], list):
+    if len(morpher) == 0:
+        raise ValueError("Empty morph-matrix")
+    elif len(morpher) == 1:
         morpher = morpher[0]
     else:
         morpher = sparse_block_diag(morpher, format='csr')
