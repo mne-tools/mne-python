@@ -253,7 +253,7 @@ def test_cov_estimation_with_triggers():
     """Test estimation from raw with triggers."""
     tempdir = _TempDir()
     raw = read_raw_fif(raw_fname)
-    raw.set_eeg_reference().load_data()
+    raw.set_eeg_reference(projection=True).load_data()
     events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
     reject = dict(grad=10000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)

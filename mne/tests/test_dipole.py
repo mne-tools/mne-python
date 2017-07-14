@@ -82,7 +82,7 @@ def test_io_dipoles():
 @testing.requires_testing_data
 def test_dipole_fitting_ctf():
     """Test dipole fitting with CTF data."""
-    raw_ctf = read_raw_ctf(fname_ctf).set_eeg_reference()
+    raw_ctf = read_raw_ctf(fname_ctf).set_eeg_reference(projection=True)
     events = make_fixed_length_events(raw_ctf, 1)
     evoked = Epochs(raw_ctf, events, 1, 0, 0, baseline=None).average()
     cov = make_ad_hoc_cov(evoked.info)

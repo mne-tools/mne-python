@@ -794,7 +794,7 @@ def test_epochs_proj():
                             eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
-    epochs.set_eeg_reference().apply_proj()
+    epochs.set_eeg_reference(projection=True).apply_proj()
     assert_true(_has_eeg_average_ref_proj(epochs.info['projs']))
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
@@ -1548,7 +1548,7 @@ def test_epochs_proj_mixin():
     for preload in [True, False]:
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         proj='delayed', preload=preload,
-                        reject=reject).set_eeg_reference()
+                        reject=reject).set_eeg_reference(projection=True)
         epochs_proj = Epochs(
             raw, events[:4], event_id, tmin, tmax, picks=picks,
             proj=True, preload=preload,
