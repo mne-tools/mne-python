@@ -821,8 +821,7 @@ def decimate_surface(points, triangles, n_triangles):
 # Morph maps
 
 @verbose
-def read_morph_map(subject_from, subject_to, subjects_dir=None,
-                   reg_from='sphere.reg', reg_to='sphere.reg',
+def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
                    verbose=None):
     """Read morph map.
 
@@ -838,12 +837,12 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment.
-    reg_from : str
-        Source FreeSurfer registration (default 'sphere.reg'). Prefix with
-        'lh.' or 'rh.' to load single hemisphere.
-    reg_to : str
-        Destination FreeSurfer registration (default 'sphere.reg'). If
-        ``reg_from`` has a hemisphere prefix, ``reg_to`` needs to have one too.
+    xhemi : bool
+        Morph across hemisphere. Currenly only implemented for
+        ``subject_to == subject_from``. Requires appropriate
+        ``sphere.left_right`` morph-maps, which are included with the
+        ``fsaverage_sym`` FreeSurfer subject and can be created for other
+        subjects with the ``mris_left_right_register`` FreeSurfer command.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -863,30 +862,18 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         except Exception:
             warn('Could not find or make morph map directory "%s"' % mmap_dir)
 
-    hemi_from, hemi_to, regname_from, regname_to = _reg_args(reg_from, reg_to)
-
     # filename components
-    if hemi_from == hemi_to:
-        from_label = subject_from
-        to_label = subject_to
-        if regname_from != 'sphere.reg':
-            from_label += '_' + regname_from
-        if regname_to != 'sphere.reg':
-            to_label += '_' + regname_to
-    else:
-        if (regname_from != 'sphere.left_right' or
-                regname_to != 'sphere.left_right'):
-            raise ValueError(
-                "Cross-hemispheric mapping requires reg_from and reg_to to be "
-                "sphere.left_right registration maps")
-        from_label = subject_from + '_' + reg_from
-        to_label = subject_from + '_' + reg_to
-
-    # possible file-names
-    if subject_from == subject_to and hemi_from != hemi_to:
+    if xhemi:
+        if subject_to != subject_from:
+            raise NotImplementedError(
+                "Morph-maps between hemispheres are currently only "
+                "implemented for subject_to == subject_from")
         map_names = [subject_from + '-xhemi']
+        log_msg = 'Creating morph map %s -> %s xhemi'
     else:
-        map_names = ['-'.join((from_label, to_label)), '-'.join((to_label, from_label))]
+        map_names = ['-'.join((subject_from, subject_to)),
+                     '-'.join((subject_to, subject_from))]
+        log_msg = 'Creating morph map %s -> %s'
 
     # find existing file, otherwise make it
     for map_name in map_names:
@@ -896,25 +883,20 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     else:
         warn('Morph map "%s" does not exist, creating it and saving it to '
              'disk (this may take a few minutes)' % fname)
-        logger.info('Creating morph map %s -> %s' % (subject_from, subject_to))
-        mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir,
-                                 reg_from, reg_to)
-        logger.info('Creating morph map %s -> %s' % (subject_to, subject_from))
-        mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir,
-                                 reg_from, reg_to)
-        try:
-            _write_morph_map(fname, subject_from, subject_to,
-                             mmap_1, mmap_2)
-        except Exception as exp:
-            warn('Could not write morph-map file "%s" (error: %s)'
-                 % (fname, exp))
+        logger.info(log_msg % (subject_from, subject_to))
+        mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
+        if subject_to == subject_from:
+            mmap_2 = None
+        else:
+            logger.info(log_msg % (subject_to, subject_from))
+            mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir,
+                                     xhemi)
+        _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2)
         return mmap_1
 
     left_map, right_map = _read_morph_map(fname, subject_from, subject_to)
-    if left_map is None and hemi_from != 'rh':
-        raise ValueError('Could not find left hemispheres in %s' % fname)
-    elif right_map is None and hemi_from != 'lh':
-        raise ValueError('Could not find right hemispheres in %s' % fname)
+    if left_map is None or right_map is None:
+        raise ValueError('Could not find both hemispheres in %s' % fname)
 
     return left_map, right_map
 
@@ -938,28 +920,32 @@ def _reg_args(reg_from, reg_to):
 
 def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
     """Write a morph map to disk."""
-    fid = start_file(fname)
+    try:
+        fid = start_file(fname)
+    except Exception as exp:
+        warn('Could not write morph-map file "%s" (error: %s)'
+             % (fname, exp))
+        return
+
     assert len(mmap_1) == 2
-    assert len(mmap_2) == 2
     hemis = [FIFF.FIFFV_MNE_SURF_LEFT_HEMI, FIFF.FIFFV_MNE_SURF_RIGHT_HEMI]
     for m, hemi in zip(mmap_1, hemis):
-        if m is None:
-            continue
         start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
         write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_FROM, subject_from)
         write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_TO, subject_to)
         write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
         end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
-    for m, hemi in zip(mmap_2, hemis):
-        if m is None:
-            continue
-        start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
-        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_FROM, subject_to)
-        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_TO, subject_from)
-        write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
-        write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
-        end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
+    # don't write mmap_2 if it is identical (subject_to == subject_from)
+    if mmap_2 is not None:
+        assert len(mmap_2) == 2
+        for m, hemi in zip(mmap_2, hemis):
+            start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
+            write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_FROM, subject_to)
+            write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_TO, subject_from)
+            write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
+            write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
+            end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
     end_file(fid)
 
 
@@ -1022,7 +1008,7 @@ def _get_tri_supp_geom(surf):
                 a=a, b=b, c=c, mat=mat, nn=nn)
 
 
-def _make_morph_map(subject_from, subject_to, subjects_dir, reg_from, reg_to):
+def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
     """Construct morph map from one subject to another.
 
     Note that this is close, but not exactly like the C version.
@@ -1034,16 +1020,15 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, reg_from, reg_to):
     than just running on a single core :(
     """
     subjects_dir = get_subjects_dir(subjects_dir)
-    hemi_from, hemi_to, regname_from, regname_to = _reg_args(reg_from, reg_to)
-    # always make morph-map for both hemispheres
-    if hemi_from == hemi_to:
-        hemis = (('lh', 'lh'), ('rh', 'rh'))
-    else:
+    if xhemi:
+        reg = '%s.sphere.left_right'
         hemis = (('lh', 'rh'), ('rh', 'lh'))
+    else:
+        reg = '%s.sphere.reg'
+        hemis = (('lh', 'lh'), ('rh', 'rh'))
 
     return [_make_morph_map_hemi(subject_to, subject_from, subjects_dir,
-                                 '.'.join((hemi_from, regname_from)),
-                                 '.'.join((hemi_to, regname_to)))
+                                 reg % hemi_from, reg % hemi_to)
             for hemi_from, hemi_to in hemis]
 
 

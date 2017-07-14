@@ -2449,8 +2449,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
-                         reg_from='sphere.reg', reg_to='sphere.reg',
-                         verbose=None):
+                         xhemi=False, verbose=None):
     """Get a matrix that morphs data from one subject to another.
 
     Parameters
@@ -2471,12 +2470,12 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Path to SUBJECTS_DIR is not set in the environment
     warn : bool
         If True, warn if not all vertices were used.
-    reg_from : str
-        Source FreeSurfer registration (default 'sphere.reg'). Prefix with
-        'lh.' or 'rh.' to load single hemisphere.
-    reg_to : str
-        Destination FreeSurfer registration (default 'sphere.reg'). If
-        ``reg_from`` has a hemisphere prefix, ``reg_to`` needs to have one too.
+    xhemi : bool
+        Morph across hemisphere. Currenly only implemented for
+        ``subject_to == subject_from``. Requires appropriate
+        ``sphere.left_right`` morph-maps, which are included with the
+        ``fsaverage_sym`` FreeSurfer subject and can be created for other
+        subjects with the ``mris_left_right_register`` FreeSurfer command.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2488,34 +2487,29 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     """
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    hemi_from, hemi_to, regname_from, regname_to = _reg_args(reg_from, reg_to)
 
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
-    maps = read_morph_map(subject_from, subject_to, subjects_dir, reg_from,
-                          reg_to)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir, xhemi)
 
-    if hemi_to != hemi_from:
-        hemi_indexes = [(0, 1) if hemi_to == 'rh' else (1, 0)]
-    elif hemi_to is None:
-        hemi_indexes = [(0, 0), (1, 1)]
+    if xhemi:
+        hemi_indexes = [(0, 1), (1, 0)]
     else:
-        hemi_indexes = [(0, 0) if hemi_to == 'lh' else (1, 1)]
+        hemi_indexes = [(0, 0), (1, 1)]
 
     morpher = []
-    for i_from, i_to in hemi_indexes:
-        idx_use = vertices_from[i_from]
+    for hemi_from, hemi_to in hemi_indexes:
+        idx_use = vertices_from[hemi_from]
         if len(idx_use) == 0:
             continue
-        e = mesh_edges(tris[i_from])
+        e = mesh_edges(tris[hemi_from])
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
         mm = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                           vertices_to[i_to], maps[i_from], warn=warn)
+                           vertices_to[hemi_to], maps[hemi_from], warn=warn)
         morpher.append(mm)
 
-    # be careful about zero-length arrays
     if len(morpher) == 0:
         raise ValueError("Empty morph-matrix")
     elif len(morpher) == 1:
