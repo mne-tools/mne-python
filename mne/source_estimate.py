@@ -19,7 +19,7 @@ from .filter import resample
 from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
-                      _compute_nearest, mesh_edges)
+                      _reg_args, _compute_nearest, mesh_edges)
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
@@ -2449,7 +2449,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
-                         from_reg='sphere.reg', to_reg='sphere.reg',
+                         reg_from='sphere.reg', reg_to='sphere.reg',
                          verbose=None):
     """Get a matrix that morphs data from one subject to another.
 
@@ -2471,12 +2471,12 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         Path to SUBJECTS_DIR is not set in the environment
     warn : bool
         If True, warn if not all vertices were used.
-    from_reg : str
+    reg_from : str
         Source FreeSurfer registration (default 'sphere.reg'). Prefix with
         'lh.' or 'rh.' to load single hemisphere.
-    to_reg : str
-        Destination FreeSurfer registration (default 'sphere.reg'). Hemisphere
-        prefix needs to match ``from_reg``.
+    reg_to : str
+        Destination FreeSurfer registration (default 'sphere.reg'). If
+        ``reg_from`` has a hemisphere prefix, ``reg_to`` needs to have one too.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2488,28 +2488,15 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     """
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    pattern = re.compile("(?:(lh|rh)\.)?(sphere\.(?:reg|left_right))")
-    from_match = pattern.match(from_reg)
-    if from_match is None:
-        raise ValueError("from_reg=%r" % (from_reg,))
-    to_match = pattern.match(to_reg)
-    if to_match is None:
-        raise ValueError("to_reg=%r" % (to_reg,))
-    from_hemi, from_regname = from_match.groups()
-    to_hemi, to_regname = to_match.groups()
-    if from_hemi != to_hemi:
-        raise ValueError(
-            "from_reg and to_reg need to have the same hemisphere; got "
-            "from_reg=%r, to_reg=%r" % (from_reg, to_reg))
+    hemi_from, hemi_to, regname_from, regname_to = _reg_args(reg_from, reg_to)
 
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
-    maps = read_morph_map(subject_from, subject_to, subjects_dir, from_regname,
-                          to_regname)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir, reg_from,
+                          reg_to)
 
     morpher = [None] * 2
     for hemi, hemi_name in enumerate(('lh', 'rh')):
-        if from_hemi is not None and from_hemi != hemi_name:
+        if hemi_from is not None and hemi_from != hemi_name:
             morpher[hemi] = []
             continue
         e = mesh_edges(tris[hemi])
