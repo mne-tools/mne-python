@@ -99,10 +99,12 @@ def test_simulate_raw_sphere():
     #
     raw_sim = simulate_raw(raw, stc, trans, src, sphere, read_cov(cov_fname),
                            head_pos=head_pos_sim,
-                           blink=True, ecg=True, random_state=seed)
+                           blink=True, ecg=True, random_state=seed,
+                           use_cps=True)
     raw_sim_2 = simulate_raw(raw, stc, trans_fname, src_fname, sphere,
                              cov_fname, head_pos=head_pos_sim,
-                             blink=True, ecg=True, random_state=seed)
+                             blink=True, ecg=True, random_state=seed,
+                             use_cps=True)
     assert_array_equal(raw_sim_2[:][0], raw_sim[:][0])
     # Test IO on processed data
     tempdir = _TempDir()
@@ -117,10 +119,12 @@ def test_simulate_raw_sphere():
     for ecg, eog in ((True, False), (False, True), (True, True)):
         raw_sim_3 = simulate_raw(raw, stc, trans, src, sphere,
                                  cov=None, head_pos=head_pos_sim,
-                                 blink=eog, ecg=ecg, random_state=seed)
+                                 blink=eog, ecg=ecg, random_state=seed,
+                                 use_cps=True)
         raw_sim_4 = simulate_raw(raw, stc, trans, src, sphere,
                                  cov=None, head_pos=head_pos_sim,
-                                 blink=False, ecg=False, random_state=seed)
+                                 blink=False, ecg=False, random_state=seed,
+                                 use_cps=True)
         picks = np.arange(len(raw.ch_names))
         diff_picks = pick_types(raw.info, meg=False, ecg=ecg, eog=eog)
         these_picks = np.setdiff1d(picks, diff_picks)
@@ -135,22 +139,27 @@ def test_simulate_raw_sphere():
     # make sure it works with EEG-only and MEG-only
     raw_sim_meg = simulate_raw(raw.copy().pick_types(meg=True, eeg=False),
                                stc, trans, src, sphere, cov=None,
-                               ecg=True, blink=True, random_state=seed)
+                               ecg=True, blink=True, random_state=seed,
+                               use_cps=True)
     raw_sim_eeg = simulate_raw(raw.copy().pick_types(meg=False, eeg=True),
                                stc, trans, src, sphere, cov=None,
-                               ecg=True, blink=True, random_state=seed)
+                               ecg=True, blink=True, random_state=seed,
+                               use_cps=True)
     raw_sim_meeg = simulate_raw(raw.copy().pick_types(meg=True, eeg=True),
                                 stc, trans, src, sphere, cov=None,
-                                ecg=True, blink=True, random_state=seed)
+                                ecg=True, blink=True, random_state=seed,
+                                use_cps=True)
     assert_allclose(np.concatenate((raw_sim_meg[:][0], raw_sim_eeg[:][0])),
                     raw_sim_meeg[:][0], rtol=1e-7, atol=1e-20)
     del raw_sim_meg, raw_sim_eeg, raw_sim_meeg
 
     # check that different interpolations are similar given small movements
     raw_sim = simulate_raw(raw, stc, trans, src, sphere, cov=None,
-                           head_pos=head_pos_sim, interp='linear')
+                           head_pos=head_pos_sim, interp='linear',
+                           use_cps=True)
     raw_sim_hann = simulate_raw(raw, stc, trans, src, sphere, cov=None,
-                                head_pos=head_pos_sim, interp='hann')
+                                head_pos=head_pos_sim, interp='hann',
+                                use_cps=True)
     assert_allclose(raw_sim[:][0], raw_sim_hann[:][0], rtol=1e-1, atol=1e-14)
     del raw_sim, raw_sim_hann
 
@@ -158,34 +167,38 @@ def test_simulate_raw_sphere():
     head_pos_sim_err = deepcopy(head_pos_sim)
     head_pos_sim_err[1.][2, 3] -= 0.1  # z trans upward 10cm
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
-                  ecg=False, blink=False, head_pos=head_pos_sim_err)
+                  ecg=False, blink=False, head_pos=head_pos_sim_err,
+                  use_cps=True)
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src,
                   bem_fname, ecg=False, blink=False,
-                  head_pos=head_pos_sim_err)
+                  head_pos=head_pos_sim_err, use_cps=True)
     # other degenerate conditions
-    assert_raises(TypeError, simulate_raw, 'foo', stc, trans, src, sphere)
-    assert_raises(TypeError, simulate_raw, raw, 'foo', trans, src, sphere)
+    assert_raises(TypeError, simulate_raw, 'foo', stc, trans, src, sphere,
+                  use_cps=True)
+    assert_raises(TypeError, simulate_raw, raw, 'foo', trans, src, sphere,
+                  use_cps=True)
     assert_raises(ValueError, simulate_raw, raw, stc.copy().crop(0, 0),
-                  trans, src, sphere)
+                  trans, src, sphere, use_cps=True)
     stc_bad = stc.copy()
     stc_bad.tstep += 0.1
-    assert_raises(ValueError, simulate_raw, raw, stc_bad, trans, src, sphere)
+    assert_raises(ValueError, simulate_raw, raw, stc_bad, trans, src, sphere,
+                  use_cps=True)
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
-                  chpi=True)  # no cHPI info
+                  chpi=True, use_cps=True)  # no cHPI info
     assert_raises(ValueError, simulate_raw, raw, stc, trans, src, sphere,
-                  interp='foo')
+                  interp='foo', use_cps=True)
     assert_raises(TypeError, simulate_raw, raw, stc, trans, src, sphere,
-                  head_pos=1.)
+                  head_pos=1., use_cps=True)
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
-                  head_pos=pos_fname)  # ends up with t>t_end
+                  head_pos=pos_fname, use_cps=True)  # ends up with t>t_end
     head_pos_sim_err = deepcopy(head_pos_sim)
     head_pos_sim_err[-1.] = head_pos_sim_err[1.]  # negative time
     assert_raises(RuntimeError, simulate_raw, raw, stc, trans, src, sphere,
-                  head_pos=head_pos_sim_err)
+                  head_pos=head_pos_sim_err, use_cps=True)
     raw_bad = raw.copy()
     raw_bad.info['dig'] = None
     assert_raises(RuntimeError, simulate_raw, raw_bad, stc, trans, src, sphere,
-                  blink=True)
+                  blink=True, use_cps=True)
 
 
 @pytest.mark.slowtest
@@ -203,9 +216,10 @@ def test_simulate_raw_bem():
     vertices = [s['vertno'] for s in src]
     stc = SourceEstimate(np.eye(sum(len(v) for v in vertices)), vertices,
                          0, 1. / raw.info['sfreq'])
-    raw_sim_sph = simulate_raw(raw, stc, trans, src, sphere, cov=None)
+    raw_sim_sph = simulate_raw(raw, stc, trans, src, sphere, cov=None,
+                               use_cps=True)
     raw_sim_bem = simulate_raw(raw, stc, trans, src, bem_fname, cov=None,
-                               n_jobs=2)
+                               n_jobs=2, use_cps=True)
     # some components (especially radial) might not match that well,
     # so just make sure that most components have high correlation
     assert_array_equal(raw_sim_sph.ch_names, raw_sim_bem.ch_names)
@@ -251,10 +265,11 @@ def test_simulate_raw_chpi():
     stc = _make_stc(raw, src)
     # simulate data with cHPI on
     raw_sim = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=False,
-                           interp='zero')
+                           interp='zero', use_cps=True)
     # need to trim extra samples off this one
     raw_chpi = simulate_raw(raw, stc, None, src, sphere, cov=None, chpi=True,
-                            head_pos=pos_fname, interp='zero')
+                            head_pos=pos_fname, interp='zero',
+                            use_cps=True)
     # test cHPI indication
     hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(raw.info)
     assert_allclose(raw_sim[hpi_pick][0], 0.)

@@ -556,7 +556,8 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
             surf_ori = False
         if force_fixed is None:
             force_fixed = False
-        convert_forward_solution(fwd, surf_ori, force_fixed, copy=False)
+        convert_forward_solution(fwd, surf_ori=surf_ori,
+                                 force_fixed=force_fixed, copy=False)
     else:
         if is_fixed_orient(fwd, orig=True):
             fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
@@ -606,11 +607,12 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     if use_cps is None:
         if force_fixed:
             use_cps = False
-            warn('The application of cortical patch statistics (cps) will be '
-                 'modified in 0.16. The cps (if available) will then be '
-                 'applied by default for both generating forward operators '
-                 'with fixed orientations and surface-oriented forward '
-                 'operators with free orientations.', FutureWarning)
+            warn('The default settings controlling the the application of '
+                 'cortical patch statistics (cps) in the creation of forward '
+                 'operators with fixed orientation will be modified in 0.16. '
+                 'The cps (if available) will then be applied by default. '
+                 'To avoid this warning, set use_cps explicitly to False (the '
+                 'current default) or True (the new default).', FutureWarning)
         else:
             use_cps = True
 

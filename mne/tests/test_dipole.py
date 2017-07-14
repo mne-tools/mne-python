@@ -105,7 +105,8 @@ def test_dipole_fitting():
     fname_dtemp = op.join(tempdir, 'test.dip')
     fname_sim = op.join(tempdir, 'test-ave.fif')
     fwd = convert_forward_solution(read_forward_solution(fname_fwd),
-                                   surf_ori=False, force_fixed=True)
+                                   surf_ori=False, force_fixed=True,
+                                   use_cps=True)
     evoked = read_evokeds(fname_evo)[0]
     cov = read_cov(fname_cov)
     n_per_hemi = 5
@@ -300,7 +301,7 @@ def test_accuracy():
         src = read_source_spaces(fname_src)
 
         fwd = make_forward_solution(evoked.info, None, src, bem)
-        fwd = convert_forward_solution(fwd, force_fixed=True)
+        fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=True)
         vertices = [src[0]['vertno'], src[1]['vertno']]
         n_vertices = sum(len(v) for v in vertices)
         amp = 10e-9

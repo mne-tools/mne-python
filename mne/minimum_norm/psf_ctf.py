@@ -39,7 +39,7 @@ def _pick_leadfield(leadfield, forward, ch_names):
 @verbose
 def point_spread_function(inverse_operator, forward, labels, method='dSPM',
                           lambda2=1 / 9., pick_ori=None, mode='mean',
-                          n_svd_comp=1, verbose=None):
+                          n_svd_comp=1, use_cps=None, verbose=None):
     """Compute point-spread functions (PSFs) for linear estimators.
 
     Compute point-spread functions (PSF) in labels for a combination of inverse
@@ -77,6 +77,9 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         Number of SVD components for which PSFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-leadfields are shown in screen output.
+    use_cps : None | bool (default None)
+        Whether to use cortical patch statistics to define normal
+        orientations. Only used when surf_ori and/or force_fixed are True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -105,7 +108,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     logger.info("About to process %d labels" % len(labels))
 
     forward = convert_forward_solution(forward, force_fixed=False,
-                                       surf_ori=True)
+                                       surf_ori=True, use_cps=use_cps)
     info = _prepare_info(inverse_operator)
     leadfield = _pick_leadfield(forward['sol']['data'][:, 2::3], forward,
                                 info['ch_names'])
@@ -357,7 +360,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
 @verbose
 def cross_talk_function(inverse_operator, forward, labels,
                         method='dSPM', lambda2=1 / 9., signed=False,
-                        mode='mean', n_svd_comp=1, verbose=None):
+                        mode='mean', n_svd_comp=1, use_cps=None, verbose=None):
     """Compute cross-talk functions (CTFs) for linear estimators.
 
     Compute cross-talk functions (CTF) in labels for a combination of inverse
@@ -393,6 +396,9 @@ def cross_talk_function(inverse_operator, forward, labels,
         Number of SVD components for which CTFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-inverses are shown in screen output.
+    use_cps : None | bool (default None)
+        Whether to use cortical patch statistics to define normal
+        orientations. Only used when surf_ori and/or force_fixed are True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -406,7 +412,7 @@ def cross_talk_function(inverse_operator, forward, labels,
         The last sample is the summed CTF across all labels.
     """
     forward = convert_forward_solution(forward, force_fixed=True,
-                                       surf_ori=True)
+                                       surf_ori=True, use_cps=use_cps)
 
     # get the inverse matrix corresponding to inverse operator
     out = _get_matrix_from_inverse_operator(inverse_operator, forward,

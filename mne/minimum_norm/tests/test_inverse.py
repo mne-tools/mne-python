@@ -360,7 +360,7 @@ def test_make_inverse_operator_free():
     fwd_loose = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                           force_fixed=False)
     fwd_fixed = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                          force_fixed=True, use_cps=False)
+                                          force_fixed=True, use_cps=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 
@@ -561,7 +561,8 @@ def test_apply_mne_inverse_fixed_raw():
                                     surf_ori=True)
     noise_cov = read_cov(fname_cov)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
-                                   loose=None, depth=0.8, fixed=True)
+                                   loose=None, depth=0.8, fixed=True,
+                                   use_cps=True)
 
     inv_op2 = prepare_inverse_operator(inv_op, nave=1,
                                        lambda2=lambda2, method="dSPM")

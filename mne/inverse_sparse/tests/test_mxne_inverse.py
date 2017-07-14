@@ -64,7 +64,7 @@ def test_mxne_inverse():
     # Reduce source space to make test computation faster
     inverse_operator = make_inverse_operator(evoked_l21.info, forward, cov,
                                              loose=loose, depth=depth,
-                                             fixed=True)
+                                             fixed=True, use_cps=True)
     stc_dspm = apply_inverse(evoked_l21, inverse_operator, lambda2=1. / 9.,
                              method='dSPM')
     stc_dspm.data[np.abs(stc_dspm.data) < 12] = 0.0

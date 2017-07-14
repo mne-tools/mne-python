@@ -49,9 +49,8 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori = _read_forward_solution_meg(
             fname_fwd, surf_ori=True)
         forward_fixed = _read_forward_solution_meg(
-            fname_fwd, force_fixed=True, surf_ori=True)
-        forward_vol = _read_forward_solution_meg(
-            fname_fwd_vol, surf_ori=True)
+            fname_fwd, force_fixed=True, surf_ori=True, use_cps=False)
+        forward_vol = _read_forward_solution_meg(fname_fwd_vol, surf_ori=True)
     else:
         forward_surf_ori = None
         forward_fixed = None

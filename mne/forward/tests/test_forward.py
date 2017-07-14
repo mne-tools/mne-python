@@ -65,10 +65,12 @@ def test_convert_forward():
     assert_true(isinstance(fwd, Forward))
     # look at surface orientation
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
-    # This following test can be removed in 0.16
+
+    # The following test can be removed in 0.16
     fwd_surf_io = read_forward_solution(fname_meeg_grad, surf_ori=True)
     compare_forwards(fwd_surf, fwd_surf_io)
     del fwd_surf_io
+
     gc.collect()
     # go back
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
@@ -77,16 +79,17 @@ def test_convert_forward():
     compare_forwards(fwd, fwd_new)
     # now go to fixed
     fwd_fixed = convert_forward_solution(fwd_surf, surf_ori=False,
-                                         force_fixed=True)
+                                         force_fixed=True, use_cps=False)
     del fwd_surf
     gc.collect()
     assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
-    # This following test can be removed in 0.16
-    fwd_fixed_io = read_forward_solution(fname_meeg_grad, surf_ori=False,
-                                         force_fixed=True)
+
+    # The following test can be removed in 0.16
+    fwd_fixed_io = read_forward_solution(fname_meeg_grad, force_fixed=True)
     compare_forwards(fwd_fixed, fwd_fixed_io)
     del fwd_fixed_io
+
     gc.collect()
     # now go back to cartesian (original condition)
     fwd_new = convert_forward_solution(fwd_fixed, surf_ori=False,
@@ -129,7 +132,8 @@ def test_io_forward():
     assert_array_almost_equal(fwd['sol']['data'], fwd_read['sol']['data'])
 
     fwd = read_forward_solution(fname_meeg_grad)
-    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
+    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                   use_cps=True)
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (n_channels, n_src / 3))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
@@ -164,7 +168,8 @@ def test_apply_forward():
     t_start = 0.123
 
     fwd = read_forward_solution(fname_meeg)
-    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
+    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                   use_cps=True)
     fwd = pick_types_forward(fwd, meg=True)
     assert_true(isinstance(fwd, Forward))
 
@@ -214,7 +219,8 @@ def test_restrict_forward_to_stc():
     t_start = 0.123
 
     fwd = read_forward_solution(fname_meeg)
-    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
+    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                   use_cps=True)
     fwd = pick_types_forward(fwd, meg=True)
 
     vertno = [fwd['src'][0]['vertno'][0:15], fwd['src'][1]['vertno'][0:5]]
@@ -260,7 +266,8 @@ def test_restrict_forward_to_label():
     """Test restriction of source space to label
     """
     fwd = read_forward_solution(fname_meeg)
-    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
+    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                   use_cps=True)
     fwd = pick_types_forward(fwd, meg=True)
 
     label_path = op.join(data_path, 'MEG', 'sample', 'labels')
