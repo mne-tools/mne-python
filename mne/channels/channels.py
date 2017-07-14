@@ -334,7 +334,8 @@ class SetChannelsMixin(object):
                                 references.
         """
         from ..io.reference import set_eeg_reference
-        return set_eeg_reference(self, ref_channels, projection, copy=False)[0]
+        return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
+                                 projection=projection)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
