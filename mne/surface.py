@@ -1011,7 +1011,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
         reg = '%s.sphere.reg'
         hemis = (('lh', 'lh'), ('rh', 'rh'))
 
-    return [_make_morph_map_hemi(subject_to, subject_from, subjects_dir,
+    return [_make_morph_map_hemi(subject_from, subject_to, subjects_dir,
                                  reg % hemi_from, reg % hemi_to)
             for hemi_from, hemi_to in hemis]
 
