@@ -389,7 +389,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
                     logger.info('Average reference projection was added, '
                                 'but has not been applied yet. Use the '
                                 'apply_proj method to apply projections.')
-            except:  # TODO: which exception is caught here?
+            except Exception:  # TODO: which exception is caught here?
                 inst.info['custom_ref_applied'] = custom_ref_applied
                 raise  # TODO: re-raise specific exception
             return inst, None
