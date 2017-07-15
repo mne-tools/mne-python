@@ -839,7 +839,7 @@ def test_epochs_proj():
         epochs.set_eeg_reference().apply_proj()
         assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
-        epochs.set_eeg_reference()
+        epochs.set_eeg_reference(projection=True)
         assert_raises(AssertionError, assert_allclose,
                       epochs.get_data().mean(axis=1), 0., atol=1e-15)
         epochs.apply_proj()
@@ -1552,7 +1552,7 @@ def test_epochs_proj_mixin():
         epochs_proj = Epochs(
             raw, events[:4], event_id, tmin, tmax, picks=picks,
             proj=True, preload=preload,
-            reject=reject).set_eeg_reference().apply_proj()
+            reject=reject).set_eeg_reference(projection=True).apply_proj()
 
         epochs_noproj = Epochs(
             raw, events[:4], event_id, tmin, tmax, picks=picks,
