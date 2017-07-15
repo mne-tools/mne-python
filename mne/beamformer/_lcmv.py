@@ -65,6 +65,18 @@ def _setup_picks(picks, info, forward, noise_cov=None):
     return picks
 
 
+def _check_one_ch_type(info, picks, noise_cov):
+    # check number of sensor types present in the data and presence of
+    # noise covariance matrix
+    info_pick = pick_info(info, sel=picks)
+    ch_types =\
+        [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
+    if sum(ch_types) > 1 and noise_cov is None:
+        raise ValueError('Source reconstruction with several sensor types '
+                         'requires a set of noise covariance matrices to be '
+                         'able to apply whitening.')
+
+
 @verbose
 def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
                 data_cov=None, label=None, picks=None, pick_ori=None,
@@ -87,13 +99,7 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
     Cm = data_cov['data']
 
     # check number of sensor types present in the data
-    info_pick = pick_info(info, sel=picks)
-    ch_types =\
-        [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
-    if sum(ch_types) > 1 and noise_cov is None:
-        raise ValueError('Source reconstruction with several sensor types '
-                         'requires a noise covariance matrix to be able to '
-                         'apply whitening.')
+    _check_one_ch_type(info, picks, noise_cov)
 
     # apply SSPs
     if info['projs']:
@@ -617,11 +623,10 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
                        label=None, picks=None, pick_ori=None, rank=None,
                        weight_norm=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer."""
-
     if weight_norm not in [None, 'unit-noise-gain']:
         raise ValueError('Unrecognized weight normalization option in '
                          'weight_norm, available choices are None and '
-                         '"unit-noise-gain".')
+                         '"unit-noise-gain", got "%s".' % weight_norm)
 
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
@@ -635,6 +640,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
     info = pick_info(
         info, [info['ch_names'].index(k) for k in ch_names
                if k in info['ch_names']])
+
     if noise_cov is not None:
         whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
 
@@ -802,13 +808,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     ch_names = [epochs.ch_names[k] for k in picks]
 
     # check number of sensor types present in the data
-    info_pick = pick_info(epochs.info, sel=picks)
-    ch_types =\
-        [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
-    if sum(ch_types) > 1 and noise_covs is None:
-        raise ValueError('Source reconstruction with several sensor types '
-                         'requires a set of noise covariance matrices to be '
-                         'able to apply whitening.')
+    _check_one_ch_type(epochs.info, picks, noise_covs)
 
     # Use picks from epochs for picking channels in the raw object
     raw_picks = [raw.ch_names.index(c) for c in ch_names]
