@@ -272,7 +272,8 @@ def test_lcmv_source_power():
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     stc_source_power = _lcmv_source_power(epochs.info, forward, noise_cov,
-                                          data_cov, label=label)
+                                          data_cov, label=label,
+                                          weight_norm='unit-noise-gain')
 
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
@@ -283,7 +284,7 @@ def test_lcmv_source_power():
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = _lcmv_source_power(
         epochs.info, forward_surf_ori, noise_cov, data_cov,
-        pick_ori="normal", label=label)
+        pick_ori="normal", label=label, weight_norm='unit-noise-gain')
 
     # The normal orientation results should always be smaller than free
     # orientation results
@@ -369,7 +370,7 @@ def test_tf_lcmv():
                 with warnings.catch_warnings(record=True):  # bad proj
                     stc_source_power = _lcmv_source_power(
                         epochs.info, forward, noise_cov, data_cov,
-                        reg=reg, label=label)
+                        reg=reg, label=label, weight_norm='unit-noise-gain')
                 source_power.append(stc_source_power.data)
 
     with warnings.catch_warnings(record=True):
@@ -405,6 +406,16 @@ def test_tf_lcmv():
     # Test if time step exceeding window lengths is detected
     assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
                   tstep=0.15, win_lengths=[0.2, 0.1], freq_bins=freq_bins)
+
+    # Test if missing of noise covariance matrix is detected when more than
+    # one channel type is present in the data
+    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs=None,
+                  tmin=tmin, tmax=tmax, tstep=tstep, win_lengths=win_lengths,
+                  freq_bins=freq_bins)
+
+    # Test if unsupported weight normalization specification is detected
+    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+                  tstep, win_lengths, freq_bins, weight_norm='nai')
 
     # Test correct detection of preloaded epochs objects that do not contain
     # the underlying raw object
