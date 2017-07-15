@@ -2470,7 +2470,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     warn : bool
         If True, warn if not all vertices were used.
     xhemi : bool
-        Morph across hemisphere. Currenly only implemented for
+        Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. Requires appropriate
         ``sphere.left_right`` morph-maps, which are included with the
         ``fsaverage_sym`` FreeSurfer subject and can be created for other

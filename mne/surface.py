@@ -837,7 +837,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment.
     xhemi : bool
-        Morph across hemisphere. Currenly only implemented for
+        Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. Requires appropriate
         ``sphere.left_right`` morph-maps, which are included with the
         ``fsaverage_sym`` FreeSurfer subject and can be created for other
@@ -934,7 +934,7 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
 
 
 def _read_morph_map(fname, subject_from, subject_to):
-    """Read a morph map from disk"""
+    """Read a morph map from disk."""
     f, tree, _ = fiff_open(fname)
     with f as fid:
         # Locate all maps
@@ -1018,7 +1018,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
 
 def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
                          reg_to):
-    """Construct morph map for one hemisphere"""
+    """Construct morph map for one hemisphere."""
     # add speedy short-circuit for self-maps
     if subject_from == subject_to and reg_from == reg_to:
         fname = op.join(subjects_dir, subject_from, 'surf', reg_from)
