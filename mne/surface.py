@@ -867,12 +867,14 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
             raise NotImplementedError(
                 "Morph-maps between hemispheres are currently only "
                 "implemented for subject_to == subject_from")
-        map_names = [subject_from + '-xhemi']
+        map_name_temp = '%s-%s-xhemi'
         log_msg = 'Creating morph map %s -> %s xhemi'
     else:
-        map_names = ['-'.join((subject_from, subject_to)),
-                     '-'.join((subject_to, subject_from))]
+        map_name_temp = '%s-%s'
         log_msg = 'Creating morph map %s -> %s'
+
+    map_names = [map_name_temp % (subject_from, subject_to),
+                 map_name_temp % (subject_to, subject_from)]
 
     # find existing file, otherwise make it
     for map_name in map_names:
