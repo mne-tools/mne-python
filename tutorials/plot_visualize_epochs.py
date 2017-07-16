@@ -73,12 +73,14 @@ epochs['smiley'].plot(events=events)
 epochs.plot_image(278, cmap='interactive')
 
 ###############################################################################
-# We can also give an overview over all channels, for example by calculating
-# the global field power. However, combining multiple channel types (e.g., MEG
-# and EEG) in this way is not sensible. For this, we can use the `groupby`
-# parameter. `type` combines channels by type.
+# We can also give an overview of all channels by calculating  the global
+# field power (or other other aggregation methods). However, combining
+# multiple channel types (e.g., MEG and EEG) in this way is not sensible.
+# Instead, we can use the `groupby` parameter. Setting `groupby` to `type`
+# combines channels by type.
 # `groupby` can also be used to group channels into arbitrary groups, e.g.
-# regions of interests, by providing a dictionary.
+# regions of interests, by providing a dictionary containing
+# group name -> channel indices mappings.
 epochs.plot_image(combine='gfp', groupby='type')
 
 ###############################################################################

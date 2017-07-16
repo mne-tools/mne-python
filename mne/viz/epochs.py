@@ -295,11 +295,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
             raise ValueError('Both figure and axes were passed, please'
                              'decide between the two.')
         from .utils import _validate_if_list_of_axes
-        oblig_len = 3
-        if not colorbar:
-            oblig_len -= 1
-        if not draw_evoked:
-            oblig_len -= 1
+        oblig_len = 3 - ((not colorbar) + (not draw_evoked))
         _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
         ax1 = axes[0]
         if draw_evoked:
@@ -346,9 +342,8 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     if callable(order):
         order = order(epochs.times, data)
     if order is not None and (len(order) != len(data)):
-        raise ValueError('size of order parameter (%s) does not '
-                         'match the number of epochs (%s).'
-                         % (len(order), len(data)))
+        raise ValueError(("`combine` must be None, a callable or one out "
+                          "of 'mean' or 'gfp'. Got " + str(type(combine))))
 
     if order is not None:
         order = np.asarray(order)
@@ -365,7 +360,6 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
-
 
     if cmap is None:
         cmap = "Reds" if data.min() >= 0 else 'RdBu_r'

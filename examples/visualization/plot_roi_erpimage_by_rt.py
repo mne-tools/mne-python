@@ -57,14 +57,12 @@ epochs = Epochs(raw, events=new_events, tmax=tmax + .1,
 ###############################################################################
 # Plot
 
-## construct ROIs
+## construct ROIs (ROI name-to-list of picks mappings)
 rois = dict()
 for pick, channel in enumerate(epochs.ch_names):
-    last_char = channel[-1]  # assign channels to ROIs based on 10/20 system
-    if last_char == "z":
-        roi = "Midline"
-    else:
-        roi = "Left" if int(last_char) % 2 else "Right"
+    last_char = channel[-1]  # for 10/20, last letter codes the hemisphere
+    roi = ("Midline" if last_char == "z" else
+           ("Left" if int(last_char) % 2 else "Right"))
     rois[roi] = rois.get(roi, list()) + [pick]
 
 ## set up corresponding axes to plot to
@@ -75,7 +73,6 @@ for ii, roi in enumerate(sorted(rois.keys())):
     axes[roi] = [im_ax, ts_ax]
 
 ## Parameters for plotting
-overlay_times = rts / 1000  # RT in seconds
 order = rts.argsort()  # sorting from fast to slow trials
 
 
@@ -84,8 +81,8 @@ def combine(data):  # we will take the median of each ROI
 
 ## The actual plot
 epochs["square"].plot_image(
-    groupby=rois, combine=combine, axes=axes,
-    overlay_times=overlay_times, order=order, colorbar=False)
+    groupby=rois, combine=combine, axes=axes, order=order,
+    overlay_times=rts / 1000, colorbar=False, sigma=1)
 for roi in ("Midline", "Right"):  # uncrowd visually
     for ax in axes[roi]:
         ax.set_ylabel('')
