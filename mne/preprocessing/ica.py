@@ -2231,7 +2231,7 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
-                  layout, cmap, contours, template=True):
+                  layout, cmap, contours, template=False):
     """Customize ica.plot_components for corrmap."""
     if not template:
         title = 'Detected components'
@@ -2414,7 +2414,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                                          icas[0].copy(), "Template",
                                          outlines=outlines, cmap=cmap,
                                          contours=contours, layout=layout,
-                                         show=show, template=True)
+                                         show=show)
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
