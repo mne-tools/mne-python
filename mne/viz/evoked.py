@@ -1581,46 +1581,41 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ch_type = ch_types[0]
         ymin, ymax = ylim.get(ch_type, [None, None])
 
-    scaling = _handle_default("scalings")[ch_type]
-    unit = _handle_default("units")[ch_type]
-
-    if ch_type == 'grad' and gfp is not True:  # deal with grad pairs
-        picks, ch_names = _grad_pair_pick_and_name(example.info, picks)
-
-    if ymin is None and (gfp is True or ch_type == 'grad'):
-        ymin = 0.  # 'grad' and GFP are plotted as all-positive
-
     # deal with dict/list of lists and the CI
     if not isinstance(ci, np.float):
         raise TypeError('"ci" must be float, got {0}.'.format(type(ci)))
 
+    scaling = _handle_default("scalings")[ch_type]
+    unit = _handle_default("units")[ch_type]
+
+    if ch_type == 'grad':  # deal with grad pairs
+        from ..channels.layout import _merge_grad_data
+        if gfp is not True:
+            picks, ch_names = _grad_pair_pick_and_name(example.info, picks)
+
+    if ymin is None and (gfp is True or ch_type == 'grad'):
+        ymin = 0.  # 'grad' and GFP are plotted as all-positive
+
     # if we have a dict/list of lists, we compute the grand average and the CI
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
-        if ci is not None and gfp is not True:
+        if ch_type == 'grad' or gfp is True:
+            ci = False
+            logger.info("CI not drawn for all-positive data.")
+        if ci is True:
             # calculate the CI
             sem_array = dict()
             for condition in conditions:
                 # this will fail if evokeds do not have the same structure
                 # (e.g. channel count)
-                if ch_type == 'grad' and gfp is not True:
-                    from ..channels.layout import _merge_grad_data
-                    data = np.asarray([
-                        _merge_grad_data(
-                            evoked_.data[picks, :]).mean(0)
-                        for evoked_ in evokeds[condition]])
-                else:
-                    data = np.asarray([evoked_.data[picks, :].mean(0)
-                                       for evoked_ in evokeds[condition]])
+                data = np.asarray([evoked_.data[picks, :].mean(0)
+                                   for evoked_ in evokeds[condition]])
                 sem_array[condition] = _ci(data, ci)
 
         # get the grand mean
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
                        for cond in conditions)
 
-        if gfp is True and ci is not None:
-            warn("Confidence Interval not drawn when plotting GFP.")
-    else:
-        ci = False
+    if ci is False:
         # check if they are compatible (XXX there should be a cleaner way)
         combine_evoked(list(evokeds.values()), weights='nave')
     # we now have dicts for data ('evokeds' - grand averaged Evoked's)
@@ -1694,7 +1689,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     for condition in conditions:
         # plot the actual data ('d') as a line
         if ch_type == 'grad' and gfp is False:
-            print("hihihihihihihihihi")
             d = (_merge_grad_data(evokeds[condition]
                  .data[picks, :]).T * scaling).mean(-1)
         else:
@@ -1710,7 +1704,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             any_negative = True
 
         # plot the confidence interval (standard error of the mean/'sem_')
-        if ci and gfp is not True:
+        if ci and (gfp is not True):
             sem_ = sem_array[condition] * scaling
             axes.fill_between(times, sem_[0].flatten(),
                               sem_[1].flatten(), zorder=100,
