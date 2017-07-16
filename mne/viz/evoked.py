@@ -1588,17 +1588,19 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     scaling = _handle_default("scalings")[ch_type]
     unit = _handle_default("units")[ch_type]
 
-    if ch_type == 'grad':  # deal with grad pairs
+    all_positive = gfp  # True if not gfp, False if gfp
+    if ch_type == 'grad' and len(picks) > 1:  # deal with grad pairs
         from ..channels.layout import _merge_grad_data
+        all_positive = True
         if gfp is not True:
             picks, ch_names = _grad_pair_pick_and_name(example.info, picks)
 
-    if ymin is None and (gfp is True or ch_type == 'grad'):
+    if (ymin is None) and all_positive:
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
     # if we have a dict/list of lists, we compute the grand average and the CI
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
-        if ch_type == 'grad' or gfp is True:
+        if all_positive:
             ci = False
             logger.info("CI not drawn for all-positive data.")
         if ci is not False:
@@ -1688,7 +1690,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     any_negative, any_positive = False, False
     for condition in conditions:
         # plot the actual data ('d') as a line
-        if ch_type == 'grad' and gfp is False:
+        if ch_type == 'grad' and len(picks) > 1 and gfp is False:
             d = (_merge_grad_data(evokeds[condition]
                  .data[picks, :]).T * scaling).mean(-1)
         else:
@@ -1698,7 +1700,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             else:
                 d = d.mean(-1)
         axes.plot(times, d, zorder=1000, label=condition, **styles[condition])
-        if np.any(d > 0):
+        if any(d > 0) or all_positive:
             any_positive = True
         if np.any(d < 0):
             any_negative = True

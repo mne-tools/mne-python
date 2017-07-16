@@ -67,13 +67,13 @@ def order_func(times, data):
     return np.argsort(spectral_embedding(rbf_kernel(this_data, gamma=1.),
                       n_components=1, random_state=0).ravel())
 
-good_pick = 115  # channel with a clear evoked response
-bad_pick = 117  # channel with no evoked response
+good_pick = 97  # channel with a clear evoked response
+bad_pick = 98  # channel with no evoked response
 
 # We'll also plot a sample time onset for each trial
 plt_times = np.linspace(0, .2, len(epochs))
 
 plt.close('all')
-mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=.75,
-                          vmax=220, colorbar=True, order=order_func,
+mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=.5, cmap='viridis',
+                          vmax=275, colorbar=True, order=order_func,
                           overlay_times=plt_times, show=True)
