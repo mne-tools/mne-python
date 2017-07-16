@@ -391,7 +391,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     #### draw the evoked ####
     if draw_evoked:
         from mne.viz import plot_compare_evokeds
-        ylim = dict()
+        ylim = dict()  # {ch_type: (vmin * scaling, vmax * scaling)}
         plot_compare_evokeds({"cond":list(epochs.iter_evoked())},
                               colors={"cond":"black"},
                               axes=ax2, ylim=ylim, picks=[0], title='',

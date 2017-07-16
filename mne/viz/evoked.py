@@ -1601,7 +1601,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         if ch_type == 'grad' or gfp is True:
             ci = False
             logger.info("CI not drawn for all-positive data.")
-        if ci is True:
+        if ci is not False:
             # calculate the CI
             sem_array = dict()
             for condition in conditions:
