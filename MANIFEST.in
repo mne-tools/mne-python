@@ -10,21 +10,20 @@ recursive-include tutorials *.txt
 recursive-include mne *.py
 recursive-include mne/data *
 recursive-include mne/data/helmets *
-recursive-include mne/data/fsaverage *
 recursive-include mne/data/image *
+recursive-include mne/data/fsaverage *
 
-recursive-include mne/channels/data/montages *
 recursive-include mne/channels/data/layouts *
+recursive-include mne/channels/data/montages *
 recursive-include mne/channels/data/neighbors *
-
-recursive-include mne/io/artemis123/resources *
-recursive-include mne/html *.js
-recursive-include mne/html *.css
 
 recursive-include mne/gui/help *.json
 
-include mne/data/image/mni_brain.gif
-include mne/data/FreeSurferColorLUT.txt
+recursive-include mne/html *.js
+recursive-include mne/html *.css
+
+recursive-include mne/io/artemis123/resources *
+
 
 ### Exclude
 
