@@ -152,7 +152,7 @@ script:
     - nosetests -a "${CONDITION}" --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 ${COVERAGE} ${USE_DIRS};
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
-        check-manifest --ignore doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data
+        check-manifest --ignore doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
       fi;
 
 after_success:
