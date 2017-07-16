@@ -2297,8 +2297,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     specific ICs across subjects.
 
     The specific procedure consists of two iterations. In a first step, the
-    maps best correlating with the template are identified. In the step, the
-    analysis is repeated with the mean of the maps identified in the first
+    maps best correlating with the template are identified. In the next step,
+    the analysis is repeated with the mean of the maps identified in the first
     stage.
 
     Run with `plot` and `show` set to `True` and `label=False` to find
