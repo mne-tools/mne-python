@@ -17,35 +17,11 @@ recursive-include mne/channels/data/montages *
 recursive-include mne/channels/data/layouts *
 recursive-include mne/channels/data/neighbors *
 
-### Test files
-
-recursive-include mne/preprocessing/tests/data *
-# recursive-include mne/io/tests/data *.cov
-# recursive-include mne/io/tests/data *.ave
-# recursive-include mne/io/tests/data *.eve
-recursive-include mne/io/tests/data *
-recursive-include mne/io/bti/tests/data *
-recursive-include mne/io/egi/tests/data *
-recursive-include mne/io/kit/tests/data *
-recursive-include mne/io/edf/tests/data *
-recursive-include mne/io/brainvision/tests/data *
 recursive-include mne/io/artemis123/resources *
-recursive-include mne/io/nicolet/tests/data *
-
 recursive-include mne/html *.js
 recursive-include mne/html *.css
 
 recursive-include mne/gui/help *.json
-
-# recursive-include mne *.sqd
-# recursive-include mne *.raw
-# recursive-include mne *.vhdr
-# recursive-include mne *.vmrk
-# recursive-include mne *.label
-# recursive-include mne *.elp
-# recursive-include mne *.eeg
-# recursive-include mne *.head
-# recursive-include mne *.log
 
 include mne/data/image/mni_brain.gif
 include mne/data/FreeSurferColorLUT.txt
@@ -64,3 +40,14 @@ exclude .mailmap
 
 recursive-exclude doc *
 recursive-exclude logo *
+
+# Test files
+
+recursive-exclude mne/io/tests/data *
+recursive-exclude mne/io/bti/tests/data *
+recursive-exclude mne/io/edf/tests/data *
+recursive-exclude mne/io/kit/tests/data *
+recursive-exclude mne/io/brainvision/tests/data *
+recursive-exclude mne/io/egi/tests/data *
+recursive-exclude mne/io/nicolet/tests/data *
+recursive-exclude mne/preprocessing/tests/data *
