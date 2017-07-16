@@ -1,31 +1,66 @@
 include *.rst
 include LICENSE.txt
 include mne/__init__.py
-# recursive-include doc *
+
 recursive-include examples *.py
 recursive-include examples *.txt
+recursive-include tutorials *.py
+recursive-include tutorials *.txt
+
 recursive-include mne *.py
-recursive-include mne/data *.dat
-recursive-include mne/data *.sel
-recursive-include mne/data *.fif
-recursive-include mne/data *.fif.gz
-recursive-include mne/channels/data/montages *.elc
-recursive-include mne/channels/data/montages *.txt
-recursive-include mne/channels/data/montages *.csd
-recursive-include mne/channels/data/montages *.sfp
-recursive-include mne/channels/data/layouts *.lout
-recursive-include mne/channels/data/layouts *.lay
-recursive-include mne/channels/data/neighbors *.mat
-recursive-include mne/preprocessing/tests/data *.mat
+recursive-include mne/data *
+recursive-include mne/data/helmets *
+recursive-include mne/data/fsaverage *
+recursive-include mne/data/image *
+
+recursive-include mne/channels/data/montages *
+recursive-include mne/channels/data/layouts *
+recursive-include mne/channels/data/neighbors *
+
+### Test files
+
+recursive-include mne/preprocessing/tests/data *
+# recursive-include mne/io/tests/data *.cov
+# recursive-include mne/io/tests/data *.ave
+# recursive-include mne/io/tests/data *.eve
+recursive-include mne/io/tests/data *
+recursive-include mne/io/bti/tests/data *
+recursive-include mne/io/egi/tests/data *
+recursive-include mne/io/kit/tests/data *
+recursive-include mne/io/edf/tests/data *
+recursive-include mne/io/brainvision/tests/data *
+recursive-include mne/io/artemis123/resources *
+recursive-include mne/io/nicolet/tests/data *
+
 recursive-include mne/html *.js
 recursive-include mne/html *.css
+
 recursive-include mne/gui/help *.json
+
+# recursive-include mne *.sqd
+# recursive-include mne *.raw
+# recursive-include mne *.vhdr
+# recursive-include mne *.vmrk
+# recursive-include mne *.label
+# recursive-include mne *.elp
+# recursive-include mne *.eeg
+# recursive-include mne *.head
+# recursive-include mne *.log
+
+include mne/data/image/mni_brain.gif
+include mne/data/FreeSurferColorLUT.txt
+
+### Exclude
+
 recursive-exclude examples/MNE-sample-data *
 recursive-exclude examples/MNE-testing-data *
 recursive-exclude examples/MNE-spm-face *
 recursive-exclude examples/MNE-somato-data *
-# recursive-exclude mne/io/tests/data *
-# recursive-exclude mne/io/bti/tests/data *
-# recursive-exclude mne/io/kit/tests/data *
-# recursive-exclude mne/io/edf/tests/data *
-# recursive-exclude mne/io/brainvision/tests/data *
+exclude Makefile
+exclude .coveragerc
+exclude *.yml
+exclude dictionary.txt
+exclude .mailmap
+
+recursive-exclude doc *
+recursive-exclude logo *

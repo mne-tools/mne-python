@@ -73,7 +73,7 @@ matrix:
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov nose-timer nose-faulthandler"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov nose-timer nose-faulthandler check-manifest"
                MNE_DIRS=""
 
 # Setup anaconda
@@ -152,6 +152,7 @@ script:
     - nosetests -a "${CONDITION}" --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 ${COVERAGE} ${USE_DIRS};
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
+        check-manifest
       fi;
 
 after_success:
