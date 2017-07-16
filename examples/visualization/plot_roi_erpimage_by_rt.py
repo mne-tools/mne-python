@@ -16,7 +16,7 @@ sorted by response time.
 #
 # License: BSD (3-clause)
 
-from numpy import median
+import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
@@ -60,7 +60,7 @@ epochs = Epochs(raw, events=new_events, tmax=tmax + .1,
 ## construct ROIs
 rois = dict()
 for pick, channel in enumerate(epochs.ch_names):
-    last_char = channel[-1]
+    last_char = channel[-1]  # assign channels to ROIs based on 10/20 system
     if last_char == "z":
         roi = "Midline"
     else:
@@ -80,7 +80,7 @@ order = rts.argsort()  # sorting from fast to slow trials
 
 
 def combine(data):  # we will take the median of each ROI
-    return median(data, axis=1)
+    return np.median(data, axis=1)
 
 ## The actual plot
 epochs["square"].plot_image(
