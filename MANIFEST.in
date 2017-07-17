@@ -34,9 +34,9 @@ recursive-exclude examples/MNE-somato-data *
 exclude Makefile
 exclude .coveragerc
 exclude *.yml
-exclude *.pyc
 exclude dictionary.txt
 exclude .mailmap
+recursive-exclude mne *.pyc
 
 recursive-exclude doc *
 recursive-exclude logo *
