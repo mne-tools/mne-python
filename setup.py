@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #
 
-# Copyright (C) 2011-2014 Alexandre Gramfort
+# Copyright (C) 2011-2017 Alexandre Gramfort
 # <alexandre.gramfort@telecom-paristech.fr>
 
 import os
