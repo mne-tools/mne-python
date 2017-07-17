@@ -43,9 +43,9 @@ evoked = evoked.pick_types(eeg=False, meg=True)
 forward = mne.read_forward_solution(fwd_fname)
 forward = mne.convert_forward_solution(forward, surf_ori=True)
 
+
 ###############################################################################
 # Auxiliary function to run the solver
-
 def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     """Function to call a custom solver on evoked data
 

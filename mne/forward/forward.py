@@ -560,8 +560,8 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
                                  force_fixed=force_fixed, copy=False)
     else:
         if is_fixed_orient(fwd, orig=True):
-            fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
-                                           for s in fwd['src']], axis=0)
+            fwd['source_nn'] = np.concatenate([_src['nn'][_src['vertno'], :]
+                                              for _src in fwd['src']], axis=0)
             fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
             fwd['surf_ori'] = True
         else:
