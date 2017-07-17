@@ -7,6 +7,7 @@
 
 import numpy as np
 from scipy import linalg
+from copy import deepcopy
 
 from ..io.constants import FIFF
 from ..io.proj import make_projector
@@ -73,28 +74,94 @@ def _check_one_ch_type(info, picks, noise_cov):
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
     if sum(ch_types) > 1 and noise_cov is None:
         raise ValueError('Source reconstruction with several sensor types '
-                         'requires a set of noise covariance matrices to be '
+                         'requires a noise covariance matrix to be '
                          'able to apply whitening.')
 
 
+def _pick_channels_spatial_filter(ch_names, spat_filt):
+    """Return data channel indices to be used with spatial filter.
+
+    Unlike ``pick_channels``, this respects the order of ch_names.
+    """
+    sel = list()
+    for name in spat_filt['ch_names']:
+        try:
+            sel.append(ch_names.index(name))
+        except ValueError:
+            raise ValueError('The inverse operator was computed with '
+                             'channel %s which is not present in '
+                             'the data. You should compute a new inverse '
+                             'operator restricted to the good data '
+                             'channels.' % name)
+    return sel
+
+
 @verbose
-def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
-                data_cov=None, label=None, picks=None, pick_ori=None,
-                rank=None, weight_norm=None, max_ori_out=None, verbose=None):
-    """LCMV beamformer for evoked data, single epochs, and raw data."""
+def make_lcmv_filter(info, forward, data_cov, reg=0.05, noise_cov=None,
+                     label=None, picks=None, pick_ori=None, rank=None,
+                     weight_norm='unit-noise-gain', verbose=None):
+    """Compute LCMV spatial filter.
+
+    Parameters
+    ----------
+    info : dict
+        The measurement info to specify the channels to include.
+        Bad channels in info['bads'] are not used.
+    forward : dict
+        Forward operator
+    data_cov : Covariance
+        The data covariance
+    reg : float
+        The regularization for the whitened data covariance.
+    noise_cov : Covariance
+        The noise covariance. If provided, whitening will be done. Providing a
+        noise covariance is mandatory if you mix sensor types, e.g.
+        gradiometers with magnetometers or EEG with MEG.
+    label : Label
+        Restricts the LCMV solution to a given label
+    picks : array-like of int
+        Channel indices to use for beamforming (if None all channels
+        are used except bad channels).
+    pick_ori : None | 'normal' | 'max-power'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept. If 'max-power', the source
+        orientation that maximizes output source power is chosen.
+    rank : None | int | dict
+        Specified rank of the noise covariance matrix. If None, the rank is
+        detected automatically. If int, the rank is specified for the MEG
+        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
+        to specify the rank for each modality.
+    weight_norm: 'unit-noise-gain'| 'nai' | None
+        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
+        will be computed (Borgiotti-Kaplan beamformer) [2]_,
+        if 'nai', the Neural Activity Index [1]_ will be computed
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    spatial_filter | dict
+        Beamformer weights.
+
+    Notes
+    -----
+    The original reference is [1]_
+
+    References
+    ----------
+    .. [1] Van Veen et al. Localization of brain electrical activity via
+           linearly constrained minimum variance spatial filtering.
+           Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
+           brain imaging (2008) Springer Science & Business Media
+    """
+
+    picks = _setup_picks(picks, info, forward, noise_cov)
+
     is_free_ori, ch_names, proj, vertno, G = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
-    if max_ori_out == 'abs':
-        warn('max_ori_out and the return of absolute values is deprecated and '
-             'will be removed in 0.16. Set it to "signed" to remove this '
-             'warning, this will return signed time series.',
-             DeprecationWarning)
-
-    # data covariance
-    if data_cov is None:
-        raise ValueError('Source reconstruction with beamformers requires '
-                         'a data covariance matrix.')
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
 
@@ -102,8 +169,10 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
     _check_one_ch_type(info, picks, noise_cov)
 
     # apply SSPs
+    is_ssp = False
     if info['projs']:
         Cm = np.dot(proj, np.dot(Cm, proj.T))
+        is_ssp = True
 
     if noise_cov is not None:
         # Handle whitening + data covariance
@@ -211,44 +280,70 @@ def _apply_lcmv(data, info, tmin, forward, reg, noise_cov=None,
         W = W[2::3]
         is_free_ori = False
 
+    spat_filt = dict(weights=W, data_cov=data_cov, noise_cov=noise_cov,
+                     whitener=whitener, weight_norm=weight_norm,
+                     pick_ori=pick_ori, ch_names=ch_names, proj=proj,
+                     is_ssp=is_ssp, vertices=vertno, is_free_ori=is_free_ori,
+                     nsource=forward['nsource'], src=deepcopy(forward['src']))
+
+    return spat_filt
+
+
+def _subject_from_filter(spat_filt):
+    """Get subject id from inverse operator."""
+    return spat_filt['src'][0].get('subject_his_id', None)
+
+
+def _apply_lcmv(data, spat_filt, info, tmin, max_ori_out):
+    """Apply LCMV spatial filter to data for source reconstruction."""
+    if max_ori_out == 'abs':
+        warn('max_ori_out and the return of absolute values is deprecated and '
+             'will be removed in 0.16. Set it to "signed" to remove this '
+             'warning, this will return signed time series.',
+             DeprecationWarning)
+
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
         return_single = True
     else:
         return_single = False
 
-    subject = _subject_from_forward(forward)
+    W = spat_filt['weights']
+
+    subject = _subject_from_forward(spat_filt)
     for i, M in enumerate(data):
-        if len(M) != len(picks):
+        if len(M) != len(spat_filt['ch_names']):
             raise ValueError('data and picks must have the same length')
 
         if not return_single:
             logger.info("Processing epoch : %d" % (i + 1))
 
+        # TODO: do we need to check whether data + filter proj match
         # SSP and whitening
-        if info['projs']:
-            M = np.dot(proj, M)
-        if noise_cov is not None:
-            M = np.dot(whitener, M)
+        if spat_filt['is_ssp']:
+            M = np.dot(spat_filt['proj'], M)
+        if spat_filt['whitener'] is not None:
+            M = np.dot(spat_filt['whitener'], M)
 
         # project to source space using beamformer weights
-        if is_free_ori:
+        if spat_filt['is_free_ori']:
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
 
         else:
             # Linear inverse: do computation here or delayed
-            if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
+            if (M.shape[0] < W.shape[0] and
+               spat_filt['pick_ori'] != 'max-power'):
                 sol = (W, M)
             else:
                 sol = np.dot(W, M)
-            if pick_ori == 'max-power' and max_ori_out == 'abs':
+            if spat_filt['pick_ori'] == 'max-power' and max_ori_out == 'abs':
                 sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
-        yield _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                        subject=subject)
+        yield _make_stc(sol, vertices=spat_filt['vertices'], tmin=tmin,
+                        tstep=tstep, subject=subject)
 
     logger.info('[done]')
 
@@ -311,12 +406,11 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 
 
 @verbose
-def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
-         pick_ori=None, picks=None, rank=None, weight_norm='unit-noise-gain',
-         max_ori_out='abs', verbose=None):
-    """Linearly Constrained Minimum Variance (LCMV) beamformer.
+def apply_lcmv_filter(evoked, spatial_filter, max_ori_out='abs',
+                      verbose=None):
+    """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
-    Compute Linearly Constrained Minimum Variance (LCMV) beamformer
+    Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
     on evoked data.
 
     .. note:: This implementation has not been heavily tested so please
@@ -326,34 +420,9 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     ----------
     evoked : Evoked
         Evoked data to invert
-    forward : dict
-        Forward operator
-    noise_cov : Covariance
-        The noise covariance. If provided, whitening will be done. Providing a
-        noise covariance is mandatory if you mix sensor types, e.g.
-        gradiometers with magnetometers or EEG with MEG.
-    data_cov : Covariance
-        The data covariance
-    reg : float
-        The regularization for the whitened data covariance.
-    label : Label
-        Restricts the LCMV solution to a given label
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
-    weight_norm: 'unit-noise-gain'| 'nai' | None
-        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed
+    spatial_filter : dict
+        LCMV spatial filter (beamformer weights)
+        Filter weights returned from `make_lcmv_filter`.
     max_ori_out: 'abs' | 'signed'
         Specify in case of pick_ori='max-power'.
         If 'abs', the absolute value of the source space time series will be
@@ -372,24 +441,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 
     See Also
     --------
-    lcmv_raw, lcmv_epochs
-
-    Notes
-    -----
-    The original reference is [1]_
-
-    The reference for finding the max-power orientation is:
-    Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
-    beamformers for neuromagnetic source reconstruction.
-    Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
-
-    References
-    ----------
-    .. [1] Van Veen et al. Localization of brain electrical activity via
-           linearly constrained minimum variance spatial filtering.
-           Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
-           brain imaging (2008) Springer Science & Business Media
+    apply_lcmv_filter_raw, apply_lcmv_filter_epochs
     """
     _check_reference(evoked)
 
@@ -397,27 +449,21 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     data = evoked.data
     tmin = evoked.times[0]
 
-    picks = _setup_picks(picks, info, forward, noise_cov)
+    sel = _pick_channels_spatial_filter(evoked.ch_names, spatial_filter)
+    data = data[sel]
 
-    data = data[picks]
-
-    stc = _apply_lcmv(
-        data=data, info=info, tmin=tmin, forward=forward, reg=reg,
-        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
-        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm,
-        max_ori_out=max_ori_out)
+    stc = _apply_lcmv(data=data, spat_filt=spatial_filter, info=info,
+                      tmin=tmin, max_ori_out=max_ori_out)
 
     return six.advance_iterator(stc)
 
 
 @verbose
-def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
-                pick_ori=None, return_generator=False, picks=None, rank=None,
-                weight_norm='unit-noise-gain', max_ori_out='abs',
-                verbose=None):
-    """Linearly Constrained Minimum Variance (LCMV) beamformer.
+def apply_lcmv_filter_epochs(epochs, spatial_filter, max_ori_out='abs',
+                             return_generator=False, verbose=None):
+    """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
-    Compute Linearly Constrained Minimum Variance (LCMV) beamformer
+    Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
     on single trial data.
 
     .. note:: This implementation has not been heavily tested so please
@@ -427,37 +473,9 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     ----------
     epochs : Epochs
         Single trial epochs.
-    forward : dict
-        Forward operator.
-    noise_cov : Covariance
-        The noise covariance. If provided, whitening will be done. Providing a
-        noise covariance is mandatory if you mix sensor types, e.g.
-        gradiometers with magnetometers or EEG with MEG.
-    data_cov : Covariance
-        The data covariance.
-    reg : float
-        The regularization for the whitened data covariance.
-    label : Label
-        Restricts the LCMV solution to a given label.
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
-    return_generator : bool
-        Return a generator object instead of a list. This allows iterating
-        over the stcs without having to keep them all in memory.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
-    weight_norm: 'unit-noise-gain'| 'nai' | None
-        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed
+    spatial_filter : dict
+        LCMV spatial filter (beamformer weights)
+        Filter weights returned from `make_lcmv_filter`.
     max_ori_out: 'abs' | 'signed'
         Specify in case of pick_ori='max-power'.
         If 'abs', the absolute value of the source space time series will be
@@ -465,9 +483,13 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
         if 'signed', the signed source space time series will be returned.
         'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
         'signed' to remove this warning.
+    return_generator : bool
+         Return a generator object instead of a list. This allows iterating
+         over the stcs without having to keep them all in memory.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
 
     Returns
     -------
@@ -476,38 +498,17 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     See Also
     --------
-    lcmv_raw, lcmv
-
-    Notes
-    -----
-    The original reference is [1]_
-
-    The reference for finding the max-power orientation is:
-    Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
-    beamformers for neuromagnetic source reconstruction.
-    Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
-
-    References
-    ----------
-    .. [1] Van Veen et al. Localization of brain electrical activity via
-           linearly constrained minimum variance spatial filtering.
-           Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
-           brain imaging (2008) Springer Science & Business Media
+    apply_lcmv_filter_raw, apply_lcmv_filter
     """
     _check_reference(epochs)
 
     info = epochs.info
     tmin = epochs.times[0]
 
-    picks = _setup_picks(picks, info, forward, noise_cov)
-
-    data = epochs.get_data()[:, picks, :]
-    stcs = _apply_lcmv(
-        data=data, info=info, tmin=tmin, forward=forward, reg=reg,
-        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
-        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm,
-        max_ori_out=max_ori_out)
+    sel = _pick_channels_spatial_filter(epochs.ch_names, spatial_filter)
+    data = epochs.get_data()[:, sel, :]
+    stcs = _apply_lcmv(data=data,  spat_filt=spatial_filter, info=info,
+                       tmin=tmin, max_ori_out=max_ori_out)
 
     if not return_generator:
         stcs = [s for s in stcs]
@@ -516,12 +517,11 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 
 
 @verbose
-def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
-             start=None, stop=None, picks=None, pick_ori=None, rank=None,
-             weight_norm='unit-noise-gain', max_ori_out='abs', verbose=None):
-    """Linearly Constrained Minimum Variance (LCMV) beamformer.
+def apply_lcmv_filter_raw(raw, spatial_filter, start=None, stop=None,
+                          max_ori_out='abs', verbose=None):
+    """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
-    Compute Linearly Constrained Minimum Variance (LCMV) beamformer
+    Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
     on raw data.
 
     NOTE : This implementation has not been heavily tested so please
@@ -531,38 +531,13 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     ----------
     raw : mne.io.Raw
         Raw data to invert.
-    forward : dict
-        Forward operator.
-    noise_cov : Covariance
-        The noise covariance. If provided, whitening will be done. Providing a
-        noise covariance is mandatory if you mix sensor types, e.g.
-        gradiometers with magnetometers or EEG with MEG.
-    data_cov : Covariance
-        The data covariance.
-    reg : float
-        The regularization for the whitened data covariance.
-    label : Label
-        Restricts the LCMV solution to a given label.
+    spatial_filter : dict
+        LCMV spatial filter (beamformer weights)
+        Filter weights returned from `make_lcmv_filter`.
     start : int
         Index of first time sample (index not time is seconds).
     stop : int
         Index of first time sample not to include (index not time is seconds).
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
-    rank : None | int | dict
-        Specified rank of the noise covariance matrix. If None, the rank is
-        detected automatically. If int, the rank is specified for the MEG
-        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
-        to specify the rank for each modality.
-    weight_norm: 'unit-noise-gain'| 'nai' | None
-        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed
     max_ori_out: 'abs' | 'signed'
         Specify in case of pick_ori='max-power'.
         If 'abs', the absolute value of the source space time series will be
@@ -581,39 +556,18 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     See Also
     --------
-    lcmv, lcmv_epochs
-
-    Notes
-    -----
-    The original reference is [1]_
-
-    The reference for finding the max-power orientation is:
-    Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
-    beamformers for neuromagnetic source reconstruction.
-    Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
-
-    References
-    ----------
-    .. [1] Van Veen et al. Localization of brain electrical activity via
-           linearly constrained minimum variance spatial filtering.
-           Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
-           brain imaging (2008) Springer Science & Business Media
+    apply_lcmv_filter_epochs, apply_lcmv_filter
     """
     _check_reference(raw)
 
     info = raw.info
 
-    picks = _setup_picks(picks, info, forward, noise_cov)
-
-    data, times = raw[picks, start:stop]
+    sel = _pick_channels_spatial_filter(raw.ch_names, spatial_filter)
+    data, times = raw[sel, start:stop]
     tmin = times[0]
 
-    stc = _apply_lcmv(
-        data=data, info=info, tmin=tmin, forward=forward, reg=reg,
-        noise_cov=noise_cov, data_cov=data_cov, label=label, picks=picks,
-        rank=rank, pick_ori=pick_ori, weight_norm=weight_norm,
-        max_ori_out=max_ori_out)
+    stc = _apply_lcmv(data=data, spat_filt=spatial_filter, info=info,
+                      tmin=tmin, max_ori_out=max_ori_out)
 
     return six.advance_iterator(stc)
 
