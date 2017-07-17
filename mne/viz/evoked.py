@@ -1622,6 +1622,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         # get the grand mean
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
                        for cond in conditions)
+    else:
+        ci = False
 
     if ci is False:
         # check if they are compatible (XXX there should be a cleaner way)

@@ -26,13 +26,14 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _grad_pair_pick_and_name, _handle_decim)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
+from ..externals.six import string_types
 
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None,
                       fig=None, axes=None, overlay_times=None,
-                      combine=None, groupby=None, ts_args=dict()):
+                      combine='gfp', groupby=None, ts_args=dict()):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -106,6 +107,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         array (n_epochs, n_times). For example:
 
             `combine = lambda data: np.median(data, 1)`
+
+        Defaults to 'gfp'
 
     groupby : None | str | dict
         If not None, combine must not be None. In this case, combining happens
@@ -242,17 +245,19 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
     if combine is None:
         for pick, ch_type, _ in zip(all_picks, all_ch_types, names):
             name = epochs.ch_names[pick]
-            if ch_type == "grad":
+            if ch_type == "grad" and len(all_picks) > 1:
                 ch_names = _grad_pair_pick_and_name(epochs.info, [pick])[1]
-                these_epochs = epochs.copy().pick_channels(ch_names)
+                these_epochs = epochs.copy().load_data().pick_channels(ch_names)
             else:
-                these_epochs = epochs.copy().pick_channels([name])
+                these_epochs = epochs.copy().load_data().pick_channels([name])
             to_plot_list.append((these_epochs, ch_type, name))
     else:
         from .. import EpochsArray, pick_info
         data = epochs.get_data()
         type2name = {"eeg": "EEG", "grad": "Gradiometers",
                      "mag": "Magnetometers"}
+        combine_title = (" (" + combine + ")"
+                         if isinstance(combine, string_types) else "")
         if combine == "gfp":
             combine = lambda data: np.sqrt((data * data).mean(axis=1))
         elif combine == "mean":
@@ -270,7 +275,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
                 raise ValueError("Cannot combine over only one sensor. "
                                  "Consider using different values for "
                                  "`picks` and/or `groupby`.")
-            if ch_type == "grad":
+            if ch_type == "grad" and len(all_picks) > 1:
                 f  = lambda x: combine(np.sqrt(np.sum(x ** 2, axis=1) / 2))
                 picks_ = _grad_pair_pick_and_name(epochs.info, picks)[0]
                 this_data = f(
@@ -281,7 +286,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
             info = pick_info(epochs.info, [picks_[0]], copy=True)
             these_epochs = EpochsArray(this_data, info, tmin=tmin)
             to_plot_list.append((these_epochs, ch_type,
-                                 type2name.get(name, name)))
+                                 type2name.get(name, name) + combine_title))
 
     return to_plot_list  # data, ch_type, evoked, name
 
@@ -375,9 +380,9 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     #this_vmax = vmax * scaling if scale_vmax else vmax
     cmap = _setup_cmap(cmap)
     im = ax1.imshow(
-        data, vmin=vmin, vmax=vmax, cmap=cmap[0],
-        extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs],
-        aspect='auto', origin='lower', interpolation='nearest')
+        data * scaling, vmin=vmin * scaling, vmax=vmax * scaling,
+        cmap=cmap[0], aspect='auto', origin='lower', interpolation='nearest',
+        extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs])
     if overlay_times is not None:
         ax1.plot(1e3 * overlay_times, 0.5 + np.arange(len(data)),
                  'k', linewidth=2)
@@ -390,14 +395,13 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     #### draw the evoked ####
     if draw_evoked:
         from mne.viz import plot_compare_evokeds
-        ylim = dict()  # {ch_type: (vmin * scaling, vmax * scaling)}
+        ylim = dict()  #  {ch_type: (vmin * scaling, vmax * scaling)}
         ts_args_ = dict(colors={"cond":"black"}, axes=ax2, ylim=ylim,
                         picks=[0], title='', truncate_yaxis=False,
                         show=False)
         ts_args_.update(**ts_args)
         plot_compare_evokeds({"cond":list(epochs.iter_evoked())}, **ts_args_)
         ax1.set_xticks(())
-        # ylabel rotation
 
     #### draw the colorbar ####
     if colorbar:

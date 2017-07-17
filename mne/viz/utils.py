@@ -2144,7 +2144,7 @@ def _set_ax_facecolor(ax, face_color):
 def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
                      ymax_bound=None, unit=None, truncate_xaxis=True):
     y_range = -np.subtract(*axes.get_ylim())
-    axes.set_autoscale_on(False)
+#    axes.set_autoscale_on(False)
 
     # style the spines/axes
     axes.spines["top"].set_position('zero')
@@ -2186,8 +2186,9 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.invert_yaxis()
     axes.spines['right'].set_color('none')
     axes.set_xlim(tmin * 1.1, tmax * .9)
-    axes.axis("tight")
-    axes.set_autoscale_on(False)
+    if truncate_xaxis:
+        axes.axis("tight")
+        axes.set_autoscale_on(False)
 
 
 def _handle_decim(info, decim, lowpass):
