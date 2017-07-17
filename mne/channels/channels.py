@@ -284,9 +284,6 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        inst : instance of Raw | Epochs | Evoked
-            Instance of Raw or Epochs with EEG channels and reference
-            channel(s).
         ref_channels : list of str | str
             The names of the channels to use to construct the reference. To
             apply an average reference, specify ``'average'`` here (default).
