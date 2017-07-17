@@ -388,10 +388,10 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
                 if inst.preload:
                     logger.info('Average reference projection was added, '
                                 'but has not been applied yet. Use the '
-                                'apply_proj method to apply projections.')
-            except Exception:  # TODO: which exception is caught here?
+                                'apply_proj method to apply it.')
+            except Exception:
                 inst.info['custom_ref_applied'] = custom_ref_applied
-                raise  # TODO: re-raise specific exception
+                raise
             return inst, None
 
     inst = inst.copy() if copy else inst
@@ -399,9 +399,9 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     if ref_channels == 'average' and not projection:  # apply average reference
         if not inst.preload:
             raise RuntimeError('Data needs to be preloaded.')
-        inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
-        inst.apply_proj()
-        return inst, None  # TODO: should we return None here?
+        eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
+        ref_from = [inst.ch_names[i] for i in eeg_idx]
+        return _apply_reference(inst, ref_from)
 
     if ref_channels == []:
         logger.info('EEG data marked as already having the desired reference. '
