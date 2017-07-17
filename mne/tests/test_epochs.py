@@ -1064,7 +1064,7 @@ def test_comparision_with_c():
     c_evoked = read_evokeds(evoked_nf_name, condition=0)
     epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=None,
                     preload=True, proj=False)
-    evoked = epochs.set_eeg_reference().apply_proj().average()
+    evoked = epochs.set_eeg_reference(projection=True).apply_proj().average()
     sel = pick_channels(c_evoked.ch_names, evoked.ch_names)
     evoked_data = evoked.data
     c_evoked_data = c_evoked.data[sel]
@@ -1582,7 +1582,8 @@ def test_epochs_proj_mixin():
 
     # test mixin against manual application
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=None, proj=False).set_eeg_reference()
+                    baseline=None,
+                    proj=False).set_eeg_reference(projection=True)
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
