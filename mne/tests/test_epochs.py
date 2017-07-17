@@ -836,7 +836,7 @@ def test_epochs_proj():
     epochs.save(temp_fname)
     for preload in (True, False):
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
-        epochs.set_eeg_reference().apply_proj()
+        epochs.set_eeg_reference(projection=True).apply_proj()
         assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
         epochs.set_eeg_reference(projection=True)
@@ -1554,9 +1554,10 @@ def test_epochs_proj_mixin():
             proj=True, preload=preload,
             reject=reject).set_eeg_reference(projection=True).apply_proj()
 
-        epochs_noproj = Epochs(
-            raw, events[:4], event_id, tmin, tmax, picks=picks,
-            proj=False, preload=preload, reject=reject).set_eeg_reference()
+        epochs_noproj = Epochs(raw, events[:4], event_id, tmin, tmax,
+                               picks=picks, proj=False, preload=preload,
+                               reject=reject)
+        epochs_noproj.set_eeg_reference(projection=True)
 
         assert_allclose(epochs.copy().apply_proj().get_data(),
                         epochs_proj.get_data(), rtol=1e-10, atol=1e-25)

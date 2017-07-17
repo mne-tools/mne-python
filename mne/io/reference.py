@@ -399,7 +399,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     if ref_channels == 'average' and not projection:  # apply average reference
         if not inst.preload:
             raise RuntimeError('Data needs to be preloaded.')
-        inst.info['custom_ref_applied'] = False
         inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
         inst.apply_proj()
         return inst, None  # TODO: should we return None here?
