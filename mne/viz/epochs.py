@@ -32,7 +32,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None,
                       fig=None, axes=None, overlay_times=None,
-                      combine=None, groupby=None):
+                      combine=None, groupby=None, ts_args=dict()):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -119,6 +119,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
            `groupby = dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])`
 
+    ts_args : dict
+        Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
+        the evoked plot below the image. Defaults to an empty dictionary.
+
     Returns
     -------
     figs : lists of matplotlib figures
@@ -183,7 +187,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             order=order, show=show, unit=units[ch_type], ch_type=ch_type,
             scaling=scalings[ch_type], cmap=cmap, fig=fig,
             axes=axes if not isinstance(axes, dict) else axes[name],
-            overlay_times=overlay_times, title=name, draw_evoked=True)
+            overlay_times=overlay_times, title=name, draw_evoked=True,
+            ts_args=ts_args)
         figs.append(this_fig)
     return figs
 
@@ -284,7 +289,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
 def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar=False,
                        order=None, show=False, unit=None, cmap=None,
                        fig=None, axes=None, overlay_times=None, scaling=None,
-                       title=None, draw_evoked=False):
+                       title=None, draw_evoked=False, ts_args=dict()):
     """Helper function for plot_epochs_image/epochs.plot_image."""
     from scipy import ndimage
     import matplotlib.pyplot as plt
@@ -386,10 +391,11 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     if draw_evoked:
         from mne.viz import plot_compare_evokeds
         ylim = dict()  # {ch_type: (vmin * scaling, vmax * scaling)}
-        plot_compare_evokeds({"cond":list(epochs.iter_evoked())},
-                              colors={"cond":"black"},
-                              axes=ax2, ylim=ylim, picks=[0], title='',
-                              truncate_yaxis=False, show=False)
+        ts_args_ = dict(colors={"cond":"black"}, axes=ax2, ylim=ylim,
+                        picks=[0], title='', truncate_yaxis=False,
+                        show=False)
+        ts_args_.update(**ts_args)
+        plot_compare_evokeds({"cond":list(epochs.iter_evoked())}, **ts_args_)
         ax1.set_xticks(())
         # ylabel rotation
 

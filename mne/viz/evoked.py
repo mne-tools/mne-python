@@ -1414,9 +1414,10 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
-                         linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
-                         truncate_yaxis=False, ylim=dict(), invert_y=False,
-                         axes=None, title=None, show=True):
+                         linestyles=['-'], styles=None, vlines=list((0.,)),
+                         ci=0.95, truncate_yaxis=False, truncate_xaxis=True,
+                         ylim=dict(), invert_y=False, axes=None, title=None,
+                         show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1485,6 +1486,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     truncate_yaxis : bool
         If True, the left y axis is truncated to half the max value and
         rounded to .25 to reduce visual clutter. Defaults to True.
+    truncate_xaxis : bool
+        If True, the x axis is truncated to span from the first to the last.
+        xtick. Defaults to True.
     ylim : dict | None
         ylim for plots (after scaling has been applied). e.g.
         ylim = dict(eeg=[-20, 20])
@@ -1531,6 +1535,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          "or a collection of mne.Evoked's")
     times = example.times
     tmin, tmax = times[0], times[-1]
+    if (tmin >= 0 or tmax <= 0) and vlines == [0.]:
+        vlines = list()
 
     if isinstance(picks, Integral):
         picks = [picks]
@@ -1730,7 +1736,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             any_positive, any_negative)
     else:
         if ymin is not None and ymin > 0:
-            warn("ymin is positive, not truncating yaxis")
+            warn("ymin is all-positive, not truncating yaxis")
         ymax_bound = axes.get_ylim()[-1]
 
     title = ", ".join(ch_names[:6]) if title is None else title
@@ -1749,7 +1755,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     axes.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
                 linewidth=1., zorder=1)
 
-    _setup_ax_spines(axes, vlines, tmin, tmax, invert_y, ymax_bound, unit)
+    _setup_ax_spines(axes, vlines, tmin, tmax, invert_y, ymax_bound, unit,
+                     truncate_xaxis)
 
     if len(conditions) > 1:
         plt.legend(loc='best', ncol=1 + (len(conditions) // 5), frameon=True)

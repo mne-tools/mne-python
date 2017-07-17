@@ -212,6 +212,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     psd_args = dict() if psd_args is None else psd_args
     topomap_args = dict() if topomap_args is None else topomap_args
     image_args = dict() if image_args is None else image_args
+    image_args["ts_args"] = dict(truncate_xaxis=False)
     for d in (psd_args, topomap_args, image_args):
         if not isinstance(d, dict):
             raise ValueError('topomap_args, image_args and psd_args have to be'
@@ -315,27 +316,14 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
 
         # erp
-        set_title_and_labels(axes[2], [], 'time', 'AU')
-        # line color and std
-        axes[2].lines[0].set_color('k')
-        if plot_std:
-            erp_xdata = axes[2].lines[0].get_data()[0]
-            axes[2].fill_between(erp_xdata, erp - erp_std[0],
-                                 erp + erp_std[1], color='k', alpha=.15)
-            axes[2].autoscale(enable=True, axis='y')
-            axes[2].axis('auto')
-            axes[2].set_xlim(erp_xdata[[0, -1]])
+        set_title_and_labels(axes[2], [], 'time', 'AU\n')
+        axes[2].set_xlim(epochs_src.times[[0, -1]])
+        axes[2].spines["right"].set_color('k')
         # remove half of yticks if more than 5
         yt = axes[2].get_yticks()
         if len(yt) > 5:
             yt = yt[::2]
             axes[2].yaxis.set_ticks(yt)
-
-        if not plot_line_at_zero:
-            xlims = [1e3 * inst.times[0], 1e3 * inst.times[-1]]
-            for k, ax in enumerate(axes[1:3]):
-                ax.lines[k].remove()
-                ax.set_xlim(xlims)
 
         # remove xticks - erp plot shows xticks for both image and erp plot
         axes[1].xaxis.set_ticks([])
@@ -351,6 +339,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         ylim = axes[3].get_ylim()
         air = np.diff(ylim)[0] * 0.1
         axes[3].set_ylim(ylim[0] - air, ylim[1] + air)
+        axes[1].axhline(0, color='k', linewidth=.5)
 
         # epoch variance
         set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')

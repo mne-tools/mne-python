@@ -2142,12 +2142,16 @@ def _set_ax_facecolor(ax, face_color):
 
 
 def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
-                     ymax_bound=None, unit=None):
+                     ymax_bound=None, unit=None, truncate_xaxis=True):
     y_range = -np.subtract(*axes.get_ylim())
+    axes.set_autoscale_on(False)
 
     # style the spines/axes
     axes.spines["top"].set_position('zero')
-    axes.spines["top"].set_smart_bounds(True)
+    if truncate_xaxis is True:
+        axes.spines["top"].set_smart_bounds(True)
+    else:
+        axes.spines['top'].set_bounds(tmin, tmax)
 
     axes.tick_params(direction='out')
     axes.tick_params(right="off")
@@ -2160,7 +2164,7 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
 
     # set y label and ylabel position
     if unit is not None:
-        axes.set_ylabel(unit, rotation=0)
+        axes.set_ylabel(unit + "\n", rotation=90)
         ylabel_height = (-(current_ymin / y_range)
                          if 0 > current_ymin  # ... if we have negative values
                          else (axes.get_yticks()[-1] / 2 / y_range))
@@ -2171,14 +2175,19 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
     axes.set_xticks(xticks)
     axes.set_xticklabels(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
-    axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    if truncate_xaxis is True:
+        axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    else:
+        axes.spines['bottom'].set_bounds(tmin, tmax)
     axes.spines["left"].set_zorder(0)
 
     # finishing touches
     if invert_y:
         axes.invert_yaxis()
     axes.spines['right'].set_color('none')
-    axes.set_xlim(tmin, tmax)
+    axes.set_xlim(tmin * 1.1, tmax * .9)
+    axes.axis("tight")
+    axes.set_autoscale_on(False)
 
 
 def _handle_decim(info, decim, lowpass):
