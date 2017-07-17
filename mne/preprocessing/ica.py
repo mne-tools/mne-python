@@ -2414,7 +2414,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                                          icas[0].copy(), "Template",
                                          outlines=outlines, cmap=cmap,
                                          contours=contours, layout=layout,
-                                         show=show)
+                                         show=show, template=True)
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
