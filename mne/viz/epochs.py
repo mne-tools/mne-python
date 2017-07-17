@@ -401,6 +401,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
                         show=False)
         ts_args_.update(**ts_args)
         plot_compare_evokeds({"cond":list(epochs.iter_evoked())}, **ts_args_)
+        ax2.set_xlim(epochs.times[[0, -1]])
         ax1.set_xticks(())
 
     #### draw the colorbar ####

@@ -2185,8 +2185,8 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
     if invert_y:
         axes.invert_yaxis()
     axes.spines['right'].set_color('none')
-    axes.set_xlim(tmin * 1.1, tmax * .9)
-    if truncate_xaxis:
+    axes.set_xlim(tmin, tmax)
+    if truncate_xaxis is False:
         axes.axis("tight")
         axes.set_autoscale_on(False)
 

@@ -317,7 +317,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # erp
         set_title_and_labels(axes[2], [], 'time', 'AU\n')
-        axes[2].set_xlim(epochs_src.times[[0, -1]])
         axes[2].spines["right"].set_color('k')
         # remove half of yticks if more than 5
         yt = axes[2].get_yticks()
