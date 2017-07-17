@@ -200,6 +200,23 @@ def test_set_eeg_reference():
     reref, ref_data = set_eeg_reference(raw, [])
     assert_array_equal(raw._data, reref._data)
 
+    # Test that average reference gives identical results when calculated
+    # via SSP projection (projection=True) or directly (projection=False)
+    raw.info['projs'] = []
+    reref_1, _ = set_eeg_reference(raw.copy(), projection=True)
+    reref_1.apply_proj()
+    reref_2, _ = set_eeg_reference(raw.copy(), projection=False)
+    assert_allclose(reref_1._data, reref_2._data, rtol=1e-6, atol=1e-15)
+
+    # Test average reference without projection
+    reref, ref_data = set_eeg_reference(raw.copy(), ref_channels="average",
+                                        projection=False)
+    _test_reference(raw, reref, ref_data, eeg_chans)
+
+    # projection=True only works for ref_channels='average'
+    assert_raises(ValueError, set_eeg_reference, raw, [], True, True)
+    assert_raises(ValueError, set_eeg_reference, raw, ['EEG 001'], True, True)
+
 
 @testing.requires_testing_data
 def test_set_bipolar_reference():
