@@ -565,11 +565,6 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
             fwd['surf_ori'] = True
         else:
             fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
-            fwd['sol']['data'] = fwd['_orig_sol'].copy()
-            fwd['sol']['ncol'] = 3 * fwd['nsource']
-            if fwd['sol_grad'] is not None:
-                fwd['sol_grad']['data'] = fwd['_orig_sol_grad'].copy()
-                fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
             fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
             fwd['surf_ori'] = False
     return Forward(fwd)
@@ -702,7 +697,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             if fwd['sol_grad'] is not None:
                 x = sparse.block_diag([surf_rot] * 3)
                 fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
-                fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
+                fwd['sol_grad']['ncol'] = 9 * fwd['nsource']
             fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
             fwd['surf_ori'] = True
 
@@ -713,7 +708,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         fwd['sol']['ncol'] = 3 * fwd['nsource']
         if fwd['sol_grad'] is not None:
             fwd['sol_grad']['data'] = fwd['_orig_sol_grad'].copy()
-            fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
+            fwd['sol_grad']['ncol'] = 9 * fwd['nsource']
         fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
         fwd['surf_ori'] = False
 
