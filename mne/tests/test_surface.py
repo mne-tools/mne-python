@@ -96,20 +96,27 @@ def test_make_morph_maps():
     for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
         os.mkdir(op.join(tempdir, subject))
         os.mkdir(op.join(tempdir, subject, 'surf'))
+        regs = ('reg', 'left_right') if subject == 'fsaverage_ds' else ('reg',)
         for hemi in ['lh', 'rh']:
-            args = [subject, 'surf', hemi + '.sphere.reg']
-            copyfile(op.join(subjects_dir, *args),
-                     op.join(tempdir, *args))
+            for reg in regs:
+                args = [subject, 'surf', hemi + '.sphere.' + reg]
+                copyfile(op.join(subjects_dir, *args),
+                         op.join(tempdir, *args))
 
-    # this should trigger the creation of morph-maps dir and create the map
-    with warnings.catch_warnings(record=True):
-        mmap = read_morph_map('fsaverage_ds', 'sample_ds', tempdir)
-    mmap2 = read_morph_map('fsaverage_ds', 'sample_ds', subjects_dir)
-    assert_equal(len(mmap), len(mmap2))
-    for m1, m2 in zip(mmap, mmap2):
-        # deal with sparse matrix stuff
-        diff = (m1 - m2).data
-        assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
+    for subject_from, subject_to, xhemi in (
+            ('fsaverage_ds', 'sample_ds', False),
+            ('fsaverage_ds', 'fsaverage_ds', True)):
+        # trigger the creation of morph-maps dir and create the map
+        with warnings.catch_warnings(record=True):
+            mmap = read_morph_map(subject_from, subject_to, tempdir,
+                                  xhemi=xhemi)
+        mmap2 = read_morph_map(subject_from, subject_to, subjects_dir,
+                               xhemi=xhemi)
+        assert_equal(len(mmap), len(mmap2))
+        for m1, m2 in zip(mmap, mmap2):
+            # deal with sparse matrix stuff
+            diff = (m1 - m2).data
+            assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
     # This will also trigger creation, but it's trivial
     with warnings.catch_warnings(record=True):
