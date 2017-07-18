@@ -263,7 +263,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
 
 @verbose
 def set_eeg_reference(inst, ref_channels='average', copy=True,
-                      projection=False, verbose=None):
+                      projection=None, verbose=None):
     """Specify which reference to use for EEG data.
 
     By default, MNE-Python will automatically re-reference the EEG signal to
@@ -317,13 +317,15 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     copy : bool
         Specifies whether the data will be copied (True) or modified in place
         (False). Defaults to True.
-    projection : bool
+    projection : bool | None
         If ``ref_channels='average'`` this argument specifies if the average
         reference should be computed as a projection (True) or not (False). If
         ``projection=True``, the average reference is added as an SSP projector
         and is not applied to the data (it can be applied afterwards with the
-        ``apply_proj`` method. If ``projection=False`` (default), the average
-        reference is directly applied to the data.
+        ``apply_proj`` method. If ``projection=False``, the average
+        reference is directly applied to the data. Defaults to None, which
+        means ``projection==True``, but will change to ``projection==False`` in
+        the next release.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -365,6 +367,16 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
              'deprecated and will be replaced by ref_channels="average" in '
              '0.16.', DeprecationWarning)
         ref_channels = 'average'
+
+    if projection is None:
+        warn('The behavior of set_eeg_reference will change in 0.16 when '
+             'computing the average reference. Currently, an SSP projector is '
+             'computed, which has to be applied manually with the apply_proj '
+             'method. In 0.16, the average reference will be directly applied. '
+             'Set projection=True if you want to retain the old behavior, or '
+             'set projection=False if you want the new behavior.',
+             DeprecationWarning)
+        projection=True
 
     if ref_channels != 'average' and projection:
         raise ValueError('Setting projection=True is only supported for '
