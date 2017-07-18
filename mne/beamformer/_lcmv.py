@@ -78,14 +78,14 @@ def _check_one_ch_type(info, picks, noise_cov):
                          'able to apply whitening.')
 
 
-def _pick_channels_spatial_filter(ch_names, spat_filt):
+def _pick_channels_spatial_filter(ch_names, filters):
     """Return data channel indices to be used with spatial filter.
 
     Unlike ``pick_channels``, this respects the order of ch_names.
     """
     ch_names = set(ch_names)
     sel = []
-    for k, ch_name in enumerate(spat_filt['ch_names']):
+    for k, ch_name in enumerate(filters['ch_names']):
         if ch_name not in ch_names:
             raise ValueError('The spatial filter was computed with channel %s '
                              'which is not present in the data. You should '
@@ -103,9 +103,9 @@ def _check_cov_matrix(data_cov):
 
 
 @verbose
-def make_lcmv_filter(info, forward, data_cov, reg=0.05, noise_cov=None,
-                     label=None, picks=None, pick_ori=None, rank=None,
-                     weight_norm='unit-noise-gain', verbose=None):
+def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
+              picks=None, pick_ori=None, rank=None,
+              weight_norm='unit-noise-gain', verbose=None):
     """Compute LCMV spatial filter.
 
     Parameters
@@ -147,7 +147,7 @@ def make_lcmv_filter(info, forward, data_cov, reg=0.05, noise_cov=None,
 
     Returns
     -------
-    spatial_filter | dict
+    filters | dict
         Beamformer weights.
 
     Notes
@@ -285,21 +285,21 @@ def make_lcmv_filter(info, forward, data_cov, reg=0.05, noise_cov=None,
         W = W[2::3]
         is_free_ori = False
 
-    spat_filt = dict(weights=W, data_cov=data_cov, noise_cov=noise_cov,
-                     whitener=whitener, weight_norm=weight_norm,
-                     pick_ori=pick_ori, ch_names=ch_names, proj=proj,
-                     is_ssp=is_ssp, vertices=vertno, is_free_ori=is_free_ori,
-                     nsource=forward['nsource'], src=deepcopy(forward['src']))
+    filters = dict(weights=W, data_cov=data_cov, noise_cov=noise_cov,
+                   whitener=whitener, weight_norm=weight_norm,
+                   pick_ori=pick_ori, ch_names=ch_names, proj=proj,
+                   is_ssp=is_ssp, vertices=vertno, is_free_ori=is_free_ori,
+                   nsource=forward['nsource'], src=deepcopy(forward['src']))
 
-    return spat_filt
+    return filters
 
 
-def _subject_from_filter(spat_filt):
+def _subject_from_filter(filters):
     """Get subject id from inverse operator."""
-    return spat_filt['src'][0].get('subject_his_id', None)
+    return filters['src'][0].get('subject_his_id', None)
 
 
-def _apply_lcmv(data, spat_filt, info, tmin, max_ori_out):
+def _apply_lcmv(data, filters, info, tmin, max_ori_out):
     """Apply LCMV spatial filter to data for source reconstruction."""
     if max_ori_out == 'abs':
         warn('max_ori_out and the return of absolute values is deprecated and '
@@ -313,11 +313,11 @@ def _apply_lcmv(data, spat_filt, info, tmin, max_ori_out):
     else:
         return_single = False
 
-    W = spat_filt['weights']
+    W = filters['weights']
 
-    subject = _subject_from_forward(spat_filt)
+    subject = _subject_from_forward(filters)
     for i, M in enumerate(data):
-        if len(M) != len(spat_filt['ch_names']):
+        if len(M) != len(filters['ch_names']):
             raise ValueError('data and picks must have the same length')
 
         if not return_single:
@@ -325,13 +325,13 @@ def _apply_lcmv(data, spat_filt, info, tmin, max_ori_out):
 
         # TODO: do we need to check whether data + filter proj match
         # SSP and whitening
-        if spat_filt['is_ssp']:
-            M = np.dot(spat_filt['proj'], M)
-        if spat_filt['whitener'] is not None:
-            M = np.dot(spat_filt['whitener'], M)
+        if filters['is_ssp']:
+            M = np.dot(filters['proj'], M)
+        if filters['whitener'] is not None:
+            M = np.dot(filters['whitener'], M)
 
         # project to source space using beamformer weights
-        if spat_filt['is_free_ori']:
+        if filters['is_free_ori']:
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
@@ -339,15 +339,15 @@ def _apply_lcmv(data, spat_filt, info, tmin, max_ori_out):
         else:
             # Linear inverse: do computation here or delayed
             if (M.shape[0] < W.shape[0] and
-               spat_filt['pick_ori'] != 'max-power'):
+               filters['pick_ori'] != 'max-power'):
                 sol = (W, M)
             else:
                 sol = np.dot(W, M)
-            if spat_filt['pick_ori'] == 'max-power' and max_ori_out == 'abs':
+            if filters['pick_ori'] == 'max-power' and max_ori_out == 'abs':
                 sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
-        yield _make_stc(sol, vertices=spat_filt['vertices'], tmin=tmin,
+        yield _make_stc(sol, vertices=filters['vertices'], tmin=tmin,
                         tstep=tstep, subject=subject)
 
     logger.info('[done]')
@@ -410,8 +410,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 
 
 @verbose
-def apply_lcmv_filter(evoked, spatial_filter, max_ori_out='abs',
-                      verbose=None):
+def apply_lcmv(evoked, filters, max_ori_out='abs', verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
@@ -424,7 +423,7 @@ def apply_lcmv_filter(evoked, spatial_filter, max_ori_out='abs',
     ----------
     evoked : Evoked
         Evoked data to invert
-    spatial_filter : dict
+    filters : dict
         LCMV spatial filter (beamformer weights)
         Filter weights returned from `make_lcmv_filter`.
     max_ori_out: 'abs' | 'signed'
@@ -453,18 +452,18 @@ def apply_lcmv_filter(evoked, spatial_filter, max_ori_out='abs',
     data = evoked.data
     tmin = evoked.times[0]
 
-    sel = _pick_channels_spatial_filter(evoked.ch_names, spatial_filter)
+    sel = _pick_channels_spatial_filter(evoked.ch_names, filters)
     data = data[sel]
 
-    stc = _apply_lcmv(data=data, spat_filt=spatial_filter, info=info,
+    stc = _apply_lcmv(data=data, filters=filters, info=info,
                       tmin=tmin, max_ori_out=max_ori_out)
 
     return six.advance_iterator(stc)
 
 
 @verbose
-def apply_lcmv_filter_epochs(epochs, spatial_filter, max_ori_out='abs',
-                             return_generator=False, verbose=None):
+def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
+                      return_generator=False, verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
@@ -477,7 +476,7 @@ def apply_lcmv_filter_epochs(epochs, spatial_filter, max_ori_out='abs',
     ----------
     epochs : Epochs
         Single trial epochs.
-    spatial_filter : dict
+    filters : dict
         LCMV spatial filter (beamformer weights)
         Filter weights returned from `make_lcmv_filter`.
     max_ori_out: 'abs' | 'signed'
@@ -509,9 +508,9 @@ def apply_lcmv_filter_epochs(epochs, spatial_filter, max_ori_out='abs',
     info = epochs.info
     tmin = epochs.times[0]
 
-    sel = _pick_channels_spatial_filter(epochs.ch_names, spatial_filter)
+    sel = _pick_channels_spatial_filter(epochs.ch_names, filters)
     data = epochs.get_data()[:, sel, :]
-    stcs = _apply_lcmv(data=data,  spat_filt=spatial_filter, info=info,
+    stcs = _apply_lcmv(data=data,  filters=filters, info=info,
                        tmin=tmin, max_ori_out=max_ori_out)
 
     if not return_generator:
@@ -521,8 +520,8 @@ def apply_lcmv_filter_epochs(epochs, spatial_filter, max_ori_out='abs',
 
 
 @verbose
-def apply_lcmv_filter_raw(raw, spatial_filter, start=None, stop=None,
-                          max_ori_out='abs', verbose=None):
+def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='abs',
+                   verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
@@ -535,7 +534,7 @@ def apply_lcmv_filter_raw(raw, spatial_filter, start=None, stop=None,
     ----------
     raw : mne.io.Raw
         Raw data to invert.
-    spatial_filter : dict
+    filters : dict
         LCMV spatial filter (beamformer weights)
         Filter weights returned from `make_lcmv_filter`.
     start : int
@@ -566,11 +565,11 @@ def apply_lcmv_filter_raw(raw, spatial_filter, start=None, stop=None,
 
     info = raw.info
 
-    sel = _pick_channels_spatial_filter(raw.ch_names, spatial_filter)
+    sel = _pick_channels_spatial_filter(raw.ch_names, filters)
     data, times = raw[sel, start:stop]
     tmin = times[0]
 
-    stc = _apply_lcmv(data=data, spat_filt=spatial_filter, info=info,
+    stc = _apply_lcmv(data=data, filters=filters, info=info,
                       tmin=tmin, max_ori_out=max_ori_out)
 
     return six.advance_iterator(stc)
@@ -660,15 +659,12 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    spat_filt = make_lcmv_filter(info=evoked.info, forward=forward,
-                                 data_cov=data_cov, reg=reg,
-                                 noise_cov=noise_cov, label=label, picks=picks,
-                                 pick_ori=pick_ori, rank=rank,
-                                 weight_norm=weight_norm)
+    filters = make_lcmv(info=evoked.info, forward=forward, data_cov=data_cov,
+                        reg=reg, noise_cov=noise_cov, label=label, picks=picks,
+                        pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
     # apply spatial filter to evoked data
-    stc = apply_lcmv_filter(evoked=evoked, spatial_filter=spat_filt,
-                            max_ori_out=max_ori_out)
+    stc = apply_lcmv(evoked=evoked, filters=filters, max_ori_out=max_ori_out)
 
     return stc
 
@@ -760,16 +756,14 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    spat_filt = make_lcmv_filter(info=epochs.info, forward=forward,
-                                 data_cov=data_cov, reg=reg,
-                                 noise_cov=noise_cov, label=label, picks=picks,
-                                 pick_ori=pick_ori, rank=rank,
-                                 weight_norm=weight_norm)
+    filters = make_lcmv(info=epochs.info, forward=forward, data_cov=data_cov,
+                        reg=reg, noise_cov=noise_cov, label=label, picks=picks,
+                        pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
     # apply spatial filter to epochs
-    stcs = apply_lcmv_filter_epochs(epochs=epochs, spatial_filter=spat_filt,
-                                    max_ori_out=max_ori_out,
-                                    return_generator=return_generator)
+    stcs = apply_lcmv_epochs(epochs=epochs, filters=filters,
+                             max_ori_out=max_ori_out,
+                             return_generator=return_generator)
 
     return stcs
 
@@ -861,15 +855,13 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    spat_filt = make_lcmv_filter(info=raw.info, forward=forward,
-                                 data_cov=data_cov, reg=reg,
-                                 noise_cov=noise_cov, label=label, picks=picks,
-                                 pick_ori=pick_ori, rank=rank,
-                                 weight_norm=weight_norm)
+    filters = make_lcmv(info=raw.info, forward=forward, data_cov=data_cov,
+                        reg=reg, noise_cov=noise_cov, label=label, picks=picks,
+                        pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
     # apply spatial filter to epochs
-    stc = apply_lcmv_filter_raw(raw=raw, spatial_filter=spat_filt, start=start,
-                                stop=stop, max_ori_out=max_ori_out)
+    stc = apply_lcmv_raw(raw=raw, filters=filters, start=start, stop=stop,
+                         max_ori_out=max_ori_out)
 
     return stc
 

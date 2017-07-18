@@ -10,8 +10,8 @@ from copy import deepcopy
 import mne
 from mne import compute_covariance
 from mne.datasets import testing
-from mne.beamformer import (make_lcmv_filter, apply_lcmv_filter, lcmv,
-                            lcmv_epochs, lcmv_raw, tf_lcmv)
+from mne.beamformer import (make_lcmv, apply_lcmv, lcmv, lcmv_epochs, lcmv_raw,
+                            tf_lcmv)
 from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main, slow_test
@@ -216,9 +216,9 @@ def test_lcmv():
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = deepcopy(evoked)
     evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
-    sfilter = make_lcmv_filter(evoked.info, forward_vol, data_cov, reg=0.01,
-                               noise_cov=noise_cov)
-    assert_raises(ValueError, apply_lcmv_filter, evoked_ch, sfilter,
+    filters = make_lcmv(evoked.info, forward_vol, data_cov, reg=0.01,
+                        noise_cov=noise_cov)
+    assert_raises(ValueError, apply_lcmv, evoked_ch, filters,
                   max_ori_out='signed')
 
     # Now test single trial using fixed orientation forward solution
