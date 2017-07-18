@@ -22,7 +22,7 @@ from . import read_evokeds, read_events, pick_types, read_cov
 from .io import Raw, read_info
 from .utils import (_TempDir, logger, verbose, get_subjects_dir, warn,
                     _import_mlab)
-from .viz import plot_events, plot_trans, plot_cov
+from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
 from .epochs import read_epochs
@@ -1710,9 +1710,10 @@ class Report(object):
         kwargs = dict(info=info, trans=trans, subject=subject,
                       subjects_dir=subjects_dir)
         try:
-            img = _iterate_trans_views(plot_trans, **kwargs)
+            img = _iterate_trans_views(function=plot_alignment, **kwargs)
         except IOError:
-            img = _iterate_trans_views(plot_trans, source='head', **kwargs)
+            img = _iterate_trans_views(function=plot_alignment, source='head',
+                                       **kwargs)
 
         if img is not None:
             global_id = self._get_id()

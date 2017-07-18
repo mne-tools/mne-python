@@ -391,7 +391,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     See Also
     --------
-    mne.viz.plot_trans
+    mne.viz.plot_alignment
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 

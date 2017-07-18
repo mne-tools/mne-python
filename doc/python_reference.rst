@@ -259,7 +259,7 @@ Visualization
    plot_tfr_topomap
    plot_topo_image_epochs
    plot_topomap
-   plot_trans
+   plot_alignment
    snapshot_brain_montage
 
 

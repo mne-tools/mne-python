@@ -38,7 +38,7 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout, has_nibabel, check_version,
-                     _ensure_int)
+                     _ensure_int, deprecated)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
                     tight_layout, figure_nobar)
 from ..bem import ConductorModel, _bem_find_surface, _surf_dict, _surf_name
@@ -390,13 +390,130 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     return fig if img_output is None else outs
 
 
-@verbose
+@deprecated('plot_trans is deprecated and will be removed in version 0.16. '
+            'Use plot_alignment instead')
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
                source=('bem', 'head', 'outer_skin'), coord_frame='head',
                meg_sensors=('helmet', 'sensors'), eeg_sensors='original',
                dig=False, ref_meg=False, ecog_sensors=True, head=None,
                brain=None, skull=False, src=None, mri_fiducials=False,
                bem=None, verbose=None):
+    """Plot head, sensor, and source space alignment in 3D.
+
+    This function serves the purpose of checking the validity of the many
+    different steps of source reconstruction:
+
+    - Transform matrix (keywords ``trans``, ``meg_sensors`` and
+      ``mri_fiducials``),
+    - BEM surfaces (keywords ``source``, ``bem``, ``skull`` and ``head``),
+    - sphere conductor model (keywords ``bem``, ``head``, ``skull`` and
+      ``brain``) and
+    - source space (keywords ``brain`` and ``src``).
+
+    Parameters
+    ----------
+    info : dict
+        The measurement info.
+    trans : str | 'auto' | dict | None
+        The full path to the head<->MRI transform ``*-trans.fif`` file
+        produced during coregistration. If trans is None, an identity matrix
+        is assumed.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. Can be omitted if ``src`` is provided.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    source : str | list
+        Type to load. Common choices would be `'bem'`, `'head'` or
+        `'outer_skin'`. If list, the sources are looked up in the given order
+        and first found surface is used. We first try loading
+        `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
+        `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
+        the subjects bem and bem/flash folders are searched. Defaults to 'bem'.
+        .. note: For single layer bems it is recommended to use 'head'. If
+                 None, ``bem`` keyword argument is used.
+    coord_frame : str
+        Coordinate frame to use, 'head', 'meg', or 'mri'.
+    meg_sensors : bool | str | list
+        Can be "helmet" (equivalent to False) or "sensors" to show the MEG
+        helmet or sensors, respectively, or a combination of the two like
+        ``['helmet', 'sensors']`` (equivalent to True, default) or ``[]``.
+    eeg_sensors : bool | str | list
+        Can be "original" (default; equivalent to True) or "projected" to
+        show EEG sensors in their digitized locations or projected onto the
+        scalp, or a list of these options including ``[]`` (equivalent of
+        False).
+    dig : bool | 'fiducials'
+        If True, plot the digitization points; 'fiducials' to plot fiducial
+        points only.
+    ref_meg : bool
+        If True (default False), include reference MEG sensors.
+    ecog_sensors : bool
+        If True (default), show ECoG sensors.
+    head : bool | None
+        If True, show head surface. Can also be None, which will show the
+        head surface for MEG and EEG, but hide it if ECoG sensors are
+        present.
+    brain : bool | str | None
+        If True, show the brain surfaces. Can also be a str for
+        surface type (e.g., 'pial', same as True), or None (True for ECoG,
+        False otherwise).
+    skull : bool | str | list of str | list of dict
+        Whether to plot skull surface. If string, common choices would be
+        'inner_skull', or 'outer_skull'. Can also be a list to plot
+        multiple skull surfaces. If a list of dicts, each dict must
+        contain the complete surface info (such as you get from
+        :func:`mne.make_bem_model`). True is an alias of 'outer_skull'.
+        The subjects bem and bem/flash folders are searched for the 'surf'
+        files. Defaults to False.
+    src : instance of SourceSpaces | None
+        If not None, also plot the source space points.
+
+        .. versionadded:: 0.14
+
+    mri_fiducials : bool | str
+        Plot MRI fiducials (default False). If ``True``, look for a file with
+        the canonical name (``bem/{subject}-fiducials.fif``). If ``str`` it
+        should provide the full path to the fiducials file.
+
+        .. versionadded:: 0.14
+
+    bem : list of dict | Instance of ConductorModel | None
+        Can be either the BEM surfaces (list of dict), a BEM solution or a
+        sphere model. If not None, ``source`` must be None. Defaults to None.
+
+        .. versionadded:: 0.15
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    fig : instance of mlab.Figure
+        The mayavi figure.
+
+    See Also
+    --------
+    mne.viz.plot_bem
+    """
+    return plot_alignment(info, trans=trans, subject=subject,
+                          subjects_dir=subjects_dir, source=source,
+                          coord_frame=coord_frame, meg_sensors=meg_sensors,
+                          eeg_sensors=eeg_sensors, dig=dig, ref_meg=ref_meg,
+                          ecog_sensors=ecog_sensors, head=head, brain=brain,
+                          skull=skull, src=src, mri_fiducials=mri_fiducials,
+                          bem=bem, verbose=verbose)
+
+
+@verbose
+def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
+                   source=('bem', 'head', 'outer_skin'), coord_frame='head',
+                   meg_sensors=('helmet', 'sensors'), eeg_sensors='original',
+                   dig=False, ref_meg=False, ecog_sensors=True, head=None,
+                   brain=None, skull=False, src=None, mri_fiducials=False,
+                   bem=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     This function serves the purpose of checking the validity of the many
@@ -1751,7 +1868,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     Parameters
     ----------
     fig : instance of Mayavi Scene
-        The figure on which you've plotted electrodes using `plot_trans`.
+        The figure on which you've plotted electrodes using `plot_alignment`.
     montage : instance of `DigMontage` or `Info` | dict of ch: xyz mappings.
         The digital montage for the electrodes plotted in the scene. If `Info`,
         channel positions will be pulled from the `loc` field of `chs`.

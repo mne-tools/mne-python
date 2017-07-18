@@ -18,7 +18,7 @@ import mne
 from mne.io import read_raw_fif, read_raw_ctf, read_raw_bti, read_raw_kit
 from mne.io import read_raw_artemis123
 from mne.datasets import sample, spm_face, testing
-from mne.viz import plot_trans
+from mne.viz import plot_alignment
 
 print(__doc__)
 
@@ -41,8 +41,8 @@ raws = dict(
 for system, raw in raws.items():
     # We don't have coil definitions for KIT refs, so exclude them
     ref_meg = False if system == 'KIT' else True
-    fig = plot_trans(raw.info, trans=None, dig=False, eeg_sensors=False,
-                     meg_sensors=True, coord_frame='meg', ref_meg=ref_meg)
+    fig = plot_alignment(raw.info, trans=None, dig=False, eeg_sensors=False,
+                         meg_sensors=True, coord_frame='meg', ref_meg=ref_meg)
     text = mlab.title(system)
     text.x_position = 0.5
     text.y_position = 0.95

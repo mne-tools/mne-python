@@ -130,9 +130,9 @@ class SourceSpaces(list):
                                    for ss in self) else False
         if skull is None:
             skull = False if self.kind == 'surface' else True
-        from .viz import plot_trans
+        from .viz import plot_alignment
         info = create_info(0, 1000., 'eeg')
-        return plot_trans(
+        return plot_alignment(
             info, trans=None, subject=self[0]['subject_his_id'],
             subjects_dir=subjects_dir, source=(), coord_frame='mri',
             meg_sensors=(), eeg_sensors=False, dig=False, ref_meg=False,

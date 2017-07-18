@@ -83,6 +83,8 @@ Changelog
 
     - Add ``bem`` parameter for :func:`mne.viz.plot_trans` for plotting conductor model by `Jaakko Leppakangas`_
 
+    - Deprecate :func:`plot_trans` in favor of :func:`mne.viz.plot_alignment` and add ``bem`` parameter for for plotting conductor model by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 

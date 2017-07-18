@@ -79,8 +79,8 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 
 info = mne.io.read_info(raw_fname)
-mne.viz.plot_trans(info, trans, subject=subject, dig=True,
-                   meg_sensors=True, subjects_dir=subjects_dir)
+mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
+                       meg_sensors=True, subjects_dir=subjects_dir)
 
 ###############################################################################
 # Compute Source Space

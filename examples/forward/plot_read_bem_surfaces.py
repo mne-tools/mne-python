@@ -22,13 +22,14 @@ raw = mne.io.read_raw_fif(fname)
 subjects_dir = op.join(data_path, 'subjects')
 
 ###############################################################################
-# Here we use :func:`mne.viz.plot_trans` with ``trans=None`` to plot only the
-# surfaces without any transformations. For plotting transformation, see
+# Here we use :func:`mne.viz.plot_alignment` with ``trans=None`` to plot only
+# the surfaces without any transformations. For plotting transformation, see
 # :ref:`tut_forward`.
 
-mne.viz.plot_trans(raw.info, trans=None, subject='sample',
-                   subjects_dir=subjects_dir, meg_sensors=[], eeg_sensors=[],
-                   head='outer_skin', skull=['inner_skull', 'outer_skull'])
+mne.viz.plot_alignment(raw.info, trans=None, subject='sample',
+                       subjects_dir=subjects_dir, meg_sensors=[],
+                       eeg_sensors=[], head='outer_skin',
+                       skull=['inner_skull', 'outer_skull'])
 mlab.view(40, 60)
 
 ###############################################################################
@@ -38,6 +39,6 @@ mlab.view(40, 60)
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto',
                                relative_radii=[0.8353, 0.847, 0.93, 1],
                                sigmas=(0.33, 1.0, 0.0042, 0.33))
-mne.viz.plot_trans(raw.info, trans=None, source=None, bem=sphere,
-                   subjects_dir=subjects_dir, head=True,
-                   skull=['inner_skull', 'outer_skull'])
+mne.viz.plot_alignment(raw.info, trans=None, source=None, bem=sphere,
+                       subjects_dir=subjects_dir, head=True,
+                       skull=['inner_skull', 'outer_skull'])

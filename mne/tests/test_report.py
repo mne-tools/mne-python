@@ -17,7 +17,7 @@ from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
                        requires_PIL, run_tests_if_main, slow_test)
-from mne.viz import plot_trans
+from mne.viz import plot_alignment
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -177,8 +177,8 @@ def test_render_add_sections():
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
-    fig = plot_trans(evoked.info, trans_fname, subject='sample',
-                     subjects_dir=subjects_dir)
+    fig = plot_alignment(evoked.info, trans_fname, subject='sample',
+                         subjects_dir=subjects_dir)
 
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
