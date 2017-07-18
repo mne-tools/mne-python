@@ -409,6 +409,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     inst = inst.copy() if copy else inst
 
     if ref_channels == 'average' and not projection:  # apply average reference
+        logger.info('Applying average reference.')
         eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
         ref_from = [inst.ch_names[i] for i in eeg_idx]
         return _apply_reference(inst, ref_from)
