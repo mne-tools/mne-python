@@ -239,16 +239,16 @@ class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
     @verbose
-    def set_eeg_reference(self, ref_channels='average', projection=False,
+    def set_eeg_reference(self, ref_channels='average', projection=None,
                           verbose=None):
         """Specify which reference to use for EEG data.
 
-        By default, MNE-Python will automatically re-reference the EEG
-        signal to use an average reference (see below). Use this function to
-        explicitly specify the desired reference for EEG. This can be either
-        an existing electrode or a new virtual channel. This function will
+        By default, MNE-Python will automatically re-reference the EEG signal
+        to use an average reference (see below). Use this function to
+        explicitly specify the desired reference for EEG. This can be either an
+        existing electrode or a new virtual channel. This function will
         re-reference the data according to the desired reference and prevent
-        MNE-Python from automatically adding an average reference.
+        MNE-Python from automatically adding an average reference projection.
 
         Some common referencing schemes and the corresponding value for the
         ``ref_channels`` parameter:
@@ -256,7 +256,7 @@ class SetChannelsMixin(object):
         No re-referencing:
             If the EEG data is already using the proper reference, set
             ``ref_channels=[]``. This will prevent MNE-Python from
-            automatically re-referencing the data to an average reference.
+            automatically adding an average reference projection.
 
         Average reference:
             A new virtual reference electrode is created by averaging the
@@ -268,35 +268,39 @@ class SetChannelsMixin(object):
             that will act as the new reference, for example
             ``ref_channels=['Cz']`.
 
-        The mean of multiple electrodes: A new virtual reference electrode
-        is created by computing the average of the current EEG signal
-        recorded from two or more selected channels. Set ``ref_channels`` to
-        a list of channel names, indicating which channels to use. For
-        example, to apply an average mastoid reference, when using the 10-20
-        naming scheme, set ``ref_channels=['M1', 'M2']``.
+        The mean of multiple electrodes:
+            A new virtual reference electrode is created by computing the
+            average of the current EEG signal recorded from two or more
+            selected channels. Set ``ref_channels`` to a list of channel names,
+            indicating which channels to use. For example, to apply an average
+            mastoid reference, when using the 10-20 naming scheme, set
+            ``ref_channels=['M1', 'M2']``.
 
-        .. note:: In case of average reference (ref_channels=None), the
-                  reference is added as an SSP projector and it is not applied
+        .. note:: In case of average reference (`ref_channels='average'``), the
+                  reference is added as a projection and it is not applied
                   automatically. For it to take effect, apply with method
-                  :meth:`apply_proj <mne.io.Raw.apply_proj>`.
-                  For custom reference (ref_channel is not None), this method
-                  operates in place.
+                  :meth:`apply_proj <mne.io.Raw.apply_proj>`. Other references
+                  are directly applied (this behavior will change in MNE 0.16).
 
         Parameters
         ----------
         ref_channels : list of str | str
-            The names of the channels to use to construct the reference. To
+            The name(s) of the channel(s) used to construct the reference. To
             apply an average reference, specify ``'average'`` here (default).
             If an empty list is specified, the data is assumed to already have
             a proper reference and MNE will not attempt any re-referencing of
             the data. Defaults to an average reference.
-        projection : bool
+        projection : bool | None
             If ``ref_channels='average'`` this argument specifies if the
             average reference should be computed as a projection (True) or not
             (False). If ``projection=True``, the average reference is added as
-            an SSP projector and is not applied to the data (it can be applied
-            afterwards with the ``apply_proj`` method. If ``projection=False``
-            (default), the average reference is directly applied to the data.
+            a projection and is not applied to the data (it can be applied
+            afterwards with the ``apply_proj`` method). If
+            ``projection=False``, the average reference is directly applied to
+            the data. Defaults to None, which means ``projection=True``, but
+            will change to ``projection=False`` in the next release.
+            If ``ref_channels`` is not ``'average'``, ``projection`` must be
+            set to ``False`` (the default in this case).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -306,8 +310,8 @@ class SetChannelsMixin(object):
         -------
         inst : instance of Raw | Epochs | Evoked
             Data with EEG channels re-referenced. If ``ref_channels='average'``
-            and ``projection=True`` an average SSP projector will be added
-            instead of directly re-referencing the data.
+            and ``projection=True`` a projection will be added instead of
+            directly re-referencing the data.
         ref_data : array
             Array of reference data subtracted from EEG channels. This will be
             ``None`` if ``ref_channels='average'`` and ``projection=True``.
