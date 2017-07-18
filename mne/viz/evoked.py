@@ -1339,7 +1339,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     return fig
 
 
-def _ci(arr, ci):
+def _parametric_ci(arr, ci=.95):
     """Calculate the `ci`% parametric confidence interval for `arr`.
 
     Aux function for plot_compare_evokeds.
@@ -1355,30 +1355,25 @@ def _ci(arr, ci):
                        for mean_, sigma_ in zip(mean, sigma)]).T
 
 
-def _ci(arr, ci=.95, n_bootstraps=1000):
-     """get confidence intervals from non-parametric bootstrap"""
-     from ..baseline import rescale
-     rng = np.random.RandomState(1)
-     nobs, ntimes = arr.shape
-     indices = np.arange(nobs, dtype=int)
-     gfps_bs = np.empty((n_bootstraps, ntimes))
-     for iteration in range(n_bootstraps):
-         bs_indices = rng.choice(indices, replace=True, size=len(indices))
-         gfps_bs[iteration] = np.sum(arr[bs_indices] ** 2, 0)
-     gfps_bs = rescale(gfps_bs , np.arange(ntimes), baseline=(None, 0))
-     upper, lower = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
-     ci_low, ci_up = np.percentile(gfps_bs, (upper, lower), axis=0)
-     return np.array([ci_up + arr.mean(0), ci_low + arr.mean(0)])
- 
-if False:
-        # erp std
-        if plot_std:
-            erp = ica_data[idx].mean(axis=0)
-            diffs = ica_data[idx] - erp
-            erp_std = [
-                [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-                [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
-            erp_std = np.array(erp_std) * num_std
+def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000):
+    """get confidence intervals from non-parametric bootstrap"""
+    ntrials, ntimes = arr.shape
+    indices = np.arange(ntrials, dtype=int)
+    gfps_bs = np.empty((n_bootstraps, ntimes))
+    for iteration in range(n_bootstraps):
+        bs_indices = np.random.choice(indices, replace=True,
+                                      size=len(indices))
+        gfps_bs[iteration] = np.mean(arr[bs_indices], 0)
+    ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
+    ci_low, ci_up = np.percentile(gfps_bs, ci, axis=0)
+    return np.array([ci_up, ci_low])
+
+
+def _ci(arr, ci=.95, method="boot", n_bootstraps=2000):
+    if method == "boot":
+        return _bootstrap_ci(arr, ci, n_bootstraps=n_bootstraps)
+    else:
+        return _parametric_ci(arr, ci)
 
 
 def _setup_styles(conditions, style_dict, style, default):
@@ -1741,7 +1736,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
         # plot the confidence interval (standard error of the mean/'sem_')
         if ci and (gfp is not True):
-            sem_ = sem_array[condition] * scaling
+            sem_ = sem_array[condition]# * scaling
             axes.fill_between(times, sem_[0].flatten(),
                               sem_[1].flatten(), zorder=100,
                               color=styles[condition]['c'], alpha=.333)

@@ -284,6 +284,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # image and erp
         plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3],
+                          combine=None,
                           colorbar=False, show=False, **image_args)
 
         # spectrum

@@ -276,18 +276,22 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
                                  "Consider using different values for "
                                  "`picks` and/or `groupby`.")
             if ch_type == "grad":
+                def pair_and_combine(data):
+                    data = data ** 2
+                    data = (data[:, ::2, :] + data[:, 1::2, :]) / 2
+                    return combine(np.sqrt(data))
                 picks_ = _grad_pair_pick_and_name(epochs.info, picks_)[0]
-                this_data = combine(data[:, picks_, :] ** 2)[:, np.newaxis, :]
+                this_data = pair_and_combine(
+                    data[:, picks_, :])[:, np.newaxis, :]
             else:
                 this_data = combine(
                     data[:, picks_, :])[:, np.newaxis, :]
             info = pick_info(epochs.info, [picks_[0]], copy=True)
             these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
-            if ch_type == "mag":
-                d = these_epochs.get_data()
-                d[:] = this_data[:]
+            d = these_epochs.get_data()
+            d[:] = this_data  # ??????
             to_plot_list.append((these_epochs, ch_type,
-                                 type2name.get(name, name) + combine_title))
+                                 type2name.get(name, name)))
 
     return to_plot_list  # data, ch_type, title
 
