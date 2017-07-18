@@ -372,8 +372,8 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         warn('The behavior of set_eeg_reference will change in 0.16 when '
              'computing the average reference. Currently, an SSP projector is '
              'computed, which has to be applied manually with the apply_proj '
-             'method. In 0.16, the average reference will be directly applied. '
-             'Set projection=True if you want to retain the old behavior, or '
+             'method. In 0.16, the average reference will be directly applied.'
+             ' Set projection=True if you want to retain the old behavior, or '
              'set projection=False if you want the new behavior.',
              DeprecationWarning)
         if ref_channels == 'average':
