@@ -675,6 +675,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
                 weight_norm='unit-noise-gain', max_ori_out='abs',
                 verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
+
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on single trial data.
     .. note:: This implementation has not been heavily tested so please
@@ -773,6 +774,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
              start=None, stop=None, picks=None, pick_ori=None, rank=None,
              weight_norm='unit-noise-gain', max_ori_out='abs', verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
+
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on raw data.
     NOTE : This implementation has not been heavily tested so please
