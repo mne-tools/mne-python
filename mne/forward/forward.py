@@ -803,7 +803,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     else:
         sol_grad = None
 
-    if fwd['surf_ori'] is True and fwd['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+    if (fwd['surf_ori'] is True and
+            fwd['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI):
         inv_rot = _inv_block_diag(fwd['source_nn'].T, 3)
         sol = sol * inv_rot
         if sol_grad is not None:
