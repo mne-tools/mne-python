@@ -376,7 +376,10 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
              'Set projection=True if you want to retain the old behavior, or '
              'set projection=False if you want the new behavior.',
              DeprecationWarning)
-        projection=True
+        if ref_channels == 'average':
+            projection = True
+        else:
+            projection = False
 
     if ref_channels != 'average' and projection:
         raise ValueError('Setting projection=True is only supported for '
