@@ -1001,8 +1001,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_epochs_image)
     def plot_image(self, picks=None, sigma=0., vmin=None, vmax=None,
                    colorbar=True, order=None, show=True, units=None,
-                   scalings=None, cmap='RdBu_r', fig=None, axes=None,
-                   overlay_times=None, combine='gfp', groupby=None,
+                   scalings=None, cmap=None, fig=None, axes=None,
+                   overlay_times=None, combine='gfp', groupby='type',
                    ts_args=dict()):
         return plot_epochs_image(self, picks=picks, sigma=sigma, vmin=vmin,
                                  vmax=vmax, colorbar=colorbar, order=order,

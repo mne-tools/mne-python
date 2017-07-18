@@ -274,15 +274,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
         spectrum_std = np.array(spectrum_std) * num_std
 
-        # erp std
-        if plot_std:
-            erp = ica_data[idx].mean(axis=0)
-            diffs = ica_data[idx] - erp
-            erp_std = [
-                [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-                [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
-            erp_std = np.array(erp_std) * num_std
-
         # epoch variance
         epoch_var = np.var(ica_data[idx], axis=1)
 

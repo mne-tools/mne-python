@@ -1355,6 +1355,32 @@ def _ci(arr, ci):
                        for mean_, sigma_ in zip(mean, sigma)]).T
 
 
+def _ci(arr, ci=.95, n_bootstraps=1000):
+     """get confidence intervals from non-parametric bootstrap"""
+     from ..baseline import rescale
+     rng = np.random.RandomState(1)
+     nobs, ntimes = arr.shape
+     indices = np.arange(nobs, dtype=int)
+     gfps_bs = np.empty((n_bootstraps, ntimes))
+     for iteration in range(n_bootstraps):
+         bs_indices = rng.choice(indices, replace=True, size=len(indices))
+         gfps_bs[iteration] = np.sum(arr[bs_indices] ** 2, 0)
+     gfps_bs = rescale(gfps_bs , np.arange(ntimes), baseline=(None, 0))
+     upper, lower = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
+     ci_low, ci_up = np.percentile(gfps_bs, (upper, lower), axis=0)
+     return np.array([ci_up + arr.mean(0), ci_low + arr.mean(0)])
+ 
+if False:
+        # erp std
+        if plot_std:
+            erp = ica_data[idx].mean(axis=0)
+            diffs = ica_data[idx] - erp
+            erp_std = [
+                [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+                [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
+            erp_std = np.array(erp_std) * num_std
+
+
 def _setup_styles(conditions, style_dict, style, default):
     """Set linestyles and colors for plot_compare_evokeds."""
     # check user-supplied style to condition matching
@@ -1617,7 +1643,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 # (e.g. channel count)
                 data = np.asarray([evoked_.data[picks, :].mean(0)
                                    for evoked_ in evokeds[condition]])
-                sem_array[condition] = _ci(data, ci)
+                sem_array[condition] = _ci(data, ci) * scaling
 
         # get the grand mean
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))

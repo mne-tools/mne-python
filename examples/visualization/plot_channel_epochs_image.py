@@ -74,6 +74,6 @@ bad_pick = 98  # channel with no evoked response
 plt_times = np.linspace(0, .2, len(epochs))
 
 plt.close('all')
-mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=.5, cmap='viridis',
-                          vmax=275, colorbar=True, order=order_func,
+mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=.5, cmap='inferno',
+                          colorbar=True, order=order_func, combine=None,
                           overlay_times=plt_times, show=True)

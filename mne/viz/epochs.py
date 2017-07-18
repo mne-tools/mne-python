@@ -275,20 +275,21 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
                 raise ValueError("Cannot combine over only one sensor. "
                                  "Consider using different values for "
                                  "`picks` and/or `groupby`.")
-            if ch_type == "grad" and len(all_picks) > 1:
-                f  = lambda x: combine(np.sqrt(np.sum(x ** 2, axis=1) / 2))
-                picks_ = _grad_pair_pick_and_name(epochs.info, picks)[0]
-                this_data = f(
-                    data[:, picks_, :])[:, np.newaxis, :] / scalings[ch_type]
+            if ch_type == "grad":
+                picks_ = _grad_pair_pick_and_name(epochs.info, picks_)[0]
+                this_data = combine(data[:, picks_, :] ** 2)[:, np.newaxis, :]
             else:
                 this_data = combine(
-                    data[:, picks_, :])[:, np.newaxis, :] / scalings[ch_type]
+                    data[:, picks_, :])[:, np.newaxis, :]
             info = pick_info(epochs.info, [picks_[0]], copy=True)
-            these_epochs = EpochsArray(this_data, info, tmin=tmin)
+            these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
+            if ch_type == "mag":
+                d = these_epochs.get_data()
+                d[:] = this_data[:]
             to_plot_list.append((these_epochs, ch_type,
                                  type2name.get(name, name) + combine_title))
 
-    return to_plot_list  # data, ch_type, evoked, name
+    return to_plot_list  # data, ch_type, title
 
 
 def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar=False,
@@ -333,7 +334,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     else:
         data = epochs.get_data()[:, 0, :]
     n_epochs = len(data)
-    data *= scaling
+    #data *= scaling
 
     if overlay_times is not None and len(overlay_times) != n_epochs:
         raise ValueError('size of overlay_times parameter (%s) do not '
@@ -369,6 +370,10 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
         vmin = 0  # for gfp etc
     scale_vmin = True if vmin is None else False
     scale_vmax = True if vmax is None else False
+    if not scale_vmin:
+        vmin /= scaling
+    if not scale_vmax:
+        vmax /= scaling
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     if cmap is None:
@@ -380,7 +385,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     #this_vmax = vmax * scaling if scale_vmax else vmax
     cmap = _setup_cmap(cmap)
     im = ax1.imshow(
-        data * scaling, vmin=vmin * scaling, vmax=vmax * scaling,
+        data * scaling,# vmin=vmin * scaling, vmax=vmax * scaling,
         cmap=cmap[0], aspect='auto', origin='lower', interpolation='nearest',
         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs])
     if overlay_times is not None:
