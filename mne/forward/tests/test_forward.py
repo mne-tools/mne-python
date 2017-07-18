@@ -18,7 +18,7 @@ from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
                        run_tests_if_main, slow_test)
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
-                         Forward)
+                         Forward, is_fixed_orient)
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -78,10 +78,16 @@ def test_convert_forward():
                                          force_fixed=True)
     del fwd_surf
     gc.collect()
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test-fwd.fif')
+    write_forward_solution(fname_temp, fwd_fixed, overwrite=True)
     assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
-    fwd_fixed_io = read_forward_solution(fname_meeg_grad, surf_ori=False,
-                                         force_fixed=True)
+    assert_true(is_fixed_orient(fwd_fixed))
+    fwd_fixed_io = read_forward_solution(fname_temp)
+    assert_true(repr(fwd_fixed_io))
+    assert_true(isinstance(fwd_fixed_io, Forward))
+    assert_true(is_fixed_orient(fwd_fixed_io))
     compare_forwards(fwd_fixed, fwd_fixed_io)
     del fwd_fixed_io
     gc.collect()
