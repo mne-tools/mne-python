@@ -518,12 +518,11 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
         raise ValueError('Only forward solutions computed in MRI or head '
                          'coordinates are acceptable')
 
-    nuse = 0
-
     # Transform each source space to the HEAD or MRI coordinate frame,
     # depending on the coordinate frame of the forward solution
     # NOTE: the function transform_surface_to will also work on discrete and
     # volume sources
+    nuse = 0
     for s in src:
         try:
             s = transform_surface_to(s, fwd['coord_frame'], mri_head_t)
@@ -809,7 +808,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     else:
         sol_grad = None
 
-    if fwd['surf_ori'] is True:
+    if fwd['surf_ori'] is True and fwd['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
         inv_rot = _inv_block_diag(fwd['source_nn'].T, 3)
         sol = sol * inv_rot
         if sol_grad is not None:

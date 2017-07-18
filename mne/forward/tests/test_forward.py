@@ -70,27 +70,35 @@ def test_convert_forward():
     fwd_surf_io = read_forward_solution(fname_meeg_grad, surf_ori=True)
     compare_forwards(fwd_surf, fwd_surf_io)
     del fwd_surf_io
-
     gc.collect()
+
     # go back
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
     assert_true(repr(fwd_new))
     assert_true(isinstance(fwd_new, Forward))
     compare_forwards(fwd, fwd_new)
+    del fwd_new
+    gc.collect()
+
     # now go to fixed
     fwd_fixed = convert_forward_solution(fwd_surf, surf_ori=False,
                                          force_fixed=True, use_cps=False)
-    del fwd_surf
-    gc.collect()
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test-fwd.fif')
+    write_forward_solution(fname_temp, fwd_fixed, overwrite=True)
     assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
+    fwd_fixed_io = read_forward_solution(fname_temp)
+    compare_forwards(fwd_fixed, fwd_fixed_io)
+    del fwd_fixed_io, fwd_surf
+    gc.collect()
 
     # The following test can be removed in 0.16
     fwd_fixed_io = read_forward_solution(fname_meeg_grad, force_fixed=True)
     compare_forwards(fwd_fixed, fwd_fixed_io)
     del fwd_fixed_io
-
     gc.collect()
+
     # now go back to cartesian (original condition)
     fwd_new = convert_forward_solution(fwd_fixed, surf_ori=False,
                                        force_fixed=False)
