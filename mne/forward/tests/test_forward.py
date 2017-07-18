@@ -78,17 +78,9 @@ def test_convert_forward():
                                          force_fixed=True)
     del fwd_surf
     gc.collect()
-    temp_dir = _TempDir()
-    fname_temp = op.join(temp_dir, 'test-fwd.fif')
-    write_forward_solution(fname_temp, fwd_fixed, overwrite=True)
     assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
     assert_true(is_fixed_orient(fwd_fixed))
-    fwd_fixed_io = read_forward_solution(fname_temp)
-    assert_true(repr(fwd_fixed_io))
-    assert_true(isinstance(fwd_fixed_io, Forward))
-    assert_true(is_fixed_orient(fwd_fixed_io))
-    compare_forwards(fwd_fixed, fwd_fixed_io)
     fwd_fixed_io = read_forward_solution(fname_meeg_grad, surf_ori=False,
                                          force_fixed=True)
     assert_true(repr(fwd_fixed_io))
@@ -141,6 +133,12 @@ def test_io_forward():
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])
+    write_forward_solution(fname_temp, fwd, overwrite=True)
+    fwd_read = read_forward_solution(fname_temp)
+    assert_true(repr(fwd_read))
+    assert_true(isinstance(fwd_read, Forward))
+    assert_true(is_fixed_orient(fwd_read))
+    compare_forwards(fwd, fwd_read)
 
     # test warnings on bad filenames
     fwd = read_forward_solution(fname_meeg_grad)
