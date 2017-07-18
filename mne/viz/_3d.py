@@ -868,8 +868,8 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
 
     for key in surfs.keys():
         surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
-    src_rr = apply_trans(mri_trans, src_rr)
-    src_nn = apply_trans(mri_trans, src_nn, move=False)
+    # src_rr = apply_trans(mri_trans, src_rr)
+    # src_nn = apply_trans(mri_trans, src_nn, move=False)
 
     # determine points
     meg_rrs, meg_tris = list(), list()

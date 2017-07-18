@@ -64,7 +64,6 @@ trans = mne.read_trans(tr_fname)
 # * Click ``Save As...`` (lower right corner of the panel), set the filename
 #   and read it with :func:`mne.read_trans`.
 
-
 # mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
 mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
                        subjects_dir=subjects_dir, src=src)
