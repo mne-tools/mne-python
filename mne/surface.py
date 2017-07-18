@@ -502,7 +502,7 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
     volume_info : dict-like
         If read_metadata is true, key-value pairs found in the geometry file.
     surf : dict
-        The surface parameters. Only returned if read_dict is True.
+        The surface parameters. Only returned if ``return_dict`` is True.
 
     See Also
     --------
