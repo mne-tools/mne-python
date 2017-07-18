@@ -89,6 +89,12 @@ def test_convert_forward():
     assert_true(isinstance(fwd_fixed_io, Forward))
     assert_true(is_fixed_orient(fwd_fixed_io))
     compare_forwards(fwd_fixed, fwd_fixed_io)
+    fwd_fixed_io = read_forward_solution(fname_meeg_grad, surf_ori=False,
+                                         force_fixed=True)
+    assert_true(repr(fwd_fixed_io))
+    assert_true(isinstance(fwd_fixed_io, Forward))
+    assert_true(is_fixed_orient(fwd_fixed_io))
+    compare_forwards(fwd_fixed, fwd_fixed_io)
     del fwd_fixed_io
     gc.collect()
     # now go back to cartesian (original condition)
