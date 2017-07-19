@@ -74,8 +74,8 @@ class Montage(object):
              % (self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])))
         return s
 
-    @property
-    def pos2d(self):
+    def get_pos2d(self):
+        """Return positions converted to 2D."""
         return _pol_to_cart(_cart_to_sph(self.pos)[:, 1:][:, ::-1])
 
     @copy_function_doc_to_method_doc(plot_montage)
