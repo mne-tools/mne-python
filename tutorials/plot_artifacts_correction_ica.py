@@ -209,7 +209,7 @@ from mne.preprocessing.ica import corrmap  # noqa
 
 # We'll start by simulating a group of subjects or runs from a subject
 start, stop = [0, raw.times[-1]]
-intervals = np.linspace(start, stop, 4, dtype=int)
+intervals = np.linspace(start, stop, 4, dtype=np.float)
 icas_from_other_data = list()
 raw.pick_types(meg=True, eeg=False)  # take only MEG channels
 for ii, start in enumerate(intervals):
