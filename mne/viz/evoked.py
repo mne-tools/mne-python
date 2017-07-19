@@ -1356,7 +1356,7 @@ def _parametric_ci(arr, ci=.95):
 
 
 def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000):
-    """get confidence intervals from non-parametric bootstrap"""
+    """Get confidence intervals from non-parametric bootstrap."""
     ntrials, ntimes = arr.shape
     indices = np.arange(ntrials, dtype=int)
     gfps_bs = np.empty((n_bootstraps, ntimes))

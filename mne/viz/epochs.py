@@ -150,8 +150,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     else:
         picks = np.atleast_1d(picks)
 
-    if ((fig is not None or axes is not None) and len(picks) > 1
-        and combine is None):
+    if (combine is None and (fig is not None or axes is not None) and
+            len(picks) > 1):
         raise ValueError('Only single pick can be drawn to a figure/axis; '
                          'provide only one pick, or use `combine`.')
 
@@ -202,7 +202,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
 
 def _get_picks_and_types(picks, ch_types, groupby, combine):
-    "Helper for plot_epochs_image. Packs picks and types into a list."
+    """Packs picks and types into a list. (Helper for plot_epochs_image)"""
     if groupby is None:
         if combine is not None:
             picks = [picks]
@@ -243,7 +243,7 @@ def _get_picks_and_types(picks, ch_types, groupby, combine):
 
 
 def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
-    "Helper for plot_epochs_image. Packs data and metadata into a list."
+    """Packs data and metadata into a list. (Helper for plot_epochs_image)"""
     to_plot_list = list()
     tmin = epochs.times[0]
 
@@ -261,13 +261,13 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
         combine_title = (" (" + combine + ")"
                          if isinstance(combine, string_types) else "")
         if combine == "gfp":
-            combine = lambda data: np.sqrt((data * data).mean(axis=1))
+            combine = lambda data: np.sqrt((data * data).mean(axis=1))  # noqa
         elif combine == "mean":
-            combine = lambda data: np.mean(data, axis=1)
+            combine = lambda data: np.mean(data, axis=1)  # noqa
         elif combine == "std":  # undocumented ...
-            combine = lambda data: np.std(data, axis=1)
+            combine = lambda data: np.std(data, axis=1)  # noqa
         elif combine == "median":  # undocumented ...
-            combine = lambda data: np.median(data, axis=1)
+            combine = lambda data: np.median(data, axis=1)  # noqa
         elif not callable(combine):
             raise ValueError(
                 "`combine` must be None, a callable or one out of 'mean' "
@@ -298,15 +298,16 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
     return to_plot_list  # data, ch_type, title
 
 
-def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar=False,
-                       order=None, show=False, unit=None, cmap=None,
-                       fig=None, axes=None, overlay_times=None, scaling=None,
-                       title=None, draw_evoked=False, ts_args=dict()):
-    """Helper function for plot_epochs_image/epochs.plot_image."""
+def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
+                       colorbar=False, order=None, show=False, unit=None,
+                       cmap=None, fig=None, axes=None, overlay_times=None,
+                       scaling=None, title=None, draw_evoked=False,
+                       ts_args=dict()):
+    """Plot epochs image. (Helper function for plot_epochs_image)"""
     from scipy import ndimage
     import matplotlib.pyplot as plt
 
-    ### prepare fig and axes ###
+    # prepare fig and axes
     if axes is not None:
         if fig is not None:
             raise ValueError('Both figure and axes were passed, please'
@@ -333,14 +334,13 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
         if colorbar:
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
 
-    ### data transforms - sorting, scaling, smoothing ###
+    # data transforms - sorting, scaling, smoothing
     if ch_type == "grad" and len(epochs.ch_names) > 1:
         data = epochs.get_data()
         data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
     else:
         data = epochs.get_data()[:, 0, :]
     n_epochs = len(data)
-    #data *= scaling
 
     if overlay_times is not None and len(overlay_times) != n_epochs:
         raise ValueError('size of overlay_times parameter (%s) do not '
@@ -371,7 +371,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     if sigma > 0.:
         data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
 
-    ### setup lims and cmap
+    # setup lims and cmap
     if vmin is None and data.min() >= 0:
         vmin = 0  # for gfp etc
     scale_vmin = True if vmin is None else False
@@ -385,13 +385,11 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     if cmap is None:
         cmap = "Reds" if data.min() >= 0 else 'RdBu_r'
 
-    ### Plot ###
-    #### draw the image ####
-#    this_vmin = vmin if scale_vmin else vmin
-    #this_vmax = vmax * scaling if scale_vmax else vmax
+    # Plot
+    # draw the image
     cmap = _setup_cmap(cmap)
     im = ax1.imshow(
-        data * scaling,# vmin=vmin * scaling, vmax=vmax * scaling,
+        data * scaling,  # vmin=vmin * scaling, vmax=vmax * scaling,
         cmap=cmap[0], aspect='auto', origin='lower', interpolation='nearest',
         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs])
     if overlay_times is not None:
@@ -403,26 +401,26 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
     ax1.axis('tight')
     ax1.axvline(0, color='k', linewidth=1, linestyle='--')
 
-    #### draw the evoked ####
+    # draw the evoked
     if draw_evoked:
         from mne.viz import plot_compare_evokeds
-        ylim = dict()  #  {ch_type: (vmin * scaling, vmax * scaling)}
-        ts_args_ = dict(colors={"cond":"black"}, axes=ax2, ylim=ylim,
+        ylim = dict()  # {ch_type: (vmin * scaling, vmax * scaling)}
+        ts_args_ = dict(colors={"cond": "black"}, axes=ax2, ylim=ylim,
                         picks=[0], title='', truncate_yaxis=False,
                         show=False)
         ts_args_.update(**ts_args)
-        plot_compare_evokeds({"cond":list(epochs.iter_evoked())}, **ts_args_)
+        plot_compare_evokeds({"cond": list(epochs.iter_evoked())}, **ts_args_)
         ax2.set_xlim(epochs.times[[0, -1]])
         ax1.set_xticks(())
 
-    #### draw the colorbar ####
+    # draw the colorbar
     if colorbar:
         cbar = plt.colorbar(im, cax=ax3)
         if cmap[1]:
             ax1.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=fig)
 
-    ### finish ###
+    # finish
     plt_show(show)
     return fig
 
@@ -1784,7 +1782,7 @@ def _settings_closed(events, params):
 
 
 def _plot_histogram(params):
-    """Plott histogram of peak-to-peak values."""
+    """Plot histogram of peak-to-peak values."""
     import matplotlib.pyplot as plt
     epochs = params['epochs']
     p2p = np.ptp(epochs.get_data(), axis=2)

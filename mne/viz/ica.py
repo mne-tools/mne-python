@@ -223,14 +223,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # calculations
     # ------------
-    plot_line_at_zero = False
     if isinstance(inst, BaseRaw):
         # break up continuous signal into segments
         from ..epochs import _segment_raw
         inst = _segment_raw(inst, segment_length=2., verbose=False,
                             preload=True)
-    if inst.times[0] < 0. and inst.times[-1] > 0.:
-        plot_line_at_zero = True
 
     epochs_src = ica.get_sources(inst)
     ica_data = np.swapaxes(epochs_src.get_data()[:, picks, :], 0, 1)

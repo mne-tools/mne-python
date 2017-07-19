@@ -2209,7 +2209,7 @@ def _handle_decim(info, decim, lowpass):
 
 
 def _grad_pair_pick_and_name(info, picks):
-        """Helper for a few viz functions - deal with grads"""
+        """Deal with grads. (Helper for a few viz functions)"""
         from ..channels.layout import _pair_grad_sensors
         picked_chans = list()
         pairpicks = _pair_grad_sensors(info, topomap_coords=False)
