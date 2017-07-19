@@ -2231,7 +2231,7 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
-                  layout, cmap, contours, template=True):
+                  layout, cmap, contours, template=False):
     """Customize ica.plot_components for corrmap."""
     if not template:
         title = 'Detected components'
@@ -2297,8 +2297,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     specific ICs across subjects.
 
     The specific procedure consists of two iterations. In a first step, the
-    maps best correlating with the template are identified. In the step, the
-    analysis is repeated with the mean of the maps identified in the first
+    maps best correlating with the template are identified. In the next step,
+    the analysis is repeated with the mean of the maps identified in the first
     stage.
 
     Run with `plot` and `show` set to `True` and `label=False` to find
