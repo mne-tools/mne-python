@@ -716,7 +716,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     head_radius : float | str | None
         If float, compute spherical shells for EEG using the given radius.
         If 'auto', estimate an approriate radius from the dig points in Info,
-        If None, exclude shells.
+        If None, exclude shells (single layer sphere model).
     info : instance of Info | None
         Measurement info. Only needed if ``r0`` or ``head_radius`` are
         ``'auto'``.

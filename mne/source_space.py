@@ -125,18 +125,34 @@ class SourceSpaces(list):
         fig : instance of mlab Figure
             The figure.
         """
+        from .viz import plot_alignment
+        surfaces = list()
+        bem = None
         if brain is None:
             brain = 'white' if any(ss['type'] == 'surf'
                                    for ss in self) else False
+        if isinstance(brain, str):
+            surfaces.append(brain)
+        elif brain:
+            surfaces.append('brain')
         if skull is None:
             skull = False if self.kind == 'surface' else True
-        from .viz import plot_alignment
+        if isinstance(skull, str):
+            surfaces.append(skull)
+        elif skull is True:
+            surfaces.append('outer_skull')
+        elif skull is not False:  # list
+            if isinstance(skull[0], dict):  # bem
+                surfaces.append('inner_skull', 'outer_skull', 'outer_skin')
+                bem = skull
+            else:  # list of str
+                for surf in skull:
+                    surfaces.append(surf)
         info = create_info(0, 1000., 'eeg')
         return plot_alignment(
             info, trans=None, subject=self[0]['subject_his_id'],
-            subjects_dir=subjects_dir, source=(), coord_frame='mri',
-            meg_sensors=(), eeg_sensors=False, dig=False, ref_meg=False,
-            ecog_sensors=False, head=False, brain=brain, skull=skull, src=self)
+            subjects_dir=subjects_dir, surfaces=surfaces, coord_frame='mri',
+            meg=(), eeg=False, dig=False, ecog=False, bem=bem, src=self)
 
     def __repr__(self):  # noqa: D105
         ss_repr = []

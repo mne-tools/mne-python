@@ -29,10 +29,9 @@ from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
 from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
 
-from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
-                       transform_surface_to, _project_onto_surface,
-                       complete_surface_info, mesh_edges,
-                       _complete_sphere_surf)
+from ..surface import (get_meg_helmet_surf, read_surface, transform_surface_to,
+                       _project_onto_surface, complete_surface_info,
+                       mesh_edges, _complete_sphere_surf)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
@@ -498,33 +497,62 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     --------
     mne.viz.plot_bem
     """
+    if source is not None and bem is not None:
+        raise ValueError('Only one of "source" and "bem" must be provided, '
+                         'got %s and %s respectively.' % (source, bem))
+    surfaces = []
+    if skull:
+        if skull is True or 'outer_skull' in skull:
+            surfaces.append('outer_skull')
+        if 'inner_skull' in skull:
+            surfaces.append('inner_skull')
+
+    if head:
+        surfaces.append('outer_skin')
+    elif head is None:
+        surfaces.append('ecog_head')  # special case
+
+    if brain is True:
+        surfaces.append('pial')
+    elif brain is None:
+        surfaces.append('ecog_brain')  # special case
+    elif isinstance(brain, str):
+        surfaces.append(brain)
+
+    if meg_sensors is False:  # old behavior
+        meg = ['helmet']
+    elif meg_sensors is True:
+        meg = ['helmet', 'sensors']
+    elif isinstance(meg_sensors, str):
+        meg = [meg_sensors]
+    else:
+        meg = []
+    if ref_meg:
+        meg.append('ref')
+
     return plot_alignment(info, trans=trans, subject=subject,
-                          subjects_dir=subjects_dir, source=source,
-                          coord_frame=coord_frame, meg_sensors=meg_sensors,
-                          eeg_sensors=eeg_sensors, dig=dig, ref_meg=ref_meg,
-                          ecog_sensors=ecog_sensors, head=head, brain=brain,
-                          skull=skull, src=src, mri_fiducials=mri_fiducials,
-                          bem=bem, verbose=verbose)
+                          subjects_dir=subjects_dir, surfaces=surfaces,
+                          coord_frame=coord_frame, meg=meg, eeg=eeg_sensors,
+                          dig=dig, ecog=ecog_sensors, src=src,
+                          mri_fiducials=mri_fiducials, bem=bem,
+                          verbose=verbose)
 
 
 @verbose
 def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
-                   source=('bem', 'head', 'outer_skin'), coord_frame='head',
-                   meg_sensors=('helmet', 'sensors'), eeg_sensors='original',
-                   dig=False, ref_meg=False, ecog_sensors=True, head=None,
-                   brain=None, skull=False, src=None, mri_fiducials=False,
+                   surfaces=('head',), coord_frame='head',
+                   meg=('helmet', 'sensors'), eeg='original',
+                   dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     This function serves the purpose of checking the validity of the many
     different steps of source reconstruction:
 
-    - Transform matrix (keywords ``trans``, ``meg_sensors`` and
-      ``mri_fiducials``),
-    - BEM surfaces (keywords ``source``, ``bem``, ``skull`` and ``head``),
-    - sphere conductor model (keywords ``bem``, ``head``, ``skull`` and
-      ``brain``) and
-    - source space (keywords ``brain`` and ``src``).
+    - Transform matrix (keywords ``trans``, ``meg`` and ``mri_fiducials``),
+    - BEM surfaces (keywords ``bem`` and ``surfaces``),
+    - sphere conductor model (keywords ``bem`` and ``surfaces``) and
+    - source space (keywords ``surfaces`` and ``src``).
 
     Parameters
     ----------
@@ -540,22 +568,18 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    source : str | list
-        Type to load. Common choices would be `'bem'`, `'head'` or
-        `'outer_skin'`. If list, the sources are looked up in the given order
-        and first found surface is used. We first try loading
-        `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
-        `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
-        the subjects bem and bem/flash folders are searched. Defaults to 'bem'.
-        .. note: For single layer bems it is recommended to use 'head'. If
-                 None, ``bem`` keyword argument is used.
+    surfaces : str | list
+        Surfaces to plot. Supported values: 'head', 'outer_skin',
+        'outer_skull', 'inner_skull', 'brain', 'pial', 'white', 'inflated'.
+        Defaults to ('head',).
+        .. note: For single layer bems it is recommended to use 'brain'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
-    meg_sensors : bool | str | list
-        Can be "helmet" (equivalent to False) or "sensors" to show the MEG
-        helmet or sensors, respectively, or a combination of the two like
-        ``['helmet', 'sensors']`` (equivalent to True, default) or ``[]``.
-    eeg_sensors : bool | str | list
+    meg : str | None | list
+        Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
+        reference sensors respectively, or a combination like
+        ``['helmet', 'sensors']``.
+    eeg : bool | str | list
         Can be "original" (default; equivalent to True) or "projected" to
         show EEG sensors in their digitized locations or projected onto the
         scalp, or a list of these options including ``[]`` (equivalent of
@@ -563,26 +587,8 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
-    ref_meg : bool
-        If True (default False), include reference MEG sensors.
-    ecog_sensors : bool
+    ecog : bool
         If True (default), show ECoG sensors.
-    head : bool | None
-        If True, show head surface. Can also be None, which will show the
-        head surface for MEG and EEG, but hide it if ECoG sensors are
-        present.
-    brain : bool | str | None
-        If True, show the brain surfaces. Can also be a str for
-        surface type (e.g., 'pial', same as True), or None (True for ECoG,
-        False otherwise).
-    skull : bool | str | list of str | list of dict
-        Whether to plot skull surface. If string, common choices would be
-        'inner_skull', or 'outer_skull'. Can also be a list to plot
-        multiple skull surfaces. If a list of dicts, each dict must
-        contain the complete surface info (such as you get from
-        :func:`mne.make_bem_model`). True is an alias of 'outer_skull'.
-        The subjects bem and bem/flash folders are searched for the 'surf'
-        files. Defaults to False.
     src : instance of SourceSpaces | None
         If not None, also plot the source space points.
 
@@ -597,7 +603,10 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
 
     bem : list of dict | Instance of ConductorModel | None
         Can be either the BEM surfaces (list of dict), a BEM solution or a
-        sphere model. If not None, ``source`` must be None. Defaults to None.
+        sphere model. If None, we first try loading
+        `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
+        `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
+        the subjects bem and bem/flash folders are searched. Defaults to None.
 
         .. versionadded:: 0.15
 
@@ -616,52 +625,46 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils
     mlab = _import_mlab()
-    if meg_sensors is False:  # old behavior
-        meg_sensors = 'helmet'
-    elif meg_sensors is True:
-        meg_sensors = ['helmet', 'sensors']
-    if eeg_sensors is False:
-        eeg_sensors = []
-    elif eeg_sensors is True:
-        eeg_sensors = 'original'
-    if isinstance(eeg_sensors, string_types):
-        eeg_sensors = [eeg_sensors]
-    if isinstance(meg_sensors, string_types):
-        meg_sensors = [meg_sensors]
-    for kind, var in zip(('eeg', 'meg'), (eeg_sensors, meg_sensors)):
+
+    if eeg is False:
+        eeg = list()
+    elif eeg is True:
+        eeg = 'original'
+    if isinstance(eeg, string_types):
+        eeg = [eeg]
+    if meg is None:
+        meg = list()
+    elif isinstance(meg, string_types):
+        meg = [meg]
+    for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
         if not isinstance(var, (list, tuple)) or \
                 not all(isinstance(x, string_types) for x in var):
-            raise TypeError('%s_sensors must be list or tuple of str, got %s'
-                            % (type(var),))
-    if not all(x in ('helmet', 'sensors') for x in meg_sensors):
-        raise ValueError('meg_sensors must only contain "helmet" and "points",'
-                         ' got %s' % (meg_sensors,))
-    if not all(x in ('original', 'projected') for x in eeg_sensors):
-        raise ValueError('eeg_sensors must only contain "original" and '
-                         '"projected", got %s' % (eeg_sensors,))
+            raise TypeError('%s must be list or tuple of str, got %s'
+                            % (kind, type(var)))
+    if not all(x in ('helmet', 'sensors', 'ref') for x in meg):
+        raise ValueError('meg must only contain "helmet", "sensors" or "ref", '
+                         'got %s' % (meg,))
+    if not all(x in ('original', 'projected') for x in eeg):
+        raise ValueError('eeg must only contain "original" and '
+                         '"projected", got %s' % (eeg,))
 
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info, got %s'
                         % type(info))
-    if source is not None and bem is not None:
-        raise ValueError('Only one of "source" and "bem" must be provided, '
-                         'got %s and %s respectively.' % (source, bem))
+
     is_sphere = False
     if isinstance(bem, ConductorModel) and bem['is_sphere']:
-        if len(bem['layers']) != 4 and (skull or head):
+        if len(bem['layers']) != 4 and len(surfaces) > 1:
             raise ValueError('The sphere conductor model must have three '
                              'layers for plotting skull and head.')
         is_sphere = True
-    if skull is True:
+    if 'outer_skull' in surfaces or 'inner_skull' in surfaces:
         if isinstance(bem, ConductorModel) and not bem['is_sphere']:
             skull = [_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL)]
         else:
-            skull = 'outer_skull'
-
-    if isinstance(skull, string_types):
-        skull = [skull]
-    elif not skull:
-        skull = []
+            skull = np.intersect1d(surfaces, ['inner_skull', 'outer_skull'])
+    else:
+        skull = list()
     if len(skull) > 0 and not isinstance(skull[0], dict):  # list of str
         skull = sorted(skull)
         if isinstance(bem, ConductorModel):
@@ -697,14 +700,16 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
     else:
         src_rr = src_nn = np.empty((0, 3))
 
+    ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
 
-    if head is None:
+    head = any(['outer_skin' in surfaces, 'head' in surfaces])
+    if 'ecog_head' in surfaces:  # deprecated
         head = (len(ecog_picks) == 0 and subject is not None)
-    if head and subject is None and not is_sphere:
-        raise ValueError('If head is True, subject must be provided')
+    if head and subject is None and bem is None:
+        raise ValueError('If head is True, subject or bem must be provided')
     if isinstance(trans, string_types):
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
@@ -763,31 +768,21 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
                         break
                 else:
                     raise ValueError('Could not find the surface for head.')
-        elif source is not None:  # search for head surfaces
-            head_surf = _get_head_surface(subject, source=source,
-                                          subjects_dir=subjects_dir,
-                                          raise_error=False)
         if head_surf is None:
-            if isinstance(source, string_types):
-                source = [source]
-            for this_surf in source:
-                if not this_surf.endswith('outer_skin'):
-                    continue
-                surf_fname = op.join(subjects_dir, subject, 'bem', 'flash',
-                                     '%s.surf' % this_surf)
+            surf_fname = op.join(subjects_dir, subject, 'bem', 'flash',
+                                 'outer_skin.surf')
+            if not op.exists(surf_fname):
+                surf_fname = op.join(subjects_dir, subject, 'bem',
+                                     'outer_skin.surf')
                 if not op.exists(surf_fname):
-                    surf_fname = op.join(subjects_dir, subject, 'bem',
-                                         '%s.surf' % this_surf)
-                    if not op.exists(surf_fname):
-                        continue
-                logger.info('Using %s for head surface.' % this_surf)
-                rr, tris = read_surface(surf_fname)
-                head_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
-                                 np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
-                complete_surface_info(head_surf, copy=False, verbose=False)
-                break
-        if head_surf is None:
-            raise IOError('No head surface found for subject %s.' % subject)
+                    raise IOError('No head surface found for subject '
+                                  '%s.' % subject)
+            logger.info('Using outer_skin for head surface.')
+            rr, tris = read_surface(surf_fname)
+            head_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
+                             np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
+            complete_surface_info(head_surf, copy=False, verbose=False)
+
         surfs['head'] = head_surf
 
     if mri_fiducials:
@@ -807,20 +802,31 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
     else:
         fid_loc = []
 
-    if 'helmet' in meg_sensors and len(meg_picks) > 0:
+    if 'helmet' in meg and len(meg_picks) > 0:
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
-    if brain is None:
-        if len(ecog_picks) > 0 and subject is not None:
+    brain = False
+    brain_surfs = np.intersect1d(surfaces, ['brain', 'pial', 'white',
+                                            'inflated', 'ecog_brain'])
+    if len(brain_surfs) > 1:
+        raise ValueError('Only one brain surface can be plotted. '
+                         'Got %s.' % brain_surfs)
+    elif len(brain_surfs) == 1:
+        if brain_surfs[0] == 'ecog_brain':  # deprecated
+            if len(ecog_picks) > 0 and subject is not None:
+                brain = 'pial'
+            else:
+                brain = False
+        elif brain_surfs[0] == 'brain':
             brain = 'pial'
         else:
-            brain = False
+            brain = brain_surfs[0]
+
     if brain:
         if is_sphere:
             if len(bem['layers']) > 0:
                 surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # only plot 1
         else:
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            brain = 'pial' if brain is True else brain
             for hemi in ['lh', 'rh']:
                 fname = op.join(subjects_dir, subject, 'surf',
                                 '%s.%s' % (hemi, brain))
@@ -868,8 +874,13 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
 
     for key in surfs.keys():
         surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
-    # src_rr = apply_trans(mri_trans, src_rr)
-    # src_nn = apply_trans(mri_trans, src_nn, move=False)
+    if src is not None:
+        if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+            src_rr = apply_trans(mri_trans, src_rr)
+            src_nn = apply_trans(mri_trans, src_nn, move=False)
+        elif src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+            src_rr = apply_trans(head_trans, src_rr)
+            src_nn = apply_trans(head_trans, src_nn, move=False)
 
     # determine points
     meg_rrs, meg_tris = list(), list()
@@ -879,19 +890,19 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
     car_loc = list()
     eeg_loc = list()
     eegp_loc = list()
-    if len(eeg_sensors) > 0:
+    if len(eeg) > 0:
         eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
         if len(eeg_loc) > 0:
             eeg_loc = apply_trans(head_trans, eeg_loc)
             # XXX do projections here if necessary
-            if 'projected' in eeg_sensors:
+            if 'projected' in eeg:
                 eegp_loc, eegp_nn = _project_onto_surface(
                     eeg_loc, surfs['head'], project_rrs=True,
                     return_nn=True)[2:4]
-            if 'original' not in eeg_sensors:
+            if 'original' not in eeg:
                 eeg_loc = list()
-    del eeg_sensors
-    if 'sensors' in meg_sensors:
+    del eeg
+    if 'sensors' in meg:
         coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
                        for pick in meg_picks]
         coils = _create_meg_coils([info['chs'][pick] for pick in meg_picks],
@@ -908,7 +919,7 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
         else:
             meg_rrs = apply_trans(meg_trans, np.concatenate(meg_rrs, axis=0))
             meg_tris = np.concatenate(meg_tris, axis=0)
-    del meg_sensors
+    del meg
     if dig:
         if dig == 'fiducials':
             hpi_loc = ext_loc = []
@@ -931,7 +942,7 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
         if len(car_loc) == len(ext_loc) == len(hpi_loc) == 0:
             warn('Digitization points not found. Cannot plot digitization.')
     del dig
-    if len(ecog_picks) > 0 and ecog_sensors:
+    if len(ecog_picks) > 0 and ecog:
         ecog_loc = np.array([info['chs'][pick]['loc'][:3]
                              for pick in ecog_picks])
 

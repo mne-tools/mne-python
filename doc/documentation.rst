@@ -376,7 +376,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_mne_dspm_source_localization.rst
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_point_spread.rst
-    auto_tutorials/plot_surface_alignment.rst
+    auto_tutorials/plot_source_alignment.rst
 
 .. raw:: html
 

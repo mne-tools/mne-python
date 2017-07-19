@@ -151,12 +151,14 @@ def test_plot_alignment():
         KIT=read_raw_kit(sqd_fname).info,
     )
     for system, info in infos.items():
-        ref_meg = False if system == 'KIT' else True
-        plot_alignment(info, trans_fname, subject='sample', meg_sensors=True,
-                       subjects_dir=subjects_dir, ref_meg=ref_meg)
+        meg = ['helmet', 'sensors']
+        if system == 'KIT':
+            meg.append('ref')
+        plot_alignment(info, trans_fname, subject='sample',
+                       subjects_dir=subjects_dir, meg=meg)
         mlab.close(all=True)
     # KIT ref sensor coil def is defined
-    plot_alignment(infos['KIT'], None, meg_sensors=True, ref_meg=True)
+    plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
     mlab.close(all=True)
     info = infos['Neuromag']
     assert_raises(TypeError, plot_alignment, 'foo', trans_fname,
@@ -169,14 +171,14 @@ def test_plot_alignment():
     sample_src.plot(subjects_dir=subjects_dir)
     mlab.close(all=True)
     # no-head version
-    plot_alignment(info, None, meg_sensors=True, dig=True, coord_frame='head')
+    plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
     mlab.close(all=True)
     # all coord frames
     for coord_frame in ('meg', 'head', 'mri'):
-        plot_alignment(info, meg_sensors=True, dig=True,
+        plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                        coord_frame=coord_frame, trans=trans_fname,
                        subject='sample', mri_fiducials=fiducials_path,
-                       subjects_dir=subjects_dir)
+                       subjects_dir=subjects_dir, src=sample_src)
         mlab.close(all=True)
     # EEG only with strange options
     evoked_eeg_ecog = evoked.copy().pick_types(meg=False, eeg=True)
@@ -184,11 +186,10 @@ def test_plot_alignment():
     evoked_eeg_ecog.set_channel_types({'EEG 001': 'ecog'})
     with warnings.catch_warnings(record=True) as w:
         plot_alignment(evoked_eeg_ecog.info, subject='sample',
-                       trans=trans_fname, source='outer_skin',
-                       meg_sensors=True, skull=True,
-                       eeg_sensors=['original', 'projected'],
-                       ecog_sensors=True, brain='white', head=True,
-                       subjects_dir=subjects_dir)
+                       trans=trans_fname, subjects_dir=subjects_dir,
+                       surfaces=['white', 'outer_skin', 'outer_skull'],
+                       meg=['helmet', 'sensors'],
+                       eeg=['original', 'projected'], ecog=True)
     mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 
@@ -197,20 +198,18 @@ def test_plot_alignment():
                                         'sample-1280-1280-1280-bem-sol.fif'))
     bem_surfs = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
                                           'sample-1280-1280-1280-bem.fif'))
-    plot_alignment(info, trans_fname, subject='sample', meg_sensors=True,
-                   subjects_dir=subjects_dir, head=True, brain=True,
-                   eeg_sensors='projected', bem=sphere,
-                   skull=['inner_skull', 'outer_skull'], source=None)
-    plot_alignment(info, trans_fname, subject='sample', meg_sensors=False,
-                   subjects_dir=subjects_dir, head=True, brain='inflated',
-                   skull=True, source=None, bem=bem_sol)
-    plot_alignment(info, trans_fname, subject='sample', meg_sensors=True,
-                   subjects_dir=subjects_dir, head=True, brain=False,
-                   skull=True, source=None, bem=bem_surfs)
+    plot_alignment(info, trans_fname, subject='sample', meg='helmet',
+                   subjects_dir=subjects_dir, eeg='projected', bem=sphere,
+                   surfaces=['head', 'brain', 'inner_skull', 'outer_skull'])
+    plot_alignment(info, trans_fname, subject='sample', meg=[],
+                   subjects_dir=subjects_dir, bem=bem_sol,
+                   surfaces=['head', 'inflated', 'outer_skull'])
+    plot_alignment(info, trans_fname, subject='sample',
+                   meg=['helmet', 'sensors'], subjects_dir=subjects_dir,
+                   surfaces=['head', 'inner_skull'], bem=bem_surfs)
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
-    plot_alignment(info, trans_fname, subject='sample', meg_sensors='helmet',
-                   subjects_dir=subjects_dir, head=False, brain=True,
-                   skull=False, source=None, bem=sphere)
+    plot_alignment(info, trans_fname, subject='sample', meg='helmet',
+                   subjects_dir=subjects_dir, surfaces=['brain'], bem=sphere)
 
 
 @testing.requires_testing_data
