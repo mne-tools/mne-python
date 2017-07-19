@@ -10,8 +10,8 @@ from copy import deepcopy
 import mne
 from mne import compute_covariance
 from mne.datasets import testing
-from mne.beamformer import (make_lcmv, apply_lcmv, lcmv, lcmv_epochs, lcmv_raw,
-                            tf_lcmv)
+from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_raw, lcmv,
+                            lcmv_epochs, lcmv_raw, tf_lcmv)
 from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main, slow_test
@@ -219,6 +219,12 @@ def test_lcmv():
     filters = make_lcmv(evoked.info, forward_vol, data_cov, reg=0.01,
                         noise_cov=noise_cov)
     assert_raises(ValueError, apply_lcmv, evoked_ch, filters,
+                  max_ori_out='signed')
+
+    # Test if non-matching SSP projection is detected in application of filter
+    raw_proj = deepcopy(raw)
+    raw_proj.del_proj()
+    assert_raises(ValueError, apply_lcmv_raw, raw_proj, filters,
                   max_ori_out='signed')
 
     # Now test single trial using fixed orientation forward solution

@@ -323,10 +323,18 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
         if not return_single:
             logger.info("Processing epoch : %d" % (i + 1))
 
-        # TODO: do we need to check whether data + filter proj match
-        # SSP and whitening
         if filters['is_ssp']:
+            # check whether data and filter projs match
+            proj_data, _, _ = make_projector(info['projs'],
+                                             filters['ch_names'])
+            if not np.array_equal(proj_data, filters['proj']):
+                    raise ValueError('The SSP projections present in the data '
+                                     'do not match the projections used when '
+                                     'calculating the spatial filter.')
+
+            # apply projection
             M = np.dot(filters['proj'], M)
+
         if filters['whitener'] is not None:
             M = np.dot(filters['whitener'], M)
 
