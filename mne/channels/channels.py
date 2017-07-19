@@ -312,9 +312,6 @@ class SetChannelsMixin(object):
             Data with EEG channels re-referenced. If ``ref_channels='average'``
             and ``projection=True`` a projection will be added instead of
             directly re-referencing the data.
-        ref_data : array
-            Array of reference data subtracted from EEG channels. This will be
-            ``None`` if ``ref_channels='average'`` and ``projection=True``.
 
         Notes
         -----
