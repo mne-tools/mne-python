@@ -41,8 +41,9 @@ raws = dict(
 for system, raw in raws.items():
     # We don't have coil definitions for KIT refs, so exclude them
     ref_meg = False if system == 'KIT' else True
-    fig = plot_alignment(raw.info, trans=None, dig=False, eeg_sensors=False,
-                         meg_sensors=True, coord_frame='meg', ref_meg=ref_meg)
+    fig = plot_alignment(raw.info, trans=None, dig=False, eeg=False,
+                         surfaces=[], meg=['helmet', 'sensors', 'ref'],
+                         coord_frame='meg')
     text = mlab.title(system)
     text.x_position = 0.5
     text.y_position = 0.95

@@ -752,7 +752,6 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
     surfs = dict()
     if head:
         head_surf = None
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         if bem is not None:
             if isinstance(bem, ConductorModel):
                 if is_sphere:
@@ -769,6 +768,7 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
                 else:
                     raise ValueError('Could not find the surface for head.')
         if head_surf is None:
+            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             surf_fname = op.join(subjects_dir, subject, 'bem', 'flash',
                                  'outer_skin.surf')
             if not op.exists(surf_fname):
