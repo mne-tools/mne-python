@@ -81,11 +81,11 @@ class Montage(object):
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read a generic (built-in) montage.
 
-    Individualized (digitized) electrode positions should be
-    read in using :func:`read_dig_montage`.
+    Individualized (digitized) electrode positions should be read in using
+    :func:`read_dig_montage`.
 
-    In most cases, you should only need the `kind` parameter to load one of
-    the built-in montages (see Notes).
+    In most cases, you should only need to set the `kind` parameter to load one
+    of the built-in montages (see Notes).
 
     Parameters
     ----------
@@ -96,7 +96,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         '.eloc') or .bvef are supported.
     ch_names : list of str | None
         If not all electrodes defined in the montage are present in the EEG
-        data, use this parameter to select subset of electrode positions to
+        data, use this parameter to select a subset of electrode positions to
         load. If None (default), all defined electrode positions are returned.
 
         .. note:: ``ch_names`` are compared to channel names in the montage
@@ -111,10 +111,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         Unit of the input file. If not 'm' (default), coordinates will be
         rescaled to 'm'.
     transform : bool
-        If True, points will be transformed to Neuromag space.
-        The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
-        the montage file. Useful for points captured using Polhemus FastSCAN.
-        Default is False.
+        If True, points will be transformed to Neuromag space. The fidicuals,
+        'nasion', 'lpa', 'rpa' must be specified in the montage file. Useful
+        for points captured using Polhemus FastSCAN. Default is False.
 
     Returns
     -------
@@ -131,50 +130,51 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     -----
     Built-in montages are not scaled or transformed by default.
 
-    Montages can contain fiducial points in addition to electrode
-    locations, e.g. ``biosemi64`` contains 67 total channels.
+    Montages can contain fiducial points in addition to electrode locations,
+    e.g. ``biosemi64`` contains 67 channels.
 
-    The valid ``kind`` arguments are:
+    Valid ``kind`` arguments are:
 
     ===================   =====================================================
-    Kind                  description
+    Kind                  Description
     ===================   =====================================================
     standard_1005         Electrodes are named and positioned according to the
-                          international 10-05 system.
+                          international 10-05 system (346 channels)
     standard_1020         Electrodes are named and positioned according to the
-                          international 10-20 system.
+                          international 10-20 system (97 channels)
     standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
-                          (A1, B2, F4, etc.)
+                          (A1, B2, F4, ...) (68 channels)
     standard_postfixed    Electrodes are named according to the international
                           10-20 system using postfixes for intermediate
-                          positions.
+                          positions (103 channels)
     standard_prefixed     Electrodes are named according to the international
                           10-20 system using prefixes for intermediate
-                          positions.
+                          positions (77 channels)
     standard_primed       Electrodes are named according to the international
                           10-20 system using prime marks (' and '') for
-                          intermediate positions.
+                          intermediate positions (103 channels)
 
-    biosemi16             BioSemi cap with 16 electrodes
-    biosemi32             BioSemi cap with 32 electrodes
-    biosemi64             BioSemi cap with 64 electrodes
-    biosemi128            BioSemi cap with 128 electrodes
-    biosemi160            BioSemi cap with 160 electrodes
-    biosemi256            BioSemi cap with 256 electrodes
+    biosemi16             BioSemi cap with 16 electrodes (19 channels)
+    biosemi32             BioSemi cap with 32 electrodes (35 channels)
+    biosemi64             BioSemi cap with 64 electrodes (67 channels)
+    biosemi128            BioSemi cap with 128 electrodes (131 channels)
+    biosemi160            BioSemi cap with 160 electrodes (163 channels)
+    biosemi256            BioSemi cap with 256 electrodes (259 channels)
 
-    easycap-M10           Brainproducts EasyCap with electrodes named
-                          according to the 10-05 system
-    easycap-M1            Brainproduct EasyCap with numbered electrodes
+    easycap-M1            EasyCap with 10-05 electrode names (74 channels)
+    easycap-M10           EasyCap with numbered electrodes (61 channels)
 
-    EGI_256               Geodesic Sensor Net with 256 channels
+    EGI_256               Geodesic Sensor Net (256 channels)
 
-    GSN-HydroCel-32       HydroCel Geodesic Sensor Net with 32 electrodes
-    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net with 64 electrodes
-    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net with 64 electrodes + Cz
-    GSN-HydroCel-128      HydroCel Geodesic Sensor Net with 128 electrodes
-    GSN-HydroCel-129      HydroCel Geodesic Sensor Net with 128 electrodes + Cz
-    GSN-HydroCel-256      HydroCel Geodesic Sensor Net with 256 electrodes
-    GSN-HydroCel-257      HydroCel Geodesic Sensor Net with 256 electrodes + Cz
+    GSN-HydroCel-32       HydroCel Geodesic Sensor Net (36 channels)
+    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net (67 channels)
+    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net with Cz (68 channels)
+    GSN-HydroCel-128      HydroCel Geodesic Sensor Net (131 channels)
+    GSN-HydroCel-129      HydroCel Geodesic Sensor Net with Cz (132 channels)
+    GSN-HydroCel-256      HydroCel Geodesic Sensor Net (259 channels)
+    GSN-HydroCel-257      HydroCel Geodesic Sensor Net with Cz (260 channels)
+
+    10-5_EGI129           465 channels
     ===================   =====================================================
 
     .. versionadded:: 0.9.0
