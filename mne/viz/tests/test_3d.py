@@ -202,7 +202,7 @@ def test_plot_alignment():
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
                    surfaces=['head', 'brain', 'inner_skull', 'outer_skull'])
     plot_alignment(info, trans_fname, subject='sample', meg=[],
-                   subjects_dir=subjects_dir, bem=bem_sol,
+                   subjects_dir=subjects_dir, bem=bem_sol, eeg=True,
                    surfaces=['head', 'inflated', 'outer_skull'])
     plot_alignment(info, trans_fname, subject='sample',
                    meg=['helmet', 'sensors'], subjects_dir=subjects_dir,
@@ -210,6 +210,9 @@ def test_plot_alignment():
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, surfaces=['brain'], bem=sphere)
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
 
 
 @testing.requires_testing_data
@@ -325,6 +328,7 @@ def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
     fig = plot_trans(info, trans=None, subject='sample',
+                     skull=['outer_skull', 'inner_skull'],
                      subjects_dir=subjects_dir)  # deprecated, for coverage
 
     xyz = np.vstack([ich['loc'][:3] for ich in info['chs']])
