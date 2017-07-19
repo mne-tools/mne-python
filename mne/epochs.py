@@ -1002,7 +1002,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot_image(self, picks=None, sigma=0., vmin=None, vmax=None,
                    colorbar=True, order=None, show=True, units=None,
                    scalings=None, cmap=None, fig=None, axes=None,
-                   overlay_times=None, combine='gfp', groupby='type',
+                   overlay_times=None, combine=None, groupby=None,
                    ts_args=dict()):
         return plot_epochs_image(self, picks=picks, sigma=sigma, vmin=vmin,
                                  vmax=vmax, colorbar=colorbar, order=order,

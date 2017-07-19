@@ -33,7 +33,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None,
                       fig=None, axes=None, overlay_times=None,
-                      combine='gfp', groupby=None, ts_args=dict()):
+                      combine=None, groupby=None, ts_args=dict()):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -124,7 +124,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     ts_args : dict
         Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
-        the evoked plot below the image. Defaults to an empty dictionary.
+        the evoked plot below the image. Defaults to an empty dictionary,
+        meaning `plot_compare_evokeds` will be called with default parameters.
 
     Returns
     -------
@@ -136,6 +137,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     if groupby is not None and combine is None:
         raise ValueError("If groupby is not None, combine must not be None.")
+
+    if groupby is None and combine is None and picks is None:
+        groupby = "type"
+        combine = "gfp"
 
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
@@ -243,13 +248,10 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
     tmin = epochs.times[0]
 
     if combine is None:
+        epochs = epochs.copy().load_data()
         for pick, ch_type, _ in zip(all_picks, all_ch_types, names):
             name = epochs.ch_names[pick]
-            if ch_type == "grad" and len(all_picks) > 1:
-                ch_names = _grad_pair_pick_and_name(epochs.info, [pick])[1]
-                these_epochs = epochs.copy().load_data().pick_channels(ch_names)
-            else:
-                these_epochs = epochs.copy().load_data().pick_channels([name])
+            these_epochs = epochs.copy().pick_channels([name])
             to_plot_list.append((these_epochs, ch_type, name))
     else:
         from .. import EpochsArray, pick_info
@@ -291,7 +293,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
             d = these_epochs.get_data()
             d[:] = this_data  # ??????
             to_plot_list.append((these_epochs, ch_type,
-                                 type2name.get(name, name)))
+                                 type2name.get(name, name) + combine_title))
 
     return to_plot_list  # data, ch_type, title
 
@@ -352,13 +354,13 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None, colorbar
         if ((times_min < epochs.times[0]) or (times_max > epochs.times[-1])):
             warn('Some values in overlay_times fall outside of the epochs '
                  'time interval (between %s s and %s s)'
-                 % (evoked.times[0], evoked.times[-1]))
+                 % (epochs.times[0], epochs.times[-1]))
 
     if callable(order):
         order = order(epochs.times, data)
     if order is not None and (len(order) != len(data)):
-        raise ValueError(("`combine` must be None, a callable or one out "
-                          "of 'mean' or 'gfp'. Got " + str(type(combine))))
+        raise ValueError(("`order` must be None, callable or an array as long"
+                          "as the data. Got " + str(type(order))))
 
     if order is not None:
         order = np.asarray(order)

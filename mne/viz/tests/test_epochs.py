@@ -128,19 +128,20 @@ def test_plot_epochs_image():
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_image(picks=[1, 2])
-    epochs.plot_image(groupby='type', combine='mean')
     overlay_times = [0.1]
-    epochs.plot_image(order=[0], overlay_times=overlay_times, vmin=0.01)
-    epochs.plot_image(overlay_times=overlay_times, vmin=-0.001, vmax=0.001)
+    epochs.plot_image(picks=[1], order=[0], overlay_times=overlay_times, vmin=0.01)
+    epochs.plot_image(picks=[1], overlay_times=overlay_times, vmin=-0.001, vmax=0.001)
     assert_raises(ValueError, epochs.plot_image,
-                  overlay_times=[0.1, 0.2])
+                  picks=[1], overlay_times=[0.1, 0.2])
     assert_raises(ValueError, epochs.plot_image,
-                  order=[0, 1])
+                  picks=[1], order=[0, 1])
+    epochs.load_data().pick_types(meg='mag')
+    epochs.plot_image(groupby='type', combine='mean')
     with warnings.catch_warnings(record=True) as w:
         epochs.plot_image(overlay_times=[1.1], combine="gfp")
         assert_raises(ValueError, epochs.plot_image, combine='error')
         warnings.simplefilter('always')
-    assert_equal(len(w), 3)
+    assert_equal(len(w), 4)
 
     plt.close('all')
 
