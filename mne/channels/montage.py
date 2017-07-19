@@ -130,8 +130,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     -----
     Built-in montages are not scaled or transformed by default.
 
-    Montages can contain fiducial points in addition to electrode locations,
-    e.g. ``biosemi64`` contains 67 channels.
+    Montages can contain fiducial points in addition to electrode channels,
+    e.g. ``biosemi64`` contains 67 locations. In the following table, the
+    number of channels and fiducials is given in parentheses in the description
+    column (e.g. 64+3 means 64 channels and 3 fiducials).
 
     Valid ``kind`` arguments are:
 
@@ -139,40 +141,40 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     Kind                  Description
     ===================   =====================================================
     standard_1005         Electrodes are named and positioned according to the
-                          international 10-05 system (346 channels)
+                          international 10-05 system (339+7 locations)
     standard_1020         Electrodes are named and positioned according to the
-                          international 10-20 system (97 channels)
+                          international 10-20 system (90+7 locations)
     standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
-                          (A1, B2, F4, ...) (68 channels)
+                          (A1, B2, F4, ...) (61+7 locations)
     standard_postfixed    Electrodes are named according to the international
                           10-20 system using postfixes for intermediate
-                          positions (103 channels)
+                          positions (96+7 locations)
     standard_prefixed     Electrodes are named according to the international
                           10-20 system using prefixes for intermediate
-                          positions (77 channels)
+                          positions (70+7 locations)
     standard_primed       Electrodes are named according to the international
                           10-20 system using prime marks (' and '') for
-                          intermediate positions (103 channels)
+                          intermediate positions (96+7 locations)
 
-    biosemi16             BioSemi cap with 16 electrodes (19 channels)
-    biosemi32             BioSemi cap with 32 electrodes (35 channels)
-    biosemi64             BioSemi cap with 64 electrodes (67 channels)
-    biosemi128            BioSemi cap with 128 electrodes (131 channels)
-    biosemi160            BioSemi cap with 160 electrodes (163 channels)
-    biosemi256            BioSemi cap with 256 electrodes (259 channels)
+    biosemi16             BioSemi cap with 16 electrodes (16+3 locations)
+    biosemi32             BioSemi cap with 32 electrodes (32+3 locations)
+    biosemi64             BioSemi cap with 64 electrodes (64+3 locations)
+    biosemi128            BioSemi cap with 128 electrodes (128+3 locations)
+    biosemi160            BioSemi cap with 160 electrodes (160+3 locations)
+    biosemi256            BioSemi cap with 256 electrodes (256+3 locations)
 
-    easycap-M1            EasyCap with 10-05 electrode names (74 channels)
-    easycap-M10           EasyCap with numbered electrodes (61 channels)
+    easycap-M1            EasyCap with 10-05 electrode names (74 locations)
+    easycap-M10           EasyCap with numbered electrodes (61 locations)
 
-    EGI_256               Geodesic Sensor Net (256 channels)
+    EGI_256               Geodesic Sensor Net (256 locations)
 
-    GSN-HydroCel-32       HydroCel Geodesic Sensor Net (36 channels)
-    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net (67 channels)
-    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net with Cz (68 channels)
-    GSN-HydroCel-128      HydroCel Geodesic Sensor Net (131 channels)
-    GSN-HydroCel-129      HydroCel Geodesic Sensor Net with Cz (132 channels)
-    GSN-HydroCel-256      HydroCel Geodesic Sensor Net (259 channels)
-    GSN-HydroCel-257      HydroCel Geodesic Sensor Net with Cz (260 channels)
+    GSN-HydroCel-32       HydroCel Geodesic Sensor Net and Cz (33+3 locations)
+    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net (64+3 locations)
+    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net and Cz (65+3 locations)
+    GSN-HydroCel-128      HydroCel Geodesic Sensor Net (128+3 locations)
+    GSN-HydroCel-129      HydroCel Geodesic Sensor Net and Cz (129+3 locations)
+    GSN-HydroCel-256      HydroCel Geodesic Sensor Net (256+3 locations)
+    GSN-HydroCel-257      HydroCel Geodesic Sensor Net and Cz (257+3 locations)
 
     10-5_EGI129           465 channels
     ===================   =====================================================
