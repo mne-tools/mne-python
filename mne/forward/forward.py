@@ -561,7 +561,23 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
         if is_fixed_orient(fwd, orig=True):
             fwd['source_nn'] = np.concatenate([_src['nn'][_src['vertno'], :]
                                               for _src in fwd['src']], axis=0)
-            fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+            if fwd['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+                fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+            else:
+                pp = 0
+                for s in fwd['src']:
+                    for p in range(s['nuse']):
+                        #  Project out the surface normal and compute SVD
+                        nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
+                        nn = np.sum(nn, axis=0)[:, np.newaxis]
+                        nn /= linalg.norm(nn)
+                        U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
+                        #  Make sure that ez is in the direction of nn
+                        if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
+                            U *= -1.0
+                        fwd['source_nn'][pp, :] = U.T[2, :]
+                        pp += 1
+                fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_CPS_ORI
             fwd['surf_ori'] = True
         else:
             fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
@@ -610,6 +626,12 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         else:
             use_cps = True
 
+    if (any([src['type'] == 'vol' for src in fwd['src']]) and
+            (surf_ori or force_fixed)):
+        raise ValueError('Forward operator was generated with sources from a '
+                         'volume source space. Conversion to fixed or '
+                         'surface-based orientation is not allowed.')
+
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed:
@@ -636,7 +658,6 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             fwd['sol']['data'] = (fwd['_orig_sol'] *
                                   fix_rot).astype('float32')
             fwd['sol']['ncol'] = fwd['nsource']
-            fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
             if fwd['sol_grad'] is not None:
                 x = sparse.block_diag([fix_rot] * 3)
                 fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
@@ -688,7 +709,10 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
                 x = sparse.block_diag([fix_rot] * 3)
                 fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
                 fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
-            fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+            if use_ave_nn is True:
+                fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_CPS_ORI
+            else:
+                fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
             fwd['surf_ori'] = True
         else:
             surf_rot = _block_diag(fwd['source_nn'].T, 3)
@@ -793,6 +817,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     n_col = fwd['sol']['data'].shape[1]
     if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
         assert n_col == n_vert
+    elif fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI:
+        assert n_col == n_vert
     else:
         assert n_col == 3 * n_vert
 
@@ -872,9 +898,11 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 def is_fixed_orient(forward, orig=False):
     """Check if the forward operator is fixed orientation."""
     if orig:  # if we want to know about the original version
-        fixed_ori = (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
+        fixed_ori = ((forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or
+                     (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI))
     else:  # most of the time we want to know about the current version
-        fixed_ori = (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
+        fixed_ori = ((forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or
+                     (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI))
     return fixed_ori
 
 
