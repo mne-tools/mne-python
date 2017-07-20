@@ -276,9 +276,10 @@ class SetChannelsMixin(object):
             mastoid reference, when using the 10-20 naming scheme, set
             ``ref_channels=['M1', 'M2']``.
 
-        .. note:: In case of average reference (`ref_channels='average'``), the
-                  reference is added as a projection and it is not applied
-                  automatically. For it to take effect, apply with method
+        .. note:: In case of average reference `ref_channels='average'`` in
+                  combination with `projection=True`, the reference is added as
+                  a projection and it is not applied automatically. For it to
+                  take effect, apply with method
                   :meth:`apply_proj <mne.io.Raw.apply_proj>`. Other references
                   are directly applied (this behavior will change in MNE 0.16).
 
