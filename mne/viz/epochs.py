@@ -31,9 +31,9 @@ from ..externals.six import string_types
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap=None,
-                      fig=None, axes=None, overlay_times=None,
-                      combine=None, groupby=None, ts_args=dict()):
+                      units=None, scalings=None, cmap=None, fig=None,
+                      axes=None, overlay_times=None, combine=None,
+                      groupby=None, evoked=True, ts_args=dict()):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -53,7 +53,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         equalized across all returned plots.
         Hint: to specify the lower limit of the data, use
         
-            `vmin=lambda x: x.min()`
+            `vmin=lambda data: data.min()`
 
     vmax : None | float | callable
         The max value in the image (and the ER[P/F]). The unit is uV for
@@ -95,7 +95,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         List of axes instances to draw the image, erp and colorbar to.
         Must be of length three if colorbar is True (with the last list element
         being the colorbar axes) or two if colorbar is False. If both fig and
-        axes are passed an error is raised.
+        axes are passed, an error is raised.
         If `groupby` is a dict, this can also be a dict of lists of axes,
         with the keys matching. In that case, the provided axes will be used
         for the corresponding groups.
@@ -116,7 +116,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
         If callable, it must accept one positional input, the data
         in the format (n_epochs, n_channels, n_times). It must return an
-        Defaults to 'gfp'.
+        array (n_epochs, n_times).
+        Defaults to None if picks are given, otherwise 'gfp'.
 
     groupby : None | str | dict
         If not None, combine must not be None. In this case, combining happens
@@ -128,8 +129,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         is useful for e.g. ROIs. Each entry must contain only one channel type.
         For example:
 
-           `groupby = dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])`
+           `groupby=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])`
 
+        Defaults to None if picks are given, otherwise 'type'.
+
+    evoked : Bool
+        Draw the ER[P/F] below the image or not.
     ts_args : dict
         Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
         the evoked plot below the image. Defaults to an empty dictionary,
@@ -144,9 +149,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scalings = _handle_default('scalings', scalings)
 
     if groupby is not None and combine is None:
-        raise ValueError("If groupby is not None, combine must not be None.")
+        combine = 'gfp'
 
-    if groupby is None and combine is None and picks is None:
+    if all(param is None for param in (groupby, picks, combine)):
         groupby = "type"
         combine = "gfp"
 
@@ -203,7 +208,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             order=order, show=show, unit=units[ch_type], ch_type=ch_type,
             scaling=scalings[ch_type], cmap=cmap, fig=fig,
             axes=axes if not isinstance(axes, dict) else axes[name],
-            overlay_times=overlay_times, title=name, draw_evoked=True,
+            overlay_times=overlay_times, title=name, evoked=True,
             ts_args=ts_args)
         figs.append(this_fig)
         lims.append(these_lims)
@@ -330,7 +335,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
 def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
                        colorbar=False, order=None, show=False, unit=None,
                        cmap=None, fig=None, axes=None, overlay_times=None,
-                       scaling=None, title=None, draw_evoked=False,
+                       scaling=None, title=None, evoked=False,
                        ts_args=dict()):
     """Plot epochs image. Helper function for plot_epochs_image"""
     from scipy import ndimage
@@ -344,10 +349,10 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
             raise ValueError('Both figure and axes were passed, please'
                              'only pass one of these.')
         from .utils import _validate_if_list_of_axes
-        oblig_len = 3 - ((not colorbar) + (not draw_evoked))
+        oblig_len = 3 - ((not colorbar) + (not evoked))
         _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
         ax1 = axes[0]
-        if draw_evoked:
+        if evoked:
             ax2 = axes[1]
         # if axes were passed - we ignore fig param and get figure from axes
         fig = ax1.get_figure()
@@ -358,8 +363,8 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
             fig = plt.figure()
         plt.figure(fig.number)
         ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9 if colorbar else 10,
-                               rowspan=2 if draw_evoked else 3)
-        if draw_evoked:
+                               rowspan=2 if evoked else 3)
+        if evoked:
             ax2 = plt.subplot2grid((3, 10), (2, 0),
                                    colspan=9 if colorbar else 10, rowspan=1)
         if colorbar:
@@ -432,7 +437,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     ax1.axvline(0, color='k', linewidth=1, linestyle='--')
 
     # draw the evoked
-    if draw_evoked:
+    if evoked:
         from mne.viz import plot_compare_evokeds
         if scale_vmin or scale_vmax:
             ylim = {ch_type: (vmin * scaling, vmax * scaling)}
@@ -460,7 +465,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     fig.erpim_axes = dict(im=im)
     fig.erpim_axes["erpimage"] = ax1
     lims = dict(image=im.properties()["clim"])
-    if draw_evoked:
+    if evoked:
         fig.erpim_axes["evoked"] = ax2
         lims["evoked"] = ylims
 
