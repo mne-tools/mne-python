@@ -141,20 +141,20 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     Kind                  Description
     ===================   =====================================================
     standard_1005         Electrodes are named and positioned according to the
-                          international 10-05 system (339+7 locations)
+                          international 10-05 system (343+3 locations)
     standard_1020         Electrodes are named and positioned according to the
-                          international 10-20 system (90+7 locations)
+                          international 10-20 system (94+3 locations)
     standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
-                          (A1, B2, F4, ...) (61+7 locations)
+                          (A1, B2, F4, ...) (65+3 locations)
     standard_postfixed    Electrodes are named according to the international
                           10-20 system using postfixes for intermediate
-                          positions (96+7 locations)
+                          positions (100+3 locations)
     standard_prefixed     Electrodes are named according to the international
                           10-20 system using prefixes for intermediate
-                          positions (70+7 locations)
+                          positions (74+3 locations)
     standard_primed       Electrodes are named according to the international
                           10-20 system using prime marks (' and '') for
-                          intermediate positions (96+7 locations)
+                          intermediate positions (100+3 locations)
 
     biosemi16             BioSemi cap with 16 electrodes (16+3 locations)
     biosemi32             BioSemi cap with 32 electrodes (32+3 locations)
@@ -176,7 +176,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     GSN-HydroCel-256      HydroCel Geodesic Sensor Net (256+3 locations)
     GSN-HydroCel-257      HydroCel Geodesic Sensor Net and Cz (257+3 locations)
 
-    10-5_EGI129           465 channels
+    10-5_EGI129           462+3 locations
     ===================   =====================================================
 
     .. versionadded:: 0.9.0
