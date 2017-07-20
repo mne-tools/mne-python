@@ -1736,7 +1736,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
         # plot the confidence interval (standard error of the mean/'sem_')
         if ci and (gfp is not True):
-            sem_ = sem_array[condition]# * scaling
+            sem_ = sem_array[condition]  # * scaling
             axes.fill_between(times, sem_[0].flatten(),
                               sem_[1].flatten(), zorder=100,
                               color=styles[condition]['c'], alpha=.333)

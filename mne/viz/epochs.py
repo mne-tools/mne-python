@@ -108,7 +108,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
             `combine = lambda data: np.median(data, 1)`
 
-        Defaults to 'gfp'
+        Defaults to 'gfp'.
 
     groupby : None | str | dict
         If not None, combine must not be None. In this case, combining happens
