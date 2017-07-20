@@ -19,7 +19,7 @@ from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
                        run_tests_if_main)
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
-                         Forward)
+                         Forward, is_fixed_orient)
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -42,11 +42,13 @@ def compare_forwards(f1, f2):
     """Helper to compare two potentially converted forward solutions"""
     assert_allclose(f1['sol']['data'], f2['sol']['data'])
     assert_equal(f1['sol']['ncol'], f2['sol']['ncol'])
+    assert_equal(f1['sol']['ncol'], f1['sol']['data'].shape[1])
     assert_allclose(f1['source_nn'], f2['source_nn'])
     if f1['sol_grad'] is not None:
         assert_true(f2['sol_grad'] is not None)
         assert_allclose(f1['sol_grad']['data'], f2['sol_grad']['data'])
         assert_equal(f1['sol_grad']['ncol'], f2['sol_grad']['ncol'])
+        assert_equal(f1['sol_grad']['ncol'], f1['sol_grad']['data'].shape[1])
     else:
         assert_true(f2['sol_grad'] is None)
     assert_equal(f1['source_ori'], f2['source_ori'])
@@ -81,20 +83,19 @@ def test_convert_forward():
     gc.collect()
 
     # now go to fixed
-    fwd_fixed = convert_forward_solution(fwd_surf, surf_ori=False,
+    fwd_fixed = convert_forward_solution(fwd_surf, surf_ori=True,
                                          force_fixed=True, use_cps=False)
-    temp_dir = _TempDir()
-    fname_temp = op.join(temp_dir, 'test-fwd.fif')
-    write_forward_solution(fname_temp, fwd_fixed, overwrite=True)
+    del fwd_surf
+    gc.collect()
     assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
-    fwd_fixed_io = read_forward_solution(fname_temp)
-    compare_forwards(fwd_fixed, fwd_fixed_io)
-    del fwd_fixed_io, fwd_surf
-    gc.collect()
+    assert_true(is_fixed_orient(fwd_fixed))
 
     # The following test can be removed in 0.16
     fwd_fixed_io = read_forward_solution(fname_meeg_grad, force_fixed=True)
+    assert_true(repr(fwd_fixed_io))
+    assert_true(isinstance(fwd_fixed_io, Forward))
+    assert_true(is_fixed_orient(fwd_fixed_io))
     compare_forwards(fwd_fixed, fwd_fixed_io)
     del fwd_fixed_io
     gc.collect()
@@ -149,6 +150,12 @@ def test_io_forward():
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])
+    write_forward_solution(fname_temp, fwd, overwrite=True)
+    fwd_read = read_forward_solution(fname_temp)
+    assert_true(repr(fwd_read))
+    assert_true(isinstance(fwd_read, Forward))
+    assert_true(is_fixed_orient(fwd_read))
+    compare_forwards(fwd, fwd_read)
 
     # test warnings on bad filenames
     fwd = read_forward_solution(fname_meeg_grad)
