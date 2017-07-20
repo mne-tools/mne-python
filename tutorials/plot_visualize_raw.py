@@ -13,7 +13,7 @@ import mne
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
 raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'),
                           preload=True)
-raw.set_eeg_reference()  # set EEG average reference
+raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
 
 ###############################################################################
