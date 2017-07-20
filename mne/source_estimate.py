@@ -435,18 +435,33 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None, src=None):
         if len(vertices) != len(src):
             ValueError('The lengths of vertices and src do not fit. '
                        'Got %d and %d elements, respectively'
-                        % (len(vertices), len(src)))
-        if all([_src['type'] == 'surf' for _src in src]) and len(src) == 2:
-            stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
-                                 tstep=tstep, subject=subject)
-        elif all([_src['type'] == 'vol' for _src in src]) and len(src) == 1:
-            stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
-                                    tstep=tstep, subject=subject)
+                       % (len(vertices), len(src)))
+        if len(src) == 1:
+            if src[0]['type'] == 'vol':
+                stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
+                                        tstep=tstep, subject=subject)
+            else:
+                raise ValueError('src contains a single source space of type '
+                                 '%s. Using a single source space is only '
+                                 'supported for volume-based source '
+                                 'spaces.' % src[0]['type'])
+        elif len(src) == 2:
+            if all([_src['type'] == 'surf' for _src in src]):
+                stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
+                                     tstep=tstep, subject=subject)
+            elif any([_src['type'] == 'surf' for _src in src]):
+                raise ValueError('src contains only one surface-based source '
+                                 'space. However, there must be two surface-'
+                                 'based source spaces representing the left '
+                                 'and right hemisphere.')
+            else:
+                stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
+                                          tstep=tstep, subject=subject)
         else:
             stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
                                       tstep=tstep, subject=subject)
     else:
-        raise ValueError('src hast to be either None or an instance of '
+        raise ValueError('src has to be either None or an instance of '
                          'SourceSpace.')
     return stc
 
@@ -878,14 +893,14 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         if stc_type == 'surf':
             # make a surface source estimate
             stc = SourceEstimate(data, vertices=self.vertices, tmin=tmin,
-                                 tstep=tstep, subject=self.subject)
+                                 tstep=width, subject=self.subject)
         elif stc_type == 'vol':
             stc = VolSourceEstimate(data, vertices=self.vertices, tmin=tmin,
-                                    tstep=tstep, subject=self.subject)
+                                    tstep=width, subject=self.subject)
         elif stc_type == 'mixed':
             # make a mixed source estimate
             stc = MixedSourceEstimate(data, vertices=self.vertices, tmin=tmin,
-                                      tstep=tstep, subject=self.subject)
+                                      tstep=width, subject=self.subject)
         else:
             raise ValueError('Unknown type of source estimate. '
                              'Got %s.' % stc_type)
@@ -1686,8 +1701,8 @@ class SourceEstimate(_BaseSourceEstimate):
         stc : instance of SourceEstimate
             The binned SourceEstimate.
         """
-        stc  = _BaseSourceEstimate.bin(self, width, tstart=tstart, tstop=tstop,
-                                       func=func, stc_type='surf')
+        stc = _BaseSourceEstimate.bin(self, width, tstart=tstart, tstop=tstop,
+                                      func=func, stc_type='surf')
         return stc
 
 
@@ -1968,8 +1983,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         stc : instance of SourceEstimate
             The binned SourceEstimate.
         """
-        stc  = _BaseSourceEstimate.bin(self, width, tstart=tstart, tstop=tstop,
-                                       func=func, stc_type='vol')
+        stc = _BaseSourceEstimate.bin(self, width, tstart=tstart, tstop=tstop,
+                                      func=func, stc_type='vol')
         return stc
 
 
@@ -2415,8 +2430,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         stc : instance of SourceEstimate
             The binned SourceEstimate.
         """
-        stc  = _BaseSourceEstimate.bin(self, width, tstart=tstart, tstop=tstop,
-                                       func=func, stc_type='mixed')
+        stc = _BaseSourceEstimate.bin(self, width, tstart=tstart, tstop=tstop,
+                                      func=func, stc_type='mixed')
         return stc
 
 

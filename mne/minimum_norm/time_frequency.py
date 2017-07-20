@@ -147,7 +147,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         tmin = epochs.times[0]
         tstep = float(decim) / Fs
         stc = _make_stc(power, vertices=vertno, tmin=tmin, tstep=tstep,
-                        subject=subject)
+                        subject=subject, src=inverse_operator['src'])
         stcs[name] = stc
 
         logger.info('[done]')
@@ -492,7 +492,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     subject = _subject_from_inverse(inverse_operator)
     stc = _make_stc(psd, vertices=vertno, tmin=fmin * 1e-3,
-                    tstep=fstep * 1e-3, subject=subject)
+                    tstep=fstep * 1e-3, subject=subject,
+                    src=inverse_operator['src'])
     return stc
 
 
@@ -599,7 +600,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
             psd *= noise_norm ** 2
 
         stc = _make_stc(psd, tmin=fmin, tstep=fstep, vertices=vertno,
-                        subject=subject)
+                        subject=subject, src=inverse_operator['src'])
 
         # we return a generator object for "stream processing"
         yield stc

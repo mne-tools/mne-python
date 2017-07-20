@@ -16,7 +16,7 @@ from ..io.pick import (
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
-from ..source_estimate import _make_stc, SourceEstimate
+from ..source_estimate import _make_stc
 from ..source_space import label_src_vertno_sel
 from ..utils import logger, verbose, warn, estimate_rank
 from .. import Epochs
@@ -360,8 +360,9 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
                 sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
-        yield _make_stc(sol, vertices=filters['vertices'], tmin=tmin,
-                        tstep=tstep, subject=subject)
+
+        yield _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                        subject=subject, src=forward['src'])
 
     logger.info('[done]')
 
@@ -638,8 +639,8 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
-        Source time courses.
+    stc : SourceEstimate | VolSourceEstimate | MixedSourceEstimate
+        The source estimates.
 
     See Also
     --------
@@ -730,7 +731,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     Returns
     -------
-    stc: list | generator of (SourceEstimate | VolSourceEstimate)
+    stc: list | generator of (SourceEstimate | VolSourceEstimate |
+                              MixedSourceEstimate)
         The source estimates for all epochs.
 
     See Also
@@ -826,8 +828,8 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
-        Source time courses.
+    stc : SourceEstimate | VolSourceEstimate | MixedSourceEstimate
+        The source estimates.
 
     See Also
     --------
@@ -939,8 +941,9 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
     logger.info('[done]')
 
     subject = _subject_from_forward(forward)
-    return SourceEstimate(source_power, vertices=vertno, tmin=1,
-                          tstep=1, subject=subject)
+    stc = _make_stc(source_power, vertices=vertno, tmin=1, tstep=1,
+                    subject=subject, src=forward['src'])
+    return stc
 
 
 @verbose
@@ -1011,9 +1014,9 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
 
     Returns
     -------
-    stcs : list of SourceEstimate
-        Source power at each time window. One SourceEstimate object is returned
-        for each frequency bin.
+    stcs : list of SourceEstimate | VolSourceEstimate | MixedSourceEstimate
+        The source power at each time window. One SourceEstimate object is
+        returned for each frequency bin.
 
     References
     ----------
@@ -1144,8 +1147,9 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     # Creating stc objects containing all time points for each frequency bin
     stcs = []
     for i_freq, _ in enumerate(freq_bins):
-        stc = SourceEstimate(sol_final[i_freq, :, :].T, vertices=stc.vertices,
-                             tmin=tmin, tstep=tstep, subject=stc.subject)
+        stc = _make_stc(sol_final[i_freq, :, :].T, vertices=stc.vertices,
+                        tmin=tmin, tstep=tstep, subject=stc.subject,
+                        src=forward['src'])
         stcs.append(stc)
 
     return stcs

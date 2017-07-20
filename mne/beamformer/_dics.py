@@ -100,7 +100,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         if np.iscomplexobj(sol):
             sol = np.abs(sol)  # XXX : STC cannot contain (yet?) complex values
         yield _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                        subject=subject)
+                        subject=subject, src=forward['src'])
 
     logger.info('[done]')
 
@@ -146,8 +146,8 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
-        Source time courses
+    stc : SourceEstimate | VolSourceEstimate | MixedSourceEstimate
+        The source time courses.
 
     See Also
     --------
@@ -226,8 +226,9 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
 
     Returns
     -------
-    stc: list | generator of SourceEstimate | VolSourceEstimate
-        The source estimates for all epochs
+    stc : list | generator of (SourceEstimate | VolSourceEstimate |
+                               MixedSourceEstimate)
+        The source estimates for all epochs.
 
     See Also
     --------
@@ -298,8 +299,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
-        Source power with frequency instead of time.
+    stc : SourceEstimate | VolSourceEstimate | MixedSourceEstimate
+        The source power with frequency instead of time.
 
     Notes
     -----
@@ -409,7 +410,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
     subject = _subject_from_forward(forward)
     return _make_stc(source_power, vertices=vertno, tmin=fmin / 1000.,
-                     tstep=fstep / 1000., subject=subject)
+                     tstep=fstep / 1000., subject=subject, src=forward['src'])
 
 
 @verbose
@@ -480,8 +481,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     Returns
     -------
-    stcs : list of SourceEstimate | VolSourceEstimate
-        Source power at each time window. One SourceEstimate object is returned
+    stcs : list of SourceEstimate | VolSourceEstimate | MixedSourceEstimate
+        The source power at each time window. One source estimate is returned
         for each frequency bin.
 
     Notes
@@ -600,7 +601,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     stcs = []
     for i_freq, _ in enumerate(freq_bins):
         stc = _make_stc(sol_final[i_freq, :, :].T, vertices=stc.vertices,
-                        tmin=tmin, tstep=tstep, subject=stc.subject)
+                        tmin=tmin, tstep=tstep, subject=stc.subject,
+                        src=forward['src'])
         stcs.append(stc)
 
     return stcs
