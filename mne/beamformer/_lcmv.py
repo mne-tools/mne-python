@@ -186,6 +186,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         G = np.dot(whitener, G)
         # whiten  data covariance
         Cm = np.dot(whitener, np.dot(Cm, whitener.T))
+    else:
+        whitener = None
 
     # Tikhonov regularization using reg parameter d to control for
     # trade-off between spatial resolution and noise sensitivity
