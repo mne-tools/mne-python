@@ -41,19 +41,23 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     epochs : instance of Epochs
         The epochs.
     picks : int | array-like of int | None
-        The indices of the channels to consider. If None, the first
-        five good channels are plotted.
+        The indices of the channels to consider. If None and `combine` is
+        None, the first five good channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
-    vmin : None | float
-        The min value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers.
+        Defaults to 0.
+    vmin : None | float | callable
+        The min value in the image (and the ER[P/F]).
         If vmin is None and only one channel type is plotted, the limit is
         equalized across all returned plots.
-    vmax : None | float
-        The max value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers.
+        Hint: to specify the lower limit of the data, use
+        
+            `vmin=lambda x: x.min()`
+
+    vmax : None | float | callable
+        The max value in the image (and the ER[P/F]). The unit is uV for
+        EEG channels, fT for magnetometers and fT/cm for gradiometers.
         If vmax is None and only one channel type is plotted, the limit is
         equalized across all returned plots.
     colorbar : bool
@@ -104,14 +108,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     combine : None | str | callable
         If None, return one figure per pick. If not None, aggregate over
         channels via the indicated method. If str, must be one of "mean",
-        "std" and "gfp", in which case the average, the standard deviation or
-        the GFP over channels are calculated and plotted.
-        If callable, it must accept one positional input, the data
-        in the format (n_epochs, n_channels, n_times). It must return an
+        "median", "std" or "gfp", in which case the mean, the median, the
+        standard deviation or the GFP over channels are plotted.
         array (n_epochs, n_times). For example:
 
             `combine = lambda data: np.median(data, 1)`
 
+        If callable, it must accept one positional input, the data
+        in the format (n_epochs, n_channels, n_times). It must return an
         Defaults to 'gfp'.
 
     groupby : None | str | dict
@@ -204,13 +208,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         figs.append(this_fig)
         lims.append(these_lims)
     if (len(set(ch_types)) == 1) and (vmin is None or vmax is None):
+        # It would be more comfortable to split this by channel type
         _adjust_lims(figs, lims, vmin, vmax)
 
     return figs
 
 
 def _adjust_lims(figs, lims, vmin, vmax):
-    "Equalize limits across ERPimages. Helper for plot_epochs_image."""
+    "Equalize limits across ER[P/F]images. Helper for plot_epochs_image."""
     vlims = [min((lim["image"][0] for lim in lims)),
              max((lim["image"][1] for lim in lims))]
     if vmin is not None:
@@ -361,7 +366,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
 
     # data transforms - sorting, scaling, smoothing
-    if ch_type == "grad" and len(epochs.ch_names) > 1:
+    if ch_type == "grad" and len(epochs.ch_names) > 1:  # is this ever true?
         data = epochs.get_data()
         data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
     else:
@@ -398,15 +403,14 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
         data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
 
     # setup lims and cmap
-    if vmin is None and data.min() >= 0:
-        vmin = 0  # for gfp etc
-    scale_vmin = True if vmin is None else False
-    scale_vmax = True if vmax is None else False
+    scale_vmin = True if (vmin is None or callable(vmin)) else False
+    scale_vmax = True if (vmax is None or callable(vmax)) else False
+    vmin, vmax = _setup_vmin_vmax(
+            data, vmin, vmax, norm=(data.min() >= 0) and (vmin is None))
     if not scale_vmin:
         vmin /= scaling
     if not scale_vmax:
         vmax /= scaling
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     if cmap is None:
         cmap = "Reds" if data.min() >= 0 else 'RdBu_r'
@@ -430,7 +434,11 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     # draw the evoked
     if draw_evoked:
         from mne.viz import plot_compare_evokeds
-        ylim = dict()
+        if scale_vmin or scale_vmax:
+            ylim = {ch_type: (vmin * scaling, vmax * scaling)}
+        else:
+            ylim = dict()
+
         ts_args_ = dict(colors={"cond": "black"}, axes=ax2, ylim=ylim,
                         picks=[0], title='', truncate_yaxis=False,
                         show=False)
@@ -443,6 +451,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     # draw the colorbar
     if colorbar:
         cbar = plt.colorbar(im, cax=ax3)
+        cbar.ax.set_ylabel(unit + "\n\n", rotation=270)
         if cmap[1]:
             ax1.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=fig)

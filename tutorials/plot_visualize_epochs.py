@@ -10,12 +10,14 @@ import os.path as op
 import mne
 
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
-raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'))
+raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'
+                                  ), preload=True).load_data().filter(None, 9)
 raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
-epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=1.)
+epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5,
+                    reject=dict(eog=60e-6, eeg=100e-6))
 
 ###############################################################################
 # This tutorial focuses on visualization of epoched data. All of the functions
@@ -70,7 +72,7 @@ epochs['smiley'].plot(events=events)
 # interactive mode you can scale and change the colormap with mouse scroll and
 # up/down arrow keys. You can also drag the colorbar with left/right mouse
 # button. Hitting space bar resets the scale.
-epochs.plot_image(278, cmap='interactive')
+epochs.plot_image(278, cmap='interactive', sigma=1.)
 
 ###############################################################################
 # We can also give an overview of all channels by calculating  the global
@@ -81,7 +83,7 @@ epochs.plot_image(278, cmap='interactive')
 # `groupby` can also be used to group channels into arbitrary groups, e.g.
 # regions of interests, by providing a dictionary containing
 # group name -> channel indices mappings.
-epochs.plot_image(combine='gfp', groupby='type')
+epochs.plot_image(combine='gfp', groupby='type', sigma=2., cmap="inferno")
 
 ###############################################################################
 # You also have functions for plotting channelwise information arranged into a

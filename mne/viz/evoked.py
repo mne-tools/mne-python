@@ -1635,7 +1635,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             if callable(ci):
                 _ci = ci
             else:
-                _ci = partial(_ci, ci=ci, method='bootstrap')
+                _ci = partial(_bootstrap_ci, ci=ci)
+#                _ci = partial(_ci, ci=ci, method='bootstrap')
             # calculate the CI
             sem_array = dict()
             for condition in conditions:
