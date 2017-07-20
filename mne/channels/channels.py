@@ -239,7 +239,8 @@ class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
     @verbose
-    def set_eeg_reference(self, ref_channels=None, verbose=None):
+    def set_eeg_reference(self, ref_channels='average', projection=None,
+                          verbose=None):
         """Specify which reference to use for EEG data.
 
         By default, MNE-Python will automatically re-reference the EEG signal
@@ -247,7 +248,7 @@ class SetChannelsMixin(object):
         explicitly specify the desired reference for EEG. This can be either an
         existing electrode or a new virtual channel. This function will
         re-reference the data according to the desired reference and prevent
-        MNE-Python from automatically adding an average reference.
+        MNE-Python from automatically adding an average reference projection.
 
         Some common referencing schemes and the corresponding value for the
         ``ref_channels`` parameter:
@@ -255,16 +256,17 @@ class SetChannelsMixin(object):
         No re-referencing:
             If the EEG data is already using the proper reference, set
             ``ref_channels=[]``. This will prevent MNE-Python from
-            automatically re-referencing the data to an average reference.
+            automatically adding an average reference projection.
 
         Average reference:
             A new virtual reference electrode is created by averaging the
             current EEG signal. Make sure that all bad EEG channels are
-            properly marked and set ``ref_channels=None``.
+            properly marked and set ``ref_channels='average'``.
 
         A single electrode:
-            Set ``ref_channels`` to the name of the channel that will act as
-            the new reference.
+            Set ``ref_channels`` to a list containing the name of the channel
+            that will act as the new reference, for example
+            ``ref_channels=['Cz']`.
 
         The mean of multiple electrodes:
             A new virtual reference electrode is created by computing the
@@ -274,22 +276,32 @@ class SetChannelsMixin(object):
             mastoid reference, when using the 10-20 naming scheme, set
             ``ref_channels=['M1', 'M2']``.
 
-        .. note:: In case of average reference (ref_channels=None), the
-                  reference is added as an SSP projector and it is not applied
-                  automatically. For it to take effect, apply with method
-                  :meth:`apply_proj <mne.io.Raw.apply_proj>`.
-                  For custom reference (ref_channel is not None), this method
-                  operates in place.
+        .. note:: In case of average reference `ref_channels='average'`` in
+                  combination with `projection=True`, the reference is added as
+                  a projection and it is not applied automatically. For it to
+                  take effect, apply with method
+                  :meth:`apply_proj <mne.io.Raw.apply_proj>`. Other references
+                  are directly applied (this behavior will change in MNE 0.16).
 
         Parameters
         ----------
-        ref_channels : list of str | None
-            The names of the channels to use to construct the reference. If
-            None (default), an average reference will be added as an SSP
-            projector but not immediately applied to the data. If an empty list
-            is specified, the data is assumed to already have a proper
-            reference and MNE will not attempt any re-referencing of the data.
-            Defaults to an average reference (None).
+        ref_channels : list of str | str
+            The name(s) of the channel(s) used to construct the reference. To
+            apply an average reference, specify ``'average'`` here (default).
+            If an empty list is specified, the data is assumed to already have
+            a proper reference and MNE will not attempt any re-referencing of
+            the data. Defaults to an average reference.
+        projection : bool | None
+            If ``ref_channels='average'`` this argument specifies if the
+            average reference should be computed as a projection (True) or not
+            (False). If ``projection=True``, the average reference is added as
+            a projection and is not applied to the data (it can be applied
+            afterwards with the ``apply_proj`` method). If
+            ``projection=False``, the average reference is directly applied to
+            the data. Defaults to None, which means ``projection=True``, but
+            will change to ``projection=False`` in the next release.
+            If ``ref_channels`` is not ``'average'``, ``projection`` must be
+            set to ``False`` (the default in this case).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -298,9 +310,9 @@ class SetChannelsMixin(object):
         Returns
         -------
         inst : instance of Raw | Epochs | Evoked
-            Data with EEG channels re-referenced. For ``ref_channels=None``,
-            an average projector will be added instead of directly subtarcting
-            data.
+            Data with EEG channels re-referenced. If ``ref_channels='average'``
+            and ``projection=True`` a projection will be added instead of
+            directly re-referencing the data.
 
         Notes
         -----
@@ -310,23 +322,19 @@ class SetChannelsMixin(object):
         2. During source localization, the EEG signal should have an average
            reference.
 
-        3. In order to apply a reference other than an average reference, the
-           data must be preloaded.
+        3. In order to apply a reference, the data must be preloaded. This is
+           not necessary if ``ref_channels='average'`` and ``projection=True``.
 
-        4. Re-referencing to an average reference is done with an SSP
-           projector. This allows applying this reference without preloading
-           the data. Be aware that on preloaded data, SSP projectors are not
-           automatically applied. Use the ``apply_proj()`` method to apply
-           them.
-
-        .. versionadded:: 0.13.0
+        .. versionadded:: 0.9.0
 
         See Also
         --------
-        mne.set_bipolar_reference
+        set_bipolar_reference : Convenience function for creating bipolar
+                                references.
         """
         from ..io.reference import set_eeg_reference
-        return set_eeg_reference(self, ref_channels, copy=False)[0]
+        return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
+                                 projection=projection)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.

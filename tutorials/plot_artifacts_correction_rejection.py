@@ -13,7 +13,7 @@ from mne.datasets import sample
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)
-raw.set_eeg_reference()
+raw.set_eeg_reference('average', projection=True)
 
 ###############################################################################
 # .. _marking_bad_channels:

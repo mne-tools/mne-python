@@ -147,6 +147,8 @@ API
 
     - :meth:`mne.io.Raw.plot_psd` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Eric Larson`_
 
+    - :func:`mne.set_eeg_reference` and the related methods :meth:`mne.io.Raw.set_eeg_reference`, :meth:`mne.io.Epochs.set_eeg_reference`, and :meth:`mne.io.Evoked.set_eeg_reference` have a new argument ``projection``, which if set to False directly applies an average reference instead of adding an SSP projector, by `Clemens Brunner`_
+
 .. _changes_0_14:
 
 Version 0.14
