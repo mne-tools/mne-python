@@ -47,7 +47,7 @@ To load the data if ``preload=False`` was initially selected, use the functions 
 
 Simplest way to access data
 ===========================
-If you just want easy access to data to work with it in a different framework you can access it using slicing syntax:
+If you just want easy access to data to work with it in a different framework you can access it using slicing syntax::
 
     first_channel, first_channel_times = raw[0,:] 
     channel_3_5, times_3_5 = raw[3:5,:]
