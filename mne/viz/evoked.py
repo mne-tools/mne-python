@@ -1610,8 +1610,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ymin, ymax = ylim.get(ch_type, [None, None])
 
     # deal with dict/list of lists and the CI
-    if not isinstance(ci, np.float):
-        raise TypeError('"ci" must be float, got {0}.'.format(type(ci)))
+    if not isinstance(ci, np.float) or callable(ci):
+        raise TypeError('ci must be float or callable, got ' + str(type(ci)))
 
     scaling = _handle_default("scalings")[ch_type]
     unit = _handle_default("units")[ch_type]
