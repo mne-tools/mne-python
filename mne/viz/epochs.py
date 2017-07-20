@@ -203,25 +203,30 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             ts_args=ts_args)
         figs.append(this_fig)
         lims.append(these_lims)
-
     if (len(set(ch_types)) == 1) and (vmin is None or vmax is None):
-        vlims = [min((lim["image"][0] for lim in lims)),
-                 max((lim["image"][1] for lim in lims))]
-        if vmin is not None:
-            vlims[0] = vmin
-        if vmax is not None:
-            vlims[1] = vmax
-        if "evoked" in lims[0]:
-            ylims = (min((lim["evoked"][0] for lim in lims)),
-                     max((lim["evoked"][1] for lim in lims)))
-        for fig in figs:
-            fig.erpim_axes["evoked"].set_ylim(ylims)
-        fig.erpim_axes["im"].properties()["clim"] = vlims
+        _adjust_lims(figs, lims, vmin, vmax)
+
     return figs
 
 
+def _adjust_lims(figs, lims, vmin, vmax):
+    "Equalize limits across ERPimages. Helper for plot_epochs_image."""
+    vlims = [min((lim["image"][0] for lim in lims)),
+             max((lim["image"][1] for lim in lims))]
+    if vmin is not None:
+        vlims[0] = vmin
+    if vmax is not None:
+        vlims[1] = vmax
+    if "evoked" in lims[0]:
+        ylims = (min((lim["evoked"][0] for lim in lims)),
+                 max((lim["evoked"][1] for lim in lims)))
+    for fig in figs:
+        fig.erpim_axes["evoked"].set_ylim(ylims)
+    fig.erpim_axes["im"].properties()["clim"] = vlims
+
+
 def _get_picks_and_types(picks, ch_types, groupby, combine):
-    """Packs picks and types into a list. (Helper for plot_epochs_image)"""
+    """Packs picks and types into a list. Helper for plot_epochs_image."""
     if groupby is None:
         if combine is not None:
             picks = [picks]
@@ -262,7 +267,7 @@ def _get_picks_and_types(picks, ch_types, groupby, combine):
 
 
 def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
-    """Packs data and metadata into a list. (Helper for plot_epochs_image)"""
+    """Packs data and metadata into a list. Helper for plot_epochs_image."""
     to_plot_list = list()
     tmin = epochs.times[0]
 
@@ -283,9 +288,9 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
             combine = lambda data: np.sqrt((data * data).mean(axis=1))  # noqa
         elif combine == "mean":
             combine = lambda data: np.mean(data, axis=1)  # noqa
-        elif combine == "std":  # undocumented ...
+        elif combine == "std":
             combine = lambda data: np.std(data, axis=1)  # noqa
-        elif combine == "median":  # undocumented ...
+        elif combine == "median":
             combine = lambda data: np.median(data, axis=1)  # noqa
         elif not callable(combine):
             raise ValueError(
@@ -309,8 +314,8 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
                     data[:, picks_, :])[:, np.newaxis, :]
             info = pick_info(epochs.info, [picks_[0]], copy=True)
             these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
-            d = these_epochs.get_data()
-            d[:] = this_data  # ??????
+            d = these_epochs.get_data()  # Why is this necessary?
+            d[:] = this_data  # Without this, the data is all-zeros!
             to_plot_list.append((these_epochs, ch_type,
                                  type2name.get(name, name) + combine_title))
 
@@ -322,7 +327,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
                        cmap=None, fig=None, axes=None, overlay_times=None,
                        scaling=None, title=None, draw_evoked=False,
                        ts_args=dict()):
-    """Plot epochs image. (Helper function for plot_epochs_image)"""
+    """Plot epochs image. Helper function for plot_epochs_image"""
     from scipy import ndimage
     import matplotlib.pyplot as plt
 
@@ -332,7 +337,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     if axes is not None:
         if fig is not None:
             raise ValueError('Both figure and axes were passed, please'
-                             'decide between the two.')
+                             'only pass one of these.')
         from .utils import _validate_if_list_of_axes
         oblig_len = 3 - ((not colorbar) + (not draw_evoked))
         _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
@@ -442,6 +447,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
             ax1.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=fig)
 
+    # Make limits and axes easily accessible to the outside world
     fig.erpim_axes = dict(im=im)
     fig.erpim_axes["erpimage"] = ax1
     lims = dict(image=im.properties()["clim"])

@@ -1214,7 +1214,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                 ", ".join(list(illegal_args))))
 
     # channel selection
-    # simply create a new evoked object(s) with the desired channel selection
+    # simply create a new evoked object with the desired channel selection
     evoked = evoked.copy()
 
     if picks is not None:
@@ -1340,10 +1340,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
 
 def _parametric_ci(arr, ci=.95):
-    """Calculate the `ci`% parametric confidence interval for `arr`.
-
-    Aux function for plot_compare_evokeds.
-    """
+    """Calculate the `ci`% parametric confidence interval for `arr`."""
     from scipy import stats
     mean, sigma = arr.mean(0), stats.sem(arr, 0)
     # This is highly convoluted to support 17th century Scipy
@@ -1369,8 +1366,9 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000):
     return np.array([ci_up, ci_low])
 
 
-def _ci(arr, ci=.95, method="boot", n_bootstraps=2000):
-    if method == "boot":
+def _ci(arr, ci=.95, method="bootstrap", n_bootstraps=2000):
+    """Calculate confidence interval. Aux function for plot_compare_evokeds"""
+    if method == "bootstrap":
         return _bootstrap_ci(arr, ci, n_bootstraps=n_bootstraps)
     else:
         return _parametric_ci(arr, ci)
@@ -1498,12 +1496,15 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     vlines : list of int
         A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
-    ci : float | None
-        If not None and `evokeds` is a [list/dict] of lists, a confidence
-        interval is drawn around the individual time series. This value
-        determines the CI width. E.g., if this value is .95 (the default),
-        the 95% parametric confidence interval is drawn.
-        If None, no shaded confidence band is plotted.
+    ci : float | callable | None
+        If not None and `evokeds` is a [list/dict] of lists, a shaded
+        confidence interval is drawn around the individual time series. 
+        If float, a naive bootstrap is used to estimate the confidence
+        interval and this value determines the CI width. E.g., if this value
+        is .95 (the default), the 95% parametric confidence interval is drawn.
+        If a callable, must take as its single argument an array
+        (observations x times) and return the upper and lower confidence bands
+        If None, no confidence band is plotted.
     truncate_yaxis : bool
         If True, the left y axis is truncated to half the max value and
         rounded to .25 to reduce visual clutter. Defaults to True.
@@ -1631,6 +1632,10 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             ci = False
             logger.info("CI not drawn for all-positive data.")
         if ci is not False:
+            if callable(ci):
+                _ci = ci
+            else:
+                _ci = partial(_ci, ci=ci, method='bootstrap')
             # calculate the CI
             sem_array = dict()
             for condition in conditions:
@@ -1638,7 +1643,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 # (e.g. channel count)
                 data = np.asarray([evoked_.data[picks, :].mean(0)
                                    for evoked_ in evokeds[condition]])
-                sem_array[condition] = _ci(data, ci) * scaling
+                sem_array[condition] = _ci(data) * scaling
 
         # get the grand mean
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
