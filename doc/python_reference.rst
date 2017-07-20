@@ -665,6 +665,7 @@ Inverse Solutions
    mixed_norm
    tf_mixed_norm
    gamma_map
+   make_stc_from_dipoles
 
 :py:mod:`mne.beamformer`:
 
