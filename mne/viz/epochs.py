@@ -46,12 +46,16 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
-    vmin : float
+    vmin : None | float
         The min value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
-    vmax : float
+        If vmin is None and only one channel type is plotted, the limit is
+        equalized across all returned plots.
+    vmax : None | float
         The max value in the image. The unit is uV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
+        If vmax is None and only one channel type is plotted, the limit is
+        equalized across all returned plots.
     colorbar : bool
         Display or not a colorbar.
     order : None | array of int | callable
@@ -188,9 +192,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # each entry of to_plot_list is: (data, ch_type, evoked, name)
 
     # plot
-    figs = list()
+    figs , lims = list(), list()
     for ii, (epochs_, ch_type, name) in enumerate(to_plot_list):
-        this_fig = _plot_epochs_image(
+        this_fig, these_lims = _plot_epochs_image(
             epochs_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
             order=order, show=show, unit=units[ch_type], ch_type=ch_type,
             scaling=scalings[ch_type], cmap=cmap, fig=fig,
@@ -198,6 +202,21 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             overlay_times=overlay_times, title=name, draw_evoked=True,
             ts_args=ts_args)
         figs.append(this_fig)
+        lims.append(these_lims)
+
+    if (len(set(ch_types)) == 1) and (vmin is None or vmax is None):
+        vlims = [min((lim["image"][0] for lim in lims)),
+                 max((lim["image"][1] for lim in lims))]
+        if vmin is not None:
+            vlims[0] = vmin
+        if vmax is not None:
+            vlims[1] = vmax
+        if "evoked" in lims[0]:
+            ylims = (min((lim["evoked"][0] for lim in lims)),
+                     max((lim["evoked"][1] for lim in lims)))
+        for fig in figs:
+            fig.erpim_axes["evoked"].set_ylim(ylims)
+        fig.erpim_axes["im"].properties()["clim"] = vlims
     return figs
 
 
@@ -307,6 +326,8 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     from scipy import ndimage
     import matplotlib.pyplot as plt
 
+    lims = dict()
+
     # prepare fig and axes
     if axes is not None:
         if fig is not None:
@@ -389,7 +410,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     # draw the image
     cmap = _setup_cmap(cmap)
     im = ax1.imshow(
-        data * scaling,  # vmin=vmin * scaling, vmax=vmax * scaling,
+        data * scaling, vmin=vmin * scaling, vmax=vmax * scaling,
         cmap=cmap[0], aspect='auto', origin='lower', interpolation='nearest',
         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs])
     if overlay_times is not None:
@@ -404,13 +425,14 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     # draw the evoked
     if draw_evoked:
         from mne.viz import plot_compare_evokeds
-        ylim = dict()  # {ch_type: (vmin * scaling, vmax * scaling)}
+        ylim = dict()
         ts_args_ = dict(colors={"cond": "black"}, axes=ax2, ylim=ylim,
                         picks=[0], title='', truncate_yaxis=False,
                         show=False)
         ts_args_.update(**ts_args)
         plot_compare_evokeds({"cond": list(epochs.iter_evoked())}, **ts_args_)
         ax2.set_xlim(epochs.times[[0, -1]])
+        ylims = ax2.get_ylim()
         ax1.set_xticks(())
 
     # draw the colorbar
@@ -420,9 +442,16 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
             ax1.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=fig)
 
+    fig.erpim_axes = dict(im=im)
+    fig.erpim_axes["erpimage"] = ax1
+    lims = dict(image=im.properties()["clim"])
+    if draw_evoked:
+        fig.erpim_axes["evoked"] = ax2
+        lims["evoked"] = ylims
+
     # finish
     plt_show(show)
-    return fig
+    return fig, lims
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
