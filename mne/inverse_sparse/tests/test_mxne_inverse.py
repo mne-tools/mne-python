@@ -12,8 +12,10 @@ from mne.datasets import testing
 from mne.label import read_label
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
+from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.utils import run_tests_if_main, slow_test
+from mne.dipole import Dipole
 
 
 data_path = testing.data_path(download=False)
@@ -24,6 +26,16 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+
+
+def _check_stcs(stc1, stc2):
+    """Helper to check correctness"""
+    assert_allclose(stc1.times, stc2.times)
+    assert_allclose(stc1.data, stc2.data)
+    assert_allclose(stc1.vertices[0], stc2.vertices[0])
+    assert_allclose(stc1.vertices[1], stc2.vertices[1])
+    assert_allclose(stc1.tmin, stc2.tmin)
+    assert_allclose(stc1.tstep, stc2.tstep)
 
 
 @slow_test
@@ -61,20 +73,19 @@ def test_mxne_inverse():
     alpha = 70  # spatial regularization parameter
 
     stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                          depth=depth, maxit=500, tol=1e-8,
+                          depth=depth, maxit=300, tol=1e-8,
                           active_set_size=10, weights=stc_dspm,
                           weights_min=weights_min, solver='prox')
     stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                        depth=depth, maxit=500, tol=1e-8, active_set_size=10,
+                        depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                         weights=stc_dspm, weights_min=weights_min,
                         solver='cd')
     stc_bcd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                         depth=depth, maxit=500, tol=1e-8, active_set_size=10,
+                         depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                          weights=stc_dspm, weights_min=weights_min,
                          solver='bcd')
     assert_array_almost_equal(stc_prox.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
-
     assert_array_almost_equal(stc_bcd.times, evoked_l21.times, 5)
     assert_allclose(stc_prox.data, stc_cd.data, rtol=1e-3, atol=0.0)
     assert_allclose(stc_prox.data, stc_bcd.data, rtol=1e-3, atol=0.0)
@@ -83,8 +94,16 @@ def test_mxne_inverse():
     assert_true(stc_cd.vertices[1][0] in label.vertices)
     assert_true(stc_bcd.vertices[1][0] in label.vertices)
 
+    dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
+                      depth=depth, maxit=300, tol=1e-8, active_set_size=10,
+                      weights=stc_dspm, weights_min=weights_min,
+                      solver='cd', return_as_dipoles=True)
+    stc_dip = make_stc_from_dipoles(dips, forward['src'])
+    assert_true(isinstance(dips[0], Dipole))
+    _check_stcs(stc_cd, stc_dip)
+
     stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                        depth=depth, maxit=500, tol=1e-8,
+                        depth=depth, maxit=300, tol=1e-8,
                         active_set_size=10, return_residual=True,
                         solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
@@ -93,7 +112,7 @@ def test_mxne_inverse():
     # irMxNE tests
     stc = mixed_norm(evoked_l21, forward, cov, alpha,
                      n_mxne_iter=5, loose=loose, depth=depth,
-                     maxit=500, tol=1e-8, active_set_size=10,
+                     maxit=300, tol=1e-8, active_set_size=10,
                      solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
@@ -109,6 +128,5 @@ def test_mxne_inverse():
                            weights_min=weights_min, return_residual=True)
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
-
 
 run_tests_if_main()
