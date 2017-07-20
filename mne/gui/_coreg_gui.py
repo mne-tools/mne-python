@@ -804,6 +804,13 @@ class CoregPanel(HasPrivateTraits):
                        Item('fid_eval_str', style='readonly'),
                        Item('points_eval_str', style='readonly'),
                        '_',
+                       HGroup(Item('save', enabled_when='can_save',
+                                   tooltip="Save the trans file and (if "
+                                   "scaling is enabled) the scaled MRI"),
+                              Item('reset_params', tooltip="Reset all "
+                                   "coregistration parameters"),
+                              show_labels=False),
+                       '_',
                        VGroup(
                            Item('scale_labels',
                                 label="Scale *.label files",
@@ -817,13 +824,6 @@ class CoregPanel(HasPrivateTraits):
                            show_left=False,
                            label='Scaling options',
                            show_border=True),
-                       '_',
-                       HGroup(Item('save', enabled_when='can_save',
-                                   tooltip="Save the trans file and (if "
-                                   "scaling is enabled) the scaled MRI"),
-                              Item('reset_params', tooltip="Reset all "
-                                   "coregistration parameters"),
-                              show_labels=False),
                        Item('queue_feedback', style='readonly'),
                        Item('queue_current', style='readonly'),
                        Item('queue_len_str', style='readonly'),
@@ -1208,7 +1208,7 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400):
                       Label("Always Show Head Shape Points"),
                       show_labels=False),
                Item('fid_panel', style='custom'),
-               label="MRI Fiducials",  show_border=True, show_labels=False),
+               label="MRI Fiducials", show_border=True, show_labels=False),
         VGroup(Item('raw_src', style="custom"),
                HGroup('guess_mri_subject',
                       Label('Guess MRI Subject from File Name'),
