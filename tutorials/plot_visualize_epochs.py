@@ -71,9 +71,7 @@ epochs['smiley'].plot(events=events)
 # interactive mode you can scale and change the colormap with mouse scroll and
 # up/down arrow keys. You can also drag the colorbar with left/right mouse
 # button. Hitting space bar resets the scale.
-epochs.plot_image(278, cmap='interactive', sigma=1.)
-
-mne.viz.plot_compare_evokeds([list(epochs["auditory"].iter_evoked()), list(epochs["visual"].iter_evoked())])
+epochs.plot_image(278, cmap='interactive', sigma=1., vmin=-250, vmax=250)
 
 ###############################################################################
 # We can also give an overview of all channels by calculating  the global
