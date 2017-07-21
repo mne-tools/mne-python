@@ -16,8 +16,7 @@ raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
-epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5,
-                    reject=dict(eog=60e-6, eeg=100e-6))
+epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5)
 
 ###############################################################################
 # This tutorial focuses on visualization of epoched data. All of the functions
@@ -73,6 +72,8 @@ epochs['smiley'].plot(events=events)
 # up/down arrow keys. You can also drag the colorbar with left/right mouse
 # button. Hitting space bar resets the scale.
 epochs.plot_image(278, cmap='interactive', sigma=1.)
+
+mne.viz.plot_compare_evokeds([list(epochs["auditory"].iter_evoked()), list(epochs["visual"].iter_evoked())])
 
 ###############################################################################
 # We can also give an overview of all channels by calculating  the global

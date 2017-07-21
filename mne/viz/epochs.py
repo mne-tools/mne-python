@@ -464,7 +464,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     # Make limits and axes easily accessible to the outside world
     fig.erpim_axes = dict(im=im)
     fig.erpim_axes["erpimage"] = ax1
-    lims = dict(image=im.properties()["clim"])
+    lims = dict(image=im.properties()["clim"])  # there is no ax.set_vlims
     if evoked:
         fig.erpim_axes["evoked"] = ax2
         lims["evoked"] = ylims

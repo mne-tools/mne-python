@@ -1369,9 +1369,9 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000):
 def _ci(arr, ci=.95, method="bootstrap", n_bootstraps=2000):
     """Calculate confidence interval. Aux function for plot_compare_evokeds"""
     if method == "bootstrap":
-        return _bootstrap_ci(arr, ci, n_bootstraps=n_bootstraps)
+        return _bootstrap_ci(arr, ci=ci, n_bootstraps=n_bootstraps)
     else:
-        return _parametric_ci(arr, ci)
+        return _parametric_ci(arr, ci=ci)
 
 
 def _setup_styles(conditions, style_dict, style, default):
@@ -1628,15 +1628,14 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     # if we have a dict/list of lists, we compute the grand average and the CI
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
-        if all_positive:
-            ci = False
-            logger.info("CI not drawn for all-positive data.")
+#        if all_positive:
+#            ci = False
+#            logger.info("CI not drawn for all-positive data.")
         if ci is not False:
             if callable(ci):
                 _ci = ci
             else:
                 _ci = partial(_bootstrap_ci, ci=ci)
-#                _ci = partial(_ci, ci=ci, method='bootstrap')
             # calculate the CI
             sem_array = dict()
             for condition in conditions:
