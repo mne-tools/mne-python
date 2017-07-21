@@ -2147,5 +2147,59 @@ def test_default_values():
     epoch_2 = Epochs(raw, events[:1], tmin=-0.2, tmax=0.5, preload=True)
     assert_equal(hash(epoch_1), hash(epoch_2))
 
+def test_metadata():
+    import pytest
+    from pandas import DataFrame, to_numeric
+
+    data = np.random.randn(10, 2, 2000)
+    chs = ['a', 'b']
+    info = create_info(chs, 1000)
+    meta = np.array([[1.] * 5 + [3.] * 5, ['a'] * 2 + ['b'] * 3 + ['c'] * 3 + ['d'] * 2]).T
+    meta = DataFrame(meta, columns=['num', 'letter'])
+    meta['num'] = to_numeric(meta['num'])
+
+    epochs = EpochsArray(data, info, metadata=meta)
+
+    # Construction
+    with pytest.raises(ValueError):
+        epochs = EpochsArray(data, info, metadata=meta.iloc[:-1])
+
+    for data in [meta.values, meta['num']]:
+        with pytest.raises(ValueError):
+            epochs = EpochsArray(data, info, metadata=data)
+
+    # Groupby etc
+    for meth in [epochs.standard_error, epochs.average]:
+        out = meth(by='letter', picks=[0])
+        assert_array_equal(set(out.keys()), set(meta['letter']))
+        for kind in out.keys():
+            print(out[kind].comment, kind)
+            assert out[kind].comment == 'letter : {}'.format(kind)
+
+    # Getitem
+    assert len(epochs['num < 2']) == 5
+    assert len(epochs['num < 5']) == 10
+    assert len(epochs['letter == "b"']) == 3
+    assert len(epochs['num < 5']) == len(epochs['num < 5'].metadata)
+    with pytest.raises(KeyError):
+        epochs['letter < 2']
+    with pytest.raises(KeyError):
+        epochs['blah == "yo"']
+
+    # Regression
+    out = epochs.regress('num')
+    assert set(out.keys()) == set(['num', 'Intercept'])
+
+    out = epochs.regress('num', fit_intercept=False)
+    assert set(out.keys()) == set(['num'])
+
+    out = epochs.regress('num', fit_intercept=False, by='letter')
+    assert_array_equal(out.keys(), set(meta['letter']))
+    assert_array_equal(list(out['a'].keys()), ['num'])
+
+    epochs_nometa = epochs.copy()
+    epochs_nometa.metadata = None
+    with pytest.raises(ValueError):
+        epochs_nometa.regress('num')
 
 run_tests_if_main()

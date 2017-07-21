@@ -211,7 +211,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None, picks=None, reject=None,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
-                 detrend=None, proj=True, on_missing='error',
+                 detrend=None, proj=True, metadata=None, on_missing='error',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, verbose=None):  # noqa: D102
         self.verbose = verbose
@@ -311,6 +311,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._raw = raw
         self.info = info
         del info
+
+        # Parse metadata
+        if metadata is not None:
+            if len(metadata) != len(self.events):
+                raise ValueError('`metadata` must have the same number of '
+                                 'rows as events')
+            if not isinstance(metadata, _check_dataframe()):
+                raise ValueError('`metadata` must be a pandas DataFrame')
+        self.metadata = metadata
 
         if picks is None:
             picks = list(range(len(self.info['ch_names'])))
@@ -723,7 +732,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Provide a wrapper for Py3k."""
         return self.next(*args, **kwargs)
 
-    def average(self, picks=None):
+    def average(self, picks=None, by=None):
         """Compute average of epochs.
 
         Parameters
@@ -731,6 +740,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         picks : array-like of int | None
             If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
+        by : string | list of strings | None
+            If ``self.metadata`` is a DataFrame, return averages grouped
+            by the unique values specified. This effectively calls
+            ``self.metadata.groupby`` and returns Evoked objects for each
+            grouping.
 
         Returns
         -------
@@ -748,9 +762,37 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
         """
-        return self._compute_mean_or_stderr(picks, 'ave')
+        if by is None:
+            out = self._compute_mean_or_stderr(picks, 'ave')
+        else:
+            out = self._iter_mean_or_stderr(picks, 'ave', by)
+        return out
 
-    def standard_error(self, picks=None):
+    def _groupby(self, by):
+        """Iterate via groupby using a column of ``self.metadata``."""
+        DataFrame = _check_dataframe()
+
+        if not isinstance(self.metadata, DataFrame):
+            raise ValueError('`self.metadata` must be a DataFrame in '
+                             'order to use `by`')
+        metadata = self.metadata.reset_index()
+        groups = {}
+        for name, ixs in metadata.groupby(by=by):
+            groups[name] = ixs.index.values
+        return groups
+
+    def _iter_mean_or_stderr(self, picks, kind, by):
+        """Groupby metadata and calculate mean / stderr."""
+        out = dict()
+        for name, ixs in self._groupby(by).items():
+            if isinstance(by, str):
+                by = [by]
+            newname = '/'.join(str(ii) for ii in name)
+            out[newname] = self[ixs]._compute_mean_or_stderr(picks, 'ave')
+            out[newname].comment = '/'.join(by) + " : " + newname
+        return out
+
+    def standard_error(self, picks=None, by=None):
         """Compute standard error over epochs.
 
         Parameters
@@ -758,13 +800,22 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         picks : array-like of int | None
             If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
+        by : string | list of strings | None
+            If ``self.metadata`` is a DataFrame, return averages grouped
+            by the unique values specified. This effectively calls
+            ``self.metadata.groupby`` and returns Evoked objects for each
+            grouping.
 
         Returns
         -------
         evoked : instance of Evoked
             The standard error over epochs.
         """
-        return self._compute_mean_or_stderr(picks, 'stderr')
+        if by is None:
+            out = self._compute_mean_or_stderr(picks, 'ave')
+        else:
+            out = self._iter_mean_or_stderr(picks, 'stderr', by)
+        return out
 
     def _compute_mean_or_stderr(self, picks, mode='ave'):
         """Compute the mean or std over epochs and return Evoked."""
@@ -818,6 +869,59 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
                                             kind, self._name)
+
+    def regress(self, on, fit_intercept=True, by=None):
+        """Regress neural data on a column of ``self.metadata``.
+
+        Parameters
+        ----------
+        on : string
+            The column of ``self.metadata`` to use in the regression. The
+            column must be a numeric dtype.
+        fit_intercept : bool
+            Whether to a fit an intercept in the regression.
+        by : string | None
+            The column of ``self.metadata`` by which the epochs will be grouped
+            prior to fitting. In this case, regression will be run for each
+            unique value of this column's values.
+
+        Returns
+        -------
+        coefs : Evoked | dict of Evoked
+            The coefficients after regressing neural data on the column
+            of interest. If ``by`` is a string, this will be a dictionary
+            of ``column_value: Evoked`` pairs corresponding to fitting one
+            regression model per unique value in column value in ``by``.
+        """
+        from .stats import linear_regression
+        DataFrame = _check_dataframe()
+        if not isinstance(self.metadata, DataFrame):
+            raise ValueError("`self.metadata` must be a DataFrame to regress.")
+
+        metadata = self.metadata.copy()
+        metadata["Intercept"] = 1.
+        names = [on] if isinstance(on, str) else on
+        if fit_intercept:
+            names = names + ['Intercept']
+
+        if any(ii not in metadata.columns for ii in names):
+            raise ValueError("Each item in `on` must be in "
+                             "`self.metadata.columns")
+
+        # Define how to group epochs
+        grp = {None: np.arange(len(self))} if by is None else self._groupby(by)
+
+        # Iterate groups and fit model
+        coefs = dict()
+        for name, inds in grp.items():
+            this_meta = metadata.iloc[inds]
+            reg = linear_regression(self[inds],
+                                    this_meta[names].values, names=names)
+            this_coefs = {k: v.beta for k, v in reg.items()}
+            coefs[name] = this_coefs
+        if by is None:
+            coefs = list(coefs.values())[0]
+        return coefs
 
     @property
     def _name(self):
@@ -1317,8 +1421,21 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def _keys_to_idx(self, keys):
         """Find entries in event dict."""
-        return np.array([self.events[:, 2] == self.event_id[k]
-                         for k in _hid_match(self.event_id, keys)]).any(axis=0)
+        DataFrame = _check_dataframe(strict=False)
+        if len(keys) == 1 and isinstance(self.metadata, DataFrame) and \
+                DataFrame is not None:
+            try:
+                # Try metadata matching
+                idx = np.where(self.metadata.eval(keys[0]).values)[0]
+                return idx
+            except:
+                warn('pandas query failed, trying Epochs string matching.')
+
+        # Assume it's a condition name
+        idx = np.array([self.events[:, 2] == self.event_id[k]
+                        for k in _hid_match(self.event_id, keys)])
+        idxs = idx.any(axis=0)
+        return idx
 
     def __getitem__(self, item):
         """Return an Epochs object with a copied subset of epochs.
@@ -1361,6 +1478,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                containing every list tag (e.g. ['audio', 'left'] selects
                'audio/left' and 'audio/center/left', but not 'audio/right').
 
+            4. ``epochs['pandas query']``: Return ``Epochs`` object with a
+               copy of the subset of epochs that match ``pandas query`` called
+               with ``self.metadata.eval``. Only called if Pandas is installed
+               and ``self.metadata`` is a DataFrame.
+
         """
         data = self._data
         del self._data
@@ -1371,6 +1493,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if isinstance(item, string_types):
             item = [item]
 
+        # Convert string to indices
         if isinstance(item, (list, tuple)) and \
                 isinstance(item[0], string_types):
             select = epochs._keys_to_idx(item)
@@ -1382,6 +1505,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             epochs.drop_log[k] = ['IGNORED']
         epochs.selection = key_selection
         epochs.events = np.atleast_2d(epochs.events[select])
+        if isinstance(epochs.metadata, _check_dataframe(strict=False)):
+            epochs.metadata = epochs.metadata.iloc[select]
         if epochs.preload:
             # ensure that each Epochs instance owns its own data so we can
             # resize later if necessary
@@ -1823,7 +1948,7 @@ class Epochs(BaseEpochs):
                  baseline=(None, 0), picks=None, preload=False,
                  reject=None, flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, on_missing='error',
-                 reject_by_annotation=True, verbose=None):  # noqa: D102
+                 metadata=None, reject_by_annotation=True, verbose=None):  # noqa: D102
         if not isinstance(raw, BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
@@ -1839,7 +1964,7 @@ class Epochs(BaseEpochs):
             raw=raw, picks=picks, reject=reject, flat=flat, decim=decim,
             reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
             proj=proj, on_missing=on_missing, preload_at_end=preload,
-            verbose=verbose)
+            metadata=metadata, verbose=verbose)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -1952,7 +2077,7 @@ class EpochsArray(BaseEpochs):
     @verbose
     def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, baseline=None, proj=True,
+                 reject_tmax=None, baseline=None, proj=True, metadata=None,
                  on_missing='error', verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
@@ -1978,6 +2103,7 @@ class EpochsArray(BaseEpochs):
                                           tmax, baseline, reject=reject,
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1,
+                                          metadata=metadata,
                                           proj=proj, on_missing=on_missing)
         if len(events) != np.in1d(self.events[:, 2],
                                   list(self.event_id.values())).sum():
@@ -2933,3 +3059,13 @@ def _segment_raw(raw, segment_length=1., verbose=None, **kwargs):
     events = make_fixed_length_events(raw, 1, duration=segment_length)
     return Epochs(raw, events, event_id=[1], tmin=0., tmax=segment_length,
                   verbose=verbose, baseline=None, **kwargs)
+
+def _check_dataframe(strict=True):
+    try:
+        from pandas import DataFrame
+    except ModuleNotFoundError:
+        if strict:
+            raise ValueError('You must install pandas in order to use `by`')
+        else:
+            DataFrame = None
+    return DataFrame
