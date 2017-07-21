@@ -608,7 +608,7 @@ class CoregFrameHandler(Handler):
 
 
 def _make_view_coreg_panel(scrollable=False):
-    "Generate View for CoregPanel"
+    """Generate View for CoregPanel."""
     view = View(VGroup(Item('grow_hair', show_label=True),
                        Item('n_scale_params', label='MRI Scaling',
                             style='custom', show_label=True,

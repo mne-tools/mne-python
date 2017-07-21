@@ -25,10 +25,8 @@ def run():
     parser.add_option("-f", "--fiff", dest="inst", default=None,
                       help="FIFF file with digitizer data for coregistration")
     parser.add_option("-c", "--compact", dest="compact", action="store_true",
-                      default=False, help="Layout for small screens: Combine "
-                      "the data source panel and the coregistration panel "
-                      "into a single panel with tabs, and make them vertically "
-                                          "scrollable.")
+                      default=False, help="Layout for small screens, entails "
+                      "--tabbed.")
     parser.add_option("-t", "--tabbed", dest="tabbed", action="store_true",
                       default=False, help="Option for small screens: Combine "
                       "the data source panel and the coregistration panel "
