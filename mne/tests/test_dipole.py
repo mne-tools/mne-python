@@ -156,7 +156,8 @@ def test_dipole_fitting():
                             axis=0)
 
     # MNE-C skips the last "time" point :(
-    dip.crop(dip_c.times[0], dip_c.times[-1])
+    out = dip.crop(dip_c.times[0], dip_c.times[-1])
+    assert_true(dip is out)
     src_rr, src_nn = src_rr[:-1], src_nn[:-1]
 
     # check that we did at least as well

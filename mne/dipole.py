@@ -124,6 +124,11 @@ class Dipole(object):
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+
+        Returns
+        -------
+        self : instance of Dipole
+            The cropped intance.
         """
         sfreq = None
         if len(self.times) > 1:
@@ -131,6 +136,7 @@ class Dipole(object):
         mask = _time_mask(self.times, tmin, tmax, sfreq=sfreq)
         for attr in ('times', 'pos', 'gof', 'amplitude', 'ori'):
             setattr(self, attr, getattr(self, attr)[mask])
+        return self
 
     def copy(self):
         """Copy the Dipoles object.
