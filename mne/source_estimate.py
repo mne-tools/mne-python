@@ -442,10 +442,16 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                 raise ValueError('Vertices must be ordered in increasing '
                                  'order.')
 
-            n_src = sum([len(v) for v in vertices])
+            nvert = [len(v) for v in vertices]
+            if len(vertices) > 2:
+                n_source_cortex = np.sum(nvert[:2])
+                n_source_aseg = np.sum(nvert[2:])
 
-            if len(vertices) == 1:
+                n_src = n_source_cortex + n_source_aseg*3
+            elif len(vertices) == 1:
                 vertices = vertices[0]
+            else:
+                n_src = sum([len(v) for v in vertices])
         elif isinstance(vertices, np.ndarray):
             n_src = len(vertices)
         else:
