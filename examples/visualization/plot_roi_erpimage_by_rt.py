@@ -34,8 +34,8 @@ montage = data_path + "/EEGLAB/test_chans.locs"
 
 event_id = {"rt": 1, "square": 2}  # must be specified for str events
 eog = {"FPz", "EOG1", "EOG2"}
-raw = io.eeglab.read_raw_eeglab(fname, preload=True, eog=eog,
-                                montage=montage, event_id=event_id)
+raw = io.eeglab.read_raw_eeglab(fname, eog=eog, montage=montage,
+                                event_id=event_id)
 picks = pick_types(raw.info, eeg=True)
 events = mne.find_events(raw)
 
@@ -57,7 +57,7 @@ epochs = Epochs(raw, events=new_events, tmax=tmax + .1,
 ###############################################################################
 # Plot
 
-# construct ROIs (ROI name-to-list of picks mappings)
+# construct ROIs (ROI_name-to-list_of_picks mappings)
 rois = dict()
 for pick, channel in enumerate(epochs.ch_names):
     last_char = channel[-1]  # for 10/20, last letter codes the hemisphere
@@ -77,12 +77,12 @@ order = rts.argsort()  # sorting from fast to slow trials
 
 
 def combine(data):  # take the median of each ROI
-    return np.median(data, axis=1)
+    return np.mean(data, axis=1)
 
 # The actual plot
 epochs["square"].plot_image(
-    groupby=rois, combine=combine, axes=axes, order=order,
-    overlay_times=rts / 1000, colorbar=False, sigma=1)
+    groupby=rois, combine='mean', axes=axes, order=order, sigma=1.5,
+    overlay_times=rts / 1000, colorbar=False, vmin=lambda x: x.min())
 for roi in ("Midline", "Right"):  # uncrowd visually
     for ax in axes[roi]:
         ax.set_ylabel('')

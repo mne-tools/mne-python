@@ -202,14 +202,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # plot
     figs , lims = list(), list()
-    for ii, (epochs_, ch_type, name) in enumerate(to_plot_list):
+    for ii, (epochs_, ch_type, ax_name, name) in enumerate(to_plot_list):
         this_fig, these_lims = _plot_epochs_image(
             epochs_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
             order=order, show=show, unit=units[ch_type], ch_type=ch_type,
             scaling=scalings[ch_type], cmap=cmap, fig=fig,
-            axes=axes if not isinstance(axes, dict) else axes[name],
-            overlay_times=overlay_times, title=name, evoked=True,
-            ts_args=ts_args)
+            axes=axes[ax_name] if isinstance(axes, dict) else axes,
+            title=ax_name if isinstance(axes, dict) else name,
+            overlay_times=overlay_times, evoked=True, ts_args=ts_args)
         figs.append(this_fig)
         lims.append(these_lims)
     if (len(set(ch_types)) == 1) and (vmin is None or vmax is None):
@@ -326,10 +326,10 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
             these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
             d = these_epochs.get_data()  # Why is this necessary?
             d[:] = this_data  # Without this, the data is all-zeros!
-            to_plot_list.append((these_epochs, ch_type,
+            to_plot_list.append((these_epochs, ch_type, name,
                                  type2name.get(name, name) + combine_title))
 
-    return to_plot_list  # data, ch_type, title
+    return to_plot_list  # data, ch_type, name, axtitle
 
 
 def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
