@@ -286,7 +286,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
         for pick, ch_type, _ in zip(all_picks, all_ch_types, names):
             name = epochs.ch_names[pick]
             these_epochs = epochs.copy().pick_channels([name])
-            to_plot_list.append((these_epochs, ch_type, name))
+            to_plot_list.append((these_epochs, ch_type, name, name))
     else:
         from .. import EpochsArray, pick_info
         data = epochs.get_data()

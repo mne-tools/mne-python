@@ -36,7 +36,7 @@ data_path = sample.data_path()
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_id, tmin, tmax = 1, -0.2, 0.5
+event_id, tmin, tmax = 1, -0.2, 0.4
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname)
@@ -75,5 +75,5 @@ plt_times = np.linspace(0, .2, len(epochs))
 
 plt.close('all')
 mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=.5,
-                          cmap='magma', order=order_func, combine=None,
+                          cmap='magma', order=order_func,
                           overlay_times=plt_times, show=True)
