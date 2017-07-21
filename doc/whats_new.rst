@@ -69,6 +69,8 @@ Changelog
 
     - Add option to use matplotlib backend when plotting with :func:`mne.viz.plot_source_estimates` by `Jaakko Leppakangas`_
 
+    - Add ``--compact`` option to coregistration GUI for small screens by `Christian Brodbeck`_
+
 BUG
 ~~~
 

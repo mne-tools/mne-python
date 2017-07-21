@@ -24,6 +24,11 @@ def run():
                       help="Subject name")
     parser.add_option("-f", "--fiff", dest="inst", default=None,
                       help="FIFF file with digitizer data for coregistration")
+    parser.add_option("-c", "--compact", dest="compact", action="store_true",
+                      default=False, help="Layout for small screens: Combine "
+                      "the data source panel and the coregistration panel "
+                      "into a single panel with tabs, and make them vertically "
+                                          "scrollable.")
     parser.add_option("-t", "--tabbed", dest="tabbed", action="store_true",
                       default=False, help="Option for small screens: Combine "
                       "the data source panel and the coregistration panel "
@@ -61,13 +66,15 @@ def run():
         head_high_res = None
 
     with ETSContext():
-        mne.gui.coregistration(options.tabbed, inst=options.inst,
+        mne.gui.coregistration(options.tabbed or options.compact,
+                               inst=options.inst,
                                subject=options.subject,
                                subjects_dir=options.subjects_dir,
                                guess_mri_subject=options.guess_mri_subject,
                                head_opacity=options.head_opacity,
                                head_high_res=head_high_res,
                                trans=options.trans,
+                               scrollable=options.compact,
                                verbose=options.verbose)
     if is_main:
         sys.exit(0)
