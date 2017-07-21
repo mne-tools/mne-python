@@ -52,7 +52,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         If vmin is None and only one channel type is plotted, the limit is
         equalized across all returned plots.
         Hint: to specify the lower limit of the data, use
-        
+
             `vmin=lambda data: data.min()`
 
     vmax : None | float | callable
@@ -201,7 +201,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # each entry of to_plot_list is: (data, ch_type, evoked, name)
 
     # plot
-    figs , lims = list(), list()
+    figs, lims = list(), list()
     for ii, (epochs_, ch_type, ax_name, name) in enumerate(to_plot_list):
         this_fig, these_lims = _plot_epochs_image(
             epochs_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
@@ -411,7 +411,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     scale_vmin = True if (vmin is None or callable(vmin)) else False
     scale_vmax = True if (vmax is None or callable(vmax)) else False
     vmin, vmax = _setup_vmin_vmax(
-            data, vmin, vmax, norm=(data.min() >= 0) and (vmin is None))
+        data, vmin, vmax, norm=(data.min() >= 0) and (vmin is None))
     if not scale_vmin:
         vmin /= scaling
     if not scale_vmax:

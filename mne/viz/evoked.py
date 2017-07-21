@@ -1496,7 +1496,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         at which to plot dashed vertical lines.
     ci : float | callable | None
         If not None and `evokeds` is a [list/dict] of lists, a shaded
-        confidence interval is drawn around the individual time series. 
+        confidence interval is drawn around the individual time series.
         If float, a naive bootstrap is used to estimate the confidence
         interval and this value determines the CI width. E.g., if this value
         is .95 (the default), the 95% parametric confidence interval is drawn.
@@ -1626,9 +1626,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     # if we have a dict/list of lists, we compute the grand average and the CI
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
-#        if all_positive:
-#            ci = False
-#            logger.info("CI not drawn for all-positive data.")
         if ci is not False:
             if callable(ci):
                 _ci = ci
