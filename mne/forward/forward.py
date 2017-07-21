@@ -547,7 +547,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 @verbose
 def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
                              is_mixed=False,
-                             copy=True, verbose=None):
+                             copy=True, verbose=None):  
     """Convert forward solution between different source orientations.
 
     Parameters
@@ -570,6 +570,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : Forward
         The modified forward solution.
     """
+    
+    print('\n *** is mixed = {} *** \n'.format(is_mixed))
     fwd = fwd.copy() if copy else fwd
 
     # We need to change these entries (only):
