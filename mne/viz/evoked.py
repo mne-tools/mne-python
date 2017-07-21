@@ -1356,13 +1356,11 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000):
     """Get confidence intervals from non-parametric bootstrap."""
     ntrials, ntimes = arr.shape
     indices = np.arange(ntrials, dtype=int)
-    gfps_bs = np.empty((n_bootstraps, ntimes))
-    for iteration in range(n_bootstraps):
-        bs_indices = np.random.choice(indices, replace=True,
-                                      size=len(indices))
-        gfps_bs[iteration] = np.mean(arr[bs_indices], 0)
+    boot_indices = np.random.choice(indices, replace=True,
+                                    size=(ntrials, len(indices)))
+    stat = np.array([arr[inds].mean(axis=0) for inds in boot_indices])
     ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
-    ci_low, ci_up = np.percentile(gfps_bs, ci, axis=0)
+    ci_low, ci_up = np.percentile(stat, ci, axis=0)
     return np.array([ci_up, ci_low])
 
 
