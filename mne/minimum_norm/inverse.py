@@ -927,10 +927,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     else:
         sol = np.dot(K, data)
         print('******************** sol dim {}  *********************** \n'.format(sol.shape))
-        sol_file = os.path.abspath('sol.npy')
-        np.save(sol_file, sol)
+#        sol_file = os.path.abspath('sol.npy')
+#        np.save(sol_file, sol)
 
-        if is_free_ori or is_mixed:
+        if is_free_ori:     
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
         print('******************** sol dim {}  *********************** \n'.format(sol.shape))
@@ -1015,14 +1015,15 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
             
             sol_aseg = np.dot(K[n_source_cortex:,:], e[sel])             
             print('******************** sol_aseg dim {}  *********************** \n'.format(sol_aseg.shape))
-            sol_aseg_norm = combine_xyz(sol_aseg)
+#            sol_aseg_norm = combine_xyz(sol_aseg)
             
-            sol2save = np.concatenate((sol_cortex, sol_aseg), axis=0)
-            print('******************** sol2save dim {}  *********************** \n'.format(sol2save.shape))
-            sol_file = os.path.abspath('sol_' + str(k) + '.npy')
-            np.save(sol_file, sol2save)
+#            sol2save = np.concatenate((sol_cortex, sol_aseg), axis=0)
+            sol = np.concatenate((sol_cortex, sol_aseg), axis=0)
+#            print('******************** sol2save dim {}  *********************** \n'.format(sol.shape))
+#            sol_file = os.path.abspath('sol_' + str(k) + '.npy')
+#            np.save(sol_file, sol)
             
-            sol = np.concatenate((sol_cortex, sol_aseg_norm), axis=0)
+#            sol = np.concatenate((sol_cortex, sol_aseg_norm), axis=0)
             print('******************** sol dim {}  *********************** \n'.format(sol.shape))
             
         else:
