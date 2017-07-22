@@ -21,7 +21,7 @@ MNE-Python can read data on-demand using the ``preload`` option provided in :ref
     raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
     raw = io.read_raw_fif(raw_fname, preload=False)
 
-.. note:: Filtering does not work with ``preload=False``.
+.. note:: Filtering, resampling and dropping or selection channels does not work with ``preload=False``.
 
 Epochs
 ^^^^^^
@@ -44,3 +44,11 @@ To explicitly reject artifacts with ``preload=False``, use the function :func:`m
 Loading data explicitly
 =======================
 To load the data if ``preload=False`` was initially selected, use the functions :func:`mne.io.Raw.load_data` and :func:`mne.Epochs.load_data`.
+
+Simplest way to access data
+===========================
+If you just want your raw data as a numpy array to work with it in a different framework you can use slicing syntax::
+
+    first_channel, first_channel_times = raw[0,:] 
+    channel_3_5, times_3_5 = raw[3:5,:]
+
