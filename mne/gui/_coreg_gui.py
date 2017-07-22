@@ -1229,8 +1229,10 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
                show_labels=False),
         show_labels=False, label="Data Source")
 
-    # placing `scrollable=scrollable` inside a Group has no effect (macOS), in
-    # order to be effective the parametr has to be in a View objects
+    # Setting `scrollable=True` for a Group does not seem to have any effect
+    # (macOS), in order to be effective the parameter has to be set for a View
+    # object; hence we use a special InstanceEditor to set the parameter
+    # programmatically:
     coreg_panel = VGroup(
         Item('coreg_panel', style='custom', width=1,
              editor=InstanceEditor(view=_make_view_coreg_panel(scrollable))),
