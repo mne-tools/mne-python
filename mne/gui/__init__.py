@@ -38,7 +38,7 @@ def combine_kit_markers():
 def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=None,
                    scene_height=None, head_opacity=None, head_high_res=None,
-                   trans=None, scrollable=False, verbose=None):
+                   trans=None, scrollable=True, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -86,7 +86,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     trans : str | None
         The transform file to use.
     scrollable : bool
-        Make the main panels vertically scrollable (default False)?
+        Make the coregistration panel vertically scrollable (default True)?
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
