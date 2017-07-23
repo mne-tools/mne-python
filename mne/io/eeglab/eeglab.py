@@ -339,7 +339,7 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
         else:
             curr_name = '_'.join([prefix, curr])
 
-        msg = indent + "Converting ", curr_name
+        msg = indent + "Converting " + curr_name
             
         if isinstance(in_hdf[curr], h5py.Dataset):
             logger.info(msg)
@@ -419,7 +419,7 @@ def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
                      else temp_dict[x]
                      for x in temp_dict}
         for ct in in_hlGroup:
-            msg = indent + "Converting ", tuple_name + '_' + ct
+            msg = indent + "Converting " + tuple_name + '_' + ct
             logger.info(msg)
 
     except IOError:
