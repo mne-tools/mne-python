@@ -13,6 +13,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
+from mne.channels import read_montage
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.eeglab.eeglab import read_events_eeglab, _get_eeg_data
@@ -77,12 +78,16 @@ def test_io_set():
     # test new EEGLAB version event import
     eeg = _get_eeg_data(raw_fname_hdffile)
     for event in eeg.event:  # old version allows integer events
-        event._replace(type = 1)
-    assert_equal(read_events_eeglab(eeg)[-1, -1], 1520)
+        event.type = 1
+    assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
     eeg.event = eeg.event[0]  # single event
-    assert_equal(read_events_eeglab(eeg)[-1, -1], 1120)
- 
-
+    assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
+    
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw = read_raw_eeglab(raw_fname_hdffile)
+        assert_equal(len(w), 9)
+        
     # test old EEGLAB version event import
     eeg = io.loadmat(raw_fname, struct_as_record=False,
                      squeeze_me=True)['EEG']
@@ -97,6 +102,7 @@ def test_io_set():
         warnings.simplefilter('always')
         epochs = read_epochs_eeglab(epochs_fname)
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
+        
     # one warning for each read_epochs_eeglab because both files have epochs
     # associated with multiple events
     assert_equal(len(w), 2)

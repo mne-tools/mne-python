@@ -7,11 +7,11 @@ import os.path as op
 
 import numpy as np
 import sys
-from collections import Mapping, namedtuple, Iterable
-
+from collections import Mapping, Iterable
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
 from ..constants import FIFF
+from ..constants import Bunch
 from ..meas_info import _empty_info, create_info, _kind_dict
 from ..base import BaseRaw, _check_update_montage
 from ...utils import logger, verbose, check_version, warn
@@ -306,24 +306,24 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     return epochs
 
 
-def _namedtuplify(mapping, name='NT'):
-    """Convert mappings to namedtuples recursively.
+def _bunchify(mapping, name='BU'):
+    """Convert mappings to Bunches recursively.
 
     Based on https://gist.github.com/hangtwenty/5960435.
     """
     if isinstance(mapping, Mapping):
         for key, value in list(mapping.items()):
-            mapping[key] = _namedtuplify(value)
-        return _namedtuple_wrapper(name, **mapping)
+            mapping[key] = _bunchify(value)
+        return _bunch_wrapper(name, **mapping)
     elif isinstance(mapping, list):
-        return [_namedtuplify(item) for item in mapping]
+        return [_bunchify(item) for item in mapping]
     return mapping
 
 
-def _namedtuple_wrapper(name, **kwargs):
-    """Convert mappings to namedtuples."""
-    wrap = namedtuple(name, kwargs)
-    return wrap(**kwargs)
+def _bunch_wrapper(name, **kwargs):
+    """Convert mappings to Bunches."""
+    #wrap = Bunch(**kwargs)
+    return Bunch(**kwargs)
 
 
 def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
@@ -340,6 +340,7 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
             curr_name = '_'.join([prefix, curr])
 
         msg = indent + "Converting ", curr_name
+            
         if isinstance(in_hdf[curr], h5py.Dataset):
             logger.info(msg)
             temp = in_hdf[curr].value
@@ -357,7 +358,7 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
         elif isinstance(in_hdf[curr], h5py.Group):
             logger.info(msg)
             if curr == 'chanlocs':
-                temp = _hlGroup_2_namedtuple_list(orig, in_hdf[curr], curr,
+                temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
                                                   indent + indent_incr)
                 hdf_labels = in_hdf[curr]['labels']
                 ascii_labels = [orig[hdf_labels[x][0]].value
@@ -374,10 +375,10 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
 
                 for ctr, (curr_label, curr_type) in enumerate(zip(chr_labels,
                                                                   chr_type)):
-                    temp[ctr] = temp[ctr]._replace(labels=curr_label,
-                                                   type=curr_type)
+                    temp[ctr].labels = curr_label
+                    temp[ctr].type = curr_type
             elif curr == 'event':
-                temp = _hlGroup_2_namedtuple_list(orig, in_hdf[curr], curr,
+                temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
                                                   indent + indent_incr)
 
                 hdf_type = in_hdf[curr]['type']
@@ -396,9 +397,8 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
               
                 for ctr, (curr_usertag, curr_type) in enumerate(zip(chr_usertag,
                                                                   num_type)):
-                    temp[ctr] = temp[ctr]._replace(usertags=curr_usertag,
-                                                   type=curr_type)
-              
+                    temp[ctr].usertags = curr_usertag
+                    temp[ctr].type = curr_type
                 
             else:
                 temp = hdf_2_dict(orig, in_hdf[curr],
@@ -409,9 +409,9 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
     return out_dict
 
 
-def _hlGroup_2_namedtuple_list(orig, in_hlGroup, tuple_name, indent):
+def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
     import h5py
-    nt = namedtuple(tuple_name, in_hlGroup)
+
     try:
         temp_dict = {ct: in_hlGroup[ct].value.flatten() for ct in in_hlGroup}
         temp_dict = {x: [orig[y].value.flatten()[0] for y in temp_dict[x]]
@@ -427,9 +427,9 @@ def _hlGroup_2_namedtuple_list(orig, in_hlGroup, tuple_name, indent):
         warn("Couldn't read", tuple_name, ". Assuming empty")
 
     sz = len(temp_dict[temp_dict.keys()[0]])
-    nt_list = [nt(**{key: temp_dict[key][x] for key in temp_dict})
-               for x in range(sz)]
-    return nt_list
+    bch_list = [Bunch(**{key: temp_dict[key][x] for key in temp_dict})
+                 for x in range(sz)]
+    return bch_list
 
 
 def _get_eeg_data(input_fname, uint16_codec=None):
@@ -445,7 +445,7 @@ def _get_eeg_data(input_fname, uint16_codec=None):
         logger.info("Attempting to read style Matlab hdf file")
         f = h5py.File(input_fname)
         eeg_dict = hdf_2_dict(f, f['EEG'], prefix=None)
-        eeg = _namedtuplify(eeg_dict)
+        eeg = _bunchify(eeg_dict)
 
     return eeg
 
@@ -566,7 +566,7 @@ class RawEEGLAB(BaseRaw):
             # Seem to have transpose with matlab hdf storage
             if n_chan != eeg.nbchan and n_times == eeg.nbchan:
                 temp = eeg.data.transpose()
-                eeg = eeg._replace(data=temp)
+                eeg.data = temp
                 n_chan, n_times = eeg.data.shape
 
             data = np.empty((n_chan + 1, n_times), dtype=np.double)
@@ -850,13 +850,16 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         eeg = io.loadmat(eeg, struct_as_record=False, squeeze_me=True,
                          uint16_codec=uint16_codec)['EEG']
 
-    if isinstance(eeg.event, Iterable): 
+
+    try:
         types = [str(event.type) for event in eeg.event]
         latencies = [event.latency for event in eeg.event]
-    else:
+    except:
         # only one event - TypeError: 'mat_struct' object is not iterable
+        # but Bunch will iterate over fields
         types = [str(eeg.event.type)]
         latencies = [eeg.event.latency]
+        
     if "boundary" in types and "boundary" not in event_id:
         warn("The data contains 'boundary' events, indicating data "
              "discontinuities. Be cautious of filtering and epoching around "
