@@ -1323,12 +1323,12 @@ class SourceEstimate(_BaseSourceEstimate):
 
     @copy_function_doc_to_method_doc(plot_source_estimates)
     def plot(self, subject=None, surface='inflated', hemi='lh',
-             colormap='auto', time_label='auto',
-             smoothing_steps=10, transparent=None, alpha=1.0,
-             time_viewer=False, subjects_dir=None,
+             colormap='auto', time_label='auto', smoothing_steps=10,
+             transparent=None, alpha=1.0, time_viewer=False, subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
-             foreground="white", initial_time=None, time_unit='s'):
+             foreground="white", initial_time=None, time_unit='s',
+             backend='auto', spacing='oct5'):
         brain = plot_source_estimates(self, subject, surface=surface,
                                       hemi=hemi, colormap=colormap,
                                       time_label=time_label,
@@ -1341,7 +1341,8 @@ class SourceEstimate(_BaseSourceEstimate):
                                       background=background,
                                       foreground=foreground,
                                       initial_time=initial_time,
-                                      time_unit=time_unit)
+                                      time_unit=time_unit, backend=backend,
+                                      spacing=spacing)
         return brain
 
     @verbose
@@ -1937,6 +1938,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
               % (len(data_sum) - len(idx_use), len(data_sum)))
 
     logger.info('    %d smooth iterations done.' % (k + 1))
+
     data_morphed = maps[nearest, :] * data
     return data_morphed
 

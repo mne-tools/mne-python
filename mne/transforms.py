@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""Helpers for various transformations."""
+
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -8,8 +10,9 @@ import os
 from os import path as op
 import glob
 import copy
-from numbers import Integral
+
 import numpy as np
+from copy import deepcopy
 from numpy import sin, cos
 from scipy import linalg
 
@@ -18,7 +21,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import check_fname, logger, verbose
+from .utils import check_fname, logger, verbose, _ensure_int
 from .externals.six import string_types
 
 
@@ -64,8 +67,8 @@ def _to_const(cf):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
-    elif not isinstance(cf, (Integral, np.int32)):
-        raise TypeError('cf must be str or int, not %s' % type(cf))
+    else:
+        cf = _ensure_int(cf, 'coordinate frame', 'a str or int')
     return int(cf)
 
 
@@ -178,7 +181,6 @@ def apply_trans(trans, pts, move=True):
     """
     if isinstance(trans, dict):
         trans = trans['trans']
-    trans = np.asarray(trans)
     pts = np.asarray(pts)
     if pts.size == 0:
         return pts.copy()
@@ -186,10 +188,8 @@ def apply_trans(trans, pts, move=True):
     # apply rotation & scale
     out_pts = np.dot(pts, trans[:3, :3].T)
     # apply translation
-    if move is True:
-        transl = trans[:3, 3]
-        if np.any(transl != 0):
-            out_pts += transl
+    if move:
+        out_pts += trans[:3, 3]
 
     return out_pts
 
@@ -368,13 +368,14 @@ def _ensure_trans(trans, fro='mri', to='head'):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = 'trans must go %s<->%s, provided' % (from_str, to_str)
-    if trans is None:
+    err_str = ('trans must be a Transform between %s<->%s, got'
+               % (from_str, to_str))
+    if not isinstance(trans, Transform):
         raise ValueError('%s None' % err_str)
     if set([trans['from'], trans['to']]) != set([from_const, to_const]):
-        raise ValueError('%s trans is %s->%s' % (err_str,
-                                                 _frame_to_str[trans['from']],
-                                                 _frame_to_str[trans['to']]))
+        raise ValueError('%s %s->%s' % (err_str,
+                                        _frame_to_str[trans['from']],
+                                        _frame_to_str[trans['to']]))
     if trans['from'] != from_const:
         trans = invert_transform(trans)
     return trans
@@ -537,6 +538,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
     res : dict
         Transformed source space.
     """
+    surf = deepcopy(surf) if copy else surf
     if isinstance(dest, string_types):
         if dest not in _str_to_frame:
             raise KeyError('dest must be one of %s, not "%s"'

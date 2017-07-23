@@ -351,6 +351,7 @@ def test_setup_source_space():
         src_new = setup_source_space('sample', spacing='oct6',
                                      subjects_dir=subjects_dir, add_dist=False)
         write_source_spaces(temp_name, src_new, overwrite=True)
+    assert_equal(src_new[0]['nuse'], 4098)
     _compare_source_spaces(src, src_new, mode='approx', nearest=False)
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx', nearest=False)
@@ -636,8 +637,7 @@ def test_morphed_source_space_return():
 
     # Compare to the original data
     stc_morph_morph = stc_morph.morph('fsaverage', stc_morph_return.vertices,
-                                      smooth=1,
-                                      subjects_dir=subjects_dir)
+                                      smooth=1, subjects_dir=subjects_dir)
     assert_equal(stc_morph_return.subject, stc_morph_morph.subject)
     for ii in range(2):
         assert_array_equal(stc_morph_return.vertices[ii],

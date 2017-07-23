@@ -1,4 +1,5 @@
 # Author: Jean-Remi King, <jeanremi.king@gmail.com>
+#         Marijn van Vliet, <w.m.vanvliet@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -9,6 +10,46 @@ from mne.utils import requires_sklearn_0_15
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
                                cross_val_multiscore)
 from mne.decoding.search_light import SlidingEstimator
+from mne.decoding import Scaler
+
+
+def _make_data(n_samples=1000, n_features=5, n_targets=3):
+    """Generate some testing data.
+
+    Parameters
+    ----------
+    n_samples : int
+        The number of samples.
+    n_features : int
+        The number of features.
+    n_targets : int
+        The number of targets.
+
+    Returns
+    -------
+    X : ndarray, shape (n_samples, n_features)
+        The measured data.
+    Y : ndarray, shape (n_samples, n_targets)
+        The latent variables generating the data.
+    A : ndarray, shape (n_features, n_targets)
+        The forward model, mapping the latent variables (=Y) to the measured
+        data (=X).
+    """
+
+    # Define Y latent factors
+    np.random.seed(0)
+    cov_Y = np.eye(n_targets) * 10 + np.random.rand(n_targets, n_targets)
+    mean_Y = np.random.rand(n_targets)
+    Y = np.random.multivariate_normal(mean_Y, cov_Y, size=n_samples)
+
+    # The Forward model
+    A = np.random.randn(n_features, n_targets)
+
+    X = Y.dot(A.T)
+    X += np.random.randn(n_samples, n_features)  # add noise
+    X += np.random.rand(n_features)  # Put an offset
+
+    return X, Y, A
 
 
 @requires_sklearn_0_15
@@ -19,7 +60,9 @@ def test_get_coef():
     from sklearn.base import TransformerMixin, BaseEstimator
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
-    from sklearn.linear_model import LinearRegression
+    from sklearn.linear_model import Ridge, LinearRegression
+
+    lm = LinearModel(Ridge())
 
     # Define a classifier, an invertible transformer and an non-invertible one.
 
@@ -38,11 +81,7 @@ def test_get_coef():
         def inverse_transform(self, X):
             return X
 
-    np.random.RandomState(0)
-    n_samples, n_features = 20, 3
-    y = (np.arange(n_samples) % 2) * 2 - 1
-    w = np.random.randn(n_features, 1)
-    X = w.dot(y[np.newaxis, :]).T + np.random.randn(n_samples, n_features)
+    X, y, A = _make_data(n_samples=2000, n_features=3, n_targets=1)
 
     # I. Test inverse function
 
@@ -71,7 +110,7 @@ def test_get_coef():
         assert_equal(invs, list())
 
     # II. Test get coef for simple estimator and pipelines
-    for clf in (LinearModel(), make_pipeline(StandardScaler(), LinearModel())):
+    for clf in (lm, make_pipeline(StandardScaler(), lm)):
         clf.fit(X, y)
         # Retrieve final linear model
         filters = get_coef(clf, 'filters_', False)
@@ -91,43 +130,58 @@ def test_get_coef():
     patterns_inv = get_coef(clf, 'patterns_', True)
     assert_true(patterns[0] != patterns_inv[0])
 
-    # Check patterns values
-    clf = make_pipeline(StandardScaler(), LinearModel(LinearRegression()))
-    clf.fit(X, y)
-    patterns = get_coef(clf, 'patterns_', True)
-    mean, std = X.mean(0), X.std(0)
-    X = (X - mean) / std
-    coef = np.linalg.pinv(X.T.dot(X)).dot(X.T.dot(y))
-    patterns_manual = np.cov(X.T).dot(coef)
-    assert_array_almost_equal(patterns, patterns_manual * std + mean)
-
-    # Check with search_light:
-    n_samples, n_features, n_times = 20, 3, 5
-    y = np.arange(n_samples) % 2
-    X = np.random.rand(n_samples, n_features, n_times)
-    clf = SlidingEstimator(make_pipeline(StandardScaler(), LinearModel()))
-    clf.fit(X, y)
-    for inverse in (True, False):
-        patterns = get_coef(clf, 'patterns_', inverse)
-        filters = get_coef(clf, 'filters_', inverse)
-        assert_array_equal(filters.shape, patterns.shape,
-                           [n_features, n_times])
+    # Check with search_light and combination of preprocessing ending with sl:
+    slider = SlidingEstimator(make_pipeline(StandardScaler(), lm))
+    X = np.transpose([X, -X], [1, 2, 0])  # invert X across 2 time samples
+    clfs = (make_pipeline(Scaler(None, scalings='mean'), slider), slider)
+    for clf in clfs:
+        clf.fit(X, y)
+        for inverse in (True, False):
+            patterns = get_coef(clf, 'patterns_', inverse)
+            filters = get_coef(clf, 'filters_', inverse)
+            assert_array_equal(filters.shape, patterns.shape,
+                               X.shape[1:])
+            # the two time samples get inverted patterns
+            assert_equal(patterns[0, 0], -patterns[0, 1])
     for t in [0, 1]:
         assert_array_equal(get_coef(clf.estimators_[t], 'filters_', False),
                            filters[:, t])
+
+    # Check patterns with more than 1 regressor
+    for n_features in [1, 5]:
+        for n_targets in [1, 3]:
+            X, Y, A = _make_data(n_samples=5000, n_features=5, n_targets=3)
+            lm = LinearModel(LinearRegression()).fit(X, Y)
+            assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
+            assert_array_equal(lm.filters_.shape, [3, 5])
+            assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
+            lm = LinearModel(Ridge(alpha=1)).fit(X, Y)
+            assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
 
 
 @requires_sklearn_0_15
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns.
     """
+    from sklearn.linear_model import LinearRegression
+    np.random.seed(42)
     clf = LinearModel()
-    X = np.random.rand(20, 3)
-    y = np.arange(20) % 2
+    n, n_features = 20, 3
+    X = np.random.rand(n, n_features)
+    y = np.arange(n) % 2
     clf.fit(X, y)
-    assert_equal(clf.filters_.shape, (3,))
-    assert_equal(clf.patterns_.shape, (3,))
-    assert_raises(ValueError, clf.fit, np.random.rand(20, 3, 2), y)
+    assert_equal(clf.filters_.shape, (n_features,))
+    assert_equal(clf.patterns_.shape, (n_features,))
+    assert_raises(ValueError, clf.fit, np.random.rand(n, n_features, 99), y)
+
+    # check multi-target fit
+    n_targets = 5
+    clf = LinearModel(LinearRegression())
+    Y = np.random.rand(n, n_targets)
+    clf.fit(X, Y)
+    assert_equal(clf.filters_.shape, (n_targets, n_features))
+    assert_equal(clf.patterns_.shape, (n_targets, n_features))
+    assert_raises(ValueError, clf.fit, X, np.random.rand(n, n_features, 99))
 
 
 @requires_sklearn_0_15

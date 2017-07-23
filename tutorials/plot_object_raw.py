@@ -32,7 +32,7 @@ from matplotlib import pyplot as plt
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG',
                     'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(data_path, preload=True)
-raw.set_eeg_reference()  # set EEG average reference
+raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 
 # Give the sample rate
 print('sample rate:', raw.info['sfreq'], 'Hz')

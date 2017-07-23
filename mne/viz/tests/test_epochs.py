@@ -71,6 +71,7 @@ def test_plot_epochs():
     """Test epoch plotting."""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
+    epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     epochs.info.normalize_proj()  # avoid warnings
     epochs.plot(scalings=None, title='Epochs')
     plt.close('all')

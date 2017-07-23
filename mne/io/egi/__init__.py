@@ -2,4 +2,4 @@
 
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 
-from .egi import read_raw_egi, _combine_triggers
+from .egi import read_raw_egi

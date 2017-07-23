@@ -31,9 +31,9 @@ class LinearModel(BaseEstimator):
 
     Attributes
     ----------
-    ``filters_`` : ndarray
+    ``filters_`` : ndarray, shape ([n_targets], n_features)
         If fit, the filters used to decompose the data.
-    ``patterns_`` : ndarray
+    ``patterns_`` : ndarray, shape ([n_targets], n_features)
         If fit, the patterns used to restore M/EEG signals.
 
     Notes
@@ -71,7 +71,7 @@ class LinearModel(BaseEstimator):
         ----------
         X : array, shape (n_samples, n_features)
             The training input samples to estimate the linear coefficients.
-        y : array, shape (n_samples,)
+        y : array, shape (n_samples, [n_targets])
             The target values.
 
         Returns
@@ -79,28 +79,36 @@ class LinearModel(BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        X = np.asarray(X)
+        X, y = np.asarray(X), np.asarray(y)
         if X.ndim != 2:
             raise ValueError('LinearModel only accepts 2-dimensional X, got '
                              '%s instead.' % (X.shape,))
+        if y.ndim > 2:
+            raise ValueError('LinearModel only accepts up to 2-dimensional y, '
+                             'got %s instead.' % (y.shape,))
 
         # fit the Model
         self.model.fit(X, y)
 
-        # computes the patterns
-        if (
-            not hasattr(self.model, 'coef_') or  # missing attribute
-            self.model.coef_.ndim > 2 or         # weird case
-            (self.model.coef_.size not in
-             self.model.coef_.shape)             # shape (n), (n, 1) or (1, n)
-        ):
+        # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
 
-            raise ValueError('model needs a unidimensional coef_ attribute to '
-                             'compute the patterns')
-        self.filters_ = np.squeeze(self.model.coef_)
-        self.patterns_ = np.cov(X.T).dot(self.filters_)
+        inv_Y = 1.
+        X = X - X.mean(0, keepdims=True)
+        if y.ndim == 2 and y.shape[1] != 1:
+            y = y - y.mean(0, keepdims=True)
+            inv_Y = np.linalg.pinv(np.cov(y.T))
+        self.patterns_ = np.cov(X.T).dot(self.filters_.T.dot(inv_Y)).T
 
         return self
+
+    @property
+    def filters_(self):
+        if not hasattr(self.model, 'coef_'):
+            raise ValueError('model does not have a `coef_` attribute.')
+        filters = self.model.coef_
+        if filters.ndim == 2 and filters.shape[0] == 1:
+            filters = filters[0]
+        return filters
 
     def transform(self, X):
         """Transform the data using the linear model.
@@ -325,34 +333,33 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
        96-110. doi:10.1016/j.neuroimage.2013.10.067.
     """
-    # If SlidingEstimator, loop across estimators
-    if hasattr(estimator, 'estimators_'):
-        coef = list()
-        for est in estimator.estimators_:
-            coef.append(get_coef(est, attr, inverse_transform))
-        return np.transpose(coef)
+    # Get the coefficients of the last estimator in case of nested pipeline
+    est = estimator
+    while hasattr(est, 'steps'):
+        est = est.steps[-1][1]
 
+    # If SlidingEstimator, loop across estimators
+    if hasattr(est, 'estimators_'):
+        coef = list()
+        for this_est in est.estimators_:
+            coef.append(get_coef(this_est, attr, inverse_transform))
+        coef = np.transpose(coef)
+    elif not hasattr(est, attr):
+        raise ValueError('This estimator does not have a %s '
+                         'attribute.' % attr)
     else:
-        # Get the coefficients of the last estimator in case of nested pipeline
-        est = estimator
-        while hasattr(est, 'steps'):
-            est = est.steps[-1][1]
-        if not hasattr(est, attr):
-            raise ValueError('This estimator does not have a %s '
-                             'attribute.' % attr)
         coef = getattr(est, attr)
 
-        # inverse pattern e.g. to get back physical units
-        if inverse_transform:
-            if not hasattr(estimator, 'steps'):
-                raise ValueError('inverse_transform can only be applied onto '
-                                 'pipeline estimators.')
-
-            # The inverse_transform parameter will call this method on any
-            # estimator contained in the pipeline, in reverse order.
-            for inverse_func in _get_inverse_funcs(estimator)[::-1]:
-                coef = inverse_func([coef])[0]
-        return coef
+    # inverse pattern e.g. to get back physical units
+    if inverse_transform:
+        if not hasattr(estimator, 'steps') and not hasattr(est, 'estimators_'):
+            raise ValueError('inverse_transform can only be applied onto '
+                             'pipeline estimators.')
+        # The inverse_transform parameter will call this method on any
+        # estimator contained in the pipeline, in reverse order.
+        for inverse_func in _get_inverse_funcs(estimator)[::-1]:
+            coef = inverse_func(np.array([coef]))[0]
+    return coef
 
 
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,

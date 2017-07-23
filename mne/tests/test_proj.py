@@ -209,7 +209,7 @@ def test_compute_proj_epochs():
     # XXX : test something
 
     # test parallelization
-    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2,
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=1,
                                 desc_prefix='foobar')
     assert_true(all('foobar' in x['desc'] for x in projs))
     projs = activate_proj(projs)
@@ -318,7 +318,7 @@ def test_has_eeg_average_ref_proj():
     assert_true(not _has_eeg_average_ref_proj([]))
 
     raw = read_raw_fif(raw_fname)
-    raw.set_eeg_reference()
+    raw.set_eeg_reference(projection=True)
     assert_true(_has_eeg_average_ref_proj(raw.info['projs']))
 
 
@@ -327,7 +327,7 @@ def test_needs_eeg_average_ref_proj():
     raw = read_raw_fif(raw_fname)
     assert_true(_needs_eeg_average_ref_proj(raw.info))
 
-    raw.set_eeg_reference()
+    raw.set_eeg_reference(projection=True)
     assert_true(not _needs_eeg_average_ref_proj(raw.info))
 
     # No EEG channels

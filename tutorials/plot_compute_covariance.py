@@ -20,7 +20,7 @@ raw_empty_room_fname = op.join(
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(raw_fname)
-raw.set_eeg_reference()
+raw.set_eeg_reference('average', projection=True)
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 ###############################################################################

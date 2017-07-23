@@ -152,7 +152,7 @@ html_theme_options = {
     'navbar_class': "navbar",
     'bootstrap_version': "3",  # default
     'navbar_links': [
-        ("Get started", "getting_started"),
+        ("Install", "getting_started"),
         ("Documentation", "documentation"),
         ("API", "python_reference"),
         ("Examples", "auto_examples/index"),
@@ -308,7 +308,7 @@ sphinx_gallery_conf = {
     'gallery_dirs': gallery_dirs,
     'find_mayavi_figures': find_mayavi_figures,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
-    'mod_example_dir': 'generated',
+    'backreferences_dir': 'generated',
     }
 
 numpydoc_class_members_toctree = False

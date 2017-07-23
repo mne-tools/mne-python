@@ -15,13 +15,14 @@ from scipy import linalg
 
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
-                      _needs_eeg_average_ref_proj, _check_projs)
+                      _needs_eeg_average_ref_proj, _check_projs,
+                      _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _picks_by_type, _pick_data_channels)
 
 from .io.constants import FIFF
-from .io.meas_info import read_bad_channels
+from .io.meas_info import read_bad_channels, _simplify_info
 from .io.proj import _read_proj, _write_proj
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
@@ -95,6 +96,8 @@ class Covariance(dict):
         List of channels' names.
     nfree : int
         Number of degrees of freedom i.e. number of time points used.
+    dim : int
+        The number of channels ``n_channels``.
 
     See Also
     --------
@@ -282,8 +285,7 @@ def make_ad_hoc_cov(info, verbose=None):
     -----
     .. versionadded:: 0.9.0
     """
-    info = pick_info(info, pick_types(info, meg=True, eeg=True, exclude=[]))
-    info._check_consistency()
+    picks = pick_types(info, meg=True, eeg=True, exclude=())
 
     # Standard deviations to be used
     grad_std = 5e-13
@@ -293,12 +295,13 @@ def make_ad_hoc_cov(info, verbose=None):
                 '(MEG grad : %6.1f fT/cm MEG mag : %6.1f fT EEG : %6.1f uV)'
                 % (1e13 * grad_std, 1e15 * mag_std, 1e6 * eeg_std))
 
-    data = np.zeros(len(info['ch_names']))
+    data = np.zeros(len(picks))
     for meg, eeg, val in zip(('grad', 'mag', False), (False, False, True),
                              (grad_std, mag_std, eeg_std)):
-        data[pick_types(info, meg=meg, eeg=eeg)] = val * val
-    return Covariance(data, info['ch_names'], info['bads'], info['projs'],
-                      nfree=0)
+        these_picks = pick_types(info, meg=meg, eeg=eeg)
+        data[np.searchsorted(picks, these_picks)] = val * val
+    ch_names = [info['ch_names'][pick] for pick in picks]
+    return Covariance(data, ch_names, info['bads'], info['projs'], nfree=0)
 
 
 def _check_n_samples(n_samples, n_chan):
@@ -1273,7 +1276,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     scalings = _handle_default('scalings_cov_rank', scalings)
 
     # Create the projection operator
-    proj, ncomp, _ = make_projector(info['projs'], ch_names)
+    proj, ncomp, _ = make_projector(info['projs'] + noise_cov['projs'],
+                                    ch_names)
     if ncomp > 0:
         logger.info('    Created an SSP operator (subspace dimension = %d)'
                     % ncomp)
@@ -1320,26 +1324,30 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
     if has_meg:
         C_meg = C[np.ix_(out_meg_idx, out_meg_idx)]
-        this_info = pick_info(info, info_pick_meg)
+        this_info = pick_info(_simplify_info(info), info_pick_meg, copy=False)
         if rank_meg is None:
             rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
         eig[out_meg_idx], eigvec[np.ix_(out_meg_idx, out_meg_idx)] = \
             _get_ch_whitener(C_meg, False, 'MEG', rank_meg)
     if has_eeg:
         C_eeg = C[np.ix_(out_eeg_idx, out_eeg_idx)]
-        this_info = pick_info(info, info_pick_eeg)
+        this_info = pick_info(_simplify_info(info), info_pick_eeg, copy=False)
         if rank_eeg is None:
             rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
         eig[out_eeg_idx], eigvec[np.ix_(out_eeg_idx, out_eeg_idx)], = \
             _get_ch_whitener(C_eeg, False, 'EEG', rank_eeg)
-        if _needs_eeg_average_ref_proj(info):
+        if _needs_eeg_average_ref_proj(info) and not \
+                _has_eeg_average_ref_proj(noise_cov['projs']):
             warn('No average EEG reference present in info["projs"], '
                  'covariance may be adversely affected. Consider recomputing '
                  'covariance using with an average eeg reference projector '
                  'added.')
-    noise_cov = noise_cov.copy()
-    noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
-                     diag=False, names=ch_names)
+    noise_cov = Covariance(
+        data=C, names=ch_names, bads=list(noise_cov['bads']),
+        projs=deepcopy(noise_cov['projs']),
+        nfree=noise_cov['nfree'], eig=eig, eigvec=eigvec,
+        method=noise_cov.get('method', None),
+        loglik=noise_cov.get('loglik', None))
     return noise_cov
 
 
@@ -1577,7 +1585,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 
-    noise_cov = noise_cov.copy()
+    # This function does not modify inplace
     noise_cov = prepare_noise_cov(noise_cov, info, ch_names,
                                   rank=rank, scalings=scalings)
     n_chan = len(ch_names)

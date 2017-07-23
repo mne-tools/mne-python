@@ -104,7 +104,7 @@ def test_average_movements():
     raw = read_raw_fif(fname_raw_move, allow_maxshield='yes')
     raw.info['bads'] += ['MEG2443']  # mark some bad MEG channel
     raw.crop(*crop).load_data()
-    raw.filter(None, 20)
+    raw.filter(None, 20, fir_design='firwin')
     events = make_fixed_length_events(raw, event_id)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, exclude=())
@@ -148,7 +148,7 @@ def test_average_movements():
     # compare to averaged movecomp version (should be fairly similar)
     raw_sss = read_raw_fif(fname_raw_movecomp_sss)
     raw_sss.crop(*crop).load_data()
-    raw_sss.filter(None, 20)
+    raw_sss.filter(None, 20, fir_design='firwin')
     picks_sss = pick_types(raw_sss.info, meg=True, eeg=True, stim=True,
                            ecg=True, eog=True, exclude=())
     assert_array_equal(picks, picks_sss)
@@ -794,7 +794,7 @@ def test_epochs_proj():
                             eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
-    epochs.set_eeg_reference().apply_proj()
+    epochs.set_eeg_reference(projection=True).apply_proj()
     assert_true(_has_eeg_average_ref_proj(epochs.info['projs']))
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
@@ -836,10 +836,10 @@ def test_epochs_proj():
     epochs.save(temp_fname)
     for preload in (True, False):
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
-        epochs.set_eeg_reference().apply_proj()
+        epochs.set_eeg_reference(projection=True).apply_proj()
         assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
-        epochs.set_eeg_reference()
+        epochs.set_eeg_reference(projection=True)
         assert_raises(AssertionError, assert_allclose,
                       epochs.get_data().mean(axis=1), 0., atol=1e-15)
         epochs.apply_proj()
@@ -1064,7 +1064,7 @@ def test_comparision_with_c():
     c_evoked = read_evokeds(evoked_nf_name, condition=0)
     epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=None,
                     preload=True, proj=False)
-    evoked = epochs.set_eeg_reference().apply_proj().average()
+    evoked = epochs.set_eeg_reference(projection=True).apply_proj().average()
     sel = pick_channels(c_evoked.ch_names, evoked.ch_names)
     evoked_data = evoked.data
     c_evoked_data = c_evoked.data[sel]
@@ -1411,15 +1411,15 @@ def test_access_by_name():
     raw, events, picks = _get_data()
 
     # Test various invalid inputs
-    assert_raises(ValueError, Epochs, raw, events, {1: 42, 2: 42}, tmin,
+    assert_raises(TypeError, Epochs, raw, events, {1: 42, 2: 42}, tmin,
                   tmax, picks=picks)
-    assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
+    assert_raises(TypeError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
                   tmin, tmax, picks=picks)
-    assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
+    assert_raises(TypeError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
                   tmin, tmax, picks=picks)
-    assert_raises(ValueError, Epochs, raw, events, 'foo', tmin, tmax,
+    assert_raises(TypeError, Epochs, raw, events, 'foo', tmin, tmax,
                   picks=picks)
-    assert_raises(ValueError, Epochs, raw, events, ['foo'], tmin, tmax,
+    assert_raises(TypeError, Epochs, raw, events, ['foo'], tmin, tmax,
                   picks=picks)
 
     # Test accessing non-existent events (assumes 12345678 does not exist)
@@ -1548,15 +1548,16 @@ def test_epochs_proj_mixin():
     for preload in [True, False]:
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         proj='delayed', preload=preload,
-                        reject=reject).set_eeg_reference()
+                        reject=reject).set_eeg_reference(projection=True)
         epochs_proj = Epochs(
             raw, events[:4], event_id, tmin, tmax, picks=picks,
             proj=True, preload=preload,
-            reject=reject).set_eeg_reference().apply_proj()
+            reject=reject).set_eeg_reference(projection=True).apply_proj()
 
-        epochs_noproj = Epochs(
-            raw, events[:4], event_id, tmin, tmax, picks=picks,
-            proj=False, preload=preload, reject=reject).set_eeg_reference()
+        epochs_noproj = Epochs(raw, events[:4], event_id, tmin, tmax,
+                               picks=picks, proj=False, preload=preload,
+                               reject=reject)
+        epochs_noproj.set_eeg_reference(projection=True)
 
         assert_allclose(epochs.copy().apply_proj().get_data(),
                         epochs_proj.get_data(), rtol=1e-10, atol=1e-25)
@@ -1581,7 +1582,8 @@ def test_epochs_proj_mixin():
 
     # test mixin against manual application
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=None, proj=False).set_eeg_reference()
+                    baseline=None,
+                    proj=False).set_eeg_reference(projection=True)
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])

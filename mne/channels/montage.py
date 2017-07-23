@@ -73,19 +73,20 @@ class Montage(object):
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=20, show_names=False, show=True):
+    def plot(self, scale_factor=20, show_names=False, kind='topomap',
+             show=True):
         return plot_montage(self, scale_factor=scale_factor,
-                            show_names=show_names, show=True)
+                            show_names=show_names, kind=kind, show=show)
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read a generic (built-in) montage.
 
-    Individualized (digitized) electrode positions should be
-    read in using :func:`read_dig_montage`.
+    Individualized (digitized) electrode positions should be read in using
+    :func:`read_dig_montage`.
 
-    In most cases, you should only need the `kind` parameter to load one of
-    the built-in montages (see Notes).
+    In most cases, you should only need to set the `kind` parameter to load one
+    of the built-in montages (see Notes).
 
     Parameters
     ----------
@@ -96,7 +97,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         '.eloc') or .bvef are supported.
     ch_names : list of str | None
         If not all electrodes defined in the montage are present in the EEG
-        data, use this parameter to select subset of electrode positions to
+        data, use this parameter to select a subset of electrode positions to
         load. If None (default), all defined electrode positions are returned.
 
         .. note:: ``ch_names`` are compared to channel names in the montage
@@ -111,10 +112,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         Unit of the input file. If not 'm' (default), coordinates will be
         rescaled to 'm'.
     transform : bool
-        If True, points will be transformed to Neuromag space.
-        The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
-        the montage file. Useful for points captured using Polhemus FastSCAN.
-        Default is False.
+        If True, points will be transformed to Neuromag space. The fidicuals,
+        'nasion', 'lpa', 'rpa' must be specified in the montage file. Useful
+        for points captured using Polhemus FastSCAN. Default is False.
 
     Returns
     -------
@@ -131,50 +131,53 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     -----
     Built-in montages are not scaled or transformed by default.
 
-    Montages can contain fiducial points in addition to electrode
-    locations, e.g. ``biosemi64`` contains 67 total channels.
+    Montages can contain fiducial points in addition to electrode channels,
+    e.g. ``biosemi64`` contains 67 locations. In the following table, the
+    number of channels and fiducials is given in parentheses in the description
+    column (e.g. 64+3 means 64 channels and 3 fiducials).
 
-    The valid ``kind`` arguments are:
+    Valid ``kind`` arguments are:
 
     ===================   =====================================================
-    Kind                  description
+    Kind                  Description
     ===================   =====================================================
     standard_1005         Electrodes are named and positioned according to the
-                          international 10-05 system.
+                          international 10-05 system (343+3 locations)
     standard_1020         Electrodes are named and positioned according to the
-                          international 10-20 system.
+                          international 10-20 system (94+3 locations)
     standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
-                          (A1, B2, F4, etc.)
+                          (A1, B2, F4, ...) (65+3 locations)
     standard_postfixed    Electrodes are named according to the international
                           10-20 system using postfixes for intermediate
-                          positions.
+                          positions (100+3 locations)
     standard_prefixed     Electrodes are named according to the international
                           10-20 system using prefixes for intermediate
-                          positions.
+                          positions (74+3 locations)
     standard_primed       Electrodes are named according to the international
                           10-20 system using prime marks (' and '') for
-                          intermediate positions.
+                          intermediate positions (100+3 locations)
 
-    biosemi16             BioSemi cap with 16 electrodes
-    biosemi32             BioSemi cap with 32 electrodes
-    biosemi64             BioSemi cap with 64 electrodes
-    biosemi128            BioSemi cap with 128 electrodes
-    biosemi160            BioSemi cap with 160 electrodes
-    biosemi256            BioSemi cap with 256 electrodes
+    biosemi16             BioSemi cap with 16 electrodes (16+3 locations)
+    biosemi32             BioSemi cap with 32 electrodes (32+3 locations)
+    biosemi64             BioSemi cap with 64 electrodes (64+3 locations)
+    biosemi128            BioSemi cap with 128 electrodes (128+3 locations)
+    biosemi160            BioSemi cap with 160 electrodes (160+3 locations)
+    biosemi256            BioSemi cap with 256 electrodes (256+3 locations)
 
-    easycap-M10           Brainproducts EasyCap with electrodes named
-                          according to the 10-05 system
-    easycap-M1            Brainproduct EasyCap with numbered electrodes
+    easycap-M1            EasyCap with 10-05 electrode names (74 locations)
+    easycap-M10           EasyCap with numbered electrodes (61 locations)
 
-    EGI_256               Geodesic Sensor Net with 256 channels
+    EGI_256               Geodesic Sensor Net (256 locations)
 
-    GSN-HydroCel-32       HydroCel Geodesic Sensor Net with 32 electrodes
-    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net with 64 electrodes
-    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net with 64 electrodes + Cz
-    GSN-HydroCel-128      HydroCel Geodesic Sensor Net with 128 electrodes
-    GSN-HydroCel-129      HydroCel Geodesic Sensor Net with 128 electrodes + Cz
-    GSN-HydroCel-256      HydroCel Geodesic Sensor Net with 256 electrodes
-    GSN-HydroCel-257      HydroCel Geodesic Sensor Net with 256 electrodes + Cz
+    GSN-HydroCel-32       HydroCel Geodesic Sensor Net and Cz (33+3 locations)
+    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net (64+3 locations)
+    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net and Cz (65+3 locations)
+    GSN-HydroCel-128      HydroCel Geodesic Sensor Net (128+3 locations)
+    GSN-HydroCel-129      HydroCel Geodesic Sensor Net and Cz (129+3 locations)
+    GSN-HydroCel-256      HydroCel Geodesic Sensor Net (256+3 locations)
+    GSN-HydroCel-257      HydroCel Geodesic Sensor Net and Cz (257+3 locations)
+
+    10-5_EGI129           462+3 locations
     ===================   =====================================================
 
     .. versionadded:: 0.9.0
@@ -247,16 +250,14 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.csd':
         # CSD toolbox
-        dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
-                 ('radius', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
-                 ('off_sph', 'f8')]
         try:  # newer version
-            table = np.loadtxt(fname, skip_header=2, dtype=dtype)
+            data = np.genfromtxt(fname, dtype='str', skip_header=2)
         except TypeError:
-            table = np.loadtxt(fname, skiprows=2, dtype=dtype)
-        ch_names_ = table['label']
-        az = np.deg2rad(table['theta'])
-        pol = np.deg2rad(90. - table['phi'])
+            data = np.genfromtxt(fname, dtype='str', skiprows=2)
+
+        ch_names_ = list(data[:, 0])
+        az = np.deg2rad(data[:, 1].astype(float))
+        pol = np.deg2rad(90. - data[:, 2].astype(float))
         pos = _sph_to_cart(np.array([np.ones(len(az)), az, pol]).T)
     elif ext == '.elp':
         # standard BESA spherical
@@ -433,9 +434,9 @@ class DigMontage(object):
         return s
 
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=20, show_names=False, show=True):
+    def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
         return plot_montage(self, scale_factor=scale_factor,
-                            show_names=show_names)
+                            show_names=show_names, kind=kind, show=show)
 
     def transform_to_head(self):
         """Transform digitizer points to Neuromag head coordinates."""

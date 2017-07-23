@@ -61,7 +61,7 @@ mne.viz.tight_layout()
 # When resampling epochs is unwanted or impossible, for example when the data
 # doesn't fit into memory or your analysis pipeline doesn't involve epochs at
 # all, the alternative approach is to resample the continuous data. This
-# can also be done on non-preloaded data.
+# can only be done on loaded or pre-loaded data.
 
 # Resample to 300 Hz
 raw_resampled = raw.copy().resample(300, npad='auto')

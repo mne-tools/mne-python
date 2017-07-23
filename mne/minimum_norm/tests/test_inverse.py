@@ -176,6 +176,7 @@ def test_warn_inverse_operator():
     bad_info['projs'] = list()
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     noise_cov = read_cov(fname_cov)
+    noise_cov['projs'].pop(-1)  # get rid of avg EEG ref proj
     with warnings.catch_warnings(record=True) as w:
         make_inverse_operator(bad_info, fwd_op, noise_cov)
     assert_equal(len(w), 1)

@@ -24,7 +24,8 @@ from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
-from ..io.pick import channel_type, channel_indices_by_type, pick_channels
+from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
+                       _pick_data_channels)
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
@@ -440,7 +441,7 @@ def _layout_figure(params):
     l_border = 100
     r_border = 10
     t_border = 35
-    b_border = 40
+    b_border = 45
 
     # only bother trying to reset layout if it's reasonable to do so
     if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
@@ -1232,18 +1233,20 @@ def _find_peaks(evoked, npeaks):
 def _process_times(inst, use_times, n_peaks=None, few=False):
     """Return a list of times for topomaps."""
     if isinstance(use_times, string_types):
-        if use_times == "peaks":
+        if use_times == 'interactive':
+            use_times, n_peaks = 'peaks', 1
+        if use_times == 'peaks':
             if n_peaks is None:
                 n_peaks = min(3 if few else 7, len(inst.times))
             use_times = _find_peaks(inst, n_peaks)
-        elif use_times == "auto":
+        elif use_times == 'auto':
             if n_peaks is None:
                 n_peaks = min(5 if few else 10, len(use_times))
             use_times = np.linspace(inst.times[0], inst.times[-1], n_peaks)
         else:
             raise ValueError("Got an unrecognized method for `times`. Only "
-                             "'peaks' and 'auto' are supported (or directly "
-                             "passing numbers).")
+                             "'peaks', 'auto' and 'interactive' are supported "
+                             "(or directly passing numbers).")
     elif np.isscalar(use_times):
         use_times = [use_times]
 
@@ -1469,6 +1472,9 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
 
         ax.azim = 90
         ax.elev = 0
+        ax.xaxis.set_label_text('x')
+        ax.yaxis.set_label_text('y')
+        ax.zaxis.set_label_text('z')
     else:
         ax.text(0, 0, '', zorder=1)
         # Equal aspect for 3D looks bad, so only use for 2D
@@ -1483,11 +1489,13 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
                                              'scale': (4.5, 4.5)})
         _draw_outlines(ax, outlines)
 
-        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=75,
+        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=25,
                          edgecolor=edgecolors, linewidth=2, clip_on=False)
 
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
+
+        ax.axis("off")  # remove border around figure
 
     connect_picker = True
     if show_names:
@@ -1500,7 +1508,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
             if pos.shape[1] == 3:
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
             else:
-                ax.text(this_pos[0], this_pos[1], ch_names[idx])
+                ax.text(this_pos[0] + 0.015, this_pos[1], ch_names[idx])
         connect_picker = select
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
@@ -2131,3 +2139,61 @@ def _set_ax_facecolor(ax, face_color):
         ax.set_facecolor(face_color)
     except AttributeError:
         ax.set_axis_bgcolor(face_color)
+
+
+def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
+                     ymax_bound=None, unit=None):
+    y_range = -np.subtract(*axes.get_ylim())
+
+    # style the spines/axes
+    axes.spines["top"].set_position('zero')
+    axes.spines["top"].set_smart_bounds(True)
+
+    axes.tick_params(direction='out')
+    axes.tick_params(right="off")
+
+    current_ymin = axes.get_ylim()[0]
+
+    # set x label
+    axes.set_xlabel('Time (s)')
+    axes.xaxis.get_label().set_verticalalignment('center')
+
+    # set y label and ylabel position
+    if unit is not None:
+        axes.set_ylabel(unit, rotation=0)
+        ylabel_height = (-(current_ymin / y_range)
+                         if 0 > current_ymin  # ... if we have negative values
+                         else (axes.get_yticks()[-1] / 2 / y_range))
+        axes.yaxis.set_label_coords(-0.05, 1 - ylabel_height
+                                    if invert_y else ylabel_height)
+
+    xticks = sorted(list(set([x for x in axes.get_xticks()] + vlines)))
+    axes.set_xticks(xticks)
+    axes.set_xticklabels(xticks)
+    x_extrema = [t for t in xticks if tmax >= t >= tmin]
+    axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    axes.spines["left"].set_zorder(0)
+
+    # finishing touches
+    if invert_y:
+        axes.invert_yaxis()
+    axes.spines['right'].set_color('none')
+    axes.set_xlim(tmin, tmax)
+
+
+def _handle_decim(info, decim, lowpass):
+    """Handle decim parameter for plotters."""
+    from ..evoked import _check_decim
+    from ..utils import _ensure_int
+    if isinstance(decim, string_types) and decim == 'auto':
+        lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
+        lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
+        info['lowpass'] = lp
+        decim = max(int(info['sfreq'] / (lp * 3) + 1e-6), 1)
+    decim = _ensure_int(decim, 'decim', must_be='an int or "auto"')
+    if decim <= 0:
+        raise ValueError('decim must be "auto" or a positive integer, got %s'
+                         % (decim,))
+    decim = _check_decim(info, decim, 0)[0]
+    data_picks = _pick_data_channels(info, exclude=())
+    return decim, data_picks

@@ -9,7 +9,6 @@ from __future__ import print_function
 import copy
 from functools import partial
 from warnings import warn
-from numbers import Integral
 
 import numpy as np
 
@@ -18,7 +17,7 @@ from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type)
 from ..io.proj import setup_proj
 from ..io.meas_info import create_info
-from ..utils import verbose, get_config
+from ..utils import verbose, get_config, _ensure_int
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
@@ -28,7 +27,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _helper_raw_resize, _select_bads, _onclick_help,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
-                    _change_channel_group, _plot_annotations, _setup_butterfly)
+                    _change_channel_group, _plot_annotations, _setup_butterfly,
+                    _handle_decim)
 from .evoked import _plot_lines
 
 
@@ -94,7 +94,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False):
+             butterfly=False, decim='auto'):
     """Plot raw data.
 
     Parameters
@@ -195,6 +195,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         modes are overrided with ``order`` keyword.
     butterfly : bool
         Whether to start in butterfly mode. Defaults to False.
+    decim : int | 'auto'
+        Amount to decimate the data during display for speed purposes.
+        You should only decimate if the data are sufficiently low-passed,
+        otherwise aliasing can occur. The 'auto' mode (default) uses
+        the decimation that results in a sampling rate least three times
+        larger than ``min(info['lowpass'], lowpass)`` (e.g., a 40 Hz lowpass
+        will result in at least a 120 Hz displayed sample rate).
 
     Returns
     -------
@@ -256,7 +263,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                         analog=False)
 
     # make a copy of info, remove projection (for now)
-    info = copy.deepcopy(raw.info)
+    info = raw.info.copy()
     projs = info['projs']
     info['projs'] = []
     n_times = raw.n_times
@@ -329,16 +336,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     if not isinstance(event_color, dict):
         event_color = {-1: event_color}
-    else:
-        event_color = copy.deepcopy(event_color)  # we might modify it
+    event_color = dict((_ensure_int(key, 'event_color key'), event_color[key])
+                       for key in event_color)
     for key in event_color:
-        if not isinstance(key, Integral):
-            raise TypeError('event_color key "%s" was a %s not an int'
-                            % (key, type(key)))
         if key <= 0 and key != -1:
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
                            % key)
-
+    decim, data_picks = _handle_decim(info, decim, lowpass)
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
     first_time = raw._first_time if show_first_samp else 0
@@ -349,7 +353,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   n_times=n_times, event_times=event_times, inds=inds,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False,
-                  group_by=group_by, orig_inds=inds.copy())
+                  group_by=group_by, orig_inds=inds.copy(), decim=decim,
+                  data_picks=data_picks)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -585,7 +590,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=None, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
                  average=None, show=True, n_jobs=1, line_alpha=None,
-                 spatial_colors=None, xscale='linear', verbose=None):
+                 spatial_colors=None, xscale='linear',
+                 reject_by_annotation=True, verbose=None):
     """Plot the power spectral density across channels.
 
     Parameters
@@ -643,6 +649,13 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Whether to use spatial colors. Only used when ``average=False``.
     xscale : str
         Can be 'linear' (default) or 'log'.
+    reject_by_annotation : bool
+        Whether to omit bad segments from the data while computing the
+        PSD. If True, annotated segments with a description that starts
+        with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
+        Evoked object. Defaults to True.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -679,7 +692,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         ax = ax_list[ii]
         psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, picks=picks,
                                 fmin=fmin, fmax=fmax, proj=proj, n_fft=n_fft,
-                                n_overlap=n_overlap, n_jobs=n_jobs)
+                                n_overlap=n_overlap, n_jobs=n_jobs,
+                                reject_by_annotation=reject_by_annotation)
 
         ylabel = _convert_psds(psds, dB, scalings_list[ii], units_list[ii],
                                [raw.ch_names[pi] for pi in picks])
@@ -893,9 +907,14 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             if isinstance(this_color, dict):
                 this_color = this_color[params['types'][inds[ch_ind]]]
 
+            if inds[ch_ind] in params['data_picks']:
+                this_decim = params['decim']
+            else:
+                this_decim = 1
+            this_t = params['times'][::this_decim] + params['first_time']
             # subtraction here gets correct orientation for flipped ylim
-            lines[ii].set_ydata(offset - this_data)
-            lines[ii].set_xdata(params['times'] + params['first_time'])
+            lines[ii].set_ydata(offset - this_data[..., ::this_decim])
+            lines[ii].set_xdata(this_t)
             lines[ii].set_color(this_color)
             vars(lines[ii])['ch_name'] = ch_name
             vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]

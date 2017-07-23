@@ -16,7 +16,6 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import os.path as op
 import warnings
-from numbers import Integral
 from functools import partial
 
 import numpy as np
@@ -28,17 +27,19 @@ from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
-from ..source_space import SourceSpaces
+from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
+
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
-                       complete_surface_info)
+                       complete_surface_info, mesh_edges)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     _import_mlab, SilenceStdout, has_nibabel, check_version)
+                     _import_mlab, SilenceStdout, has_nibabel, check_version,
+                     _ensure_int)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
-                    tight_layout)
+                    tight_layout, figure_nobar)
 
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
@@ -953,6 +954,196 @@ def _limits_to_control_points(clim, stc_data, colormap):
     return ctrl_pts, colormap
 
 
+def _handle_time(time_label, time_unit, times):
+    """Handle time label string and units."""
+    if time_label == 'auto':
+        if time_unit == 's':
+            time_label = 'time=%0.3fs'
+        elif time_unit == 'ms':
+            time_label = 'time=%0.1fms'
+    if time_unit == 's':
+        times = times
+    elif time_unit == 'ms':
+        times = 1e3 * times
+    else:
+        raise ValueError("time_unit needs to be 's' or 'ms', got %r" %
+                         (time_unit,))
+
+    return time_label, times
+
+
+def _key_pressed_slider(event, params):
+    """Handle key presses for time_viewer slider."""
+    step = 1
+    if event.key.startswith('ctrl'):
+        step = 5
+        event.key = event.key.split('+')[-1]
+    if event.key not in ['left', 'right']:
+        return
+    time_viewer = event.canvas.figure
+    value = time_viewer.slider.val
+    times = params['stc'].times
+    if params['time_unit'] == 'ms':
+        times = times * 1000.
+    time_idx = np.argmin(np.abs(times - value))
+    if event.key == 'left':
+        time_idx = np.max((0, time_idx - step))
+    elif event.key == 'right':
+        time_idx = np.min((len(times) - 1, time_idx + step))
+    this_time = times[time_idx]
+    time_viewer.slider.set_val(this_time)
+
+
+def _smooth_plot(this_time, params):
+    """Smooth source estimate data and plot with mpl."""
+    from ..source_estimate import _morph_buffer
+    from mpl_toolkits.mplot3d import art3d
+    ax = params['ax']
+    stc = params['stc']
+    ax.clear()
+    times = stc.times
+    scaler = 1000. if params['time_unit'] == 'ms' else 1.
+    if this_time is None:
+        time_idx = 0
+    else:
+        time_idx = np.argmin(np.abs(times - this_time / scaler))
+
+    if params['hemi_idx'] == 0:
+        data = stc.data[:len(stc.vertices[0]), time_idx:time_idx + 1]
+    else:
+        data = stc.data[len(stc.vertices[0]):, time_idx:time_idx + 1]
+
+    array_plot = _morph_buffer(data, params['vertices'], params['e'],
+                               params['smoothing_steps'], params['n_verts'],
+                               params['inuse'], params['maps'])
+
+    vmax = np.max(array_plot)
+    colors = array_plot / vmax
+
+    transp = 0.8
+    faces = params['faces']
+    greymap = params['greymap']
+    cmap = params['cmap']
+    polyc = ax.plot_trisurf(*params['coords'].T, triangles=faces,
+                            antialiased=False)
+    color_ave = np.mean(colors[faces], axis=1).flatten()
+    curv_ave = np.mean(params['curv'][faces], axis=1).flatten()
+    facecolors = art3d.PolyCollection.get_facecolors(polyc)
+
+    to_blend = color_ave > params['ctrl_pts'][0] / vmax
+    facecolors[to_blend, :3] = ((1 - transp) *
+                                greymap(curv_ave[to_blend])[:, :3] +
+                                transp * cmap(color_ave[to_blend])[:, :3])
+    facecolors[~to_blend, :3] = greymap(curv_ave[~to_blend])[:, :3]
+    ax.set_title(params['time_label'] % (times[time_idx] * scaler), color='w')
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.set_xlim(-80, 80)
+    ax.set_ylim(-80, 80)
+    ax.set_zlim(-80, 80)
+    ax.figure.canvas.draw()
+
+
+def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
+                  colormap='auto', time_label='auto', smoothing_steps=10,
+                  subjects_dir=None, views='lat', clim='auto', figure=None,
+                  initial_time=None, time_unit='s', background='black',
+                  spacing='oct6', time_viewer=False):
+    """Plot source estimate using mpl."""
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib import cm
+    from matplotlib.widgets import Slider
+    import nibabel as nib
+    from scipy import sparse, stats
+    from ..source_estimate import _get_subject_sphere_tris
+    if hemi not in ['lh', 'rh']:
+        raise ValueError("hemi must be 'lh' or 'rh' when using matplotlib. "
+                         "Got %s." % hemi)
+    kwargs = {'lat': {'elev': 5, 'azim': 0},
+              'med': {'elev': 5, 'azim': 180},
+              'fos': {'elev': 5, 'azim': 90},
+              'cau': {'elev': 5, 'azim': -90},
+              'dor': {'elev': 90, 'azim': 0},
+              'ven': {'elev': -90, 'azim': 0},
+              'fro': {'elev': 5, 'azim': 110},
+              'par': {'elev': 5, 'azim': -110}}
+    if views not in kwargs:
+        raise ValueError("views must be one of ['lat', 'med', 'fos', 'cau', "
+                         "'dor' 'ven', 'fro', 'par']. Got %s." % views)
+    ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
+    if colormap == 'auto':
+        colormap = mne_analyze_colormap(clim, format='matplotlib')
+
+    time_label, times = _handle_time(time_label, time_unit, stc.times)
+    fig = plt.figure(figsize=(6, 6)) if figure is None else figure
+    ax = Axes3D(fig)
+    hemi_idx = 0 if hemi == 'lh' else 1
+    surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
+    if spacing == 'all':
+        coords, faces = nib.freesurfer.read_geometry(surf)
+        inuse = slice(None)
+    else:
+        stype, sval, ico_surf, src_type_str = _check_spacing(spacing)
+        surf = _create_surf_spacing(surf, hemi, subject, stype, ico_surf,
+                                    subjects_dir)
+        inuse = surf['vertno']
+        faces = surf['use_tris']
+        coords = surf['rr'][inuse]
+        shape = faces.shape
+        faces = stats.rankdata(faces, 'dense').reshape(shape) - 1
+    del surf
+    vertices = stc.vertices[hemi_idx]
+    n_verts = len(vertices)
+    tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
+    e = mesh_edges(tris)
+    e.data[e.data == 2] = 1
+    n_vertices = e.shape[0]
+    maps = sparse.identity(n_vertices).tocsr()
+    e = e + sparse.eye(n_vertices, n_vertices)
+    cmap = cm.get_cmap(colormap)
+    greymap = cm.get_cmap('Greys')
+
+    curv = nib.freesurfer.read_morph_data(
+        op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
+    curv = np.clip(np.array(curv > 0, np.int), 0.2, 0.8)
+    params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
+                  hemi_idx=hemi_idx, vertices=vertices, e=e,
+                  smoothing_steps=smoothing_steps, n_verts=n_verts,
+                  inuse=inuse, maps=maps, cmap=cmap, curv=curv,
+                  ctrl_pts=ctrl_pts, greymap=greymap, time_label=time_label,
+                  time_unit=time_unit)
+    _smooth_plot(initial_time, params)
+
+    ax.view_init(**kwargs[views])
+
+    try:
+        ax.set_facecolor(background)
+    except AttributeError:
+        ax.set_axis_bgcolor(background)
+
+    if time_viewer:
+        time_viewer = figure_nobar(figsize=(4.5, .25))
+        fig.time_viewer = time_viewer
+        ax_time = plt.axes()
+        if initial_time is None:
+            initial_time = 0
+        slider = Slider(ax=ax_time, label='Time', valmin=times[0],
+                        valmax=times[-1], valinit=initial_time,
+                        valfmt=time_label)
+        time_viewer.slider = slider
+        callback_slider = partial(_smooth_plot, params=params)
+        slider.on_changed(callback_slider)
+        callback_key = partial(_key_pressed_slider, params=params)
+        time_viewer.canvas.mpl_connect('key_press_event', callback_key)
+
+        time_viewer.subplots_adjust(left=0.12, bottom=0.05, right=0.75,
+                                    top=0.95)
+    fig.subplots_adjust(left=0., bottom=0., right=1., top=1.)
+    plt.show()
+    return fig
+
+
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=None, alpha=1.0,
@@ -960,7 +1151,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
-                          time_unit='s'):
+                          time_unit='s', backend='auto', spacing='oct6'):
     """Plot SourceEstimates with PySurfer.
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -970,6 +1161,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     the returned Brain object. It is therefore recommended to set the
     SUBJECTS_DIR environment variable or always use the same value for
     subjects_dir (within the same Python session).
+
+    By default this function uses Mayavi to plot the source estimates. If
+    Mayavi is not installed, the plotting is done with matplotlib (much slower,
+    decimated source space by default).
 
     Parameters
     ----------
@@ -996,23 +1191,28 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         The amount of smoothing
     transparent : bool | None
         If True, use a linear transparency between fmin and fmid.
-        None will choose automatically based on colormap type.
+        None will choose automatically based on colormap type. Has no effect
+        with mpl backend.
     alpha : float
-        Alpha value to apply globally to the overlay.
+        Alpha value to apply globally to the overlay. Has no effect with mpl
+        backend.
     time_viewer : bool
         Display time viewer GUI.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    figure : instance of mayavi.core.scene.Scene | list | int | None
+    figure : instance of mayavi.core.scene.Scene | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the Mayavi
-        figure by it's id or create a new figure with the given id.
+        figure by it's id or create a new figure with the given id. If an
+        instance of matplotlib figure, mpl backend is used for plotting.
     views : str | list
-        View to use. See surfer.Brain().
+        View to use. See surfer.Brain(). Supported views: ['lat', 'med', 'fos',
+        'cau', 'dor' 'ven', 'fro', 'par']. Using multiple views is not
+        supported for mpl backend.
     colorbar : bool
-        If True, display colorbar on scene.
+        If True, display colorbar on scene. Not available on mpl backend.
     clim : str | dict
         Colorbar properties specification. If 'auto', set clim automatically
         based on data percentiles. If dict, should contain:
@@ -1029,38 +1229,77 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 construction to obtain negative control points.
 
     cortex : str or tuple
-        specifies how binarized curvature values are rendered.
-        either the name of a preset PySurfer cortex colorscheme (one of
-        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
-        name of mayavi colormap, or a tuple with values (colormap, min,
-        max, reverse) to fully specify the curvature colors.
+        Specifies how binarized curvature values are rendered.
+        Either the name of a preset PySurfer cortex colorscheme (one of
+        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the name of
+        mayavi colormap, or a tuple with values (colormap, min, max, reverse)
+        to fully specify the curvature colors. Has no effect with mpl backend.
     size : float or pair of floats
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
+        Has no effect with mpl backend.
     background : matplotlib color
         Color of the background of the display window.
     foreground : matplotlib color
-        Color of the foreground of the display window.
+        Color of the foreground of the display window. Has no effect with mpl
+        backend.
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
+    backend : 'auto' | 'mayavi' | 'matplotlib'
+        Which backend to use. If ``'auto'`` (default), tries to plot with
+        mayavi, but resorts to matplotlib if mayavi is not available.
 
+        .. versionadded:: 0.15.0
+
+    spacing : str
+        The spacing to use for the source space. Can be ``'ico#'`` for a
+        recursively subdivided icosahedron, ``'oct#'`` for a recursively
+        subdivided octahedron, or ``'all'`` for all points. In general, you can
+        speed up the plotting by selecting a sparser source space. Has no
+        effect with mayavi backend. Defaults  to 'oct6'.
+
+        .. versionadded:: 0.15.0
 
     Returns
     -------
-    brain : Brain
-        A instance of surfer.viz.Brain from PySurfer.
-    """
-    import surfer
-    from surfer import Brain, TimeViewer
-    import mayavi
-
+    figure : surfer.viz.Brain | matplotlib.figure.Figure
+        An instance of surfer.viz.Brain from PySurfer or matplotlib figure.
+    """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
+    if not isinstance(stc, SourceEstimate):
+        raise ValueError('stc has to be a surface source estimate')
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    subject = _check_subject(stc.subject, subject, True)
+    if backend not in ['auto', 'matplotlib', 'mayavi']:
+        raise ValueError("backend must be 'auto', 'mayavi' or 'matplotlib'. "
+                         "Got %s." % backend)
+    plot_mpl = backend == 'matplotlib'
+    if not plot_mpl:
+        try:
+            import mayavi
+        except ImportError:
+            if backend == 'auto':
+                warn('Mayavi not found. Resorting to matplotlib 3d.')
+                plot_mpl = True
+            else:  # 'mayavi'
+                raise
 
+    if plot_mpl:
+        return _plot_mpl_stc(stc, subject=subject, surface=surface, hemi=hemi,
+                             colormap=colormap, time_label=time_label,
+                             smoothing_steps=smoothing_steps,
+                             subjects_dir=subjects_dir, views=views, clim=clim,
+                             figure=figure, initial_time=initial_time,
+                             time_unit=time_unit, background=background,
+                             spacing=spacing, time_viewer=time_viewer)
+    import surfer
+    from surfer import Brain, TimeViewer
     surfer_version = LooseVersion(surfer.__version__)
     v06 = LooseVersion('0.6')
     if surfer_version < v06:
@@ -1069,25 +1308,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           "using:\n\n    $ pip install -U pysurfer" %
                           surfer.__version__)
 
-    if time_unit not in ('s', 'ms'):
-        raise ValueError("time_unit needs to be 's' or 'ms', got %r" %
-                         (time_unit,))
-
     if initial_time is not None and surfer_version > v06:
         kwargs = {'initial_time': initial_time}
         initial_time = None  # don't set it twice
     else:
         kwargs = {}
-
-    if time_label == 'auto':
-        if time_unit == 'ms':
-            time_label = 'time=%0.2f ms'
-        else:
-            def time_label(t):
-                return 'time=%0.2f ms' % (t * 1e3)
-
-    if not isinstance(stc, SourceEstimate):
-        raise ValueError('stc has to be a surface source estimate')
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
@@ -1104,6 +1329,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
             raise TypeError('figure must be a mayavi scene or list of scenes')
 
+    time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
     ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
 
@@ -1117,9 +1343,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         scale_pts = ctrl_pts
         transparent = True if transparent is None else transparent
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
-    subject = _check_subject(stc.subject, subject, True)
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
     else:
@@ -1132,11 +1355,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
                       views=views)
-
-    if time_unit == 's':
-        times = stc.times
-    else:  # time_unit == 'ms'
-        times = 1e3 * stc.times
 
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
@@ -1344,11 +1562,7 @@ def _toggle_mlab_render(fig, render):
 
 
 def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
-                          bgcolor=(1, 1, 1), opacity=0.3,
-                          brain_color=(1, 1, 0), fig_name=None,
-                          fig_size=(600, 600), mode='orthoview',
-                          scale_factor=0.1e-1, colors=None,
-                          coord_frame='mri', idx='gof',
+                          mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False,
                           show=True, verbose=None):
     """Plot dipole locations.
@@ -1371,24 +1585,10 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
         The default is None.
-    bgcolor : tuple of length 3
-        Background color in 3D.
-    opacity : float in [0, 1]
-        Opacity of brain mesh.
-    brain_color : tuple of length 3
-        Brain color.
-    fig_name : str
-        Mayavi figure name.
-    fig_size : tuple of length 2
-        Mayavi figure size.
     mode : str
         Currently only ``'orthoview'`` is supported.
 
         .. versionadded:: 0.14.0
-    scale_factor : float
-        The scaling applied to amplitudes for the plot.
-    colors: list of colors | None
-        Color to plot with each dipole. If None default colors are used.
     coord_frame : str
         Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
 
@@ -1601,9 +1801,8 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         idx = np.argmax(dipole.gof)
     elif idx == 'amplitude':
         idx = np.argmax(np.abs(dipole.amplitude))
-    elif not isinstance(idx, Integral):
-        raise ValueError("idx must be an int or one of ['gof', 'amplitude']. "
-                         "Got %s." % idx)
+    else:
+        idx = _ensure_int(idx, 'idx', 'an int or one of ["gof", "amplitude"]')
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)

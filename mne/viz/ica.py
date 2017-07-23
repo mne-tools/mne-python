@@ -797,7 +797,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=n_channels, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
-                  first_time=first_time)
+                  first_time=first_time, data_picks=[], decim=1)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -900,7 +900,9 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
               'orig_data': data,
               'bads': list(),
               'bad_color': (1., 0., 0.),
-              't_start': start * len(epochs.times)}
+              't_start': start * len(epochs.times),
+              'data_picks': [],
+              'decim': 1}
     params['label_click_fun'] = partial(_label_clicked, params=params)
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
