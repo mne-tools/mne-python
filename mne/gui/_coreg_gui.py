@@ -1234,7 +1234,9 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
     # object; hence we use a special InstanceEditor to set the parameter
     # programmatically:
     coreg_panel = VGroup(
-        Item('coreg_panel', style='custom', width=400 if scrollable else 1,
+        # width=410 is optimized for macOS to avoid a horizontal scroll-bar;
+        # might benefit from platform-specific values
+        Item('coreg_panel', style='custom', width=410 if scrollable else 1,
              editor=InstanceEditor(view=_make_view_coreg_panel(scrollable))),
         label="Coregistration", show_border=not scrollable, show_labels=False,
         enabled_when="fid_panel.locked")
