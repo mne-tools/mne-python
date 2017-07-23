@@ -86,7 +86,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     trans : str | None
         The transform file to use.
     scrollable : bool
-        Make the coregistration panel vertically scrollable (default True)?
+        Make the coregistration panel vertically scrollable (default True).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).

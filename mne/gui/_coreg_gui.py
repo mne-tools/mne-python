@@ -1176,7 +1176,7 @@ class NewMriDialog(HasPrivateTraits):
 
 
 def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
-               scrollable=False):
+               scrollable=True):
     """Create a view for the CoregFrame.
 
     Parameters
@@ -1190,7 +1190,7 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
     scene_width : int
         Specify a minimum width for the 3d scene (in pixels).
     scrollable : bool
-        Make the main panels vertically scrollable (default False)?
+        Make the coregistration panel vertically scrollable (default True).
 
     Returns
     -------
