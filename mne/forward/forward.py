@@ -562,8 +562,14 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
             fwd['source_nn'] = np.concatenate([_src['nn'][_src['vertno'], :]
                                               for _src in fwd['src']], axis=0)
             if fwd['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+                logger.info('    Standard source space normals were employed '
+                            'in the rotation to the local surface coordinates'
+                            '....')
                 fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
             else:
+                logger.info('    Average patch normals were employed in '
+                            'the rotation to the local surface coordinates..'
+                            '..')
                 pp = 0
                 for s in fwd['src']:
                     for p in range(s['nuse']):
@@ -638,6 +644,22 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
              'volume source spaces.')
         force_fixed = False
 
+    if surf_ori:
+        if use_cps is True:
+            if ('patch_inds' in fwd['src'][0] and
+                    fwd['src'][0]['patch_inds'] is not None):
+                use_ave_nn = True
+                logger.info('    Average patch normals will be employed in '
+                            'the rotation to the local surface coordinates..'
+                            '..')
+            else:
+                use_ave_nn = False
+                logger.info('    No patch info available. The standard source '
+                            'space normals will be employed in the rotation '
+                            'to the local surface coordinates....')
+        else:
+            use_ave_nn = False
+
     # We need to change these entries (only):
     # 1. source_nn
     # 2. sol['data']
@@ -646,7 +668,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 5. sol_grad['ncol']
     # 6. source_ori
 
-    if is_fixed_orient(fwd, orig=True) or (force_fixed and not use_cps):
+    if is_fixed_orient(fwd, orig=True) or (force_fixed and not use_ave_nn):
         # Fixed
         fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
                                            for s in fwd['src']], axis=0)
@@ -670,14 +692,6 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         #   Rotate the local source coordinate systems
         fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
         logger.info('    Converting to surface-based source orientations...')
-        if (use_cps and 'patch_inds' in fwd['src'][0] and
-                fwd['src'][0]['patch_inds'] is not None):
-            use_ave_nn = True
-            logger.info('    Average patch normals will be employed in the '
-                        'rotation to the local surface coordinates....')
-        else:
-            use_ave_nn = False
-
         #   Actually determine the source orientations
         pp = 0
         for s in fwd['src']:

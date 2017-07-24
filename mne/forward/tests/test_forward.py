@@ -43,7 +43,7 @@ def compare_forwards(f1, f2):
     assert_allclose(f1['sol']['data'], f2['sol']['data'])
     assert_equal(f1['sol']['ncol'], f2['sol']['ncol'])
     assert_equal(f1['sol']['ncol'], f1['sol']['data'].shape[1])
-    assert_allclose(f1['source_nn'], f2['source_nn'], atol=1e-6, rtol=0.0)
+    assert_allclose(f1['source_nn'], f2['source_nn'])
     if f1['sol_grad'] is not None:
         assert_true(f2['sol_grad'] is not None)
         assert_allclose(f1['sol_grad']['data'], f2['sol_grad']['data'])
@@ -140,7 +140,7 @@ def test_io_forward():
     assert_true('mri_head_t' in fwd_read)
     assert_array_almost_equal(fwd['sol']['data'], fwd_read['sol']['data'])
 
-    fwd = read_forward_solution(fname_meeg_grad)
+    fwd = read_forward_solution(fname_meeg)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                    use_cps=False)
     write_forward_solution(fname_temp, fwd, overwrite=True)
@@ -149,6 +149,23 @@ def test_io_forward():
     assert_true(isinstance(fwd_read, Forward))
     assert_true(is_fixed_orient(fwd_read))
     compare_forwards(fwd, fwd_read)
+    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                   use_cps=True)
+    leadfield = fwd['sol']['data']
+    assert_equal(leadfield.shape, (n_channels, 1494 / 3))
+    assert_equal(len(fwd['sol']['row_names']), n_channels)
+    assert_equal(len(fwd['info']['chs']), n_channels)
+    assert_true('dev_head_t' in fwd['info'])
+    assert_true('mri_head_t' in fwd)
+    assert_true(fwd['surf_ori'])
+    write_forward_solution(fname_temp, fwd, overwrite=True)
+    fwd_read = read_forward_solution(fname_temp)
+    assert_true(repr(fwd_read))
+    assert_true(isinstance(fwd_read, Forward))
+    assert_true(is_fixed_orient(fwd_read))
+    compare_forwards(fwd, fwd_read)
+
+    fwd = read_forward_solution(fname_meeg_grad)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                    use_cps=True)
     leadfield = fwd['sol']['data']
