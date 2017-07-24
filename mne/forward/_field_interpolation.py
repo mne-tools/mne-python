@@ -78,8 +78,10 @@ def _compute_mapping_matrix(fmd, info):
     # Eigenvalue truncation
     sumk = np.cumsum(sing)
     sumk /= sumk[-1]
-    fmd['nest'] = np.where(sumk > (1.0 - fmd['miss']))[0][0]
-    logger.info('    [Truncate at %d missing %g]' % (fmd['nest'], fmd['miss']))
+    fmd['nest'] = np.where(sumk > (1.0 - fmd['miss']))[0][0] + 1
+    logger.info('    Truncating at %d/%d components to omit less than %g '
+                '(%0.2g)' % (fmd['nest'], len(sing), fmd['miss'],
+                             1. - sumk[fmd['nest'] - 1]))
     sing = 1.0 / sing[:fmd['nest']]
 
     # Put the inverse together
