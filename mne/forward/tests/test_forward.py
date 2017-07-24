@@ -18,7 +18,7 @@ from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
                        run_tests_if_main, slow_test)
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
-                         Forward)
+                         Forward, is_fixed_orient)
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -80,8 +80,12 @@ def test_convert_forward():
     gc.collect()
     assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
+    assert_true(is_fixed_orient(fwd_fixed))
     fwd_fixed_io = read_forward_solution(fname_meeg_grad, surf_ori=False,
                                          force_fixed=True)
+    assert_true(repr(fwd_fixed_io))
+    assert_true(isinstance(fwd_fixed_io, Forward))
+    assert_true(is_fixed_orient(fwd_fixed_io))
     compare_forwards(fwd_fixed, fwd_fixed_io)
     del fwd_fixed_io
     gc.collect()
@@ -129,6 +133,12 @@ def test_io_forward():
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])
+    write_forward_solution(fname_temp, fwd, overwrite=True)
+    fwd_read = read_forward_solution(fname_temp)
+    assert_true(repr(fwd_read))
+    assert_true(isinstance(fwd_read, Forward))
+    assert_true(is_fixed_orient(fwd_read))
+    compare_forwards(fwd, fwd_read)
 
     # test warnings on bad filenames
     fwd = read_forward_solution(fname_meeg_grad)
