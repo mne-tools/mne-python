@@ -8,6 +8,7 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
+from ..io.constants import FIFF
 from ..io.pick import pick_channels
 from ..utils import logger, verbose
 from ..forward import convert_forward_solution
@@ -255,7 +256,8 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
     if not forward['surf_ori']:
         raise RuntimeError('Forward has to be surface oriented and '
                            'force_fixed=True.')
-    if not (forward['source_ori'] == 1):
+    if not ((forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or
+            (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI)):
         raise RuntimeError('Forward has to be surface oriented and '
                            'force_fixed=True.')
 

@@ -628,7 +628,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     fwd = fwd.copy() if copy else fwd
 
-    if force_fixed:
+    if force_fixed is True:
         surf_ori = True
 
     if any([src['type'] == 'vol' for src in fwd['src']]) and force_fixed:
