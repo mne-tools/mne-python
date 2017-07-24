@@ -301,6 +301,16 @@ def _subject_from_filter(filters):
     return filters['src'][0].get('subject_his_id', None)
 
 
+def _check_proj_match(info, filters):
+    """Check whether SSP projections in data and spatial filter match."""
+    proj_data, _, _ = make_projector(info['projs'],
+                                     filters['ch_names'])
+    if not np.array_equal(proj_data, filters['proj']):
+            raise ValueError('The SSP projections present in the data '
+                             'do not match the projections used when '
+                             'calculating the spatial filter.')
+
+
 def _apply_lcmv(data, filters, info, tmin, max_ori_out):
     """Apply LCMV spatial filter to data for source reconstruction."""
     if max_ori_out == 'abs':
@@ -327,13 +337,7 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
 
         if filters['is_ssp']:
             # check whether data and filter projs match
-            proj_data, _, _ = make_projector(info['projs'],
-                                             filters['ch_names'])
-            if not np.array_equal(proj_data, filters['proj']):
-                    raise ValueError('The SSP projections present in the data '
-                                     'do not match the projections used when '
-                                     'calculating the spatial filter.')
-
+            _check_proj_match(info, filters)
             # apply projection
             M = np.dot(filters['proj'], M)
 
@@ -454,7 +458,7 @@ def apply_lcmv(evoked, filters, max_ori_out='abs', verbose=None):
 
     See Also
     --------
-    apply_lcmv_filter_raw, apply_lcmv_filter_epochs
+    apply_lcmv_raw, apply_lcmv_epochs
     """
     _check_reference(evoked)
 
@@ -511,7 +515,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
 
     See Also
     --------
-    apply_lcmv_filter_raw, apply_lcmv_filter
+    apply_lcmv_raw, apply_lcmv
     """
     _check_reference(epochs)
 
@@ -569,7 +573,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='abs',
 
     See Also
     --------
-    apply_lcmv_filter_epochs, apply_lcmv_filter
+    apply_lcmv_epochs, apply_lcmv
     """
     _check_reference(raw)
 
@@ -646,7 +650,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 
     See Also
     --------
-    make_lcmv_filter, apply_lcmv_filter
+    make_lcmv, apply_lcmv
     lcmv_raw, lcmv_epochs
 
     Notes
@@ -744,7 +748,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     See Also
     --------
-    make_lcmv_filter, apply_lcmv_filter_epochs
+    make_lcmv, apply_lcmv_epochs
     lcmv_raw, lcmv
 
     Notes
@@ -844,7 +848,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     See Also
     --------
-    make_lcmv_filter, apply_lcmv_raw
+    make_lcmv, apply_lcmv_raw
     lcmv, lcmv_epochs
 
     Notes
