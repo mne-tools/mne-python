@@ -544,11 +544,11 @@ def transform_surface_to(surf, dest, trans, copy=False):
             raise KeyError('dest must be one of %s, not "%s"'
                            % (list(_str_to_frame.keys()), dest))
         dest = _str_to_frame[dest]  # convert to integer
-    if surf['coord_frame'] == [dest]:
+    if surf['coord_frame'] == dest:
         return surf
 
     trans = _ensure_trans(trans, int(surf['coord_frame']), dest)
-    surf['coord_frame'] = [dest]
+    surf['coord_frame'] = dest
     surf['rr'] = apply_trans(trans, surf['rr'])
     surf['nn'] = apply_trans(trans, surf['nn'], move=False)
     return surf

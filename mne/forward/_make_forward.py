@@ -467,7 +467,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     for s in src:
         transform_surface_to(s, 'head', mri_head_t)
     logger.info('Source spaces are now in %s coordinates.'
-                % _coord_frame_name(s['coord_frame'][0]))
+                % _coord_frame_name(s['coord_frame']))
 
     # Prepare the BEM model
     bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t)

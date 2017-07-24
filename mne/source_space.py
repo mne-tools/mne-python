@@ -706,7 +706,7 @@ def _read_one_source_space(fid, this, verbose=None):
     if tag is None:
         raise ValueError('Coordinate frame information not found')
 
-    res['coord_frame'] = tag.data
+    res['coord_frame'] = tag.data[0]
 
     #   Vertices, normals, and triangles
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_POINTS)
@@ -1368,7 +1368,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
         # Add missing fields
         s.update(dict(dist=None, dist_limit=None, nearest=None, type='surf',
                       nearest_dist=None, pinfo=None, patch_inds=None, id=s_id,
-                      coord_frame=np.array((FIFF.FIFFV_COORD_MRI,), np.int32)))
+                      coord_frame=FIFF.FIFFV_COORD_MRI))
         s['rr'] /= 1000.0
         del s['tri_area']
         del s['tri_cent']
