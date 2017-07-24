@@ -668,7 +668,6 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     elif surf_ori:  # Free, surf-oriented
         #   Rotate the local source coordinate systems
-        nuse_total = sum([s['nuse'] for s in fwd['src']])
         fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
         logger.info('    Converting to surface-based source orientations...')
         if (use_cps and 'patch_inds' in fwd['src'][0] and
@@ -902,11 +901,13 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 def is_fixed_orient(forward, orig=False):
     """Check if the forward operator is fixed orientation."""
     if orig:  # if we want to know about the original version
-        fixed_ori = ((forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or
-                     (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI))
+        fixed_ori = (
+            (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or
+            (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI))
     else:  # most of the time we want to know about the current version
-        fixed_ori = ((forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or
-                     (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI))
+        fixed_ori = (
+            (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or
+            (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI))
     return fixed_ori
 
 
