@@ -109,8 +109,6 @@ ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 eog_average = create_eog_epochs(raw, reject=dict(mag=5e-12, grad=4000e-13),
                                 picks=picks_meg).average()
 
-# We simplify things by setting the maximum number of components to reject
-n_max_eog = 1  # here we bet on finding the vertical EOG components
 eog_epochs = create_eog_epochs(raw, reject=reject)  # get single EOG trials
 eog_inds, scores = ica.find_bads_eog(eog_epochs)  # find via correlation
 
