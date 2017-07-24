@@ -214,12 +214,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # prepare the image - required for uniform vlims
     vmins, vmaxs, ylims = dict(), dict(), dict()
-    if vmin is None or vmax is None:
-        for group in groups:
-            epochs, ch_type = group[:2]
-            group.extend(_prepare_epochs_image_im_data(
-                    epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
-                    scalings[ch_type], ts_args))
+    for group in groups:
+        epochs, ch_type = group[:2]
+        group.extend(_prepare_epochs_image_im_data(
+                epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
+                scalings[ch_type], ts_args))
+        if vmin is None or vmax is None:  # equalize across groups
             this_vmin, this_vmax, this_ylim = group[-3:]
             if this_vmin < vmins.get(ch_type, 1):
                 vmins[ch_type] = this_vmin
