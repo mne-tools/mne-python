@@ -96,9 +96,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Must be of length three if colorbar is True (with the last list element
         being the colorbar axes) or two if colorbar is False. If both fig and
         axes are passed, an error is raised.
-        If `groupby` is a dict, this can also be a dict of lists of axes,
-        with the keys matching. In that case, the provided axes will be used
-        for the corresponding groups.
+        If `groupby` is a dict, this cannot be a list, but it can be a dict of
+        lists of axes, with the keys matching those of `groupby`. In that case,
+        the provided axes will be used for the corresponding groups.
         Defaults to None.
     overlay_times : array-like, shape (n_epochs,) | None
         If not None the parameter is interpreted as time instants in seconds
@@ -148,6 +148,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
 
+    # setting defaults
     if groupby is not None and combine is None:
         combine = 'gfp'
 
@@ -163,6 +164,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     else:
         picks = np.atleast_1d(picks)
 
+    # input checks
     if (combine is None and (fig is not None or axes is not None) and
             len(picks) > 1):
         raise ValueError('Only single pick can be drawn to a figure/axis; '
@@ -182,7 +184,17 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     if isinstance(axes, dict):
         show = False
+        if not isinstance(groupby, dict):
+            raise ValueError("If axes is a dict, groupby must be a dict, "
+                             "got " + str(type(groupby)))
+    else:
+        if axes is not None and isinstance(axes, dict):
+            raise ValueError("If groupby is a dict, axes must be a dict or "
+                             "None, got " + str(type(groupby)))
+    if isinstance(groupby, dict) and combine is None:
+        raise ValueError("If `groupby` is a dict, `combine` must not be None.")
 
+    # call helpers to prepare the plot
     # First, we collect groupings of picks and types in two lists
     # (all_picks, all_ch_types, names) -> groupby.
     # Then, we construct a list of the corresponding data, names and evokeds
@@ -233,10 +245,12 @@ def _adjust_lims(figs, lims, vmin, vmax):
     for fig in figs:
         fig.erpim_axes["evoked"].set_ylim(ylims)
     fig.erpim_axes["im"].properties()["clim"] = vlims
+    
+    return figs
 
 
 def _get_picks_and_types(picks, ch_types, groupby, combine):
-    """Packs picks and types into a list. Helper for plot_epochs_image."""
+    """Pack picks and types into a list. Helper for plot_epochs_image."""
     if groupby is None:
         if combine is not None:
             picks = [picks]
@@ -250,9 +264,6 @@ def _get_picks_and_types(picks, ch_types, groupby, combine):
                 all_ch_types.append(this_type)
             names = all_ch_types  # only differs for dict groupby
         elif isinstance(groupby, dict):
-            if combine is None:
-                msg = "If `groupby` is a dict, `combine` must not be None"
-                raise ValueError(msg)
             names = list(groupby.keys())
             all_picks = [groupby[name] for name in names]
             for name, picks_ in groupby.items():
@@ -277,7 +288,7 @@ def _get_picks_and_types(picks, ch_types, groupby, combine):
 
 
 def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
-    """Packs data and metadata into a list. Helper for plot_epochs_image."""
+    """Pack data and metadata into a list. Helper for plot_epochs_image."""
     to_plot_list = list()
     tmin = epochs.times[0]
 
