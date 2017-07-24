@@ -626,16 +626,17 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         else:
             use_cps = True
 
-    if (any([src['type'] == 'vol' for src in fwd['src']]) and
-            (surf_ori or force_fixed)):
-        raise ValueError('Forward operator was generated with sources from a '
-                         'volume source space. Conversion to fixed or '
-                         'surface-based orientation is not allowed.')
-
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed:
         surf_ori = True
+
+    if any([src['type'] == 'vol' for src in fwd['src']]) and force_fixed:
+        warn('Forward operator was generated with sources from a '
+             'volume source space. Conversion to fixed orientation is not '
+             'possible. Setting force_fixed to False. surf_ori is ignored for '
+             'volume source spaces.')
+        force_fixed = False
 
     # We need to change these entries (only):
     # 1. source_nn
@@ -668,7 +669,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     elif surf_ori:  # Free, surf-oriented
         #   Rotate the local source coordinate systems
         nuse_total = sum([s['nuse'] for s in fwd['src']])
-        fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
+        fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
         logger.info('    Converting to surface-based source orientations...')
         if (use_cps and 'patch_inds' in fwd['src'][0] and
                 fwd['src'][0]['patch_inds'] is not None):
@@ -681,20 +682,23 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         #   Actually determine the source orientations
         pp = 0
         for s in fwd['src']:
-            for p in range(s['nuse']):
-                #  Project out the surface normal and compute SVD
-                if use_ave_nn is True:
-                    nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
-                    nn = np.sum(nn, axis=0)[:, np.newaxis]
-                    nn /= linalg.norm(nn)
-                else:
-                    nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
-                U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
-                #  Make sure that ez is in the direction of nn
-                if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
-                    U *= -1.0
-                fwd['source_nn'][pp:pp + 3, :] = U.T
-                pp += 3
+            if s['type'] in ['surf', 'discrete']:
+                for p in range(s['nuse']):
+                    #  Project out the surface normal and compute SVD
+                    if use_ave_nn is True:
+                        nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
+                        nn = np.sum(nn, axis=0)[:, np.newaxis]
+                        nn /= linalg.norm(nn)
+                    else:
+                        nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
+                    U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
+                    #  Make sure that ez is in the direction of nn
+                    if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
+                        U *= -1.0
+                    fwd['source_nn'][pp:pp + 3, :] = U.T
+                    pp += 3
+            else:
+                pp += 3 * s['nuse']
 
         #   Rotate the solution components as well
         if force_fixed:
