@@ -137,6 +137,13 @@ def test_plot_epochs_image():
                   picks=[1], overlay_times=[0.1, 0.2])
     assert_raises(ValueError, epochs.plot_image,
                   picks=[1], order=[0, 1])
+    assert_raises(ValueError, epochs.plot_image, axes=dict(), groupby=list(),
+                  combine='mean')
+    assert_raises(ValueError, epochs.plot_image, axes=list(), groupby=dict(),
+                  combine='mean')
+    assert_raises(ValueError, epochs.plot_image, combine='error', picks=[1, 2])
+    assert_raises(ValueError, epochs.plot_image, units={"hi":1},
+                  scalings={"ho":1})
     epochs.load_data().pick_types(meg='mag')
     epochs.plot_image(groupby='type', combine='mean')
     with warnings.catch_warnings(record=True) as w:

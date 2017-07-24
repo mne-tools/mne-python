@@ -188,7 +188,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             raise ValueError("If axes is a dict, groupby must be a dict, "
                              "got " + str(type(groupby)))
     else:
-        if axes is not None and isinstance(axes, dict):
+        if axes is not None and isinstance(groupby, dict):
             raise ValueError("If groupby is a dict, axes must be a dict or "
                              "None, got " + str(type(groupby)))
     if isinstance(groupby, dict) and combine is None:
@@ -245,7 +245,7 @@ def _adjust_lims(figs, lims, vmin, vmax):
     for fig in figs:
         fig.erpim_axes["evoked"].set_ylim(ylims)
     fig.erpim_axes["im"].properties()["clim"] = vlims
-    
+
     return figs
 
 
