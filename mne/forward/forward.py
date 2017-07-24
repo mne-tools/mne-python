@@ -570,6 +570,10 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : Forward
         The modified forward solution.
     """
+    if any([src['type'] == 'vol' for src in fwd['src']]) and force_fixed:
+        raise ValueError('force_fixed=True is not allowed for volume '
+                         'source spaces.')
+
     fwd = fwd.copy() if copy else fwd
 
     # We need to change these entries (only):
@@ -580,9 +584,6 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 5. sol_grad['ncol']
     # 6. source_ori
     if is_fixed_orient(fwd, orig=True) or force_fixed:  # Fixed
-        if any([src['type'] == 'vol' for src in fwd['src']]):
-            raise ValueError('force_fixed=True is not allowed for volume '
-                             'source spaces.')
         nuse = 0
         fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
                                            for s in fwd['src']], axis=0)
