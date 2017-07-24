@@ -2467,7 +2467,7 @@ def _dipole_changed(event, params):
                  params['zooms'], params['show_all'], params['scatter_points'])
 
 
-def plot_glass_brain(stc, src, trans, subject, subjects_dir=None):
+def plot_glass_brain(stc, fwd, subject, subjects_dir=None):
     """Plot stc on glass brain.
 
     Parameters
@@ -2475,9 +2475,7 @@ def plot_glass_brain(stc, src, trans, subject, subjects_dir=None):
     stc : instance of SourceEstimate
         Data to plot.
     src : instance of SourceSpace
-        The source space
-    trans : dict
-        The mri to head trans.
+        The forward solution
     subject : str
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -2495,24 +2493,30 @@ def plot_glass_brain(stc, src, trans, subject, subjects_dir=None):
     from nilearn import plotting
     import matplotlib.pyplot as plt
 
-    s1, s2 = src
+    s1, s2 = fwd['src']
     s1['rr'][s1['vertno']]
     s2['rr'][s2['vertno']]
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
+    trans = fwd['mri_head_t']
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
+    if s1['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+        head_mri_t = _ensure_trans(trans, 'head', 'mri')
+    else:
+        head_mri_t = _ensure_trans(trans, 'mri', 'mri')
+
     vox2ras = t1.header.get_vox2ras_tkr()
+
     ras2vox = np.linalg.inv(vox2ras)
-    trans = _get_trans(trans, fro='mri', to='head')[0]
 
-    locs = np.concatenate([s1['rr'][s1['vertno']],
-                           s2['rr'][s2['vertno']]]) * 1000.
+    locs = np.concatenate([s1['rr'][s1['vertno']], s2['rr'][s2['vertno']]])
 
-    # ras2vox = np.dot(ras2vox, trans['trans'])
+    locs = apply_trans(head_mri_t, locs) * 1000.
     locs = apply_trans(ras2vox, locs)
 
     xdim, ydim, zdim = np.round(np.max(locs, axis=0))
+
     data = np.zeros((int(xdim), int(ydim), int(zdim)))
     time_idx = 10
 
@@ -2522,6 +2526,7 @@ def plot_glass_brain(stc, src, trans, subject, subjects_dir=None):
              int(loc[2]) - 1] = stc_data[idx]
 
     img = nib.Nifti1Image(data, vox2ras)
-    fig = plotting.plot_stat_map(img, t1_fname, vmax=1.5)
+
+    fig = plotting.plot_glass_brain(img, vmax=0.5)
     plt.show()
     return fig
