@@ -71,6 +71,8 @@ Changelog
 
     - Add :meth:`mne.channels.Montage.get_pos2d` to get the 2D positions of channels in a montage by `Clemens Brunner`_
 
+    - Add option for embedding SVG instead of PNG in HTML for :class:`mne.Report` by `Eric Larson`_
+
 BUG
 ~~~
 
@@ -119,8 +121,6 @@ BUG
     - Fix :func:`mne.io.read_raw_edf` to infer sampling rate correctly when reading EDF+ files where tal-channel has a higher sampling frequency by `Jaakko Leppakangas`_
 
     - Fix default value of ``kind='topomap'`` in :meth:`mne.channels.Montage.plot` to be consistent with :func:`mne.viz.plot_montage` by `Clemens Brunner`_
-
-    - Unify ``source_space`` ``coord_frame`` to always use integers by `Jaakko Leppakangas`_
 
 API
 ~~~
