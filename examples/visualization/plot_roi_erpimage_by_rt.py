@@ -65,7 +65,6 @@ for pick, channel in enumerate(epochs.ch_names):
     rois[roi] = rois.get(roi, list()) + [pick]
 
 # The actual plot
-epochs["square"].plot_image(
-    groupby=rois, combine='mean', order=order, sigma=1.,
-    overlay_times=rts / 1000.)
+epochs.plot_image(groupby=rois, order=order, overlay_times=rts / 1000.,
+                  sigma=1.5, combine='mean')  # could also be e.g. 'gfp'
  

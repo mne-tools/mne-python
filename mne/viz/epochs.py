@@ -198,7 +198,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # First, we collect groupings of picks and types in two lists
     # (all_picks, all_ch_types, names) -> groupby.
     # Then, we construct a list of the corresponding data, names and evokeds
-    # (to_plot_list) -> combine.
+    # (groups) -> combine.
     # Then, we loop over this list and plot using _plot_epochs_image.
 
     # groupby
@@ -208,44 +208,48 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # be length 1 if combine is None, else of length > 1.
 
     # combine/construct list for plotting
-    to_plot_list = _get_to_plot(
+    groups = _pick_and_combine(
         epochs, combine, all_picks, all_ch_types, scalings, names)
-    # each entry of to_plot_list is: (data, ch_type, evoked, name)
+    # each entry of groups is: (data, ch_type, evoked, name)
+
+    # prepare the image - required for uniform vlims
+    vmins, vmaxs, ylims = dict(), dict(), dict()
+    if vmin is None or vmax is None:
+        for group in groups:
+            epochs, ch_type = group[:2]
+            group.extend(_prepare_epochs_image_im_data(
+                    epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
+                    scalings[ch_type], ts_args))
+            this_vmin, this_vmax, this_ylim = group[-3:]
+            if this_vmin < vmins.get(ch_type, 1):
+                vmins[ch_type] = this_vmin
+            if this_vmax > vmaxs.get(ch_type, -1):
+                vmaxs[ch_type] = this_vmax
+            if evoked:
+                this_ymin, this_ymax = this_ylim.get(ch_type, (group[5].min(),
+                                                               group[5].max()))
+                if ch_type not in ylims:
+                    ylims[ch_type] = [this_ymin, this_ymax]
+                if this_ymin < ylims[ch_type][0]:
+                    ylims[ch_type][0] = this_vmin
+                if this_vmax > ylims[ch_type][1]:
+                    ylims[ch_type][0] = this_vmax
 
     # plot
     figs, lims = list(), list()
-    for ii, (epochs_, ch_type, ax_name, name) in enumerate(to_plot_list):
-        this_fig, these_lims = _plot_epochs_image(
-            epochs_, sigma=sigma, vmin=vmin, vmax=vmax, colorbar=colorbar,
-            order=order, show=show, unit=units[ch_type], ch_type=ch_type,
-            scaling=scalings[ch_type], cmap=cmap, fig=fig,
-            axes=axes[ax_name] if isinstance(axes, dict) else axes,
-            title=ax_name if isinstance(axes, dict) else name,
-            overlay_times=overlay_times, evoked=True, ts_args=ts_args)
+    for (epochs_, ch_type, ax_n, name, data, overlay, *_, ts_args) in groups:
+        vmin, vmax = vmins[ch_type], vmaxs[ch_type]
+        these_axes = axes[ax_name] if isinstance(axes, dict) else axes
+        axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar, evoked)
+        this_fig = _plot_epochs_image(
+            epochs_, data, vmin=vmins[ch_type], vmax=vmaxs[ch_type],
+            colorbar=colorbar, show=False, unit=units[ch_type], ch_type=ch_type,
+            cmap=cmap, axes_dict=axes_dict,
+            title=ax_n if isinstance(axes, dict) else name,
+            overlay_times=overlay, evoked=evoked, ts_args=ts_args)
         figs.append(this_fig)
-        lims.append(these_lims)
-    if (len(set(ch_types)) == 1) and (vmin is None or vmax is None):
-        # It would be more comfortable to split this by channel type
-        _adjust_lims(figs, lims, vmin, vmax)
 
-    return figs
-
-
-def _adjust_lims(figs, lims, vmin, vmax):
-    """Equalize limits across ER[P/F]images. Helper for plot_epochs_image."""
-    vlims = [min((lim["image"][0] for lim in lims)),
-             max((lim["image"][1] for lim in lims))]
-    if vmin is not None:
-        vlims[0] = vmin
-    if vmax is not None:
-        vlims[1] = vmax
-    if "evoked" in lims[0]:
-        ylims = (min((lim["evoked"][0] for lim in lims)),
-                 max((lim["evoked"][1] for lim in lims)))
-    for fig in figs:
-        fig.erpim_axes["evoked"].set_ylim(ylims)
-    fig.erpim_axes["im"].properties()["clim"] = vlims
-
+    plt_show(show)
     return figs
 
 
@@ -287,8 +291,9 @@ def _get_picks_and_types(picks, ch_types, groupby, combine):
     return all_picks, all_ch_types, names  # all_picks is a list of lists
 
 
-def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
-    """Pack data and metadata into a list. Helper for plot_epochs_image."""
+def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
+                      names):
+    """Pick and combine epochs image. Helper for plot_epochs_image."""
     to_plot_list = list()
     tmin = epochs.times[0]
 
@@ -297,7 +302,7 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
         for pick, ch_type, _ in zip(all_picks, all_ch_types, names):
             name = epochs.ch_names[pick]
             these_epochs = epochs.copy().pick_channels([name])
-            to_plot_list.append((these_epochs, ch_type, name, name))
+            to_plot_list.append([these_epochs, ch_type, name, name])
     else:
         from .. import EpochsArray, pick_info
         data = epochs.get_data()
@@ -337,49 +342,16 @@ def _get_to_plot(epochs, combine, all_picks, all_ch_types, scalings, names):
             these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
             d = these_epochs.get_data()  # Why is this necessary?
             d[:] = this_data  # Without this, the data is all-zeros!
-            to_plot_list.append((these_epochs, ch_type, name,
-                                 type2name.get(name, name) + combine_title))
+            to_plot_list.append([these_epochs, ch_type, name,
+                                 type2name.get(name, name) + combine_title])
 
-    return to_plot_list  # data, ch_type, name, axtitle
+    return to_plot_list  # epochs, ch_type, name, axtitle
 
 
-def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
-                       colorbar=False, order=None, show=False, unit=None,
-                       cmap=None, fig=None, axes=None, overlay_times=None,
-                       scaling=None, title=None, evoked=False,
-                       ts_args=dict()):
-    """Plot epochs image. Helper function for plot_epochs_image."""
+def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
+                                  sigma, vmin, vmax, scaling, ts_args):
+    """Preprocess epochs image (sort, filter). Helper for plot_epochs_image."""
     from scipy import ndimage
-    import matplotlib.pyplot as plt
-
-    lims = dict()
-
-    # prepare fig and axes
-    if axes is not None:
-        if fig is not None:
-            raise ValueError('Both figure and axes were passed, please'
-                             'only pass one of these.')
-        from .utils import _validate_if_list_of_axes
-        oblig_len = 3 - ((not colorbar) + (not evoked))
-        _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
-        ax1 = axes[0]
-        if evoked:
-            ax2 = axes[1]
-        # if axes were passed - we ignore fig param and get figure from axes
-        fig = ax1.get_figure()
-        if colorbar:
-            ax3 = axes[-1]
-    else:
-        if fig is None:
-            fig = plt.figure()
-        plt.figure(fig.number)
-        ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9 if colorbar else 10,
-                               rowspan=2 if evoked else 3)
-        if evoked:
-            ax2 = plt.subplot2grid((3, 10), (2, 0),
-                                   colspan=9 if colorbar else 10, rowspan=1)
-        if colorbar:
-            ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
 
     # data transforms - sorting, scaling, smoothing
     if ch_type == "grad" and len(epochs.ch_names) > 1:  # is this ever true?
@@ -405,7 +377,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
 
     if callable(order):
         order = order(epochs.times, data)
-    if order is not None and (len(order) != len(data)):
+    if order is not None and (len(order) != n_epochs):
         raise ValueError(("`order` must be None, callable or an array as long"
                           "as the data. Got " + str(type(order))))
 
@@ -428,61 +400,100 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
     if not scale_vmax:
         vmax /= scaling
 
+    ylim = dict()
+    if scale_vmin or scale_vmax:
+        ylim[ch_type] = (vmin * scaling, vmax * scaling)
+    ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0],
+                    title='', truncate_yaxis=False, show=False)
+    ts_args_.update(**ts_args)
+
+    return [data * scaling, overlay_times, vmin * scaling, vmax * scaling,
+            ts_args_]
+
+
+def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
+    """Prepare axes for image plotting. Helper for plot_epochs_image"""
+    import matplotlib.pyplot as plt
+    # prepare fig and axes
+    axes_dict = dict()
+    if axes is not None:
+        if fig is not None:
+            raise ValueError('Both figure and axes were passed, please'
+                             'only pass one of these.')
+        from .utils import _validate_if_list_of_axes
+        oblig_len = 3 - ((not colorbar) + (not evoked))
+        _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
+        axes_dict["image"] = axes[0]
+        if evoked:
+            axes_dict["evoked"] = axes[1]
+        # if axes were passed - we ignore fig param and get figure from axes
+        fig = axes_dict["image"].get_figure()
+        if colorbar:
+            axes_dict["colorbar"] = axes[-1]
+    else:
+        if fig is None:
+            fig = plt.figure()
+        plt.figure(fig.number)
+        axes_dict["image"] = plt.subplot2grid(
+                (3, 10), (0, 0), colspan=9 if colorbar else 10,
+                rowspan=2 if evoked else 3)
+        if evoked:
+            axes_dict["evoked"] = plt.subplot2grid(
+                    (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
+        if colorbar:
+            axes_dict["colorbar"] = plt.subplot2grid((3, 10), (0, 9),
+                                                     colspan=1, rowspan=3)
+    return axes_dict
+
+
+def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
+                       colorbar=False, show=False, unit=None, cmap=None,
+                       axes_dict=None, overlay_times=None, title=None,
+                       evoked=False, ts_args=None):
+    """Plot epochs image. Helper function for plot_epochs_image."""
     if cmap is None:
         cmap = "Reds" if data.min() >= 0 else 'RdBu_r'
 
     # Plot
     # draw the image
+    ax = axes_dict["image"]
+    fig = ax.get_figure()
     cmap = _setup_cmap(cmap)
-    im = ax1.imshow(
-        data * scaling, vmin=vmin * scaling, vmax=vmax * scaling,
-        cmap=cmap[0], aspect='auto', origin='lower', interpolation='nearest',
-        extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs])
+    n_epochs = len(data)
+    extent = [1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs]
+    im = ax.imshow(data, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
+                   origin='lower', interpolation='nearest', extent=extent)
     if overlay_times is not None:
-        ax1.plot(1e3 * overlay_times, 0.5 + np.arange(len(data)),
-                 'k', linewidth=2)
-    ax1.set_title(title)
-    ax1.set_ylabel('Epochs')
-    ax1.axis('auto')
-    ax1.axis('tight')
-    ax1.axvline(0, color='k', linewidth=1, linestyle='--')
+        ax.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
+                linewidth=2)
+    ax.set_title(title)
+    ax.set_ylabel('Epochs')
+    ax.axis('auto')
+    ax.axis('tight')
+    ax.axvline(0, color='k', linewidth=1, linestyle='--')
 
     # draw the evoked
     if evoked:
         from mne.viz import plot_compare_evokeds
-        if scale_vmin or scale_vmax:
-            ylim = {ch_type: (vmin * scaling, vmax * scaling)}
-        else:
-            ylim = dict()
-
-        ts_args_ = dict(colors={"cond": "black"}, axes=ax2, ylim=ylim,
-                        picks=[0], title='', truncate_yaxis=False,
-                        show=False)
-        ts_args_.update(**ts_args)
-        plot_compare_evokeds({"cond": list(epochs.iter_evoked())}, **ts_args_)
-        ax2.set_xlim(epochs.times[[0, -1]])
-        ylims = ax2.get_ylim()
-        ax1.set_xticks(())
+        plot_compare_evokeds(
+                {"cond": list(epochs.iter_evoked())}, axes=axes_dict["evoked"],
+                **ts_args)
+        axes_dict["evoked"].set_xlim(epochs.times[[0, -1]])
+        ax.set_xticks(())
 
     # draw the colorbar
     if colorbar:
-        cbar = plt.colorbar(im, cax=ax3)
+        import matplotlib.pyplot as plt
+        cbar = plt.colorbar(im, cax=axes_dict['colorbar'])
         cbar.ax.set_ylabel(unit + "\n\n", rotation=270)
         if cmap[1]:
-            ax1.CB = DraggableColorbar(cbar, im)
+            ax.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=fig)
-
-    # Make limits and axes easily accessible to the outside world
-    fig.erpim_axes = dict(im=im)
-    fig.erpim_axes["erpimage"] = ax1
-    lims = dict(image=im.properties()["clim"])  # there is no ax.set_vlims
-    if evoked:
-        fig.erpim_axes["evoked"] = ax2
-        lims["evoked"] = ylims
+    fig._axes_dict = axes_dict
 
     # finish
     plt_show(show)
-    return fig, lims
+    return fig
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
