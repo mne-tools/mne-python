@@ -1365,7 +1365,7 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000):
 
 
 def _ci(arr, ci=.95, method="bootstrap", n_bootstraps=2000):
-    """Calculate confidence interval. Aux function for plot_compare_evokeds"""
+    """Calculate confidence interval. Aux function for plot_compare_evokeds."""
     if method == "bootstrap":
         return _bootstrap_ci(arr, ci=ci, n_bootstraps=n_bootstraps)
     else:

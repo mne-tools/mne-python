@@ -16,9 +16,6 @@ sorted by response time.
 #
 # License: BSD (3-clause)
 
-import numpy as np
-import matplotlib.pyplot as plt
-
 import mne
 from mne.datasets import testing
 from mne import Epochs, io, pick_types

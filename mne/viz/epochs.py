@@ -232,7 +232,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
 
 def _adjust_lims(figs, lims, vmin, vmax):
-    "Equalize limits across ER[P/F]images. Helper for plot_epochs_image."""
+    """Equalize limits across ER[P/F]images. Helper for plot_epochs_image."""
     vlims = [min((lim["image"][0] for lim in lims)),
              max((lim["image"][1] for lim in lims))]
     if vmin is not None:
@@ -348,7 +348,7 @@ def _plot_epochs_image(epochs, ch_type, sigma=0., vmin=None, vmax=None,
                        cmap=None, fig=None, axes=None, overlay_times=None,
                        scaling=None, title=None, evoked=False,
                        ts_args=dict()):
-    """Plot epochs image. Helper function for plot_epochs_image"""
+    """Plot epochs image. Helper function for plot_epochs_image."""
     from scipy import ndimage
     import matplotlib.pyplot as plt
 
