@@ -439,7 +439,7 @@ def apply_lcmv(evoked, filters, max_ori_out='abs', verbose=None):
         Evoked data to invert
     filters : dict
         LCMV spatial filter (beamformer weights)
-        Filter weights returned from `make_lcmv_filter`.
+        Filter weights returned from `make_lcmv`.
     max_ori_out: 'abs' | 'signed'
         Specify in case of pick_ori='max-power'.
         If 'abs', the absolute value of the source space time series will be
@@ -492,7 +492,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
         Single trial epochs.
     filters : dict
         LCMV spatial filter (beamformer weights)
-        Filter weights returned from `make_lcmv_filter`.
+        Filter weights returned from `make_lcmv`.
     max_ori_out: 'abs' | 'signed'
         Specify in case of pick_ori='max-power'.
         If 'abs', the absolute value of the source space time series will be
@@ -550,7 +550,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='abs',
         Raw data to invert.
     filters : dict
         LCMV spatial filter (beamformer weights)
-        Filter weights returned from `make_lcmv_filter`.
+        Filter weights returned from `make_lcmv`.
     start : int
         Index of first time sample (index not time is seconds).
     stop : int
