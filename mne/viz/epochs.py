@@ -221,13 +221,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 scalings[ch_type], ts_args))
         if vmin is None or vmax is None:  # equalize across groups
             this_vmin, this_vmax, this_ylim = group[-3:]
-            if this_vmin < vmins.get(ch_type, 1):
+            if vmin is None and (this_vmin < vmins.get(ch_type, 1)):
                 vmins[ch_type] = this_vmin
-            if this_vmax > vmaxs.get(ch_type, -1):
+            if vmax is None and (this_vmax > vmaxs.get(ch_type, -1)):
                 vmaxs[ch_type] = this_vmax
             if evoked:
-                this_ymin, this_ymax = this_ylim.get(ch_type, (group[5].min(),
-                                                               group[5].max()))
+                this_ymin, this_ymax = this_ylim.get(ch_type, (group[4].min(),
+                                                               group[4].max()))
                 if ch_type not in ylims:
                     ylims[ch_type] = [this_ymin, this_ymax]
                 if this_ymin < ylims[ch_type][0]:
@@ -356,11 +356,7 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
     from scipy import ndimage
 
     # data transforms - sorting, scaling, smoothing
-    if ch_type == "grad" and len(epochs.ch_names) > 1:  # is this ever true?
-        data = epochs.get_data()
-        data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
-    else:
-        data = epochs.get_data()[:, 0, :]
+    data = epochs.get_data()[:, 0, :]
     n_epochs = len(data)
 
     if overlay_times is not None and len(overlay_times) != n_epochs:
