@@ -26,7 +26,7 @@ t0 = time.time()
 ###############################################################################
 # Do standard folder parsing (this can take a couple of minutes):
 
-report = Report(image_format='svg', subjects_dir=subjects_dir,
+report = Report(image_format='png', subjects_dir=subjects_dir,
                 info_fname=evoked_fname, subject='sample')
 report.parse_folder(meg_path)
 
@@ -44,7 +44,8 @@ for t in times:
     figs.append(evoked.plot_topomap(t, vmin=-300, vmax=300, res=100,
                                     show=False))
     plt.close(figs[-1])
-report.add_slider_to_section(figs, times, 'Evoked Response')
+report.add_slider_to_section(figs, times, 'Evoked Response',
+                             image_format='svg')
 
 # # to save report
 report.save('foobar.html', True)
