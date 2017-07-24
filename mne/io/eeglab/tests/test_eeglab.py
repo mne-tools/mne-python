@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import h5py
 import os.path as op
 import shutil
 
@@ -77,6 +76,7 @@ def test_io_set():
 
     # test new EEGLAB version event import
     eeg = _get_eeg_data(raw_fname_hdffile)
+    
     for event in eeg.event:  # old version allows integer events
         event.type = 1
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
