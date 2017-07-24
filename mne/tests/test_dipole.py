@@ -150,6 +150,7 @@ def test_dipole_fitting():
     # Compare to original points
     transform_surface_to(fwd['src'][0], 'head', fwd['mri_head_t'])
     transform_surface_to(fwd['src'][1], 'head', fwd['mri_head_t'])
+    assert_equal(fwd['src'][0]['coord_frame'], [5])
     src_rr = np.concatenate([s['rr'][v] for s, v in zip(fwd['src'], vertices)],
                             axis=0)
     src_nn = np.concatenate([s['nn'][v] for s, v in zip(fwd['src'], vertices)],
