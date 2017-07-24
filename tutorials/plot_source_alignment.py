@@ -77,6 +77,7 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample', src=src,
 # The function automatically searches for the correct surfaces from the
 # provided ``subjects_dir``. Otherwise it is possible to use the sphere
 # conductor model. It is passed through ``bem`` parameter.
+#
 # .. note:: ``bem`` also accepts bem solutions (:func:`mne.read_bem_solution`)
 #           or a list of bem surfaces (:func:`mne.read_bem_surfaces`).
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')

@@ -148,6 +148,8 @@ class SourceSpaces(list):
             else:  # list of str
                 for surf in skull:
                     surfaces.append(surf)
+        if head:
+            surfaces.append('head')
         info = create_info(0, 1000., 'eeg')
         return plot_alignment(
             info, trans=None, subject=self[0]['subject_his_id'],

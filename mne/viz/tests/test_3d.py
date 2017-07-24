@@ -168,7 +168,8 @@ def test_plot_alignment():
     assert_raises(ValueError, plot_alignment, info, trans_fname,
                   subject='fsaverage', subjects_dir=subjects_dir,
                   src=sample_src)
-    sample_src.plot(subjects_dir=subjects_dir)
+    sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
+                    brain='white')
     mlab.close(all=True)
     # no-head version
     plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
@@ -198,9 +199,11 @@ def test_plot_alignment():
                                         'sample-1280-1280-1280-bem-sol.fif'))
     bem_surfs = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
                                           'sample-1280-1280-1280-bem.fif'))
+    sample_src[0]['coord_frame'] = 4  # hack for coverage
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
-                   surfaces=['head', 'brain', 'inner_skull', 'outer_skull'])
+                   surfaces=['head', 'brain', 'inner_skull', 'outer_skull'],
+                   src=sample_src)
     plot_alignment(info, trans_fname, subject='sample', meg=[],
                    subjects_dir=subjects_dir, bem=bem_sol, eeg=True,
                    surfaces=['head', 'inflated', 'outer_skull'])
@@ -209,10 +212,14 @@ def test_plot_alignment():
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
-                   subjects_dir=subjects_dir, surfaces=['brain'], bem=sphere)
+                   coord_frame='mri', subjects_dir=subjects_dir,
+                   surfaces=['brain'], bem=sphere)
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
+    assert_raises(ValueError, plot_trans, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  source=['head'], bem=sphere)
 
 
 @testing.requires_testing_data
