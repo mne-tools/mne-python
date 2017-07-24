@@ -236,17 +236,19 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                     ylims[ch_type][0] = this_vmax
 
     # plot
-    figs, lims = list(), list()
-    for (epochs_, ch_type, ax_n, name, data, overlay, *_, ts_args) in groups:
-        vmin, vmax = vmins[ch_type], vmaxs[ch_type]
+    figs = list()
+    for (epochs_, ch_type, ax_name, name, data, overlay_times, vmin, vmax,
+         ts_args) in groups:
+        vmin, vmax = vmins.get(ch_type, vmin), vmaxs.get(ch_type, vmax)
         these_axes = axes[ax_name] if isinstance(axes, dict) else axes
-        axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar, evoked)
+        axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar,
+                                               evoked)
+        title = ax_name if isinstance(axes, dict) else name
         this_fig = _plot_epochs_image(
-            epochs_, data, vmin=vmins[ch_type], vmax=vmaxs[ch_type],
-            colorbar=colorbar, show=False, unit=units[ch_type], ch_type=ch_type,
-            cmap=cmap, axes_dict=axes_dict,
-            title=ax_n if isinstance(axes, dict) else name,
-            overlay_times=overlay, evoked=evoked, ts_args=ts_args)
+            epochs_, data, vmin=vmin, vmax=vmax, colorbar=colorbar, show=False,
+            unit=units[ch_type], ch_type=ch_type, cmap=cmap,
+            axes_dict=axes_dict, title=title, overlay_times=overlay_times,
+            evoked=evoked, ts_args=ts_args)
         figs.append(this_fig)
 
     plt_show(show)
@@ -404,7 +406,8 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
     if scale_vmin or scale_vmax:
         ylim[ch_type] = (vmin * scaling, vmax * scaling)
     ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0],
-                    title='', truncate_yaxis=False, show=False)
+                    title='', truncate_yaxis=False, truncate_xaxis=False,
+                    show=False)
     ts_args_.update(**ts_args)
 
     return [data * scaling, overlay_times, vmin * scaling, vmax * scaling,

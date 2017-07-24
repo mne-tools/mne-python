@@ -9,8 +9,8 @@ potential / field (ERP/ERF) image.
 The EEGLAB example file is read in and response times are calculated.
 ROIs are determined by the channel types (in 10/20 channel notation,
 even channels are right, odd are left, and 'z' are central). The
-median within each channel is calculated, and the trials are plotted,
-sorted by response time.
+median and the Global Field Power within each channel group is calculated,
+and the trials are plotted, sorted by response time.
 """
 # Authors: Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
@@ -64,7 +64,9 @@ for pick, channel in enumerate(epochs.ch_names):
            ("Left" if int(last_char) % 2 else "Right"))
     rois[roi] = rois.get(roi, list()) + [pick]
 
-# The actual plot
-epochs.plot_image(groupby=rois, order=order, overlay_times=rts / 1000.,
-                  sigma=1.5, combine='mean')  # could also be e.g. 'gfp'
+# The actual plots
+for combine_measures in ('gfp', 'median'):
+    epochs.plot_image(groupby=rois, order=order, overlay_times=rts / 1000.,
+                      vmin=lambda x: x.min(), sigma=1.5,
+                      combine=combine_measures)
  
