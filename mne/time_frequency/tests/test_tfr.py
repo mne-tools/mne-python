@@ -1,5 +1,7 @@
 import numpy as np
 import os.path as op
+import warnings
+
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
@@ -210,6 +212,11 @@ def test_time_frequency():
     assert_raises(TypeError, tfr_morlet, epochs, freqs=freqs,
                   n_cycles=n_cycles, use_fft=True, return_itc=True,
                   decim='decim')
+
+    # Test warning if wavelet is longer than signal
+    with warnings.catch_warnings(record=True) as w:
+        cwt(data[0, :, :Ws[0].size - 1], Ws, use_fft=False, mode='same')
+    assert_equal(len(w), 1)
 
 
 def test_dpsswavelet():
