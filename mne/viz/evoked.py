@@ -1413,7 +1413,7 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
-                         truncate_yaxis=True, ylim=dict(), invert_y=False,
+                         truncate_yaxis=False, ylim=dict(), invert_y=False,
                          axes=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
@@ -1582,7 +1582,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     scaling = _handle_default("scalings")[ch_type]
     unit = _handle_default("units")[ch_type]
 
-    if ch_type == 'grad' and gfp is not True and len(picks) > 1:  # deal with grad pairs
+    if ch_type == 'grad' and gfp is not True:  # deal with grad pairs
         from ..channels.layout import _merge_grad_data, _pair_grad_sensors
         picked_chans = list()
         pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
@@ -1594,7 +1594,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         picks = list(sorted(set(picked_chans)))
         ch_names = [example.ch_names[pick] for pick in picks]
 
-    if ymin is None and (gfp is True or (ch_type == 'grad' and len(picks) > 1)):
+    if ymin is None and (gfp is True or ch_type == 'grad'):
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
     # deal with dict/list of lists and the CI
@@ -1731,7 +1731,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     fraction = 2 if axes.get_ylim()[0] >= 0 else 3
 
-    if truncate_yaxis and ymin is None:  # and not (ymin > 0):
+    if truncate_yaxis is True:
         _, ymax_bound = _truncate_yaxis(
             axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
             any_positive, any_negative)
