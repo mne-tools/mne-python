@@ -280,8 +280,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         _plot_ica_topomap(ica, pick, show=False, axes=axes[0], **topomap_args)
 
         # image and erp
-        plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3],
-                          combine=None,
+        plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3], combine=None,
                           colorbar=False, show=False, **image_args)
 
         # spectrum
@@ -307,6 +306,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         # erp
         set_title_and_labels(axes[2], [], 'time', 'AU\n')
         axes[2].spines["right"].set_color('k')
+        axes[2].set_xlim(epochs_src.times[[0, -1]])
         # remove half of yticks if more than 5
         yt = axes[2].get_yticks()
         if len(yt) > 5:
