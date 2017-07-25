@@ -25,7 +25,8 @@ from ..io.meas_info import (_make_dig_points, _read_dig_points, _read_dig_fif,
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
-from ..utils import _check_fname, warn, copy_function_doc_to_method_doc
+from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
+                     _clean_names)
 
 from ..externals.six import string_types
 from ..externals.six.moves import map
@@ -793,6 +794,9 @@ def _set_montage(info, montage, update_ch_names=False):
         else:
             montage_ch_names = montage.ch_names
             info_ch_names = info['ch_names']
+        info_ch_names = _clean_names(info_ch_names, remove_whitespace=True)
+        montage_ch_names = _clean_names(montage_ch_names,
+                                        remove_whitespace=True)
 
         for pos, ch_name in zip(montage.pos, montage_ch_names):
             if ch_name not in info_ch_names:
