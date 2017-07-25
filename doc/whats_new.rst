@@ -118,6 +118,8 @@ BUG
 
     - Fix default value of ``kind='topomap'`` in :meth:`mne.channels.Montage.plot` to be consistent with :func:`mne.viz.plot_montage` by `Clemens Brunner`_
 
+    - Unify ``source_space`` ``coord_frame`` to always use integers by `Jaakko Leppakangas`_
+
 API
 ~~~
 
