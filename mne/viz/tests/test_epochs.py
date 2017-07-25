@@ -146,6 +146,9 @@ def test_plot_epochs_image():
                   scalings={"ho": 1})
     epochs.load_data().pick_types(meg='mag')
     epochs.plot_image(groupby='type', combine='mean')
+    epochs.plot_image(groupby={"1": [1, 2], "2": [1, 2]}, combine='mean') 
+    epochs.plot_image(vmin=lambda x: x.min())
+    assert_raises(ValueError, epochs.plot_image, axes=1, fig=2)
     with warnings.catch_warnings(record=True) as w:
         epochs.plot_image(overlay_times=[1.1], combine="gfp")
         assert_raises(ValueError, epochs.plot_image, combine='error')
