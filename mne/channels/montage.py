@@ -31,6 +31,8 @@ from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
 from ..externals.six import string_types
 from ..externals.six.moves import map
 
+from .layout import _pol_to_cart, _cart_to_sph
+
 
 class Montage(object):
     """Montage for standard EEG electrode locations.
@@ -72,6 +74,10 @@ class Montage(object):
         s = ('<Montage | %s - %d channels: %s ...>'
              % (self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])))
         return s
+
+    def get_pos2d(self):
+        """Return positions converted to 2D."""
+        return _pol_to_cart(_cart_to_sph(self.pos)[:, 1:][:, ::-1])
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=False, kind='topomap',

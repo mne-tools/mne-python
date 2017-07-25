@@ -266,6 +266,21 @@ def test_montage():
         _set_montage(info, montage)
         assert_true(len(w) == 1)
 
+    # test get_pos2d method
+    montage = read_montage("standard_1020")
+    c3 = montage.get_pos2d()[montage.ch_names.index("C3")]
+    c4 = montage.get_pos2d()[montage.ch_names.index("C4")]
+    fz = montage.get_pos2d()[montage.ch_names.index("Fz")]
+    oz = montage.get_pos2d()[montage.ch_names.index("Oz")]
+    f1 = montage.get_pos2d()[montage.ch_names.index("F1")]
+    assert_true(c3[0] < 0)  # left hemisphere
+    assert_true(c4[0] > 0)  # right hemisphere
+    assert_true(fz[1] > 0)  # frontal
+    assert_true(oz[1] < 0)  # occipital
+    assert_allclose(fz[0], 0, atol=1e-2)  # midline
+    assert_allclose(oz[0], 0, atol=1e-2)  # midline
+    assert_true(f1[0] < 0 and f1[1] > 0)  # left frontal
+
 
 @testing.requires_testing_data
 def test_read_locs():
