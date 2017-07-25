@@ -1758,7 +1758,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
             any_positive, any_negative)
     else:
-        if ymin is not None and ymin > 0:
+        if truncate_yaxis is True and ymin is not None and ymin > 0:
             warn("ymin is all-positive, not truncating yaxis")
         ymax_bound = axes.get_ylim()[-1]
 

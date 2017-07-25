@@ -48,9 +48,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         the epoch axis to apply in the image. If 0., no smoothing is applied.
         Defaults to 0.
     vmin : None | float | callable
-        The min value in the image (and the ER[P/F]).
-        If vmin is None and only one channel type is plotted, the limit is
-        equalized across all returned plots.
+        The min value in the image (and the ER[P/F]). The unit is uV for
+        EEG channels, fT for magnetometers and fT/cm for gradiometers.
+        If vmin is None and multiple plots are returned, the limit is
+        equalized within channel types.
         Hint: to specify the lower limit of the data, use
 
             `vmin=lambda data: data.min()`
@@ -58,8 +59,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     vmax : None | float | callable
         The max value in the image (and the ER[P/F]). The unit is uV for
         EEG channels, fT for magnetometers and fT/cm for gradiometers.
-        If vmax is None and only one channel type is plotted, the limit is
-        equalized across all returned plots.
+        If vmin is None and multiple plots are returned, the limit is
+        equalized within channel types.
     colorbar : bool
         Display or not a colorbar.
     order : None | array of int | callable
@@ -110,28 +111,29 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         channels via the indicated method. If str, must be one of "mean",
         "median", "std" or "gfp", in which case the mean, the median, the
         standard deviation or the GFP over channels are plotted.
+        array (n_epochs, n_times).
+        If callable, it must accept one positional input, the data
+        in the format (n_epochs, n_channels, n_times). It must return an
         array (n_epochs, n_times). For example:
 
             `combine = lambda data: np.median(data, 1)`
 
-        If callable, it must accept one positional input, the data
-        in the format (n_epochs, n_channels, n_times). It must return an
-        array (n_epochs, n_times).
         Defaults to None if picks are given, otherwise 'gfp'.
 
     groupby : None | str | dict
-        If not None, combine must not be None. In this case, combining happens
-        over channel groups defined by this parameter.
+        If not None, combining happens over channel groups defined by this
+        parameter.
         If str, must be "type", in which case one figure per channel type is
         returned (combining within channel types).
         If a dict, the values must be picks and one figure will be returned
-        for each entry, aggregating over the corresponding pick groups. This
-        is useful for e.g. ROIs. Each entry must contain only one channel type.
-        For example:
+        for each entry, aggregating over the corresponding pick groups; keys
+        will become plot titles. This is useful for e.g. ROIs. Each entry must
+        contain only one channel type. For example:
 
            `groupby=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])`
 
-        Defaults to None if picks are given, otherwise 'type'.
+        If not None, combine must not be None. Defaults to None if picks are
+        given, otherwise 'type'.
 
     evoked : Bool
         Draw the ER[P/F] below the image or not.
@@ -243,6 +245,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         these_axes = axes[ax_name] if isinstance(axes, dict) else axes
         axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar,
                                                evoked)
+        if "ylim" not in ts_args:
+            ts_args["ylim"] = ylims[ch_type]
         title = ax_name if isinstance(axes, dict) else name
         this_fig = _plot_epochs_image(
             epochs_, data, vmin=vmin, vmax=vmax, colorbar=colorbar, show=False,
