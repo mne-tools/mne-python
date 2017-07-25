@@ -219,8 +219,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     for group in groups:
         epochs, ch_type = group[:2]
         group.extend(_prepare_epochs_image_im_data(
-                epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
-                scalings[ch_type], ts_args))
+            epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
+            scalings[ch_type], ts_args))
         if vmin is None or vmax is None:  # equalize across groups
             this_vmin, this_vmax, this_ylim = group[-3:]
             if vmin is None and (this_vmin < vmins.get(ch_type, 1)):
@@ -415,7 +415,7 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
 
 
 def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
-    """Prepare axes for image plotting. Helper for plot_epochs_image"""
+    """Prepare axes for image plotting. Helper for plot_epochs_image."""
     import matplotlib.pyplot as plt
     # prepare fig and axes
     axes_dict = dict()
@@ -438,11 +438,11 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
             fig = plt.figure()
         plt.figure(fig.number)
         axes_dict["image"] = plt.subplot2grid(
-                (3, 10), (0, 0), colspan=9 if colorbar else 10,
-                rowspan=2 if evoked else 3)
+            (3, 10), (0, 0), colspan=9 if colorbar else 10,
+            rowspan=2 if evoked else 3)
         if evoked:
             axes_dict["evoked"] = plt.subplot2grid(
-                    (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
+                (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
         if colorbar:
             axes_dict["colorbar"] = plt.subplot2grid((3, 10), (0, 9),
                                                      colspan=1, rowspan=3)
@@ -479,8 +479,8 @@ def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
     if evoked:
         from mne.viz import plot_compare_evokeds
         plot_compare_evokeds(
-                {"cond": list(epochs.iter_evoked())}, axes=axes_dict["evoked"],
-                **ts_args)
+            {"cond": list(epochs.iter_evoked())}, axes=axes_dict["evoked"],
+            **ts_args)
         axes_dict["evoked"].set_xlim(epochs.times[[0, -1]])
         ax.set_xticks(())
 

@@ -1632,13 +1632,13 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             else:
                 _ci = partial(_bootstrap_ci, ci=ci)
             # calculate the CI
-            sem_array = dict()
+            ci_array = dict()
             for condition in conditions:
                 # this will fail if evokeds do not have the same structure
                 # (e.g. channel count)
                 data = np.asarray([evoked_.data[picks, :].mean(0)
                                    for evoked_ in evokeds[condition]])
-                sem_array[condition] = _ci(data) * scaling
+                ci_array[condition] = _ci(data) * scaling
 
         # get the grand mean
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
@@ -1734,12 +1734,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         if np.any(d < 0):
             any_negative = True
 
-        # plot the confidence interval (standard error of the mean/'sem_')
+        # plot the confidence interval
         if ci and (gfp is not True):
-            sem_ = sem_array[condition]  # * scaling
-            axes.fill_between(times, sem_[0].flatten(),
-                              sem_[1].flatten(), zorder=100,
-                              color=styles[condition]['c'], alpha=.333)
+            ci_ = ci_array[condition]
+            axes.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
+                              zorder=9, color=styles[condition]['c'], alpha=.3)
 
     # truncate the y axis
     orig_ymin, orig_ymax = axes.get_ylim()
