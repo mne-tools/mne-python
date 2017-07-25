@@ -10,7 +10,7 @@ In this example, MEG evoked data are plotted in an html slider.
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
-import time
+
 from mne.report import Report
 from mne.datasets import sample
 from mne import read_evokeds
@@ -22,7 +22,6 @@ meg_path = data_path + '/MEG/sample'
 subjects_dir = data_path + '/subjects'
 evoked_fname = meg_path + '/sample_audvis-ave.fif'
 
-t0 = time.time()
 ###############################################################################
 # Do standard folder parsing (this can take a couple of minutes):
 
@@ -47,6 +46,5 @@ for t in times:
 report.add_slider_to_section(figs, times, 'Evoked Response',
                              image_format='svg')
 
-# # to save report
-report.save('foobar.html', True)
-print(time.time() - t0)
+# to save report
+# report.save('foobar.html', True)
