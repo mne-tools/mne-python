@@ -12,7 +12,6 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 from copy import deepcopy
 from functools import partial
 from math import sqrt
-from warnings import warn
 
 import numpy as np
 from scipy import linalg
@@ -208,10 +207,10 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     for i, W in enumerate(Ws):
         if use_fft:
             fft_Ws[i] = fft(W, fsize)
-        elif mode == 'same' and len(W) > n_times:
-            warn("At least one of the wavelets is longer than the "
-                 "signal. Switching to 'full' convolution mode.")
-            mode = 'full'
+        elif len(W) > n_times:
+            raise ValueError('At least one of the wavelets is longer than the '
+                             'signal. Use a longer signal or shorter '
+                             'wavelets.')
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
@@ -236,7 +235,9 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                     ret = _centered(ret, sz)
                 tfr[ii, this_slice] = ret[decim]
             elif mode == 'full' and not use_fft:
-                ret = ret[(W.size // 2):len(ret) - (W.size // 2)]
+                start = int(np.ceil(W.size / 2.))
+                end = len(ret) - (W.size // 2) + 1
+                ret = ret[start:end]
                 tfr[ii, :] = ret[decim]
             else:
                 if use_fft:
