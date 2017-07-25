@@ -188,10 +188,6 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     if mode not in ['same', 'valid', 'full']:
         raise ValueError("`mode` must be 'same', 'valid' or 'full', "
                          "got %s instead." % mode)
-    if mode == 'full' and (not use_fft):
-        # XXX JRK: full wavelet decomposition needs to be implemented
-        raise ValueError('`full` decomposition with convolution is currently' +
-                         ' not supported.')
     decim = _check_decim(decim)
     X = np.asarray(X)
 
@@ -209,10 +205,6 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     if use_fft:
         fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
     for i, W in enumerate(Ws):
-        if len(W) > n_times:
-            raise ValueError('At least one of the wavelets is longer than the '
-                             'signal. Use a longer signal or shorter '
-                             'wavelets.')
         if use_fft:
             fft_Ws[i] = fft(W, fsize)
 
@@ -230,7 +222,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                 ret = np.convolve(x, W, mode=mode)
 
             # Center and decimate decomposition
-            if mode == "valid":
+            if mode == 'valid':
                 sz = int(abs(W.size - n_times)) + 1
                 offset = (n_times - sz) // 2
                 this_slice = slice(offset // decim.step,
@@ -238,6 +230,9 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                 if use_fft:
                     ret = _centered(ret, sz)
                 tfr[ii, this_slice] = ret[decim]
+            elif mode == 'full' and not use_fft:
+                ret = ret[(W.size // 2):len(ret) - (W.size // 2)]
+                tfr[ii, :] = ret[decim]
             else:
                 if use_fft:
                     ret = _centered(ret, n_times)

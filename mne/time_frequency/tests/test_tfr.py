@@ -204,11 +204,6 @@ def test_time_frequency():
     assert_raises(ValueError, cwt, data[0, :, :], Ws, mode='foo')
     for use_fft in [True, False]:
         for mode in ['same', 'valid', 'full']:
-            # XXX JRK: full wavelet decomposition needs to be implemented
-            if (not use_fft) and mode == 'full':
-                assert_raises(ValueError, cwt, data[0, :, :], Ws,
-                              use_fft=use_fft, mode=mode)
-                continue
             cwt(data[0, :, :], Ws, use_fft=use_fft, mode=mode)
 
     # Test decim parameter checks
