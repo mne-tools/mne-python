@@ -685,7 +685,7 @@ def _write_dig_points(fname, dig_points):
 
 
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     extra_points=None, dig_ch_pos=None):
+                     extra_points=None, dig_ch_pos=None):f
     """Construct digitizer info for the info.
 
     Parameters
@@ -1683,8 +1683,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     # The minium timestamp in Windows is 86400
-    if 'Windows' in platform.system() and np.array([0, 0], np.int32) < 86400:
-        info['meas_date'] = 86400
+    if 'Windows' in platform.system():
+        info['meas_date'] = np.array([86400, 86400], np.int32)
     else:
         info['meas_date'] = np.array([0, 0], np.int32)
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
