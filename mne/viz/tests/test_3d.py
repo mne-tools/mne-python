@@ -368,7 +368,6 @@ def test_snapshot_brain_montage():
 @requires_mayavi
 def test_plot_vec_source_estimates():
     """Test plotting of vector source estimates."""
-    mlab = _import_mlab()
     sample_src = read_source_spaces(src_fname)
 
     vertices = [s['vertno'] for s in sample_src]
@@ -380,23 +379,6 @@ def test_plot_vec_source_estimates():
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
         stc.plot('sample', subjects_dir=subjects_dir)
-
-        # Do multiple hemispheres in one view
-        stc.plot('sample', subjects_dir=subjects_dir, hemi='both')
-
-        # Do single hemispheres in multiple views
-        stc.plot('sample', subjects_dir=subjects_dir, hemi='lh',
-                 views=['lat', 'ven'])
-
-        # Do multiple hemispheres in multiple views
-        stc.plot('sample', subjects_dir=subjects_dir, hemi='both',
-                 views=['lat', 'ven'])
-
-    # Test changing the time
-    brain = stc.plot('sample', subjects_dir=subjects_dir)
-    brain.set_time(1)
-
-    mlab.close(all=True)
 
 
 run_tests_if_main()

@@ -1442,7 +1442,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground="white", initial_time=None, time_unit='s',
-             backend='auto', spacing='oct5'):
+             backend='auto', spacing='oct6'):
         brain = plot_source_estimates(self, subject, surface=surface,
                                       hemi=hemi, colormap=colormap,
                                       time_label=time_label,
@@ -1945,9 +1945,9 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
                               self.subject, self.verbose)
 
     @copy_function_doc_to_method_doc(plot_vector_source_estimates)
-    def plot(self, subject=None, hemi='lh', colormap='auto', time_label='auto',
-             smoothing_steps=10, transparent=None, alpha=1.0, vector_alpha=1.0,
-             brain_alpha=0.4, scale_factor=None, time_viewer=False,
+    def plot(self, subject=None, hemi='lh', colormap='hot', time_label='auto',
+             smoothing_steps=10, transparent=None, brain_alpha=0.4, alpha=None,
+             vector_alpha=1.0, scale_factor=None, time_viewer=False,
              subjects_dir=None, figure=None, views='lat', colorbar=True,
              clim='auto', cortex='classic', size=800, background='black',
              foreground='white', initial_time=None, time_unit='s'):
@@ -1955,8 +1955,8 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
         return plot_vector_source_estimates(
             self, subject=subject, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
-            transparent=transparent, alpha=alpha, vector_alpha=vector_alpha,
-            brain_alpha=brain_alpha, scale_factor=scale_factor,
+            transparent=transparent, brain_alpha=brain_alpha, alpha=alpha,
+            vector_alpha=vector_alpha, scale_factor=scale_factor,
             time_viewer=time_viewer, subjects_dir=subjects_dir, figure=figure,
             views=views, colorbar=colorbar, clim=clim, cortex=cortex,
             size=size, background=background, foreground=foreground,
