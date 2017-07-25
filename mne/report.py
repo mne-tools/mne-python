@@ -1039,8 +1039,7 @@ class Report(object):
                                          caption=caption, html=html))
 
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
-                           decim=2, n_jobs=1, subjects_dir=None,
-                           image_format=None):
+                           decim=2, n_jobs=1, subjects_dir=None):
         """Render a bem slider html str.
 
         Parameters
