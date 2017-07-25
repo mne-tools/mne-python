@@ -685,7 +685,7 @@ def _write_dig_points(fname, dig_points):
 
 
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     extra_points=None, dig_ch_pos=None):f
+                     extra_points=None, dig_ch_pos=None):
     """Construct digitizer info for the info.
 
     Parameters
