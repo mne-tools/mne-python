@@ -181,9 +181,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     10-5_EGI129           462+3 locations
 
     mgh60                 The (older) 60-channel cap used at
-                          MGH (60+3 locations).
+                          MGH (60+3 locations)
     mgh70                 The (newer) 70-channel BrainVision cap used at
-                          MGH (70 + 3 locations)
+                          MGH (70+3 locations)
     ===================   =====================================================
 
     .. versionadded:: 0.9.0
