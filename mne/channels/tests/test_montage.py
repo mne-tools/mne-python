@@ -267,7 +267,7 @@ def test_montage():
     # test get_pos2d method
     montage = read_montage("standard_1020")
     c3 = montage.get_pos2d()[montage.ch_names.index("C3")]
-    c4 = montage.get_pos2d()[montage.ch_names.index("C3")]
+    c4 = montage.get_pos2d()[montage.ch_names.index("C4")]
     fz = montage.get_pos2d()[montage.ch_names.index("Fz")]
     oz = montage.get_pos2d()[montage.ch_names.index("Oz")]
     f1 = montage.get_pos2d()[montage.ch_names.index("F1")]
