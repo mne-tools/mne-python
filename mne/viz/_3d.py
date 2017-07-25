@@ -2467,7 +2467,8 @@ def _dipole_changed(event, params):
                  params['zooms'], params['show_all'], params['scatter_points'])
 
 
-def plot_glass_brain(stc, fwd, subject, subjects_dir=None):
+def plot_glass_brain(stc, fwd, subject, subjects_dir=None, time=0., vmin=None,
+                     vmax=None):
     """Plot stc on glass brain.
 
     Parameters
@@ -2492,41 +2493,47 @@ def plot_glass_brain(stc, fwd, subject, subjects_dir=None):
     import nibabel as nib
     from nilearn import plotting
     import matplotlib.pyplot as plt
+    from .. import vertex_to_mni
+    from ..source_estimate import VolSourceEstimate
 
-    s1, s2 = fwd['src']
-    s1['rr'][s1['vertno']]
-    s2['rr'][s2['vertno']]
+    time_idx = np.argmin(np.abs(stc.times - time))
+
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    trans = fwd['mri_head_t']
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
-    if s1['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-        head_mri_t = _ensure_trans(trans, 'head', 'mri')
-    else:
-        head_mri_t = _ensure_trans(trans, 'mri', 'mri')
 
     vox2ras = t1.header.get_vox2ras_tkr()
-
     ras2vox = np.linalg.inv(vox2ras)
+    src = fwd['src']
+    if isinstance(stc, VolSourceEstimate):
+        pass
+    else:
+        s1, s2 = src
+        locs1 = vertex_to_mni(s1['vertno'], 0, subject,
+                              subjects_dir=subjects_dir)
+        locs2 = vertex_to_mni(s2['vertno'], 1, subject,
+                              subjects_dir=subjects_dir)
+        locs = np.concatenate([locs1, locs2])
 
-    locs = np.concatenate([s1['rr'][s1['vertno']], s2['rr'][s2['vertno']]])
+        locs = apply_trans(ras2vox, locs)
 
-    locs = apply_trans(head_mri_t, locs) * 1000.
-    locs = apply_trans(ras2vox, locs)
+        xdim, ydim, zdim = np.round(np.max(locs, axis=0)) / 2.
 
-    xdim, ydim, zdim = np.round(np.max(locs, axis=0))
+        data = np.zeros((int(xdim), int(ydim), int(zdim)))
+        stc_data = stc.data[:, time_idx]
+        mult = np.ones(data.shape)
+        for idx, loc in enumerate(locs):
+            x = min([int(xdim) - 1, int(loc[0] / 2.)])
+            y = min([int(ydim) - 1, int(loc[1] / 2.)])
+            z = min([int(zdim) - 1, int(loc[2] / 2.)])
+            data[x, y, z] = stc_data[idx]
+            mult[x, y, z] += 1
+        data /= mult
 
-    data = np.zeros((int(xdim), int(ydim), int(zdim)))
-    time_idx = 10
+        vox2ras[:3, :3] = np.dot(vox2ras[:3, :3], np.eye(3) * 2)
+        img = nib.Nifti1Image(data, vox2ras)
 
-    stc_data = stc.data[:, time_idx]
-    for idx, loc in enumerate(locs):
-        data[int(loc[0]) - 1, int(loc[1]) - 1,
-             int(loc[2]) - 1] = stc_data[idx]
-
-    img = nib.Nifti1Image(data, vox2ras)
-
-    fig = plotting.plot_glass_brain(img, vmax=0.5)
+    fig = plotting.plot_glass_brain(img, vmin=vmin, vmax=vmax)
     plt.show()
     return fig
