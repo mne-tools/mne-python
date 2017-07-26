@@ -1,5 +1,6 @@
-import os.path as op
 from copy import deepcopy
+import os.path as op
+
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
