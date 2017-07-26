@@ -27,11 +27,12 @@ from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
-from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
+from ..source_space import (SourceSpaces, _create_surf_spacing, _check_spacing,
+                            _read_talairach)
 
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
-                       complete_surface_info, mesh_edges,
+                       complete_surface_info, mesh_edges, _compute_nearest,
                        _complete_sphere_surf)
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_trans, _ensure_trans,
@@ -2467,16 +2468,17 @@ def _dipole_changed(event, params):
                  params['zooms'], params['show_all'], params['scatter_points'])
 
 
-def plot_glass_brain(stc, fwd, subject, subjects_dir=None, time=0., vmin=None,
-                     vmax=None):
+def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None, time=0.,
+                     display_mode='lyrz', colorbar=False, axes=None,
+                     title=None, threshold='auto', annotate=True,
+                     black_bg=False, cmap=None, alpha=0.7, vmin=None,
+                     vmax=None, plot_abs=True, symmetric_cbar="auto"):
     """Plot stc on glass brain.
 
     Parameters
     ----------
     stc : instance of SourceEstimate
         Data to plot.
-    src : instance of SourceSpace
-        The forward solution
     subject : str
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -2484,56 +2486,113 @@ def plot_glass_brain(stc, fwd, subject, subjects_dir=None, time=0., vmin=None,
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
         The default is None.
+    fwd : instance of SourceSpace
+        The forward solution. Only needed for VolumeSourceEstimate.
+    time : float
+        The time instance to plot in seconds. Defaults to 0.
+    display_mode : string
+        Choose the direction of the cuts: 'x' - sagittal, 'y' - coronal,
+        'z' - axial, 'l' - sagittal left hemisphere only,
+        'r' - sagittal right hemisphere only, 'ortho' - three cuts are
+        performed in orthogonal directions. Possible values are: 'ortho',
+        'x', 'y', 'z', 'xz', 'yx', 'yz', 'l', 'r', 'lr', 'lzr', 'lyr',
+        'lzry', 'lyrz'. Defaults to 'ortho'.
+    colorbar : bool
+        If True, display a colorbar on the right of the plots. Defaults to
+        False.
+    axes : matplotlib axes or 4 tuple of float: (xmin, ymin, width, height)
+        The axes, or the coordinates, in matplotlib figure space,
+        of the axes used to display the plot. If None, the complete
+        figure is used.
+    title : string
+        The title displayed on the figure.
+    threshold : float | None | 'auto'
+        The value used to threshold the image: values below the threshold (in
+        absolute value) are plotted as transparent. If None, the image is not
+        hresholded. If float, If auto, the threshold is determined magically by
+        analysis of the image.
+    annotate : bool
+        If True, positions and left/right annotation are added to the plot.
+    black_bg : bool
+        If True, the background of the image is set to be black. If
+        you wish to save figures with a black background, you
+        will need to pass "facecolor='k', edgecolor='k'"
+        to matplotlib.pyplot.savefig.
+    cmap : matplotlib colormap
+        The colormap for specified image
+    alpha : float
+        Alpha transparency for the brain schematics.
+    vmax : float
+        Upper bound for plotting, passed to matplotlib.pyplot.imshow.
+    plot_abs : bool
+        If True (default), maximum intensity projection of the absolute value
+        will be used (rendering positive and negative values in the same
+        manner). If False, the sign of the maximum intensity will be
+        represented with different colors. See
+        http://nilearn.github.io/auto_examples/01_plotting/plot_demo_glass_brain_extensive.html
+        for examples.
+    symmetric_cbar : bool | 'auto'
+        Specifies whether the colorbar should range from -vmax to vmax
+        or from vmin to vmax. Setting to 'auto' will select the latter if
+        the range of the whole image is either positive or negative.
+        Note: The colormap will always be set to range from -vmax to vmax.
 
     Returns
     -------
     fig : instance of matplotlib.Figure
         The matplotlib figure.
-    """
+    """  # noqa: E501
+    from scipy import sparse
     import nibabel as nib
     from nilearn import plotting
     import matplotlib.pyplot as plt
-    from .. import vertex_to_mni
     from ..source_estimate import VolSourceEstimate
-
-    time_idx = np.argmin(np.abs(stc.times - time))
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    t1 = nib.load(t1_fname)
-
-    vox2ras = t1.header.get_vox2ras_tkr()
-    ras2vox = np.linalg.inv(vox2ras)
-    src = fwd['src']
+    time_idx = np.argmin(np.abs(stc.times - time))
+    xfm = _read_talairach(subject, subjects_dir)
     if isinstance(stc, VolSourceEstimate):
-        pass
+        if fwd is None:
+            raise ValueError('fwd cannot be None when plotting volume source '
+                             'estimate.')
+        src = fwd['src']
+        img = stc.as_volume(src)
+        affine = np.dot(xfm, img.affine)
+        data = img.get_data()[:, :, :, time_idx]
+        img = nib.Nifti1Image(data, affine)
     else:
-        s1, s2 = src
-        locs1 = vertex_to_mni(s1['vertno'], 0, subject,
-                              subjects_dir=subjects_dir)
-        locs2 = vertex_to_mni(s2['vertno'], 1, subject,
-                              subjects_dir=subjects_dir)
-        locs = np.concatenate([locs1, locs2])
+        n_vertices = sum(len(v) for v in stc.vertices)
+        offset = 0
+        surf_to_mri = 0.
+        for hi, hemi in enumerate(('lh', 'rh')):
+            ribbon = nib.load(op.join(subjects_dir, subject, 'mri',
+                                      '%s.ribbon.mgz' % hemi))
+            xfm = ribbon.header.get_vox2ras_tkr()
+            mri_data = ribbon.get_data()
+            ijk = np.array(np.where(mri_data)).T
+            xyz = apply_trans(xfm, ijk) / 1000.
+            row_ind = np.where(mri_data.ravel())[0]
+            data = np.ones(row_ind.size)
+            rr = read_surface(subjects_dir + '/sample/surf/%s.white' % hemi)[0]
+            rr /= 1000.
+            rr = rr[stc.vertices[hi]]
+            col_ind = _compute_nearest(rr, xyz) + offset
+            surf_to_mri = surf_to_mri + sparse.csr_matrix(
+                (data, (row_ind, col_ind)), shape=(mri_data.size, n_vertices))
+            offset += len(stc.vertices[hi])
+        data = surf_to_mri.dot(stc.data[:, time_idx])
+        data.shape = mri_data.shape
+        xfm = _read_talairach(subject, subjects_dir)
 
-        locs = apply_trans(ras2vox, locs)
+        affine = np.dot(xfm, ribbon.header.get_vox2ras())
+        img = nib.Nifti1Image(data, affine)
 
-        xdim, ydim, zdim = np.round(np.max(locs, axis=0)) / 2.
-
-        data = np.zeros((int(xdim), int(ydim), int(zdim)))
-        stc_data = stc.data[:, time_idx]
-        mult = np.ones(data.shape)
-        for idx, loc in enumerate(locs):
-            x = min([int(xdim) - 1, int(loc[0] / 2.)])
-            y = min([int(ydim) - 1, int(loc[1] / 2.)])
-            z = min([int(zdim) - 1, int(loc[2] / 2.)])
-            data[x, y, z] = stc_data[idx]
-            mult[x, y, z] += 1
-        data /= mult
-
-        vox2ras[:3, :3] = np.dot(vox2ras[:3, :3], np.eye(3) * 2)
-        img = nib.Nifti1Image(data, vox2ras)
-
-    fig = plotting.plot_glass_brain(img, vmin=vmin, vmax=vmax)
+    fig = plotting.plot_glass_brain(img, display_mode=display_mode,
+                                    colorbar=colorbar, axes=axes, title=title,
+                                    threshold=threshold, annotate=annotate,
+                                    black_bg=black_bg, cmap=cmap, alpha=alpha,
+                                    vmin=vmin, vmax=vmax, plot_abs=plot_abs,
+                                    symmetric_cbar=symmetric_cbar)
     plt.show()
     return fig
