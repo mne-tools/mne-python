@@ -4,10 +4,10 @@
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
+from copy import deepcopy
 
 import numpy as np
 from scipy import linalg
-from copy import deepcopy
 
 from ..io.constants import FIFF
 from ..io.proj import make_projector
@@ -429,9 +429,6 @@ def apply_lcmv(evoked, filters, max_ori_out='abs', verbose=None):
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
     on evoked data.
 
-    .. note:: This implementation has not been heavily tested so please
-              report any issue or suggestions.
-
     Parameters
     ----------
     evoked : Evoked
@@ -481,9 +478,6 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
 
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
     on single trial data.
-
-    .. note:: This implementation has not been heavily tested so please
-              report any issue or suggestions.
 
     Parameters
     ----------
@@ -596,8 +590,6 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on evoked data.
-    .. note:: This implementation has not been heavily tested so please
-              report any issue or suggestions.
 
     Parameters
     ----------
@@ -687,8 +679,6 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on single trial data.
-    .. note:: This implementation has not been heavily tested so please
-              report any issue or suggestions.
 
     Parameters
     ----------

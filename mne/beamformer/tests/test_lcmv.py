@@ -1,11 +1,11 @@
 import os.path as op
+from copy import deepcopy
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_almost_equal)
 import warnings
-from copy import deepcopy
 
 import mne
 from mne import compute_covariance

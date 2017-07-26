@@ -126,6 +126,7 @@ BUG
 
 API
 ~~~
+    - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner'_, `Alex Gramfort`_, and `Denis Engemann`_.
 
     - Add ``weight_norm'' parameter to enable both unit-noise-gain beamformer and neural activity index (weight normalization) and make whitening optional by allowing ``noise_cov=None'' in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, and :func:`mne.beamformer.lcmv_raw`, by `Britta Westner'_, `Alex Gramfort`_, and `Denis Engemann`_.
 
