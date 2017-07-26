@@ -9,7 +9,8 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import mne
 from mne.datasets import testing
-from mne.beamformer import dics, dics_epochs, dics_source_power, tf_dics
+from mne.beamformer import (make_dics, apply_dics, dics, dics_epochs,
+                            dics_source_power, tf_dics)
 from mne.time_frequency import csd_epochs
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main
@@ -134,6 +135,12 @@ def test_dics():
     # orientation
     assert_raises(ValueError, dics_epochs, epochs, forward_vol, noise_csd,
                   data_csd, pick_ori="normal")
+
+    # Test if wrong channel selection is detected in application of filter
+    evoked_ch = cp.deepcopy(evoked)
+    evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
+    filters = make_dics(evoked.info, forward, noise_csd, data_csd)
+    assert_raises(ValueError, apply_dics, evoked_ch, filters)
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution

@@ -709,6 +709,9 @@ Inverse Solutions
    apply_lcmv_raw
    dics
    dics_epochs
+   make_dics
+   apply_dics
+   apply_dics_epochs
    dics_source_power
    rap_music
    tf_dics

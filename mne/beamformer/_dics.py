@@ -14,16 +14,97 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc
 from ..time_frequency import CrossSpectralDensity, csd_epochs
-from ._lcmv import _prepare_beamformer_input, _setup_picks, _reg_pinv
+from ._lcmv import (_prepare_beamformer_input, _setup_picks, _reg_pinv,
+                    _subject_from_filter, _check_proj_match,
+                    _pick_channels_spatial_filter)
 from ..externals import six
 
 
 @verbose
-def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
-                label=None, picks=None, pick_ori=None, real_filter=False,
-                verbose=None):
-    """Dynamic Imaging of Coherent Sources (DICS)."""
-    is_free_ori, _, proj, vertno, G =\
+def make_dics(info, forward, noise_csd, data_csd, reg=0.05, label=None,
+              pick_ori=None, real_filter=False, verbose=None):
+    """Compute Dynamic Imaging of Coherent Sources (DICS) spatial filter.
+
+    .. note:: Fixed orientation forward operators with ``real_filter=False``
+              will result in complex time courses, in which case absolute
+              values will be returned.
+
+    .. note:: This implementation has not been heavily tested so please
+              report any issues or suggestions.
+
+    Parameters
+    ----------
+    info : dict
+        The measurement info to specify the channels to include.
+        Bad channels in info['bads'] are not used.
+    forward : dict
+        Forward operator.
+    noise_csd : instance of CrossSpectralDensity
+        The noise cross-spectral density.
+    data_csd : instance of CrossSpectralDensity
+        The data cross-spectral density.
+    reg : float
+        The regularization for the cross-spectral density.
+    label : Label | None
+        Restricts the solution to a given label.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
+    real_filter : bool
+        If True, take only the real part of the cross-spectral-density matrices
+        to compute real filters as in [2]_. Default is False.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    filters : dict
+        Dictionary containing filter weights from DICS beamformer.
+        Contains the following keys:
+
+            'weights' : {array}
+                The filter weights of the beamformer.
+            'data_csd' : {instance of CrossSpectralDensity}
+                The data cross-spectral density matrix used to compute the
+                beamformer.
+            'noise_csd' : {instance of CrossSpectralDensity}
+                The noise cross-spectral density matrix used to compute the
+                beamformer.
+            'pick_ori' : {None | 'normal'}
+                Orientation selection used in filter computation.
+            'ch_names' : {list}
+                Channels used to compute the beamformer.
+            'proj' : {array}
+                Projections used to compute the beamformer.
+            'vertices' : {list}
+                Vertices for which the filter weights were computed.
+            'is_free_ori' : {bool}
+                If True, the filter was computed with free source orientation.
+            'src' : {instance of SourceSpaces}
+                Source space information.
+
+    See Also
+    --------
+    apply_dics, dics, dics_epochs
+
+    Notes
+    -----
+    For more information about ``real_filter``, see the
+    `supplemental information <http://www.cell.com/cms/attachment/616681/4982593/mmc1.pdf>`_
+    from [2]_.
+
+    References
+    ----------
+    .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
+           interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+    .. [2] Hipp JF, Engel AK, Siegel M (2011) Oscillatory Synchronization
+           in Large-Scale Cortical Networks Predicts Perception.
+           Neuron 69:387-396.
+    """  # noqa: E501
+    picks = _setup_picks(info=info, forward=forward)
+
+    is_free_ori, ch_names, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     Cm = data_csd.data.copy()
@@ -69,15 +150,27 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         W = W[2::3]
         is_free_ori = False
 
+    filters = dict(weights=W, data_csd=data_csd, noise_csd=noise_csd,
+                   pick_ori=pick_ori, ch_names=ch_names, proj=proj,
+                   vertices=vertno, is_free_ori=is_free_ori,
+                   src=deepcopy(forward['src']))
+
+    return filters
+
+
+def _apply_dics(data, filters, info, tmin):
+    """Apply DICS spatial filter to data for source reconstruction."""
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
         return_single = True
     else:
         return_single = False
 
-    subject = _subject_from_forward(forward)
+    W = filters['weights']
+
+    subject = _subject_from_filter(filters)
     for i, M in enumerate(data):
-        if len(M) != len(picks):
+        if len(M) != len(filters['ch_names']):
             raise ValueError('data and picks must have the same length')
 
         if not return_single:
@@ -85,10 +178,11 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
 
         # Apply SSPs
         if info['projs']:
-            M = np.dot(proj, M)
+            _check_proj_match(info, filters)
+            M = np.dot(filters['proj'], M)
 
         # project to source space using beamformer weights
-        if is_free_ori:
+        if filters['is_free_ori']:
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
@@ -99,10 +193,103 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         tstep = 1.0 / info['sfreq']
         if np.iscomplexobj(sol):
             sol = np.abs(sol)  # XXX : STC cannot contain (yet?) complex values
-        yield _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                        subject=subject)
+        yield _make_stc(sol, vertices=filters['vertices'], tmin=tmin,
+                        tstep=tstep, subject=subject)
 
     logger.info('[done]')
+
+
+@verbose
+def apply_dics(evoked, filters, verbose=None):
+    """Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights.
+
+    Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights
+    on evoked data.
+
+    .. note:: This implementation has not been heavily tested so please
+              report any issue or suggestions.
+
+    Parameters
+    ----------
+    evoked : Evoked
+        Evoked data to invert
+    filters : dict
+        DICS spatial filter (beamformer weights)
+        Filter weights returned from `make_dics`.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    stc : SourceEstimate | VolSourceEstimate
+        Source time courses.
+
+    See Also
+    --------
+    apply_dics_epochs
+    """
+    _check_reference(evoked)
+
+    info = evoked.info
+    data = evoked.data
+    tmin = evoked.times[0]
+
+    sel = _pick_channels_spatial_filter(evoked.ch_names, filters)
+    data = data[sel]
+
+    stc = _apply_dics(data=data, filters=filters, info=info, tmin=tmin)
+
+    return six.advance_iterator(stc)
+
+
+@verbose
+def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
+    """Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights.
+
+    Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights
+    on single trial data.
+
+    .. note:: This implementation has not been heavily tested so please
+              report any issue or suggestions.
+
+    Parameters
+    ----------
+    epochs : Epochs
+        Single trial epochs.
+    filters : dict
+        DICS spatial filter (beamformer weights)
+        Filter weights returned from `make_dics`.
+    return_generator : bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    stc: list | generator of (SourceEstimate | VolSourceEstimate)
+        The source estimates for all epochs.
+
+    See Also
+    --------
+    apply_dics
+    """
+    _check_reference(epochs)
+
+    info = epochs.info
+    tmin = epochs.times[0]
+
+    sel = _pick_channels_spatial_filter(epochs.ch_names, filters)
+    data = epochs.get_data()[:, sel, :]
+
+    stcs = _apply_dics(data=data, filters=filters, info=info, tmin=tmin)
+
+    if not return_generator:
+        stcs = list(stcs)
+
+    return stcs
 
 
 @verbose
@@ -147,7 +334,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
     Returns
     -------
     stc : SourceEstimate | VolSourceEstimate
-        Source time courses
+        Source time courses.
 
     See Also
     --------
@@ -167,18 +354,12 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
            in Large-Scale Cortical Networks Predicts Perception.
            Neuron 69:387-396.
     """  # noqa: E501
-    _check_reference(evoked)
-    info = evoked.info
-    data = evoked.data
-    tmin = evoked.times[0]
+    filters = make_dics(info=evoked.info, forward=forward, noise_csd=noise_csd,
+                        data_csd=data_csd, reg=reg, label=label,
+                        pick_ori=pick_ori, real_filter=real_filter)
 
-    picks = _setup_picks(info=info, forward=forward)
-    data = data[picks]
-
-    stc = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
-                      label=label, pick_ori=pick_ori, picks=picks,
-                      real_filter=real_filter)
-    return six.advance_iterator(stc)
+    stc = apply_dics(evoked=evoked, filters=filters)
+    return stc
 
 
 @verbose
@@ -227,7 +408,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
     Returns
     -------
     stc: list | generator of SourceEstimate | VolSourceEstimate
-        The source estimates for all epochs
+        The source estimates for all epochs.
 
     See Also
     --------
@@ -239,22 +420,14 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
            in Large-Scale Cortical Networks Predicts Perception.
            Neuron 69:387-396.
     """
-    _check_reference(epochs)
+    filters = make_dics(info=epochs.info, forward=forward, noise_csd=noise_csd,
+                        data_csd=data_csd, reg=reg, label=label,
+                        pick_ori=pick_ori, real_filter=real_filter)
 
-    info = epochs.info
-    tmin = epochs.times[0]
+    stc = apply_dics_epochs(epochs=epochs, filters=filters,
+                            return_generator=return_generator)
 
-    picks = _setup_picks(info=info, forward=forward)
-    data = epochs.get_data()[:, picks, :]
-
-    stcs = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
-                       label=label, pick_ori=pick_ori, picks=picks,
-                       real_filter=real_filter)
-
-    if not return_generator:
-        stcs = list(stcs)
-
-    return stcs
+    return stc
 
 
 @verbose
