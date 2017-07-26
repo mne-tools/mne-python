@@ -62,7 +62,7 @@ Changelog
     - Add option to return a list of :class:`Dipole` objects in sparse source imaging methods by `Daniel Strohmeier`_
 
     - Add :func:`mne.inverse_sparse.make_stc_from_dipoles` to generate stc objects from lists of dipoles by `Daniel Strohmeier`_
-    
+
     - Add :func:`mne.channels.find_ch_connectivity` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
 
     - Add IO support for EGI MFF format by `Jaakko Leppakangas`_  and `ramonapariciog`_
@@ -70,6 +70,8 @@ Changelog
     - Add option to use matplotlib backend when plotting with :func:`mne.viz.plot_source_estimates` by `Jaakko Leppakangas`_
 
     - Add :meth:`mne.channels.Montage.get_pos2d` to get the 2D positions of channels in a montage by `Clemens Brunner`_
+
+    - Add MGH 60- and 70-channel standard montages to :func:`mne.channels.read_montage` by `Eric Larson`_
 
     - Add option for embedding SVG instead of PNG in HTML for :class:`mne.Report` by `Eric Larson`_
 
