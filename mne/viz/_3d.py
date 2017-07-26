@@ -87,7 +87,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
     from mpl_toolkits.mplot3d.art3d import Line3DCollection
-    from mpl_toolkits.mplot3d import axes3d  # noqa: F401
+    from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
     if not isinstance(mode, string_types) or mode not in ('traces', 'field'):
         raise ValueError('mode must be "traces" or "field", got %s' % (mode,))
     trans, rot, t = head_pos_to_trans_rot_t(pos)  # also ensures pos is okay
@@ -311,7 +311,10 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     # Load the T1 data
     nim = nib.load(mri_fname)
     data = nim.get_data()
-    affine = nim.get_affine()
+    try:
+        affine = nim.affine
+    except AttributeError:  # old nibabel
+        affine = nim.get_affine()
 
     n_sag, n_axi, n_cor = data.shape
     orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
@@ -532,7 +535,16 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             # let's try to do this in MRI coordinates so they're easy to plot
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             trans = _find_trans(subject, subjects_dir)
-        trans = read_trans(trans)
+        trans = read_trans(trans, return_all=True)
+        for trans in trans:  # we got at least 1
+            try:
+                trans = _ensure_trans(trans, 'head', 'mri')
+            except Exception as exp:
+                pass
+            else:
+                break
+        else:
+            raise exp
     elif trans is None:
         trans = Transform('head', 'mri')
     elif not isinstance(trans, dict):

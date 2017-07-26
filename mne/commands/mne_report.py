@@ -57,6 +57,9 @@ def run():
     parser.add_option("-m", "--mri-decim", type="int", dest="mri_decim",
                       default=2, help="Integer factor used to decimate "
                       "BEM plots")
+    parser.add_option("--image-format", type="str", dest="image_format",
+                      default='png', help="Image format to use "
+                      "(can be 'png' or 'svg')")
 
     options, args = parser.parse_args()
     path = options.path
@@ -67,6 +70,7 @@ def run():
     cov_fname = options.cov_fname
     subjects_dir = options.subjects_dir
     subject = options.subject
+    image_format = options.image_format
     mri_decim = int(options.mri_decim)
     verbose = True if options.verbose is not None else False
     open_browser = False if options.no_browser is not None else True
@@ -84,7 +88,8 @@ def run():
     t0 = time.time()
     report = Report(info_fname, subjects_dir=subjects_dir,
                     subject=subject, baseline=baseline,
-                    cov_fname=cov_fname, verbose=verbose)
+                    cov_fname=cov_fname, verbose=verbose,
+                    image_format=image_format)
     report.parse_folder(path, verbose=verbose, n_jobs=n_jobs,
                         mri_decim=mri_decim)
     log_elapsed(time.time() - t0, verbose=verbose)

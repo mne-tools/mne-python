@@ -73,6 +73,8 @@ Changelog
 
     - Add MGH 60- and 70-channel standard montages to :func:`mne.channels.read_montage` by `Eric Larson`_
 
+    - Add option for embedding SVG instead of PNG in HTML for :class:`mne.Report` by `Eric Larson`_
+
 BUG
 ~~~
 
@@ -121,8 +123,6 @@ BUG
     - Fix :func:`mne.io.read_raw_edf` to infer sampling rate correctly when reading EDF+ files where tal-channel has a higher sampling frequency by `Jaakko Leppakangas`_
 
     - Fix default value of ``kind='topomap'`` in :meth:`mne.channels.Montage.plot` to be consistent with :func:`mne.viz.plot_montage` by `Clemens Brunner`_
-
-    - Unify ``source_space`` ``coord_frame`` to always use integers by `Jaakko Leppakangas`_
 
 API
 ~~~
