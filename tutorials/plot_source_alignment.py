@@ -82,6 +82,14 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample', src=src,
 #           or a list of bem surfaces (:func:`mne.read_bem_surfaces`).
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')
 mne.viz.plot_alignment(raw.info, subject='sample', trans=None, eeg='projected',
-                       meg='helmet', bem=sphere,
+                       meg='helmet', bem=sphere, dig=True,
                        surfaces=['brain', 'inner_skull', 'outer_skull',
                                  'outer_skin'])
+
+
+###############################################################################
+# For more information see step by step instructions
+# `for subjects with structural MRI
+# <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
+# subjects for which no MRI is available
+# <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.

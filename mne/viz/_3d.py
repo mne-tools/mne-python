@@ -572,7 +572,7 @@ def plot_alignment(info, trans='auto', subject=None, subjects_dir=None,
         Surfaces to plot. Supported values: 'head', 'outer_skin',
         'outer_skull', 'inner_skull', 'brain', 'pial', 'white', 'inflated'.
         Defaults to ('head',).
-        .. note: For single layer bems it is recommended to use 'brain'.
+        .. note: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
     meg : str | None | list
