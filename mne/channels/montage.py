@@ -348,6 +348,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         selection = selection[sel]
     else:
         ch_names_ = list(ch_names_)
+    ch_names_ = [str(ch) for ch in ch_names_]  # convert names to str
     kind = op.split(kind)[-1]
     return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection)
 
