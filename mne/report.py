@@ -1712,8 +1712,8 @@ class Report(object):
         try:
             img = _iterate_trans_views(function=plot_alignment, **kwargs)
         except IOError:
-            img = _iterate_trans_views(function=plot_alignment, source='head',
-                                       **kwargs)
+            img = _iterate_trans_views(function=plot_alignment,
+                                       surfaces=['head'], **kwargs)
 
         if img is not None:
             global_id = self._get_id()
