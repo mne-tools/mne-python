@@ -12,6 +12,7 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 from copy import deepcopy
 from functools import partial
 from math import sqrt
+from warnings import warn
 
 import numpy as np
 from scipy import linalg
@@ -204,13 +205,19 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     # precompute FFTs of Ws
     if use_fft:
         fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
+
+    warn_me = True
     for i, W in enumerate(Ws):
         if use_fft:
             fft_Ws[i] = fft(W, fsize)
-        elif len(W) > n_times:
-            raise ValueError('At least one of the wavelets is longer than the '
-                             'signal. Use a longer signal or shorter '
-                             'wavelets.')
+        if len(W) > n_times and warn_me:
+            msg = ('At least one of the wavelets is longer than the signal. '
+                   'Consider padding the signal or using shorter wavelets.')
+            if use_fft:
+                warn(msg)
+                warn_me = False  # Suppress further warnings
+            else:
+                raise ValueError(msg)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
