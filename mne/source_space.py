@@ -1158,12 +1158,8 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
 
 
 @verbose
-def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
-    """Read MNI transform from FreeSurfer talairach.xfm file.
-
-    Adapted from freesurfer m-files. Altered to deal with Norig
-    and Torig correctly.
-    """
+def _read_talairach(subject, subjects_dir, mode=None, verbose=None):
+    """Read MNI transform from FreeSurfer talairach.xfm file."""
     if mode is not None and mode not in ['nibabel', 'freesurfer']:
         raise ValueError('mode must be "nibabel" or "freesurfer"')
     fname = op.join(subjects_dir, subject, 'mri', 'transforms',
@@ -1195,6 +1191,17 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
         else:
             raise ValueError('failed to find \'Linear_Transform\' string in '
                              'xfm file:\n%s' % fname)
+    return xfm
+
+
+@verbose
+def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
+    """Read MRI-MNI transform from FreeSurfer talairach.xfm file.
+
+    Adapted from freesurfer m-files. Altered to deal with Norig
+    and Torig correctly.
+    """
+    xfm = _read_talairach(subject, subjects_dir, mode=mode, verbose=verbose)
 
     # Setup the RAS to MNI transform
     ras_mni_t = {'from': FIFF.FIFFV_MNE_COORD_RAS,
