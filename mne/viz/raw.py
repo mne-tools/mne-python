@@ -354,7 +354,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False,
                   group_by=group_by, orig_inds=inds.copy(), decim=decim,
-                  data_picks=data_picks)
+                  data_picks=data_picks, close_key='escape')
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
