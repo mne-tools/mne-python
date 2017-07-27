@@ -311,7 +311,7 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
             these_epochs = epochs.copy().pick_channels([name])
             to_plot_list.append([these_epochs, ch_type, name, name])
         return to_plot_list
-    
+
     # if combine is not None ...
     from .. import EpochsArray, pick_info
     data = epochs.get_data()
