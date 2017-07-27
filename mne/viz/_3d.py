@@ -2468,11 +2468,12 @@ def _dipole_changed(event, params):
                  params['zooms'], params['show_all'], params['scatter_points'])
 
 
-def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None, time=0.,
-                     display_mode='lyrz', colorbar=False, axes=None,
-                     title=None, threshold='auto', annotate=True,
-                     black_bg=False, cmap=None, alpha=0.7, vmin=None,
-                     vmax=None, plot_abs=True, symmetric_cbar="auto"):
+def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None,
+                     initial_time=0., hemi=['lh', 'rh'], display_mode='ortho',
+                     colorbar=False, axes=None, title=None, threshold='auto',
+                     annotate=True, black_bg=False, cmap=None, alpha=0.7,
+                     vmin=None, vmax=None, plot_abs=True,
+                     symmetric_cbar="auto", show=True):
     """Plot stc on glass brain.
 
     Parameters
@@ -2488,8 +2489,11 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None, time=0.,
         The default is None.
     fwd : instance of SourceSpace
         The forward solution. Only needed for VolumeSourceEstimate.
-    time : float
+    initial_time : float
         The time instance to plot in seconds. Defaults to 0.
+    hemi : list
+        Which hemispheres to plot. Can be ['lh'], ['rh'] or both. Has no effect
+        volume source estimates.
     display_mode : string
         Choose the direction of the cuts: 'x' - sagittal, 'y' - coronal,
         'z' - axial, 'l' - sagittal left hemisphere only,
@@ -2514,10 +2518,9 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None, time=0.,
     annotate : bool
         If True, positions and left/right annotation are added to the plot.
     black_bg : bool
-        If True, the background of the image is set to be black. If
-        you wish to save figures with a black background, you
-        will need to pass "facecolor='k', edgecolor='k'"
-        to matplotlib.pyplot.savefig.
+        If True, the background of the image is set to be black. If you wish to
+        save figures with a black background, you will need to pass
+        "facecolor='k', edgecolor='k'" to matplotlib.pyplot.savefig.
     cmap : matplotlib colormap
         The colormap for specified image
     alpha : float
@@ -2528,29 +2531,42 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None, time=0.,
         If True (default), maximum intensity projection of the absolute value
         will be used (rendering positive and negative values in the same
         manner). If False, the sign of the maximum intensity will be
-        represented with different colors. See
-        http://nilearn.github.io/auto_examples/01_plotting/plot_demo_glass_brain_extensive.html
+        represented with different colors. See `nilearn documentation`_
         for examples.
     symmetric_cbar : bool | 'auto'
         Specifies whether the colorbar should range from -vmax to vmax
         or from vmin to vmax. Setting to 'auto' will select the latter if
         the range of the whole image is either positive or negative.
         Note: The colormap will always be set to range from -vmax to vmax.
+    show : bool
+        Whether to show the figure.
 
     Returns
     -------
     fig : instance of matplotlib.Figure
         The matplotlib figure.
+
+    Notes
+    -----
+    This function requires nilearn and nibabel.
+
+    .. _nilearn documentation: http://nilearn.github.io/auto_examples/01_plotting/plot_demo_glass_brain_extensive.html
     """  # noqa: E501
     from scipy import sparse
-    import nibabel as nib
-    from nilearn import plotting
     import matplotlib.pyplot as plt
-    from ..source_estimate import VolSourceEstimate
+    if has_nibabel(vox2ras_tkr=True):
+        import nibabel as nib
+    else:
+        raise ImportError('This function requires nibabel.')
+    try:
+        from nilearn import plotting
+    except ImportError:
+        raise ImportError('This function requires nilearn.')
+    from ..source_estimate import VolSourceEstimate, SourceEstimate
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    time_idx = np.argmin(np.abs(stc.times - time))
+    time_idx = np.argmin(np.abs(stc.times - initial_time))
     xfm = _read_talairach(subject, subjects_dir)
     if isinstance(stc, VolSourceEstimate):
         if fwd is None:
@@ -2561,26 +2577,28 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None, time=0.,
         affine = np.dot(xfm, img.affine)
         data = img.get_data()[:, :, :, time_idx]
         img = nib.Nifti1Image(data, affine)
-    else:
+    elif isinstance(stc, SourceEstimate):
         n_vertices = sum(len(v) for v in stc.vertices)
         offset = 0
         surf_to_mri = 0.
-        for hi, hemi in enumerate(('lh', 'rh')):
+        for hi, this_hemi in enumerate(hemi):
             ribbon = nib.load(op.join(subjects_dir, subject, 'mri',
-                                      '%s.ribbon.mgz' % hemi))
+                                      '%s.ribbon.mgz' % this_hemi))
             xfm = ribbon.header.get_vox2ras_tkr()
             mri_data = ribbon.get_data()
             ijk = np.array(np.where(mri_data)).T
             xyz = apply_trans(xfm, ijk) / 1000.
             row_ind = np.where(mri_data.ravel())[0]
             data = np.ones(row_ind.size)
-            rr = read_surface(subjects_dir + '/sample/surf/%s.white' % hemi)[0]
+            rr = read_surface(op.join(subjects_dir, subject, 'surf',
+                                      '%s.white' % this_hemi))[0]
             rr /= 1000.
             rr = rr[stc.vertices[hi]]
             col_ind = _compute_nearest(rr, xyz) + offset
             surf_to_mri = surf_to_mri + sparse.csr_matrix(
                 (data, (row_ind, col_ind)), shape=(mri_data.size, n_vertices))
             offset += len(stc.vertices[hi])
+
         data = surf_to_mri.dot(stc.data[:, time_idx])
         data.shape = mri_data.shape
         xfm = _read_talairach(subject, subjects_dir)
@@ -2588,11 +2606,15 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None, time=0.,
         affine = np.dot(xfm, ribbon.header.get_vox2ras())
         img = nib.Nifti1Image(data, affine)
 
+    else:
+        ValueError('Glass brain plotting is only supported for SourceEstimate '
+                   'and VolSourceEstimate. Got %s.' % type(stc))
     fig = plotting.plot_glass_brain(img, display_mode=display_mode,
                                     colorbar=colorbar, axes=axes, title=title,
                                     threshold=threshold, annotate=annotate,
                                     black_bg=black_bg, cmap=cmap, alpha=alpha,
                                     vmin=vmin, vmax=vmax, plot_abs=plot_abs,
                                     symmetric_cbar=symmetric_cbar)
-    plt.show()
+    if show:
+        plt.show()
     return fig

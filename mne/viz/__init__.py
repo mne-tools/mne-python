@@ -8,7 +8,8 @@ from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
                     ClickableImage, add_background_image, plot_sensors)
 from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_trans, plot_evoked_field, plot_dipole_locations,
-                  snapshot_brain_montage, plot_head_positions, plot_alignment)
+                  snapshot_brain_montage, plot_head_positions, plot_alignment,
+                  plot_glass_brain)
 from .misc import (plot_cov, plot_bem, plot_events, plot_source_spectrogram,
                    _get_presser, plot_dipole_amplitudes, plot_ideal_filter,
                    plot_filter, adjust_axes)
