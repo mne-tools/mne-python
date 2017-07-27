@@ -217,9 +217,6 @@ def test_plot_alignment():
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
-    assert_raises(ValueError, plot_trans, info=info, trans=trans_fname,
-                  subject='sample', subjects_dir=subjects_dir,
-                  source=['head'], bem=sphere)
 
 
 @testing.requires_testing_data
