@@ -16,7 +16,7 @@ from numpy.testing import assert_raises, assert_equal
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, make_sphere_model,
-                 read_source_estimate, read_forward_solution)
+                 read_source_estimate)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
@@ -386,11 +386,11 @@ def test_plot_glass_brain():
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'spm')
     # spm dataset has the ribbon.mgz.
-    plot_glass_brain(stc, 'spm', subj_dir, fwd=None, initial_time=0.)
+    plot_glass_brain(stc, 'spm', subj_dir, src=None, initial_time=0.)
 
     stc = read_source_estimate(fname_vol)  # Volume stc.
-    fwd = read_forward_solution(fwd_fname)
-    plot_glass_brain(stc, 'sample', subjects_dir, fwd=fwd)
+    src = read_source_spaces(fwd_fname)
+    plot_glass_brain(stc, 'sample', subjects_dir, src=src)
     plt.close('all')
 
 
