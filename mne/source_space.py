@@ -188,6 +188,7 @@ class SourceSpaces(list):
         return src
 
     def __iadd__(self, other):
+        """Combine source spaces."""
         return self.__add__(other)
 
     def copy(self):

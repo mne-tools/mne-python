@@ -362,8 +362,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     forward, loose = _check_loose(forward, loose)
     if loose == 0.0 and all([src['type'] == 'surf'
                             for src in forward['src']]):
-        forward = convert_forward_solution(
-            forward, surf_ori=True, force_fixed=True)
+        from ..forward import _to_fixed_ori
+        forward = _to_fixed_ori(forward.copy())
         loose = None
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
@@ -587,8 +587,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     forward, loose = _check_loose(forward, loose)
     if loose == 0.0 and all([src['type'] == 'surf'
                             for src in forward['src']]):
-        forward = convert_forward_solution(
-            forward, surf_ori=True, force_fixed=True)
+        from ..forward import _to_fixed_ori
+        forward = _to_fixed_ori(forward.copy())
         loose = None
 
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
