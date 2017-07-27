@@ -42,7 +42,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         The epochs.
     picks : int | array-like of int | None
         The indices of the channels to consider. If None and `combine` is
-        None, the first five good channels are plotted.
+        also None, the first five good channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
@@ -305,7 +305,7 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
 
     if combine is None:
         if epochs.preload is False:
-            epochs = epochs.copy().load_data()
+            epochs = epochs.copy().load_data()  # FIXME: avoid copy
         for pick, ch_type in zip(all_picks, all_ch_types):
             name = epochs.ch_names[pick]
             these_epochs = epochs.copy().pick_channels([name])

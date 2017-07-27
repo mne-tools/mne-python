@@ -1352,13 +1352,19 @@ def _parametric_ci(arr, ci=.95):
                        for mean_, sigma_ in zip(mean, sigma)]).T
 
 
-def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000):
+def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, statfun='mean'):
     """Get confidence intervals from non-parametric bootstrap."""
+    if statfun == "mean":
+        statfun = lambda x: x.mean(axis=0)  # noqa
+    elif statfun == 'median':
+        statfun = lambda x: np.median(x, axis=0)  # noqa
+    elif not callable(statfun):
+        raise ValueError("statfun must be 'mean', 'median' or callable.")
     ntrials, ntimes = arr.shape
-    indices = np.arange(ntrials, dtype=int)
+    indices = np.arange(ntrials, dtype=int)  # BCA would be cool to have too
     boot_indices = np.random.choice(indices, replace=True,
                                     size=(ntrials, len(indices)))
-    stat = np.array([arr[inds].mean(axis=0) for inds in boot_indices])
+    stat = np.array([statfun(arr[inds]) for inds in boot_indices])
     ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
     ci_low, ci_up = np.percentile(stat, ci, axis=0)
     return np.array([ci_up, ci_low])
@@ -1496,16 +1502,16 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         at which to plot dashed vertical lines.
     ci : float | callable | None
         If not None and `evokeds` is a [list/dict] of lists, a shaded
-        confidence interval is drawn around the individual time series.
-        If float, a naive bootstrap is used to estimate the confidence
-        interval and this value determines the CI width. E.g., if this value
-        is .95 (the default), the 95% parametric confidence interval is drawn.
-        If a callable, must take as its single argument an array
-        (observations x times) and return the upper and lower confidence bands
+        confidence interval is drawn around the individual time series. If
+        float, a percentile bootstrap method is used to estimate the confidence
+        interval and this value determines the CI width. E.g., if this value is
+        .95 (the default), the 95% parametric confidence interval is drawn. If
+        a callable, must take as its single argument an array
+        (observations x times) and return the upper and lower confidence bands.
         If None, no confidence band is plotted.
     truncate_yaxis : bool
-        If True, the left y axis is truncated to half the max value and
-        rounded to .25 to reduce visual clutter. Defaults to True.
+        If True, the left y axis is truncated to half the max absolute value
+        and rounded to .25 to reduce visual clutter. Defaults to False.
     truncate_xaxis : bool
         If True, the x axis is truncated to span from the first to the last.
         xtick. Defaults to True.
