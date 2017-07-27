@@ -15,16 +15,18 @@ import numpy as np
 from numpy.testing import assert_raises, assert_equal
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
-                 read_trans, read_dipole, SourceEstimate, make_sphere_model)
+                 read_trans, read_dipole, SourceEstimate, make_sphere_model,
+                 read_source_estimate, read_forward_solution)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, snapshot_brain_montage, plot_head_positions,
-                     plot_alignment)
+                     plot_alignment, plot_glass_brain)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab, _TempDir, requires_nibabel, check_version)
-from mne.datasets import testing
+                       _import_mlab, _TempDir, requires_nibabel, check_version,
+                       requires_nilearn)
+from mne.datasets import testing, spm_face
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
 
@@ -40,6 +42,10 @@ trans_fname = op.join(data_dir, 'MEG', 'sample',
 src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
 dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
+fwd_fname = op.join(data_dir, 'MEG', 'sample',
+                    'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_vol = op.join(data_dir, 'MEG', 'sample',
+                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
 
 io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
@@ -360,6 +366,32 @@ def test_snapshot_brain_montage():
 
     # Make sure we raise error if the figure has no scene
     assert_raises(TypeError, snapshot_brain_montage, fig, info)
+
+
+@requires_nilearn
+@spm_face.requires_spm_data
+@testing.requires_testing_data
+@requires_nibabel()
+def test_plot_glass_brain():
+    """Test plotting stc with nilearn."""
+    import matplotlib.pyplot as plt
+    subj_dir = op.join(spm_face.data_path(), 'subjects')
+    src_fname = op.join(spm_face.data_path(), 'subjects', 'spm', 'bem',
+                        'spm-oct-6-src.fif')
+    sample_src = read_source_spaces(src_fname)
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.ones((n_verts * n_time))
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1, 'spm')
+    # spm dataset has the ribbon.mgz.
+    plot_glass_brain(stc, 'spm', subj_dir, fwd=None, initial_time=0.)
+
+    stc = read_source_estimate(fname_vol)  # Volume stc.
+    fwd = read_forward_solution(fwd_fname)
+    plot_glass_brain(stc, 'sample', subjects_dir, fwd=fwd)
+    plt.close('all')
 
 
 run_tests_if_main()
