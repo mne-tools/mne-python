@@ -291,8 +291,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     elif ext in ('.loc', '.locs', '.eloc'):
         ch_names_ = np.loadtxt(fname, dtype='S4',
                                usecols=[3]).astype(str).tolist()
-        dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
-        topo = np.loadtxt(fname, dtype=dtype, usecols=[1, 2])
+        topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
         sph = _topo_to_sph(topo)
         pos = _sph_to_cart(sph)
         pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
