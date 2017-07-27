@@ -304,7 +304,8 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
     tmin = epochs.times[0]
 
     if combine is None:
-        epochs = epochs.copy().load_data()
+        if epochs.preload is False:
+            epochs = epochs.copy().load_data()
         for pick, ch_type in zip(all_picks, all_ch_types):
             name = epochs.ch_names[pick]
             these_epochs = epochs.copy().pick_channels([name])
