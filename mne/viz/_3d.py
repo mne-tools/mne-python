@@ -2472,8 +2472,8 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None,
                      initial_time=0., hemi=['lh', 'rh'], display_mode='ortho',
                      colorbar=False, axes=None, title=None, threshold='auto',
                      annotate=True, black_bg=False, cmap=None, alpha=0.7,
-                     vmin=None, vmax=None, plot_abs=True,
-                     symmetric_cbar="auto", show=True):
+                     vmax=None, plot_abs=True, symmetric_cbar="auto",
+                     show=True):
     """Plot stc on glass brain.
 
     Parameters
@@ -2553,7 +2553,6 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None,
     .. _nilearn documentation: http://nilearn.github.io/auto_examples/01_plotting/plot_demo_glass_brain_extensive.html
     """  # noqa: E501
     from scipy import sparse
-    import matplotlib.pyplot as plt
     if has_nibabel(vox2ras_tkr=True):
         import nibabel as nib
     else:
@@ -2613,8 +2612,7 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None,
                                     colorbar=colorbar, axes=axes, title=title,
                                     threshold=threshold, annotate=annotate,
                                     black_bg=black_bg, cmap=cmap, alpha=alpha,
-                                    vmin=vmin, vmax=vmax, plot_abs=plot_abs,
+                                    vmax=vmax, plot_abs=plot_abs,
                                     symmetric_cbar=symmetric_cbar)
-    if show:
-        plt.show()
+    plt_show(show)
     return fig
