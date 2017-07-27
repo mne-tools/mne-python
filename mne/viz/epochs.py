@@ -33,7 +33,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None, fig=None,
                       axes=None, overlay_times=None, combine=None,
-                      groupby=None, evoked=True, ts_args=dict()):
+                      group_by=None, evoked=True, ts_args=dict()):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -97,9 +97,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Must be of length three if colorbar is True (with the last list element
         being the colorbar axes) or two if colorbar is False. If both fig and
         axes are passed, an error is raised.
-        If `groupby` is a dict, this cannot be a list, but it can be a dict of
-        lists of axes, with the keys matching those of `groupby`. In that case,
-        the provided axes will be used for the corresponding groups.
+        If `group_by` is a dict, this cannot be a list, but it can be a dict of
+        lists of axes, with the keys matching those of `group_by`. In that
+        case, the provided axes will be used for the corresponding groups.
         Defaults to None.
     overlay_times : array-like, shape (n_epochs,) | None
         If not None the parameter is interpreted as time instants in seconds
@@ -120,7 +120,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
         Defaults to None if picks are given, otherwise 'gfp'.
 
-    groupby : None | str | dict
+    group_by : None | str | dict
         If not None, combining happens over channel groups defined by this
         parameter.
         If str, must be "type", in which case one figure per channel type is
@@ -130,7 +130,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         will become plot titles. This is useful for e.g. ROIs. Each entry must
         contain only one channel type. For example:
 
-           `groupby=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])`
+           `group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])`
 
         If not None, combine must not be None. Defaults to None if picks are
         given, otherwise 'type'.
@@ -151,17 +151,17 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     scalings = _handle_default('scalings', scalings)
 
     # setting defaults
-    if groupby is not None and combine is None:
+    if group_by is not None and combine is None:
         combine = 'gfp'
 
-    if all(param is None for param in (groupby, picks, combine)):
-        groupby = "type"
+    if all(param is None for param in (group_by, picks, combine)):
+        group_by = "type"
         combine = "gfp"
 
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
-        if groupby is None:
+        if group_by is None:
             picks = picks[:5]  # take 5 picks to prevent spawning many figs
     else:
         picks = np.atleast_1d(picks)
@@ -176,9 +176,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         raise ValueError('Scalings and units must have the same keys.')
 
     ch_types = [channel_type(epochs.info, idx) for idx in picks]
-    if len(set(ch_types)) > 1 and groupby is None and combine is not None:
+    if len(set(ch_types)) > 1 and group_by is None and combine is not None:
         warn("Combining over multiple channel types. "
-             "Please use `groupby`.")
+             "Please use `group_by`.")
     for ch_type in ch_types:
         if ch_type not in scalings:
             # We know it's not in either scalings or units since keys match
@@ -186,26 +186,27 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     if isinstance(axes, dict):
         show = False
-        if not isinstance(groupby, dict):
-            raise ValueError("If axes is a dict, groupby must be a dict, "
-                             "got " + str(type(groupby)))
+        if not isinstance(group_by, dict):
+            raise ValueError("If axes is a dict, group_by must be a dict, "
+                             "got " + str(type(group_by)))
     else:
-        if axes is not None and isinstance(groupby, dict):
-            raise ValueError("If groupby is a dict, axes must be a dict or "
-                             "None, got " + str(type(groupby)))
-    if isinstance(groupby, dict) and combine is None:
-        raise ValueError("If `groupby` is a dict, `combine` must not be None.")
+        if axes is not None and isinstance(group_by, dict):
+            raise ValueError("If group_by is a dict, axes must be a dict or "
+                             "None, got " + str(type(group_by)))
+    if isinstance(group_by, dict) and combine is None:
+        raise ValueError("If `group_by` is a dict, `combine` must not be "
+                         "None.")
 
     # call helpers to prepare the plot
     # First, we collect groupings of picks and types in two lists
-    # (all_picks, all_ch_types, names) -> groupby.
+    # (all_picks, all_ch_types, names) -> group_by.
     # Then, we construct a list of the corresponding data, names and evokeds
     # (groups) -> combine.
     # Then, we loop over this list and plot using _plot_epochs_image.
 
-    # groupby
+    # group_by
     all_picks, all_ch_types, names = _get_picks_and_types(
-        picks, ch_types, groupby, combine)
+        picks, ch_types, group_by, combine)
     # all_picks is a list of lists of ints (picks); those lists will
     # be length 1 if combine is None, else of length > 1.
 
@@ -235,7 +236,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 if this_ymin < ylims[ch_type][0]:
                     ylims[ch_type][0] = this_vmin
                 if this_vmax > ylims[ch_type][1]:
-                    ylims[ch_type][0] = this_vmax
+                    ylims[ch_type][1] = this_vmax
 
     # plot
     figs = list()
@@ -259,41 +260,40 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     return figs
 
 
-def _get_picks_and_types(picks, ch_types, groupby, combine):
+def _get_picks_and_types(picks, ch_types, group_by, combine):
     """Pack picks and types into a list. Helper for plot_epochs_image."""
-    if groupby is None:
+    if group_by is None:
         if combine is not None:
             picks = [picks]
         return picks, ch_types, ch_types
+    elif group_by == "type":
+        all_picks, all_ch_types = list(), list()
+        for this_type in set(ch_types):
+            these_picks = picks[np.array(ch_types) == this_type]
+            all_picks.append(these_picks)
+            all_ch_types.append(this_type)
+        names = all_ch_types  # only differs for dict group_by
+    elif isinstance(group_by, dict):
+        names = list(group_by.keys())
+        all_picks = [group_by[name] for name in names]
+        for name, picks_ in group_by.items():
+            n_picks = len(picks_)
+            if n_picks < 2:
+                raise ValueError(" ".join(
+                    (name, "has only ", str(n_picks), "sensors.")))
+        all_ch_types = list()
+        for picks_, name in zip(all_picks, names):
+            this_ch_type = list(set((ch_types[pick] for pick in picks_)))
+            n_types = len(this_ch_type)
+            if n_types > 1:  # we can only scale properly with 1 type
+                raise ValueError(
+                    "Roi {} contains {} sensor types!".format(
+                        name, n_types))
+            all_ch_types.append(this_ch_type[0])
+            names.append(name)
     else:
-        if groupby == "type":
-            all_picks, all_ch_types = list(), list()
-            for this_type in set(ch_types):
-                these_picks = picks[np.array(ch_types) == this_type]
-                all_picks.append(these_picks)
-                all_ch_types.append(this_type)
-            names = all_ch_types  # only differs for dict groupby
-        elif isinstance(groupby, dict):
-            names = list(groupby.keys())
-            all_picks = [groupby[name] for name in names]
-            for name, picks_ in groupby.items():
-                n_picks = len(picks_)
-                if n_picks < 2:
-                    raise ValueError(" ".join(
-                        (name, "has only ", str(n_picks), "sensors.")))
-            all_ch_types = list()
-            for picks_, name in zip(all_picks, names):
-                this_ch_type = list(set((ch_types[pick] for pick in picks_)))
-                n_types = len(this_ch_type)
-                if n_types > 1:  # we can only scale properly with 1 type
-                    raise ValueError(
-                        "Roi {} contains {} sensor types!".format(
-                            name, n_types))
-                all_ch_types.append(this_ch_type[0])
-                names.append(name)
-        else:
-            raise ValueError("If `groupby` is not None, it must be a dict "
-                             "or 'type', got " + type(groupby))
+        raise ValueError("If `group_by` is not None, it must be a dict "
+                         "or 'type', got " + type(group_by))
     return all_picks, all_ch_types, names  # all_picks is a list of lists
 
 
@@ -305,51 +305,53 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
 
     if combine is None:
         epochs = epochs.copy().load_data()
-        for pick, ch_type, _ in zip(all_picks, all_ch_types, names):
+        for pick, ch_type in zip(all_picks, all_ch_types):
             name = epochs.ch_names[pick]
             these_epochs = epochs.copy().pick_channels([name])
             to_plot_list.append([these_epochs, ch_type, name, name])
-    else:
-        from .. import EpochsArray, pick_info
-        data = epochs.get_data()
-        type2name = {"eeg": "EEG", "grad": "Gradiometers",
-                     "mag": "Magnetometers"}
-        combine_title = (" (" + combine + ")"
-                         if isinstance(combine, string_types) else "")
-        if combine == "gfp":
-            combine = lambda data: np.sqrt((data * data).mean(axis=1))  # noqa
-        elif combine == "mean":
-            combine = lambda data: np.mean(data, axis=1)  # noqa
-        elif combine == "std":
-            combine = lambda data: np.std(data, axis=1)  # noqa
-        elif combine == "median":
-            combine = lambda data: np.median(data, axis=1)  # noqa
-        elif not callable(combine):
-            raise ValueError(
-                "`combine` must be None, a callable or one out of 'mean' "
-                "or 'gfp'. Got " + str(type(combine)))
-        for ch_type, picks_, name in zip(all_ch_types, all_picks, names):
-            if len(np.atleast_1d(picks_)) < 2:
-                raise ValueError("Cannot combine over only one sensor. "
-                                 "Consider using different values for "
-                                 "`picks` and/or `groupby`.")
-            if ch_type == "grad":
-                def pair_and_combine(data):
-                    data = data ** 2
-                    data = (data[:, ::2, :] + data[:, 1::2, :]) / 2
-                    return combine(np.sqrt(data))
-                picks_ = _grad_pair_pick_and_name(epochs.info, picks_)[0]
-                this_data = pair_and_combine(
-                    data[:, picks_, :])[:, np.newaxis, :]
-            else:
-                this_data = combine(
-                    data[:, picks_, :])[:, np.newaxis, :]
-            info = pick_info(epochs.info, [picks_[0]], copy=True)
-            these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
-            d = these_epochs.get_data()  # Why is this necessary?
-            d[:] = this_data  # Without this, the data is all-zeros!
-            to_plot_list.append([these_epochs, ch_type, name,
-                                 type2name.get(name, name) + combine_title])
+        return to_plot_list
+    
+    # if combine is not None ...
+    from .. import EpochsArray, pick_info
+    data = epochs.get_data()
+    type2name = {"eeg": "EEG", "grad": "Gradiometers",
+                 "mag": "Magnetometers"}
+    combine_title = (" (" + combine + ")"
+                     if isinstance(combine, string_types) else "")
+    if combine == "gfp":
+        combine = lambda data: np.sqrt((data * data).mean(axis=1))  # noqa
+    elif combine == "mean":
+        combine = lambda data: np.mean(data, axis=1)  # noqa
+    elif combine == "std":
+        combine = lambda data: np.std(data, axis=1)  # noqa
+    elif combine == "median":
+        combine = lambda data: np.median(data, axis=1)  # noqa
+    elif not callable(combine):
+        raise ValueError(
+            "`combine` must be None, a callable or one out of 'mean' "
+            "or 'gfp'. Got " + str(type(combine)))
+    for ch_type, picks_, name in zip(all_ch_types, all_picks, names):
+        if len(np.atleast_1d(picks_)) < 2:
+            raise ValueError("Cannot combine over only one sensor. "
+                             "Consider using different values for "
+                             "`picks` and/or `group_by`.")
+        if ch_type == "grad":
+            def pair_and_combine(data):
+                data = data ** 2
+                data = (data[:, ::2, :] + data[:, 1::2, :]) / 2
+                return combine(np.sqrt(data))
+            picks_ = _grad_pair_pick_and_name(epochs.info, picks_)[0]
+            this_data = pair_and_combine(
+                data[:, picks_, :])[:, np.newaxis, :]
+        else:
+            this_data = combine(
+                data[:, picks_, :])[:, np.newaxis, :]
+        info = pick_info(epochs.info, [picks_[0]], copy=True)
+        these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
+        d = these_epochs.get_data()  # Why is this necessary?
+        d[:] = this_data  # Without this, the data is all-zeros!
+        to_plot_list.append([these_epochs, ch_type, name,
+                             type2name.get(name, name) + combine_title])
 
     return to_plot_list  # epochs, ch_type, name, axtitle
 
@@ -380,7 +382,7 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
     if callable(order):
         order = order(epochs.times, data)
     if order is not None and (len(order) != n_epochs):
-        raise ValueError(("`order` must be None, callable or an array as long"
+        raise ValueError(("`order` must be None, callable or an array as long "
                           "as the data. Got " + str(type(order))))
 
     if order is not None:
@@ -419,7 +421,20 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
     import matplotlib.pyplot as plt
     # prepare fig and axes
     axes_dict = dict()
-    if axes is not None:
+    if axes is None:
+        if fig is None:
+            fig = plt.figure()
+        plt.figure(fig.number)
+        axes_dict["image"] = plt.subplot2grid(
+            (3, 10), (0, 0), colspan=9 if colorbar else 10,
+            rowspan=2 if evoked else 3)
+        if evoked:
+            axes_dict["evoked"] = plt.subplot2grid(
+                (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
+        if colorbar:
+            axes_dict["colorbar"] = plt.subplot2grid((3, 10), (0, 9),
+                                                     colspan=1, rowspan=3)
+    else:
         if fig is not None:
             raise ValueError('Both figure and axes were passed, please'
                              'only pass one of these.')
@@ -433,19 +448,6 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
         fig = axes_dict["image"].get_figure()
         if colorbar:
             axes_dict["colorbar"] = axes[-1]
-    else:
-        if fig is None:
-            fig = plt.figure()
-        plt.figure(fig.number)
-        axes_dict["image"] = plt.subplot2grid(
-            (3, 10), (0, 0), colspan=9 if colorbar else 10,
-            rowspan=2 if evoked else 3)
-        if evoked:
-            axes_dict["evoked"] = plt.subplot2grid(
-                (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
-        if colorbar:
-            axes_dict["colorbar"] = plt.subplot2grid((3, 10), (0, 9),
-                                                     colspan=1, rowspan=3)
     return axes_dict
 
 
