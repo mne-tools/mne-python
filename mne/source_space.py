@@ -131,19 +131,23 @@ class SourceSpaces(list):
         if brain is None:
             brain = 'white' if any(ss['type'] == 'surf'
                                    for ss in self) else False
-        if isinstance(brain, str):
+        if isinstance(brain, string_types):
             surfaces.append(brain)
         elif brain:
             surfaces.append('brain')
         if skull is None:
             skull = False if self.kind == 'surface' else True
-        if isinstance(skull, str):
+        if isinstance(skull, string_types):
             surfaces.append(skull)
         elif skull is True:
             surfaces.append('outer_skull')
         elif skull is not False:  # list
             if isinstance(skull[0], dict):  # bem
-                surfaces.append('inner_skull', 'outer_skull', 'outer_skin')
+                skull_map = {FIFF.FIFFV_BEM_SURF_ID_BRAIN: 'inner_skull',
+                             FIFF.FIFFV_BEM_SURF_ID_SKULL: 'outer_skull',
+                             FIFF.FIFFV_BEM_SURF_ID_HEAD: 'outer_skin'}
+                for this_skull in skull:
+                    surfaces.append(skull_map[this_skull['id']])
                 bem = skull
             else:  # list of str
                 for surf in skull:

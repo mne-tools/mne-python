@@ -27,8 +27,10 @@ raw = mne.io.read_raw_fif(raw_fname)
 
 ###############################################################################
 # :func:`mne.viz.plot_alignment` is a very useful function for inspecting
-# the surface alignment before source analysis. The function automatically
-# looks for the Freesurfer surfaces from the subject's folder.
+# the surface alignment before source analysis. If the ``subjects_dir`` and
+# ``subject`` parameters are provided, the function automatically looks for the
+# Freesurfer surfaces from the subject's folder. Here we use trans=None, which
+# (incorrectly!) equates the MRI and head coordinate frames.
 mne.viz.plot_alignment(raw.info, trans=None, subject='sample',
                        subjects_dir=subjects_dir, surfaces=['head', 'brain'])
 

@@ -170,6 +170,8 @@ API
 
     - :func:`mne.set_eeg_reference` and the related methods :meth:`mne.io.Raw.set_eeg_reference`, :meth:`mne.io.Epochs.set_eeg_reference`, and :meth:`mne.io.Evoked.set_eeg_reference` have a new argument ``projection``, which if set to False directly applies an average reference instead of adding an SSP projector, by `Clemens Brunner`_
 
+    - Deprecate :func:`plot_trans` in favor of :func:`mne.viz.plot_alignment` and add ``bem`` parameter for plotting conductor model by `Jaakko Leppakangas`_
+
 .. _changes_0_14:
 
 Version 0.14
