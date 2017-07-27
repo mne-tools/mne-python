@@ -2468,12 +2468,11 @@ def _dipole_changed(event, params):
                  params['zooms'], params['show_all'], params['scatter_points'])
 
 
-def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None,
-                     initial_time=0., hemi=['lh', 'rh'], display_mode='ortho',
-                     colorbar=False, axes=None, title=None, threshold='auto',
-                     annotate=True, black_bg=False, cmap=None, alpha=0.7,
-                     vmax=None, plot_abs=True, symmetric_cbar="auto",
-                     show=True):
+def plot_glass_brain(stc, subject, subjects_dir=None, src=None,
+                     initial_time=0., display_mode='ortho', colorbar=False,
+                     axes=None, title=None, threshold='auto', annotate=True,
+                     black_bg=False, cmap=None, alpha=0.7, vmax=None,
+                     plot_abs=True, symmetric_cbar="auto", show=True):
     """Plot stc on glass brain.
 
     Parameters
@@ -2487,13 +2486,11 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None,
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
         The default is None.
-    fwd : instance of SourceSpace
-        The forward solution. Only needed for VolumeSourceEstimate.
+    src : instance of SourceSpace | None
+        The source space. Only needed for VolumeSourceEstimate. Has no effect
+        when using instance of SourceEstimate.
     initial_time : float
         The time instance to plot in seconds. Defaults to 0.
-    hemi : list
-        Which hemispheres to plot. Can be ['lh'], ['rh'] or both. Has no effect
-        volume source estimates.
     display_mode : string
         Choose the direction of the cuts: 'x' - sagittal, 'y' - coronal,
         'z' - axial, 'l' - sagittal left hemisphere only,
@@ -2568,10 +2565,9 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None,
     time_idx = np.argmin(np.abs(stc.times - initial_time))
     xfm = _read_talairach(subject, subjects_dir)
     if isinstance(stc, VolSourceEstimate):
-        if fwd is None:
-            raise ValueError('fwd cannot be None when plotting volume source '
+        if src is None:
+            raise ValueError('src cannot be None when plotting volume source '
                              'estimate.')
-        src = fwd['src']
         img = stc.as_volume(src)
         affine = np.dot(xfm, img.affine)
         data = img.get_data()[:, :, :, time_idx]
@@ -2580,9 +2576,9 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None,
         n_vertices = sum(len(v) for v in stc.vertices)
         offset = 0
         surf_to_mri = 0.
-        for hi, this_hemi in enumerate(hemi):
+        for hi, hemi in enumerate(['lh', 'rh']):
             ribbon = nib.load(op.join(subjects_dir, subject, 'mri',
-                                      '%s.ribbon.mgz' % this_hemi))
+                                      '%s.ribbon.mgz' % hemi))
             xfm = ribbon.header.get_vox2ras_tkr()
             mri_data = ribbon.get_data()
             ijk = np.array(np.where(mri_data)).T
@@ -2590,7 +2586,7 @@ def plot_glass_brain(stc, subject, subjects_dir=None, fwd=None,
             row_ind = np.where(mri_data.ravel())[0]
             data = np.ones(row_ind.size)
             rr = read_surface(op.join(subjects_dir, subject, 'surf',
-                                      '%s.white' % this_hemi))[0]
+                                      '%s.white' % hemi))[0]
             rr /= 1000.
             rr = rr[stc.vertices[hi]]
             col_ind = _compute_nearest(rr, xyz) + offset
