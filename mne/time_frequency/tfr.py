@@ -242,7 +242,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                     ret = _centered(ret, sz)
                 tfr[ii, this_slice] = ret[decim]
             elif mode == 'full' and not use_fft:
-                start = int(np.ceil(W.size / 2.))
+                start = (W.size + 1) // 2
                 end = len(ret) - (W.size // 2) + 1
                 ret = ret[start:end]
                 tfr[ii, :] = ret[decim]
