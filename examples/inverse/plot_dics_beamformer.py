@@ -23,7 +23,7 @@ import numpy as np
 
 from mne.datasets import sample
 from mne.time_frequency import csd_epochs
-from mne.beamformer import dics
+from mne.beamformer import make_dics, apply_dics
 
 print(__doc__)
 
@@ -65,8 +65,15 @@ noise_csd = csd_epochs(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
 
 evoked = epochs.average()
 
-# Compute DICS spatial filter and estimate source time courses on evoked data
-stc = dics(evoked, forward, noise_csd, data_csd, reg=0.05)
+# Compute DICS spatial filter
+filters = make_dics(evoked.info, forward, noise_csd, data_csd, reg=0.05)
+
+# Estimate source time courses on evoked data in a second step. Those two
+# steps, making and applying the DICS spatial filter, is equivalent to calling
+# dics() but enables the flexible use of a precomputed spatial filter on
+# data sets, for example, when comparing conditions using a common spatial
+# filter.
+stc = apply_dics(evoked, filters)
 
 plt.figure()
 ts_show = -30  # show the 40 largest responses
