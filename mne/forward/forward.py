@@ -410,6 +410,12 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
     See Also
     --------
     write_forward_solution, make_forward_solution
+
+    .. note:: Forward solutions with free orientation are always stored on disk
+              in X/Y/Z RAS coordinates. To obtain surface-oriented forward
+              operators after reading the forward solution with
+              read_forward_solution, please apply convert_forward_solution
+              with surf_ori=True.
     """
     if force_fixed is not None:
         warn('force_fixed is deprecated and will be removed in 0.16. '
@@ -778,6 +784,13 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     See Also
     --------
     read_forward_solution
+
+    .. note:: Forward solutions with free orientation are always stored on disk
+              in X/Y/Z RAS coordinates. Transformations to surface-based local
+              coordinates (surface orientation) will be inverted. To obtain
+              surface-oriented forward operators after reading the forward
+              solution with read_forward_solution, please apply
+              convert_forward_solution with surf_ori=True.
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -848,6 +861,13 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
     if (fwd['surf_ori'] is True and
             fwd['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI):
+        warn('Please note that forward solutions with free orientation are '
+             'always stored on disk in X/Y/Z RAS coordinates. The '
+             'transformation to surface-based local coordinates '
+             '(surface orientation) is inverted now. To obtain a '
+             'surface-oriented forward operator after reading the forward '
+             'solution with read_forward_solution, please apply '
+             'convert_forward_solution with surf_ori=True.', RuntimeWarning)
         inv_rot = _inv_block_diag(fwd['source_nn'].T, 3)
         sol = sol * inv_rot
         if sol_grad is not None:
