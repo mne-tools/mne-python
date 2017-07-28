@@ -8,8 +8,7 @@ from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
                     ClickableImage, add_background_image, plot_sensors)
 from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_trans, plot_evoked_field, plot_dipole_locations,
-                  snapshot_brain_montage, plot_head_positions, plot_alignment,
-                  plot_glass_brain)
+                  snapshot_brain_montage, plot_head_positions, plot_alignment)
 from .misc import (plot_cov, plot_bem, plot_events, plot_source_spectrogram,
                    _get_presser, plot_dipole_amplitudes, plot_ideal_filter,
                    plot_filter, adjust_axes)
@@ -24,3 +23,4 @@ from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
                   _plot_sources_raw, _plot_sources_epochs, plot_ica_properties)
 from .montage import plot_montage
 from .decoding import plot_gat_matrix, plot_gat_times
+from .source_estimate import plot_stc_glass_brain
