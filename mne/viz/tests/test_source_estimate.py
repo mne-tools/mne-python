@@ -1,4 +1,7 @@
+# Authors: Jaakko Leppakangas <jaeilepp@gmail.com>
+#
 # License: Simplified BSD
+
 
 import os.path as op
 import numpy as np
