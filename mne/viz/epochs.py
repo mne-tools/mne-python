@@ -844,6 +844,9 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     # Draw event lines for the first time.
     _plot_vert_lines(params)
 
+    # default key to close window
+    params['close_key'] = 'escape'
+
 
 def _prepare_projectors(params):
     """Set up the projectors for epochs browser."""

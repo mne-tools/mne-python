@@ -354,7 +354,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False,
                   group_by=group_by, orig_inds=inds.copy(), decim=decim,
-                  data_picks=data_picks, close_key='escape')
+                  data_picks=data_picks)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -868,6 +868,9 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['fig_annotation'] = None
     params['fig_help'] = None
     params['segment_line'] = None
+
+    # default key to close window
+    params['close_key'] = 'escape'
 
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
