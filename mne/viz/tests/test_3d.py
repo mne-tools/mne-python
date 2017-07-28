@@ -208,7 +208,7 @@ def test_plot_alignment():
                    subjects_dir=subjects_dir, bem=bem_sol, eeg=True,
                    surfaces=['head', 'inflated', 'outer_skull'])
     plot_alignment(info, trans_fname, subject='sample',
-                   meg=['helmet', 'sensors'], subjects_dir=subjects_dir,
+                   meg=True, subjects_dir=subjects_dir,
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
@@ -286,13 +286,14 @@ def test_stc_mpl():
     stc_data = np.ones((n_verts * n_time))
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
-    stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
-             hemi='rh', smoothing_steps=2, subject='sample',
-             backend='matplotlib', spacing='oct1', initial_time=0.001,
-             colormap='Reds')
-    fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
-                   hemi='lh', smoothing_steps=2, subject='sample',
-                   backend='matplotlib', spacing='ico2', time_viewer=True)
+    with warnings.catch_warnings(record=True):  # vertices not included
+        stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
+                 hemi='rh', smoothing_steps=2, subject='sample',
+                 backend='matplotlib', spacing='oct1', initial_time=0.001,
+                 colormap='Reds')
+        fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
+                       hemi='lh', smoothing_steps=2, subject='sample',
+                       backend='matplotlib', spacing='ico2', time_viewer=True)
     time_viewer = fig.time_viewer
     _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change time
     time_viewer.canvas.key_press_event('ctrl+right')

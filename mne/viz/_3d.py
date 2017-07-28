@@ -865,10 +865,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         .. note:: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
-    meg : str | None | list
+    meg : str | list | bool
         Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
         reference sensors respectively, or a combination like
-        ``['helmet', 'sensors']``.
+        ``['helmet', 'sensors']``. True translates to
+        ``('helmet', 'sensors', 'ref')``.
     eeg : bool | str | list
         Can be "original" (default; equivalent to True) or "projected" to
         show EEG sensors in their digitized locations or projected onto the
@@ -923,12 +924,15 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         eeg = list()
     elif eeg is True:
         eeg = 'original'
-    if isinstance(eeg, string_types):
-        eeg = [eeg]
-    if meg is None:
+    if meg is True:
+        meg = ('helmet', 'sensors', 'ref')
+    elif meg is False:
         meg = list()
     elif isinstance(meg, string_types):
         meg = [meg]
+    if isinstance(eeg, string_types):
+        eeg = [eeg]
+
     for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
         if not isinstance(var, (list, tuple)) or \
                 not all(isinstance(x, string_types) for x in var):
