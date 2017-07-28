@@ -206,17 +206,28 @@ def test_plot_alignment():
                    src=sample_src)
     plot_alignment(info, trans_fname, subject='sample', meg=[],
                    subjects_dir=subjects_dir, bem=bem_sol, eeg=True,
-                   surfaces=['head', 'inflated', 'outer_skull'])
+                   surfaces=['head', 'inflated', 'outer_skull', 'inner_skull'])
     plot_alignment(info, trans_fname, subject='sample',
                    meg=True, subjects_dir=subjects_dir,
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
-    plot_alignment(info, trans_fname, subject='sample', meg='helmet',
+    plot_alignment(info, trans_fname, subject='sample', meg=False,
                    coord_frame='mri', subjects_dir=subjects_dir,
                    surfaces=['brain'], bem=sphere)
+    # one layer bem with skull surfaces:
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
+    # wrong eeg value:
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir, eeg='foo')
+    # wrong meg value:
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir, meg='bar')
+    # multiple brain surfaces:
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=['white', 'pial'])
 
 
 @testing.requires_testing_data

@@ -955,23 +955,29 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             raise ValueError('The sphere conductor model must have three '
                              'layers for plotting skull and head.')
         is_sphere = True
-    if 'outer_skull' in surfaces or 'inner_skull' in surfaces:
+
+    # Skull:
+    skull = list()
+    if 'outer_skull' in surfaces:
         if isinstance(bem, ConductorModel) and not bem['is_sphere']:
-            skull = [_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL)]
+            skull.append(_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL))
         else:
-            skull = np.intersect1d(surfaces, ['inner_skull', 'outer_skull'])
-    else:
-        skull = list()
+            skull.append('outer_skull')
+    if 'inner_skull' in surfaces:
+        if isinstance(bem, ConductorModel) and not bem['is_sphere']:
+            skull.append(_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_BRAIN))
+        else:
+            skull.append('inner_skull')
+
+    surf_dict = _surf_dict.copy()
+    surf_dict['outer_skin'] = FIFF.FIFFV_BEM_SURF_ID_HEAD
     if len(skull) > 0 and not isinstance(skull[0], dict):  # list of str
         skull = sorted(skull)
-        if isinstance(bem, ConductorModel):
-            if not is_sphere:
-                for idx, this_skull in enumerate(skull):
-                    skull[idx] = _bem_find_surface(bem, _surf_dict[this_skull])
-        elif bem is not None:  # list of dict
+        # list of dict
+        if bem is not None and not isinstance(bem, ConductorModel):
             for idx, surf_name in enumerate(skull):
                 for this_surf in bem:
-                    if this_surf['id'] == _surf_dict[surf_name]:
+                    if this_surf['id'] == surf_dict[surf_name]:
                         skull[idx] = this_surf
                         break
                 else:
@@ -1002,11 +1008,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
 
-    head = any(['outer_skin' in surfaces, 'head' in surfaces])
-    if 'ecog_head' in surfaces:  # deprecated
-        head = (len(ecog_picks) == 0 and subject is not None)
-    if head and subject is None and bem is None:
-        raise ValueError('If head is True, subject or bem must be provided')
     if isinstance(trans, string_types):
         if trans == 'auto':
             # let's try to do this in MRI coordinates so they're easy to plot
@@ -1047,6 +1048,9 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     # both the head and helmet will be in MRI coordinates after this
     surfs = dict()
+
+    # Head:
+    head = any(['outer_skin' in surfaces, 'head' in surfaces])
     if head:
         head_surf = None
         if bem is not None:
@@ -1101,19 +1105,16 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     if 'helmet' in meg and len(meg_picks) > 0:
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
+
+    # Brain:
     brain = False
     brain_surfs = np.intersect1d(surfaces, ['brain', 'pial', 'white',
-                                            'inflated', 'ecog_brain'])
+                                            'inflated'])
     if len(brain_surfs) > 1:
         raise ValueError('Only one brain surface can be plotted. '
                          'Got %s.' % brain_surfs)
     elif len(brain_surfs) == 1:
-        if brain_surfs[0] == 'ecog_brain':  # deprecated
-            if len(ecog_picks) > 0 and subject is not None:
-                brain = 'pial'
-            else:
-                brain = False
-        elif brain_surfs[0] == 'brain':
+        if brain_surfs[0] == 'brain':
             brain = 'pial'
         else:
             brain = brain_surfs[0]
