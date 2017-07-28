@@ -152,7 +152,6 @@ class ToDataFrameMixin(object):
                 elif isinstance(self, Evoked):
                     data = self.data[picks, :]
                     times = self.times
-                    n_picks, n_times = data.shape
                 data = data.T
                 col_names = [self.ch_names[k] for k in picks]
 
@@ -168,7 +167,7 @@ class ToDataFrameMixin(object):
 
             for t in ch_types_used:
                 scaling = scalings[t]
-                idx = [picks[i] for i in range(len(picks)) if types[i] == t]
+                idx = [i for i in range(len(picks)) if types[i] == t]
                 if len(idx) > 0:
                     data[:, idx] *= scaling
         else:
