@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+# Authors: Jaakko Leppakangas <jaeilepp@gmail.com>
+#
+# License: Simplified BSD
+
 """Functions to plot source estimate data."""
 from __future__ import print_function
 
