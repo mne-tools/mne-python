@@ -1505,7 +1505,7 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
     for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
-        df = epochs.to_data_frame(index=ind)
+        df = epochs.to_data_frame(picks=[11, 12, 14], index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
         # test that non-indexed data were present as categorial variables
         assert_array_equal(sorted(df.reset_index().columns[:3]),

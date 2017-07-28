@@ -124,6 +124,8 @@ BUG
 
     - Fix default value of ``kind='topomap'`` in :meth:`mne.channels.Montage.plot` to be consistent with :func:`mne.viz.plot_montage` by `Clemens Brunner`_
 
+    - Fix bug in :meth:`to_data_frame <mne.io.Raw.to_data_frame>` where non-consecutive picks would make the function crash by `Jaakko Leppakangas`_
+
 API
 ~~~
     - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner'_, `Alex Gramfort`_, and `Denis Engemann`_.
