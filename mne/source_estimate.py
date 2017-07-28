@@ -23,7 +23,7 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc)
-from .viz import plot_source_estimates
+from .viz import plot_source_estimates, plot_stc_glass_brain
 from .io.base import ToDataFrameMixin, TimeMixin
 
 from .externals.six import string_types
@@ -962,6 +962,22 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             stcs.tmin = tmin
 
         return stcs
+
+    @copy_function_doc_to_method_doc(plot_stc_glass_brain)
+    def plot_glass_brain(self, subject, subjects_dir=None, src=None,
+                         initial_time=0., display_mode='ortho', colorbar=False,
+                         axes=None, title=None, threshold='auto',
+                         annotate=True, black_bg=False, cmap=None, alpha=0.7,
+                         vmax=None, plot_abs=True, symmetric_cbar="auto",
+                         show=True):
+        return plot_stc_glass_brain(self, subject, subjects_dir=subjects_dir,
+                                    src=src, initial_time=initial_time,
+                                    display_mode=display_mode,
+                                    colorbar=colorbar, axes=axes, title=title,
+                                    threshold=threshold, annotate=annotate,
+                                    black_bg=black_bg, cmap=cmap, alpha=alpha,
+                                    vmax=vmax, plot_abs=plot_abs,
+                                    symmetric_cbar=symmetric_cbar, show=show)
 
 
 def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,

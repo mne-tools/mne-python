@@ -87,6 +87,8 @@ Changelog
 
     - :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` now accept **fit_params at fitting by `Jean-Remi King`_
 
+    - Add :func:`mne.viz.plot_stc_glass_brain` for plotting source estimates on glass brain by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
