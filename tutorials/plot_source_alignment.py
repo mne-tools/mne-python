@@ -39,7 +39,7 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample',
 # It is quite clear that things are not well aligned for estimating the
 # sources. We need to provide the function with a transformation that aligns
 # the MRI with the MEG data. Here we use a precomputed matrix, but you can try
-# create it yourself using :func:`mne.gui.coregistration`.
+# creating it yourself using :func:`mne.gui.coregistration`.
 #
 # Aligning the data using GUI
 # ---------------------------
@@ -83,7 +83,7 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample', src=src,
 # .. note:: ``bem`` also accepts bem solutions (:func:`mne.read_bem_solution`)
 #           or a list of bem surfaces (:func:`mne.read_bem_surfaces`).
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')
-mne.viz.plot_alignment(raw.info, subject='sample', trans=None, eeg='projected',
+mne.viz.plot_alignment(raw.info, subject='sample', eeg='projected',
                        meg='helmet', bem=sphere, dig=True,
                        surfaces=['brain', 'inner_skull', 'outer_skull',
                                  'outer_skin'])

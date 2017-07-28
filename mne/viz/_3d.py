@@ -836,7 +836,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
 
 
 @verbose
-def plot_alignment(info, trans, subject=None, subjects_dir=None,
+def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    surfaces=('head',), coord_frame='head',
                    meg=('helmet', 'sensors'), eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
