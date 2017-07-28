@@ -256,7 +256,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
             data = np.genfromtxt(fname, dtype='str', skip_header=1)
         except TypeError:
             data = np.genfromtxt(fname, dtype='str', skiprows=1)
-        ch_names_ = list(data[:, 0])
+        ch_names_ = data[:, 0].tolist()
         az = np.deg2rad(data[:, 2].astype(float))
         pol = np.deg2rad(data[:, 1].astype(float))
         pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
@@ -267,7 +267,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             data = np.genfromtxt(fname, dtype='str', skiprows=2)
 
-        ch_names_ = list(data[:, 0])
+        ch_names_ = data[:, 0].tolist()
         az = np.deg2rad(data[:, 1].astype(float))
         pol = np.deg2rad(90. - data[:, 2].astype(float))
         pos = _sph_to_cart(np.array([np.ones(len(az)), az, pol]).T)
@@ -279,7 +279,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             data = np.loadtxt(fname, dtype=dtype, skiprows=1)
 
-        ch_names_ = data['f1'].astype(np.str)
+        ch_names_ = data['f1'].astype(str).tolist()
         az = data['f2']
         horiz = data['f3']
         radius = np.abs(az / 180.)
@@ -292,12 +292,11 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         dtype = [('type', 'S8'), ('name', 'S8'),
                  ('x', 'f8'), ('y', 'f8'), ('z', 'f8')]
         data = np.loadtxt(fname, dtype=dtype)
-        ch_names_ = data['name'].astype(np.str)
+        ch_names_ = data['name'].astype(str).tolist()
         pos = np.vstack((data['x'], data['y'], data['z'])).T
     elif ext in ('.loc', '.locs', '.eloc'):
         ch_names_ = np.loadtxt(fname, dtype='S4',
-                               usecols=[3]).astype(np.str).tolist()
-        dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
+                               usecols=[3]).astype(str).tolist()
         topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
         sph = _topo_to_sph(topo)
         pos = _sph_to_cart(sph)
@@ -352,8 +351,6 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         sel = list(sel)
         pos = pos[sel]
         selection = selection[sel]
-    else:
-        ch_names_ = list(ch_names_)
     kind = op.split(kind)[-1]
     return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection)
 
