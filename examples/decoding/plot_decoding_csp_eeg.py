@@ -101,14 +101,9 @@ print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
 
-evoked = epochs.average()
-evoked.data = csp.patterns_.T
-evoked.times = np.arange(evoked.data.shape[0])
-
 layout = read_layout('EEG1005')
-evoked.plot_topomap(times=[0, 1, 2, 3, 4, 5], ch_type='eeg', layout=layout,
-                    scale_time=1, time_format='%i', scale=1,
-                    unit='Patterns (AU)', size=1.5)
+csp.plot_patterns(epochs.info, layout=layout, ch_type='eeg', scale=10,
+                  unit='Patterns (AU)', size=1.5)
 
 ###############################################################################
 # Look at performance over time
