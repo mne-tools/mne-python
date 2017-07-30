@@ -283,6 +283,9 @@ def make_ad_hoc_cov(info, verbose=None):
 
     Notes
     -----
+    This uses values of 5 fT/cm, 20 fT, and 0.2 uV for gradiometers,
+    magnetometers, and EEG channels, respectively.
+
     .. versionadded:: 0.9.0
     """
     picks = pick_types(info, meg=True, eeg=True, exclude=())
@@ -1548,7 +1551,7 @@ def _regularized_covariance(data, reg=None):
 
 @verbose
 def compute_whitener(noise_cov, info, picks=None, rank=None,
-                     scalings=None, verbose=None):
+                     scalings=None, return_rank=False, verbose=None):
     """Compute whitening matrix.
 
     Parameters
@@ -1568,6 +1571,10 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     scalings : dict | None
         The rescaling method to be applied. See documentation of
         ``prepare_noise_cov`` for details.
+    return_rank : bool
+        If True, return the rank used to compute the whitener.
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1602,7 +1609,10 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     #
     W = np.dot(W, noise_cov['eigvec'])
     W = np.dot(noise_cov['eigvec'].T, W)
-    return W, ch_names
+    out = W, ch_names
+    if return_rank:
+        out += (nzero.sum(),)
+    return out
 
 
 @verbose
@@ -1647,7 +1657,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
     if picks is None:
         picks = pick_types(evoked.info, meg=True, eeg=True)
     W = _get_whitener_data(evoked.info, noise_cov, picks,
-                           diag=diag, rank=rank, scalings=scalings)
+                           diag=diag, rank=rank, scalings=scalings)[0]
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
 
@@ -1669,9 +1679,9 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
     scalings = _handle_default('scalings_cov_rank', scalings)
-    W = compute_whitener(noise_cov, info, picks=picks, rank=rank,
-                         scalings=scalings)[0]
-    return W
+    W, _, rank = compute_whitener(noise_cov, info, picks=picks, rank=rank,
+                                  scalings=scalings, return_rank=True)
+    return W, rank
 
 
 @verbose

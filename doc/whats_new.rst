@@ -75,6 +75,8 @@ Changelog
 
     - Add option for embedding SVG instead of PNG in HTML for :class:`mne.Report` by `Eric Larson`_
 
+    - Add confidence intervals, number of free parameters, and χ² to :func:`mne.fit_dipole` and :func:`mne.read_dipole` by `Eric Larson`_
+
 BUG
 ~~~
 
