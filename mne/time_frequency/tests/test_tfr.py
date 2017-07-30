@@ -290,6 +290,11 @@ def test_tfr_multitaper():
 
     print(power_evoked)  # test repr for EpochsTFR
 
+    # Test channel picking
+    power_epochs_picked = power_epochs.copy().drop_channels(['SIM0002'])
+    assert_equal(power_epochs_picked.data.shape, (3, 1, 7, 200))
+    assert_equal(power_epochs_picked.ch_names, ['SIM0001'])
+
     assert_raises(ValueError, tfr_multitaper, epochs,
                   freqs=freqs, n_cycles=freqs / 2.,
                   return_itc=True, average=False)

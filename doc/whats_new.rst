@@ -126,6 +126,8 @@ BUG
 
     - Fix bug in :meth:`to_data_frame <mne.io.Raw.to_data_frame>` where non-consecutive picks would make the function crash by `Jaakko Leppakangas`_
 
+    - Fix channel picking and drop in :class:`mne.time_frequency.EpochsTFR` by `Lukáš Hejtmánek`_
+
 API
 ~~~
     - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner'_, `Alex Gramfort`_, and `Denis Engemann`_.
@@ -2215,3 +2217,5 @@ of commits):
 .. _ramonapariciog: https://github.com/ramonapariciog
 
 .. _Britta Westner: https://github.com/britta-wstnr
+
+.. _Lukáš Hejtmánek: https://github.com/hejtmy
