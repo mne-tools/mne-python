@@ -968,12 +968,14 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 for tt in t:
                     xs += [tt, tt, np.nan]
                     ys += [0, ylim[0], np.nan]
-                    params['ax'].text(tt, 0, ev_num, fontsize=6, ha='center')
                 line.set_xdata(xs)
                 line.set_ydata(ys)
             else:
                 line.set_xdata([])
                 line.set_ydata([])
+        for ev_time, ev_num in zip(event_times, event_nums):
+            if -1 in event_color or ev_num in event_color:
+                params['ax'].text(ev_time, 0, ev_num, fontsize=6, ha='center')
 
     if 'segments' in params:
         while len(params['ax'].collections) > 0:
