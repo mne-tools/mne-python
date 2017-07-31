@@ -411,11 +411,12 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
     --------
     write_forward_solution, make_forward_solution
 
-    .. note:: Forward solutions with free orientation are always stored on disk
-              in X/Y/Z RAS coordinates. To obtain surface-oriented forward
-              operators after reading the forward solution with
-              read_forward_solution, please apply convert_forward_solution
-              with surf_ori=True.
+    Notes
+    -----
+    Forward solutions with free orientation are always stored on disk in
+    X/Y/Z RAS coordinates. To obtain surface-oriented forward operators after
+    reading the forward solution with :func:`read_forward_solution`, please
+    apply :func:`convert_forward_solution` with surf_ori=True.
     """
     if force_fixed is not None:
         warn('force_fixed is deprecated and will be removed in 0.16. '
@@ -785,12 +786,14 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     --------
     read_forward_solution
 
-    .. note:: Forward solutions with free orientation are always stored on disk
-              in X/Y/Z RAS coordinates. Transformations to surface-based local
-              coordinates (surface orientation) will be inverted. To obtain
-              surface-oriented forward operators after reading the forward
-              solution with read_forward_solution, please apply
-              convert_forward_solution with surf_ori=True.
+    Notes
+    -----
+    Forward solutions with free orientation are always stored on disk in X/Y/Z
+    RAS coordinates. Transformations to surface-based local coordinates
+    (surface orientation) will be inverted. To obtain surface-oriented forward
+    operators after reading the forward solution with
+    :func:`read_forward_solution`, please apply
+    :func:`convert_forward_solution` with surf_ori=True.
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 

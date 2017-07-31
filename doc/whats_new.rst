@@ -107,6 +107,7 @@ Changelog
 
     - Add filtering functions :meth:`mne.Epochs.filter` and :meth:`mne.Evoked.filter`, as well as ``pad`` argument to :meth:`mne.io.Raw.filter`` by `Eric Larson`_
 
+
 BUG
 ~~~
 
@@ -233,6 +234,11 @@ API
     - The keyword argument ``frequencies`` has been deprecated in favor of ``freqs`` in various time-frequency functions, e.g. :func:`mne.time_frequency.tfr.tfr_array_morlet`, by `Eric Larson`_
 
     - Add ``patterns=False`` parameter in :class:`mne.decoding.ReceptiveField`. Turn on to compute inverse model coefficients, by `Nicolas Barascud`_
+
+    - Deprecate force_fixed and surf_ori in :func:`mne.forward.read_forward_solution` by `Daniel Strohmeier`_
+
+    - :func:`mne.forward.convert_forward_solution` has a new argument ``use_cps``, which controls wether information on cortical patch statistics is applied while generating surface-oriented forward solutions with free and fixed orientation by `Daniel Strohmeier`_
+
 
 .. _changes_0_14:
 
