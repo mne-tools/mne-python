@@ -54,6 +54,7 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample',
 #   clicking the corresponding point in the image.
 # * After doing this for all the landmarks, toggle ``Lock`` radio button. You
 #   can omit outlier points, so that they don't interfere with the finetuning.
+#
 #   .. note:: You can save the fiducials to a file and pass
 #             ``mri_fiducials=True`` to plot them in
 #             :func:`mne.viz.plot_alignment`. The fiducials are saved to the
