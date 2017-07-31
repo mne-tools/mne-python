@@ -130,5 +130,5 @@ stc = apply_inverse(contrast, inverse_operator, lambda2, method, pick_ori=None)
 
 # Plot contrast in 3D with PySurfer if available
 brain = stc.plot(hemi='both', subjects_dir=subjects_dir, initial_time=0.170,
-                 views=['ven'])
+                 views=['ven'], clim={'kind': 'value', 'lims': [3., 5.5, 9.]})
 # brain.save_image('dSPM_map.png')
