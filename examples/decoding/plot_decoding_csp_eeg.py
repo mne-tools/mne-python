@@ -35,6 +35,7 @@ from mne.channels import read_layout
 from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
 from mne.decoding import CSP
+from mne.utils import LooseVersion
 
 print(__doc__)
 
@@ -74,8 +75,17 @@ labels = epochs.events[:, -1] - 2
 ###############################################################################
 # Classification with linear discrimant analysis
 
-from sklearn.lda import LDA  # noqa
-from sklearn.cross_validation import ShuffleSplit  # noqa
+# Some of these functions are deprecated in newer versions of scikit-learn and
+# the correct module depends on the version installed on your computer.
+import sklearn  # noqa
+from sklearn.pipeline import Pipeline  # noqa
+if LooseVersion(sklearn.__version__) < LooseVersion('0.18'):
+    from sklearn.lda import LDA
+    from sklearn.cross_validation import ShuffleSplit, cross_val_score
+else:
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+    from sklearn.model_selection import ShuffleSplit, cross_val_score
+
 
 # Assemble a classifier
 lda = LDA()
@@ -88,8 +98,6 @@ epochs_data = epochs.get_data()
 epochs_data_train = epochs_train.get_data()
 
 # Use scikit-learn Pipeline with cross_val_score function
-from sklearn.pipeline import Pipeline  # noqa
-from sklearn.cross_validation import cross_val_score  # noqa
 clf = Pipeline([('CSP', csp), ('LDA', lda)])
 scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
 
