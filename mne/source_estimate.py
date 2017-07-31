@@ -647,7 +647,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     def __add__(self, a):
         """Add source estimates."""
-        stc = copy.deepcopy(self)
+        stc = self.copy()
         stc += a
         return stc
 
@@ -679,7 +679,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     def __sub__(self, a):
         """Subtract source estimates."""
-        stc = copy.deepcopy(self)
+        stc = self.copy()
         stc -= a
         return stc
 
@@ -697,7 +697,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     def __div__(self, a):  # noqa: D105
         """Divide source estimates."""
-        stc = copy.deepcopy(self)
+        stc = self.copy()
         stc /= a
         return stc
 
@@ -715,7 +715,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     def __mul__(self, a):
         """Multiply source estimates."""
-        stc = copy.deepcopy(self)
+        stc = self.copy()
         stc *= a
         return stc
 
@@ -729,7 +729,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self
 
     def __pow__(self, a):  # noqa: D105
-        stc = copy.deepcopy(self)
+        stc = self.copy()
         stc **= a
         return stc
 
@@ -752,7 +752,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     def __neg__(self):  # noqa: D105
         """Negate the source estimate."""
-        stc = copy.deepcopy(self)
+        stc = self.copy()
         stc._remove_kernel_sens_data_()
         stc.data *= -1
         return stc
@@ -769,7 +769,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             A version of the source estamite, where the data attribute is set
             to abs(self.data).
         """
-        stc = copy.deepcopy(self)
+        stc = self.copy()
         stc._remove_kernel_sens_data_()
         stc._data = abs(stc._data)
         return stc
@@ -1380,6 +1380,13 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
+
+    See Also
+    --------
+    :class:`VectorSourceEstimate` : A container for vector source estimates.
+    :class:`VolSourceEstimate` : A container for volume source estimates.
+    :class:`MixedSourceEstimate` : A container for mixed surface + volume
+                                   source estimates.
     """
 
     @verbose
@@ -1689,6 +1696,13 @@ class VolSourceEstimate(_BaseSourceEstimate):
     Notes
     -----
     .. versionadded:: 0.9.0
+
+    See Also
+    --------
+    :class:`SourceEstimate` : A container for surface source estimates.
+    :class:`VectorSourceEstimate` : A container for vector source estimates.
+    :class:`MixedSourceEstimate` : A container for mixed surface + volume
+                                   source estimates.
     """
 
     @verbose
@@ -1846,7 +1860,11 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
 
 class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
-    """Container for surface source estimates that include dipole directions.
+    """Container for surface source estimates that include both magnitude and
+    direction.
+
+    For each vertex, the magnitude of the current is defined in the X, Y and Z
+    directions.
 
     Parameters
     ----------
@@ -1877,15 +1895,14 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
     Notes
     -----
     .. versionadded:: 0.15
+
+    See Also
+    --------
+    :class:`SourceEstimate` : A container for surface source estimates.
+    :class:`VolSourceEstimate` : A container for volume source estimates.
+    :class:`MixedSourceEstimate` : A container for mixed surface + volume
+                                   source estimates.
     """
-
-    @verbose
-    def __init__(self, data, vertices=None, tmin=None,
-                 tstep=None, subject=None, verbose=None):  # noqa: D102
-        _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
-                                     tstep=tstep, subject=subject,
-                                     verbose=verbose)
-
     @verbose
     def save(self, fname, ftype='h5', verbose=None):
         """Save the full source estimate to an HDF5 file.
@@ -2018,6 +2035,12 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     Notes
     -----
     .. versionadded:: 0.9.0
+
+    See Also
+    --------
+    :class:`SourceEstimate` : A container for surface source estimates.
+    :class:`VectorSourceEstimate` : A container for vector source estimates.
+    :class:`VolSourceEstimate` : A container for volume source estimates.
     """
 
     @verbose

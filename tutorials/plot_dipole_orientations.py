@@ -65,8 +65,8 @@ mlab.view(azimuth=180, distance=0.25)
 # operator defines the possible orientations of them. One of the options is to
 # assign a fixed orientation. Since the neural currents from which MEG and EEG
 # signals originate flows mostly perpendicular to the cortex [1]_, restricting
-# the orientation of the dipoles accordingly is a valid option that simplifies
-# the computation.
+# the orientation of the dipoles accordingly places a useful restriction on the
+# source estimate.
 #
 # By specifying ``fixed=True`` when calling
 # :func:`mne.minimum_norm.make_inverse_operator`, the dipole orientations are
@@ -110,6 +110,11 @@ brain = stc.plot(surface='white', subjects_dir=subjects_dir,
 ###############################################################################
 # Loose dipole orientations
 # -------------------------
+# Forcing the source dipoles to be strictly orthogonal to the cortex makes the
+# source estimate sensitive to the spacing of the dipoles along the cortex,
+# since the curvature of the cortex changes within each ~10 square mm patch.
+# Furthermore, misalignment of the MEG/EEG and MRI coordinate frames is more
+# critical when the source dipole orientations are strictly constrained [2].
 # To lift the restriction on the orientation of the dipoles, the inverse
 # operator has the ability to place not one, but three dipoles at each
 # location defined by the source space. These three dipoles are placed
@@ -157,8 +162,8 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
 # somewhat free orientation, but not stray too far from a orientation that is
 # perpendicular to the cortex. The ``loose`` parameter of the
 # :func:`mne.minimum_norm.make_inverse_operator` allows you to specify a value
-# between 0 (fixed) and 1 (unrestricted) to indicate the amount the orientation
-# is allowed to deviate from the surface normal.
+# between 0 (fixed) and 1 (unrestricted or "free") to indicate the amount the
+# orientation is allowed to deviate from the surface normal.
 
 # Set loose to 0.2, the default value
 inv = make_inverse_operator(left_auditory.info, fwd, noise_cov, fixed=False,
@@ -195,3 +200,7 @@ brain = stc.plot(surface='white', subjects_dir=subjects_dir,
 #    Lounasmaa, O. V. "Magnetoencephalography - theory, instrumentation, and
 #    applications to noninvasive studies of the working human brain", Reviews
 #    of Modern Physics, 1993. http://dx.doi.org/10.1103/RevModPhys.65.413
+#
+# .. [2] Lin, F. H., Belliveau, J. W., Dale, A. M., & Hämäläinen, M. S. (2006).
+#    Distributed current estimates using cortical orientation constraints.
+#    Human Brain Mapping, 27(1), 1–13. http://doi.org/10.1002/hbm.20155

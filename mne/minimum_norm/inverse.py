@@ -649,10 +649,10 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
 
     Returns
     -------
-    K : array, shape (n_vertices, n_channels)
+    K : array, shape (n_vertices, n_channels) | (3 * n_vertices, n_channels)
         The kernel matrix. Multiply this with the data to obtain the source
         estimate.
-    noise_norm : array, shape (n_vertices, n_samples)
+    noise_norm : array, shape (n_vertices, n_samples) | (3 * n_vertices, n_samples)
         Normalization to apply to the source estimate in order to obtain dSPM
         or LORETA solutions.
     vertices : list of length 2
@@ -663,7 +663,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     source_nn : array, shape (3 * n_vertices, 3)
         The direction in carthesian coordicates of the direction of the source
         dipoles.
-    """
+    """  # noqa: E501
     eigen_leads = inv['eigen_leads']['data']
     source_cov = inv['source_cov']['data'][:, None]
     if method != "MNE":
@@ -796,7 +796,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate | VectorSourceEstimate
+    stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
         The source estimates
 
     See Also
@@ -906,7 +906,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
+    stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
         The source estimates.
 
     See Also
@@ -1094,7 +1094,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : list of SourceEstimate or VolSourceEstimate
+    stc : list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
         The source estimates for all epochs.
 
     See Also
