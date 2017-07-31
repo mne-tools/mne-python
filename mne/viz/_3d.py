@@ -390,7 +390,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     return fig if img_output is None else outs
 
 
-@deprecated('plot_trans is deprecated and will be removed in version 0.16. '
+@deprecated('this function will be removed in version 0.16. '
             'Use plot_alignment instead')
 @verbose
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
