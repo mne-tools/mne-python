@@ -862,7 +862,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
                 False)
 
-    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.1)[0]
+    params['lines'] = [ax.plot([np.nan], antialiased=True, linewidth=0.5)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     params['fig_annotation'] = None
