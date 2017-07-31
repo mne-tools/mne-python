@@ -629,6 +629,14 @@ def test_morph_data():
     assert_equal(stc_from.tmin, stc_from.tmin)
     assert_equal(stc_from.tstep, stc_from.tstep)
 
+    # Morph vector data
+    stc_vec = read_source_estimate(fname_vec_stc, subject='sample')
+    stc_vec_to1 = stc_vec.morph(subject_to, grade=3, smooth=12,
+                                buffer_size=1000, subjects_dir=subjects_dir)
+    assert_array_almost_equal(stc_vec_to1.magnitude().data(), stc_to1.data)
+    stc_vec_to2 = stc_vec.morph_precomputed(subject_to, vertices_to, morph_mat)
+    assert_array_almost_equal(stc_vec_to1.data, stc_vec_to2.data)
+
 
 def _my_trans(data):
     """FFT that adds an additional dimension by repeating result."""

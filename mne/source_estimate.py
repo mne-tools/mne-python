@@ -2126,7 +2126,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     Parameters
     ----------
     data : array, or csr sparse matrix
-        A n_vertices x n_times (or other dimension) dataset to morph.
+        A n_vertices [x 3] x n_times (or other dimension) dataset to morph.
     idx_use : array of int
         Vertices from the original subject's data.
     e : sparse matrix
@@ -2151,6 +2151,17 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     data_morphed : array, or csr sparse matrix
         The morphed data (same type as input).
     """
+    # When operating on vector data, morph each dimension separately
+    if data.ndim == 3:
+        data_morphed = np.zeros((len(nearest), 3, data.shape[2]))
+        for dim in range(3):
+            data_morphed[:, dim, :] = _morph_buffer(
+                data=data[:, dim, :], idx_use=idx_use, e=e, smooth=smooth,
+                n_vertices=n_vertices, nearest=nearest, maps=maps, warn=warn,
+                verbose=verbose
+            )
+        return data_morphed
+
     n_iter = 99  # max nb of smoothing iterations (minus one)
     if smooth is not None:
         if smooth <= 0:
@@ -2165,6 +2176,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
             data = data.tocsr()
     else:
         use_sparse = False
+
     done = False
     # do the smoothing
     for k in range(n_iter + 1):
@@ -2349,9 +2361,9 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     stc_to : SourceEstimate | VectorSourceEstimate
         Source estimate for the destination subject.
     """
-    if not isinstance(stc_from, SourceEstimate):
-        raise ValueError('Morphing is only possible with surface source '
-                         'estimates')
+    if not isinstance(stc_from, _BaseSurfaceSourceEstimate):
+        raise ValueError('Morphing is only possible with surface or vector '
+                         'source estimates')
 
     logger.info('Morphing data...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -2587,15 +2599,9 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
 
     if isinstance(stc_from, VectorSourceEstimate):
         # Morph the locations of the dipoles, but not their orientation
-        morph_xyz = lil_matrix((morph_mat.shape[0] * 3,
-                                morph_mat.shape[1] * 3))
-        morph_xyz[0::3, 0::3] = morph_mat
-        morph_xyz[1::3, 1::3] = morph_mat
-        morph_xyz[2::3, 2::3] = morph_mat
-        morph_xyz = morph_xyz.tocsr()
-
-        data = morph_xyz * stc_from.data.reshape(-1, stc_from.data.shape[2])
-        data = data.reshape(-1, 3, stc_from.data.shape[2])
+        n_verts, _, n_samples = stc_from.data.shape
+        data = morph_mat * stc_from.data.reshape(n_verts, 3 * n_samples)
+        data = data.reshape(n_verts, 3, n_samples)
         stc_to = VectorSourceEstimate(data, vertices=vertices_to,
                                       tmin=stc_from.tmin, tstep=stc_from.tstep,
                                       verbose=stc_from.verbose,
