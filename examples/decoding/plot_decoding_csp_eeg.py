@@ -49,7 +49,8 @@ subject = 1
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
-raw_files = [read_raw_edf(f, preload=True) for f in raw_fnames]
+raw_files = [read_raw_edf(f, preload=True, stim_channel='auto') for f in
+             raw_fnames]
 raw = concatenate_raws(raw_files)
 
 # strip channel names of "." characters
@@ -78,7 +79,7 @@ from sklearn.cross_validation import ShuffleSplit  # noqa
 
 # Assemble a classifier
 lda = LDA()
-csp = CSP(n_components=4, reg=None, log=True)
+csp = CSP(n_components=4, reg=None, log=True, norm_trace=False)
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
