@@ -71,23 +71,6 @@ epochs.metadata.head()
 
 epochs.average().plot_joint(title="Grand Average (75 subjects, {} words)".format(len(meta)), show=False)
 
-
-################################################################################
-
-names = "Concreteness WordFrequency NumberOfLetters".split()
-reg = epochs.regress(names)
-for nm, coefs in reg.items():
-    coefs.plot_joint(title=nm, show=False)
-
-################################################################################
-
-names = "Concreteness WordFrequency NumberOfLetters".split()
-reg = epochs.regress(names, by='is_concrete')
-
-for kind in meta['is_concrete'].unique():
-    reg[kind]['Concreteness'].plot_joint(title='Concreteness: ' + str(kind), show=False)
-################################################################################
-
 av1 = epochs['Concreteness < 5 and WordFrequency < 2'].average()
 av2 = epochs['Concreteness > 5 and WordFrequency > 2'].average()
 

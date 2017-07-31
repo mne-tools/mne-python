@@ -870,59 +870,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self._evoked_from_epoch_data(data, self.info, picks, n_events,
                                             kind, self._name)
 
-    def regress(self, on, fit_intercept=True, by=None):
-        """Regress neural data on a column of ``self.metadata``.
-
-        Parameters
-        ----------
-        on : string
-            The column of ``self.metadata`` to use in the regression. The
-            column must be a numeric dtype.
-        fit_intercept : bool
-            Whether to a fit an intercept in the regression.
-        by : string | None
-            The column of ``self.metadata`` by which the epochs will be grouped
-            prior to fitting. In this case, regression will be run for each
-            unique value of this column's values.
-
-        Returns
-        -------
-        coefs : Evoked | dict of Evoked
-            The coefficients after regressing neural data on the column
-            of interest. If ``by`` is a string, this will be a dictionary
-            of ``column_value: Evoked`` pairs corresponding to fitting one
-            regression model per unique value in column value in ``by``.
-        """
-        from .stats import linear_regression
-        DataFrame = _check_dataframe()
-        if not isinstance(self.metadata, DataFrame):
-            raise ValueError("`self.metadata` must be a DataFrame to regress.")
-
-        metadata = self.metadata.copy()
-        metadata["Intercept"] = 1.
-        names = [on] if isinstance(on, str) else on
-        if fit_intercept:
-            names = names + ['Intercept']
-
-        if any(ii not in metadata.columns for ii in names):
-            raise ValueError("Each item in `on` must be in "
-                             "`self.metadata.columns")
-
-        # Define how to group epochs
-        grp = {None: np.arange(len(self))} if by is None else self._groupby(by)
-
-        # Iterate groups and fit model
-        coefs = dict()
-        for name, inds in grp.items():
-            this_meta = metadata.iloc[inds]
-            reg = linear_regression(self[inds],
-                                    this_meta[names].values, names=names)
-            this_coefs = {k: v.beta for k, v in reg.items()}
-            coefs[name] = this_coefs
-        if by is None:
-            coefs = list(coefs.values())[0]
-        return coefs
-
     @property
     def _name(self):
         """Give a nice string representation based on event ids."""

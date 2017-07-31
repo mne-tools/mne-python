@@ -2186,20 +2186,4 @@ def test_metadata():
     with pytest.raises(KeyError):
         epochs['blah == "yo"']
 
-    # Regression
-    out = epochs.regress('num')
-    assert set(out.keys()) == set(['num', 'Intercept'])
-
-    out = epochs.regress('num', fit_intercept=False)
-    assert set(out.keys()) == set(['num'])
-
-    out = epochs.regress('num', fit_intercept=False, by='letter')
-    assert_array_equal(out.keys(), set(meta['letter']))
-    assert_array_equal(list(out['a'].keys()), ['num'])
-
-    epochs_nometa = epochs.copy()
-    epochs_nometa.metadata = None
-    with pytest.raises(ValueError):
-        epochs_nometa.regress('num')
-
 run_tests_if_main()
