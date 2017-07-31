@@ -77,25 +77,27 @@ labels = epochs.events[:, -1] - 2
 
 # Some of these functions are deprecated in newer versions of scikit-learn and
 # the correct module depends on the version installed on your computer.
+
+# Define a monte-carlo cross-validation generator (reduce variance):
+scores = []
+epochs_data = epochs.get_data()
+epochs_data_train = epochs_train.get_data()
 import sklearn  # noqa
 from sklearn.pipeline import Pipeline  # noqa
 if LooseVersion(sklearn.__version__) < LooseVersion('0.18'):
     from sklearn.lda import LDA
     from sklearn.cross_validation import ShuffleSplit, cross_val_score
+    cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
+    cv_split = cv
 else:
     from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
     from sklearn.model_selection import ShuffleSplit, cross_val_score
-
+    cv = ShuffleSplit(10, test_size=0.2, random_state=42)
+    cv_split = cv.split(epochs_data_train)
 
 # Assemble a classifier
 lda = LDA()
 csp = CSP(n_components=4, reg=None, log=True, norm_trace=False)
-
-# Define a monte-carlo cross-validation generator (reduce variance):
-cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
-scores = []
-epochs_data = epochs.get_data()
-epochs_data_train = epochs_train.get_data()
 
 # Use scikit-learn Pipeline with cross_val_score function
 clf = Pipeline([('CSP', csp), ('LDA', lda)])
@@ -124,7 +126,7 @@ w_start = np.arange(0, epochs_data.shape[2] - w_length, w_step)
 
 scores_windows = []
 
-for train_idx, test_idx in cv:
+for train_idx, test_idx in cv_split:
     y_train, y_test = labels[train_idx], labels[test_idx]
 
     X_train = csp.fit_transform(epochs_data_train[train_idx], y_train)
