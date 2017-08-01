@@ -642,7 +642,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     def _update_times(self):
         """Update the times attribute after changing tmin, tmax, or tstep."""
-        self._times = self.tmin + (self.tstep * np.arange(self.shape[1]))
+        self._times = self.tmin + (self.tstep * np.arange(self.shape[-1]))
         self._times.flags.writeable = False
 
     def __add__(self, a):

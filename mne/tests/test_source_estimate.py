@@ -199,7 +199,7 @@ def _test_stc_integrety(stc):
 def test_stc_attributes():
     """Test STC attributes."""
     stc = _fake_stc(n_time=10)
-    stc = _fake_vec_stc(n_time=10)
+    vec_stc = _fake_vec_stc(n_time=10)
 
     _test_stc_integrety(stc)
     assert_array_almost_equal(
