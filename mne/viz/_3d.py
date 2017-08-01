@@ -1900,13 +1900,14 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
-                                 transparent=None, brain_alpha=0.4, alpha=None,
-                                 vector_alpha=1.0, scale_factor=None,
-                                 time_viewer=False, subjects_dir=None,
-                                 figure=None, views='lat', colorbar=True,
-                                 clim='auto', cortex='classic', size=800,
-                                 background='black', foreground='white',
-                                 initial_time=None, time_unit='s'):
+                                 transparent=None, brain_alpha=0.4,
+                                 overlay_alpha=None, vector_alpha=1.0,
+                                 scale_factor=None, time_viewer=False,
+                                 subjects_dir=None, figure=None, views='lat',
+                                 colorbar=True, clim='auto', cortex='classic',
+                                 size=800, background='black',
+                                 foreground='white', initial_time=None,
+                                 time_unit='s'):
     """Plot VectorSourceEstimates with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -1938,7 +1939,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         None will choose automatically based on colormap type.
     brain_alpha : float
         Alpha value to apply globally to the surface meshes. Defaults to 0.4.
-    alpha : float
+    overlay_alpha : float
         Alpha value to apply globally to the overlay. Defaults to brain_alpha.
     vector_alpha : float
         Alpha value to apply globally to the vector glyphs. Defaults to 1.
@@ -2043,8 +2044,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     else:
         hemis = [hemi]
 
-    if alpha is None:
-        alpha = brain_alpha
+    if overlay_alpha is None:
+        overlay_alpha = brain_alpha
+    if overlay_alpha == 0:
+        smoothing_steps = 1  # Disable smoothing to save time.
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     with warnings.catch_warnings(record=True):  # traits warnings
@@ -2065,8 +2068,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(data, colormap=colormap, vertices=vertices,
                                smoothing_steps=smoothing_steps, time=times,
-                               time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar, vector_alpha=vector_alpha,
+                               time_label=time_label, alpha=overlay_alpha,
+                               hemi=hemi, colorbar=colorbar,
+                               vector_alpha=vector_alpha,
                                scale_factor=scale_factor,
                                initial_time=initial_time)
 

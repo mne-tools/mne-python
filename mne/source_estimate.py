@@ -1963,20 +1963,22 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
 
     @copy_function_doc_to_method_doc(plot_vector_source_estimates)
     def plot(self, subject=None, hemi='lh', colormap='hot', time_label='auto',
-             smoothing_steps=10, transparent=None, brain_alpha=0.4, alpha=None,
-             vector_alpha=1.0, scale_factor=None, time_viewer=False,
-             subjects_dir=None, figure=None, views='lat', colorbar=True,
-             clim='auto', cortex='classic', size=800, background='black',
-             foreground='white', initial_time=None, time_unit='s'):
+             smoothing_steps=10, transparent=None, brain_alpha=0.4,
+             overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
+             time_viewer=False, subjects_dir=None, figure=None, views='lat',
+             colorbar=True, clim='auto', cortex='classic', size=800,
+             background='black', foreground='white', initial_time=None,
+             time_unit='s'):
 
         return plot_vector_source_estimates(
             self, subject=subject, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
-            transparent=transparent, brain_alpha=brain_alpha, alpha=alpha,
-            vector_alpha=vector_alpha, scale_factor=scale_factor,
-            time_viewer=time_viewer, subjects_dir=subjects_dir, figure=figure,
-            views=views, colorbar=colorbar, clim=clim, cortex=cortex,
-            size=size, background=background, foreground=foreground,
+            transparent=transparent, brain_alpha=brain_alpha,
+            overlay_alpha=overlay_alpha, vector_alpha=vector_alpha,
+            scale_factor=scale_factor, time_viewer=time_viewer,
+            subjects_dir=subjects_dir, figure=figure, views=views,
+            colorbar=colorbar, clim=clim, cortex=cortex, size=size,
+            background=background, foreground=foreground,
             initial_time=initial_time, time_unit=time_unit
         )
 
