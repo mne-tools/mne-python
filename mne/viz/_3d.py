@@ -2176,7 +2176,8 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     Parameters
     ----------
     fig : instance of Mayavi Scene
-        The figure on which you've plotted electrodes using `plot_alignment`.
+        The figure on which you've plotted electrodes using
+        :func:`mne.viz.plot_alignment`.
     montage : instance of `DigMontage` or `Info` | dict of ch: xyz mappings.
         The digital montage for the electrodes plotted in the scene. If `Info`,
         channel positions will be pulled from the `loc` field of `chs`.
