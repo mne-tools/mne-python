@@ -114,7 +114,7 @@ brain = stc.plot(surface='white', subjects_dir=subjects_dir,
 # source estimate sensitive to the spacing of the dipoles along the cortex,
 # since the curvature of the cortex changes within each ~10 square mm patch.
 # Furthermore, misalignment of the MEG/EEG and MRI coordinate frames is more
-# critical when the source dipole orientations are strictly constrained [2].
+# critical when the source dipole orientations are strictly constrained [2]_.
 # To lift the restriction on the orientation of the dipoles, the inverse
 # operator has the ability to place not one, but three dipoles at each
 # location defined by the source space. These three dipoles are placed
@@ -153,7 +153,7 @@ stc = apply_inverse(left_auditory, inv, pick_ori='vector')
 # Visualize it at the moment of peak activity.
 _, time_max = stc.magnitude().get_peak(hemi='lh')
 brain = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
-                 time_unit='s', size=(600, 400))
+                 time_unit='s', size=(600, 400), alpha=0)
 
 ###############################################################################
 # Limiting orientations, but not fixing them
@@ -173,7 +173,7 @@ stc = apply_inverse(left_auditory, inv, pick_ori='vector')
 # Visualize it at the moment of peak activity.
 _, time_max = stc.magnitude().get_peak(hemi='lh')
 brain = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
-                 time_unit='s', size=(600, 400))
+                 time_unit='s', size=(600, 400), alpha=0)
 
 ###############################################################################
 # Discarding dipole orientation information
