@@ -81,6 +81,8 @@ Changelog
 
     - :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` now use anti-aliasing to draw signals by `Clemens Brunner`_
 
+    - Allow using saved ``DigMontage`` to import digitization to :func:`mne.gui.coregistration` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 

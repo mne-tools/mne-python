@@ -23,7 +23,7 @@ from ..io.meas_info import _empty_info
 from ..surface import read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
-from ..utils import get_config, set_config
+from ..utils import get_config, set_config, logger
 from ..viz._3d import _fiducial_coords
 from ..channels import read_dig_montage, DigMontage
 
@@ -289,7 +289,9 @@ class DigSource(HasPrivateTraits):
         if self.file:
             try:
                 info = read_info(self.file, verbose=False)
-            except ValueError:  # try reading dig_montage
+            except ValueError as err:  # try reading dig_montage
+                logger.info('%s; Attempting to read digitization '
+                            'montage.' % str(err))
                 info = read_dig_montage(fif=self.file)
             if info is None:
                 error(None, "The selected FIFF file does not contain "
