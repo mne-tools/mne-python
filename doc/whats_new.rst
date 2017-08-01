@@ -77,6 +77,8 @@ Changelog
 
     - Add confidence intervals, number of free parameters, and χ² to :func:`mne.fit_dipole` and :func:`mne.read_dipole` by `Eric Larson`_
 
+    - :attr:`mne.SourceEstimate.data` is now writable, writing to it will also update :attr:`mne.SourceEstimate.times` by `Marijn van Vliet`_
+
 BUG
 ~~~
 
@@ -129,6 +131,8 @@ BUG
     - Fix bug in :meth:`to_data_frame <mne.io.Raw.to_data_frame>` where non-consecutive picks would make the function crash by `Jaakko Leppakangas`_
 
     - Fix channel picking and drop in :class:`mne.time_frequency.EpochsTFR` by `Lukáš Hejtmánek`_
+
+    - Fix :func:`mne.SourceEstimate.transform` to properly update :attr:`mne.SourceEstimate.times` by `Marijn van Vliet`_
 
 API
 ~~~
