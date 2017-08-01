@@ -1225,8 +1225,8 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
                HGroup(Item('distance', show_label=False, width=20),
                       'omit_points', 'reset_omit_points', show_labels=False),
                Item('omitted_info', style='readonly', show_label=False),
-               label='Head Shape Source (Raw/Epochs/Evoked)', show_border=True,
-               show_labels=False),
+               label='Head Shape Source (Raw/Epochs/Evoked/DigMontage)',
+               show_border=True, show_labels=False),
         show_labels=False, label="Data Source")
 
     # Setting `scrollable=True` for a Group does not seem to have any effect

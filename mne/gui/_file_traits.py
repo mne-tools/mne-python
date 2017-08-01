@@ -19,11 +19,13 @@ from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 from ..bem import read_bem_surfaces
 from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
+from ..io.meas_info import _empty_info
 from ..surface import read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
 from ..viz._3d import _fiducial_coords
+from ..channels import read_dig_montage, DigMontage
 
 
 fid_wildcard = "*.fif"
@@ -285,14 +287,40 @@ class DigSource(HasPrivateTraits):
     @cached_property
     def _get_inst(self):
         if self.file:
-            info = read_info(self.file, verbose=False)
-            if info['dig'] is None:
+            try:
+                info = read_info(self.file, verbose=False)
+            except ValueError:  # try reading dig_montage
+                info = read_dig_montage(fif=self.file)
+            if info is None:
                 error(None, "The selected FIFF file does not contain "
                       "digitizer information. Please select a different "
                       "file.", "Error Reading FIFF File")
                 self.reset_traits(['file'])
-            else:
-                return info
+            elif isinstance(info, DigMontage):
+                info.transform_to_head()
+                digs = list()
+                digs.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                             'ident': FIFF.FIFFV_POINT_LPA,
+                             'kind': FIFF.FIFFV_POINT_CARDINAL,
+                             'r': info.lpa})
+                digs.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                             'ident': FIFF.FIFFV_POINT_NASION,
+                             'kind': FIFF.FIFFV_POINT_CARDINAL,
+                             'r': info.nasion})
+                digs.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                             'ident': FIFF.FIFFV_POINT_RPA,
+                             'kind': FIFF.FIFFV_POINT_CARDINAL,
+                             'r': info.rpa})
+                for idx, pos in enumerate(info.hsp):
+                    dig = {'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                           'ident': idx,
+                           'kind': FIFF.FIFFV_POINT_EXTRA,
+                           'r': pos}
+                    digs.append(dig)
+                info = _empty_info(1)
+                info['dig'] = digs
+
+            return info
 
     @cached_property
     def _get_inst_dir(self):
