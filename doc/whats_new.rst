@@ -79,6 +79,8 @@ Changelog
 
     - :attr:`mne.SourceEstimate.data` is now writable, writing to it will also update :attr:`mne.SourceEstimate.times` by `Marijn van Vliet`_
 
+    - :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` now use anti-aliasing to draw signals by `Clemens Brunner`_
+
 BUG
 ~~~
 
