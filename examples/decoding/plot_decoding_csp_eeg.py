@@ -35,7 +35,6 @@ from mne.channels import read_layout
 from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
 from mne.decoding import CSP
-from mne.utils import LooseVersion
 
 print(__doc__)
 
@@ -75,28 +74,19 @@ labels = epochs.events[:, -1] - 2
 ###############################################################################
 # Classification with linear discrimant analysis
 
-# Some of these functions are deprecated in newer versions of scikit-learn and
-# the correct module depends on the version installed on your computer.
+from sklearn.pipeline import Pipeline  # noqa
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis  # noqa
+from sklearn.model_selection import ShuffleSplit, cross_val_score  # noqa
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 scores = []
 epochs_data = epochs.get_data()
 epochs_data_train = epochs_train.get_data()
-import sklearn  # noqa
-from sklearn.pipeline import Pipeline  # noqa
-if LooseVersion(sklearn.__version__) < LooseVersion('0.18'):
-    from sklearn.lda import LDA
-    from sklearn.cross_validation import ShuffleSplit, cross_val_score
-    cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
-    cv_split = cv
-else:
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-    from sklearn.model_selection import ShuffleSplit, cross_val_score
-    cv = ShuffleSplit(10, test_size=0.2, random_state=42)
-    cv_split = cv.split(epochs_data_train)
+cv = ShuffleSplit(10, test_size=0.2, random_state=42)
+cv_split = cv.split(epochs_data_train)
 
 # Assemble a classifier
-lda = LDA()
+lda = LinearDiscriminantAnalysis()
 csp = CSP(n_components=4, reg=None, log=True, norm_trace=False)
 
 # Use scikit-learn Pipeline with cross_val_score function
