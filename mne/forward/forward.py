@@ -896,24 +896,20 @@ def _check_loose(forward, loose):
              'with fixed orientation.')
         loose = None
 
-    if not is_fixed_orient(forward) and loose is None:
-        loose = 1.0
-
     if loose is not None:
         if not isinstance(loose, float):
-            raise ValueError('loose value must be a float bigger than 0 and '
-                             'smaller than 1, or None if forward operator '
-                             'is not to be modified. Got %s' % type(loose))
+            raise ValueError('loose must be a float with 0 <= loose <= 1 or '
+                             'None if forward operator is not to be  modified.'
+                             ' Got %s' % type(loose))
 
         if not (0 <= loose <= 1):
-            raise ValueError('loose value must be bigger than 0 and smaller '
-                             'than 1. Got %f' % loose)
+            raise ValueError('loose must be a float with 0 <= loose <= 1. '
+                             'Got %f' % loose)
 
-        if not forward['surf_ori']:
-            warn('Forward operator is not oriented in surface '
-                 'coordinates. A loose inverse operator requires a '
-                 'surface-oriented forward operator with free '
-                 'orientation. Converting now.')
+        if not forward['surf_ori'] and loose < 1:
+            warn('Forward operator is not surface-oriented. Applying loose '
+                 'orientation constraints requires a surface-oriented forward '
+                 'operator with free orientation. Converting now.')
             forward = convert_forward_solution(forward, surf_ori=True,
                                                force_fixed=False)
     return forward, loose
