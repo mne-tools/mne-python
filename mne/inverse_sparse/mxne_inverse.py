@@ -7,10 +7,9 @@ import numpy as np
 from scipy import linalg, signal
 
 from ..source_estimate import SourceEstimate
-from ..minimum_norm.inverse import combine_xyz, _prepare_forward
-from ..minimum_norm.inverse import _check_reference
-from ..forward import (compute_orient_prior, is_fixed_orient,
-                       _check_loose, convert_forward_solution)
+from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
+                                    _check_reference)
+from ..forward import compute_orient_prior, is_fixed_orient, _check_loose
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import logger, verbose

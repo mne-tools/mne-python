@@ -6,9 +6,7 @@
 import numpy as np
 from scipy import linalg
 
-from ..forward import (is_fixed_orient, _check_loose,
-                       convert_forward_solution)
-
+from ..forward import is_fixed_orient, _check_loose
 from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose, warn
 from ..externals.six.moves import xrange as range
