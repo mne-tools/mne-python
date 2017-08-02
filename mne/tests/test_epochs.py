@@ -2147,24 +2147,42 @@ def test_default_values():
     epoch_2 = Epochs(raw, events[:1], tmin=-0.2, tmax=0.5, preload=True)
     assert_equal(hash(epoch_1), hash(epoch_2))
 
+
 def test_metadata():
+    """Test metadata support with pandas."""
     import pytest
     from pandas import DataFrame, to_numeric
 
     data = np.random.randn(10, 2, 2000)
     chs = ['a', 'b']
     info = create_info(chs, 1000)
-    meta = np.array([[1.] * 5 + [3.] * 5, ['a'] * 2 + ['b'] * 3 + ['c'] * 3 + ['d'] * 2]).T
+    meta = np.array([[1.] * 5 + [3.] * 5,
+                     ['a'] * 2 + ['b'] * 3 + ['c'] * 3 + ['d'] * 2]).T
     meta = DataFrame(meta, columns=['num', 'letter'])
     meta['num'] = to_numeric(meta['num'])
+    events = np.arange(meta.shape[0])
+    events = np.column_stack([events, np.zeros([len(events), 2])]).astype(int)
+    events[5:, -1] = 1
+    event_id = {'zero': 0, 'one': 1}
+    epochs = EpochsArray(data, info, metadata=meta,
+                         events=events, event_id=event_id)
 
-    epochs = EpochsArray(data, info, metadata=meta)
+    assert len(epochs[[1, 2]].events) == len(epochs[[1, 2]].metadata)
+    assert len(epochs['one']) == 5
 
     # Construction
     with pytest.raises(ValueError):
+        # Events and metadata must have same len
+        epochs_arr = EpochsArray(epochs._data, epochs.info, epochs.events[:-1],
+                                 tmin=0, event_id=epochs.event_id,
+                                 metadata=epochs.metadata)
+
+    with pytest.raises(ValueError):
+        # Events and data must have same len
         epochs = EpochsArray(data, info, metadata=meta.iloc[:-1])
 
     for data in [meta.values, meta['num']]:
+        # Metadata must be a DataFrame
         with pytest.raises(ValueError):
             epochs = EpochsArray(data, info, metadata=data)
 
@@ -2187,9 +2205,28 @@ def test_metadata():
     assert len(epochs['num < 5']) == 10
     assert len(epochs['letter == "b"']) == 3
     assert len(epochs['num < 5']) == len(epochs['num < 5'].metadata)
-    with pytest.raises(KeyError):
-        epochs['letter < 2']
-    with pytest.raises(KeyError):
+
+    with pytest.raises(ValueError):
         epochs['blah == "yo"']
+
+    # I/O
+    # Make sure values don't change with I/O
+    epochs.save('./tmp-epo.fif')
+    epochs_new = read_epochs('./tmp-epo.fif', preload=True)
+    epochs_arr = EpochsArray(epochs._data, epochs.info, epochs.events,
+                             tmin=0, event_id=epochs.event_id,
+                             metadata=epochs.metadata)
+
+    assert_array_equal(epochs.metadata.sort_index(axis=1, ascending=False),
+                       epochs_arr.metadata.sort_index(axis=1, ascending=False))
+    assert_array_equal(epochs.metadata.sort_index(axis=1, ascending=False),
+                       epochs_new.metadata.sort_index(axis=1, ascending=False))
+
+    with pytest.raises(ValueError):
+        # Needs to be a dataframe
+        epochs_tmp = epochs.copy()
+        epochs_tmp.metadata = np.array([0])
+        epochs_tmp.save('./break-epo.fif')
+
 
 run_tests_if_main()

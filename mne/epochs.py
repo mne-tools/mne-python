@@ -93,16 +93,14 @@ def _save_split(epochs, fname, part_idx, n_parts):
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     # Metadata
-    start_block(fid, FIFF.FIFFB_MNE_METADATA)
     if epochs.metadata is not None:
+        start_block(fid, FIFF.FIFFB_MNE_METADATA)
         pd = _check_pandas_installed()
         if not isinstance(epochs.metadata, pd.DataFrame):
             raise ValueError('epochs.metadata must be a DataFrame')
 
         write_string(fid, FIFF.FIFF_DESCRIPTION, epochs.metadata.to_json())
-    else:
-        write_string(fid, FIFF.FIFF_DESCRIPTION, 'None')
-    end_block(fid, FIFF.FIFFB_MNE_METADATA)
+        end_block(fid, FIFF.FIFFB_MNE_METADATA)
 
     # First and last sample
     first = int(round(epochs.tmin * info['sfreq']))  # round just to be safe
@@ -210,6 +208,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ignored.
     filename : str | None
         The filename (if the epochs are read from disk).
+    metadata : DataFrame | None.
+        See `Epochs` docstring.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -225,9 +225,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
                  baseline=(None, 0), raw=None, picks=None, reject=None,
                  flat=None, decim=1, reject_tmin=None, reject_tmax=None,
-                 detrend=None, proj=True, metadata=None, on_missing='error',
+                 detrend=None, proj=True, on_missing='error',
                  preload_at_end=False, selection=None, drop_log=None,
-                 filename=None, verbose=None):  # noqa: D102
+                 filename=None, metadata=None, verbose=None):  # noqa: D102
         self.verbose = verbose
 
         if on_missing not in ['error', 'warning', 'ignore']:
@@ -757,8 +757,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         by : string | list of strings | None
             If ``self.metadata`` is a DataFrame, return averages grouped
             by the unique values specified. This effectively calls
-            ``self.metadata.groupby`` and returns Evoked objects for each
-            grouping.
+            ``self.metadata.groupby`` and returns a dictionary of Evoked
+            objects for each grouping with keys being group names.
 
         Returns
         -------
@@ -1396,8 +1396,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     idxs = np.where(self.metadata.eval(keys[0]).values)[0]
                     return idxs
                 except Exception:
-                    err[-1] = ' '
-                    err += 'and is not a valid metadata query.'
+                    err = err[:-1]
+                    err += ' and is not a valid metadata query.'
                     pass
             # If none of the above code returns the ixs, throw the error
             raise ValueError(err)
@@ -1860,6 +1860,12 @@ class Epochs(BaseEpochs):
         Whether to reject based on annotations. If True (default), epochs
         overlapping with segments whose description begins with ``'bad'`` are
         rejected. If False, no rejection based on annotations is performed.
+    metadata : DataFrame | None
+        A DataFrame specifying more complex metadata about events. If given,
+        ``len(metadata)`` must equal ``len(events)``. The DataFrame may have
+        values of type (str | int | float). If metadata is given, then
+        pandas-style queries may be used to select subsets of data. E.g.,
+        ``epochs["col_a > 2 and col_b == 'foo'"]``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -1911,10 +1917,10 @@ class Epochs(BaseEpochs):
 
     @verbose
     def __init__(self, raw, events, event_id=None, tmin=-0.2, tmax=0.5,
-                 baseline=(None, 0), picks=None, preload=False,
-                 reject=None, flat=None, proj=True, decim=1, reject_tmin=None,
+                 baseline=(None, 0), picks=None, preload=False, reject=None,
+                 flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, on_missing='error',
-                 metadata=None, reject_by_annotation=True, verbose=None):  # noqa: D102
+                 reject_by_annotation=True, metadata=None, verbose=None):  # noqa: D102
         if not isinstance(raw, BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of `mne.io.Raw`')
@@ -1926,11 +1932,12 @@ class Epochs(BaseEpochs):
         self.reject_by_annotation = reject_by_annotation
         # call BaseEpochs constructor
         super(Epochs, self).__init__(
-            info, None, events, event_id, tmin, tmax, baseline=baseline,
-            raw=raw, picks=picks, reject=reject, flat=flat, decim=decim,
-            reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
+            info, None, events, event_id, tmin, tmax, metadata=metadata,
+            baseline=baseline, raw=raw, picks=picks, reject=reject,
+            flat=flat, decim=decim, reject_tmin=reject_tmin,
+            reject_tmax=reject_tmax, detrend=detrend,
             proj=proj, on_missing=on_missing, preload_at_end=preload,
-            metadata=metadata, verbose=verbose)
+            verbose=verbose)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -2021,6 +2028,12 @@ class EpochsArray(BaseEpochs):
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
     on_missing : str
         See :class:`mne.Epochs` docstring for details.
+    metadata : DataFrame | None
+        A DataFrame specifying more complex metadata about events. If given,
+        ``len(metadata)`` must equal ``len(events)``. The DataFrame may have
+        values of type (str | int | float). If metadata is given, then
+        pandas-style queries may be used to select subsets of data. E.g.,
+        ``epochs["col_a > 2 and col_b == 'foo'"]``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2043,8 +2056,8 @@ class EpochsArray(BaseEpochs):
     @verbose
     def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, baseline=None, proj=True, metadata=None,
-                 on_missing='error', verbose=None):  # noqa: D102
+                 reject_tmax=None, baseline=None, proj=True,
+                 on_missing='error', metadata=None, verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
@@ -2292,25 +2305,23 @@ def _read_one_epoch_file(f, tree, preload):
         events, mappings = _read_events_fif(fid, tree)
 
         #   Metadata
-        try:
-            metadata = dir_tree_find(tree, FIFF.FIFFB_MNE_METADATA)
-            for dd in metadata[0]['directory']:
-                kind = dd.kind
-                pos = dd.pos
-                if kind == FIFF.FIFF_DESCRIPTION:
-                    tag = read_tag(fid, pos)
-                    if tag.data == 'None':
-                        continue
-                    if _check_pandas_installed(strict=False) is False:
-                        warn('Metadata found but pandas is not installed, not '
-                             'loading.')
-                        continue
-                    import pandas as pd
-                    metadata = pd.read_json(tag.data)
-                    break
-        except AttributeError:
-            # Assume this is an older file that doesn't have this field.
-            pass
+        metadata = None
+        metadata_tree = dir_tree_find(tree, FIFF.FIFFB_MNE_METADATA)
+        for dd in metadata_tree[0]['directory']:
+            kind = dd.kind
+            pos = dd.pos
+            if kind == FIFF.FIFF_DESCRIPTION:
+                tag = read_tag(fid, pos)
+                if tag.data == 'None':
+                    continue
+                if _check_pandas_installed(strict=False) is False:
+                    warn('Metadata found but pandas is not installed, not '
+                         'loading.')
+                    continue
+                import pandas as pd
+                # Overwrite metadata
+                metadata = pd.read_json(tag.data)
+                break
 
         #   Locate the data of interest
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
@@ -2514,8 +2525,9 @@ class EpochsFIF(BaseEpochs):
             # aware of missing events if they have saved data that way
             epoch = BaseEpochs(
                 info, data, events, event_id, tmin, tmax, baseline,
-                on_missing='ignore', selection=selection, drop_log=drop_log,
-                proj=False, metadata=metadata, verbose=False)
+                metadata=metadata, on_missing='ignore',
+                selection=selection, drop_log=drop_log,
+                proj=False, verbose=False)
             ep_list.append(epoch)
             if not preload:
                 # store everything we need to index back to the original data
@@ -2727,10 +2739,10 @@ def _concatenate_epochs(epochs_list, with_data=True):
     data = [out.get_data()] if with_data else None
     events = [out.events]
     metadata = [out.metadata]
-    if metadata is not None:
+    if metadata[0] is not None:
         if any(ii.metadata is None for ii in epochs_list):
             raise ValueError("Cannot concatenate epochs with metadata to others"
-                             "without metadata.")
+                             " without metadata.")
     baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
     info = deepcopy(out.info)
     verbose = out.verbose
@@ -2774,9 +2786,12 @@ def _concatenate_epochs(epochs_list, with_data=True):
         if metadata is not None:
             metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
-    if metadata is not None:
+    # Create metadata object (or make it None)
+    if metadata[0] is not None:
         pd = _check_pandas_installed()
         metadata = pd.concat(metadata)
+    else:
+        metadata = metadata[0]
     if with_data:
         data = np.concatenate(data, axis=0)
     return (info, data, events, event_id, tmin, tmax, metadata, baseline,

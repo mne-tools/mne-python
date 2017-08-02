@@ -34,13 +34,15 @@ with urlopen(varname) as u:
     meta = pd.read_csv(u, delim_whitespace=True)
 
 with urlopen(dataname) as u:  # warning: this is a 80MB download
-    df = pd.read_csv(u, delim_whitespace=True, index_col=1).drop(["WORD#", "ELEC#"], axis=1)
+    df = pd.read_csv(u, delim_whitespace=True, index_col=1).\
+        drop(["WORD#", "ELEC#"], axis=1)
 
 # First we'll munge the data so it's in an Epochs structure
 electrodes = df["ELECNAME"].unique()
 words = df.index.unique()
 
-mfile = mne.__file__.replace('__init__.py', 'channels/data/montages/standard_1005.elc')
+mfile = mne.__file__.replace('__init__.py',
+                             'channels/data/montages/standard_1005.elc')
 channel_types = ['misc' if "REJ" in ch else 'eeg' for ch in electrodes]
 df = df.drop(["ELECNAME"], axis=1)
 
@@ -56,20 +58,24 @@ data = np.asarray([df.loc[word].values.astype(float) for word in words])
 
 # events and event_id are just a running index per word ...
 events = np.repeat(np.arange(data.shape[0]).reshape(-1, 1) + 1, 3, axis=1)
-event_id = {word:ii + 1 for ii, word in enumerate(words)}
+event_id = {word: ii + 1 for ii, word in enumerate(words)}
 
 # Prepare metadata
 meta["freq_rank"] = (meta["WordFrequency"].rank(method="dense") // 300 + 1)
-meta["is_concrete"] = np.where(meta["WordFrequency"] > meta["WordFrequency"].median(), 'Concrete', 'Abstract')
+is_concrete = meta["WordFrequency"] > meta["WordFrequency"].median()
+meta["is_concrete"] = np.where(is_concrete, 'Concrete', 'Abstract')
 
 # Construct the EpochsArray
-epochs = mne.EpochsArray(data / 1e6, info, events, tmin=tmin, event_id=event_id, metadata=meta)
+epochs = mne.EpochsArray(data / 1e6, info, events, tmin=tmin,
+                         event_id=event_id, metadata=meta)
 epochs.metadata.head()
 
-################################################################################
-#
+###############################################################################
 
-epochs.average().plot_joint(title="Grand Average (75 subjects, {} words)".format(len(meta)), show=False)
+
+epochs.average().plot_joint(
+    title="Grand Average (75 subjects, {} words)".format(len(meta)),
+    show=False)
 
 av1 = epochs['Concreteness < 5 and WordFrequency < 2'].average()
 av2 = epochs['Concreteness > 5 and WordFrequency > 2'].average()
@@ -77,11 +83,11 @@ av2 = epochs['Concreteness > 5 and WordFrequency > 2'].average()
 av1.plot_joint(show=False)
 av2.plot_joint(show=False)
 
-################################################################################
+###############################################################################
 words = ['film', 'cent', 'shot', 'cold', 'main']
 epochs['WORD in {}'.format(words)].plot_image(show=False)
 
-################################################################################
+###############################################################################
 
 categories = ["NumberOfLetters", "is_concrete"]
 avs = epochs.average(by=categories)
@@ -94,13 +100,8 @@ style_plot = dict(
 )
 fig, ax = plt.subplots()
 mne.viz.evoked.plot_compare_evokeds(
-    avs, **style_plot, picks=list(avs.values())[0].ch_names.index("Pz"), show=False, axes=ax
-).set_size_inches((6, 3))
+    avs, **style_plot, picks=list(avs.values())[0].ch_names.index("Pz"),
+    show=False, axes=ax).set_size_inches((6, 3))
 ax.legend(loc=[1.05, .1])
-
-
-################################################################################
-epochs.save('./tmp-epo.fif')
-mne.read_epochs('./tmp-epo.fif')
 
 plt.show()
