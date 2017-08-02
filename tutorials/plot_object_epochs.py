@@ -66,7 +66,8 @@ print(epochs)
 # information, as well as a number of attributes unique to the events contained
 # within the object.
 
-print(epochs.events[:3], epochs.event_id, sep='\n\n')
+print(epochs.events[:3])
+print(epochs.event_id)
 
 ###############################################################################
 # You can select subsets of epochs by indexing the :class:`Epochs <mne.Epochs>`
