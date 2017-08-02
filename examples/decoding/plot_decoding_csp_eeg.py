@@ -30,6 +30,10 @@ References
 import numpy as np
 import matplotlib.pyplot as plt
 
+from sklearn.pipeline import Pipeline
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.model_selection import ShuffleSplit, cross_val_score
+
 from mne import Epochs, pick_types, find_events
 from mne.channels import read_layout
 from mne.io import concatenate_raws, read_raw_edf
@@ -73,10 +77,6 @@ labels = epochs.events[:, -1] - 2
 
 ###############################################################################
 # Classification with linear discrimant analysis
-
-from sklearn.pipeline import Pipeline  # noqa
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis  # noqa
-from sklearn.model_selection import ShuffleSplit, cross_val_score  # noqa
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 scores = []
