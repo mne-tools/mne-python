@@ -128,8 +128,8 @@ class CSP(TransformerMixin, BaseEstimator):
         self.log = log
         if norm_trace is None:
             norm_trace = True
-            warn("new_param defaults to True in 0.15, but will change to False"
-                 " in 0.16. Set it explicitly to avoid this warning.",
+            warn("norm_trace defaults to True in 0.15, but will change to "
+                 "False in 0.16. Set it explicitly to avoid this warning.",
                  DeprecationWarning)
 
         if not isinstance(norm_trace, bool):
@@ -290,9 +290,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def plot_patterns(self, info, components=None, ch_type=None, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                      colorbar=True, scale=None, scale_time=1, unit=None,
-                      res=64, size=1, cbar_fmt='%3.1f',
-                      name_format='CSP%01d', proj=False, show=True,
+                      colorbar=True, scale=None, unit='a.u.', res=64, size=1,
+                      cbar_fmt='%3.1f', name_format='CSP%01d', show=True,
                       show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
                       image_interp='bilinear', average=None, head_pos=None):
@@ -350,8 +349,6 @@ class CSP(TransformerMixin, BaseEstimator):
         scale : dict | float | None
             Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
             for grad and 1e15 for mag.
-        scale_time : float | None
-            Scale the time labels. Defaults to 1.
         unit : dict | str | None
             The unit of the channel type used for colorbar label. If
             scale is None the unit is automatically determined.
@@ -363,10 +360,6 @@ class CSP(TransformerMixin, BaseEstimator):
             String format for colorbar values.
         name_format : str
             String format for topomap values. Defaults to "CSP%01d"
-        proj : bool | 'interactive'
-            If true SSP projections are applied before display.
-            If 'interactive', a check box for reversible selection
-            of SSP projection vectors will be show.
         show : bool
             Show figure if True.
         show_names : bool | callable
@@ -437,23 +430,21 @@ class CSP(TransformerMixin, BaseEstimator):
                                      layout=layout, vmin=vmin, vmax=vmax,
                                      cmap=cmap, colorbar=colorbar, res=res,
                                      cbar_fmt=cbar_fmt, sensors=sensors,
-                                     scale=1, scale_time=1, unit='a.u.',
+                                     scale=scale, unit=unit, scale_time=1,
                                      time_format=name_format, size=size,
-                                     show_names=show_names,
-                                     mask_params=mask_params,
-                                     mask=mask, outlines=outlines,
-                                     contours=contours,
+                                     show_names=show_names, title=title,
+                                     mask_params=mask_params, mask=mask,
+                                     outlines=outlines, contours=contours,
                                      image_interp=image_interp, show=show,
-                                     head_pos=head_pos)
+                                     average=average, head_pos=head_pos)
 
     def plot_filters(self, info, components=None, ch_type=None, layout=None,
                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                     colorbar=True, scale=None, scale_time=1, unit=None,
-                     res=64, size=1, cbar_fmt='%3.1f',
-                     name_format='CSP%01d', proj=False, show=True,
-                     show_names=False, title=None, mask=None,
-                     mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None):
+                     colorbar=True, scale=None, unit='a.u.', res=64, size=1,
+                     cbar_fmt='%3.1f', name_format='CSP%01d', show=True,
+                     show_names=False, title=None, mask=None, mask_params=None,
+                     outlines='head', contours=6, image_interp='bilinear',
+                     average=None, head_pos=None):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -508,8 +499,6 @@ class CSP(TransformerMixin, BaseEstimator):
         scale : dict | float | None
             Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
             for grad and 1e15 for mag.
-        scale_time : float | None
-            Scale the time labels. Defaults to 1.
         unit : dict | str | None
             The unit of the channel type used for colorbar label. If
             scale is None the unit is automatically determined.
@@ -521,10 +510,6 @@ class CSP(TransformerMixin, BaseEstimator):
             String format for colorbar values.
         name_format : str
             String format for topomap values. Defaults to "CSP%01d"
-        proj : bool | 'interactive'
-            If true SSP projections are applied before display.
-            If 'interactive', a check box for reversible selection
-            of SSP projection vectors will be show.
         show : bool
             Show figure if True.
         show_names : bool | callable
@@ -595,14 +580,13 @@ class CSP(TransformerMixin, BaseEstimator):
                                     layout=layout, vmin=vmin, vmax=vmax,
                                     cmap=cmap, colorbar=colorbar, res=res,
                                     cbar_fmt=cbar_fmt, sensors=sensors,
-                                    scale=1, scale_time=1, unit='a.u.',
+                                    scale=scale, unit=unit, scale_time=1,
                                     time_format=name_format, size=size,
-                                    show_names=show_names,
-                                    mask_params=mask_params,
-                                    mask=mask, outlines=outlines,
-                                    contours=contours,
+                                    show_names=show_names, title=title,
+                                    mask_params=mask_params, mask=mask,
+                                    outlines=outlines, contours=contours,
                                     image_interp=image_interp, show=show,
-                                    head_pos=head_pos)
+                                    average=average, head_pos=head_pos)
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):

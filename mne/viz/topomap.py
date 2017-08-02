@@ -13,6 +13,7 @@ import copy
 from functools import partial
 import itertools
 from numbers import Integral
+import warnings
 
 import numpy as np
 
@@ -1364,7 +1365,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     evoked = evoked.copy().pick_channels(
         [evoked.ch_names[pick] for pick in picks])
 
-    interactive = times == 'interactive'
+    with warnings.catch_warnings(record=True):  # elementwise comparison
+        interactive = times == 'interactive'
     if axes is not None:
         if isinstance(axes, plt.Axes):
             axes = [axes]
