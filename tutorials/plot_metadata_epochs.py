@@ -98,4 +98,9 @@ mne.viz.evoked.plot_compare_evokeds(
 ).set_size_inches((6, 3))
 ax.legend(loc=[1.05, .1])
 
+
+################################################################################
+epochs.save('./tmp-epo.fif')
+mne.read_epochs('./tmp-epo.fif')
+
 plt.show()

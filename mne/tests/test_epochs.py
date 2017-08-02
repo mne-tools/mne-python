@@ -2168,6 +2168,12 @@ def test_metadata():
         with pytest.raises(ValueError):
             epochs = EpochsArray(data, info, metadata=data)
 
+    # Need strings, ints, and floats
+    with pytest.raises(ValueError):
+        tmp_meta = meta.copy()
+        tmp_meta['foo'] = np.array  # This should be of type object
+        epochs = EpochsArray(data, info, metadata=tmp_meta)
+
     # Groupby etc
     for meth in [epochs.standard_error, epochs.average]:
         out = meth(by='letter', picks=[0])

@@ -852,3 +852,6 @@ FIFF.FIFFB_MNE_EPOCHS_DROP_LOG     = 3801  # the drop log
 
 # MNE annotations
 FIFF.FIFFB_MNE_ANNOTATIONS          = 3810  # annotations
+
+# MNE Metadata Dataframes
+FIFF.FIFFB_MNE_METADATA             = 3811  # metadata dataframes

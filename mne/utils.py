@@ -2150,14 +2150,17 @@ def _check_preload(inst, msg):
                            '%s.load_data().' % (name, name))
 
 
-def _check_pandas_installed():
+def _check_pandas_installed(strict=True):
     """Aux function."""
     try:
         import pandas as pd
         return pd
     except ImportError:
-        raise RuntimeError('For this method to work the Pandas library is'
-                           ' required.')
+        if strict is True:
+            raise RuntimeError('For this functionality to work the Pandas '
+                               'library is required.')
+        else:
+            return False
 
 
 def _check_pandas_index_arguments(index, defaults):

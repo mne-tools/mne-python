@@ -43,7 +43,8 @@ from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, warn, _pl, _ensure_int,
-                    sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc)
+                    sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
+                    _check_pandas_installed)
 from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
@@ -87,8 +88,21 @@ def _save_split(epochs, fname, part_idx, n_parts):
     write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
     mapping_ = ';'.join([k + ':' + str(v) for k, v in
                          epochs.event_id.items()])
+
     write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+
+    # Metadata
+    start_block(fid, FIFF.FIFFB_MNE_METADATA)
+    if epochs.metadata is not None:
+        pd = _check_pandas_installed()
+        if not isinstance(epochs.metadata, pd.DataFrame):
+            raise ValueError('epochs.metadata must be a DataFrame')
+
+        write_string(fid, FIFF.FIFF_DESCRIPTION, epochs.metadata.to_json())
+    else:
+        write_string(fid, FIFF.FIFF_DESCRIPTION, 'None')
+    end_block(fid, FIFF.FIFFB_MNE_METADATA)
 
     # First and last sample
     first = int(round(epochs.tmin * info['sfreq']))  # round just to be safe
@@ -317,7 +331,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if len(metadata) != len(self.events):
                 raise ValueError('`metadata` must have the same number of '
                                  'rows as events')
-            if not isinstance(metadata, _check_dataframe()):
+            if not isinstance(metadata, _check_pandas_installed().DataFrame):
                 raise ValueError('`metadata` must be a pandas DataFrame')
         self.metadata = metadata
 
@@ -770,9 +784,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def _groupby(self, by):
         """Iterate via groupby using a column of ``self.metadata``."""
-        DataFrame = _check_dataframe()
-
-        if not isinstance(self.metadata, DataFrame):
+        if not isinstance(self.metadata, _check_pandas_installed().DataFrame):
             raise ValueError('`self.metadata` must be a DataFrame in '
                              'order to use `by`')
         metadata = self.metadata.reset_index()
@@ -1368,21 +1380,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def _keys_to_idx(self, keys):
         """Find entries in event dict."""
-        DataFrame = _check_dataframe(strict=False)
-        if len(keys) == 1 and isinstance(self.metadata, DataFrame) and \
-                DataFrame is not None:
-            try:
-                # Try metadata matching
-                idx = np.where(self.metadata.eval(keys[0]).values)[0]
-                return idx
-            except:
-                warn('pandas query failed, trying Epochs string matching.')
-
-        # Assume it's a condition name
-        idx = np.array([self.events[:, 2] == self.event_id[k]
-                        for k in _hid_match(self.event_id, keys)])
-        idxs = idx.any(axis=0)
-        return idx
+        try:
+            # Assume it's a condition name
+            idx = np.array([self.events[:, 2] == self.event_id[k]
+                            for k in _hid_match(self.event_id, keys)])
+            idxs = idx.any(axis=0)
+            return idxs
+        except KeyError:
+            err = 'Query does not match a condition name.'
+            DataFrame = _check_pandas_installed(strict=False).DataFrame
+            if len(keys) == 1 and isinstance(self.metadata, DataFrame) and \
+                    DataFrame is not False:
+                try:
+                    # Try metadata matching
+                    idxs = np.where(self.metadata.eval(keys[0]).values)[0]
+                    return idxs
+                except Exception:
+                    err[-1] = ' '
+                    err += 'and is not a valid metadata query.'
+                    pass
+            # If none of the above code returns the ixs, throw the error
+            raise ValueError(err)
 
     def __getitem__(self, item):
         """Return an Epochs object with a copied subset of epochs.
@@ -1452,7 +1470,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             epochs.drop_log[k] = ['IGNORED']
         epochs.selection = key_selection
         epochs.events = np.atleast_2d(epochs.events[select])
-        if isinstance(epochs.metadata, _check_dataframe(strict=False)):
+        pd = _check_pandas_installed(strict=False)
+        if isinstance(epochs.metadata, pd.DataFrame):
             epochs.metadata = epochs.metadata.iloc[select]
         if epochs.preload:
             # ensure that each Epochs instance owns its own data so we can
@@ -2272,6 +2291,27 @@ def _read_one_epoch_file(f, tree, preload):
 
         events, mappings = _read_events_fif(fid, tree)
 
+        #   Metadata
+        try:
+            metadata = dir_tree_find(tree, FIFF.FIFFB_MNE_METADATA)
+            for dd in metadata[0]['directory']:
+                kind = dd.kind
+                pos = dd.pos
+                if kind == FIFF.FIFF_DESCRIPTION:
+                    tag = read_tag(fid, pos)
+                    if tag.data == 'None':
+                        continue
+                    if _check_pandas_installed(strict=False) is False:
+                        warn('Metadata found but pandas is not installed, not '
+                             'loading.')
+                        continue
+                    import pandas as pd
+                    metadata = pd.read_json(tag.data)
+                    break
+        except AttributeError:
+            # Assume this is an older file that doesn't have this field.
+            pass
+
         #   Locate the data of interest
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
         if len(processed) == 0:
@@ -2368,8 +2408,8 @@ def _read_one_epoch_file(f, tree, preload):
         if drop_log is None:
             drop_log = [[] for _ in range(len(events))]
 
-    return (info, data, data_tag, events, event_id, tmin, tmax, baseline,
-            selection, drop_log, epoch_shape, cals)
+    return (info, data, data_tag, events, event_id, metadata, tmin, tmax,
+            baseline, selection, drop_log, epoch_shape, cals)
 
 
 @verbose
@@ -2466,15 +2506,16 @@ class EpochsFIF(BaseEpochs):
             logger.info('Reading %s ...' % fname)
             fid, tree, _ = fiff_open(fname)
             next_fname = _get_next_fname(fid, fname, tree)
-            (info, data, data_tag, events, event_id, tmin, tmax, baseline,
-             selection, drop_log, epoch_shape, cals) = \
+            (info, data, data_tag, events, event_id, metadata, tmin, tmax,
+            baseline, selection, drop_log, epoch_shape, cals) = \
                 _read_one_epoch_file(fid, tree, preload)
+
             # here we ignore missing events, since users should already be
             # aware of missing events if they have saved data that way
             epoch = BaseEpochs(
                 info, data, events, event_id, tmin, tmax, baseline,
                 on_missing='ignore', selection=selection, drop_log=drop_log,
-                proj=False, verbose=False)
+                proj=False, metadata=metadata, verbose=False)
             ep_list.append(epoch)
             if not preload:
                 # store everything we need to index back to the original data
@@ -2485,8 +2526,8 @@ class EpochsFIF(BaseEpochs):
             if next_fname is not None:
                 fnames.append(next_fname)
 
-        (info, data, events, event_id, tmin, tmax, baseline, selection,
-         drop_log, _) = _concatenate_epochs(ep_list, with_data=preload)
+        (info, data, events, event_id, tmin, tmax, metadata, baseline,
+         selection, drop_log, _) = _concatenate_epochs(ep_list, with_data=preload)
         # we need this uniqueness for non-preloaded data to work properly
         if len(np.unique(events[:, 0])) != len(events):
             raise RuntimeError('Event time samples were not unique')
@@ -2507,7 +2548,7 @@ class EpochsFIF(BaseEpochs):
             info, data, events, event_id, tmin, tmax, baseline, raw=raw,
             proj=proj, preload_at_end=False, on_missing='ignore',
             selection=selection, drop_log=drop_log, filename=fname,
-            verbose=verbose)
+            metadata=metadata, verbose=verbose)
         # use the private property instead of drop_bad so that epochs
         # are not all read from disk for preload=False
         self._bad_dropped = True
@@ -2685,6 +2726,11 @@ def _concatenate_epochs(epochs_list, with_data=True):
     out = epochs_list[0]
     data = [out.get_data()] if with_data else None
     events = [out.events]
+    metadata = [out.metadata]
+    if metadata is not None:
+        if any(ii.metadata is None for ii in epochs_list):
+            raise ValueError("Cannot concatenate epochs with metadata to others"
+                             "without metadata.")
     baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
     info = deepcopy(out.info)
     verbose = out.verbose
@@ -2725,21 +2771,26 @@ def _concatenate_epochs(epochs_list, with_data=True):
         selection = np.concatenate((selection, epochs.selection))
         drop_log.extend(epochs.drop_log)
         event_id.update(epochs.event_id)
+        if metadata is not None:
+            metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
+    if metadata is not None:
+        pd = _check_pandas_installed()
+        metadata = pd.concat(metadata)
     if with_data:
         data = np.concatenate(data, axis=0)
-    return (info, data, events, event_id, tmin, tmax, baseline, selection,
-            drop_log, verbose)
+    return (info, data, events, event_id, tmin, tmax, metadata, baseline,
+            selection, drop_log, verbose)
 
 
-def _finish_concat(info, data, events, event_id, tmin, tmax, baseline,
+def _finish_concat(info, data, events, event_id, tmin, tmax, metadata, baseline,
                    selection, drop_log, verbose):
     """Finish concatenation for epochs not read from disk."""
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(
         info, data, events, event_id, tmin, tmax, baseline=baseline,
         selection=selection, drop_log=drop_log, proj=False,
-        on_missing='ignore', verbose=verbose)
+        on_missing='ignore', metadata=metadata, verbose=verbose)
     out.drop_bad()
     return out
 
@@ -3006,13 +3057,3 @@ def _segment_raw(raw, segment_length=1., verbose=None, **kwargs):
     events = make_fixed_length_events(raw, 1, duration=segment_length)
     return Epochs(raw, events, event_id=[1], tmin=0., tmax=segment_length,
                   verbose=verbose, baseline=None, **kwargs)
-
-def _check_dataframe(strict=True):
-    try:
-        from pandas import DataFrame
-    except ModuleNotFoundError:
-        if strict:
-            raise ValueError('You must install pandas in order to use `by`')
-        else:
-            DataFrame = None
-    return DataFrame
