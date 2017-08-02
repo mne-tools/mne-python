@@ -1734,8 +1734,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Colorbar properties specification. If 'auto', set clim automatically
         based on data percentiles. If dict, should contain:
 
-            ``kind`` : str
-                Flag to specify type of limits. 'value' or 'percent'.
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
             ``lims`` : list | np.ndarray | tuple of float, 3 elements
                 Note: Only use this if 'colormap' is not 'mne'.
                 Left, middle, and right bound for colormap.
@@ -1912,7 +1912,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
     are shown using arrows, depicting the direction and magnitude of the
-    current moment at the dipole.
+    current moment at the dipole. Additionally, an overlay is plotted on top of
+    the cortex with the magnitude of the current.
 
     Parameters
     ----------
@@ -1940,7 +1941,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     brain_alpha : float
         Alpha value to apply globally to the surface meshes. Defaults to 0.4.
     overlay_alpha : float
-        Alpha value to apply globally to the overlay. Defaults to brain_alpha.
+        Alpha value to apply globally to the overlay. Defaults to
+        ``brain_alpha``.
     vector_alpha : float
         Alpha value to apply globally to the vector glyphs. Defaults to 1.
     scale_factor : float | None
@@ -1964,8 +1966,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         Colorbar properties specification. If 'auto', set clim automatically
         based on data percentiles. If dict, should contain:
 
-            ``kind`` : str
-                Flag to specify type of limits. 'value' or 'percent'.
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
             ``lims`` : list | np.ndarray | tuple of float, 3 elements
                 Note: Only use this if 'colormap' is not 'mne'.
                 Left, middle, and right bound for colormap.
@@ -2002,13 +2004,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
 
     Notes
     -----
-    PySurfer currently needs the SUBJECTS_DIR environment variable,
-    which will automatically be set by this function. Plotting multiple
-    SourceEstimates with different values for subjects_dir will cause
-    PySurfer to use the wrong FreeSurfer surfaces when using methods of
-    the returned Brain object. It is therefore recommended to set the
-    SUBJECTS_DIR environment variable or always use the same value for
-    subjects_dir (within the same Python session).
+    .. versionadded:: 0.15
+
+    If the current magnitude overlay is not desired, set ``overlay_alpha=0``
+    and ``smoothing_steps=1``.
     """
     # Import here to avoid circular imports
     import surfer

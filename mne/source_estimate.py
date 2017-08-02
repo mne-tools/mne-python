@@ -12,8 +12,7 @@ import warnings
 
 import numpy as np
 from scipy import linalg, sparse
-from scipy.sparse import (coo_matrix, lil_matrix,
-                          block_diag as sparse_block_diag)
+from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
 from .filter import resample
 from .evoked import _get_peak
@@ -766,7 +765,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         Returns
         -------
         stc : instance of _BaseSourceEstimate
-            A version of the source estamite, where the data attribute is set
+            A version of the source estimate, where the data attribute is set
             to abs(self.data).
         """
         stc = self.copy()
@@ -1383,10 +1382,10 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
     See Also
     --------
-    :class:`VectorSourceEstimate` : A container for vector source estimates.
-    :class:`VolSourceEstimate` : A container for volume source estimates.
-    :class:`MixedSourceEstimate` : A container for mixed surface + volume
-                                   source estimates.
+    VectorSourceEstimate : A container for vector source estimates.
+    VolSourceEstimate : A container for volume source estimates.
+    MixedSourceEstimate : A container for mixed surface + volume source
+                          estimates.
     """
 
     @verbose
@@ -1699,10 +1698,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
     See Also
     --------
-    :class:`SourceEstimate` : A container for surface source estimates.
-    :class:`VectorSourceEstimate` : A container for vector source estimates.
-    :class:`MixedSourceEstimate` : A container for mixed surface + volume
-                                   source estimates.
+    SourceEstimate : A container for surface source estimates.
+    VectorSourceEstimate : A container for vector source estimates.
+    MixedSourceEstimate : A container for mixed surface + volume source
+                          estimates.
     """
 
     @verbose
@@ -1898,10 +1897,10 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
 
     See Also
     --------
-    :class:`SourceEstimate` : A container for surface source estimates.
-    :class:`VolSourceEstimate` : A container for volume source estimates.
-    :class:`MixedSourceEstimate` : A container for mixed surface + volume
-                                   source estimates.
+    SourceEstimate : A container for surface source estimates.
+    VolSourceEstimate : A container for volume source estimates.
+    MixedSourceEstimate : A container for mixed surface + volume source
+                          estimates.
     """
     @verbose
     def save(self, fname, ftype='h5', verbose=None):
@@ -1993,7 +1992,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
 
         See Also
         --------
-        :func:`mne.VectorSourceEstimate.magnitude`
+        VectorSourceEstimate.magnitude
         """
         return super(VectorSourceEstimate, self).__abs__()
 
@@ -2040,9 +2039,9 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 
     See Also
     --------
-    :class:`SourceEstimate` : A container for surface source estimates.
-    :class:`VectorSourceEstimate` : A container for vector source estimates.
-    :class:`VolSourceEstimate` : A container for volume source estimates.
+    SourceEstimate : A container for surface source estimates.
+    VectorSourceEstimate : A container for vector source estimates.
+    VolSourceEstimate : A container for volume source estimates.
     """
 
     @verbose
@@ -2178,7 +2177,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     """
     # When operating on vector data, morph each dimension separately
     if data.ndim == 3:
-        data_morphed = np.zeros((len(nearest), 3, data.shape[2]))
+        data_morphed = np.zeros((len(nearest), 3, data.shape[2]),
+                                dtype=data.dtype)
         for dim in range(3):
             data_morphed[:, dim, :] = _morph_buffer(
                 data=data[:, dim, :], idx_use=idx_use, e=e, smooth=smooth,
@@ -2626,7 +2626,7 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
         # Morph the locations of the dipoles, but not their orientation
         n_verts, _, n_samples = stc_from.data.shape
         data = morph_mat * stc_from.data.reshape(n_verts, 3 * n_samples)
-        data = data.reshape(n_verts, 3, n_samples)
+        data = data.reshape(morph_mat.shape[0], 3, n_samples)
         stc_to = VectorSourceEstimate(data, vertices=vertices_to,
                                       tmin=stc_from.tmin, tstep=stc_from.tstep,
                                       verbose=stc_from.verbose,

@@ -42,7 +42,7 @@ subjects_dir = data_path + '/subjects'
 lh = fwd['src'][0]  # Visualize the left hemisphere
 verts = lh['rr']  # The vertices of the source space
 tris = lh['tris']  # Groups of three vertices that form triangles
-dip_pos = lh['rr'][lh['inuse'].astype(bool)]  # The position of the dipoles
+dip_pos = lh['rr'][lh['vertno']]  # The position of the dipoles
 white = (1.0, 1.0, 1.0)  # RGB values for a white color
 gray = (0.5, 0.5, 0.5)  # RGB values for a gray color
 red = (1.0, 0.0, 0.0)  # RGB valued for a red color
@@ -79,7 +79,7 @@ mlab.figure(size=(600, 400), bgcolor=white)
 mlab.triangular_mesh(verts[:, 0], verts[:, 1], verts[:, 2], tris, color=gray)
 
 # Show the dipoles as arrows pointing along the surface normal
-normals = lh['nn'][lh['inuse'].astype(bool)]
+normals = lh['nn'][lh['vertno']]
 mlab.quiver3d(dip_pos[:, 0], dip_pos[:, 1], dip_pos[:, 2],
               normals[:, 0], normals[:, 1], normals[:, 2],
               color=red, scale_factor=1E-3)
@@ -153,7 +153,7 @@ stc = apply_inverse(left_auditory, inv, pick_ori='vector')
 # Visualize it at the moment of peak activity.
 _, time_max = stc.magnitude().get_peak(hemi='lh')
 brain = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
-                 time_unit='s', size=(600, 400), alpha=0)
+                 time_unit='s', size=(600, 400), overlay_alpha=0)
 
 ###############################################################################
 # Limiting orientations, but not fixing them
@@ -173,7 +173,7 @@ stc = apply_inverse(left_auditory, inv, pick_ori='vector')
 # Visualize it at the moment of peak activity.
 _, time_max = stc.magnitude().get_peak(hemi='lh')
 brain = stc.plot(subjects_dir=subjects_dir, initial_time=time_max,
-                 time_unit='s', size=(600, 400), alpha=0)
+                 time_unit='s', size=(600, 400), overlay_alpha=0)
 
 ###############################################################################
 # Discarding dipole orientation information
