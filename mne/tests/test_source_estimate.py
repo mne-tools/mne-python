@@ -426,10 +426,7 @@ def test_center_of_mass():
     assert_true(hemi == 1)
     # XXX Should design a fool-proof test case, but here were the
     # results:
-    if isinstance(stc, VectorSourceEstimate):
-        assert_equal(vertex, 96129)
-    else:
-        assert_equal(vertex, 124791)
+    assert_equal(vertex, 124791)
     assert_equal(np.round(t, 2), 0.12)
 
 
@@ -884,4 +881,4 @@ def test_vec_stc():
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
 
 
-# run_tests_if_main()
+run_tests_if_main()
