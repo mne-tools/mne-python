@@ -891,6 +891,15 @@ def write_forward_meas_info(fid, info):
 
 def _check_loose(forward, loose):
     """Check loose parameter input."""
+    if not is_fixed_orient(forward) and loose is None:
+        raise ValueError('To avoid inconsistency, setting loose to None is '
+                         'currently disallowed for forward operators with '
+                         'free orientations. Please set the loose value '
+                         'explicitely to a float with 0.0 <= loose <= 1.0, '
+                         'where loose=0.0 applies a fixed orientation '
+                         'constraint and loose=1.0 applies no orientation '
+                         'constraint.')
+
     if is_fixed_orient(forward) and loose is not None:
         warn('Ignoring loose parameter with forward operator '
              'with fixed orientation.')
@@ -898,12 +907,12 @@ def _check_loose(forward, loose):
 
     if loose is not None:
         if not isinstance(loose, float):
-            raise ValueError('loose must be a float with 0 <= loose <= 1 or '
-                             'None if forward operator is not to be  modified.'
-                             ' Got %s' % type(loose))
+            raise ValueError('loose must be a float with 0.0 <= loose <= 1.0 '
+                             'or None if forward operator is not to be '
+                             'modified. Got %s' % type(loose))
 
         if not (0 <= loose <= 1):
-            raise ValueError('loose must be a float with 0 <= loose <= 1. '
+            raise ValueError('loose must be a float with 0.0 <= loose <= 1.0. '
                              'Got %f' % loose)
 
         if not forward['surf_ori'] and loose < 1:
