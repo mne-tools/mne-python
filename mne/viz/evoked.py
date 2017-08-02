@@ -1274,8 +1274,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     if title is not None:
         title_ax = plt.subplot(4, 3, 2)
         if title == '':
-            title = ', '.join([title,
-                               old_title]) if len(title) > 0 else old_title
+            title = old_title
         title_ax.text(.5, .5, title, transform=title_ax.transAxes,
                       horizontalalignment='center',
                       verticalalignment='center')
