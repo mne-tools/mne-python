@@ -20,10 +20,11 @@ from ..bem import read_bem_surfaces
 from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
 from ..io.meas_info import _empty_info
+from ..io.open import fiff_open, dir_tree_find
 from ..surface import read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
-from ..utils import get_config, set_config, logger
+from ..utils import get_config, set_config
 from ..viz._3d import _fiducial_coords
 from ..channels import read_dig_montage, DigMontage
 
@@ -287,12 +288,13 @@ class DigSource(HasPrivateTraits):
     @cached_property
     def _get_inst(self):
         if self.file:
-            try:
+            info = None
+            _, tree, _ = fiff_open(self.file)
+            if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
                 info = read_info(self.file, verbose=False)
-            except ValueError as err:  # try reading dig_montage
-                logger.info('%s; Attempting to read digitization '
-                            'montage.' % str(err))
+            elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:
                 info = read_dig_montage(fif=self.file)
+
             if info is None:
                 error(None, "The selected FIFF file does not contain "
                       "digitizer information. Please select a different "
