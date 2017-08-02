@@ -336,16 +336,16 @@ def test_make_inverse_operator_fixed():
 
     # can't make depth-weighted fixed inv without surf ori fwd
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_1,
-                  noise_cov, depth=0.8, loose=None, fixed=True)
+                  noise_cov, depth=0.8, loose=1.0, fixed=True)
     # can't make fixed inv with depth weighting without free ori fwd
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
-                  noise_cov, depth=0.8, loose=None, fixed=True)
+                  noise_cov, depth=0.8, loose=1.0, fixed=True)
 
     # now compare to C solution
     # note that the forward solution must not be surface-oriented
     # to get equivalency (surf_ori=True changes the normals)
     inv_op = make_inverse_operator(evoked.info, fwd_2, noise_cov, depth=None,
-                                   loose=None, fixed=True)
+                                   loose=1.0, fixed=True)
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
     _compare_inverses_approx(inverse_operator_nodepth, inv_op, evoked, 0, 1e-2)
     # Inverse has 306 channels - 6 proj = 302
@@ -368,16 +368,21 @@ def test_make_inverse_operator_free():
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
                   noise_cov, depth=None)
 
-    # for free ori inv, loose=None and loose=1. should be equivalent
-    inv_1 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=None)
-    inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=1.)
-    _compare_inverses_approx(inv_1, inv_2, evoked, 0, 1e-2)
+    # This test is commented out as this behavior is currently disallowed
+    # # for free ori inv, loose=None and loose=1. should be equivalent
+    # inv_1 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=None)
+    # inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=1.)
+    # _compare_inverses_approx(inv_1, inv_2, evoked, 0, 1e-2)
+
+    # Currently, for free ori inv, loose=None should raise an error
+    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_op,
+                  noise_cov, loose=None)
 
     # for depth=None, surf_ori of the fwd should not matter
     inv_3 = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=None,
-                                  loose=None)
+                                  loose=1.0)
     inv_4 = make_inverse_operator(evoked.info, fwd_1, noise_cov, depth=None,
-                                  loose=None)
+                                  loose=1.0)
     _compare_inverses_approx(inv_3, inv_4, evoked, 0, 1e-2)
 
 
@@ -515,7 +520,7 @@ def test_apply_mne_inverse_fixed_raw():
                                     surf_ori=True)
     noise_cov = read_cov(fname_cov)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
-                                   loose=None, depth=0.8, fixed=True)
+                                   loose=1.0, depth=0.8, fixed=True)
 
     inv_op2 = prepare_inverse_operator(inv_op, nave=1,
                                        lambda2=lambda2, method="dSPM")
@@ -613,7 +618,7 @@ def test_make_inverse_operator_bads():
 
     # test bads
     bad = evoked.info['bads'].pop()
-    inv_ = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=None)
+    inv_ = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=1.0)
     union_good = set(noise_cov['names']) & set(evoked.ch_names)
     union_bads = set(noise_cov['bads']) & set(evoked.info['bads'])
     evoked.info['bads'].append(bad)

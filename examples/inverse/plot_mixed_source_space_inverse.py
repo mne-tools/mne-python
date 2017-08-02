@@ -126,7 +126,7 @@ lambda2 = 1.0 / snr ** 2
 
 # Compute inverse operator
 inverse_operator = make_inverse_operator(evoked.info, fwd, noise_cov,
-                                         loose=None, depth=None,
+                                         loose=1.0, depth=None,
                                          fixed=False)
 
 stc_mixed = apply_inverse(evoked, inverse_operator, lambda2, inv_method,

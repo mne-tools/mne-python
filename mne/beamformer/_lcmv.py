@@ -361,7 +361,7 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
 
         tstep = 1.0 / info['sfreq']
 
-        yield _make_stc(sol, vertices=filters['vertno'], tmin=tmin,
+        yield _make_stc(sol, vertices=filters['vertices'], tmin=tmin,
                         tstep=tstep, subject=subject, src=filters['src'])
 
     logger.info('[done]')

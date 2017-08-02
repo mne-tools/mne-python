@@ -99,7 +99,7 @@ lambda2 = 1.0 / snr ** 2
 
 # Compute inverse operator
 inverse_operator = make_inverse_operator(raw.info, fwd, noise_cov,
-                                         loose=None, depth=None,
+                                         loose=1.0, depth=None,
                                          fixed=False)
 
 

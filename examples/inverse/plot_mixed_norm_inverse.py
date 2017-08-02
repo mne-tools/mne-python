@@ -60,7 +60,7 @@ n_mxne_iter = 10  # if > 1 use L0.5/L2 reweighted mixed norm solver
 
 # Compute dSPM solution to be used as weights in MxNE
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,
-                                         loose=None, depth=depth, fixed=True)
+                                         loose=1.0, depth=depth, fixed=True)
 stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 
