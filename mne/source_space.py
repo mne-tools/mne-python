@@ -168,7 +168,7 @@ class SourceSpaces(list):
         # Check inputs
         for _src in [self, other]:
             if not all(src_type in ['surf', 'vol', 'discrete'] for
-                    src_type in list(set([ss['type'] for ss in _src]))):
+                       src_type in list(set([ss['type'] for ss in _src]))):
                 raise ValueError('At least one type of source space is '
                                  'unknown.')
             if _src.kind == 'surface':

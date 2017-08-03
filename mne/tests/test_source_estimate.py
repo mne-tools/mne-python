@@ -786,15 +786,14 @@ def test_mixed_stc():
                   vertices=[np.arange(N)])
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
-    
+
     vol = read_source_spaces(fname_vsrc)
 
     # make sure error is raised for plotting surface with volume source
     assert_raises(ValueError, stc.plot_surface, src=vol)
 
     for fname in ['-mx.stc', '-mixed.stc']:
-        #fname_temp = op.join(tempdir, 'temp' + fname)
-        fname_temp = op.join('/Users/Daniel/Desktop', 'temp' + fname)
+        fname_temp = op.join(tempdir, 'temp' + fname)
         stc.save(fname_temp)
         stc_new = read_source_estimate(fname_temp)
         assert_true(isinstance(stc_new, MixedSourceEstimate))
@@ -804,8 +803,7 @@ def test_mixed_stc():
     stc = MixedSourceEstimate(data[:, 0:1], vertno, 0, 1)
 
     for fname in ['-mx.w', '-mixed.w']:
-        #fname_temp = op.join(tempdir, 'temp' + fname)
-        fname_temp = op.join('/Users/Daniel/Desktop', 'temp' + fname)
+        fname_temp = op.join(tempdir, 'temp' + fname)
         stc.save(fname_temp, ftype='w')
         stc_new = read_source_estimate(fname_temp)
         assert_true(isinstance(stc_new, MixedSourceEstimate))

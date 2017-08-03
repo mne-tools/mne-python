@@ -499,7 +499,6 @@ def test_read_volume_from_src():
                   'Right-Amygdala']
 
     src = read_source_spaces(fname)
-    surf_src = src.copy()
 
     # Setup a volume source space
     vol_src = setup_volume_source_space('sample', mri=aseg_fname,
@@ -551,7 +550,7 @@ def test_combine_source_spaces():
 
     # combine source spaces
     src = srf + vol + disc
-    assert_true(src.kind=='combined')
+    assert_true(src.kind == 'combined')
     assert_raises(ValueError, srf.__add__, src)
 
     # unrecognized source type

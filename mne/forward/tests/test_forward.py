@@ -104,7 +104,7 @@ def test_check_loose():
     assert_raises(ValueError, _check_loose, fwd, None)
     assert_raises(ValueError, _check_loose, fwd, 1.5)
     assert_raises(ValueError, _check_loose, fwd, 'loose')
-    
+
     fwd_fixed = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
     assert_true(_check_loose(fwd_fixed, 0.2)[1] is None)
 
