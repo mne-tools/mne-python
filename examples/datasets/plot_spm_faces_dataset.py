@@ -89,6 +89,8 @@ noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk')
 ###############################################################################
 # Visualize fields on MEG helmet
 
+# The transformation here was aligned using the dig-montage. It's included in
+# the spm_faces dataset and is named SPM_dig_montage.fif.
 trans_fname = data_path + ('/MEG/spm/SPM_CTF_MEG_example_faces1_3D_'
                            'raw-trans.fif')
 
