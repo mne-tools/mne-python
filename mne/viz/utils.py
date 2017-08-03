@@ -1334,7 +1334,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     -----
     This function plots the sensor locations from the info structure using
     matplotlib. For drawing the sensors using mayavi see
-    :func:`mne.viz.plot_trans`.
+    :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
 
