@@ -53,13 +53,13 @@ def _setup_picks(info, forward, data_cov=None, noise_cov=None):
     if data_cov is not None:
         ch_names = [c for c in ch_names
                     if c not in data_cov['bads'] and
-                       c in data_cov.ch_names]
+                    c in data_cov.ch_names]
 
     # handle channels from noise cov if noise cov available:
     if noise_cov is not None:
         ch_names = [c for c in ch_names
                     if c not in noise_cov['bads'] and
-                       c in noise_cov.ch_names]
+                    c in noise_cov.ch_names]
 
     # inform about excluding channels:
     if data_cov is not None and set(info['bads']) != set(data_cov['bads']):
@@ -1085,7 +1085,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
              'to None will remove this warning.',
              DeprecationWarning)
 
-        info = pick_info(info, picks)
+        epochs.info = pick_info(epochs.info, picks)
 
     _check_reference(epochs)
 
