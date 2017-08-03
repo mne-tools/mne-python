@@ -39,7 +39,7 @@ def _reg_pinv(x, reg):
     return linalg.pinv(x), d
 
 
-def _setup_picks(info, forward, data_cov, noise_cov=None):
+def _setup_picks(info, forward, data_cov=None, noise_cov=None):
     # get a list of all channel names:
     fwd_ch_names = set([c['ch_name'] for c in forward['info']['chs']])
 
