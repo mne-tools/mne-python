@@ -499,6 +499,7 @@ def test_read_volume_from_src():
                   'Right-Amygdala']
 
     src = read_source_spaces(fname)
+    surf_src = src.copy()
 
     # Setup a volume source space
     vol_src = setup_volume_source_space('sample', mri=aseg_fname,
@@ -515,7 +516,6 @@ def test_read_volume_from_src():
 
     # Test
     assert_equal(volume_label, src[2]['seg_name'])
-
     assert_equal(src[2]['type'], 'vol')
 
 
@@ -546,8 +546,19 @@ def test_combine_source_spaces():
     disc = setup_volume_source_space('sample', subjects_dir=subjects_dir,
                                      pos=pos, verbose='error')
 
+    assert_raises(ValueError, srf.__add__, srf)
+    assert_raises(ValueError, vol.__add__, SourceSpaces(srf[:1]))
+
     # combine source spaces
     src = srf + vol + disc
+    assert_true(src.kind=='combined')
+    assert_raises(ValueError, srf.__add__, src)
+
+    # unrecognized source type
+    srf2 = srf.copy()
+    srf2[0]['type'] = 'kitty'
+    assert_raises(ValueError, src.__add__, srf2)
+    assert_raises(ValueError, srf2.__add__, src)
 
     # test addition of source spaces
     assert_equal(type(src), SourceSpaces)
@@ -570,13 +581,6 @@ def test_combine_source_spaces():
 
     # source spaces with no volume
     assert_raises(ValueError, srf.export_volume, image_fname, verbose='error')
-
-    # unrecognized source type
-    disc2 = disc.copy()
-    disc2[0]['type'] = 'kitty'
-    src_unrecognized = src + disc2
-    assert_raises(ValueError, src_unrecognized.export_volume, image_fname,
-                  verbose='error')
 
     # unrecognized file type
     bad_image_fname = op.join(tempdir, 'temp-image.png')
