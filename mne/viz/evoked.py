@@ -1164,7 +1164,8 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         finds time points automatically by checking for 3 local maxima in
         Global Field Power. Defaults to "peaks".
     title : str | None
-        The title. If `None`, suppress printing channel type. Defaults to ''.
+        The title. If `None`, suppress printing channel type. If an empty
+        string, a default title is created. Defaults to ''.
     picks : array-like of int | None
         The indices of channels to plot. If None show all. Defaults to None.
     exclude : None | list of str | 'bads'
@@ -1272,7 +1273,8 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     ts_ax.set_title('')
     if title is not None:
         title_ax = plt.subplot(4, 3, 2)
-        title = ', '.join([title, old_title]) if len(title) > 0 else old_title
+        if title == '':
+            title = old_title
         title_ax.text(.5, .5, title, transform=title_ax.transAxes,
                       horizontalalignment='center',
                       verticalalignment='center')
