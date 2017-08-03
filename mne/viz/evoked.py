@@ -390,7 +390,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     y_offset = this_ylim[0]
                 this_gfp += y_offset
                 ax.fill_between(times, y_offset, this_gfp, color='none',
-                                facecolor=gfp_color, zorder=1, alpha=0.25)
+                                facecolor=gfp_color, zorder=1, alpha=0.2)
                 line_list.append(ax.plot(times, this_gfp, color=gfp_color,
                                          zorder=3, alpha=line_alpha)[0])
                 ax.text(times[0] + 0.01 * (times[-1] - times[0]),

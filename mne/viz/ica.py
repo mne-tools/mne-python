@@ -288,10 +288,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         if plot_std:
             axes[3].fill_between(freqs, psds_mean - spectrum_std[0],
                                  psds_mean + spectrum_std[1],
-                                 color='k', alpha=.15)
+                                 color='k', alpha=.2)
         if plot_lowpass_edge:
             axes[3].axvline(inst.info['lowpass'], lw=2, linestyle='--',
-                            color='k', alpha=0.15)
+                            color='k', alpha=0.2)
 
         # epoch variance
         axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
