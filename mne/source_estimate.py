@@ -2454,27 +2454,24 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     Parameters
     ----------
     subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR
+        Name of the original subject as named in the SUBJECTS_DIR.
     subject_to : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR
+        Name of the subject on which to morph as named in the SUBJECTS_DIR.
     vertices_from : list of arrays of int
-        Vertices for each hemisphere (LH, RH) for subject_from
+        Vertices for each hemisphere (LH, RH) for subject_from.
     vertices_to : list of arrays of int
-        Vertices for each hemisphere (LH, RH) for subject_to
+        Vertices for each hemisphere (LH, RH) for subject_to.
     smooth : int or None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
     subjects_dir : string
-        Path to SUBJECTS_DIR is not set in the environment
+        Path to SUBJECTS_DIR is not set in the environment.
     warn : bool
         If True, warn if not all vertices were used.
     xhemi : bool
         Morph across hemisphere. Currently only implemented for
-        ``subject_to == subject_from``. Requires appropriate
-        ``sphere.left_right`` morph-maps, which are included with the
-        ``fsaverage_sym`` FreeSurfer subject and can be created for other
-        subjects with the ``mris_left_right_register`` FreeSurfer command.
+        ``subject_to == subject_from``. See notes below.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2482,7 +2479,27 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     Returns
     -------
     morph_matrix : sparse matrix
-        matrix that morphs data from subject_from to subject_to
+        matrix that morphs data from ``subject_from`` to ``subject_to``.
+
+    Notes
+    -----
+    This function can be used to morph data from one hemisphere to the other
+    by setting ``xhemi=True``. This requires appropriate ``sphere.left_right``
+    morph-maps in the subject's directory. These morph maps are included
+    with the ``fsaverage_sym`` FreeSurfer subject, and can be created for other
+    subjects with the ``mris_left_right_register`` FreeSurfer command. The
+    ``fsaverage_sym`` subject is included with FreeSurfer > 5.1 and can be
+    obtained as described `here
+    <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
+    comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
+    model is recommended to minimize bias [1]_.
+
+    References
+    ----------
+    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
+           R., Fischl B., Brysbaert M.
+           A Surface-based Analysis of Language Lateralization and Cortical
+           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
     """
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)

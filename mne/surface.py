@@ -838,10 +838,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
         Path to SUBJECTS_DIR is not set in the environment.
     xhemi : bool
         Morph across hemisphere. Currently only implemented for
-        ``subject_to == subject_from``. Requires appropriate
-        ``sphere.left_right`` morph-maps, which are included with the
-        ``fsaverage_sym`` FreeSurfer subject and can be created for other
-        subjects with the ``mris_left_right_register`` FreeSurfer command.
+        ``subject_to == subject_from``. See notes at
+        :func:`mne.compute_morph_matrix`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
