@@ -8,9 +8,9 @@
 import numpy as np
 from scipy import linalg
 
-from ..io.pick import pick_channels_evoked
+from ..io.pick import pick_channels_evoked, pick_info
 from ..cov import compute_whitener
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..dipole import Dipole
 from ._lcmv import _prepare_beamformer_input, _setup_picks
 
@@ -211,6 +211,8 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
+        picks is deprecated and will be removed in 0.16, specify the selection
+        of channels in info instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -247,7 +249,15 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     data = evoked.data
     times = evoked.times
 
-    picks = _setup_picks(picks, info, forward, noise_cov)
+    if picks is not None:
+        warn('Specifying picks is deprecated and will be removed in 0.16. '
+             'Specifying the selection of channels in info and setting picks '
+             'to None will remove this warning.',
+             DeprecationWarning)
+
+        info = pick_info(info, picks)
+
+    picks = _setup_picks(info, forward, data_cov=None, noise_cov=noise_cov)
 
     data = data[picks]
 
