@@ -18,7 +18,7 @@ from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
                        run_tests_if_main, slow_test)
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
-                         Forward)
+                         Forward, _check_loose)
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -91,6 +91,24 @@ def test_convert_forward():
     assert_true(isinstance(fwd_new, Forward))
     compare_forwards(fwd, fwd_new)
     del fwd, fwd_new, fwd_fixed
+    gc.collect()
+
+
+@testing.requires_testing_data
+def test_check_loose():
+    """Test _check_loose
+    """
+    fwd = read_forward_solution(fname_meeg_grad)
+    fwd = _check_loose(fwd, 0.2)[0]
+    assert_true(fwd['surf_ori'])
+    assert_raises(ValueError, _check_loose, fwd, None)
+    assert_raises(ValueError, _check_loose, fwd, 1.5)
+    assert_raises(ValueError, _check_loose, fwd, 'loose')
+    
+    fwd_fixed = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
+    assert_true(_check_loose(fwd_fixed, 0.2)[1] is None)
+
+    del fwd, fwd_fixed
     gc.collect()
 
 

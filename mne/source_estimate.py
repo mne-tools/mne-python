@@ -306,23 +306,17 @@ def read_source_estimate(fname, subject=None):
             kwargs['data'] = kwargs['data'][:, np.newaxis]
             kwargs['tmin'] = 0.0
             kwargs['tstep'] = 0.0
-        else:
-            raise IOError('Volume source estimate must end with .stc or .w')
     elif ftype == 'mixed':  # mixed source space
         ii = 0
         kwargs_ = list()
         data = list()
         vertices = list()
         if fname.endswith('.stc'):
-            if fname.endswith('-mx.stc'):
-                fname = fname[:-7]
-            elif fname.endswith('-mixed.stc'):
-                fname = fname[:-10]
-            else:
-                raise IOError('Mixed source estimate must end with -mx.stc, '
-                              '-mixed.stc, -mx.w, or -mixed.w')
             while True:
-                fname_ = fname + '-mx%d.stc' % ii
+                if ii == 0:
+                    fname_ = fname
+                else:
+                    fname_ = fname[:-4] + '%d.stc' % ii
                 try:
                     kwargs_.append(_read_stc(fname_))
                     data.append(kwargs_[-1]['data'])
@@ -337,22 +331,15 @@ def read_source_estimate(fname, subject=None):
             kwargs['data'] = np.vstack(data)
             kwargs['vertices'] = vertices
         elif fname.endswith('.w'):
-            if fname.endswith('-mx.w'):
-                fname = fname[:-5]
-            elif fname.endswith('-mixed.w'):
-                fname = fname[:-8]
-            else:
-                raise IOError('Mixed source estimate must end with -mx.stc, '
-                              '-mixed.stc, -mx.w, or -mixed.w')
             while True:
-                fname_ = fname + '-mx%d.w' % ii
+                if ii == 0:
+                    fname_ = fname
+                else:
+                    fname_ = fname[:-2] + '%d.w' % ii
                 try:
                     kwargs_.append(_read_w(fname_))
                     data.append(kwargs_[-1]['data'][:, np.newaxis])
                     vertices.append(kwargs_[-1]['vertices'])
-                    if ii > 0:
-                        assert kwargs_[ii]['tmin'] == kwargs_[0]['tmin']
-                        assert kwargs_[ii]['tstep'] == kwargs_[0]['tstep']
                     ii += 1
                 except IOError:
                     break
@@ -2047,8 +2034,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         Parameters
         ----------
         fname : string
-            The stem of the file name. The stem is extended with "-vl.stc"
-            or "-vl.w".
+            The stem of the file name. The stem is extended with "-mx.stc"
+            or "-mx.w".
         ftype : string
             File format to use. Allowed values are "stc" (default) and "w".
             The "w" format only supports a single time point.
@@ -2065,24 +2052,25 @@ class MixedSourceEstimate(_BaseSourceEstimate):
 
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
-            if fname.endswith('-mx.stc'):
-                fname = fname[:-7]
-            if fname.endswith('-mixed.stc'):
-                fname = fname[:-10]
+            if not(fname.endswith('-mx.stc') or fname.endswith('-mixed.stc')):
+                fname = fname + '-mx.stc'
             for ii in range(len(self.vertices)):
-                fname_ = fname + '-mx%d.stc' % ii
+                if ii == 0:
+                    fname_ = fname
+                else:
+                    fname_ = fname[:-4] + '%d.stc' % ii
                 _write_stc(fname_, tmin=self.tmin, tstep=self.tstep,
                            vertices=self.vertices[ii], data=data[ii])
         elif ftype == 'w':
             logger.info('Writing STC to disk (w format)...')
-            if fname.endswith('-mx.stc'):
-                fname = fname[:-7]
-            if fname.endswith('-mixed.stc'):
-                fname = fname[:-10]
+            if not (fname.endswith('-mx.w') or fname.endswith('-mixed.w')):
+                fname = fname + '-mx.w'
             for ii in range(len(self.vertices)):
-                fname_ = fname + '-mx%d.w' % ii
-                _write_stc(fname_, tmin=self.tmin, tstep=self.tstep,
-                           vertices=self.vertices[ii], data=data[ii])
+                if ii == 0:
+                    fname_ = fname
+                else:
+                    fname_ = fname[:-2] + '%d.w' % ii
+                _write_w(fname_, vertices=self.vertices[ii], data=data[ii])
 
         logger.info('[done]')
 
