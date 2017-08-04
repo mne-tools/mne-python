@@ -137,6 +137,20 @@ class ICA(ContainsMixin):
               Extended-Infomax seems to be more stable in this respect
               enhancing reproducibility and stability of results.
 
+    .. warning:: ICA is sensitive to low-frequency drifts and therefore
+                 requires the data to be high-pass filtered prior to fitting.
+                 Typically, a cutoff frequency of 1 Hz is recommended. Note
+                 that FIR filters prior to MNE 0.15 used the 'firwin2' design
+                 method, which generally produces rather shallow filters that
+                 might not work for ICA processing. Therefore, it is
+                 recommended to use IIR filters for MNE up to 0.14. In MNE
+                 0.15, FIR filters can be designed with the `firwin` method,
+                 which generally produces much steeper filters. This method
+                 will be the default FIR design method in MNE 0.16. In MNE
+                 0.15, you need to explicitly set 'fir_design=firwin' to use
+                 this method. This is the recommended filter method for ICA
+                 preprocessing.
+
     Parameters
     ----------
     n_components : int | float | None
