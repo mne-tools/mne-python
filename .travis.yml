@@ -80,7 +80,7 @@ matrix:
 before_install:
     - git clone https://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
-    # Pipe the source into tee so it always returns 0 exit code (it should work)
+    # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
     - if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
         export MNE_ROOT="${PWD}/minimal_cmds";
