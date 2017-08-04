@@ -1,5 +1,6 @@
 language: c
 sudo: false
+dist: precise
 cache:
   apt: true
   directories:
