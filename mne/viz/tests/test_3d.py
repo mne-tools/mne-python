@@ -40,10 +40,6 @@ trans_fname = op.join(data_dir, 'MEG', 'sample',
 src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
 dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
-fwd_fname = op.join(data_dir, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_vol = op.join(data_dir, 'MEG', 'sample',
-                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
 
 io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
