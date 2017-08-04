@@ -2672,7 +2672,7 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
     if mode != 'exact' and 'approx' not in mode:  # 'nointerp' can be appended
         raise RuntimeError('unknown mode %s' % mode)
 
-    for s0, s1 in zip(src0, src1):
+    for si, (s0, s1) in enumerate(zip(src0, src1)):
         # first check the keys
         a, b = set(s0.keys()), set(s1.keys())
         assert_equal(a, b, str(a ^ b))
@@ -2725,10 +2725,11 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
                     assert_true(len((s0['dist'] - s1['dist']).data) == 0)
         else:  # 'approx' in mode:
             # deal with vertno, inuse, and use_tris carefully
-            assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0],
-                               'left hemisphere vertices')
-            assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0],
-                               'right hemisphere vertices')
+            for ii, s in enumerate((s0, s1)):
+                assert_array_equal(s['vertno'], np.where(s['inuse'])[0],
+                                   'src%s[%s]["vertno"] != '
+                                   'np.where(src%s[%s]["inuse"])[0]'
+                                   % (ii, si, ii, si))
             assert_equal(len(s0['vertno']), len(s1['vertno']))
             agreement = np.mean(s0['inuse'] == s1['inuse'])
             assert_true(agreement >= 0.99, "%s < 0.99" % agreement)
