@@ -80,7 +80,7 @@ matrix:
 before_install:
     - git clone https://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
-    - if [ "${DEPS}" == "" && "${TRAVIS_OS_NAME}" == "linux" ]; then
+    - if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
         export MNE_ROOT="${PWD}/minimal_cmds";
         export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
