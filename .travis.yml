@@ -1,6 +1,5 @@
 language: c
 sudo: false
-dist: precise
 cache:
   apt: true
   directories:
@@ -153,7 +152,7 @@ script:
         USE_DIRS="mne/";
       fi;
     - echo Testing with -a "${CONDITION}" ${COVERAGE} ${USE_DIRS}
-    - nosetests -a "${CONDITION}" -x --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 ${COVERAGE} ${USE_DIRS};
+    - nosetests -a "${CONDITION}" --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 ${COVERAGE} ${USE_DIRS};
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
         check-manifest --ignore doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
