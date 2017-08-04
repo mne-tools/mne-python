@@ -85,7 +85,7 @@ before_install:
         curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
         export MNE_ROOT="${PWD}/minimal_cmds";
         export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
-        source ${MNE_ROOT}/bin/mne_setup_sh | tee;
+        source ${MNE_ROOT}/bin/mne_setup_sh | tee foo.txt;
       fi;
     - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
@@ -150,7 +150,7 @@ script:
         USE_DIRS="mne/";
       fi;
     - echo Testing with -a "${CONDITION}" ${COVERAGE} ${USE_DIRS}
-    - nosetests -a "${CONDITION}" --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 ${COVERAGE} ${USE_DIRS};
+    - nosetests -a "${CONDITION}" -x --with-timer --timer-top-n 30 --timer-ok 5 --timer-warning 30 --verbosity=2 ${COVERAGE} ${USE_DIRS};
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
         check-manifest --ignore doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
