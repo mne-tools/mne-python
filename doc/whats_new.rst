@@ -86,6 +86,8 @@ Changelog
 BUG
 ~~~
 
+    - Fix bug in :meth:`mne.io.read_raw_brainvision` read .vhdr files with ANSI codepage by `Okba Bekhelifi`_
+
     - Fix unit scaling when reading in EGI digitization files using :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
     - Fix ``picks`` default in :meth:`mne.io.Raw.filter` to include ``ref_meg`` channels by default by `Eric Larson`_
