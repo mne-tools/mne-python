@@ -140,6 +140,8 @@ BUG
 
     - Fix :func:`mne.viz.plot_evoked_joint` to allow custom titles without appending information about the channels by `Jaakko Leppakangas`_
 
+    - Fix writing a forward solution after being processed by :func:`mne.forward.restrict_forward_to_label` or :func:`mne.forward.restrict_forward_to_stc` by `Marijn van Vliet`_
+
 API
 ~~~
     - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner'_, `Alex Gramfort`_, and `Denis Engemann`_.

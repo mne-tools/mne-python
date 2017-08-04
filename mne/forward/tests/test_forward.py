@@ -235,6 +235,14 @@ def test_restrict_forward_to_stc():
     assert_equal(fwd_out['src'][0]['vertno'], fwd['src'][0]['vertno'][0:15])
     assert_equal(fwd_out['src'][1]['vertno'], fwd['src'][1]['vertno'][0:5])
 
+    # Test saving the restricted forward object. This only works if all fields
+    # are properly accounted for.
+    temp_dir = _TempDir()
+    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
+    write_forward_solution(fname_copy, fwd_out, overwrite=True)
+    fwd_out_read = read_forward_solution(fname_copy)
+    compare_forwards(fwd_out, fwd_out_read)
+
 
 @testing.requires_testing_data
 def test_restrict_forward_to_label():
@@ -292,6 +300,14 @@ def test_restrict_forward_to_label():
     assert_equal(fwd_out['src'][1]['nuse'], len(src_sel_rh))
     assert_equal(fwd_out['src'][0]['vertno'], vertno_lh)
     assert_equal(fwd_out['src'][1]['vertno'], vertno_rh)
+
+    # Test saving the restricted forward object. This only works if all fields
+    # are properly accounted for.
+    temp_dir = _TempDir()
+    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
+    write_forward_solution(fname_copy, fwd_out, overwrite=True)
+    fwd_out_read = read_forward_solution(fname_copy)
+    compare_forwards(fwd_out, fwd_out_read)
 
 
 @testing.requires_testing_data
