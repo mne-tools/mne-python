@@ -86,6 +86,8 @@ Changelog
 BUG
 ~~~
 
+    - Fixed a bug when creating spherical volumetric grid source spaces in :func:`setup_volume_source_space` by improving the minimum-distance computations, which in general will decrease the number of used source space points by `Eric Larson`_
+
     - Fix unit scaling when reading in EGI digitization files using :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
     - Fix ``picks`` default in :meth:`mne.io.Raw.filter` to include ``ref_meg`` channels by default by `Eric Larson`_
