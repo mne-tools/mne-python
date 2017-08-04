@@ -308,6 +308,7 @@ Projections:
 
    fix_mag_coil_types
    read_montage
+   get_builtin_montages
    read_dig_montage
    read_layout
    find_layout
