@@ -62,21 +62,22 @@ test-no-testing-data: in
 
 test-no-sample-with-coverage: in testing_data
 	rm -rf coverage .coverage
-	$(PYTESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
+	$(PYTESTS) --cov=mne --cov-report html:coverage
 
 test-doc: sample_data testing_data
-	$(PYTESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/
+	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/
 
 test-coverage: testing_data
 	rm -rf coverage .coverage
-	$(PYTESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
+	$(PYTESTS) --cov=mne --cov-report html:coverage
+# whats the difference with test-no-sample-with-coverage?
 
 test-profile: testing_data
 	$(PYTESTS) --with-profile --profile-stats-file stats.pf mne
 	hotshot2dot stats.pf | dot -Tpng -o profile.png
 
 test-mem: in testing_data
-	ulimit -v 1097152 && $(PYTESTS)
+	ulimit -v 1097152 && $(PYTESTS) mne
 
 trailing-spaces:
 	find . -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
@@ -111,7 +112,7 @@ pydocstyle:
 
 docstring:
 	@echo "Running docstring tests"
-	@$(PYTESTS) mne/tests/test_docstring_parameters.py
+	@$(PYTESTS) --doctest-modules mne/tests/test_docstring_parameters.py
 
 pep:
 	@$(MAKE) -k flake pydocstyle docstring codespell-error
