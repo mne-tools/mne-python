@@ -411,12 +411,8 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
         vmax /= scaling
 
     ylim = dict()
-    if scale_vmin or scale_vmax:
-        ylim[ch_type] = (vmin * scaling, vmax * scaling)
-    ylim = dict()
-    ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0],
-                    title='', truncate_yaxis=False, truncate_xaxis=False,
-                    show=False)
+    ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0], title='',
+                    truncate_yaxis=False, truncate_xaxis=False, show=False)
     ts_args_.update(**ts_args)
 
     return [data * scaling, overlay_times, vmin * scaling, vmax * scaling,
