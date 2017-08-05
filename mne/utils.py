@@ -76,7 +76,7 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 # RANDOM UTILITIES
 
 
-def _ensure_int(x, name, must_be='an int'):
+def _ensure_int(x, name='unknown', must_be='an int'):
     """Ensure a variable is an integer."""
     # This is preferred over numbers.Integral, see:
     # https://github.com/scipy/scipy/pull/7351#issuecomment-299713159

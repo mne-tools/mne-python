@@ -46,7 +46,7 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     compute_corr, _get_inst_data,
+                     compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn)
 
 from ..fixes import _get_args
@@ -1560,8 +1560,17 @@ class ICA(ContainsMixin):
 
 def _check_start_stop(raw, start, stop):
     """Aux function."""
-    return [c if (isinstance(c, int) or c is None) else
-            raw.time_as_index(c)[0] for c in (start, stop)]
+    out = list()
+    for st in (start, stop):
+        if st is None:
+            out.append(st)
+        else:
+            try:
+                out.append(_ensure_int(st))
+            except TypeError:  # not int-like
+                out.append(raw.time_as_index(st)[0])
+    print(out)
+    return out
 
 
 @verbose
