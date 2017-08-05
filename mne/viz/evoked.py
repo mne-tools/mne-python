@@ -24,7 +24,7 @@ from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax)
-from ..utils import logger, _clean_names, warn, _pl
+from ..utils import logger, _clean_names, warn, _pl, _strip_to_number
 from ..io.pick import pick_info
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines
@@ -1414,7 +1414,8 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
                          truncate_yaxis=True, ylim=dict(), invert_y=False,
-                         axes=None, title=None, show=True):
+                         axes=None, title=None, split_legend=False,
+                         sequential=False, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1466,11 +1467,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         If a dict, keys must map to evoked keys or conditions, and values must
         be a dict of legal inputs to `matplotlib.pyplot.plot`. These
         parameters will be passed to the line plot call of the corresponding
-        condition, overriding defaults.
+        condition, overriding defaults or instructions from linestyles/colors
+        input.
         E.g., if evokeds is a dict with the keys "Aud/L", "Aud/R",
         "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth":1}}` to set
-        the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
-        not supported.
+        the linewidth for "Aud/L" to 1. HED ('/'-separated) tags are
+        *not* supported.
     vlines : list of int
         A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
@@ -1498,6 +1500,28 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     title : None | str
         If str, will be plotted as figure title. If None, the channel
         names will be shown.
+    split_legend : bool
+        If True, the legend is split by linestyle and color. E.g., if
+        linestyles={"Aud":"--", "Vis":"-"}, and colors= {"R":"r", "L:"b"},
+        the legend will contain a black dashed and a black straight line for
+        modality and a straight red and a straight blue line for direction.
+    sequential : bool
+        If True, colors are treated as parametrically varying with conditions,
+        e.g. to assign sequential colors to "probability_1/visual",
+        "probability_2/visual" etc. conditions.
+        Specifically, if this parameter is True, the first part of a HED tag
+        (e.g. here, 'probability_2' etc.) is taken, stripped to its numeric
+        component (e.g., 'probability_2' -> 2), the results are sorted, and
+        numbers are assigned to a color on the colormap specified by the
+        `colors` parameter.
+        If `split_legend` is True, a colorbar is added to the plot to
+        demonstrate this alignment. The label on the colorbar will be the
+        non-numeric part of the condition (e.g. here, 'probability_').
+        If the same number occurs multiple times (e.g. 'probability_1/visual'
+        and 'probability_1/auditory'), these two receive the same color,
+        and `linestyles` can be used to distinguish them. Numbers are spaced
+        by rank, e.g., the same colors will be used if the provided numbers
+        are 1, 2, and 3 or 1, 2, 100.
     show : bool
         If True, show the figure.
 
@@ -1665,16 +1689,48 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors))
 
-    if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
-        # XXX should put a good list of default colors into defaults.py
-        colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
-                   '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
-        if len(conditions) > len(colors_):
-            msg = ("Trying to plot more than {0} conditions. We provide"
-                   "only {0} default colors. Please supply colors manually.")
-            raise ValueError(msg.format(len(colors_)))
-        colors = dict((condition, color) for condition, color
-                      in zip(conditions, colors_))
+    if split_legend:
+        import matplotlib.lines as mlines
+        legend_lines = list()
+        if not sequential:
+            for color in sorted(colors.keys()):
+                l = mlines.Line2D([], [], linestyle="-",
+                                  color=colors[color], label=color)
+                legend_lines.append(l)
+
+        for style, s in linestyles.items():
+            l = mlines.Line2D([], [], color='k', linestyle=s, label=style)
+            legend_lines.append(l)
+
+    if not isinstance(colors, dict):
+        if sequential and not isinstance(colors, string_types):
+            colors = "viridis"
+        if isinstance(colors, string_types):
+            def make_number(item):
+                return _strip_to_number(item.split("/")[0])
+            cmapper = getattr(plt.cm, colors, plt.cm.hot)
+            unique_sortkeys = list({cond.split("/")[0]
+                                    for cond in evokeds.keys()})
+            unique_sortkeys.sort(key=make_number)
+            the_colors = cmapper(np.linspace(0, 1, len(unique_sortkeys)))
+            colors_ = {cond: color for cond, color in
+                       zip(unique_sortkeys, the_colors)}
+            colors = dict()
+            for cond in evokeds.keys():
+                for cond_number, color in colors_.items():
+                    if cond_number in cond:
+                        colors[cond] = color
+                        continue
+        else:  # default colors from M Waskom's Seaborn
+            # XXX should put a good list of default colors into defaults.py
+            colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+                       '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
+            if len(conditions) > len(colors_):
+                msg = ("Trying to plot more than {0} conditions. We provide"
+                       "only {0} default colors. Supply colors manually.")
+                raise ValueError(msg.format(len(colors_)))
+            colors = dict((condition, color) for condition, color
+                          in zip(conditions, colors_))
     else:
         colors = _setup_styles(conditions, colors, "color", "grey")
 
@@ -1697,7 +1753,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # least color and linestyles.
 
     # the actual plot
-    any_negative, any_positive = False, False
+    any_negative, any_positive = False, False  # need this for setting ymin
     for condition in conditions:
         # plot the actual data ('d') as a line
         if ch_type == 'grad' and gfp is False:
@@ -1759,7 +1815,36 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     _setup_ax_spines(axes, vlines, tmin, tmax, invert_y, ymax_bound, unit)
 
     if len(conditions) > 1:
-        plt.legend(loc='best', ncol=1 + (len(conditions) // 5), frameon=True)
+        legend_params = dict(loc='best', frameon=True)
+        if split_legend:
+            if len(legend_lines) > 1:
+                plt.legend(handles=legend_lines,
+                           ncol=1 + (len(legend_lines) // 4), **legend_params)
+        else:
+            plt.legend(ncol=1 + (len(conditions) // 5), **legend_params)
 
+    if sequential and split_legend:
+        import matplotlib as mpl
+
+        numbers = sorted([make_number(k) for k in colors_])
+        colors_l = list(colors_.keys())
+        colors_l.sort(key=make_number)
+        colors_m = [colors_[k] for k in colors_l]
+        l = plt.cm.jet.from_list(numbers + [numbers[-1] + 100],
+                                 colors_m + [colors_m[-1]])
+
+        norm = mpl.colors.BoundaryNorm(numbers + [numbers[-1] + 1], l.N)
+        sm = plt.cm.ScalarMappable(cmap=l, norm=norm)
+        sm.set_array([make_number(k) for k in colors_l])
+
+        cbar = plt.colorbar(sm, ax=axes)
+        offset = np.diff(np.concatenate((numbers, [numbers[-1] + 1]))) / 2
+        cbar.set_ticks(np.array(numbers) + offset)
+        cbar.set_ticklabels(numbers)
+        cbar.set_label("".join([x for x in colors_l[0]
+                                if x not in "1234567890"]).strip('.'))
+        fig.cbar = cbar
+
+    fig.ts_ax = axes
     plt_show(show)
     return fig

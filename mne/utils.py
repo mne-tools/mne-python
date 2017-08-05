@@ -2671,3 +2671,11 @@ def open_docs(kind=None, version=None):
         raise ValueError('version must be one of %s, got %s'
                          % (version, versions))
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
+
+
+def _strip_to_number(item, coerce_to=None):
+    """Return only the numeric part of a string."""
+    number_part = "".join([x for x in item if x in '1234567890.'])
+    if coerce_to is None:
+        coerce_to = float if '.' in item else int
+    return coerce_to(number_part)

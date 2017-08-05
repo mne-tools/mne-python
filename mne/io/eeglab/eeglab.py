@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
+from functools import partial
 
 import numpy as np
 
@@ -12,7 +13,7 @@ from ..utils import (_read_segments_file, _find_channels,
 from ..constants import FIFF
 from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
-from ...utils import logger, verbose, check_version, warn
+from ...utils import logger, verbose, check_version, warn, _strip_to_number
 from ...channels.montage import Montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -645,7 +646,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         channels can only code for one event per time point.
     """
     if event_id_func is 'strip_to_integer':
-        event_id_func = _strip_to_integer
+        event_id_func = partial(_strip_to_number, coerce_to=int)
     if event_id is None:
         event_id = dict()
 
@@ -708,8 +709,3 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
             return np.zeros((0, 3))
 
     return np.asarray(events)
-
-
-def _strip_to_integer(trigger):
-    """Return only the integer part of a string."""
-    return int("".join([x for x in trigger if x.isdigit()]))
