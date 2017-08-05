@@ -86,6 +86,22 @@ class Montage(object):
                             show_names=show_names, kind=kind, show=show)
 
 
+def get_builtin_montages():
+    """Get a list of all builtin montages.
+
+    Returns
+    -------
+    montages : list
+        Names of all builtin montages that can be loaded with
+        :func:`read_montage`.
+    """
+    path = op.join(op.dirname(__file__), 'data', 'montages')
+    supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts', '.loc',
+                 '.locs', '.eloc', '.bvef')
+    files = [op.splitext(f) for f in os.listdir(path)]
+    return sorted([f for f, ext in files if ext in supported])
+
+
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read a generic (built-in) montage.
 

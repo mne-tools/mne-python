@@ -14,7 +14,8 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
                            assert_array_less)
 from mne.tests.common import assert_dig_allclose
-from mne.channels.montage import read_montage, _set_montage, read_dig_montage
+from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
+                                  get_builtin_montages)
 from mne.utils import _TempDir, run_tests_if_main
 from mne import create_info, EvokedArray, read_evokeds
 from mne.bem import _fit_sphere
@@ -280,6 +281,12 @@ def test_montage():
     assert_allclose(fz[0], 0, atol=1e-2)  # midline
     assert_allclose(oz[0], 0, atol=1e-2)  # midline
     assert_true(f1[0] < 0 and f1[1] > 0)  # left frontal
+
+    # test get_builtin_montages function
+    montages = get_builtin_montages()
+    assert_true(len(montages) > 0)  # MNE should always ship with montages
+    assert_true("standard_1020" in montages)  # 10/20 montage
+    assert_true("standard_1005" in montages)  # 10/05 montage
 
 
 @testing.requires_testing_data
