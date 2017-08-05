@@ -83,6 +83,8 @@ Changelog
 
     - Allow using saved ``DigMontage`` to import digitization to :func:`mne.gui.coregistration` by `Jaakko Leppakangas`_
 
+    - Add function :func:`mne.channels.get_builtin_montages` to list all built-in montages by `Clements Brunner`_
+
 BUG
 ~~~
 
