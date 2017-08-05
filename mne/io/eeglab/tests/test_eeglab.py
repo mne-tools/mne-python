@@ -22,13 +22,12 @@ from mne.utils import _TempDir, run_tests_if_main, requires_version
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 raw_fname = op.join(base_dir, 'test_raw.set')
 raw_fname_onefile = op.join(base_dir, 'test_raw_onefile.set')
-raw_fname_hdffile = op.join(base_dir, 'test_hdf5_raw.set')
+raw_fname_hdffile = op.join(base_dir, 'test_raw_hdf5.set')
 epochs_fname = op.join(base_dir, 'test_epochs.set')
 epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile.set')
 montage = op.join(base_dir, 'test_chans.locs')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 
 @requires_version('scipy', '0.12')
 @testing.requires_testing_data
