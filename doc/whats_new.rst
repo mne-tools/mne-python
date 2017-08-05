@@ -83,6 +83,8 @@ Changelog
 
     - Allow using saved ``DigMontage`` to import digitization to :func:`mne.gui.coregistration` by `Jaakko Leppakangas`_
 
+    - Add :func:`mne.viz.plot_stc_glass_brain` for plotting source estimates on glass brain by `Jaakko Leppakangas`_
+
 BUG
 ~~~
 
