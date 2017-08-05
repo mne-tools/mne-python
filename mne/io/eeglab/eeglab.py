@@ -7,7 +7,7 @@ import os.path as op
 
 import numpy as np
 import sys
-from collections import Mapping, Iterable
+from collections import Mapping
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
 from ..constants import FIFF
@@ -322,7 +322,6 @@ def _bunchify(mapping, name='BU'):
 
 def _bunch_wrapper(name, **kwargs):
     """Convert mappings to Bunches."""
-    #wrap = Bunch(**kwargs)
     return Bunch(**kwargs)
 
 
@@ -340,7 +339,6 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
             curr_name = '_'.join([prefix, curr])
 
         msg = indent + "Converting " + curr_name
-            
         if isinstance(in_hdf[curr], h5py.Dataset):
             logger.info(msg)
             temp = in_hdf[curr].value
@@ -359,7 +357,7 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
             logger.info(msg)
             if curr == 'chanlocs':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
-                                                  indent + indent_incr)
+                                             indent + indent_incr)
                 hdf_labels = in_hdf[curr]['labels']
                 ascii_labels = [orig[hdf_labels[x][0]].value
                                 for x in range(len(hdf_labels))]
@@ -379,7 +377,7 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
                     temp[ctr].type = curr_type
             elif curr == 'event':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
-                                                  indent + indent_incr)
+                                             indent + indent_incr)
 
                 hdf_type = in_hdf[curr]['type']
                 ascii_type = [orig[hdf_type[x][0]].value
@@ -390,16 +388,17 @@ def hdf_2_dict(orig, in_hdf, prefix=None, indent=''):
 
                 hdf_usertag = in_hdf[curr]['usertags']
                 ascii_usertag = [orig[hdf_usertag[x][0]].value
-                              for x in range(len(hdf_usertag))]
+                                 for x in range(len(hdf_usertag))]
                 chr_usertag = [''.join([chr(x)
-                                     for x in curr_label]).strip().lower()
+                                        for x in curr_label]).strip().lower()
                                for curr_label in ascii_usertag]
-              
-                for ctr, (curr_usertag, curr_type) in enumerate(zip(chr_usertag,
-                                                                  num_type)):
+
+                for ctr, (curr_usertag,
+                          curr_type) in enumerate(zip(chr_usertag,
+                                                      num_type)):
                     temp[ctr].usertags = curr_usertag
                     temp[ctr].type = curr_type
-                
+
             else:
                 temp = hdf_2_dict(orig, in_hdf[curr],
                                   curr_name, indent + indent_incr)
@@ -428,7 +427,7 @@ def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
 
     sz = len(temp_dict[temp_dict.keys()[0]])
     bch_list = [Bunch(**{key: temp_dict[key][x] for key in temp_dict})
-                 for x in range(sz)]
+                for x in range(sz)]
     return bch_list
 
 
@@ -849,8 +848,6 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         from scipy import io
         eeg = io.loadmat(eeg, struct_as_record=False, squeeze_me=True,
                          uint16_codec=uint16_codec)['EEG']
-
-
     try:
         types = [str(event.type) for event in eeg.event]
         latencies = [event.latency for event in eeg.event]
@@ -859,7 +856,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         # but Bunch will iterate over fields
         types = [str(eeg.event.type)]
         latencies = [eeg.event.latency]
-        
+
     if "boundary" in types and "boundary" not in event_id:
         warn("The data contains 'boundary' events, indicating data "
              "discontinuities. Be cautious of filtering and epoching around "
