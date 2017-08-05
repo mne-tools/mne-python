@@ -3,14 +3,14 @@
 Decoding source space data
 ==========================
 
-Decoding, a.k.a MVPA or supervised machine learning applied to MEG
-data in source space on the left cortical surface. Here f-test feature
-selection is employed to confine the classification to the potentially
-relevant features. The classifier then is trained to selected features of
-epochs in source space.
+Decoding to MEG data in source space on the left cortical surface. Here
+univariate feature selection is employed for speed purposes to confine the
+classification to a small number of potentially relevant features. The
+classifier then is trained to selected features of epochs in source space.
 """
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -44,7 +44,7 @@ event_id = dict(aud_r=2, vis_r=4)  # load contra-lateral conditions
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(2, None, fir_design='firwin')  # replace baselining with high-pass
+raw.filter(0.1, None, fir_design='firwin')
 events = mne.read_events(event_fname)
 
 # Set up pick list: MEG - bad channels (modify to your needs)
@@ -58,95 +58,59 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     reject=dict(grad=4000e-13, eog=150e-6),
                     decim=5)  # decimate to save memory and increase speed
 
-epochs.equalize_event_counts(list(event_id.keys()))
-epochs_list = [epochs[k] for k in event_id]
-
+###############################################################################
 # Compute inverse solution
 snr = 3.0
-lambda2 = 1.0 / snr ** 2
-method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
-n_times = len(epochs.times)
-n_vertices = 3732
-n_epochs = len(epochs.events)
-
-# Load data and compute inverse solution and stcs for each epoch.
-
 noise_cov = mne.read_cov(fname_cov)
 inverse_operator = read_inverse_operator(fname_inv)
-X = np.zeros([n_epochs, n_vertices, n_times])
 
-# to save memory, we'll load and transform our epochs step by step.
-for condition_count, ep in zip([0, n_epochs // 2], epochs_list):
-    stcs = apply_inverse_epochs(ep, inverse_operator, lambda2,
-                                method, pick_ori="normal",  # saves us memory
-                                return_generator=True)
-    for jj, stc in enumerate(stcs):
-        X[condition_count + jj] = stc.lh_data
+stcs = apply_inverse_epochs(epochs, inverse_operator,
+                            lambda2=1.0 / snr ** 2, verbose=False,
+                            method="dSPM", pick_ori="normal")
 
 ###############################################################################
-# Decoding in sensor space using a linear SVM
+# Decoding in sensor space using a logistic regression
+import matplotlib.pyplot as plt
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.linear_model import LogisticRegression
+from mne.decoding import cross_val_multiscore, LinearModel, SlidingEstimator
 
-# Make arrays X and y such that :
-# X is 3d with X.shape[0] is the total number of epochs to classify
-# y is filled with integers coding for the class to predict
-# We must have X.shape[0] equal to y.shape[0]
+# Retrieve source space data into an array
+X = np.array([stc.lh_data for stc in stcs])  # only keep left hemisphere
+y = epochs.events[:, 2]
 
-# we know the first half belongs to the first class, the second one
-y = np.repeat([0, 1], len(X) / 2)   # belongs to the second class
-X = X.reshape(n_epochs, n_vertices * n_times)
-# we have to normalize the data before supplying them to our classifier
-X -= X.mean(axis=0)
-X /= X.std(axis=0)
+# prepare a series of classifier applied at each time sample
+clf = make_pipeline(StandardScaler(),  # z-score normalization
+                    SelectKBest(f_classif, k=500),  # select features for speed
+                    LinearModel(LogisticRegression(C=1)))
+time_decod = SlidingEstimator(clf, scoring='roc_auc')
 
-# prepare classifier
-from sklearn.svm import SVC  # noqa
-from sklearn.cross_validation import ShuffleSplit  # noqa
+# Run cross-validated decoding analyses:
+scores = cross_val_multiscore(time_decod, X, y, cv=7, n_jobs=1)
 
-# Define a monte-carlo cross-validation generator (reduce variance):
-n_splits = 10
-clf = SVC(C=1, kernel='linear')
-cv = ShuffleSplit(len(X), n_splits, test_size=0.2)
+# Plot average decoding scores of 10 splits
+plt.plot(epochs.times, scores.mean(0), label='score')
+plt.axhline(.5, color='k', linestyle='--', label='chance')
+plt.axvline(0, color='k')
+plt.legend()
 
-# setup feature selection and classification pipeline
-from sklearn.feature_selection import SelectKBest, f_classif  # noqa
-from sklearn.pipeline import Pipeline  # noqa
+###############################################################################
+# To investigate weights, we need to retrieve the patterns of a fitted model
+from mne.decoding import get_coef
 
-# we will use an ANOVA f-test to preselect relevant spatio-temporal units
-feature_selection = SelectKBest(f_classif, k=500)  # take the best 500
-# to make life easier we will create a pipeline object
-anova_svc = Pipeline([('anova', feature_selection), ('svc', clf)])
+# The fitting needs not be cross validated because the weights are based on
+# the training sets
+time_decod.fit(X, y)
 
-# initialize score and feature weights result arrays
-scores = np.zeros(n_splits)
-feature_weights = np.zeros([n_vertices, n_times])
-
-# hold on, this may take a moment
-for ii, (train, test) in enumerate(cv):
-    anova_svc.fit(X[train], y[train])
-    y_pred = anova_svc.predict(X[test])
-    y_test = y[test]
-    scores[ii] = np.sum(y_pred == y_test) / float(len(y_test))
-    feature_weights += feature_selection.inverse_transform(clf.coef_) \
-        .reshape(n_vertices, n_times)
-
-print('Average prediction accuracy: %0.3f | standard deviation:  %0.3f'
-      % (scores.mean(), scores.std()))
-
-# prepare feature weights for visualization
-feature_weights /= (ii + 1)  # create average weights
-# create mask to avoid division error
-feature_weights = np.ma.masked_array(feature_weights, feature_weights == 0)
-# normalize scores for visualization purposes
-feature_weights /= feature_weights.std(axis=1)[:, None]
-feature_weights -= feature_weights.mean(axis=1)[:, None]
-
-# unmask, take absolute values, emulate f-value scale
-feature_weights = np.abs(feature_weights.data) * 10
+# Retrieve patterns after inversing the z-score normalization step:
+patterns = get_coef(time_decod, 'patterns_', inverse_transform=True)
 
 vertices = [stc.lh_vertno, np.array([], int)]  # empty array for right hemi
-stc_feat = mne.SourceEstimate(feature_weights, vertices=vertices,
+stc_feat = mne.SourceEstimate(np.abs(patterns), vertices=vertices,
                               tmin=stc.tmin, tstep=stc.tstep,
                               subject='sample')
 
 brain = stc_feat.plot(views=['lat'], transparent=True,
-                      initial_time=0.1, time_unit='s')
+                      initial_time=stc.tmin, time_unit='s')
