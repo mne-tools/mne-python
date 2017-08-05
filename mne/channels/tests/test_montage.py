@@ -17,12 +17,13 @@ from mne.tests.common import assert_dig_allclose
 from mne.channels.montage import read_montage, _set_montage, read_dig_montage
 from mne.utils import _TempDir, run_tests_if_main
 from mne import create_info, EvokedArray, read_evokeds
+from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne.io.meas_info import _read_dig_points
 from mne.io.kit import read_mrk
-from mne.io import read_raw_brainvision, read_raw_egi, Raw
+from mne.io import read_raw_brainvision, read_raw_egi, read_raw_fif
 
 from mne.datasets import testing
 
@@ -40,6 +41,7 @@ elp = op.join(kit_dir, 'test_elp.txt')
 hsp = op.join(kit_dir, 'test_hsp.txt')
 hpi = op.join(kit_dir, 'test_mrk.sqd')
 bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
+fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
 
 
 def test_montage():
@@ -264,6 +266,21 @@ def test_montage():
         _set_montage(info, montage)
         assert_true(len(w) == 1)
 
+    # test get_pos2d method
+    montage = read_montage("standard_1020")
+    c3 = montage.get_pos2d()[montage.ch_names.index("C3")]
+    c4 = montage.get_pos2d()[montage.ch_names.index("C4")]
+    fz = montage.get_pos2d()[montage.ch_names.index("Fz")]
+    oz = montage.get_pos2d()[montage.ch_names.index("Oz")]
+    f1 = montage.get_pos2d()[montage.ch_names.index("F1")]
+    assert_true(c3[0] < 0)  # left hemisphere
+    assert_true(c4[0] > 0)  # right hemisphere
+    assert_true(fz[1] > 0)  # frontal
+    assert_true(oz[1] < 0)  # occipital
+    assert_allclose(fz[0], 0, atol=1e-2)  # midline
+    assert_allclose(oz[0], 0, atol=1e-2)  # midline
+    assert_true(f1[0] < 0 and f1[1] > 0)  # left frontal
+
 
 @testing.requires_testing_data
 def test_read_locs():
@@ -456,7 +473,7 @@ def test_egi_dig_montage():
     # Test accuracy and embedding within raw object
     raw_egi = read_raw_egi(egi_raw_fname, channel_naming='EEG %03d')
     raw_egi.set_montage(dig_montage)
-    test_raw_egi = Raw(egi_fif_fname)
+    test_raw_egi = read_raw_fif(egi_fif_fname)
 
     assert_equal(len(raw_egi.ch_names), len(test_raw_egi.ch_names))
     for ch_raw, ch_test_raw in zip(raw_egi.info['chs'],
@@ -465,6 +482,20 @@ def test_egi_dig_montage():
         assert_equal(ch_raw['coord_frame'], FIFF.FIFFV_COORD_HEAD)
         assert_allclose(ch_raw['loc'], ch_test_raw['loc'], atol=1e-7)
     assert_dig_allclose(raw_egi.info, test_raw_egi.info)
+
+
+def test_set_montage():
+    """Test setting a montage."""
+    raw = read_raw_fif(fif_fname)
+    mon = read_montage('mgh60')
+    orig_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
+                         if ch['ch_name'].startswith('EEG')])
+    raw.set_montage(mon)
+    new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
+                        if ch['ch_name'].startswith('EEG')])
+    assert_true((orig_pos != new_pos).all())
+    r0 = _fit_sphere(new_pos)[1]
+    assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
 
 
 def _check_roundtrip(montage, fname):

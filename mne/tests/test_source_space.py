@@ -254,7 +254,19 @@ def test_other_volume_source_spaces():
     src = read_source_spaces(temp_name)
     src_new = setup_volume_source_space(None, pos=7.0, mri=fname_mri,
                                         subjects_dir=subjects_dir)
-    _compare_source_spaces(src, src_new, mode='approx')
+    # we use a more accurate elimination criteria, so let's fix the MNE-C
+    # source space
+    assert_equal(len(src_new[0]['vertno']), 7497)
+    assert_equal(len(src), 1)
+    assert_equal(len(src_new), 1)
+    good_mask = np.in1d(src[0]['vertno'], src_new[0]['vertno'])
+    src[0]['inuse'][src[0]['vertno'][~good_mask]] = 0
+    assert_equal(src[0]['inuse'].sum(), 7497)
+    src[0]['vertno'] = src[0]['vertno'][good_mask]
+    assert_equal(len(src[0]['vertno']), 7497)
+    src[0]['nuse'] = len(src[0]['vertno'])
+    assert_equal(src[0]['nuse'], 7497)
+    _compare_source_spaces(src_new, src, mode='approx')
     assert_true('volume, shape' in repr(src))
     del src
     del src_new

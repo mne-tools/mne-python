@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.beamformer import lcmv
+from mne.beamformer import make_lcmv, apply_lcmv
 
 from nilearn.plotting import plot_stat_map
 from nilearn.image import index_img
@@ -61,16 +61,23 @@ noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
 
-# Run free orientation (vector) beamformer with weight normalization (neural
-# activity index, NAI). Providing a noise covariance matrix enables whitening
-# of the data and forward solution. Source orientation is optimized by
-# setting pick_ori to 'max-power'.
+# Compute weights of free orientation (vector) beamformer with weight
+# normalization (neural activity index, NAI). Providing a noise covariance
+# matrix enables whitening of the data and forward solution. Source orientation
+# is optimized by setting pick_ori to 'max-power'.
 # weight_norm can also be set to 'unit-noise-gain'. Source orientation can also
 # be 'normal' (but only when using a surface-based source space) or None,
 # which computes a vector beamfomer. Note, however, that not all combinations
 # of orientation selection and weight normalization are implemented yet.
-stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
-           pick_ori='max-power', weight_norm='nai', max_ori_out='signed')
+filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
+                    noise_cov=noise_cov, pick_ori='max-power',
+                    weight_norm='nai')
+
+# Apply this spatial filter to the evoked data. The output of these two steps
+# is equivalent to calling lcmv() and enables the application of the spatial
+# filter to separate data sets, e.g. when using a common spatial filter to
+# compare conditions.
+stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
 # take absolute values for plotting
 stc.data[:, :] = np.abs(stc.data)

@@ -559,7 +559,7 @@ class SetChannelsMixin(object):
         -----
         This function plots the sensor locations from the info structure using
         matplotlib. For drawing the sensors using mayavi see
-        :func:`mne.viz.plot_trans`.
+        :func:`mne.viz.plot_alignment`.
 
         .. versionadded:: 0.12.0
         """
@@ -734,7 +734,7 @@ class UpdateChannelsMixin(object):
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
-        from ..time_frequency import AverageTFR
+        from ..time_frequency import AverageTFR, EpochsTFR
 
         _check_preload(self, 'adding or dropping channels')
 
@@ -751,7 +751,7 @@ class UpdateChannelsMixin(object):
 
         if self.preload:
             # All others (Evoked, Epochs, Raw) have chs axis=-2
-            axis = -3 if isinstance(self, AverageTFR) else -2
+            axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
             self._data = self._data.take(idx, axis=axis)
 
     def add_channels(self, add_list, force_update_info=False):

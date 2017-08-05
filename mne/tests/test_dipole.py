@@ -1,11 +1,9 @@
-import os
 import os.path as op
-import sys
 import warnings
 
 import numpy as np
 from nose.tools import assert_true, assert_equal, assert_raises
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import (read_dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
@@ -22,6 +20,7 @@ from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
+from mne.io.constants import FIFF
 
 from mne.surface import _compute_nearest
 from mne.bem import _bem_find_surface, read_bem_solution
@@ -29,18 +28,19 @@ from mne.transforms import apply_trans, _get_trans
 
 warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_dip = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
-fname_evo = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-ave.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
+meg_path = op.join(data_path, 'MEG', 'sample')
+fname_dip_xfit = op.join(meg_path, 'sample_audvis-ave_xfit.dip')
+fname_raw = op.join(meg_path, 'sample_audvis_trunc_raw.fif')
+fname_dip = op.join(meg_path, 'sample_audvis_trunc_set1.dip')
+fname_evo = op.join(meg_path, 'sample_audvis_trunc-ave.fif')
+fname_evo_full = op.join(meg_path, 'sample_audvis-ave.fif')
+fname_cov = op.join(meg_path, 'sample_audvis_trunc-cov.fif')
+fname_trans = op.join(meg_path, 'sample_audvis_trunc-trans.fif')
+fname_fwd = op.join(meg_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-1280-1280-1280-bem-sol.fif')
 fname_src = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-oct-2-src.fif')
-fname_trans = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc-trans.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_xfit_dip = op.join(data_path, 'dip', 'fixed_auto.fif')
 fname_xfit_dip_txt = op.join(data_path, 'dip', 'fixed_auto.dip')
 fname_xfit_seq_txt = op.join(data_path, 'dip', 'sequential.dip')
@@ -99,7 +99,7 @@ def test_dipole_fitting_ctf():
 @requires_mne
 def test_dipole_fitting():
     """Test dipole fitting."""
-    amp = 10e-9
+    amp = 100e-9
     tempdir = _TempDir()
     rng = np.random.RandomState(0)
     fname_dtemp = op.join(tempdir, 'test.dip')
@@ -133,23 +133,19 @@ def test_dipole_fitting():
 
     # Run mne-python version
     sphere = make_sphere_model(head_radius=0.1)
-    dip, residuals = fit_dipole(evoked, fname_cov, sphere, fname_fwd)
+    with warnings.catch_warnings(record=True):
+        dip, residuals = fit_dipole(evoked, cov, sphere, fname_fwd)
 
     # Sanity check: do our residuals have less power than orig data?
     data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
     resi_rms = np.sqrt(np.sum(residuals ** 2, axis=0))
-    factor = 1.
-    # XXX weird, inexplicable differenc for 3.5 build we'll assume is due to
-    # Anaconda bug for now...
-    if os.getenv('TRAVIS', 'false') == 'true' and \
-            sys.version[:3] in ('3.5', '2.7'):
-        factor = 0.8
-    assert_true((data_rms > factor * resi_rms).all(),
-                msg='%s (factor: %s)' % ((data_rms / resi_rms).min(), factor))
+    assert_true((data_rms > resi_rms).all(),
+                msg='%s (factor: %s)' % ((data_rms / resi_rms).min(), 0.85))
 
     # Compare to original points
     transform_surface_to(fwd['src'][0], 'head', fwd['mri_head_t'])
     transform_surface_to(fwd['src'][1], 'head', fwd['mri_head_t'])
+    assert_equal(fwd['src'][0]['coord_frame'], FIFF.FIFFV_COORD_HEAD)
     src_rr = np.concatenate([s['rr'][v] for s, v in zip(fwd['src'], vertices)],
                             axis=0)
     src_nn = np.concatenate([s['nn'][v] for s, v in zip(fwd['src'], vertices)],
@@ -160,7 +156,7 @@ def test_dipole_fitting():
     assert_true(dip is out)
     src_rr, src_nn = src_rr[:-1], src_nn[:-1]
 
-    # check that we did at least as well
+    # check that we did about as well
     corrs, dists, gc_dists, amp_errs, gofs = [], [], [], [], []
     for d in (dip_c, dip):
         new = d.pos
@@ -171,13 +167,15 @@ def test_dipole_fitting():
                                                      axis=1)))]
         amp_errs += [np.sqrt(np.mean((amp - d.amplitude) ** 2))]
         gofs += [np.mean(d.gof)]
-    assert_true(dists[0] >= dists[1] * factor, 'dists: %s' % dists)
-    assert_true(corrs[0] <= corrs[1] / factor, 'corrs: %s' % corrs)
-    assert_true(gc_dists[0] >= gc_dists[1] * factor,
+    factor = 0.8
+    assert_true(dists[0] / factor >= dists[1], 'dists: %s' % dists)
+    assert_true(corrs[0] * factor <= corrs[1], 'corrs: %s' % corrs)
+    assert_true(gc_dists[0] / factor >= gc_dists[1] * 0.8,
                 'gc-dists (ori): %s' % gc_dists)
-    assert_true(amp_errs[0] >= amp_errs[1] * factor,
+    assert_true(amp_errs[0] / factor >= amp_errs[1],
                 'amplitude errors: %s' % amp_errs)
-    assert_true(gofs[0] <= gofs[1] / factor, 'gof: %s' % gofs)
+    # This one is weird because our cov/sim/picking is weird
+    assert_true(gofs[0] * factor <= gofs[1] * 2, 'gof: %s' % gofs)
 
 
 @testing.requires_testing_data
@@ -310,6 +308,7 @@ def test_accuracy():
         data[-1, -1] = 1.
         data *= amp
         stc = SourceEstimate(data, vertices, 0., 1e-3, 'sample')
+        evoked.info.normalize_proj()
         sim = simulate_evoked(fwd, stc, evoked.info, cov=None, nave=np.inf)
 
         cov = make_ad_hoc_cov(evoked.info)
@@ -376,5 +375,31 @@ def test_get_phantom_dipoles():
         assert_equal(pos.shape, (32, 3))
         assert_equal(ori.shape, (32, 3))
 
+
+@testing.requires_testing_data
+def test_confidence():
+    """Test confidence limits."""
+    tempdir = _TempDir()
+    evoked = read_evokeds(fname_evo_full, 'Left Auditory', baseline=(None, 0))
+    evoked.crop(0.08, 0.08).pick_types()  # MEG-only
+    cov = make_ad_hoc_cov(evoked.info)
+    sphere = make_sphere_model((0., 0., 0.04), 0.08)
+    dip_py = fit_dipole(evoked, cov, sphere)[0]
+    fname_test = op.join(tempdir, 'temp-dip.txt')
+    dip_py.save(fname_test)
+    dip_read = read_dipole(fname_test)
+    with warnings.catch_warnings(record=True) as w:
+        dip_xfit = read_dipole(fname_dip_xfit)
+    assert_equal(len(w), 1)
+    assert_true("['noise/ft/cm', 'prob']" in str(w[0].message))
+    for dip_check in (dip_py, dip_read):
+        assert_allclose(dip_check.pos, dip_xfit.pos, atol=5e-4)  # < 0.5 mm
+        assert_allclose(dip_check.gof, dip_xfit.gof, atol=5e-1)  # < 0.5%
+        assert_array_equal(dip_check.nfree, dip_xfit.nfree)  # exact match
+        assert_allclose(dip_check.khi2, dip_xfit.khi2, rtol=2e-2)  # 2% miss
+        assert_equal(set(dip_check.conf.keys()), set(dip_xfit.conf.keys()))
+        for key in sorted(dip_check.conf.keys()):
+            assert_allclose(dip_check.conf[key], dip_xfit.conf[key],
+                            rtol=1.5e-1, err_msg=key)
 
 run_tests_if_main(False)

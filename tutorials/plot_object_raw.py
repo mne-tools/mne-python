@@ -89,7 +89,10 @@ grad_only = raw.copy().pick_types(meg='grad')
 # Or you can use custom channel names
 pick_chans = ['MEG 0112', 'MEG 0111', 'MEG 0122', 'MEG 0123']
 specific_chans = raw.copy().pick_channels(pick_chans)
-print(meg_only, eeg_only, grad_only, specific_chans, sep='\n')
+print(meg_only)
+print(eeg_only)
+print(grad_only)
+print(specific_chans)
 
 ###############################################################################
 # Notice the different scalings of these types

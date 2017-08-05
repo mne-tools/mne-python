@@ -1417,7 +1417,7 @@ class ICA(ContainsMixin):
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
-                    title='ICA component scores', figsize=(12, 6),
+                    title='ICA component scores', figsize=None,
                     show=True):
         return plot_ica_scores(
             ica=self, scores=scores, exclude=exclude, labels=labels,

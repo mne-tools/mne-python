@@ -1,4 +1,6 @@
+from copy import deepcopy
 import os.path as op
+
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
@@ -9,7 +11,8 @@ import warnings
 import mne
 from mne import compute_covariance
 from mne.datasets import testing
-from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw, tf_lcmv
+from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_raw, lcmv,
+                            lcmv_epochs, lcmv_raw, tf_lcmv)
 from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main, slow_test
@@ -209,6 +212,20 @@ def test_lcmv():
     # an error
     assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
                   data_cov, reg=0.01, pick_ori="max-power", weight_norm=None,
+                  max_ori_out='signed')
+
+    # Test if wrong channel selection is detected in application of filter
+    evoked_ch = deepcopy(evoked)
+    evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
+    filters = make_lcmv(evoked.info, forward_vol, data_cov, reg=0.01,
+                        noise_cov=noise_cov)
+    assert_raises(ValueError, apply_lcmv, evoked_ch, filters,
+                  max_ori_out='signed')
+
+    # Test if non-matching SSP projection is detected in application of filter
+    raw_proj = deepcopy(raw)
+    raw_proj.del_proj()
+    assert_raises(ValueError, apply_lcmv_raw, raw_proj, filters,
                   max_ori_out='signed')
 
     # Now test single trial using fixed orientation forward solution

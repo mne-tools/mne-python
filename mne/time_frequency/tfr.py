@@ -12,6 +12,7 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 from copy import deepcopy
 from functools import partial
 from math import sqrt
+from warnings import warn
 
 import numpy as np
 from scipy import linalg
@@ -188,10 +189,6 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     if mode not in ['same', 'valid', 'full']:
         raise ValueError("`mode` must be 'same', 'valid' or 'full', "
                          "got %s instead." % mode)
-    if mode == 'full' and (not use_fft):
-        # XXX JRK: full wavelet decomposition needs to be implemented
-        raise ValueError('`full` decomposition with convolution is currently' +
-                         ' not supported.')
     decim = _check_decim(decim)
     X = np.asarray(X)
 
@@ -208,13 +205,19 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     # precompute FFTs of Ws
     if use_fft:
         fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
+
+    warn_me = True
     for i, W in enumerate(Ws):
-        if len(W) > n_times:
-            raise ValueError('At least one of the wavelets is longer than the '
-                             'signal. Use a longer signal or shorter '
-                             'wavelets.')
         if use_fft:
             fft_Ws[i] = fft(W, fsize)
+        if len(W) > n_times and warn_me:
+            msg = ('At least one of the wavelets is longer than the signal. '
+                   'Consider padding the signal or using shorter wavelets.')
+            if use_fft:
+                warn(msg)
+                warn_me = False  # Suppress further warnings
+            else:
+                raise ValueError(msg)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
@@ -230,7 +233,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                 ret = np.convolve(x, W, mode=mode)
 
             # Center and decimate decomposition
-            if mode == "valid":
+            if mode == 'valid':
                 sz = int(abs(W.size - n_times)) + 1
                 offset = (n_times - sz) // 2
                 this_slice = slice(offset // decim.step,
@@ -238,6 +241,11 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                 if use_fft:
                     ret = _centered(ret, sz)
                 tfr[ii, this_slice] = ret[decim]
+            elif mode == 'full' and not use_fft:
+                start = (W.size - 1) // 2
+                end = len(ret) - (W.size // 2)
+                ret = ret[start:end]
+                tfr[ii, :] = ret[decim]
             else:
                 if use_fft:
                     ret = _centered(ret, n_times)

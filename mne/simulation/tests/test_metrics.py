@@ -44,7 +44,7 @@ def test_metrics():
     stc_bad = stc2.copy().crop(0, 0.5)
     assert_raises(ValueError, source_estimate_quantification, stc1, stc_bad)
     stc_bad = stc2.copy()
-    stc_bad.times -= 0.1
+    stc_bad.tmin -= 0.1
     assert_raises(ValueError, source_estimate_quantification, stc1, stc_bad)
     assert_raises(ValueError, source_estimate_quantification, stc1, stc2,
                   metric='foo')

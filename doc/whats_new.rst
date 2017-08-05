@@ -62,15 +62,31 @@ Changelog
     - Add option to return a list of :class:`Dipole` objects in sparse source imaging methods by `Daniel Strohmeier`_
 
     - Add :func:`mne.inverse_sparse.make_stc_from_dipoles` to generate stc objects from lists of dipoles by `Daniel Strohmeier`_
-    
+
     - Add :func:`mne.channels.find_ch_connectivity` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
 
     - Add IO support for EGI MFF format by `Jaakko Leppakangas`_  and `ramonapariciog`_
 
     - Add option to use matplotlib backend when plotting with :func:`mne.viz.plot_source_estimates` by `Jaakko Leppakangas`_
 
+    - Add :meth:`mne.channels.Montage.get_pos2d` to get the 2D positions of channels in a montage by `Clemens Brunner`_
+
+    - Add MGH 60- and 70-channel standard montages to :func:`mne.channels.read_montage` by `Eric Larson`_
+
+    - Add option for embedding SVG instead of PNG in HTML for :class:`mne.Report` by `Eric Larson`_
+
+    - Add confidence intervals, number of free parameters, and χ² to :func:`mne.fit_dipole` and :func:`mne.read_dipole` by `Eric Larson`_
+
+    - :attr:`mne.SourceEstimate.data` is now writable, writing to it will also update :attr:`mne.SourceEstimate.times` by `Marijn van Vliet`_
+
+    - :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` now use anti-aliasing to draw signals by `Clemens Brunner`_
+
+    - Allow using saved ``DigMontage`` to import digitization to :func:`mne.gui.coregistration` by `Jaakko Leppakangas`_
+
 BUG
 ~~~
+
+    - Fixed a bug when creating spherical volumetric grid source spaces in :func:`setup_volume_source_space` by improving the minimum-distance computations, which in general will decrease the number of used source space points by `Eric Larson`_
 
     - Fix unit scaling when reading in EGI digitization files using :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
@@ -118,8 +134,19 @@ BUG
 
     - Fix default value of ``kind='topomap'`` in :meth:`mne.channels.Montage.plot` to be consistent with :func:`mne.viz.plot_montage` by `Clemens Brunner`_
 
+    - Fix bug in :meth:`to_data_frame <mne.io.Raw.to_data_frame>` where non-consecutive picks would make the function crash by `Jaakko Leppakangas`_
+
+    - Fix channel picking and drop in :class:`mne.time_frequency.EpochsTFR` by `Lukáš Hejtmánek`_
+
+    - Fix :func:`mne.SourceEstimate.transform` to properly update :attr:`mne.SourceEstimate.times` by `Marijn van Vliet`_
+
+    - Fix :func:`mne.viz.plot_evoked_joint` to allow custom titles without appending information about the channels by `Jaakko Leppakangas`_
+
+    - Fix writing a forward solution after being processed by :func:`mne.forward.restrict_forward_to_label` or :func:`mne.forward.restrict_forward_to_stc` by `Marijn van Vliet`_
+
 API
 ~~~
+    - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner'_, `Alex Gramfort`_, and `Denis Engemann`_.
 
     - Add ``weight_norm'' parameter to enable both unit-noise-gain beamformer and neural activity index (weight normalization) and make whitening optional by allowing ``noise_cov=None'' in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, and :func:`mne.beamformer.lcmv_raw`, by `Britta Westner'_, `Alex Gramfort`_, and `Denis Engemann`_.
 
@@ -148,6 +175,8 @@ API
     - :meth:`mne.io.Raw.plot_psd` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Eric Larson`_
 
     - :func:`mne.set_eeg_reference` and the related methods :meth:`mne.io.Raw.set_eeg_reference`, :meth:`mne.io.Epochs.set_eeg_reference`, and :meth:`mne.io.Evoked.set_eeg_reference` have a new argument ``projection``, which if set to False directly applies an average reference instead of adding an SSP projector, by `Clemens Brunner`_
+
+    - Deprecate ``plot_trans`` in favor of :func:`mne.viz.plot_alignment` and add ``bem`` parameter for plotting conductor model by `Jaakko Leppakangas`_
 
 .. _changes_0_14:
 
@@ -2206,3 +2235,5 @@ of commits):
 .. _ramonapariciog: https://github.com/ramonapariciog
 
 .. _Britta Westner: https://github.com/britta-wstnr
+
+.. _Lukáš Hejtmánek: https://github.com/hejtmy

@@ -371,6 +371,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
+    auto_tutorials/plot_source_alignment.rst
     auto_tutorials/plot_forward.rst
     auto_tutorials/plot_compute_covariance.rst
     auto_tutorials/plot_mne_dspm_source_localization.rst

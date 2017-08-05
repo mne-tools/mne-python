@@ -700,7 +700,7 @@ def _handle_change_selection(event, params):
 def _plot_raw_onkey(event, params):
     """Interpret key presses."""
     import matplotlib.pyplot as plt
-    if event.key == 'escape':
+    if event.key == params['close_key']:
         plt.close(params['fig'])
         if params['fig_annotation'] is not None:
             plt.close(params['fig_annotation'])
@@ -1334,7 +1334,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     -----
     This function plots the sensor locations from the info structure using
     matplotlib. For drawing the sensors using mayavi see
-    :func:`mne.viz.plot_trans`.
+    :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
 

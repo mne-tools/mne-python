@@ -80,11 +80,14 @@ matrix:
 before_install:
     - git clone https://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
-    - if [ "${DEPS}" == "" && "${TRAVIS_OS_NAME}" == "linux" ]; then
+    # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
+    - if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
         export MNE_ROOT="${PWD}/minimal_cmds";
         export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
-        source ${MNE_ROOT}/bin/mne_setup_sh;
+        export PATH=${MNE_ROOT}/bin:$PATH;
+        export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH;
+        mne_surf2bem --version;
       fi;
     - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;

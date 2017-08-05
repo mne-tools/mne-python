@@ -18,7 +18,7 @@ from scipy.io import loadmat
 from mayavi import mlab
 
 import mne
-from mne.viz import plot_trans, snapshot_brain_montage
+from mne.viz import plot_alignment, snapshot_brain_montage
 
 print(__doc__)
 
@@ -46,7 +46,8 @@ info = mne.create_info(ch_names, 1000., 'ecog', montage=mon)
 #           do not align to the cortical surface perfectly.
 
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
-fig = plot_trans(info, trans=None, subject='sample', subjects_dir=subjects_dir)
+fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
+                     surfaces=['pial'])
 mlab.view(200, 70)
 
 ###############################################################################
@@ -56,7 +57,8 @@ mlab.view(200, 70)
 # `snapshot_brain_montage` function.
 
 # We'll once again plot the surface, then take a snapshot.
-fig = plot_trans(info, trans=None, subject='sample', subjects_dir=subjects_dir)
+fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
+                     surfaces='pial')
 mlab.view(200, 70)
 xy, im = snapshot_brain_montage(fig, mon)
 
