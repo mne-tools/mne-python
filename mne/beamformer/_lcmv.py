@@ -111,7 +111,7 @@ def _check_cov_matrix(data_cov):
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              picks=None, pick_ori=None, rank=None,
+              pick_ori=None, rank=None,
               weight_norm='unit-noise-gain', verbose=None):
     """Compute LCMV spatial filter.
 
@@ -132,11 +132,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         gradiometers with magnetometers or EEG with MEG.
     label : Label
         Restricts the LCMV solution to a given label.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
-        picks is deprecated and will be removed in 0.16, specify the selection
-        of channels in info instead.
     pick_ori : None | 'normal' | 'max-power'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
@@ -171,14 +166,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    if picks is not None:
-        warn('Specifying picks is deprecated and will be removed in 0.16. '
-             'Specifying the selection of channels in info and setting picks '
-             'to None will remove this warning.',
-             DeprecationWarning)
-
-        info = pick_info(info, picks)
-
     picks = _setup_picks(info, forward, data_cov, noise_cov)
 
     is_free_ori, ch_names, proj, vertno, G = \
@@ -689,7 +676,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 
     # construct spatial filter
     filters = make_lcmv(info=evoked.info, forward=forward, data_cov=data_cov,
-                        reg=reg, noise_cov=noise_cov, label=label, picks=None,
+                        reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
     # apply spatial filter to evoked data
@@ -791,7 +778,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     # construct spatial filter
     filters = make_lcmv(info=epochs.info, forward=forward, data_cov=data_cov,
-                        reg=reg, noise_cov=noise_cov, label=label, picks=None,
+                        reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
     # apply spatial filter to epochs
@@ -897,7 +884,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
 
     # construct spatial filter
     filters = make_lcmv(info=raw.info, forward=forward, data_cov=data_cov,
-                        reg=reg, noise_cov=noise_cov, label=label, picks=None,
+                        reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
     # apply spatial filter to epochs
