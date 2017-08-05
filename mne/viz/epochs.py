@@ -166,6 +166,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     else:
         picks = np.atleast_1d(picks)
 
+    manual_ylims = "ylim" in ts_args
+
     # input checks
     if (combine is None and (fig is not None or axes is not None) and
             len(picks) > 1):
@@ -216,7 +218,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # each entry of groups is: (data, ch_type, evoked, name)
 
     # prepare the image - required for uniform vlims
-    vmins, vmaxs, ylims = dict(), dict(), dict()
+    vmins, vmaxs = dict(), dict()
     for group in groups:
         epochs, ch_type = group[:2]
         group.extend(_prepare_epochs_image_im_data(
@@ -228,26 +230,17 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 vmins[ch_type] = this_vmin
             if vmax is None and (this_vmax > vmaxs.get(ch_type, -1)):
                 vmaxs[ch_type] = this_vmax
-            if evoked:
-                this_ymin, this_ymax = this_ylim.get(ch_type, (group[4].min(),
-                                                               group[4].max()))
-                if ch_type not in ylims:
-                    ylims[ch_type] = [this_ymin, this_ymax]
-                if this_ymin < ylims[ch_type][0]:
-                    ylims[ch_type][0] = this_vmin
-                if this_vmax > ylims[ch_type][1]:
-                    ylims[ch_type][1] = this_vmax
 
     # plot
-    figs = list()
+    figs, axes_list = list(), list()
+    ylims = dict((ch_type, (1., -1.)) for ch_type in all_ch_types)
     for (epochs_, ch_type, ax_name, name, data, overlay_times, vmin, vmax,
          ts_args) in groups:
         vmin, vmax = vmins.get(ch_type, vmin), vmaxs.get(ch_type, vmax)
         these_axes = axes[ax_name] if isinstance(axes, dict) else axes
         axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar,
                                                evoked)
-        if "ylim" not in ts_args:
-            ts_args["ylim"] = ylims[ch_type]
+        axes_list.append(axes_dict)
         title = ax_name if isinstance(axes, dict) else name
         this_fig = _plot_epochs_image(
             epochs_, data, vmin=vmin, vmax=vmax, colorbar=colorbar, show=False,
@@ -255,6 +248,18 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             axes_dict=axes_dict, title=title, overlay_times=overlay_times,
             evoked=evoked, ts_args=ts_args)
         figs.append(this_fig)
+
+        # the rest of the code is for aligning ylims for multiple plots
+        if evoked is True and not manual_ylims:
+            evoked_ax = axes_dict["evoked"]
+            this_min, this_max = evoked_ax.get_ylim()
+            curr_min, curr_max = ylims[ch_type]
+            ylims[ch_type] = min(curr_min, this_min), max(curr_max, this_max),
+
+    if evoked is True and not manual_ylims:
+        for group, axes_dict in zip(groups, axes_list):
+            ch_type = group[1]
+            axes_dict["evoked"].set_ylim(ylims[ch_type])
 
     plt_show(show)
     return figs
@@ -408,6 +413,7 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
     ylim = dict()
     if scale_vmin or scale_vmax:
         ylim[ch_type] = (vmin * scaling, vmax * scaling)
+    ylim = dict()
     ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0],
                     title='', truncate_yaxis=False, truncate_xaxis=False,
                     show=False)

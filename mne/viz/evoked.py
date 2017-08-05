@@ -1575,6 +1575,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             raise ValueError("No valid channels were found to plot the GFP. " +
                              "Use 'picks' instead to select them manually.")
 
+    if ylim is None:
+        ylim = dict()
+
     # deal with picks: infer indices and names
     if gfp is True:
         ch_names = ['Global Field Power']
