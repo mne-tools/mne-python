@@ -146,7 +146,7 @@ BUG
 
     - Fix writing a forward solution after being processed by :func:`mne.forward.restrict_forward_to_label` or :func:`mne.forward.restrict_forward_to_stc` by `Marijn van Vliet`_
 
-    - Fix bug in plot_compare_evokeds where previously, truncate_yaxis was ignore. It should work now. By `Jona Sassenhagen`_
+    - Fix bug in :func:`mne.viz.plot_compare_evokeds` where ``truncate_yaxis`` was ignored (default is now ``False``), by `Jona Sassenhagen`_
 
 API
 ~~~
