@@ -1569,7 +1569,6 @@ def _check_start_stop(raw, start, stop):
                 out.append(_ensure_int(st))
             except TypeError:  # not int-like
                 out.append(raw.time_as_index(st)[0])
-    print(out)
     return out
 
 
