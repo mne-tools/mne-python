@@ -1413,7 +1413,7 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
-                         truncate_yaxis=True, ylim=dict(), invert_y=False,
+                         truncate_yaxis=False, ylim=dict(), invert_y=False,
                          axes=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
@@ -1731,7 +1731,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     fraction = 2 if axes.get_ylim()[0] >= 0 else 3
 
-    if truncate_yaxis and ymin is not None and not (ymin > 0):
+    if truncate_yaxis is True:
         _, ymax_bound = _truncate_yaxis(
             axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
             any_positive, any_negative)
