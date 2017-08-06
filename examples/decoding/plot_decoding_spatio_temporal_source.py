@@ -13,13 +13,19 @@ classifier then is trained to selected features of epochs in source space.
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
-
-import mne
 import os
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.linear_model import LogisticRegression
+import mne
 from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
+from mne.decoding import (cross_val_multiscore, LinearModel, SlidingEstimator,
+                          get_coef)
 
 print(__doc__)
 
@@ -70,12 +76,6 @@ stcs = apply_inverse_epochs(epochs, inverse_operator,
 
 ###############################################################################
 # Decoding in sensor space using a logistic regression
-import matplotlib.pyplot as plt
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.linear_model import LogisticRegression
-from mne.decoding import cross_val_multiscore, LinearModel, SlidingEstimator
 
 # Retrieve source space data into an array
 X = np.array([stc.lh_data for stc in stcs])  # only keep left hemisphere
@@ -91,14 +91,14 @@ time_decod = SlidingEstimator(clf, scoring='roc_auc')
 scores = cross_val_multiscore(time_decod, X, y, cv=7, n_jobs=1)
 
 # Plot average decoding scores of 10 splits
-plt.plot(epochs.times, scores.mean(0), label='score')
-plt.axhline(.5, color='k', linestyle='--', label='chance')
-plt.axvline(0, color='k')
+fig, ax = plt.subplots(1)
+ax.plot(epochs.times, scores.mean(0), label='score')
+ax.axhline(.5, color='k', linestyle='--', label='chance')
+ax.axvline(0, color='k')
 plt.legend()
 
 ###############################################################################
 # To investigate weights, we need to retrieve the patterns of a fitted model
-from mne.decoding import get_coef
 
 # The fitting needs not be cross validated because the weights are based on
 # the training sets
@@ -113,4 +113,4 @@ stc_feat = mne.SourceEstimate(np.abs(patterns), vertices=vertices,
                               subject='sample')
 
 brain = stc_feat.plot(views=['lat'], transparent=True,
-                      initial_time=stc.tmin, time_unit='s')
+                      initial_time=0.1, time_unit='s')
