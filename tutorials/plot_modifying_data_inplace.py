@@ -3,6 +3,11 @@
 
 Modifying data in-place
 =======================
+
+It is often necessary to modify data once you have loaded it into memory.
+Common examples of this are signal processing, feature extraction, and data
+cleaning. Some functionality is pre-built into MNE-python, though it is also
+possible to apply an arbitrary function to the data.
 """
 
 from __future__ import print_function
@@ -13,11 +18,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 ###############################################################################
-# It is often necessary to modify data once you have loaded it into memory.
-# Common examples of this are signal processing, feature extraction, and data
-# cleaning. Some functionality is pre-built into MNE-python, though it is also
-# possible to apply an arbitrary function to the data.
-
 # Load an example dataset, the preload flag loads the data into memory now
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG',
                     'sample', 'sample_audvis_raw.fif')
