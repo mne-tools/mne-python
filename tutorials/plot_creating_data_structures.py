@@ -1,8 +1,11 @@
 """
 .. _tut_creating_data_structures:
 
-Creating MNE-Python's data structures from scratch
-==================================================
+Creating MNE's data structures from scratch
+===========================================
+
+MNE provides mechanisms for creating various core objects directly from
+NumPy arrays.
 """
 
 from __future__ import print_function

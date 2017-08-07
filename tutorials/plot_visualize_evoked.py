@@ -4,6 +4,8 @@
 =====================
 Visualize Evoked data
 =====================
+
+In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
 """
 import os.path as op
 import numpy as np
@@ -14,7 +16,6 @@ import mne
 # sphinx_gallery_thumbnail_number = 9
 
 ###############################################################################
-# In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
 # First we read the evoked object from a file. Check out
 # :ref:`tut_epoching_and_averaging` to get to this stage from raw data.
 data_path = mne.datasets.sample.data_path()

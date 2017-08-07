@@ -4,6 +4,16 @@
 
 The :class:`Raw <mne.io.Raw>` data structure: continuous data
 =============================================================
+
+Continuous data is stored in objects of type :class:`Raw <mne.io.Raw>`.
+The core data structure is simply a 2D numpy array (channels × samples,
+stored in a private attribute called `._data`) combined with an
+:class:`Info <mne.Info>` object (`.info` attribute)
+(see :ref:`tut_info_objects`).
+
+The most common way to load continuous data is from a .fif file. For more
+information on :ref:`loading data from other formats <ch_convert>`, or
+creating it :ref:`from scratch <tut_creating_data_structures>`.
 """
 
 from __future__ import print_function
@@ -13,22 +23,11 @@ import os.path as op
 from matplotlib import pyplot as plt
 
 ###############################################################################
-# Continuous data is stored in objects of type :class:`Raw <mne.io.Raw>`.
-# The core data structure is simply a 2D numpy array (channels × samples,
-# stored in a private attribute called `._data`) combined with an
-# :class:`Info <mne.Info>` object (`.info` attribute)
-# (see :ref:`tut_info_objects`).
-#
-# The most common way to load continuous data is from a .fif file. For more
-# information on :ref:`loading data from other formats <ch_convert>`, or
-# creating it :ref:`from scratch <tut_creating_data_structures>`.
-
-
-###############################################################################
 # Loading continuous data
 # -----------------------
+#
+# Load an example dataset, the preload flag loads the data into memory now:
 
-# Load an example dataset, the preload flag loads the data into memory now
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG',
                     'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(data_path, preload=True)

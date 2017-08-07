@@ -3,6 +3,12 @@
 
 The :class:`Epochs <mne.Epochs>` data structure: epoched data
 =============================================================
+
+:class:`Epochs <mne.Epochs>` objects are a way of representing continuous
+data as a collection of time-locked trials, stored in an array of shape
+``(n_events, n_channels, n_times)``. They are useful for many statistical
+methods in neuroscience, and make it easy to quickly overview what occurs
+during a trial.
 """
 
 from __future__ import print_function
@@ -13,12 +19,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 ###############################################################################
-# :class:`Epochs <mne.Epochs>` objects are a way of representing continuous
-# data as a collection of time-locked trials, stored in an array of
-# `shape(n_events, n_channels, n_times)`. They are useful for many statistical
-# methods in neuroscience, and make it easy to quickly overview what occurs
-# during a trial.
-#
 # :class:`Epochs <mne.Epochs>` objects can be created in three ways:
 #  1. From a :class:`Raw <mne.io.Raw>` object, along with event times
 #  2. From an :class:`Epochs <mne.Epochs>` object that has been saved as a
