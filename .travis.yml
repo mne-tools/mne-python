@@ -168,6 +168,9 @@ install:
 
 
 script:
+    - echo "Print locale "
+    - locale
+    - echo "Other stuff"
     # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         CONDITION='not slow_test';
