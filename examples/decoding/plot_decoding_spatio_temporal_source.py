@@ -38,7 +38,6 @@ os.environ['SUBJECTS_DIR'] = subjects_dir
 
 ###############################################################################
 # Set parameters
-
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
@@ -88,9 +87,9 @@ clf = make_pipeline(StandardScaler(),  # z-score normalization
 time_decod = SlidingEstimator(clf, scoring='roc_auc')
 
 # Run cross-validated decoding analyses:
-scores = cross_val_multiscore(time_decod, X, y, cv=7, n_jobs=1)
+scores = cross_val_multiscore(time_decod, X, y, cv=5, n_jobs=1)
 
-# Plot average decoding scores of 10 splits
+# Plot average decoding scores of 5 splits
 fig, ax = plt.subplots(1)
 ax.plot(epochs.times, scores.mean(0), label='score')
 ax.axhline(.5, color='k', linestyle='--', label='chance')
@@ -107,10 +106,10 @@ time_decod.fit(X, y)
 # Retrieve patterns after inversing the z-score normalization step:
 patterns = get_coef(time_decod, 'patterns_', inverse_transform=True)
 
+stc = stcs[0]  # for convenience, lookup parameters from first stc
 vertices = [stc.lh_vertno, np.array([], int)]  # empty array for right hemi
 stc_feat = mne.SourceEstimate(np.abs(patterns), vertices=vertices,
-                              tmin=stc.tmin, tstep=stc.tstep,
-                              subject='sample')
+                              tmin=stc.tmin, tstep=stc.tstep, subject='sample')
 
 brain = stc_feat.plot(views=['lat'], transparent=True,
                       initial_time=0.1, time_unit='s')
