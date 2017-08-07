@@ -2,7 +2,20 @@
 .. _tut_info_objects:
 
 The :class:`Info <mne.Info>` data structure
-==============================================
+===========================================
+
+The :class:`Info <mne.Info>` data object is typically created
+when data is imported into MNE-Python and contains details such as:
+
+- date, subject information, and other recording details
+- the sampling rate
+- information about the data channels (name, type, position, etc.)
+- digitized points
+- sensor–head coordinate transformation matrices
+
+and so forth. See the :class:`the API reference <mne.Info>`
+for a complete list of all data fields. Once created, this object is passed
+around throughout the data analysis pipeline.
 """
 
 from __future__ import print_function
@@ -11,20 +24,7 @@ import mne
 import os.path as op
 
 ###############################################################################
-# The :class:`Info <mne.Info>` data object is typically created
-# when data is imported into MNE-Python and contains details such as:
-#
-#  - date, subject information, and other recording details
-#  - the sampling rate
-#  - information about the data channels (name, type, position, etc.)
-#  - digitized points
-#  - sensor–head coordinate transformation matrices
-#
-# and so forth. See the :class:`the API reference <mne.Info>`
-# for a complete list of all data fields. Once created, this object is passed
-# around throughout the data analysis pipeline.
-#
-# It behaves as a nested Python dictionary:
+# :class:`mne.Info` behaves as a nested Python dictionary:
 
 # Read the info object from an example recording
 info = mne.io.read_info(
