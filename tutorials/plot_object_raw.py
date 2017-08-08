@@ -6,8 +6,8 @@ The :class:`Raw <mne.io.Raw>` data structure: continuous data
 =============================================================
 
 Continuous data is stored in objects of type :class:`Raw <mne.io.Raw>`.
-The core data structure is simply a 2D numpy array (channels × samples,
-stored in a private attribute called `._data`) combined with an
+The core data structure is simply a 2D numpy array (channels × samples)
+(in memory or loaded on demand) combined with an
 :class:`Info <mne.Info>` object (`.info` attribute)
 (see :ref:`tut_info_objects`).
 
@@ -34,11 +34,11 @@ raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 # Give the sample rate
 print('sample rate:', raw.info['sfreq'], 'Hz')
 # Give the size of the data matrix
-print('channels x samples:', raw._data.shape)
+print('%s channels x %s samples' % (len(raw), len(raw.times)))
 
 ###############################################################################
-# .. note:: Accessing the `._data` attribute is done here for educational
-#           purposes. However this is a private attribute as its name starts
+# .. note:: This size can also be obtained by examining `raw._data.shape`.
+#           However this is a private attribute as its name starts
 #           with an `_`. This suggests that you should **not** access this
 #           variable directly but rely on indexing syntax detailed just below.
 
