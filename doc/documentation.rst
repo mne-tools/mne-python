@@ -389,7 +389,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/forward/plot_decimate_head_surface.rst
     auto_examples/forward/plot_forward_sensitivity_maps.rst
     auto_examples/forward/plot_left_cerebellum_volume_source.rst
-    auto_examples/forward/plot_read_bem_surfaces.rst
     auto_examples/forward/plot_source_space_morphing.rst
 
 .. raw:: html

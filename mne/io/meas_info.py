@@ -63,7 +63,7 @@ class Info(dict):
     that is available for a recording.
 
     This class should not be instantiated directly. To create a measurement
-    information strucure, use :func:`mne.io.create_info`.
+    information strucure, use :func:`mne.create_info`.
 
     The only entries that should be manually changed by the user are
     ``info['bads']`` and ``info['description']``. All other entries should
@@ -158,6 +158,10 @@ class Info(dict):
     subject_info : dict | None
         Information about the subject.
         See Notes for details.
+
+    See Also
+    --------
+    mne.create_info
 
     Notes
     -----

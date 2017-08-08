@@ -10,8 +10,6 @@ cleaning. Some functionality is pre-built into MNE-python, though it is also
 possible to apply an arbitrary function to the data.
 """
 
-from __future__ import print_function
-
 import mne
 import os.path as op
 import numpy as np

@@ -11,8 +11,6 @@ methods in neuroscience, and make it easy to quickly overview what occurs
 during a trial.
 """
 
-from __future__ import print_function
-
 import mne
 import os.path as op
 import numpy as np

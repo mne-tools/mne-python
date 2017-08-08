@@ -18,8 +18,6 @@ for a complete list of all data fields. Once created, this object is passed
 around throughout the data analysis pipeline.
 """
 
-from __future__ import print_function
-
 import mne
 import os.path as op
 

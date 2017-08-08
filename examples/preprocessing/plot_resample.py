@@ -14,8 +14,6 @@ reduction in data size, at the cost of an equal loss of temporal resolution.
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD (3-clause)
-#
-from __future__ import print_function
 
 from matplotlib import pyplot as plt
 

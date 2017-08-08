@@ -471,7 +471,7 @@ def read_trans(fname, return_all=False):
     See Also
     --------
     write_trans
-    Transform
+    mne.transforms.Transform
     """
     fid, tree, directory = fiff_open(fname)
 

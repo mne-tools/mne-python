@@ -16,8 +16,6 @@ information on :ref:`loading data from other formats <ch_convert>`, or
 creating it :ref:`from scratch <tut_creating_data_structures>`.
 """
 
-from __future__ import print_function
-
 import mne
 import os.path as op
 from matplotlib import pyplot as plt

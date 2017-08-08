@@ -8,8 +8,6 @@ MNE provides mechanisms for creating various core objects directly from
 NumPy arrays.
 """
 
-from __future__ import print_function
-
 import mne
 import numpy as np
 
