@@ -72,10 +72,6 @@ test-coverage: testing_data
 	$(PYTESTS) --cov=mne --cov-report html:coverage
 # whats the difference with test-no-sample-with-coverage?
 
-test-profile: testing_data
-	$(PYTESTS) --with-profile --profile-stats-file stats.pf mne
-	hotshot2dot stats.pf | dot -Tpng -o profile.png
-
 test-mem: in testing_data
 	ulimit -v 1097152 && $(PYTESTS) mne
 
