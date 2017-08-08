@@ -266,7 +266,7 @@ class SetChannelsMixin(object):
         A single electrode:
             Set ``ref_channels`` to a list containing the name of the channel
             that will act as the new reference, for example
-            ``ref_channels=['Cz']`.
+            ``ref_channels=['Cz']``.
 
         The mean of multiple electrodes:
             A new virtual reference electrode is created by computing the
@@ -314,6 +314,11 @@ class SetChannelsMixin(object):
             and ``projection=True`` a projection will be added instead of
             directly re-referencing the data.
 
+        See Also
+        --------
+        mne.set_bipolar_reference : Convenience function for creating bipolar
+                                    references.
+
         Notes
         -----
         1. If a reference is requested that is not the average reference, this
@@ -326,11 +331,6 @@ class SetChannelsMixin(object):
            not necessary if ``ref_channels='average'`` and ``projection=True``.
 
         .. versionadded:: 0.9.0
-
-        See Also
-        --------
-        set_bipolar_reference : Convenience function for creating bipolar
-                                references.
         """
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,

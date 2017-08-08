@@ -284,7 +284,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
     A single electrode:
         Set ``ref_channels`` to a list containing the name of the channel that
-        will act as the new reference, for example ``ref_channels=['Cz']`.
+        will act as the new reference, for example ``ref_channels=['Cz']``.
 
     The mean of multiple electrodes:
         A new virtual reference electrode is created by computing the average

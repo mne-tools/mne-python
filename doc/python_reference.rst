@@ -9,7 +9,7 @@ Python API Reference
 This is the reference for classes (``CamelCase`` names) and functions
 (``underscore_case`` names) of MNE-Python, grouped thematically by analysis
 stage. Functions and classes that are not
-below a module heading are found in the :py:mod:`mne` namespace.
+below a module heading are found in the ``mne`` namespace.
 
 MNE-Python also provides multiple command-line scripts that can be called
 directly from a terminal, see :ref:`python_commands`.
@@ -18,6 +18,12 @@ directly from a terminal, see :ref:`python_commands`.
    :local:
    :depth: 2
 
+
+:py:mod:`mne`:
+
+.. automodule:: mne
+   :no-members:
+   :no-inherited-members:
 
 Most-used classes
 =================
@@ -452,6 +458,10 @@ Events
 
 :py:mod:`mne.event`:
 
+.. automodule:: mne.event
+   :no-members:
+   :no-inherited-members:
+
 .. currentmodule:: mne.event
 
 .. autosummary::
@@ -461,6 +471,10 @@ Events
    define_target_events
 
 :py:mod:`mne.epochs`:
+
+.. automodule:: mne.epochs
+   :no-members:
+   :no-inherited-members:
 
 .. currentmodule:: mne.epochs
 
