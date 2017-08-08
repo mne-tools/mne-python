@@ -85,6 +85,14 @@ class Annotations(object):
         self.duration = duration
         self.description = np.array(description, dtype=str)
 
+    def __repr__(self):
+        """Show the representation."""
+        kinds = sorted(set(['"%s"' % d.split(' ')[0]
+                            for d in self.description]))
+        kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
+        return ('<Annotations  |  %s segments : {%s} types>'
+                % (len(self.onset), kinds))
+
     def __len__(self):
         """Return the number of annotations."""
         return len(self.duration)

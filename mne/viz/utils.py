@@ -1857,7 +1857,7 @@ def _setup_annotation_colors(params):
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
             continue
-        elif key.lower().startswith('bad'):
+        elif key.lower().startswith('bad') or key.lower().startswith('edge'):
             segment_colors[key] = 'red'
         else:
             segment_colors[key] = next(color_cycle)
