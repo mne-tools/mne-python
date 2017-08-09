@@ -43,13 +43,14 @@ dependencies:
       else
         echo "Conda env already set up.";
       fi;
-    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi;
+    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi nose;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
     - echo $CIRCLE_BRANCH
     - which python;
     - which pip;
+    - cat /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py | grep "ENABLE_USER_SITE"
     - pip install --upgrade pyface;
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
     - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
@@ -145,17 +146,11 @@ test:
     # Mayavi can bomb on exit (yay!), turning a successful build into a failure.
     # We thus tee into a log (which returns 0) and then parse afterward for
     # what immediately precedes the "Build finished." line.
-    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot | tee ~/output.txt; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern | tee ~/output.txt; else make test-doc; cd doc; make $(cat ../build.txt) | tee ~/output.txt; fi:
+    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot | tee $CIRCLE_ARTIFACTS/log.txt; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern | tee $CIRCLE_ARTIFACTS/log.txt; else make test-doc; cd doc; make $(cat ../build.txt) | tee $CIRCLE_ARTIFACTS/log.txt; fi:
           timeout: 1500
-    - tail ~/output.txt | grep "auto_tutorials\[100%\] plot_"
-
-general:
-  # branches:
-  #   only:
-  #     - master
-  # Open the doc to the API
-  artifacts:
-    - "doc/_build/html"
+    - tail $CIRCLE_ARTIFACTS/log.txt | grep "auto_tutorials\[100%\] plot_"
+  post:
+    - cp -a doc/_build/html $CIRCLE_ARTIFACTS/
 
 deployment:
   production:

@@ -20,7 +20,7 @@ from ..io.proj import setup_proj
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
-                    _plot_raw_onscroll, _onclick_help, plt_show,
+                    _plot_raw_onscroll, _onclick_help, plt_show, _handle_decim,
                     _compute_scalings, DraggableColorbar, _setup_cmap)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
@@ -382,7 +382,7 @@ def _epochs_axes_onclick(event, params):
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, show=True,
-                block=False):
+                block=False, decim='auto'):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -438,6 +438,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Whether to halt program execution until the figure is closed.
         Useful for rejecting bad trials on the fly by clicking on an epoch.
         Defaults to False.
+    decim : int | 'auto'
+        Amount to decimate the data during display for speed purposes.
+        You should only decimate if the data are sufficiently low-passed,
+        otherwise aliasing can occur. The 'auto' mode (default) uses
+        the decimation that results in a sampling rate at least three times
+        larger than ``info['lowpass']`` (e.g., a 40 Hz lowpass will result in
+        at least a 120 Hz displayed sample rate).
+
+        .. versionadded:: 0.15
 
     Returns
     -------
@@ -463,14 +472,16 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     epochs.drop_bad()
     scalings = _compute_scalings(scalings, epochs)
     scalings = _handle_default('scalings_plot_raw', scalings)
-
+    decim, data_picks = _handle_decim(epochs.info.copy(), decim, None)
     projs = epochs.info['projs']
 
     params = {'epochs': epochs,
               'info': copy.deepcopy(epochs.info),
               'bad_color': (0.8, 0.8, 0.8),
               't_start': 0,
-              'histogram': None}
+              'histogram': None,
+              'decim': decim,
+              'data_picks': data_picks}
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events,
@@ -715,7 +726,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
             break
-        lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+        lc = LineCollection(list(), antialiased=True, linewidths=0.5,
                             zorder=3, picker=3.)
         ax.add_collection(lc)
         lines.append(lc)
@@ -833,6 +844,9 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     # Draw event lines for the first time.
     _plot_vert_lines(params)
 
+    # default key to close window
+    params['close_key'] = 'escape'
+
 
 def _prepare_projectors(params):
     """Set up the projectors for epochs browser."""
@@ -908,13 +922,20 @@ def _plot_traces(params):
             else:
                 tick_list += [params['ch_names'][ch_idx]]
                 offset = offsets[line_idx]
+
+            if params['inds'][ch_idx] in params['data_picks']:
+                this_decim = params['decim']
+            else:
+                this_decim = 1
             this_data = data[ch_idx]
 
             # subtraction here gets correct orientation for flipped ylim
             ydata = offset - this_data
             xdata = params['times'][:params['duration']]
             num_epochs = np.min([params['n_epochs'], len(epochs.events)])
+
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
+            segments = [segment[::this_decim] for segment in segments]
 
             ch_name = params['ch_names'][ch_idx]
             if ch_name in params['info']['bads']:
@@ -1278,7 +1299,7 @@ def _plot_onkey(event, params):
         offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
-        lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+        lc = LineCollection(list(), antialiased=True, linewidths=0.5,
                             zorder=3, picker=3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
@@ -1397,7 +1418,7 @@ def _prepare_butterfly(params):
             used_types += 1
 
         while len(params['lines']) < len(params['picks']):
-            lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+            lc = LineCollection(list(), antialiased=True, linewidths=0.5,
                                 zorder=3, picker=3.)
             ax.add_collection(lc)
             params['lines'].append(lc)
@@ -1460,7 +1481,7 @@ def _update_channels_epochs(event, params):
         params['ax'].collections.pop()
         params['lines'].pop()
     while len(params['lines']) < n_channels:
-        lc = LineCollection(list(), linewidths=0.5, antialiased=False,
+        lc = LineCollection(list(), linewidths=0.5, antialiased=True,
                             zorder=3, picker=3.)
         params['ax'].add_collection(lc)
         params['lines'].append(lc)

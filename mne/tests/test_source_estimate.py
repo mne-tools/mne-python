@@ -50,7 +50,7 @@ rng = np.random.RandomState(0)
 
 @testing.requires_testing_data
 def test_spatial_inter_hemi_connectivity():
-    """Test spatial connectivity between hemispheres"""
+    """Test spatial connectivity between hemispheres."""
     # trivial cases
     conn = spatial_inter_hemi_connectivity(fname_src_3, 5e-6)
     assert_equal(conn.data.size, 0)
@@ -85,8 +85,7 @@ def test_spatial_inter_hemi_connectivity():
 @slow_test
 @testing.requires_testing_data
 def test_volume_stc():
-    """Test volume STCs
-    """
+    """Test volume STCs."""
     tempdir = _TempDir()
     N = 100
     data = np.arange(N)[:, np.newaxis]
@@ -153,8 +152,7 @@ def test_volume_stc():
 
 @testing.requires_testing_data
 def test_expand():
-    """Test stc expansion
-    """
+    """Test stc expansion."""
     stc = read_source_estimate(fname_stc, 'sample')
     assert_true('sample' in repr(stc))
     labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
@@ -176,9 +174,63 @@ def _fake_stc(n_time=10):
     return SourceEstimate(np.random.rand(100, n_time), verts, 0, 1e-1, 'foo')
 
 
+def _test_stc_integrety(stc):
+    """Test consistency of tmin, tstep, data.shape[-1] and times."""
+    n_times = len(stc.times)
+    assert_equal(stc._data.shape[-1], n_times)
+    assert_array_equal(stc.times, stc.tmin + np.arange(n_times) * stc.tstep)
+
+
+def test_stc_attributes():
+    """Test STC attributes."""
+    stc = _fake_stc(n_time=10)
+    _test_stc_integrety(stc)
+    assert_array_almost_equal(
+        stc.times, [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+
+    def attempt_times_mutation(stc):
+        stc.times -= 1
+
+    def attempt_assignment(stc, attr, val):
+        setattr(stc, attr, val)
+
+    # .times is read-only
+    assert_raises(ValueError, attempt_times_mutation, stc)
+    assert_raises(ValueError, attempt_assignment, stc, 'times', [1])
+
+    # Changing .tmin or .tstep re-computes .times
+    stc.tmin = 1
+    assert_true(type(stc.tmin) == float)
+    assert_array_almost_equal(
+        stc.times, [1., 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
+
+    stc.tstep = 1
+    assert_true(type(stc.tstep) == float)
+    assert_array_almost_equal(
+        stc.times, [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.])
+
+    # tstep <= 0 is not allowed
+    assert_raises(ValueError, attempt_assignment, stc, 'tstep', 0)
+    assert_raises(ValueError, attempt_assignment, stc, 'tstep', -1)
+
+    # Changing .data re-computes .times
+    stc.data = np.random.rand(100, 5)
+    assert_array_almost_equal(
+        stc.times, [1., 2., 3., 4., 5.])
+
+    # .data must match the number of vertices
+    assert_raises(ValueError, attempt_assignment, stc, 'data', [[1]])
+    assert_raises(ValueError, attempt_assignment, stc, 'data', None)
+
+    # .shape attribute must also work when ._data is None
+    stc._kernel = np.zeros((2, 2))
+    stc._sens_data = np.zeros((2, 3))
+    stc._data = None
+    assert_equal(stc.shape, (2, 3))
+
+
 def test_io_stc():
-    """Test IO for STC files
-    """
+    """Test IO for STC files."""
     tempdir = _TempDir()
     stc = _fake_stc()
     stc.save(op.join(tempdir, "tmp.stc"))
@@ -194,8 +246,7 @@ def test_io_stc():
 
 @requires_h5py
 def test_io_stc_h5():
-    """Test IO for STC files using HDF5
-    """
+    """Test IO for STC files using HDF5."""
     tempdir = _TempDir()
     stc = _fake_stc()
     assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
@@ -216,8 +267,7 @@ def test_io_stc_h5():
 
 
 def test_io_w():
-    """Test IO for w files
-    """
+    """Test IO for w files."""
     tempdir = _TempDir()
     stc = _fake_stc(n_time=1)
     w_fname = op.join(tempdir, 'fake')
@@ -231,8 +281,7 @@ def test_io_w():
 
 
 def test_stc_arithmetic():
-    """Test arithmetic for STC files
-    """
+    """Test arithmetic for STC files."""
     stc = _fake_stc()
     data = stc.data.copy()
 
@@ -270,7 +319,7 @@ def test_stc_arithmetic():
 @slow_test
 @testing.requires_testing_data
 def test_stc_methods():
-    """Test stc methods lh_data, rh_data, bin, center_of_mass, resample"""
+    """Test stc methods lh_data, rh_data, bin, center_of_mass, resample."""
     stc = read_source_estimate(fname_stc)
 
     # lh_data / rh_data
@@ -329,8 +378,7 @@ def test_stc_methods():
 
 @testing.requires_testing_data
 def test_extract_label_time_course():
-    """Test extraction of label time courses from stc
-    """
+    """Test extraction of label time courses from stc."""
     n_stcs = 3
     n_times = 50
 
@@ -424,8 +472,7 @@ def test_extract_label_time_course():
 @slow_test
 @testing.requires_testing_data
 def test_morph_data():
-    """Test morphing of data
-    """
+    """Test morphing of data."""
     tempdir = _TempDir()
     subject_from = 'sample'
     subject_to = 'fsaverage'
@@ -533,14 +580,14 @@ def test_morph_data():
 
 
 def _my_trans(data):
-    """FFT that adds an additional dimension by repeating result"""
+    """FFT that adds an additional dimension by repeating result."""
     data_t = fft(data)
     data_t = np.concatenate([data_t[:, :, None], data_t[:, :, None]], axis=2)
     return data_t, None
 
 
 def test_transform_data():
-    """Test applying linear (time) transform to data"""
+    """Test applying linear (time) transform to data."""
     # make up some data
     n_sensors, n_vertices, n_times = 10, 20, 4
     kernel = rng.randn(n_vertices, n_sensors)
@@ -570,7 +617,7 @@ def test_transform_data():
 
 
 def test_transform():
-    """Test applying linear (time) transform to data"""
+    """Test applying linear (time) transform to data."""
     # make up some data
     n_verts_lh, n_verts_rh, n_times = 10, 10, 10
     vertices = [np.arange(n_verts_lh), n_verts_lh + np.arange(n_verts_rh)]
@@ -602,27 +649,30 @@ def test_transform():
     verts = np.arange(len(stc.lh_vertno),
                       len(stc.lh_vertno) + len(stc.rh_vertno), 1)
     verts_rh = stc.rh_vertno
-    t_idx = [np.where(times >= -50)[0][0], np.where(times <= 500)[0][-1]]
-    data_t = stc.transform_data(np.abs, idx=verts, tmin_idx=t_idx[0],
-                                tmax_idx=t_idx[-1])
+    tmin_idx = np.searchsorted(times, 0)
+    tmax_idx = np.searchsorted(times, 501)  # Include 500ms in the range
+    data_t = stc.transform_data(np.abs, idx=verts, tmin_idx=tmin_idx,
+                                tmax_idx=tmax_idx)
     stc.transform(np.abs, idx=verts, tmin=-50, tmax=500, copy=False)
     assert_true(isinstance(stc, SourceEstimate))
-    assert_true((stc.tmin == 0.) & (stc.times[-1] == 0.5))
-    assert_true(len(stc.vertices[0]) == 0)
+    assert_equal(stc.tmin, 0.)
+    assert_equal(stc.times[-1], 0.5)
+    assert_equal(len(stc.vertices[0]), 0)
     assert_equal(stc.vertices[1], verts_rh)
     assert_array_equal(stc.data, data_t)
 
     times = np.round(1000 * stc.times)
-    t_idx = [np.where(times >= 0)[0][0], np.where(times <= 250)[0][-1]]
-    data_t = stc.transform_data(np.abs, tmin_idx=t_idx[0], tmax_idx=t_idx[-1])
+    tmin_idx, tmax_idx = np.searchsorted(times, 0), np.searchsorted(times, 250)
+    data_t = stc.transform_data(np.abs, tmin_idx=tmin_idx, tmax_idx=tmax_idx)
     stc.transform(np.abs, tmin=0, tmax=250, copy=False)
-    assert_true((stc.tmin == 0.) & (stc.times[-1] == 0.2))
+    assert_equal(stc.tmin, 0.)
+    assert_equal(stc.times[-1], 0.2)
     assert_array_equal(stc.data, data_t)
 
 
 @requires_sklearn
 def test_spatio_temporal_tris_connectivity():
-    """Test spatio-temporal connectivity from triangles"""
+    """Test spatio-temporal connectivity from triangles."""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     connectivity = spatio_temporal_tris_connectivity(tris, 2)
     x = [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
@@ -639,7 +689,7 @@ def test_spatio_temporal_tris_connectivity():
 
 @testing.requires_testing_data
 def test_spatio_temporal_src_connectivity():
-    """Test spatio-temporal connectivity from source spaces"""
+    """Test spatio-temporal connectivity from source spaces."""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     src = [dict(), dict()]
     connectivity = spatio_temporal_tris_connectivity(tris, 2)
@@ -672,7 +722,7 @@ def test_spatio_temporal_src_connectivity():
 
 @requires_pandas
 def test_to_data_frame():
-    """Test stc Pandas exporter"""
+    """Test stc Pandas exporter."""
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
     data = rng.randn(n_vert, n_times)
@@ -693,8 +743,7 @@ def test_to_data_frame():
 
 
 def test_get_peak():
-    """Test peak getter
-    """
+    """Test peak getter."""
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
     data = rng.randn(n_vert, n_times)
@@ -722,8 +771,7 @@ def test_get_peak():
 
 @testing.requires_testing_data
 def test_mixed_stc():
-    """Test source estimate from mixed source space
-    """
+    """Test source estimate from mixed source space."""
     N = 90  # number of sources
     T = 2  # number of time points
     S = 3  # number of source spaces

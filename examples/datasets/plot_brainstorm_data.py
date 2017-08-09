@@ -39,7 +39,7 @@ raw.plot()
 
 # set EOG channel
 raw.set_channel_types({'EEG058': 'eog'})
-raw.set_eeg_reference()
+raw.set_eeg_reference('average', projection=True)
 
 # show power line interference and remove it
 raw.plot_psd(tmax=60.)

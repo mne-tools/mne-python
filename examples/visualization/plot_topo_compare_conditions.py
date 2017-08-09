@@ -62,9 +62,9 @@ evokeds = [epochs[name].average() for name in ('left', 'right')]
 ###############################################################################
 # Show topography for two different conditions
 
-colors = 'yellow', 'green'
-title = 'MNE sample data - left vs right (A/V combined)'
+colors = 'blue', 'red'
+title = 'MNE sample data\nleft vs right (A/V combined)'
 
-plot_evoked_topo(evokeds, color=colors, title=title)
+plot_evoked_topo(evokeds, color=colors, title=title, background_color='w')
 
 plt.show()

@@ -55,7 +55,7 @@ Code guidelines
 
   .. code-block:: bash
 
-     $ nosetests mne/tests/test_evoked:test_io_evoked -x --verbose
+     $ nosetests mne/tests/test_evoked.py:test_io_evoked -x --verbose
 
   Make sure you have the testing dataset, which you can get by doing::
 

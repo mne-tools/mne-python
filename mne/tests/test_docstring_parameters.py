@@ -1,9 +1,12 @@
 from __future__ import print_function
 
-from nose.tools import assert_true
-import sys
 import inspect
+import os.path as op
+import sys
 import warnings
+
+from nose.tools import assert_true
+from nose.plugins.skip import SkipTest
 
 from pkgutil import walk_packages
 from inspect import getsource
@@ -56,6 +59,7 @@ def get_name(func):
 
 # functions to ignore args / docstring of
 _docstring_ignores = [
+    'mne.io.Info',  # Parameters
     'mne.io.write',  # always ignore these
     'mne.decoding.base.cross_val_multiscore',
 ]
@@ -113,7 +117,7 @@ def test_docstring_parameters():
     # skip modules that require mayavi if mayavi is not installed
     public_modules_ = public_modules[:]
     try:
-        import mayavi  # noqa: F401
+        import mayavi  # noqa: F401 analysis:ignore
         public_modules_.append('mne.gui')
     except ImportError:
         pass
@@ -155,7 +159,7 @@ def test_tabs():
     # avoid importing modules that require mayavi if mayavi is not installed
     ignore = _tab_ignores[:]
     try:
-        import mayavi  # noqa: F401
+        import mayavi  # noqa: F401 analysis:ignore
     except ImportError:
         ignore.extend('mne.gui.' + name for name in
                       ('_coreg_gui', '_fiducials_gui', '_file_traits', '_help',
@@ -178,6 +182,124 @@ def test_tabs():
             assert_true('\t' not in source,
                         '"%s" has tabs, please remove them or add it to the'
                         'ignore list' % modname)
+
+
+documented_ignored_mods = (
+    'mne.cuda',
+    'mne.io.write',
+    'mne.utils',
+    'mne.viz.utils',
+)
+documented_ignored_names = """
+BaseEstimator
+ContainsMixin
+CrossSpectralDensity
+FilterMixin
+GeneralizationAcrossTime
+RawFIF
+TimeDecoding
+TimeMixin
+ToDataFrameMixin
+TransformerMixin
+UpdateChannelsMixin
+adjust_axes
+apply_lcmv
+apply_lcmv_epochs
+apply_lcmv_raw
+apply_maxfilter
+apply_trans
+channel_type
+check_n_jobs
+combine_kit_markers
+combine_tfr
+combine_transforms
+design_mne_c_filter
+detrend
+dir_tree_find
+fast_cross_3d
+fiff_open
+find_outliers
+find_source_space_hemi
+find_tag
+get_score_funcs
+get_sosfiltfilt
+get_version
+invert_transform
+is_power2
+iter_topography
+kit2fiff
+label_src_vertno_sel
+make_eeg_average_ref_proj
+make_lcmv
+make_projector
+mesh_dist
+mesh_edges
+minimum_phase
+next_fast_len
+parallel_func
+pick_channels_evoked
+plot_epochs_psd
+plot_epochs_psd_topomap
+plot_raw_psd_topo
+plot_source_spectrogram
+prepare_inverse_operator
+read_fiducials
+read_tag
+rescale
+simulate_noise_evoked
+source_estimate_quantification
+whiten_evoked
+write_fiducials
+write_info
+""".split('\n')
+
+
+def test_documented():
+    """Test that public functions and classes are documented."""
+    # skip modules that require mayavi if mayavi is not installed
+    public_modules_ = public_modules[:]
+    try:
+        import mayavi  # noqa: F401, analysis:ignore
+        public_modules_.append('mne.gui')
+    except ImportError:
+        pass
+
+    doc_file = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc',
+                                  'python_reference.rst'))
+    if not op.isfile(doc_file):
+        raise SkipTest('Documentation file not found: %s' % doc_file)
+    known_names = list()
+    with open(doc_file, 'rb') as fid:
+        for line in fid:
+            line = line.decode('utf-8')
+            if not line.startswith('  '):  # at least two spaces
+                continue
+            line = line.split()
+            if len(line) == 1 and line[0] != ':':
+                known_names.append(line[0].split('.')[-1])
+    known_names = set(known_names)
+
+    missing = []
+    for name in public_modules_:
+        with warnings.catch_warnings(record=True):  # traits warnings
+            module = __import__(name, globals())
+        for submod in name.split('.')[1:]:
+            module = getattr(module, submod)
+        classes = inspect.getmembers(module, inspect.isclass)
+        functions = inspect.getmembers(module, inspect.isfunction)
+        checks = list(classes) + list(functions)
+        for name, cf in checks:
+            if not name.startswith('_') and name not in known_names:
+                from_mod = inspect.getmodule(cf).__name__
+                if (from_mod.startswith('mne') and
+                        not from_mod.startswith('mne.externals') and
+                        from_mod not in documented_ignored_mods and
+                        name not in documented_ignored_names):
+                    missing.append('%s (%s.%s)' % (name, from_mod, name))
+    if len(missing) > 0:
+        raise AssertionError('\n\nFound new public members missing from '
+                             'doc/python_reference.rst:\n\n* ' +
+                             '\n* '.join(sorted(set(missing))))
 
 
 run_tests_if_main()

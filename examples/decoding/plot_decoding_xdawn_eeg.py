@@ -3,13 +3,13 @@
  XDAWN Decoding From EEG data
 =============================
 
-ERP decoding with Xdawn. For each event type, a set of spatial Xdawn filters
-are trained and applied on the signal. Channels are concatenated and rescaled
-to create features vectors that will be fed into a Logistic Regression.
+ERP decoding with Xdawn ([1]_, [2]_). For each event type, a set of
+spatial Xdawn filters are trained and applied on the signal. Channels are
+concatenated and rescaled to create features vectors that will be fed into
+a logistic regression.
 
 References
 ----------
-
 .. [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
        algorithm to enhance evoked potentials: application to brain-computer
        interface. Biomedical Engineering, IEEE Transactions on, 56(8),

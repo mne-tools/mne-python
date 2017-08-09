@@ -3,16 +3,18 @@
 
 The :class:`Evoked <mne.Evoked>` data structure: evoked/averaged data
 =====================================================================
+
+The :class:`Evoked <mne.Evoked>` data structure is mainly used for storing
+averaged data over trials. In MNE the evoked objects are usually created by
+averaging epochs data with :func:`mne.Epochs.average`.
 """
+
 import os.path as op
 
 import mne
 
 ###############################################################################
-# The :class:`Evoked <mne.Evoked>` data structure is mainly used for storing
-# averaged data over trials. In MNE the evoked objects are created by averaging
-# epochs data with :func:`mne.Epochs.average`. Here we read the evoked dataset
-# from a file.
+# Here for convenience we read the evoked dataset from a file.
 data_path = mne.datasets.sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 evokeds = mne.read_evokeds(fname, baseline=(None, 0), proj=True)

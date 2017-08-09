@@ -21,7 +21,7 @@ from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
-                    DraggableColorbar, _set_ax_facecolor)
+                    DraggableColorbar, _set_ax_facecolor, _setup_ax_spines)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -200,7 +200,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
                   vmax=vmax, ylim=ylim_)
 
     if title is not None:
-        plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
+        plt.figtext(0.03, 0.95, title, color=font_color, fontsize=15, va='top')
 
     return fig
 
@@ -356,7 +356,7 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      times, vline=None, x_label=None, y_label=None,
-                     colorbar=False, hline=None):
+                     colorbar=False, hline=None, hvline_color='w'):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
     picker_flag = False
@@ -367,26 +367,40 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
             picker_flag = True
         else:
             ax.plot(times, data_[ch_idx], color=color_)
-    if vline:
-        for x in vline:
-            plt.axvline(x, color='w', linewidth=0.5)
-    if hline:
-        for y in hline:
-            plt.axhline(y, color='w', linewidth=0.5)
+
     if x_label is not None:
         plt.xlabel(x_label)
+
     if y_label is not None:
         if isinstance(y_label, list):
-            plt.ylabel(y_label[ch_idx])
+            ax.set_ylabel(y_label[ch_idx])
         else:
-            plt.ylabel(y_label)
+            ax.set_ylabel(y_label)
+
+    _setup_ax_spines(ax, vline, tmin, tmax)
+    ax.figure.set_facecolor('k' if hvline_color is 'w' else 'w')
+    ax.spines['bottom'].set_color(hvline_color)
+    ax.spines['left'].set_color(hvline_color)
+    ax.tick_params(axis='x', colors=hvline_color, which='both')
+    ax.tick_params(axis='y', colors=hvline_color, which='both')
+    ax.title.set_color(hvline_color)
+    ax.xaxis.label.set_color(hvline_color)
+    ax.yaxis.label.set_color(hvline_color)
+
+    if vline:
+        plt.axvline(vline, color=hvline_color, linewidth=1.0,
+                    linestyle='--')
+    if hline:
+        plt.axhline(hline, color=hvline_color, linewidth=1.0, zorder=10)
+
     if colorbar:
         plt.colorbar()
 
 
 def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
                              color, times, vline=None, x_label=None,
-                             y_label=None, colorbar=False, hline=None):
+                             y_label=None, colorbar=False, hline=None,
+                             hvline_color='w'):
     """Show multiple time series on topo using a single axes."""
     import matplotlib.pyplot as plt
     if not (ylim and not any(v is None for v in ylim)):
@@ -403,10 +417,12 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
             color=color_, clip_on=True, clip_box=pos)[0])
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
-        ax.vlines(vline, pos[1], pos[1] + pos[3], color='w', linewidth=0.5)
+        ax.vlines(vline, pos[1], pos[1] + pos[3], color=hvline_color,
+                  linewidth=0.5, linestyle='--')
     if hline:
         hline = np.array(hline) * bn.y_s + bn.y_t
-        ax.hlines(hline, pos[0], pos[0] + pos[2], color='w', linewidth=0.5)
+        ax.hlines(hline, pos[0], pos[0] + pos[2], color=hvline_color,
+                  linewidth=0.5)
     if x_label is not None:
         ax.text(pos[0] + pos[2] / 2., pos[1], x_label,
                 horizontalalignment='center', verticalalignment='top')
@@ -630,7 +646,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
         for e in evoked:
             for pick, ch_type in zip(picks, types_used):
-                e.data[pick] = e.data[pick] * scalings[ch_type]
+                e.data[pick] *= scalings[ch_type]
 
         if proj is True and all(e.proj is not True for e in evoked):
             evoked = [e.apply_proj() for e in evoked]
@@ -660,9 +676,10 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     data = [e.data for e in evoked]
     show_func = partial(_plot_timeseries_unified, data=data, color=color,
-                        times=times, vline=vline, hline=hline)
+                        times=times, vline=vline, hline=hline,
+                        hvline_color=font_color)
     click_func = partial(_plot_timeseries, data=data, color=color, times=times,
-                         vline=vline, hline=hline)
+                         vline=vline, hline=hline, hvline_color=font_color)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
                      click_func=click_func, layout=layout, colorbar=False,

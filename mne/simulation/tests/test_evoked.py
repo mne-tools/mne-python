@@ -79,13 +79,15 @@ def test_simulate_evoked():
     assert_array_equal(evoked_1.data, evoked_2.data)
 
     # Test the equivalence snr to nave
-    evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                             snr=6, random_state=42)
+    with warnings.catch_warnings(record=True):  # deprecation
+        evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
+                                 snr=6, random_state=42)
     assert_allclose(np.linalg.norm(evoked.data, ord='fro'),
                     0.00078346820226502716)
 
     cov['names'] = cov.ch_names[:-2]  # Error channels are different.
     assert_raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,
                   cov, nave=nave, iir_filter=None)
+
 
 run_tests_if_main()

@@ -388,6 +388,10 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     -------
     fig : Instance of matplotlib.figure.Figure
         The figure.
+
+    See Also
+    --------
+    mne.viz.plot_alignment
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 

@@ -7,7 +7,7 @@ Sensitivity maps can be produced from forward operators that
 indicate how well different sensor types will be able to detect
 neural currents from different regions of the brain.
 
-To get started with forward modeling see ref:`tut_forward`.
+To get started with forward modeling see :ref:`tut_forward`.
 
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>

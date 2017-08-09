@@ -61,13 +61,15 @@ def run():
         head_high_res = None
 
     with ETSContext():
-        mne.gui.coregistration(options.tabbed, inst=options.inst,
+        mne.gui.coregistration(options.tabbed,
+                               inst=options.inst,
                                subject=options.subject,
                                subjects_dir=options.subjects_dir,
                                guess_mri_subject=options.guess_mri_subject,
                                head_opacity=options.head_opacity,
                                head_high_res=head_high_res,
                                trans=options.trans,
+                               scrollable=True,
                                verbose=options.verbose)
     if is_main:
         sys.exit(0)

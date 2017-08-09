@@ -35,7 +35,8 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel,
                      logger, verbose, _time_mask, warn, SizeMixin,
-                     copy_function_doc_to_method_doc)
+                     copy_function_doc_to_method_doc,
+                     _check_preload)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -151,7 +152,6 @@ class ToDataFrameMixin(object):
                 elif isinstance(self, Evoked):
                     data = self.data[picks, :]
                     times = self.times
-                    n_picks, n_times = data.shape
                 data = data.T
                 col_names = [self.ch_names[k] for k in picks]
 
@@ -167,7 +167,7 @@ class ToDataFrameMixin(object):
 
             for t in ch_types_used:
                 scaling = scalings[t]
-                idx = [picks[i] for i in range(len(picks)) if types[i] == t]
+                idx = [i for i in range(len(picks)) if types[i] == t]
                 if len(idx) > 0:
                     data[:, idx] *= scaling
         else:
@@ -1726,12 +1726,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False):
+             butterfly=False, decim='auto'):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp, proj,
-                        group_by, butterfly)
+                        group_by, butterfly, decim)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
@@ -1740,13 +1740,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  color='black', area_mode='std', area_alpha=0.33,
                  n_overlap=0, dB=True, average=None, show=True,
                  n_jobs=1, line_alpha=None, spatial_colors=None,
-                 xscale='linear', verbose=None):
+                 xscale='linear', reject_by_annotation=True, verbose=None):
         return plot_raw_psd(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
             n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,
             area_alpha=area_alpha, n_overlap=n_overlap, dB=dB, average=average,
             show=show, n_jobs=n_jobs, line_alpha=line_alpha,
-            spatial_colors=spatial_colors, xscale=xscale)
+            spatial_colors=spatial_colors, xscale=xscale,
+            reject_by_annotation=reject_by_annotation)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
@@ -2075,14 +2076,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if buffer_size_sec is None:
             buffer_size_sec = self.info.get('buffer_size_sec', 1.)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
-
-
-def _check_preload(raw, msg):
-    """Ensure data are preloaded."""
-    if not raw.preload:
-        raise RuntimeError(msg + ' requires raw data to be loaded. Use '
-                           'preload=True (or string) in the constructor or '
-                           'raw.load_data().')
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):

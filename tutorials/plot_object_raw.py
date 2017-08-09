@@ -4,44 +4,41 @@
 
 The :class:`Raw <mne.io.Raw>` data structure: continuous data
 =============================================================
-"""
 
-from __future__ import print_function
+Continuous data is stored in objects of type :class:`Raw <mne.io.Raw>`.
+The core data structure is simply a 2D numpy array (channels × samples)
+(in memory or loaded on demand) combined with an
+:class:`Info <mne.Info>` object (`.info` attribute)
+(see :ref:`tut_info_objects`).
+
+The most common way to load continuous data is from a .fif file. For more
+information on :ref:`loading data from other formats <ch_convert>`, or
+creating it :ref:`from scratch <tut_creating_data_structures>`.
+"""
 
 import mne
 import os.path as op
 from matplotlib import pyplot as plt
 
 ###############################################################################
-# Continuous data is stored in objects of type :class:`Raw <mne.io.Raw>`.
-# The core data structure is simply a 2D numpy array (channels × samples,
-# stored in a private attribute called `._data`) combined with an
-# :class:`Info <mne.Info>` object (`.info` attribute)
-# (see :ref:`tut_info_objects`).
-#
-# The most common way to load continuous data is from a .fif file. For more
-# information on :ref:`loading data from other formats <ch_convert>`, or
-# creating it :ref:`from scratch <tut_creating_data_structures>`.
-
-
-###############################################################################
 # Loading continuous data
 # -----------------------
+#
+# Load an example dataset, the preload flag loads the data into memory now:
 
-# Load an example dataset, the preload flag loads the data into memory now
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG',
                     'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(data_path, preload=True)
-raw.set_eeg_reference()  # set EEG average reference
+raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 
 # Give the sample rate
 print('sample rate:', raw.info['sfreq'], 'Hz')
 # Give the size of the data matrix
-print('channels x samples:', raw._data.shape)
+print('%s channels x %s samples' % (len(raw), len(raw.times)))
 
 ###############################################################################
-# .. note:: Accessing the `._data` attribute is done here for educational
-#           purposes. However this is a private attribute as its name starts
+# .. note:: This size can also be obtained by examining `raw._data.shape`.
+#           However this is a private attribute as its name starts
 #           with an `_`. This suggests that you should **not** access this
 #           variable directly but rely on indexing syntax detailed just below.
 
@@ -89,7 +86,10 @@ grad_only = raw.copy().pick_types(meg='grad')
 # Or you can use custom channel names
 pick_chans = ['MEG 0112', 'MEG 0111', 'MEG 0122', 'MEG 0123']
 specific_chans = raw.copy().pick_channels(pick_chans)
-print(meg_only, eeg_only, grad_only, specific_chans, sep='\n')
+print(meg_only)
+print(eeg_only)
+print(grad_only)
+print(specific_chans)
 
 ###############################################################################
 # Notice the different scalings of these types
