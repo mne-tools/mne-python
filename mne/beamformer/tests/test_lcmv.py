@@ -350,7 +350,7 @@ def test_tf_lcmv():
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                         baseline=None, preload=False,
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
-    epochs.drop_bad()
+    epochs.load_data()
 
     freq_bins = [(4, 12), (15, 40)]
     time_windows = [(-0.1, 0.1), (0.0, 0.2)]
@@ -390,9 +390,10 @@ def test_tf_lcmv():
                         reg=reg, label=label, weight_norm='unit-noise-gain')
                 source_power.append(stc_source_power.data)
 
-    with warnings.catch_warnings(record=True):
-        stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep,
-                       win_lengths, freq_bins, reg=reg, label=label)
+    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+                  tstep, win_lengths, freq_bins, reg=reg, label=label)
+    stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep,
+                   win_lengths, freq_bins, reg=reg, label=label, raw=raw)
 
     assert_true(len(stcs) == len(freq_bins))
     assert_true(stcs[0].shape[1] == 4)
@@ -448,7 +449,7 @@ def test_tf_lcmv():
         # responses yields zeros
         stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep,
                        win_lengths, freq_bins, subtract_evoked=True, reg=reg,
-                       label=label)
+                       label=label, raw=raw)
 
     assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))
 

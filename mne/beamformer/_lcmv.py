@@ -945,7 +945,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.05, label=None,
             pick_ori=None, n_jobs=1, picks=None, rank=None,
-            weight_norm='unit-noise-gain', verbose=None):
+            weight_norm='unit-noise-gain', raw=None, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -1003,6 +1003,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     weight_norm: 'unit-noise-gain'| None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_.
+    raw : instance of Raw | None
+        The raw instance used to construct the epochs.
+        Must be provided unless epochs are constructed with
+        ``preload=False``.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1036,11 +1040,12 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                          'window lengths')
 
     # Extract raw object from the epochs object
-    raw = epochs._raw
+    raw = epochs._raw if raw is None else raw
     if raw is None:
         raise ValueError('The provided epochs object does not contain the '
                          'underlying raw object. Please use preload=False '
-                         'when constructing the epochs object.')
+                         'when constructing the epochs object or pass the '
+                         'underlying raw instance to this function')
 
     if noise_covs is None:
         picks = _setup_picks(picks, epochs.info, forward)

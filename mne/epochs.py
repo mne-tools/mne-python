@@ -394,6 +394,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._decim = 1
         self._raw_times = self.times
         assert self._data.shape[-1] == len(self.times)
+        self._raw = None  # shouldn't need it anymore
         return self
 
     @verbose
