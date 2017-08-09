@@ -1002,7 +1002,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         List type defined by out_type above.
     cluster_pv : array
         P-value for each cluster
-    H0 : array of shape [n_permutations]
+    H0 : maximum array of shape [n_permutations], If no clusters are found in some of the permutations, it can be smaller.
         Max cluster level stats observed under permutation.
 
     Notes
@@ -1138,7 +1138,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         List type defined by out_type above.
     cluster_pv : array
         P-value for each cluster
-    H0 : array of shape [n_permutations]
+    H0 : maximum array of shape [n_permutations], If no clusters are found in some of the permutations, it can be smaller.
         Max cluster level stats observed under permutation.
 
     Notes
@@ -1271,7 +1271,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         List type defined by out_type above.
     cluster_pv: array
         P-value for each cluster
-    H0 : array of shape [n_permutations]
+    H0 : maximum array of shape [n_permutations], If no clusters are found in some of the permutations, it can be smaller.
         Max cluster level stats observed under permutation.
 
     Notes
@@ -1395,7 +1395,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
         List type defined by out_type above.
     cluster_pv: array
         P-value for each cluster
-    H0 : array of shape [n_permutations]
+    H0 : maximum array of shape [n_permutations], If no clusters are found in some of the permutations, it can be smaller.
         Max cluster level stats observed under permutation.
 
     Notes
