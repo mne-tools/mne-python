@@ -203,9 +203,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     Notes
     -----
-    The `BaseEpochs` class is public to allow for stable type-checking in user
-    code (i.e., ``isinstance(my_epochs, BaseEpochs)``) but should not be used
-    as a constructor for Epochs objects (use instead `mne.Epochs`).
+    The ``BaseEpochs`` class is public to allow for stable type-checking in
+    user code (i.e., ``isinstance(my_epochs, BaseEpochs)``) but should not be
+    used as a constructor for Epochs objects (use instead :class:`mne.Epochs`).
     """
 
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
