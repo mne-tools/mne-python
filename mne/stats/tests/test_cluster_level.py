@@ -1,3 +1,8 @@
+# Authors: Eric Larson <larson.eric.d@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#
+# License: BSD (3-clause)
+
 from functools import partial
 import os
 import warnings
@@ -85,7 +90,7 @@ def test_permutation_step_down_p():
         try:
             from sklearn.feature_extraction.image import grid_to_graph
         except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa: F401,E501
+            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa: F401,E501 analysis:ignore
     except ImportError:
         return
     rng = np.random.RandomState(0)
@@ -472,6 +477,31 @@ def test_summarize_clusters():
     assert_true(stc_sum.data.shape[1] == 2)
     clu[2][0] = 0.3
     assert_raises(RuntimeError, summarize_clusters_stc, clu)
+
+
+def test_permutation_test_H0():
+    """Test that H0 is populated properly during testing."""
+    rng = np.random.RandomState(0)
+    data = rng.rand(20, 10, 1) - 0.5
+    with warnings.catch_warnings(record=True) as w:
+        t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
+            data, threshold=100, n_permutations=1024, seed=rng)
+    assert_equal(len(w), 1)
+    assert_true('No clusters found' in str(w[0].message))
+    assert_equal(len(h0), 0)
+
+    with warnings.catch_warnings(record=True) as w:
+        t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
+            data, threshold=0.1, n_permutations=1024, seed=rng)
+    assert_equal(len(w), 0)
+    assert_equal(len(h0), 1024)
+    for tail, thresh in zip((-1, 0, 1), (-0.1, 0.1, 0.1)):
+        with warnings.catch_warnings(record=True) as w:
+            t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
+                data[:7], threshold=thresh, n_permutations=1024, seed=rng,
+                tail=tail)
+        assert_equal(len(w), 0)
+        assert_equal(len(h0), 2 ** (7 - (tail == 0)) - 1)  # exact test
 
 
 run_tests_if_main()

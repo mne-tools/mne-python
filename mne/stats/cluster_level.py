@@ -16,7 +16,8 @@ from scipy import sparse
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import split_list, logger, verbose, ProgressBar, warn, _pl
+from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
+                     check_random_state)
 from ..source_estimate import SourceEstimate
 
 
@@ -514,7 +515,7 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
 
 
 def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
-                     max_step, include, partitions, t_power, seeds,
+                     max_step, include, partitions, t_power, orders,
                      sample_shape, buffer_size, progress_bar):
     n_samp, n_vars = X_full.shape
 
@@ -522,23 +523,21 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         buffer_size = None  # don't use buffer for few variables
 
     # allocate space for output
-    max_cluster_sums = np.empty(len(seeds), dtype=np.double)
+    max_cluster_sums = np.empty(len(orders), dtype=np.double)
 
     if buffer_size is not None:
         # allocate buffer, so we don't need to allocate memory during loop
         X_buffer = [np.empty((len(X_full[s]), buffer_size), dtype=X_full.dtype)
                     for s in slices]
 
-    for seed_idx, seed in enumerate(seeds):
+    for seed_idx, order in enumerate(orders):
         if progress_bar is not None:
             if (not (seed_idx + 1) % 32) or (seed_idx == 0):
                 progress_bar.update(seed_idx + 1)
 
         # shuffle sample indices
-        rng = np.random.RandomState(seed)
-        idx_shuffled = np.arange(n_samp)
-        rng.shuffle(idx_shuffled)
-        idx_shuffle_list = [idx_shuffled[s] for s in slices]
+        assert order is not None
+        idx_shuffle_list = [order[s] for s in slices]
 
         if buffer_size is None:
             # shuffle all data at once
@@ -581,7 +580,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
 
 
 def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
-                           max_step, include, partitions, t_power, seeds,
+                           max_step, include, partitions, t_power, orders,
                            sample_shape, buffer_size, progress_bar):
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
@@ -590,29 +589,24 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         buffer_size = None  # don't use buffer for few variables
 
     # allocate space for output
-    max_cluster_sums = np.empty(len(seeds), dtype=np.double)
+    max_cluster_sums = np.empty(len(orders), dtype=np.double)
 
     if buffer_size is not None:
         # allocate a buffer so we don't need to allocate memory in loop
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
-    for seed_idx, seed in enumerate(seeds):
+    for seed_idx, order in enumerate(orders):
         if progress_bar is not None:
             if not (seed_idx + 1) % 32 or seed_idx == 0:
                 progress_bar.update(seed_idx + 1)
 
-        if isinstance(seed, np.ndarray):
-            # new surrogate data with specified sign flip
-            if not seed.size == n_samp:
-                raise ValueError('rng string must be n_samples long')
-            signs = 2 * seed[:, None].astype(int) - 1
-            if not np.all(np.equal(np.abs(signs), 1)):
-                raise ValueError('signs from rng must be +/- 1')
-        else:
-            rng = np.random.RandomState(seed)
-            # new surrogate data with random sign flip
-            signs = np.sign(0.5 - rng.rand(n_samp))
-            signs = signs[:, np.newaxis]
+        assert isinstance(order, np.ndarray)
+        # new surrogate data with specified sign flip
+        if not order.size == n_samp:
+            raise ValueError('rng string must be n_samples long')
+        signs = 2 * order[:, None].astype(int) - 1
+        if not np.all(np.equal(np.abs(signs), 1)):
+            raise ValueError('signs from rng must be +/- 1')
 
         if buffer_size is None:
             # be careful about non-writable memmap (GH#1507)
@@ -755,10 +749,25 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     # The stat should have the same shape as the samples
     T_obs.shape = sample_shape
 
-    if len(X) == 1:  # 1 sample test
+    # convert our seed to orders
+    extra = ''
+    rng = check_random_state(seed)
+    del seed
+    if len(X) == 1:  # 1-sample test
         do_perm_func = _do_1samp_permutations
         X_full = X[0]
         slices = None
+        # determine ordering
+        max_perms = 2 ** (n_samples - (tail == 0)) - 1
+        if max_perms <= n_permutations:
+            # omit first perm b/c accounted for in _pval_from_histogram,
+            # convert to binary array representation
+            orders = np.arange(max_perms)
+            extra = ' (exact test)'
+        else:
+            orders = rng.choice(max_perms, n_permutations)
+        orders = [np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int)
+                  for s in orders]
     else:
         do_perm_func = _do_permutations
         X_full = np.concatenate(X, axis=0)
@@ -766,7 +775,13 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
         slices = [slice(splits_idx[k], splits_idx[k + 1])
                   for k in range(len(X))]
+        orders = [rng.permutation(len(X_full)) for _ in range(n_permutations)]
+    del rng
     parallel, my_do_perm_func, _ = parallel_func(do_perm_func, n_jobs)
+
+    if len(clusters) == 0:
+        warn('No clusters found, returning empty H0, clusters, and cluster_pv')
+        return T_obs, np.array([]), np.array([]), np.array([])
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
@@ -776,71 +791,54 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         return (ProgressBar(len(seeds), spinner=True) if
                 logger.level <= logging.INFO else None)
 
-    if len(clusters) > 0:
-        # check to see if we can do an exact test
-        # note for a two-tailed test, we can exploit symmetry to just do half
-        seeds = None
-        if len(X) == 1:
-            max_perms = 2 ** (n_samples - (tail == 0))
-            if max_perms <= n_permutations:
-                # omit first perm b/c accounted for in _pval_from_histogram,
-                # convert to binary array representation
-                seeds = [np.fromiter(np.binary_repr(s, n_samples), dtype=int)
-                         for s in range(1, max_perms)]
+    # check to see if we can do an exact test
+    # note for a two-tailed test, we can exploit symmetry to just do half
 
-        if seeds is None:
-            if seed is None:
-                seeds = [None] * n_permutations
+    # Step 3: repeat permutations for step-down-in-jumps procedure
+    n_removed = 1  # number of new clusters added
+    total_removed = 0
+    step_down_include = None  # start out including all points
+    n_step_downs = 0
+
+    while n_removed > 0:
+        # actually do the clustering for each partition
+        if include is not None:
+            if step_down_include is not None:
+                this_include = np.logical_and(include, step_down_include)
             else:
-                seeds = list(seed + np.arange(n_permutations))
+                this_include = include
+        else:
+            this_include = step_down_include
+        logger.info('Permuting %d times%s...' % (len(orders), extra))
+        H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
+                      connectivity, stat_fun, max_step, this_include,
+                      partitions, t_power, order, sample_shape, buffer_size,
+                      get_progress_bar(order))
+                      for order in split_list(orders, n_jobs))
+        H0 = np.concatenate(H0)
+        logger.info('Computing cluster p-values')
+        cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
 
-        # Step 3: repeat permutations for step-down-in-jumps procedure
-        n_removed = 1  # number of new clusters added
-        total_removed = 0
-        step_down_include = None  # start out including all points
-        n_step_downs = 0
-
-        while n_removed > 0:
-            # actually do the clustering for each partition
-            if include is not None:
-                if step_down_include is not None:
-                    this_include = np.logical_and(include, step_down_include)
-                else:
-                    this_include = include
-            else:
-                this_include = step_down_include
-            logger.info('Permuting ...')
-            H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
-                          connectivity, stat_fun, max_step, this_include,
-                          partitions, t_power, s, sample_shape, buffer_size,
-                          get_progress_bar(s))
-                          for s in split_list(seeds, n_jobs))
-            H0 = np.concatenate(H0)
-            logger.info('Computing cluster p-values')
-            cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
-
-            # figure out how many new ones will be removed for step-down
-            to_remove = np.where(cluster_pv < step_down_p)[0]
-            n_removed = to_remove.size - total_removed
-            total_removed = to_remove.size
-            step_down_include = np.ones(n_tests, dtype=bool)
-            for ti in to_remove:
-                step_down_include[clusters[ti]] = False
-            if connectivity is None:
-                step_down_include.shape = sample_shape
-            n_step_downs += 1
-            if step_down_p > 0:
-                a_text = 'additional ' if n_step_downs > 1 else ''
-                logger.info('Step-down-in-jumps iteration #%i found %i %s'
-                            'cluster%s to exclude from subsequent iterations'
-                            % (n_step_downs, n_removed, a_text,
-                               _pl(n_removed)))
-        logger.info('Done.')
-        # The clusters should have the same shape as the samples
-        clusters = _reshape_clusters(clusters, sample_shape)
-        return T_obs, clusters, cluster_pv, H0
-    else:
-        return T_obs, np.array([]), np.array([]), np.array([])
+        # figure out how many new ones will be removed for step-down
+        to_remove = np.where(cluster_pv < step_down_p)[0]
+        n_removed = to_remove.size - total_removed
+        total_removed = to_remove.size
+        step_down_include = np.ones(n_tests, dtype=bool)
+        for ti in to_remove:
+            step_down_include[clusters[ti]] = False
+        if connectivity is None:
+            step_down_include.shape = sample_shape
+        n_step_downs += 1
+        if step_down_p > 0:
+            a_text = 'additional ' if n_step_downs > 1 else ''
+            logger.info('Step-down-in-jumps iteration #%i found %i %s'
+                        'cluster%s to exclude from subsequent iterations'
+                        % (n_step_downs, n_removed, a_text,
+                           _pl(n_removed)))
+    logger.info('Done.')
+    # The clusters should have the same shape as the samples
+    clusters = _reshape_clusters(clusters, sample_shape)
+    return T_obs, clusters, cluster_pv, H0
 
 
 def ttest_1samp_no_p(X, sigma=0, method='relative'):
@@ -937,7 +935,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
-    seed : int or None
+    seed : int | instance of RandomState | None
         Seed the random number generator for results reproducibility.
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
@@ -980,23 +978,20 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
 
     Returns
     -------
-    T_obs : array of shape [n_tests]
+    T_obs : array, shape (n_tests,)
         T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
         P-value for each cluster
-    H0 : array of shape [n_permutations]
+    H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
-    Notes
-    -----
-    Reference:
-    Cluster permutation algorithm as described in
-    Maris/Oostenveld (2007),
-    "Nonparametric statistical testing of EEG- and MEG-data"
-    Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
-    doi:10.1016/j.jneumeth.2007.03.024
+    References
+    ----------
+    .. [1] Maris/Oostenveld (2007), "Nonparametric statistical testing of
+       EEG- and MEG-data" Journal of Neuroscience Methods,
+       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024.
     """
     from scipy import stats
     ppf = stats.f.ppf
@@ -1036,7 +1031,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
     estimates etc., calculate if the observed mean significantly deviates
     from 0. The procedure uses a cluster analysis with permutation test
     for calculating corrected p-values. Randomized data are generated with
-    random sign flips.
+    random sign flips. See [1]_ for more information.
 
     Parameters
     ----------
@@ -1050,7 +1045,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         If a dict is used, then threshold-free cluster enhancement (TFCE)
         will be used.
     n_permutations : int
-        The number of permutations to compute.
+        The maximum number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
         If tail is 1, the statistic is thresholded above threshold.
         If tail is -1, the statistic is thresholded below threshold.
@@ -1070,11 +1065,8 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
-    seed : int or None
+    seed : int | instance of RandomState | None
         Seed the random number generator for results reproducibility.
-        Note that if n_permutations >= 2^(n_samples) [or (2^(n_samples-1)) for
-        two-tailed tests], this value will be ignored since an exact test
-        (full permutation test) will be performed.
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1116,23 +1108,30 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
 
     Returns
     -------
-    T_obs : array of shape [n_tests]
+    T_obs : array, shape (n_tests,)
         T-statistic observed for all variables
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
         P-value for each cluster
-    H0 : array of shape [n_permutations]
+    H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
     Notes
     -----
-    Reference:
-    Cluster permutation algorithm as described in
-    Maris/Oostenveld (2007),
-    "Nonparametric statistical testing of EEG- and MEG-data"
-    Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
-    doi:10.1016/j.jneumeth.2007.03.024
+    If ``n_permutations >= 2 ** (n_samples - (tail == 0)) - 1``,
+    ``n_permutations`` and ``seed`` will be ignored since an exact test
+    (full permutation test) will be performed.
+
+    If no initial clusters are found, i.e., all points in the true
+    distribution are below the threshold, then ``clusters``, ``cluster_pv``,
+    and ``H0`` will all be empty arrays.
+
+    References
+    ----------
+    .. [1] Maris/Oostenveld (2007), "Nonparametric statistical testing of
+       EEG- and MEG-data" Journal of Neuroscience Methods,
+       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024.
     """
     from scipy import stats
     ppf = stats.t.ppf
@@ -1173,17 +1172,19 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data.
 
     This function provides a convenient wrapper for data organized in the form
-    (observations x time x space) to use permutation_cluster_1samp_test.
+    (observations x time x space) to use
+    :func:`mne.stats.permutation_cluster_1samp_test`. See [1]_ for more
+    information.
 
     Parameters
     ----------
     X : array
-        Array of shape observations x time x vertices.
+        Array data, shape ``(n_observations, n_times, n_vertices)``.
     threshold : float | dict | None
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
         If a dict is used, then threshold-free cluster enhancement (TFCE)
-        will be used.
+        [2]_ will be used.
     n_permutations : int
         The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
@@ -1205,11 +1206,8 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
-    seed : int or None
+    seed : int | instance of RandomState | None
         Seed the random number generator for results reproducibility.
-        Note that if n_permutations >= 2^(n_samples) [or (2^(n_samples-1)) for
-        two-tailed tests], this value will be ignored since an exact test
-        (full permutation test) will be performed.
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1249,28 +1247,33 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
 
     Returns
     -------
-    T_obs : array of shape [n_tests]
+    T_obs : array, shape (n_times * n_vertices,)
         T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv: array
         P-value for each cluster
-    H0 : array of shape [n_permutations]
+    H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
     Notes
     -----
-    Reference:
-    Cluster permutation algorithm as described in
-    Maris/Oostenveld (2007),
-    "Nonparametric statistical testing of EEG- and MEG-data"
-    Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
-    doi:10.1016/j.jneumeth.2007.03.024
+    If ``n_permutations >= 2 ** (n_samples - (tail == 0)) - 1``,
+    ``n_permutations`` and ``seed`` will be ignored since an exact test
+    (full permutation test) will be performed.
 
-    TFCE originally described in Smith/Nichols (2009),
-    "Threshold-free cluster enhancement: Addressing problems of
-    smoothing, threshold dependence, and localisation in cluster
-    inference", NeuroImage 44 (2009) 83-98.
+    If no initial clusters are found, i.e., all points in the true
+    distribution are below the threshold, then ``clusters``, ``cluster_pv``,
+    and ``H0`` will all be empty arrays.
+
+    References
+    ----------
+    .. [1] Maris/Oostenveld, "Nonparametric statistical testing of
+       EEG- and MEG-data" Journal of Neuroscience Methods,
+       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024
+    .. [2] Smith/Nichols (2009), "Threshold-free cluster enhancement:
+       Addressing problems of smoothing, threshold dependence, and
+       localisation in cluster inference", NeuroImage 44 (2009) 83-98.
     """
     n_samples, n_times, n_vertices = X.shape
 
@@ -1308,12 +1311,14 @@ def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
     """Non-parametric cluster-level test for spatio-temporal data.
 
     This function provides a convenient wrapper for data organized in the form
-    (observations x time x space) to use permutation_cluster_test.
+    (observations x time x space) to use
+    :func:`mne.stats.permutation_cluster_test`. See [1]_ for more information.
 
     Parameters
     ----------
     X: list of arrays
-        Array of shape (observations, time, vertices) in each group.
+        List of data arrays, shape ``(n_observations, n_times, n_vertices)``
+        in each group.
     threshold: float
         The threshold for the statistic.
     n_permutations: int
@@ -1332,7 +1337,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
         and :ref:`Logging documentation <tut_logging>` for more).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
-    seed : int or None
+    seed : int | instance of RandomState | None
         Seed the random number generator for results reproducibility.
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
@@ -1373,23 +1378,20 @@ def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
 
     Returns
     -------
-    T_obs : array of shape [n_tests]
+    T_obs : array, shape (n_times * n_vertices,)
         T-statistic observed for all variables
     clusters : list
         List type defined by out_type above.
     cluster_pv: array
         P-value for each cluster
-    H0 : array of shape [n_permutations]
+    H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
-    Notes
-    -----
-    Reference:
-    Cluster permutation algorithm as described in
-    Maris/Oostenveld (2007),
-    "Nonparametric statistical testing of EEG- and MEG-data"
-    Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
-    doi:10.1016/j.jneumeth.2007.03.024
+    References
+    ----------
+    .. [1] Maris/Oostenveld (2007), "Nonparametric statistical testing of
+       EEG- and MEG-data", Journal of Neuroscience Methods,
+       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024.
     """
     n_samples, n_times, n_vertices = X[0].shape
 
