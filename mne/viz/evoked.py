@@ -277,7 +277,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                       plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
-    for ax in fig.axes[:len(ch_types_used)-1]:
+    for ax in fig.axes[:len(ch_types_used) - 1]:
         ax.set_xlabel('')
     fig.canvas.draw()  # for axes plots update axes.
     if set_tight_layout:
