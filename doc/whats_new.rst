@@ -148,6 +148,8 @@ BUG
 
     - Fix bug in :func:`mne.viz.plot_compare_evokeds` where ``truncate_yaxis`` was ignored (default is now ``False``), by `Jona Sassenhagen`_
 
+    - Fix bug in :func:`mne.viz.plot_evoked` where all xlabels were removed when using `spatial_colors=True`, by `Jesper Duemose Nielsen`_
+    
 API
 ~~~
     - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
