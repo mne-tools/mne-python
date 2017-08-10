@@ -960,7 +960,11 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     Parameters
     ----------
     epochs : Epochs
-        Single trial epochs.
+        Single trial epochs. It is recommended to pass epochs that have
+        been constructed with ``preload=False`` (i.e., not preloaded or
+        read from disk) so that the parameter ``raw=None`` can be used
+        below, as this ensures the correct :class:`mne.io.Raw` instance is
+        used for band-pass filtering.
     forward : dict
         Forward operator.
     noise_covs : list of instances of Covariance | None
