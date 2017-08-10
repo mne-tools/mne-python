@@ -182,6 +182,8 @@ API
 
     - Deprecate ``plot_trans`` in favor of :func:`mne.viz.plot_alignment` and add ``bem`` parameter for plotting conductor model by `Jaakko Leppakangas`_
 
+    - :func:`mne.beamformer.tf_lcmv` now has a ``raw`` parameter to accommodate epochs objects that already have data loaded with ``preload=True``, with :meth:`mne.Epochs.load_data`, or that are read from disk, by `Eric Larson`_
+
 .. _changes_0_14:
 
 Version 0.14
