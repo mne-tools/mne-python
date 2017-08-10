@@ -148,7 +148,7 @@ BUG
 
     - Fix bug in :func:`mne.viz.plot_compare_evokeds` where ``truncate_yaxis`` was ignored (default is now ``False``), by `Jona Sassenhagen`_
 
-    - Fix bux in :func:`mne.viz.evoked._plot_evoked` where all xlabels were removed when using `spatial_colors=True`, by `Jesper Duemose Nielsen`_
+    - Fix bug in :func:`mne.viz.plot_evoked` where all xlabels were removed when using `spatial_colors=True`, by `Jesper Duemose Nielsen`_
     
 API
 ~~~
