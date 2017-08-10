@@ -173,6 +173,31 @@ def test_annotation_filtering():
     assert_allclose(raw[0][0][0], expected_data, atol=1e-14)
 
 
+def test_annotation_omit():
+    """Test raw.get_data with annotations."""
+    data = np.concatenate([np.ones((1, 1000)), 2 * np.ones((1, 1000))], -1)
+    info = create_info(1, 1000., 'eeg')
+    raw = RawArray(data, info)
+    raw.annotations = Annotations([0.5], [1], ['bad'])
+    expected = raw[0][0]
+    assert_allclose(raw.get_data(reject_by_annotation=None), expected)
+    # nan
+    expected[0, 500:1500] = np.nan
+    assert_allclose(raw.get_data(reject_by_annotation='nan'), expected)
+    got = np.concatenate([raw.get_data(start=start, stop=stop,
+                                       reject_by_annotation='nan')
+                          for start, stop in ((0, 1000), (1000, 2000))], -1)
+    assert_allclose(got, expected)
+    # omit
+    expected = expected[:, np.isfinite(expected[0])]
+    assert_allclose(raw.get_data(reject_by_annotation='omit'), expected)
+    got = np.concatenate([raw.get_data(start=start, stop=stop,
+                                       reject_by_annotation='omit')
+                          for start, stop in ((0, 1000), (1000, 2000))], -1)
+    assert_allclose(got, expected)
+    assert_raises(ValueError, raw.get_data, reject_by_annotation='foo')
+
+
 def test_annotation_epoching():
     """Test that annotations work properly with concatenated edges."""
     # Create data with just a DC component

@@ -28,6 +28,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, write_name_list, _get_split_size)
 
+from ..annotations import _annotations_starts_stops
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels)
 from ..parallel import parallel_func
@@ -737,7 +738,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Exit with block."""
         try:
             self.close()
-        except:
+        except Exception:
             return exception_type, exception_val, trace
 
     def _parse_get_set_params(self, item):
@@ -879,36 +880,23 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if picks is None:
             picks = np.arange(self.info['nchan'])
         start = 0 if start is None else start
-        stop = self.n_times if stop is None else stop
+        stop = min(self.n_times if stop is None else stop, self.n_times)
         if self.annotations is None or reject_by_annotation is None:
             data, times = self[picks, start:stop]
-            if return_times:
-                return data, times
-            return data
+            return (data, times) if return_times else data
         if reject_by_annotation.lower() not in ['omit', 'nan']:
             raise ValueError("reject_by_annotation must be None, 'omit' or "
                              "'NaN'. Got %s." % reject_by_annotation)
-        sfreq = self.info['sfreq']
-        bads = [idx for idx, desc in enumerate(self.annotations.description)
-                if desc.upper().startswith('BAD')]
-        onsets = self.annotations.onset[bads]
-        onsets = _sync_onset(self, onsets)
-        ends = onsets + self.annotations.duration[bads]
-        omit = np.concatenate([np.where(onsets > stop / sfreq)[0],
-                               np.where(ends < start / sfreq)[0]])
-        onsets, ends = np.delete(onsets, omit), np.delete(ends, omit)
+        onsets, ends = _annotations_starts_stops(self, ['BAD'])
+        keep = (onsets < stop) & (ends > start)
+        onsets = np.maximum(onsets[keep], start)
+        ends = np.minimum(ends[keep], stop)
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
             if return_times:
                 return data, times
             return data
-        stop = min(stop, self.n_times)
-        order = np.argsort(onsets)
-        onsets = self.time_as_index(onsets[order])
-        ends = self.time_as_index(ends[order])
 
-        np.clip(onsets, start, stop, onsets)
-        np.clip(ends, start, stop, ends)
         used = np.ones(stop - start, bool)
         for onset, end in zip(onsets, ends):
             if onset >= end:
@@ -1255,35 +1243,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                             'lowpass values in the measurement info will not '
                             'be updated.')
         # Deal with annotations
-        annot = self.annotations
         if skip_by_annotation is None:
-            if annot is not None and any(desc.upper().startswith('EDGE')
-                                         for desc in annot.description):
+            if self.annotations is not None and any(
+                    desc.upper().startswith('EDGE')
+                    for desc in self.annotations.description):
                 warn('skip_by_annotation defaults to [] in 0.15 but will '
                      'change to "edge" in 0.16, set it explicitly to avoid '
                      'this warning', DeprecationWarning)
             skip_by_annotation = []
-        if not isinstance(skip_by_annotation, (string_types, list, tuple)):
-            raise TypeError('skip_by_annotation must be str, list, or tuple, '
-                            'got %s' % (type(skip_by_annotation)))
-        elif isinstance(skip_by_annotation, string_types):
-            skip_by_annotation = [skip_by_annotation]
-        elif not all(isinstance(skip, string_types)
-                     for skip in skip_by_annotation):
-            raise TypeError('All entries in skip_by_annotation must be str')
-        if annot is not None:
-            skips = [idx for idx, desc in enumerate(annot.description)
-                     if any(desc.upper().startswith(skip.upper())
-                            for skip in skip_by_annotation)]
-            onsets = annot.onset[skips]
-            onsets = _sync_onset(self, onsets)
-            ends = onsets + self.annotations.duration[skips]
-            del skips
-        else:
-            onsets = ends = np.array([], float)
-        order = np.argsort(onsets)
-        onsets = self.time_as_index(onsets[order])
-        ends = self.time_as_index(ends[order])
+        onsets, ends = _annotations_starts_stops(self, skip_by_annotation,
+                                                 'skip_by_annotation')
         if len(onsets) == 0 or onsets[0] != 0:
             onsets = np.concatenate([[0], onsets])
             ends = np.concatenate([[0], ends])
@@ -1509,7 +1478,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if events is None:
             try:
                 original_events = find_events(self)
-            except:
+            except Exception:
                 pass
 
         sfreq = float(sfreq)
@@ -1562,7 +1531,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          'information to become unreliable. Consider finding '
                          'events on the original data and passing the event '
                          'matrix as a parameter.')
-            except:
+            except Exception:
                 pass
 
             return self
