@@ -24,6 +24,16 @@ from ..externals import six
 from ..channels.channels import _contains_ch_type
 
 
+def _deprecate_picks(data_obj, picks):
+    if picks is not None:
+        warn('Specifying picks is deprecated and will be removed in 0.16. '
+             'Specifying the selection of channels in info and setting picks '
+             'to None will remove this warning.',
+             DeprecationWarning)
+
+        data_obj.info = pick_info(data_obj.info, picks)
+
+
 def _reg_pinv(x, reg):
     """Compute a regularized pseudoinverse of a square array."""
     if reg == 0:
@@ -48,6 +58,17 @@ def _setup_picks(info, forward, data_cov=None, noise_cov=None):
                 if c['ch_name'] not in info['bads'] and
                 c['ch_name'] in fwd_ch_names]
 
+    # inform about excluding channels:
+    if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
+            (set(ch_names) & set(data_cov['bads']))):
+        logger.info('info["bads"] and data_cov["bads"] do not match, '
+                    'excluding bad channels from both.')
+    if (noise_cov is not None and
+            set(info['bads']) != set(noise_cov['bads']) and
+            (set(ch_names) & set(noise_cov['bads']))):
+        logger.info('info["bads"] and noise_cov["bads"] do not match, '
+                    'excluding bad channels from both.')
+
     # handle channels from data cov if data cov is not None
     # Note: data cov is supposed to be None in tf_lcmv
     if data_cov is not None:
@@ -60,14 +81,6 @@ def _setup_picks(info, forward, data_cov=None, noise_cov=None):
         ch_names = [c for c in ch_names
                     if c not in noise_cov['bads'] and
                     c in noise_cov.ch_names]
-
-    # inform about excluding channels:
-    if data_cov is not None and set(info['bads']) != set(data_cov['bads']):
-        logger.info('info["bads"] and data_cov["bads"] do not match, '
-                    'excluding bad channels from both.')
-    if noise_cov is not None and set(info['bads']) != set(noise_cov['bads']):
-        logger.info('info["bads"] and noise_cov["bads"] do not match, '
-                    'excluding bad channels from both.')
 
     picks = [info['ch_names'].index(k) for k in ch_names if k in
              info['ch_names']]
@@ -663,13 +676,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    if picks is not None:
-        warn('Specifying picks is deprecated and will be removed in 0.16. '
-             'Specifying the selection of channels in info and setting picks '
-             'to None will remove this warning.',
-             DeprecationWarning)
-
-        evoked.info = pick_info(evoked.info, picks)
+    _deprecate_picks(evoked, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
@@ -765,13 +772,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    if picks is not None:
-        warn('Specifying picks is deprecated and will be removed in 0.16. '
-             'Specifying the selection of channels in info and setting picks '
-             'to None will remove this warning.',
-             DeprecationWarning)
-
-        epochs.info = pick_info(epochs.info, picks)
+    _deprecate_picks(epochs, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
@@ -871,13 +872,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    if picks is not None:
-        warn('Specifying picks is deprecated and will be removed in 0.16. '
-             'Specifying the selection of channels in info and setting picks '
-             'to None will remove this warning.',
-             DeprecationWarning)
-
-        raw.info = pick_info(raw.info, picks)
+    _deprecate_picks(raw, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
@@ -1066,13 +1061,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    if picks is not None:
-        warn('Specifying picks is deprecated and will be removed in 0.16. '
-             'Specifying the selection of channels in info and setting picks '
-             'to None will remove this warning.',
-             DeprecationWarning)
-
-        epochs.info = pick_info(epochs.info, picks)
+    _deprecate_picks(epochs, picks)
 
     _check_reference(epochs)
 
