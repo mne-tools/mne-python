@@ -8,11 +8,11 @@
 import numpy as np
 from scipy import linalg
 
-from ..io.pick import pick_channels_evoked, pick_info
+from ..io.pick import pick_channels_evoked
 from ..cov import compute_whitener
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose
 from ..dipole import Dipole
-from ._lcmv import _prepare_beamformer_input, _setup_picks
+from ._lcmv import _prepare_beamformer_input, _setup_picks, _deprecate_picks
 
 
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
@@ -245,17 +245,11 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
 
     .. versionadded:: 0.9.0
     """
+    _deprecate_picks(evoked, picks)
+
     info = evoked.info
     data = evoked.data
     times = evoked.times
-
-    if picks is not None:
-        warn('Specifying picks is deprecated and will be removed in 0.16. '
-             'Specifying the selection of channels in info and setting picks '
-             'to None will remove this warning.',
-             DeprecationWarning)
-
-        info = pick_info(info, picks)
 
     picks = _setup_picks(info, forward, data_cov=None, noise_cov=noise_cov)
 
