@@ -39,21 +39,6 @@ matrix:
 
         # Py3k + non-default stim channel first half
         - os: linux
-          env: PYTHON_VERSION=3.5 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest"
-               PIP_DEPENDENCIES="nitime joblib nibabel codecov nose-timer pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # Py3k + non-default stim channel second half
-        - os: linux
-          env: PYTHON_VERSION=3.5 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest"
-               PIP_DEPENDENCIES="nitime joblib nibabel codecov nose-timer pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
-        # Py3k + non-default stim channel first half
-        - os: linux
           env: PYTHON_VERSION=3.6 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
                CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest"
                PIP_DEPENDENCIES="nitime joblib nibabel codecov nose-timer pytest-sugar pytest-cov pytest-attrib"
