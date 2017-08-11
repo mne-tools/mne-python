@@ -223,6 +223,16 @@ def test_render_mri_without_bem():
 
 
 @testing.requires_testing_data
+@requires_mayavi
+def test_render_sensitivity_map():
+    """Test rendering sensitivity maps."""
+    report = Report(subjects_dir=subjects_dir)
+    pattern=['*sample_audvis-meg-eeg-oct-6-fwd.fif']
+    report.parse_folder(data_path=data_dir, pattern=pattern)
+    assert_equal(['forward', 'sensitivity'], report.sections)
+
+
+@testing.requires_testing_data
 @requires_nibabel()
 def test_add_htmls_to_section():
     """Test adding html str to mne report."""
