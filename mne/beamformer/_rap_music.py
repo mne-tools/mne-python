@@ -245,11 +245,11 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
 
     .. versionadded:: 0.9.0
     """
-    _deprecate_picks(evoked, picks)
-
     info = evoked.info
     data = evoked.data
     times = evoked.times
+
+    _deprecate_picks(info, picks)
 
     picks = _setup_picks(info, forward, data_cov=None, noise_cov=noise_cov)
 

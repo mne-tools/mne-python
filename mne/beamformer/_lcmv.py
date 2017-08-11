@@ -24,14 +24,14 @@ from ..externals import six
 from ..channels.channels import _contains_ch_type
 
 
-def _deprecate_picks(data_obj, picks):
+def _deprecate_picks(info, picks):
     if picks is not None:
         warn('Specifying picks is deprecated and will be removed in 0.16. '
              'Specifying the selection of channels in info and setting picks '
              'to None will remove this warning.',
              DeprecationWarning)
 
-        data_obj.info = pick_info(data_obj.info, picks)
+        info = pick_info(info, picks)
 
 
 def _reg_pinv(x, reg):
@@ -676,13 +676,14 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    _deprecate_picks(evoked, picks)
+    info = evoked.info
+    _deprecate_picks(info, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    filters = make_lcmv(info=evoked.info, forward=forward, data_cov=data_cov,
+    filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
@@ -772,13 +773,14 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    _deprecate_picks(epochs, picks)
+    info = epochs.info
+    _deprecate_picks(info, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    filters = make_lcmv(info=epochs.info, forward=forward, data_cov=data_cov,
+    filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
@@ -872,13 +874,14 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    _deprecate_picks(raw, picks)
+    info = raw.info
+    _deprecate_picks(info, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    filters = make_lcmv(info=raw.info, forward=forward, data_cov=data_cov,
+    filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
@@ -1061,7 +1064,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    _deprecate_picks(epochs, picks)
+    info = epochs.info
+    _deprecate_picks(info, picks)
 
     _check_reference(epochs)
 
@@ -1086,14 +1090,14 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                          'underlying raw instance to this function')
 
     if noise_covs is None:
-        picks = _setup_picks(epochs.info, forward, data_cov=None)
+        picks = _setup_picks(info, forward, data_cov=None)
     else:
-        picks = _setup_picks(epochs.info, forward, data_cov=None,
+        picks = _setup_picks(info, forward, data_cov=None,
                              noise_cov=noise_covs[0])
     ch_names = [epochs.ch_names[k] for k in picks]
 
     # check number of sensor types present in the data
-    _check_one_ch_type(epochs.info, picks, noise_covs)
+    _check_one_ch_type(info, picks, noise_covs)
 
     # Use picks from epochs for picking channels in the raw object
     raw_picks = [raw.ch_names.index(c) for c in ch_names]
