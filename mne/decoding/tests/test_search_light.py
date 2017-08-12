@@ -41,6 +41,7 @@ def test_search_light():
     assert_equal(sl.__repr__()[-28:], ', fitted with 10 estimators>')
     assert_raises(ValueError, sl.fit, X[1:], y)
     assert_raises(ValueError, sl.fit, X[:, :, 0], y)
+    sl.fit(X, y, sample_weight=np.ones_like(y))
 
     # transforms
     assert_raises(ValueError, sl.predict, X[:, :, :2])
@@ -152,6 +153,7 @@ def test_generalization_light():
     gl = GeneralizingEstimator(LogisticRegression())
     assert_equal(repr(gl)[:23], '<GeneralizingEstimator(')
     gl.fit(X, y)
+    gl.fit(X, y, sample_weight=np.ones_like(y))
 
     assert_equal(gl.__repr__()[-28:], ', fitted with 10 estimators>')
     # transforms
