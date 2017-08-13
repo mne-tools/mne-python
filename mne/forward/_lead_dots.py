@@ -345,7 +345,7 @@ def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
 
 
 def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
-                   lut, n_fact):
+                   lut, n_fact, n_jobs=1):
     """Compute lead field dot product integrations between two coil sets.
 
     The code is a direct translation of MNE-C code found in
@@ -370,6 +370,9 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
         Look-up table for evaluating Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
+    n_jobs : int, optional (default=1)
+        The number of jobs to run in parallel for `_do_cross_dots`.
+        If -1, then the number of jobs is set to the number of cores.
 
     Returns
     -------
@@ -392,11 +395,38 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
     cosmags2 = [coil['cosmag'] for coil in coils2]
 
     products = np.zeros((len(rmags1), len(rmags2)))
-    for ci1 in range(len(coils1)):
+
+    # Prepare n_jobs by splitting array by n_jobs
+    parallel, p_func, n_jobs = parallel_func(_fast_sphere_dot_r0_loop, n_jobs)
+    n_jobs = min(n_jobs, range(len(coils1)))
+    rmags1_splits = np.array_split(rmags1, n_jobs, axis=-1)
+    rlens1_splits = np.array_split(rlens1, n_jobs, axis=-1)
+    cosmags1_splits = np.array_split(cosmags1, n_jobs, axis=-1)
+    ws1_splits = np.array_split(ws1, n_jobs, axis=-1)
+
+    # Run parallel
+    products = parallel(
+        p_func(intrad, rmags1_split, rmags2, rlens1_split, rlens2,
+               cosmags1_split, cosmags2, ws1_split, ws2, volume, lut, n_fact,
+               ch_type)
+        for (rmags1_split, rlens1_split, cosmags1_split, ws1_split) in zip(
+            rmags1_splits,  rlens1_splits,  cosmags1_splits,  ws1_splits))
+
+    # concatenate output
+    products = np.vstack(products)
+    return products
+
+
+def _fast_sphere_dot_r0_loop(intrad, rmags1, rmags2, rlens1, rlens2, cosmags1,
+                             cosmags2, ws1, ws2, volume, lut, n_fact, ch_type):
+    """Aux. of _do_cross_dots to compute _fast_sphere_dot_r0 in parallel"""
+    n_coils = len(rmags1)
+    products = list()
+    for ci1 in range(n_coils):
         res = _fast_sphere_dot_r0(
             intrad, rmags1[ci1], rmags2, rlens1[ci1], rlens2, cosmags1[ci1],
             cosmags2, ws1[ci1], ws2, volume, lut, n_fact, ch_type)
-        products[ci1, :] = res
+        products.append(res)
     return products
 
 

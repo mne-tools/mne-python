@@ -104,7 +104,8 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
+def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04),
+                      n_jobs=1):
     """Find mapping from one set of channels to another.
 
     Parameters
@@ -117,6 +118,9 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
+    n_jobs : int, optional (default=1)
+        The number of jobs to run in parallel for `_do_cross_dots`.
+        If -1, then the number of jobs is set to the number of cores.
 
     Returns
     -------
@@ -142,8 +146,10 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
                               lut_fun, n_fact, n_jobs=1)
     logger.info('    Computing cross products for coils %i x %i coils...'
                 % (len(coils_from), len(coils_to)))
+    print('cross dot')
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
-                                origin, 'meg', lut_fun, n_fact).T
+                                origin, 'meg', lut_fun, n_fact,
+                                n_jobs=n_jobs).T
 
     ch_names = [c['ch_name'] for c in info_from['chs']]
     fmd = dict(kind='meg', ch_names=ch_names,
@@ -153,6 +159,7 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
     #
     # Step 3. Compute the mapping matrix
     #
+    print('mapping')
     mapping = _compute_mapping_matrix(fmd, info_from)
     return mapping
 
