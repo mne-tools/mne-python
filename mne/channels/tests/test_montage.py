@@ -191,6 +191,8 @@ def test_montage():
     FidT9 0 -91 -42
     FidT10 0 91 -42
     """]
+    # sfp files seem to have Nz, T9, and T10 as fiducials:
+    # https://github.com/mne-tools/mne-python/pull/4482#issuecomment-321980611
 
     kinds = ['test_fid.hpts',  'test_fid.sfp']
 
