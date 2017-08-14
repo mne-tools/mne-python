@@ -1192,7 +1192,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             .. versionadded:: 0.15
 
         skip_by_annotation : str | list of str
-            If a string (or list of str), any annotation segments that begin
+            If a string (or list of str), any annotation segment that begins
             with the given string will not be included in filtering, and
             segments on either side of the given excluded annotated segment
             will be filtered separately (i.e., as independent signals).

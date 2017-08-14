@@ -7,6 +7,7 @@ import time
 
 import numpy as np
 
+from .utils import _pl
 from .externals.six import string_types
 
 
@@ -87,11 +88,15 @@ class Annotations(object):
 
     def __repr__(self):
         """Show the representation."""
-        kinds = sorted(set(['"%s"' % d.split(' ')[0]
-                            for d in self.description]))
+        kinds = sorted(set('%s' % d.split(' ')[0].lower()
+                           for d in self.description))
+        kinds = ['%s (%s)' % (kind, sum(d.lower().startswith(kind)
+                                        for d in self.description))
+                 for kind in kinds]
         kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
-        return ('<Annotations  |  %s segments : {%s} types>'
-                % (len(self.onset), kinds))
+        kinds = (': ' if len(kinds) > 0 else '') + kinds
+        return ('<Annotations  |  %s segment%s %s >'
+                % (len(self.onset), _pl(len(self.onset)), kinds))
 
     def __len__(self):
         """Return the number of annotations."""
