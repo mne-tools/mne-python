@@ -203,9 +203,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     Notes
     -----
-    The `BaseEpochs` class is public to allow for stable type-checking in user
-    code (i.e., ``isinstance(my_epochs, BaseEpochs)``) but should not be used
-    as a constructor for Epochs objects (use instead `mne.Epochs`).
+    The ``BaseEpochs`` class is public to allow for stable type-checking in
+    user code (i.e., ``isinstance(my_epochs, BaseEpochs)``) but should not be
+    used as a constructor for Epochs objects (use instead :class:`mne.Epochs`).
     """
 
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
@@ -394,6 +394,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._decim = 1
         self._raw_times = self.times
         assert self._data.shape[-1] == len(self.times)
+        self._raw = None  # shouldn't need it anymore
         return self
 
     @verbose
