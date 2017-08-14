@@ -1,8 +1,5 @@
 {% extends "!layout.html" %}
 
-{# Custom CSS overrides #}
-{% set bootswatch_css_custom = ['_static/style.css'] %}
-
 {% block extrahead %}
 
 <link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,700italic,400,700' rel='stylesheet' type='text/css'>
@@ -20,6 +17,9 @@
     })();
     </script>
 {% endif %}
+
+    <link rel="stylesheet" href="{{ pathto('_static/style.css', 1) }} " type="text/css" />
+
 
 {% if (use_twitter|tobool) or (use_media_buttons|tobool) %}
     <script type="text/javascript">
@@ -55,3 +55,24 @@ This documentation is for the <strong>development version ({{ release }})</stron
 {# put the sidebar before the body #}
 {% block sidebar1 %}{{ sidebar() }}{% endblock %}
 {% block sidebar2 %}{% endblock %}
+
+{%- block footer %}
+<footer class="footer">
+  <div class="container"><img src="{{ pathto('_static/institutions.png', 1) }}" alt="Institutions"></div>
+  <div class="container">
+    <ul class="list-inline">
+      <li><a href="https://github.com/mne-tools/mne-python">GitHub</a></li>
+      <li>·</li>
+      <li><a href="https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis">Mailing list</a></li>
+      <li>·</li>
+      <li><a href="https://gitter.im/mne-tools/mne-python">Gitter</a></li>
+      <li>·</li>
+      <li><a href="whats_new.html">What's new</a></li>
+      <li>·</li>
+      <li><a href="faq.html#cite">Cite MNE</a></li>
+      <li class="pull-right"><a href="#">Back to top</a></li>
+    </ul>
+    <p>&copy; Copyright {{ copyright }}.</p>
+  </div>
+</footer>
+{%- endblock %}
