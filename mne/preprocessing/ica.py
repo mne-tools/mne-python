@@ -547,7 +547,11 @@ class ICA(ContainsMixin):
         if isinstance(self.n_components, float):
             # compute eplained variance manually, cf. sklearn bug
             # fixed in #2664
-            explained_variance_ratio_ = pca.explained_variance_ / full_var
+            if check_version('sklearn', '0.19'):
+                explained_variance_ratio_ = pca.explained_variance_ratio_
+            else:
+                explained_variance_ratio_ = pca.explained_variance_ / full_var
+            del full_var
             n_components_ = np.sum(explained_variance_ratio_.cumsum() <=
                                    self.n_components)
             if n_components_ < 1:
