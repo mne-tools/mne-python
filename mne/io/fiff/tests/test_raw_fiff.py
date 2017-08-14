@@ -164,36 +164,25 @@ def test_rank_estimation():
         ['norm', dict(mag=1e11, grad=1e9, eeg=1e5)]
     )
     for fname, scalings in iter_tests:
-        raw = read_raw_fif(fname)
+        raw = read_raw_fif(fname).crop(0, 4.).load_data()
         (_, picks_meg), (_, picks_eeg) = _picks_by_type(raw.info,
                                                         meg_combined=True)
         n_meg = len(picks_meg)
         n_eeg = len(picks_eeg)
 
-        raw = read_raw_fif(fname, preload=True)
         if len(raw.info['proc_history']) == 0:
             expected_rank = n_meg + n_eeg
         else:
             mf = raw.info['proc_history'][0]['max_info']
             expected_rank = _get_sss_rank(mf) + n_eeg
         assert_array_equal(raw.estimate_rank(scalings=scalings), expected_rank)
-
         assert_array_equal(raw.estimate_rank(picks=picks_eeg,
-                                             scalings=scalings),
-                           n_eeg)
-
-        raw = read_raw_fif(fname, preload=False)
+                                             scalings=scalings), n_eeg)
         if 'sss' in fname:
-            tstart, tstop = 0., 30.
             raw.add_proj(compute_proj_raw(raw))
-            raw.apply_proj()
-        else:
-            tstart, tstop = 10., 20.
-
         raw.apply_proj()
         n_proj = len(raw.info['projs'])
-
-        assert_array_equal(raw.estimate_rank(tstart=tstart, tstop=tstop,
+        assert_array_equal(raw.estimate_rank(tstart=0, tstop=3.,
                                              scalings=scalings),
                            expected_rank - (1 if 'sss' in fname else n_proj))
 

@@ -469,6 +469,8 @@ def _get_n_epochs(epochs, n):
         if len(epochs_out) >= n:
             yield epochs_out
             epochs_out = list()
+    if 0 < len(epochs_out) < n:
+        yield epochs_out
 
 
 def _check_method(method):

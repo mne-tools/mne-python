@@ -9,7 +9,7 @@ Python API Reference
 This is the reference for classes (``CamelCase`` names) and functions
 (``underscore_case`` names) of MNE-Python, grouped thematically by analysis
 stage. Functions and classes that are not
-below a module heading are found in the :py:mod:`mne` namespace.
+below a module heading are found in the ``mne`` namespace.
 
 MNE-Python also provides multiple command-line scripts that can be called
 directly from a terminal, see :ref:`python_commands`.
@@ -18,6 +18,12 @@ directly from a terminal, see :ref:`python_commands`.
    :local:
    :depth: 2
 
+
+:py:mod:`mne`:
+
+.. automodule:: mne
+   :no-members:
+   :no-inherited-members:
 
 Most-used classes
 =================
@@ -49,6 +55,7 @@ Reading raw data
   :template: function.rst
 
   anonymize_info
+  get_edf_events
   read_events_eeglab
   read_raw_artemis123
   read_raw_bti
@@ -259,7 +266,7 @@ Visualization
    plot_tfr_topomap
    plot_topo_image_epochs
    plot_topomap
-   plot_trans
+   plot_alignment
    snapshot_brain_montage
 
 
@@ -308,11 +315,13 @@ Projections:
 
    fix_mag_coil_types
    read_montage
+   get_builtin_montages
    read_dig_montage
    read_layout
    find_layout
    make_eeg_layout
    make_grid_layout
+   find_ch_connectivity
    read_ch_connectivity
    equalize_channels
    rename_channels
@@ -450,6 +459,10 @@ Events
 
 :py:mod:`mne.event`:
 
+.. automodule:: mne.event
+   :no-members:
+   :no-inherited-members:
+
 .. currentmodule:: mne.event
 
 .. autosummary::
@@ -459,6 +472,10 @@ Events
    define_target_events
 
 :py:mod:`mne.epochs`:
+
+.. automodule:: mne.epochs
+   :no-members:
+   :no-inherited-members:
 
 .. currentmodule:: mne.epochs
 
@@ -664,6 +681,7 @@ Inverse Solutions
    mixed_norm
    tf_mixed_norm
    gamma_map
+   make_stc_from_dipoles
 
 :py:mod:`mne.beamformer`:
 
@@ -680,6 +698,10 @@ Inverse Solutions
    lcmv
    lcmv_epochs
    lcmv_raw
+   make_lcmv
+   apply_lcmv
+   apply_lcmv_epochs
+   apply_lcmv_raw
    dics
    dics_epochs
    dics_source_power
@@ -944,6 +966,7 @@ Decoding
    TimeDelayingRidge
    SlidingEstimator
    GeneralizingEstimator
+   SPoC
 
 Functions that assist with decoding and model fitting:
 

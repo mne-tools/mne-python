@@ -12,6 +12,7 @@ from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
 from mne.utils import (_TempDir, requires_freesurfer, requires_mayavi,
                        run_tests_if_main)
+from mne.channels import read_dig_montage
 
 data_path = testing.data_path(download=False)
 subjects_dir = os.path.join(data_path, 'subjects')
@@ -24,7 +25,7 @@ fid_path = os.path.join(fiff_data_dir, 'fsaverage-fiducials.fif')
 @testing.requires_testing_data
 @requires_mayavi
 def test_bem_source():
-    """Test SurfaceSource"""
+    """Test SurfaceSource."""
     from mne.gui._file_traits import SurfaceSource
 
     bem = SurfaceSource()
@@ -39,7 +40,7 @@ def test_bem_source():
 @testing.requires_testing_data
 @requires_mayavi
 def test_fiducials_source():
-    """Test FiducialsSource"""
+    """Test FiducialsSource."""
     from mne.gui._file_traits import FiducialsSource
 
     fid = FiducialsSource()
@@ -57,8 +58,9 @@ def test_fiducials_source():
 @testing.requires_testing_data
 @requires_mayavi
 def test_inst_source():
-    """Test DigSource"""
+    """Test DigSource."""
     from mne.gui._file_traits import DigSource
+    tempdir = _TempDir()
 
     inst = DigSource()
     assert_equal(inst.inst_fname, '-')
@@ -73,11 +75,19 @@ def test_inst_source():
     assert_allclose(inst.nasion, nasion)
     assert_allclose(inst.rpa, rpa)
 
+    montage = read_dig_montage(fif=inst_path)  # test reading DigMontage
+    montage_path = os.path.join(tempdir, 'temp_montage.fif')
+    montage.save(montage_path)
+    inst.file = montage_path
+    assert_allclose(inst.lpa, lpa)
+    assert_allclose(inst.nasion, nasion)
+    assert_allclose(inst.rpa, rpa)
+
 
 @testing.requires_testing_data
 @requires_mayavi
 def test_subject_source():
-    """Test SubjectSelector"""
+    """Test SubjectSelector."""
     from mne.gui._file_traits import MRISubjectSource
 
     mri = MRISubjectSource()
@@ -90,7 +100,7 @@ def test_subject_source():
 @requires_mayavi
 @requires_freesurfer
 def test_subject_source_with_fsaverage():
-    """Test SubjectSelector"""
+    """Test SubjectSelector."""
     from mne.gui._file_traits import MRISubjectSource
     tempdir = _TempDir()
 

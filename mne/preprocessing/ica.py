@@ -46,8 +46,9 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     _get_fast_dot, compute_corr, _get_inst_data,
-                     copy_function_doc_to_method_doc, _pl)
+                     compute_corr, _get_inst_data, _ensure_int,
+                     copy_function_doc_to_method_doc, _pl, warn)
+
 from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers
@@ -483,7 +484,6 @@ class ICA(ContainsMixin):
 
     def _pre_whiten(self, data, info, picks):
         """Aux function."""
-        fast_dot = _get_fast_dot()
         has_pre_whitener = hasattr(self, '_pre_whitener')
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
@@ -513,12 +513,12 @@ class ICA(ContainsMixin):
         elif not has_pre_whitener and self.noise_cov is not None:
             pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
             assert data.shape[0] == pre_whitener.shape[1]
-            data = fast_dot(pre_whitener, data)
+            data = np.dot(pre_whitener, data)
         elif has_pre_whitener and self.noise_cov is None:
             data /= self._pre_whitener
             pre_whitener = self._pre_whitener
         else:
-            data = fast_dot(self._pre_whitener, data)
+            data = np.dot(self._pre_whitener, data)
             pre_whitener = self._pre_whitener
 
         return data, pre_whitener
@@ -603,14 +603,13 @@ class ICA(ContainsMixin):
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
-        fast_dot = _get_fast_dot()
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
         # Apply first PCA
-        pca_data = fast_dot(self.pca_components_[:self.n_components_], data)
+        pca_data = np.dot(self.pca_components_[:self.n_components_], data)
         # Apply unmixing to low dimension PCA
-        sources = fast_dot(self.unmixing_matrix_, pca_data)
+        sources = np.dot(self.unmixing_matrix_, pca_data)
         return sources
 
     def _transform_raw(self, raw, start, stop, reject_by_annotation=False):
@@ -688,9 +687,8 @@ class ICA(ContainsMixin):
         components : array, shape (n_channels, n_components)
             The ICA components (maps).
         """
-        fast_dot = _get_fast_dot()
-        return fast_dot(self.mixing_matrix_[:, :self.n_components_].T,
-                        self.pca_components_[:self.n_components_]).T
+        return np.dot(self.mixing_matrix_[:, :self.n_components_].T,
+                      self.pca_components_[:self.n_components_]).T
 
     def get_sources(self, inst, add_channels=None, start=None, stop=None):
         """Estimate sources given the unmixing matrix.
@@ -1022,7 +1020,6 @@ class ICA(ContainsMixin):
             ecg, times = _make_ecg(inst, start, stop,
                                    reject_by_annotation=reject_by_annotation,
                                    verbose=verbose)
-            ch_name = 'ECG-MAG'
         else:
             ecg = inst.ch_names[idx_ecg]
 
@@ -1031,8 +1028,12 @@ class ICA(ContainsMixin):
                 threshold = 0.25
             if isinstance(inst, BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(
-                    inst,
+                    inst, ch_name, keep_ecg=False,
                     reject_by_annotation=reject_by_annotation)).get_data()
+
+                if sources.shape[0] == 0:
+                    warn('No ECG activity detected. Consider changing '
+                         'the input parameters.')
             elif isinstance(inst, BaseEpochs):
                 sources = self.get_sources(inst).get_data()
             else:
@@ -1055,6 +1056,8 @@ class ICA(ContainsMixin):
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
 
         self.labels_['ecg'] = list(ecg_idx)
+        if ch_name is None:
+            ch_name = 'ECG-MAG'
         self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         return self.labels_['ecg'], scores
 
@@ -1288,7 +1291,6 @@ class ICA(ContainsMixin):
 
     def _pick_sources(self, data, include, exclude):
         """Aux function."""
-        fast_dot = _get_fast_dot()
         if exclude is None:
             exclude = self.exclude
         else:
@@ -1330,7 +1332,7 @@ class ICA(ContainsMixin):
 
         proj_mat = np.dot(mixing[:, sel_keep], unmixing[sel_keep, :])
 
-        data = fast_dot(proj_mat, data)
+        data = np.dot(proj_mat, data)
 
         if self.pca_mean_ is not None:
             data += self.pca_mean_[:, None]
@@ -1339,7 +1341,7 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self._pre_whitener
         else:
-            data = fast_dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
+            data = np.dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
 
         return data
 
@@ -1415,7 +1417,7 @@ class ICA(ContainsMixin):
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
-                    title='ICA component scores', figsize=(12, 6),
+                    title='ICA component scores', figsize=None,
                     show=True):
         return plot_ica_scores(
             ica=self, scores=scores, exclude=exclude, labels=labels,
@@ -1558,8 +1560,16 @@ class ICA(ContainsMixin):
 
 def _check_start_stop(raw, start, stop):
     """Aux function."""
-    return [c if (isinstance(c, int) or c is None) else
-            raw.time_as_index(c)[0] for c in (start, stop)]
+    out = list()
+    for st in (start, stop):
+        if st is None:
+            out.append(st)
+        else:
+            try:
+                out.append(_ensure_int(st))
+            except TypeError:  # not int-like
+                out.append(raw.time_as_index(st)[0])
+    return out
 
 
 @verbose
@@ -2229,7 +2239,7 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
-                  layout, cmap, contours, template=True):
+                  layout, cmap, contours, template=False):
     """Customize ica.plot_components for corrmap."""
     if not template:
         title = 'Detected components'
@@ -2295,8 +2305,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     specific ICs across subjects.
 
     The specific procedure consists of two iterations. In a first step, the
-    maps best correlating with the template are identified. In the step, the
-    analysis is repeated with the mean of the maps identified in the first
+    maps best correlating with the template are identified. In the next step,
+    the analysis is repeated with the mean of the maps identified in the first
     stage.
 
     Run with `plot` and `show` set to `True` and `label=False` to find

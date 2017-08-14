@@ -203,9 +203,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     Notes
     -----
-    The `BaseEpochs` class is public to allow for stable type-checking in user
-    code (i.e., ``isinstance(my_epochs, BaseEpochs)``) but should not be used
-    as a constructor for Epochs objects (use instead `mne.Epochs`).
+    The ``BaseEpochs`` class is public to allow for stable type-checking in
+    user code (i.e., ``isinstance(my_epochs, BaseEpochs)``) but should not be
+    used as a constructor for Epochs objects (use instead :class:`mne.Epochs`).
     """
 
     def __init__(self, info, data, events, event_id=None, tmin=-0.2, tmax=0.5,
@@ -394,6 +394,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._decim = 1
         self._raw_times = self.times
         assert self._data.shape[-1] == len(self.times)
+        self._raw = None  # shouldn't need it anymore
         return self
 
     @verbose
@@ -864,11 +865,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_colors=None, show=True,
-             block=False):
+             block=False, decim='auto'):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events,
-                           event_colors=event_colors, show=show, block=block)
+                           event_colors=event_colors, show=show, block=block,
+                           decim=decim)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,

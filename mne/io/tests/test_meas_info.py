@@ -339,6 +339,13 @@ def test_check_consistency():
     info2['chs'][2]['ch_name'] = 'b'
     assert_raises(RuntimeError, info2._check_consistency)
 
+    # Duplicates appended with running numbers
+    with warnings.catch_warnings(record=True) as w:
+        info3 = create_info(ch_names=['a', 'b', 'b', 'c', 'b'], sfreq=1000.)
+    assert_equal(len(w), 1)
+    assert_true(all('Channel names are not' in '%s' % ww.message for ww in w))
+    assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
+
 
 def test_anonymize():
     """Test that sensitive information can be anonymized."""

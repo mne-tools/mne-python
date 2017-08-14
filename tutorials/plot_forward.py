@@ -79,8 +79,8 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 
 info = mne.io.read_info(raw_fname)
-mne.viz.plot_trans(info, trans, subject=subject, dig=True,
-                   meg_sensors=True, subjects_dir=subjects_dir)
+mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
+                       meg=['helmet', 'sensors'], subjects_dir=subjects_dir)
 
 ###############################################################################
 # Compute Source Space
@@ -114,7 +114,7 @@ from mayavi import mlab  # noqa
 from surfer import Brain  # noqa
 
 brain = Brain('sample', 'lh', 'inflated', subjects_dir=subjects_dir)
-surf = brain._geo
+surf = brain.geo['lh']
 
 vertidx = np.where(src[0]['inuse'])[0]
 

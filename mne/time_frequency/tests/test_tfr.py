@@ -1,5 +1,7 @@
 import numpy as np
 import os.path as op
+import warnings
+
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
@@ -204,17 +206,24 @@ def test_time_frequency():
     assert_raises(ValueError, cwt, data[0, :, :], Ws, mode='foo')
     for use_fft in [True, False]:
         for mode in ['same', 'valid', 'full']:
-            # XXX JRK: full wavelet decomposition needs to be implemented
-            if (not use_fft) and mode == 'full':
-                assert_raises(ValueError, cwt, data[0, :, :], Ws,
-                              use_fft=use_fft, mode=mode)
-                continue
-            cwt(data[0, :, :], Ws, use_fft=use_fft, mode=mode)
+            cwt(data[0], Ws, use_fft=use_fft, mode=mode)
 
     # Test decim parameter checks
     assert_raises(TypeError, tfr_morlet, epochs, freqs=freqs,
                   n_cycles=n_cycles, use_fft=True, return_itc=True,
                   decim='decim')
+
+    # When convolving in time, wavelets must not be longer than the data
+    assert_raises(ValueError, cwt, data[0, :, :Ws[0].size - 1], Ws,
+                  use_fft=False)
+    with warnings.catch_warnings(record=True) as w:
+        cwt(data[0, :, :Ws[0].size - 1], Ws, use_fft=True)
+    assert_equal(len(w), 1)
+
+    # Check for off-by-one errors when using wavelets with an even number of
+    # samples
+    psd = cwt(data[0], [Ws[0][:-1]], use_fft=False, mode='full')
+    assert_equal(psd.shape, (2, 1, 420))
 
 
 def test_dpsswavelet():
@@ -280,6 +289,11 @@ def test_tfr_multitaper():
                                   return_itc=False, average=False).average()
 
     print(power_evoked)  # test repr for EpochsTFR
+
+    # Test channel picking
+    power_epochs_picked = power_epochs.copy().drop_channels(['SIM0002'])
+    assert_equal(power_epochs_picked.data.shape, (3, 1, 7, 200))
+    assert_equal(power_epochs_picked.ch_names, ['SIM0001'])
 
     assert_raises(ValueError, tfr_multitaper, epochs,
                   freqs=freqs, n_cycles=freqs / 2.,

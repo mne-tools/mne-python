@@ -69,7 +69,6 @@ print(ica)
 
 ###############################################################################
 # Plot ICA components
-
 ica.plot_components()  # can you spot some potential bad guys?
 
 
@@ -110,8 +109,6 @@ ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 eog_average = create_eog_epochs(raw, reject=dict(mag=5e-12, grad=4000e-13),
                                 picks=picks_meg).average()
 
-# We simplify things by setting the maximum number of components to reject
-n_max_eog = 1  # here we bet on finding the vertical EOG components
 eog_epochs = create_eog_epochs(raw, reject=reject)  # get single EOG trials
 eog_inds, scores = ica.find_bads_eog(eog_epochs)  # find via correlation
 
@@ -142,7 +139,7 @@ print(ica.labels_)
 # components.
 #
 # Now let's see how we would modify our signals if we removed this component
-# from the data
+# from the data.
 ica.plot_overlay(eog_average, exclude=eog_inds, show=False)
 # red -> before, black -> after. Yes! We remove quite a lot!
 
@@ -159,11 +156,20 @@ ica.exclude.extend(eog_inds)
 # ica = read_ica('my-ica.fif')
 
 ###############################################################################
+# Note that nothing is yet removed from the raw data. To remove the effects of
+# the rejected components,
+# :meth:`the apply method <mne.preprocessing.ICA.apply>` must be called.
+# Here we apply it on the copy of the first ten seconds, so that the rest of
+# this tutorial still works as intended.
+raw_copy = raw.copy().crop(0, 10)
+ica.apply(raw_copy)
+raw_copy.plot()  # check the result
+
+###############################################################################
 # Exercise: find and remove ECG artifacts using ICA!
 ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5)
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
 ica.plot_properties(ecg_epochs, picks=ecg_inds, psd_args={'fmax': 35.})
-
 
 ###############################################################################
 # What if we don't have an EOG channel?
@@ -200,8 +206,8 @@ from mne.preprocessing.ica import corrmap  # noqa
 # data sets instead.
 
 # We'll start by simulating a group of subjects or runs from a subject
-start, stop = [0, len(raw.times) - 1]
-intervals = np.linspace(start, stop, 4, dtype=int)
+start, stop = [0, raw.times[-1]]
+intervals = np.linspace(start, stop, 4, dtype=np.float)
 icas_from_other_data = list()
 raw.pick_types(meg=True, eeg=False)  # take only MEG channels
 for ii, start in enumerate(intervals):
@@ -257,6 +263,7 @@ fig_template, fig_detected = corrmap(icas, template=template, label="blinks",
 # :func:`mne.preprocessing.corrmap`.
 eog_component = reference_ica.get_components()[:, eog_inds[0]]
 
+###############################################################################
 # If you calculate a new ICA solution, you can provide this array instead of
 # specifying the template in reference to the list of ICA objects you want
 # to run CORRMAP on. (Of course, the retrieved component map arrays can

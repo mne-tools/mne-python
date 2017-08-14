@@ -402,7 +402,7 @@ def _setup_hpi_struct(info, model_n_window,
     else:  # == 'multipole'
         coils = _prep_mf_coils(info)
     scale = make_ad_hoc_cov(info, verbose=False)
-    scale = _get_whitener_data(info, scale, meg_picks, verbose=False)
+    scale = _get_whitener_data(info, scale, meg_picks, verbose=False)[0]
 
     hpi = dict(meg_picks=meg_picks, hpi_pick=hpi_pick,
                model=model, inv_model=inv_model,

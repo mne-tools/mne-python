@@ -100,10 +100,10 @@ def test_magnetic_dipole():
     picks = pick_types(info, meg=True, eeg=False, exclude=[])
     info = pick_info(info, picks[:12])
     coils = _create_meg_coils(info['chs'], 'normal', trans)
-    # magnetic dipole at device origin
+    # magnetic dipole far (meters!) from device origin
     r0 = np.array([0., 13., -6.])
     for ch, coil in zip(info['chs'], coils):
-        rr = (ch['loc'][:3] + r0) / 2.
+        rr = (ch['loc'][:3] + r0) / 2.  # get halfway closer
         far_fwd = _magnetic_dipole_field_vec(r0[np.newaxis, :], [coil])
         near_fwd = _magnetic_dipole_field_vec(rr[np.newaxis, :], [coil])
         ratio = 8. if ch['ch_name'][-1] == '1' else 16.  # grad vs mag

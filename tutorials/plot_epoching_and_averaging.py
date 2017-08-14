@@ -18,7 +18,7 @@ import mne
 data_path = mne.datasets.sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(fname)
-raw.set_eeg_reference()  # set EEG average reference
+raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 
 ###############################################################################
 # To create time locked epochs, we first need a set of events that contain the

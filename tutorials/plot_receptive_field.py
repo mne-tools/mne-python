@@ -40,6 +40,7 @@ modeling with continuous inputs is described in:
        Frontiers in Human Neuroscience 10, 604. doi:10.3389/fnhum.2016.00604
 """
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -207,7 +208,7 @@ times = rf.delays_ / float(rf.sfreq)
 # Choose the model that performed best on the held out data
 ix_best_alpha = np.argmax(scores)
 best_mod = models[ix_best_alpha]
-coefs = best_mod.coef_
+coefs = best_mod.coef_[0]
 best_pred = best_mod.predict(X_test)[:, 0]
 
 # Plot the original STRF, and the one that we recovered with modeling.
@@ -257,7 +258,7 @@ mne.viz.tight_layout()
 # Plot the STRF of each ridge parameter
 for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
     ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
-    ax.pcolormesh(times, rf.feature_names, rf.coef_, **kwargs)
+    ax.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
     plt.xticks([], [])
     plt.yticks([], [])
     plt.autoscale(tight=True)
@@ -281,7 +282,8 @@ mne.viz.tight_layout()
 #           & & & -1 & 2 & -1 \\
 #           & & &    & -1 & 1\end{matrix}\right]
 #
-# This imposes a smoothness constraint of nearby time samples. Quoting [5]_:
+# This imposes a smoothness constraint of nearby time samples and/or features.
+# Quoting [5]_:
 #
 #    Tikhonov [identity] regularization (Equation 5) reduces overfitting by
 #    smoothing the TRF estimate in a way that is insensitive to
@@ -336,7 +338,7 @@ mne.viz.tight_layout()
 # Plot the STRF of each ridge parameter
 for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
     ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
-    ax.pcolormesh(times, rf.feature_names, rf.coef_, **kwargs)
+    ax.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
     plt.xticks([], [])
     plt.yticks([], [])
     plt.autoscale(tight=True)

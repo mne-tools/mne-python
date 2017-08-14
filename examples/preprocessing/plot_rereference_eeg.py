@@ -48,7 +48,7 @@ evoked_no_ref.plot(axes=ax1, titles=dict(eeg='EEG Original reference'))
 
 # Average reference. This is normally added by default, but can also be added
 # explicitly.
-raw.set_eeg_reference()
+raw.set_eeg_reference('average', projection=True)
 evoked_car = mne.Epochs(raw, **epochs_params).average()
 
 evoked_car.plot(axes=ax2, titles=dict(eeg='EEG Average reference'))

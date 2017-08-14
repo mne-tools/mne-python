@@ -63,7 +63,7 @@ class Info(dict):
     that is available for a recording.
 
     This class should not be instantiated directly. To create a measurement
-    information strucure, use :func:`mne.io.create_info`.
+    information strucure, use :func:`mne.create_info`.
 
     The only entries that should be manually changed by the user are
     ``info['bads']`` and ``info['description']``. All other entries should
@@ -158,6 +158,10 @@ class Info(dict):
     subject_info : dict | None
         Information about the subject.
         See Notes for details.
+
+    See Also
+    --------
+    mne.create_info
 
     Notes
     -----
@@ -412,7 +416,7 @@ class Info(dict):
                 entr += " (%s)" % ', '.join("%s: %d" % (ch_type.upper(), count)
                                             for ch_type, count
                                             in ch_counts.items())
-            strs.append('%s : %s%s' % (k, str(type(v))[7:-2], entr))
+            strs.append('%s : %s%s' % (k, type(v).__name__, entr))
             if k in ['sfreq', 'lowpass', 'highpass']:
                 strs[-1] += ' Hz'
         strs_non_empty = sorted(s for s in strs if '|' in s)
@@ -446,8 +450,16 @@ class Info(dict):
         if len(unique_ids) != self['nchan']:
             dups = set(self['ch_names'][x]
                        for x in np.setdiff1d(range(self['nchan']), unique_ids))
-            raise RuntimeError('Channel names are not unique, found '
-                               'duplicates for: %s' % dups)
+            warn('Channel names are not unique, found duplicates for: '
+                 '%s. Applying running numbers for duplicates.' % dups)
+            for ch_stem in dups:
+                overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
+                for idx, ch_idx in enumerate(overlaps):
+                    ch_name = ch_stem + '-%s' % idx
+                    assert ch_name not in self['ch_names']
+                    self['ch_names'][ch_idx] = ch_name
+                    self['chs'][ch_idx]['ch_name'] = ch_name
+
         if 'filename' in self:
             warn('the "filename" key is misleading\
                  and info should not have it')
@@ -456,6 +468,16 @@ class Info(dict):
         """Update the redundant entries."""
         self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
         self['nchan'] = len(self['chs'])
+
+
+def _simplify_info(info):
+    """Return a simplified info structure to speed up picking."""
+    chs = [{key: ch[key] for key in ('ch_name', 'kind', 'unit', 'coil_type',
+                                     'loc')}
+           for ch in info['chs']]
+    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
+    sub_info._update_redundant()
+    return sub_info
 
 
 def read_fiducials(fname):

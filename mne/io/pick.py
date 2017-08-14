@@ -304,7 +304,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     for k in range(nchan):
         kind = info['chs'][k]['kind']
         # XXX eventually we should de-duplicate this with channel_type!
-        if kind == FIFF.FIFFV_MEG_CH:
+        if kind == FIFF.FIFFV_MEG_CH and meg:
             pick[k] = _triage_meg_pick(info['chs'][k], meg)
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True
@@ -385,8 +385,7 @@ def pick_info(info, sel=(), copy=True):
         Info structure restricted to a selection of channels.
     """
     info._check_consistency()
-    if copy:
-        info = deepcopy(info)
+    info = info.copy() if copy else info
     if sel is None:
         return info
     elif len(sel) == 0:
@@ -613,18 +612,16 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     res : dict
         Covariance solution restricted to selected channels.
     """
+    from ..cov import Covariance
     exclude = orig['bads'] if exclude == 'bads' else exclude
     sel = pick_channels(orig['names'], include=include, exclude=exclude)
-    res = deepcopy(orig)
-    res['dim'] = len(sel)
-    if not res['diag']:
-        res['data'] = orig['data'][sel][:, sel]
-    else:
-        res['data'] = orig['data'][sel]
-    res['names'] = [orig['names'][k] for k in sel]
-    res['bads'] = [name for name in orig['bads'] if name in res['names']]
-    res['eig'] = None
-    res['eigvec'] = None
+    data = orig['data'][sel][:, sel] if not orig['diag'] else orig['data'][sel]
+    names = [orig['names'][k] for k in sel]
+    bads = [name for name in orig['bads'] if name in orig['names']]
+    res = Covariance(
+        data=data, names=names, bads=bads, projs=deepcopy(orig['projs']),
+        nfree=orig['nfree'], eig=None, eigvec=None,
+        method=orig.get('method', None), loglik=orig.get('loglik', None))
     return res
 
 

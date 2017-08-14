@@ -12,6 +12,7 @@ import glob
 import copy
 
 import numpy as np
+from copy import deepcopy
 from numpy import sin, cos
 from scipy import linalg
 
@@ -180,7 +181,6 @@ def apply_trans(trans, pts, move=True):
     """
     if isinstance(trans, dict):
         trans = trans['trans']
-    trans = np.asarray(trans)
     pts = np.asarray(pts)
     if pts.size == 0:
         return pts.copy()
@@ -188,10 +188,8 @@ def apply_trans(trans, pts, move=True):
     # apply rotation & scale
     out_pts = np.dot(pts, trans[:3, :3].T)
     # apply translation
-    if move is True:
-        transl = trans[:3, 3]
-        if np.any(transl != 0):
-            out_pts += transl
+    if move:
+        out_pts += trans[:3, 3]
 
     return out_pts
 
@@ -370,13 +368,14 @@ def _ensure_trans(trans, fro='mri', to='head'):
         to_str = _frame_to_str[to]
         to_const = to
     del to
-    err_str = 'trans must go %s<->%s, provided' % (from_str, to_str)
-    if trans is None:
+    err_str = ('trans must be a Transform between %s<->%s, got'
+               % (from_str, to_str))
+    if not isinstance(trans, Transform):
         raise ValueError('%s None' % err_str)
     if set([trans['from'], trans['to']]) != set([from_const, to_const]):
-        raise ValueError('%s trans is %s->%s' % (err_str,
-                                                 _frame_to_str[trans['from']],
-                                                 _frame_to_str[trans['to']]))
+        raise ValueError('%s %s->%s' % (err_str,
+                                        _frame_to_str[trans['from']],
+                                        _frame_to_str[trans['to']]))
     if trans['from'] != from_const:
         trans = invert_transform(trans)
     return trans
@@ -451,36 +450,41 @@ def combine_transforms(t_first, t_second, fro, to):
     return Transform(fro, to, np.dot(t_second['trans'], t_first['trans']))
 
 
-def read_trans(fname):
+def read_trans(fname, return_all=False):
     """Read a -trans.fif file.
 
     Parameters
     ----------
     fname : str
         The name of the file.
+    return_all : bool
+        If True, return all transformations in the file.
+        False (default) will only return the first.
+
+        .. versionadded:: 0.15
 
     Returns
     -------
-    trans : dict
+    trans : dict | list of dict
         The transformation dictionary from the fif file.
 
     See Also
     --------
     write_trans
-    Transform
+    mne.transforms.Transform
     """
     fid, tree, directory = fiff_open(fname)
 
+    trans = list()
     with fid:
         for t in directory:
             if t.kind == FIFF.FIFF_COORD_TRANS:
-                tag = read_tag(fid, t.pos)
-                break
-        else:
-            raise IOError('This does not seem to be a -trans.fif file.')
-
-    trans = tag.data
-    return trans
+                trans.append(read_tag(fid, t.pos).data)
+                if not return_all:
+                    break
+    if len(trans) == 0:
+        raise IOError('This does not seem to be a -trans.fif file.')
+    return trans if return_all else trans[0]
 
 
 def write_trans(fname, trans):
@@ -539,6 +543,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
     res : dict
         Transformed source space.
     """
+    surf = deepcopy(surf) if copy else surf
     if isinstance(dest, string_types):
         if dest not in _str_to_frame:
             raise KeyError('dest must be one of %s, not "%s"'

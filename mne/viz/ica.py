@@ -476,7 +476,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
 
 
 def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
-                    title='ICA component scores', figsize=(12, 6), show=True):
+                    title='ICA component scores', figsize=None, show=True):
     """Plot scores related to detected components.
 
     Use this function to asses how well your score describes outlier
@@ -501,8 +501,8 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         Draw horizontal line to e.g. visualize rejection threshold.
     title : str
         The figure title.
-    figsize : tuple of int
-        The figure size. Defaults to (12, 6).
+    figsize : tuple of int | None
+        The figure size. If None it gets set automatically.
     show : bool
         Show figure if True.
 
@@ -519,13 +519,14 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     if not isinstance(scores[0], (list, np.ndarray)):
         scores = [scores]
     n_rows = len(scores)
-    figsize = (12, 6) if figsize is None else figsize
+    if figsize is None:
+        figsize = (6.4, 2.7 * n_rows)
     fig, axes = plt.subplots(n_rows, figsize=figsize, sharex=True, sharey=True)
     if isinstance(axes, np.ndarray):
         axes = axes.flatten()
     else:
         axes = [axes]
-    plt.suptitle(title)
+    axes[0].set_title(title)
 
     if labels == 'ecg':
         labels = [l for l in ica.labels_ if l.startswith('ecg/')]
@@ -540,14 +541,15 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         if len(labels) != len(axes):
             raise ValueError('Need as many labels as axes (%i)' % len(axes))
     elif labels is None:
-        labels = (None, None)
+        labels = (None,) * n_rows
+
     for label, this_scores, ax in zip(labels, scores, axes):
         if len(my_range) != len(this_scores):
             raise ValueError('The length of `scores` must equal the '
                              'number of ICA components.')
-        ax.bar(my_range, this_scores, color='w')
+        ax.bar(my_range, this_scores, color='w', edgecolor='k')
         for excl in exclude:
-            ax.bar(my_range[excl], this_scores[excl], color='r')
+            ax.bar(my_range[excl], this_scores[excl], color='r', edgecolor='k')
         if axhline is not None:
             if np.isscalar(axhline):
                 axhline = [axhline]
@@ -566,8 +568,6 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         ax.set_xlim(0, len(this_scores))
 
     tight_layout(fig=fig)
-    if len(axes) > 1:
-        plt.subplots_adjust(top=0.9)
     plt_show(show)
     return fig
 
@@ -797,7 +797,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=n_channels, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
-                  first_time=first_time)
+                  first_time=first_time, data_picks=[], decim=1)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -900,7 +900,9 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
               'orig_data': data,
               'bads': list(),
               'bad_color': (1., 0., 0.),
-              't_start': start * len(epochs.times)}
+              't_start': start * len(epochs.times),
+              'data_picks': [],
+              'decim': 1}
     params['label_click_fun'] = partial(_label_clicked, params=params)
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
