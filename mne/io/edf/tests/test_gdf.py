@@ -30,8 +30,9 @@ gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
 @testing.requires_testing_data
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
-    raw = read_raw_edf(gdf1_path + '.gdf', eog=None,
-                       misc=None, preload=True, stim_channel='auto')
+    with warnings.catch_warnings(record=True):  # interpolate / overlap events
+        raw = read_raw_edf(gdf1_path + '.gdf', eog=None,
+                           misc=None, preload=True, stim_channel='auto')
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 

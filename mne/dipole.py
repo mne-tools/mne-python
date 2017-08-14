@@ -527,9 +527,9 @@ def _read_dipole_text(fname):
     # actually parse the fields
     def_line = def_line.lstrip('%').lstrip('#').strip()
     # MNE writes it out differently than Elekta, let's standardize them...
-    fields = re.sub('([X|Y|Z] )\(mm\)',  # "X (mm)", etc.
+    fields = re.sub(r'([X|Y|Z] )\(mm\)',  # "X (mm)", etc.
                     lambda match: match.group(1).strip() + '/mm', def_line)
-    fields = re.sub('\((.*?)\)',  # "Q(nAm)", etc.
+    fields = re.sub(r'\((.*?)\)',  # "Q(nAm)", etc.
                     lambda match: '/' + match.group(1), fields)
     fields = re.sub('(begin|end) ',  # "begin" and "end" with no units
                     lambda match: match.group(1) + '/ms', fields)

@@ -170,7 +170,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         memory usage may be large with big data.
         """
         return _sklearn_reshape_apply(self._scaler.transform, True,
-                                      epochs_data, y)
+                                      epochs_data)
 
     def fit_transform(self, epochs_data, y=None):
         """Fit to data, then transform it.
