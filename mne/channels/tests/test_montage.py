@@ -187,16 +187,16 @@ def test_montage():
     Fp1 -95.0 -31.0 -3.0
     AF7 -81 -59 -3
     AF3 -87 -41 28
-    nasion -91 0 -42
-    lpa 0 -91 -42
-    rpa 0 91 -42
+    FidNz -91 0 -42
+    FidT9 0 -91 -42
+    FidT10 0 91 -42
     """]
-
-    all_fiducials = [['2', '1', '3'], ['nasion', 'lpa', 'rpa']]
+    # sfp files seem to have Nz, T9, and T10 as fiducials:
+    # https://github.com/mne-tools/mne-python/pull/4482#issuecomment-321980611
 
     kinds = ['test_fid.hpts',  'test_fid.sfp']
 
-    for kind, fiducials, input_str in zip(kinds, all_fiducials, input_strs):
+    for kind, input_str in zip(kinds, input_strs):
         fname = op.join(tempdir, kind)
         with open(fname, 'w') as fid:
             fid.write(input_str)
@@ -211,12 +211,9 @@ def test_montage():
         trans = get_ras_to_neuromag_trans(fids[0], fids[1], fids[2])
         pos = apply_trans(trans, pos)
         assert_array_equal(montage.pos[0], pos)
-        idx = montage.ch_names.index(fiducials[0])
-        assert_array_equal(montage.pos[idx, [0, 2]], [0, 0])
-        idx = montage.ch_names.index(fiducials[1])
-        assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
-        idx = montage.ch_names.index(fiducials[2])
-        assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
+        assert_array_equal(montage.nasion[[0, 2]], [0, 0])
+        assert_array_equal(montage.lpa[[1, 2]], [0, 0])
+        assert_array_equal(montage.rpa[[1, 2]], [0, 0])
         pos = np.array([-95.0, -31.0, -3.0])
         montage_fname = op.join(tempdir, kind)
         montage = read_montage(montage_fname, unit='mm')
@@ -259,12 +256,16 @@ def test_montage():
     # Unless there is a collision in names
     with warnings.catch_warnings(record=True) as w:
         info = create_info(['FP1', 'Fp1', 'AF3'], 1e3, ['eeg'] * 3)
+        assert_true(info['dig'] is None)
         _set_montage(info, montage)
+        assert_equal(len(info['dig']), 5)  # 2 EEG w/pos, 3 fiducials
         assert_true(len(w) == 1)
     with warnings.catch_warnings(record=True) as w:
         montage.ch_names = ['FP1', 'Fp1', 'AF3']
         info = create_info(['fp1', 'AF3'], 1e3, ['eeg', 'eeg'])
-        _set_montage(info, montage)
+        assert_true(info['dig'] is None)
+        _set_montage(info, montage, set_dig=False)
+        assert_true(info['dig'] is None)
         assert_true(len(w) == 1)
 
     # test get_pos2d method
