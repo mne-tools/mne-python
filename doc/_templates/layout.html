@@ -1,8 +1,5 @@
 {% extends "!layout.html" %}
 
-{# Custom CSS overrides #}
-{% set bootswatch_css_custom = ['_static/style.css', '_static/font-awesome.css', '_static/flag-icon.css'] %}
-
 {% block extrahead %}
 
 {% if use_google_analytics|tobool %}
@@ -18,6 +15,11 @@
     })();
     </script>
 {% endif %}
+
+    <link rel="stylesheet" href="{{ pathto('_static/style.css', 1) }} " type="text/css" />
+    <link rel="stylesheet" href="{{ pathto('_static/font-awesome.css', 1) }}" type="text/css" />
+    <link rel="stylesheet" href="{{ pathto('_static/flag-icon.css', 1) }}" type="text/css" />
+
 
 {% if (use_twitter|tobool) or (use_media_buttons|tobool) %}
     <script type="text/javascript">
