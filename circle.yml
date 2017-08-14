@@ -47,7 +47,7 @@ dependencies:
     - which pip;
     - pip install --upgrade pyface;
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
-    - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
+    - cd sphinx-gallery && git checkout 07f0df0 && pip install -r requirements.txt && python setup.py develop;
     - pip install sphinx_bootstrap_theme git+git://github.com/nipy/PySurfer.git nilearn neo numpydoc;
 
   override:
