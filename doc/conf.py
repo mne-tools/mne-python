@@ -365,7 +365,7 @@ def linkcode_resolve(domain, info):
 
     fn = relpath(fn, start=dirname(mne.__file__))
 
-    if 'git' in mne.__version__:
+    if 'dev' in mne.__version__:
         kind = 'master'
     else:
         kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
