@@ -453,7 +453,7 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal, mtrf, hf_sef, mtrf)
+                   eegbci, multimodal, hf_sef, mtrf, fieldtrip_cmc)
     sample.data_path()
     testing.data_path()
     misc.data_path()
