@@ -32,6 +32,7 @@ def _deprecate_picks(info, picks):
              DeprecationWarning)
 
         info = pick_info(info, picks)
+    return info
 
 
 def _reg_pinv(x, reg):
@@ -677,7 +678,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
            brain imaging (2008) Springer Science & Business Media
     """
     info = evoked.info
-    _deprecate_picks(info, picks)
+    info = _deprecate_picks(info, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
@@ -774,7 +775,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
            brain imaging (2008) Springer Science & Business Media
     """
     info = epochs.info
-    _deprecate_picks(info, picks)
+    info= _deprecate_picks(info, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
@@ -875,7 +876,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
            brain imaging (2008) Springer Science & Business Media
     """
     info = raw.info
-    _deprecate_picks(info, picks)
+    info = _deprecate_picks(info, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
@@ -1065,7 +1066,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
            brain imaging (2008) Springer Science & Business Media
     """
     info = epochs.info
-    _deprecate_picks(info, picks)
+    info = _deprecate_picks(info, picks)
 
     _check_reference(epochs)
 

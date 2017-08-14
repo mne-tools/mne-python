@@ -249,7 +249,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     data = evoked.data
     times = evoked.times
 
-    _deprecate_picks(info, picks)
+    info = _deprecate_picks(info, picks)
 
     picks = _setup_picks(info, forward, data_cov=None, noise_cov=noise_cov)
 
