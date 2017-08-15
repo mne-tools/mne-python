@@ -24,7 +24,8 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_alignment)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab, _TempDir, requires_nibabel, check_version)
+                       _import_mlab, _TempDir, requires_nibabel, check_version,
+                       requires_version)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -364,7 +365,7 @@ def test_snapshot_brain_montage():
 
 
 @testing.requires_testing_data
-@requires_pysurfer
+@requires_version('surfer', '0.8')
 @requires_mayavi
 def test_plot_vec_source_estimates():
     """Test plotting of vector source estimates."""
