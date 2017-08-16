@@ -130,6 +130,7 @@ onset = eog_events[:, 0] / raw.info['sfreq'] - 0.25
 duration = np.repeat(0.5, n_blinks)
 raw.annotations = mne.Annotations(onset, duration, ['bad blink'] * n_blinks,
                                   orig_time=raw.info['meas_date'])
+print(raw.annotations)  # to get information about what annotations we have
 raw.plot(events=eog_events)  # To see the annotated segments.
 
 ###############################################################################

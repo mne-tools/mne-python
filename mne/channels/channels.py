@@ -467,13 +467,18 @@ class SetChannelsMixin(object):
         rename_channels(self.info, mapping)
 
     @verbose
-    def set_montage(self, montage, verbose=None):
+    def set_montage(self, montage, set_dig=True, verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
         montage : instance of Montage or DigMontage
             The montage to use.
+        set_dig : bool
+            If True, update the digitization information (``info['dig']``)
+            in addition to the channel positions (``info['chs'][idx]['loc']``).
+
+            .. versionadded: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -486,7 +491,7 @@ class SetChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         from .montage import _set_montage
-        _set_montage(self.info, montage)
+        _set_montage(self.info, montage, set_dig=set_dig)
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,

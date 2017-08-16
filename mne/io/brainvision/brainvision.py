@@ -247,16 +247,16 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         txt = txt.decode('latin-1')
 
     # extract Marker Infos block
-    m = re.search("\[Marker Infos\]", txt)
+    m = re.search(r"\[Marker Infos\]", txt)
     if not m:
         return np.zeros(0)
     mk_txt = txt[m.end():]
-    m = re.search("\[.*\]", mk_txt)
+    m = re.search(r"\[.*\]", mk_txt)
     if m:
         mk_txt = mk_txt[:m.start()]
 
     # extract event information
-    items = re.findall("^Mk\d+=(.*)", mk_txt, re.MULTILINE)
+    items = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
     events, dropped = list(), list()
     for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
@@ -266,7 +266,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
             trigger = event_id[mdesc]
         else:
             try:
-                trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
+                trigger = int(re.findall(r'[A-Za-z]*\s*?(\d+)', mdesc)[0])
             except IndexError:
                 trigger = None
             if mtype.lower().startswith('response'):
@@ -508,7 +508,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         settings = settings[idx + 1:]
         hp_col, lp_col = 4, 5
         for idx, setting in enumerate(settings):
-            if re.match('#\s+Name', setting):
+            if re.match(r'#\s+Name', setting):
                 break
             else:
                 idx = None
@@ -521,7 +521,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     if 'S o f t w a r e  F i l t e r s' in settings:
         idx = settings.index('S o f t w a r e  F i l t e r s')
         for idx, setting in enumerate(settings[idx + 1:], idx + 1):
-            if re.match('#\s+Low Cutoff', setting):
+            if re.match(r'#\s+Low Cutoff', setting):
                 hp_col, lp_col = 1, 2
                 warn('Online software filter detected. Using software '
                      'filter settings and ignoring hardware values')
@@ -536,7 +536,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         # for newer BV files, the unit is specified for every channel
         # separated by a single space, while for older files, the unit is
         # specified in the column headers
-        divider = '\s+'
+        divider = r'\s+'
         if 'Resolution / Unit' in settings[idx]:
             shift = 1  # shift for unit
         else:
@@ -546,7 +546,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         # this cannot be done as post-processing as the inverse t-f
         # relationship means that the min/max comparisons don't make sense
         # unless we know the units
-        header = re.split('\s\s+', settings[idx])
+        header = re.split(r'\s\s+', settings[idx])
         hp_s = '[s]' in header[hp_col]
         lp_s = '[s]' in header[lp_col]
 

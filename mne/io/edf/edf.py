@@ -366,7 +366,7 @@ def _parse_tal_channel(tal_channel_data):
             i = int(s)
             tals.extend(np.uint8([i % 256, i // 256]))
 
-    regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
+    regex_tal = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
     # use of latin-1 because characters are only encoded for the first 256
     # code points and utf-8 can triggers an "invalid continuation byte" error
     tal_list = re.findall(regex_tal, tals.decode('latin-1'))
@@ -581,9 +581,9 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         meas_id['recording_id'] = fid.read(80).decode().strip(' \x00')
 
         day, month, year = [int(x) for x in
-                            re.findall('(\d+)', fid.read(8).decode())]
+                            re.findall(r'(\d+)', fid.read(8).decode())]
         hour, minute, sec = [int(x) for x in
-                             re.findall('(\d+)', fid.read(8).decode())]
+                             re.findall(r'(\d+)', fid.read(8).decode())]
         century = 2000 if year < 50 else 1900
         date = datetime.datetime(year + century, month, day, hour, minute, sec)
 
@@ -629,9 +629,9 @@ def _read_edf_header(fname, annot, annotmap, exclude):
                                 for ch in channels])[include]
         prefiltering = [fid.read(80).decode().strip(' \x00')
                         for ch in channels][:-1]
-        highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
+        highpass = np.ravel([re.findall(r'HP:\s+(\w+)', filt)
                              for filt in prefiltering])
-        lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt)
+        lowpass = np.ravel([re.findall(r'LP:\s+(\w+)', filt)
                             for filt in prefiltering])
 
         # number of samples per record
@@ -758,9 +758,9 @@ def _read_gdf_header(fname, stim_channel, exclude):
             digital_max = np.fromfile(fid, np.int64, len(channels))
             prefiltering = [fid.read(80).decode().strip(' \x00')
                             for ch in channels][:-1]
-            highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
+            highpass = np.ravel([re.findall(r'HP:\s+(\w+)', filt)
                                  for filt in prefiltering])
-            lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt)
+            lowpass = np.ravel([re.findall('LP:\\s+(\\w+)', filt)
                                 for filt in prefiltering])
 
             # n samples per record
@@ -1093,13 +1093,13 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     stim_channel : ndarray
         An array containing stimulus trigger events.
     """
-    pat = '([+/-]\d+.\d+),(\w+)'
+    pat = '([+/-]\\d+.\\d+),(\\w+)'
     annot = open(annot).read()
     triggers = re.findall(pat, annot)
     times, values = zip(*triggers)
     times = [float(time) * sfreq for time in times]
 
-    pat = '(\w+):(\d+)'
+    pat = r'(\w+):(\d+)'
     annotmap = open(annotmap).read()
     mappings = re.findall(pat, annotmap)
     maps = {}

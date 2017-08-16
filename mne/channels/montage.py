@@ -63,11 +63,15 @@ class Montage(object):
     .. versionadded:: 0.9.0
     """
 
-    def __init__(self, pos, ch_names, kind, selection):  # noqa: D102
+    def __init__(self, pos, ch_names, kind, selection,
+                 nasion=None, lpa=None, rpa=None):  # noqa: D102
         self.pos = pos
         self.ch_names = ch_names
         self.kind = kind
         self.selection = selection
+        self.lpa = lpa
+        self.nasion = nasion
+        self.rpa = rpa
 
     def __repr__(self):
         """Return string representation."""
@@ -225,8 +229,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         kind, ext = op.splitext(kind)
     fname = op.join(path, kind + ext)
 
+    fid_names = ['lpa', 'nz', 'rpa']
     if ext == '.sfp':
         # EGI geodesic
+        fid_names = ['fidt9', 'fidnz', 'fidt10']
         with open(fname, 'r') as f:
             lines = f.read().replace('\t', ' ').splitlines()
 
@@ -305,6 +311,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.hpts':
         # MNE-C specified format for generic digitizer data
+        fid_names = ['1', '2', '3']
         dtype = [('type', 'S8'), ('name', 'S8'),
                  ('x', 'f8'), ('y', 'f8'), ('z', 'f8')]
         data = np.loadtxt(fname, dtype=dtype)
@@ -337,26 +344,23 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos /= 1e2
     elif unit != 'm':
         raise ValueError("'unit' should be either 'm', 'cm', or 'mm'.")
+    names_lower = [name.lower() for name in list(ch_names_)]
+    fids = {key: pos[names_lower.index(fid_names[ii])]
+            if fid_names[ii] in names_lower else None
+            for ii, key in enumerate(['lpa', 'nasion', 'rpa'])}
     if transform:
-        names_lower = [name.lower() for name in list(ch_names_)]
-        if ext == '.hpts':
-            fids = ('2', '1', '3')  # Alternate cardinal point names
-        else:
-            fids = ('nasion', 'lpa', 'rpa')
-
-        missing = [name for name in fids
-                   if name not in names_lower]
+        missing = [name for name, val in fids.items() if val is None]
         if missing:
             raise ValueError("The points %s are missing, but are needed "
                              "to transform the points to the MNE coordinate "
                              "system. Either add the points, or read the "
                              "montage with transform=False. " % missing)
-        nasion = pos[names_lower.index(fids[0])]
-        lpa = pos[names_lower.index(fids[1])]
-        rpa = pos[names_lower.index(fids[2])]
-
-        neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        neuromag_trans = get_ras_to_neuromag_trans(
+            fids['nasion'], fids['lpa'], fids['rpa'])
         pos = apply_trans(neuromag_trans, pos)
+    fids = {key: pos[names_lower.index(fid_names[ii])]
+            if fid_names[ii] in names_lower else None
+            for ii, key in enumerate(['lpa', 'nasion', 'rpa'])}
 
     if ch_names is not None:
         # Ensure channels with differing case are found.
@@ -368,7 +372,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = pos[sel]
         selection = selection[sel]
     kind = op.split(kind)[-1]
-    return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection)
+    return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection,
+                   lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
 class DigMontage(object):
@@ -759,7 +764,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     return out
 
 
-def _set_montage(info, montage, update_ch_names=False):
+def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     """Apply montage to data.
 
     With a Montage, this function will replace the EEG channel names and
@@ -817,6 +822,7 @@ def _set_montage(info, montage, update_ch_names=False):
         montage_ch_names = _clean_names(montage_ch_names,
                                         remove_whitespace=True)
 
+        dig = dict()
         for pos, ch_name in zip(montage.pos, montage_ch_names):
             if ch_name not in info_ch_names:
                 continue
@@ -824,7 +830,11 @@ def _set_montage(info, montage, update_ch_names=False):
             ch_idx = info_ch_names.index(ch_name)
             info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
             sensors_found.append(ch_idx)
-
+            dig[ch_name] = pos
+        if set_dig:
+            info['dig'] = _make_dig_points(
+                nasion=montage.nasion, lpa=montage.lpa, rpa=montage.rpa,
+                dig_ch_pos=dig)
         if len(sensors_found) == 0:
             raise ValueError('None of the sensors defined in the montage were '
                              'found in the info structure. Check the channel '
@@ -841,7 +851,8 @@ def _set_montage(info, montage, update_ch_names=False):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
-        info['dig'] = montage._get_dig()
+        if set_dig:
+            info['dig'] = montage._get_dig()
 
         if montage.dev_head_t is not None:
             info['dev_head_t']['trans'] = montage.dev_head_t

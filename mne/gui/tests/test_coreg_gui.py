@@ -126,7 +126,7 @@ def test_coreg_model():
     # find BEM files
     bems = set()
     for fname in os.listdir(op.join(subjects_dir, 'sample', 'bem')):
-        match = re.match('sample-(.+-bem)\.fif', fname)
+        match = re.match(r'sample-(.+-bem)\.fif', fname)
         if match:
             bems.add(match.group(1))
     assert_equal(set(bemsol), bems)

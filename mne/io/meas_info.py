@@ -623,8 +623,8 @@ def _read_dig_points(fname, comments='%', unit='auto'):
     if ext == '.elp' or ext == '.hsp':
         with open(fname) as fid:
             file_str = fid.read()
-        value_pattern = "\-?\d+\.?\d*e?\-?\d*"
-        coord_pattern = "({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+        value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
+        coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
         if ext == '.hsp':
             coord_pattern = '^' + coord_pattern
         points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
