@@ -7,6 +7,7 @@ import time
 
 import numpy as np
 
+from .utils import _pl
 from .externals.six import string_types
 
 
@@ -84,6 +85,18 @@ class Annotations(object):
         self.onset = onset
         self.duration = duration
         self.description = np.array(description, dtype=str)
+
+    def __repr__(self):
+        """Show the representation."""
+        kinds = sorted(set('%s' % d.split(' ')[0].lower()
+                           for d in self.description))
+        kinds = ['%s (%s)' % (kind, sum(d.lower().startswith(kind)
+                                        for d in self.description))
+                 for kind in kinds]
+        kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
+        kinds = (': ' if len(kinds) > 0 else '') + kinds
+        return ('<Annotations  |  %s segment%s %s >'
+                % (len(self.onset), _pl(len(self.onset)), kinds))
 
     def __len__(self):
         """Return the number of annotations."""
@@ -175,3 +188,26 @@ def _sync_onset(raw, onset, inverse=False):
 
     annot_start = orig_time - meas_date + onset
     return annot_start
+
+
+def _annotations_starts_stops(raw, kinds, name='unknown'):
+    """Get starts and stops from given kinds."""
+    if not isinstance(kinds, (string_types, list, tuple)):
+        raise TypeError('%s must be str, list, or tuple, got %s'
+                        % (type(kinds), name))
+    elif isinstance(kinds, string_types):
+        kinds = [kinds]
+    elif not all(isinstance(kind, string_types) for kind in kinds):
+        raise TypeError('All entries in %s must be str' % (name,))
+    if raw.annotations is None:
+        return np.array([], int), np.array([], int)
+    idxs = [idx for idx, desc in enumerate(raw.annotations.description)
+            if any(desc.upper().startswith(kind.upper())
+                   for kind in kinds)]
+    onsets = raw.annotations.onset[idxs]
+    onsets = _sync_onset(raw, onsets)
+    ends = onsets + raw.annotations.duration[idxs]
+    order = np.argsort(onsets)
+    onsets = raw.time_as_index(onsets[order])
+    ends = raw.time_as_index(ends[order])
+    return onsets, ends
