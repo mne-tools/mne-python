@@ -190,6 +190,8 @@ API
 
     - :func:`mne.beamformer.tf_lcmv` now has a ``raw`` parameter to accommodate epochs objects that already have data loaded with ``preload=True``, with :meth:`mne.Epochs.load_data`, or that are read from disk, by `Eric Larson`_
 
+    - :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` now use a Hamming window (instead of a Hann window) by `Clemens Brunner`_
+
 .. _changes_0_14:
 
 Version 0.14
