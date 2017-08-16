@@ -964,7 +964,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return stcs
 
     @copy_function_doc_to_method_doc(plot_stc_glass_brain)
-    def plot_glass_brain(self, subject, subjects_dir=None, src=None,
+    def plot_glass_brain(self, subject=None, subjects_dir=None, src=None,
                          initial_time=0., display_mode='ortho', colorbar=False,
                          axes=None, title=None, threshold='auto',
                          annotate=True, black_bg=False, cmap=None, alpha=0.7,
@@ -2705,6 +2705,9 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     if not isinstance(stc, VolSourceEstimate):
         raise Exception('Only volume source estimates can be saved as '
                         'volumes')
+    if not isinstance(src, SourceSpaces) or src.kind != 'volume':
+        raise TypeError('src must be a volume source space, got %s'
+                        % (repr(src),))
 
     n_times = stc.data.shape[1]
     shape = src[0]['shape']

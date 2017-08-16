@@ -133,6 +133,15 @@ brain_fsaverage = stc_fsaverage.plot(
 brain_fsaverage.show_view('lateral')
 
 ###############################################################################
+# Look at the result in an orthoview
+# ----------------------------------
+# MNE integrates with functionality from to other packages, here the
+# :func:`nilearn.plotting.plot_glass_brain` function.
+
+fig = stc_fsaverage.plot_glass_brain(
+    subjects_dir=subjects_dir, initial_time=time_max)
+
+###############################################################################
 # Exercise
 # --------
 #    - By changing the method parameter to 'sloreta' recompute the source

@@ -12,7 +12,7 @@ import numpy as np
 
 from ..source_space import _read_talairach
 from ..surface import _compute_nearest, read_surface
-from ..utils import has_nibabel, get_subjects_dir
+from ..utils import has_nibabel, get_subjects_dir, _check_subject
 from ..transforms import apply_trans
 from .utils import plt_show
 
@@ -29,9 +29,10 @@ def plot_stc_glass_brain(stc, subject, subjects_dir=None, src=None,
     ----------
     stc : instance of SourceEstimate | instance of VolSourceEstimate
         Data to plot.
-    subject : str
+    subject : str | None
         The subject name corresponding to FreeSurfer environment
-        variable SUBJECT.
+        variable SUBJECT.  If None stc.subject will be used. If that
+        is None, the environment will be used.
     subjects_dir : None | str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
@@ -110,6 +111,7 @@ def plot_stc_glass_brain(stc, subject, subjects_dir=None, src=None,
         raise ImportError('This function requires nilearn.')
     from ..source_estimate import VolSourceEstimate, SourceEstimate
 
+    subject = _check_subject(stc.subject, subject, True)
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     time_idx = np.argmin(np.abs(stc.times - initial_time))
