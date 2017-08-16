@@ -81,7 +81,7 @@ def test_scaler():
 
     # Test init exception
     assert_raises(ValueError, scaler.fit, epochs, y)
-    assert_raises(ValueError, scaler.transform, epochs, y)
+    assert_raises(ValueError, scaler.transform, epochs)
     epochs_bad = Epochs(raw, events, event_id, 0, 0.01,
                         picks=np.arange(len(raw.ch_names)))  # non-data chs
     scaler = Scaler(epochs_bad.info, None)

@@ -1809,7 +1809,7 @@ def _recursive_search(path, pattern):
 
 def _fix_global_ids(html):
     """Fix the global_ids after reordering in _render_toc()."""
-    html = re.sub('id="\d+"', 'id="###"', html)
+    html = re.sub(r'id="\d+"', 'id="###"', html)
     global_id = 1
     while len(re.findall('id="###"', html)) > 0:
         html = re.sub('id="###"', 'id="%s"' % global_id, html, count=1)
