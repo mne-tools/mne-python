@@ -775,7 +775,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
            brain imaging (2008) Springer Science & Business Media
     """
     info = epochs.info
-    info= _deprecate_picks(info, picks)
+    info = _deprecate_picks(info, picks)
 
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
