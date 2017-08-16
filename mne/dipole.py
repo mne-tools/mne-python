@@ -645,7 +645,7 @@ def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None):
 
 def _dipole_gof(uu, sing, vv, B, B2):
     """Calculate the goodness of fit from the forward SVD."""
-    ncomp = 3 if sing[2] / sing[0] > 0.2 else 2
+    ncomp = 3 if sing[2] / (sing[0] if sing[0] > 0 else 1.) > 0.2 else 2
     one = np.dot(vv[:ncomp], B)
     Bm2 = np.sum(one * one)
     gof = Bm2 / B2
