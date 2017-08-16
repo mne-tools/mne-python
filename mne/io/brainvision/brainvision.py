@@ -478,7 +478,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     # create montage
     if montage is True:
-        from ...transforms import _sphere_to_cartesian
+        from ...transforms import _sph_to_cart
         from ...channels.montage import Montage
         montage_pos = list()
         montage_names = list()
@@ -486,7 +486,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             montage_names.append(ch_dict[ch[0]])
             radius, theta, phi = map(float, ch[1].split(','))
             # 1: radius, 2: theta, 3: phi
-            pos = _sphere_to_cartesian(r=radius, theta=theta, phi=phi)
+            pol = np.deg2rad(theta)
+            az = np.deg2rad(phi)
+            pos = _sph_to_cart(np.atleast_2d([radius * 85., az, pol])).squeeze()
             montage_pos.append(pos)
         montage_sel = np.arange(len(montage_pos))
         montage = Montage(montage_pos, montage_names, 'Brainvision',
