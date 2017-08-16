@@ -33,9 +33,10 @@ class RawBrainVision(BaseRaw):
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
+    montage : str | True | None | instance of Montage
+        Path or instance of montage containing electrode positions. If
+        True, read embedded sensor locations. If None, sensor locations
+        are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
@@ -349,8 +350,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
     montage : str | True | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
+        Path or instance of montage containing electrode positions. If
+        True, read embedded sensor locations. If None, sensor locations
+        are (0,0,0). See the documentation of
         :func:`mne.channels.read_montage` for more information.
 
     Returns
