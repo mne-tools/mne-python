@@ -41,6 +41,7 @@ def test_search_light():
     assert_equal(sl.__repr__()[-28:], ', fitted with 10 estimators>')
     assert_raises(ValueError, sl.fit, X[1:], y)
     assert_raises(ValueError, sl.fit, X[:, :, 0], y)
+    sl.fit(X, y, sample_weight=np.ones_like(y))
 
     # transforms
     assert_raises(ValueError, sl.predict, X[:, :, :2])
@@ -61,10 +62,10 @@ def test_search_light():
     assert_equal(sl.scoring, None)
 
     # Scoring method
-    for err, scoring in [(ValueError, 'foo'), (TypeError, 999)]:
+    for scoring in ['foo', 999]:
         sl = SlidingEstimator(LogisticRegression(), scoring=scoring)
         sl.fit(X, y)
-        assert_raises(err, sl.score, X, y)
+        assert_raises((ValueError, TypeError), sl.score, X, y)
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem
@@ -152,6 +153,7 @@ def test_generalization_light():
     gl = GeneralizingEstimator(LogisticRegression())
     assert_equal(repr(gl)[:23], '<GeneralizingEstimator(')
     gl.fit(X, y)
+    gl.fit(X, y, sample_weight=np.ones_like(y))
 
     assert_equal(gl.__repr__()[-28:], ', fitted with 10 estimators>')
     # transforms
@@ -178,10 +180,10 @@ def test_generalization_light():
     auc = roc_auc_score(y, gl.estimators_[0].predict_proba(X[..., 0])[..., 1])
     assert_equal(score[0, 0], auc)
 
-    for err, scoring in [(ValueError, 'foo'), (TypeError, 999)]:
+    for scoring in ['foo', 999]:
         gl = GeneralizingEstimator(LogisticRegression(), scoring=scoring)
         gl.fit(X, y)
-        assert_raises(err, gl.score, X, y)
+        assert_raises((ValueError, TypeError), gl.score, X, y)
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem

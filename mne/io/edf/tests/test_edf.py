@@ -134,9 +134,10 @@ def test_edf_data():
         fid_out.write(rbytes[:236])
         fid_out.write(bytes('-1      '.encode()))
         fid_out.write(rbytes[244:])
-    raw = read_raw_edf(broken_fname, preload=True, stim_channel='auto')
-    read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True,
-                 stim_channel='auto')
+    with warnings.catch_warnings(record=True):  # record mismatches
+        raw = read_raw_edf(broken_fname, preload=True, stim_channel='auto')
+        read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True,
+                     stim_channel='auto')
 
 
 @testing.requires_testing_data

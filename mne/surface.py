@@ -570,7 +570,7 @@ def _tessellate_sphere(mylevel):
 
     # Subdivide each starting triangle (mylevel - 1) times
     for _ in range(1, mylevel):
-        """
+        r"""
         Subdivide each triangle in the old approximation and normalize
         the new points thus generated to lie on the surface of the unit
         sphere.
