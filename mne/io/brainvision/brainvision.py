@@ -490,7 +490,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             # 1: radius, 2: theta, 3: phi
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
-            pos = _sph_to_cart(np.atleast_2d([radius * 85., az, pol])).squeeze()
+            pos = _sph_to_cart(np.atleast_2d([radius * 85., az,
+                                              pol])).squeeze()
             montage_pos.append(pos)
         montage_sel = np.arange(len(montage_pos))
         montage = Montage(montage_pos, montage_names, 'Brainvision',
