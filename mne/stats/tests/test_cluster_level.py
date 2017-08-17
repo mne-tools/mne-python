@@ -482,7 +482,7 @@ def test_summarize_clusters():
 def test_permutation_test_H0():
     """Test that H0 is populated properly during testing."""
     rng = np.random.RandomState(0)
-    data = rng.rand(20, 10, 1) - 0.5
+    data = rng.rand(7, 10, 1) - 0.5
     with warnings.catch_warnings(record=True) as w:
         t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
             data, threshold=100, n_permutations=1024, seed=rng)
@@ -490,18 +490,17 @@ def test_permutation_test_H0():
     assert_true('No clusters found' in str(w[0].message))
     assert_equal(len(h0), 0)
 
-    with warnings.catch_warnings(record=True) as w:
+    for n_permutations in (1024, 65, 64, 63):
         t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
-            data, threshold=0.1, n_permutations=1024, seed=rng)
-    assert_equal(len(w), 0)
-    assert_equal(len(h0), 1024)
+            data, threshold=0.1, n_permutations=n_permutations, seed=rng)
+        assert_equal(len(h0), min(n_permutations, 64))
     for tail, thresh in zip((-1, 0, 1), (-0.1, 0.1, 0.1)):
         with warnings.catch_warnings(record=True) as w:
             t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
-                data[:7], threshold=thresh, n_permutations=1024, seed=rng,
-                tail=tail)
+                data, threshold=thresh, seed=rng, tail=tail)
         assert_equal(len(w), 0)
-        assert_equal(len(h0), 2 ** (7 - (tail == 0)) - 1)  # exact test
+        # same as "128 if tail else 64"
+        assert_equal(len(h0), 2 ** (7 - (tail == 0)))  # exact test
 
 
 run_tests_if_main()

@@ -489,13 +489,12 @@ def _pval_from_histogram(T, H0, tail):
 
     # from pct to fraction
     if tail == -1:  # up tail
-        pval = np.array([np.sum(H0 <= t) for t in T])
+        pval = np.array([np.mean(H0 <= t) for t in T])
     elif tail == 1:  # low tail
-        pval = np.array([np.sum(H0 >= t) for t in T])
+        pval = np.array([np.mean(H0 >= t) for t in T])
     else:  # both tails
-        pval = np.array([np.sum(abs(H0) >= abs(t)) for t in T])
+        pval = np.array([np.mean(abs(H0) >= abs(t)) for t in T])
 
-    pval = (pval + 1.0) / (H0.size + 1.0)  # the init data is one resampling
     return pval
 
 
@@ -759,13 +758,13 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         slices = None
         # determine ordering
         max_perms = 2 ** (n_samples - (tail == 0)) - 1
-        if max_perms <= n_permutations:
-            # omit first perm b/c accounted for in _pval_from_histogram,
+        if max_perms < n_permutations:
+            # omit first perm b/c accounted for in H0.append() later;
             # convert to binary array representation
             orders = np.arange(max_perms)
             extra = ' (exact test)'
         else:
-            orders = rng.choice(max_perms, n_permutations)
+            orders = rng.choice(max_perms, n_permutations - 1)
         orders = [np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int)
                   for s in orders]
     else:
@@ -775,7 +774,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
         slices = [slice(splits_idx[k], splits_idx[k + 1])
                   for k in range(len(X))]
-        orders = [rng.permutation(len(X_full)) for _ in range(n_permutations)]
+        orders = [rng.permutation(len(X_full))
+                  for _ in range(n_permutations - 1)]
     del rng
     parallel, my_do_perm_func, _ = parallel_func(do_perm_func, n_jobs)
 
@@ -815,6 +815,14 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                       partitions, t_power, order, sample_shape, buffer_size,
                       get_progress_bar(order))
                       for order in split_list(orders, n_jobs))
+        # include original (true) ordering
+        if tail == -1:  # up tail
+            orig = cluster_stats.min()
+        elif tail == 1:
+            orig = cluster_stats.max()
+        else:
+            orig = abs(cluster_stats).max()
+        H0.insert(0, [orig])
         H0 = np.concatenate(H0)
         logger.info('Computing cluster p-values')
         cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
