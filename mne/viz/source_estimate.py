@@ -21,8 +21,8 @@ def plot_stc_glass_brain(stc, subject, subjects_dir=None, src=None,
                          initial_time=0., display_mode='ortho', colorbar=False,
                          axes=None, title=None, threshold='auto',
                          annotate=True, black_bg=False, cmap=None, alpha=0.7,
-                         vmax=None, plot_abs=True, symmetric_cbar="auto",
-                         show=True):
+                         vmin=None, vmax=None, plot_abs=True,
+                         symmetric_cbar="auto", show=True):
     """Plot stc on glass brain.
 
     Parameters
@@ -74,7 +74,9 @@ def plot_stc_glass_brain(stc, subject, subjects_dir=None, src=None,
     alpha : float
         Alpha transparency for the brain schematics.
     vmax : float
-        Upper bound for plotting, passed to matplotlib.pyplot.imshow.
+        Upper bound for plotting.
+    vmin : float
+        Lower bound for plotting.
     plot_abs : bool
         If True (default), maximum intensity projection of the absolute value
         will be used (rendering positive and negative values in the same
@@ -96,7 +98,7 @@ def plot_stc_glass_brain(stc, subject, subjects_dir=None, src=None,
 
     Notes
     -----
-    This function requires nilearn and nibabel.
+    This function requires :mod:`nilearn` and :mod:`nibabel`.
 
     .. _nilearn documentation: http://nilearn.github.io/auto_examples/01_plotting/plot_demo_glass_brain_extensive.html
     """  # noqa: E501
@@ -156,11 +158,11 @@ def plot_stc_glass_brain(stc, subject, subjects_dir=None, src=None,
     else:
         ValueError('Glass brain plotting is only supported for SourceEstimate '
                    'and VolSourceEstimate. Got %s.' % type(stc))
-    fig = plotting.plot_glass_brain(img, display_mode=display_mode,
-                                    colorbar=colorbar, axes=axes, title=title,
-                                    threshold=threshold, annotate=annotate,
-                                    black_bg=black_bg, cmap=cmap, alpha=alpha,
-                                    vmax=vmax, plot_abs=plot_abs,
-                                    symmetric_cbar=symmetric_cbar)
+    fig = plotting.plot_glass_brain(
+        img, display_mode=display_mode, colorbar=colorbar, axes=axes,
+        title=title, threshold=threshold, annotate=annotate,
+        black_bg=black_bg, cmap=cmap, alpha=alpha, vmax=vmax, vmin=vmin,
+        plot_abs=plot_abs, symmetric_cbar=symmetric_cbar)
+    # resampling_interpolation='nearest')
     plt_show(show)
     return fig

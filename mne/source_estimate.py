@@ -968,15 +968,15 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                          initial_time=0., display_mode='ortho', colorbar=False,
                          axes=None, title=None, threshold='auto',
                          annotate=True, black_bg=False, cmap=None, alpha=0.7,
-                         vmax=None, plot_abs=True, symmetric_cbar="auto",
-                         show=True):
+                         vmin=None, vmax=None, plot_abs=True,
+                         symmetric_cbar="auto", show=True):
         return plot_stc_glass_brain(self, subject, subjects_dir=subjects_dir,
                                     src=src, initial_time=initial_time,
                                     display_mode=display_mode,
                                     colorbar=colorbar, axes=axes, title=title,
                                     threshold=threshold, annotate=annotate,
                                     black_bg=black_bg, cmap=cmap, alpha=alpha,
-                                    vmax=vmax, plot_abs=plot_abs,
+                                    vmin=vmin, vmax=vmax, plot_abs=plot_abs,
                                     symmetric_cbar=symmetric_cbar, show=show)
 
 
