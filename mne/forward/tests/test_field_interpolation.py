@@ -176,17 +176,20 @@ def test_make_field_map_meeg():
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
     evoked.info.normalize_proj()
     maps = make_field_map(evoked, trans_fname, subject='sample',
-                          subjects_dir=subjects_dir, n_jobs=1)
+                          subjects_dir=subjects_dir, n_jobs=1, verbose='debug')
     assert_equal(maps[0]['data'].shape, (642, 6))  # EEG->Head
     assert_equal(maps[1]['data'].shape, (304, 31))  # MEG->Helmet
     # reasonable ranges
-    for map_ in maps:
-        assert_true(0.5 < map_['data'].max() < 2)
-        assert_true(-2 < map_['data'].min() < -0.5)
+    maxs = (1.2, 2.0)  # before #4418, was (1.1, 2.0)
+    mins = (-0.8, -1.3)  # before #4418, was (-0.6, -1.2)
+    assert_equal(len(maxs), len(maps))
+    for map_, max_, min_ in zip(maps, maxs, mins):
+        assert_allclose(map_['data'].max(), max_, rtol=5e-2)
+        assert_allclose(map_['data'].min(), min_, rtol=5e-2)
     # calculated from correct looking mapping on 2015/12/26
-    assert_allclose(np.sqrt(np.sum(maps[0]['data'] ** 2)), 16.6088,
+    assert_allclose(np.sqrt(np.sum(maps[0]['data'] ** 2)), 19.0903,  # 16.6088,
                     atol=1e-3, rtol=1e-3)
-    assert_allclose(np.sqrt(np.sum(maps[1]['data'] ** 2)), 20.1245,
+    assert_allclose(np.sqrt(np.sum(maps[1]['data'] ** 2)), 19.4748,  # 20.1245,
                     atol=1e-3, rtol=1e-3)
 
 

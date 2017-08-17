@@ -825,7 +825,9 @@ class UpdateChannelsMixin(object):
 class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
-    def interpolate_bads(self, reset_bads=True, mode='accurate'):
+    @verbose
+    def interpolate_bads(self, reset_bads=True, mode='accurate',
+                         verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -838,6 +840,10 @@ class InterpolationMixin(object):
             Either `'accurate'` or `'fast'`, determines the quality of the
             Legendre polynomial expansion used for interpolation of MEG
             channels.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------
