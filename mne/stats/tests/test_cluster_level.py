@@ -19,7 +19,7 @@ from mne.stats.cluster_level import (permutation_cluster_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import run_tests_if_main, slow_test, _TempDir, catch_logging
+from mne.utils import run_tests_if_main, _TempDir, catch_logging
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -141,7 +141,6 @@ def test_cluster_permutation_test():
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
 
-@slow_test
 def test_cluster_permutation_t_test():
     """Test cluster level permutations T-test."""
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
@@ -188,7 +187,6 @@ def test_cluster_permutation_t_test():
             assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
 
 
-@slow_test
 def test_cluster_permutation_with_connectivity():
     """Test cluster level permutations with connectivity matrix."""
     try:
@@ -333,7 +331,6 @@ def test_cluster_permutation_with_connectivity():
         assert_true(np.min(out_connectivity_6[2]) < 0.05)
 
 
-@slow_test
 def test_permutation_connectivity_equiv():
     """Test cluster level permutations with and without connectivity."""
     try:
@@ -351,66 +348,64 @@ def test_permutation_connectivity_equiv():
     # add some significant points
     X[:, :, 0:2] += 10  # span two time points and two spatial points
     X[:, 1, 3] += 20  # span one time point
-    max_steps = [1, 1, 1, 2]
+    max_steps = [1, 1, 1, 2, 1]
     # This will run full algorithm in two ways, then the ST-algorithm in 2 ways
     # All of these should give the same results
-    conns = [None, grid_to_graph(n_time, n_space),
-             grid_to_graph(1, n_space), grid_to_graph(1, n_space)]
+    conns = [None,
+             grid_to_graph(n_time, n_space),
+             grid_to_graph(1, n_space),
+             grid_to_graph(1, n_space),
+             None]
     stat_map = None
-    thresholds = [2, dict(start=1.5, step=1.0)]
-    sig_counts = [2, 5]
-    sdps = [0, 0.05, 0.05]
-    ots = ['mask', 'mask', 'indices']
+    thresholds = [2, 2, 2, 2, dict(start=0.01, step=1.0)]
+    sig_counts = [2, 2, 2, 2, 5]
     stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
-    for thresh, count in zip(thresholds, sig_counts):
-        cs = None
-        ps = None
-        for max_step, conn in zip(max_steps, conns):
-            for sdp, ot in zip(sdps, ots):
-                t, clusters, p, H0 = \
-                    permutation_cluster_1samp_test(
-                        X, threshold=thresh, connectivity=conn, n_jobs=2,
-                        max_step=max_step, stat_fun=stat_fun,
-                        step_down_p=sdp, out_type=ot)
-                # make sure our output datatype is correct
-                if ot == 'mask':
-                    assert_true(isinstance(clusters[0], np.ndarray))
-                    assert_true(clusters[0].dtype == bool)
-                    assert_array_equal(clusters[0].shape, X.shape[1:])
-                else:  # ot == 'indices'
-                    assert_true(isinstance(clusters[0], tuple))
 
-                # make sure all comparisons were done; for TFCE, no perm
-                # should come up empty
-                if count == 8:
-                    assert_true(not np.any(H0 == 0))
-                inds = np.where(p < 0.05)[0]
-                assert_true(len(inds) == count)
-                this_cs = [clusters[ii] for ii in inds]
-                this_ps = p[inds]
-                this_stat_map = np.zeros((n_time, n_space), dtype=bool)
-                for ci, c in enumerate(this_cs):
-                    if isinstance(c, tuple):
-                        this_c = np.zeros((n_time, n_space), bool)
-                        for x, y in zip(c[0], c[1]):
-                            this_stat_map[x, y] = True
-                            this_c[x, y] = True
-                        this_cs[ci] = this_c
-                        c = this_c
-                    this_stat_map[c] = True
-                if cs is None:
-                    ps = this_ps
-                    cs = this_cs
-                if stat_map is None:
-                    stat_map = this_stat_map
-                assert_array_equal(ps, this_ps)
-                assert_true(len(cs) == len(this_cs))
-                for c1, c2 in zip(cs, this_cs):
-                    assert_array_equal(c1, c2)
-                assert_array_equal(stat_map, this_stat_map)
+    cs = None
+    ps = None
+    for thresh, count, max_step, conn in zip(thresholds, sig_counts,
+                                             max_steps, conns):
+        t, clusters, p, H0 = \
+            permutation_cluster_1samp_test(
+                X, threshold=thresh, connectivity=conn, n_jobs=2,
+                max_step=max_step, stat_fun=stat_fun)
+        # make sure our output datatype is correct
+        assert_true(isinstance(clusters[0], np.ndarray))
+        assert_true(clusters[0].dtype == bool)
+        assert_array_equal(clusters[0].shape, X.shape[1:])
+
+        # make sure all comparisons were done; for TFCE, no perm
+        # should come up empty
+        inds = np.where(p < 0.05)[0]
+        assert_equal(len(inds), count)
+        if isinstance(thresh, dict):
+            assert_equal(len(clusters), n_time * n_space)
+            assert_true(np.all(H0 != 0))
+            continue
+        this_cs = [clusters[ii] for ii in inds]
+        this_ps = p[inds]
+        this_stat_map = np.zeros((n_time, n_space), dtype=bool)
+        for ci, c in enumerate(this_cs):
+            if isinstance(c, tuple):
+                this_c = np.zeros((n_time, n_space), bool)
+                for x, y in zip(c[0], c[1]):
+                    this_stat_map[x, y] = True
+                    this_c[x, y] = True
+                this_cs[ci] = this_c
+                c = this_c
+            this_stat_map[c] = True
+        if cs is None:
+            ps = this_ps
+            cs = this_cs
+        if stat_map is None:
+            stat_map = this_stat_map
+        assert_array_equal(ps, this_ps)
+        assert_true(len(cs) == len(this_cs))
+        for c1, c2 in zip(cs, this_cs):
+            assert_array_equal(c1, c2)
+        assert_array_equal(stat_map, this_stat_map)
 
 
-@slow_test
 def test_spatio_temporal_cluster_connectivity():
     """Test spatio-temporal cluster permutations."""
     try:
@@ -494,11 +489,13 @@ def test_permutation_test_H0():
         t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
             data, threshold=0.1, n_permutations=n_permutations, seed=rng)
         assert_equal(len(h0), min(n_permutations, 64))
+        assert_true(isinstance(clust[0], tuple))  # sets of indices
     for tail, thresh in zip((-1, 0, 1), (-0.1, 0.1, 0.1)):
         with warnings.catch_warnings(record=True) as w:
             t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
-                data, threshold=thresh, seed=rng, tail=tail)
+                data, threshold=thresh, seed=rng, tail=tail, out_type='mask')
         assert_equal(len(w), 0)
+        assert_true(isinstance(clust[0], np.ndarray))  # bool mask
         # same as "128 if tail else 64"
         assert_equal(len(h0), 2 ** (7 - (tail == 0)))  # exact test
 

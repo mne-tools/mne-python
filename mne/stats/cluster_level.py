@@ -1127,7 +1127,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
 
     Notes
     -----
-    If ``n_permutations >= 2 ** (n_samples - (tail == 0)) - 1``,
+    If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
     ``n_permutations`` and ``seed`` will be ignored since an exact test
     (full permutation test) will be performed.
 
@@ -1266,7 +1266,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
 
     Notes
     -----
-    If ``n_permutations >= 2 ** (n_samples - (tail == 0)) - 1``,
+    If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
     ``n_permutations`` and ``seed`` will be ignored since an exact test
     (full permutation test) will be performed.
 
