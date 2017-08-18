@@ -15,7 +15,7 @@ from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution,
-                 convert_forward_solution, Covariance)
+                 convert_forward_solution, Covariance, combine_evoked)
 from mne.io import read_raw_fif, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
@@ -185,8 +185,7 @@ def test_warn_inverse_operator():
 @slow_test
 @testing.requires_testing_data
 def test_make_inverse_operator():
-    """Test MNE inverse computation (precomputed and non-precomputed)
-    """
+    """Test MNE inverse computation (precomputed and non-precomputed)."""
     # Test old version of inverse computation starting from forward operator
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
@@ -211,8 +210,7 @@ def test_make_inverse_operator():
 @slow_test
 @testing.requires_testing_data
 def test_inverse_operator_channel_ordering():
-    """Test MNE inverse computation is immune to channel reorderings
-    """
+    """Test MNE inverse computation is immune to channel reorderings."""
     # These are with original ordering
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
@@ -268,8 +266,7 @@ def test_inverse_operator_channel_ordering():
 @slow_test
 @testing.requires_testing_data
 def test_apply_inverse_operator():
-    """Test MNE inverse application
-    """
+    """Test MNE inverse application."""
     inverse_operator = read_inverse_operator(fname_full)
     evoked = _get_evoked()
 
@@ -313,7 +310,7 @@ def test_apply_inverse_operator():
     assert_equal(stc_label.subject, 'sample')
     label_stc = stc.in_label(label)
     assert_true(label_stc.subject == 'sample')
-    assert_array_almost_equal(stc_label.data, label_stc.data)
+    assert_allclose(stc_label.data, label_stc.data)
 
     # Test we get errors when using custom ref or no average proj is present
     evoked.info['custom_ref_applied'] = True
@@ -325,8 +322,7 @@ def test_apply_inverse_operator():
 
 @testing.requires_testing_data
 def test_make_inverse_operator_fixed():
-    """Test MNE inverse computation (fixed orientation)
-    """
+    """Test MNE inverse computation (fixed orientation)."""
     fwd_1 = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                       force_fixed=False)
     fwd_2 = read_forward_solution_meg(fname_fwd, surf_ori=False,
@@ -354,31 +350,72 @@ def test_make_inverse_operator_fixed():
 
 @testing.requires_testing_data
 def test_make_inverse_operator_free():
-    """Test MNE inverse computation (free orientation)
-    """
-    fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    fwd_1 = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                      force_fixed=False)
-    fwd_2 = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                      force_fixed=True)
+    """Test MNE inverse computation (free orientation)."""
+    fwd_surf = read_forward_solution_meg(fname_fwd, surf_ori=True)
+    fwd_loose = read_forward_solution_meg(fname_fwd, surf_ori=False,
+                                          force_fixed=False)
+    fwd_fixed = read_forward_solution_meg(fname_fwd, surf_ori=False,
+                                          force_fixed=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 
     # can't make free inv with fixed fwd
-    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
+    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
                   noise_cov, depth=None)
 
     # for free ori inv, loose=None and loose=1 should be equivalent
-    inv_1 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=None)
-    inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=1)
+    inv_1 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, loose=None)
+    inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, loose=1)
     _compare_inverses_approx(inv_1, inv_2, evoked, 0, 1e-2)
 
     # for depth=None, surf_ori of the fwd should not matter
-    inv_3 = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=None,
+    inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None,
                                   loose=None)
-    inv_4 = make_inverse_operator(evoked.info, fwd_1, noise_cov, depth=None,
-                                  loose=None)
+    inv_4 = make_inverse_operator(evoked.info, fwd_loose, noise_cov,
+                                  depth=None, loose=None)
     _compare_inverses_approx(inv_3, inv_4, evoked, 0, 1e-2)
+
+
+@testing.requires_testing_data
+def test_make_inverse_operator_vector():
+    """Test MNE inverse computation (vector result)."""
+    fwd_surf = read_forward_solution_meg(fname_fwd, surf_ori=True)
+    fwd_fixed = read_forward_solution_meg(fname_fwd, surf_ori=False)
+    evoked = _get_evoked()
+    noise_cov = read_cov(fname_cov)
+
+    # Make different version of the inverse operator
+    inv_1 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov, loose=1)
+    inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None)
+    inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True,
+                                  loose=None)
+
+    # Apply the inverse operators and check the result
+    for inv in [inv_1, inv_2]:
+        for method in ['MNE', 'dSPM', 'sLORETA']:
+            stc = apply_inverse(evoked, inv, method=method)
+            stc_vec = apply_inverse(evoked, inv, pick_ori='vector',
+                                    method=method)
+            assert_allclose(stc.data, stc_vec.magnitude().data)
+
+    # Vector estimates don't work when using fixed orientations
+    assert_raises(RuntimeError, apply_inverse, evoked, inv_3,
+                  pick_ori='vector')
+
+    # When computing with vector fields, computing the difference between two
+    # evokeds and then performing the inverse should yield the same result as
+    # computing the difference between the inverses.
+    evoked0 = read_evokeds(fname_data, condition=0, baseline=(None, 0))
+    evoked0.crop(0, 0.2)
+    evoked1 = read_evokeds(fname_data, condition=1, baseline=(None, 0))
+    evoked1.crop(0, 0.2)
+    diff = combine_evoked((evoked0, evoked1), [1, -1])
+    stc_diff = apply_inverse(diff, inv_1, method='MNE')
+    stc_diff_vec = apply_inverse(diff, inv_1, method='MNE', pick_ori='vector')
+    stc_vec0 = apply_inverse(evoked0, inv_1, method='MNE', pick_ori='vector')
+    stc_vec1 = apply_inverse(evoked1, inv_1, method='MNE', pick_ori='vector')
+    assert_allclose(stc_diff_vec.data, (stc_vec0 - stc_vec1).data)
+    assert_allclose(stc_diff.data, (stc_vec0 - stc_vec1).magnitude().data)
 
 
 @testing.requires_testing_data
@@ -479,7 +516,7 @@ def test_apply_mne_inverse_raw():
     inverse_operator = read_inverse_operator(fname_full)
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2, method="dSPM")
-    for pick_ori in [None, "normal"]:
+    for pick_ori in [None, "normal", "vector"]:
         stc = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
                                 label=label_lh, start=start, stop=stop, nave=1,
                                 pick_ori=pick_ori, buffer_size=None,
@@ -557,22 +594,28 @@ def test_apply_mne_inverse_epochs():
     events = read_events(fname_event)[:15]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat)
-    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                label=label_lh, pick_ori="normal")
+
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
-                                                lambda2=lambda2, method="dSPM")
-    stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                 label=label_lh, pick_ori="normal",
-                                 prepared=True)
-    # test if using prepared and not prepared inverse operator give the same
-    # result
-    assert_array_almost_equal(stcs[0].data, stcs2[0].data)
-    assert_array_almost_equal(stcs[0].times, stcs2[0].times)
+                                                lambda2=lambda2,
+                                                method="dSPM")
+    for pick_ori in [None, "normal", "vector"]:
+        stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                    label=label_lh, pick_ori=pick_ori)
+        stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                     label=label_lh, pick_ori=pick_ori,
+                                     prepared=True)
+        # test if using prepared and not prepared inverse operator give the
+        # same result
+        assert_array_almost_equal(stcs[0].data, stcs2[0].data)
+        assert_array_almost_equal(stcs[0].times, stcs2[0].times)
 
-    assert_true(len(stcs) == 2)
-    assert_true(3 < stcs[0].data.max() < 10)
-    assert_true(stcs[0].subject == 'sample')
+        assert_true(len(stcs) == 2)
+        assert_true(3 < stcs[0].data.max() < 10)
+        assert_true(stcs[0].subject == 'sample')
+    inverse_operator = read_inverse_operator(fname_full)
 
+    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                label=label_lh, pick_ori='normal')
     data = sum(stc.data for stc in stcs) / len(stcs)
     flip = label_sign_flip(label_lh, inverse_operator['src'])
 
@@ -582,7 +625,9 @@ def test_apply_mne_inverse_epochs():
     assert_true(label_mean.max() < label_mean_flip.max())
 
     # test extracting a BiHemiLabel
-
+    inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
+                                                lambda2=lambda2,
+                                                method="dSPM")
     stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                    label=label_rh, pick_ori="normal",
                                    prepared=True)

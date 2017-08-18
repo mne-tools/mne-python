@@ -377,6 +377,8 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_mne_dspm_source_localization.rst
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_point_spread.rst
+    auto_tutorials/plot_dipole_orientations.rst
+
 
 .. raw:: html
 
@@ -429,6 +431,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/inverse/plot_tf_dics.rst
     auto_examples/inverse/plot_tf_lcmv.rst
     auto_examples/inverse/plot_time_frequency_mixed_norm_inverse.rst
+    auto_examples/inverse/plot_vector_source_estimate.rst
 
 .. raw:: html
 

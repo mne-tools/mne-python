@@ -1734,8 +1734,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Colorbar properties specification. If 'auto', set clim automatically
         based on data percentiles. If dict, should contain:
 
-            ``kind`` : str
-                Flag to specify type of limits. 'value' or 'percent'.
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
             ``lims`` : list | np.ndarray | tuple of float, 3 elements
                 Note: Only use this if 'colormap' is not 'mne'.
                 Left, middle, and right bound for colormap.
@@ -1895,6 +1895,191 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         brain.set_time(initial_time)
     if time_viewer:
         TimeViewer(brain)
+    return brain
+
+
+def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
+                                 time_label='auto', smoothing_steps=10,
+                                 transparent=None, brain_alpha=0.4,
+                                 overlay_alpha=None, vector_alpha=1.0,
+                                 scale_factor=None, time_viewer=False,
+                                 subjects_dir=None, figure=None, views='lat',
+                                 colorbar=True, clim='auto', cortex='classic',
+                                 size=800, background='black',
+                                 foreground='white', initial_time=None,
+                                 time_unit='s'):
+    """Plot VectorSourceEstimates with PySurfer.
+
+    A "glass brain" is drawn and all dipoles defined in the source estimate
+    are shown using arrows, depicting the direction and magnitude of the
+    current moment at the dipole. Additionally, an overlay is plotted on top of
+    the cortex with the magnitude of the current.
+
+    Parameters
+    ----------
+    stc : VectorSourceEstimate
+        The vector source estimate to plot.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None stc.subject will be used. If that
+        is None, the environment will be used.
+    hemi : str, 'lh' | 'rh' | 'split' | 'both'
+        The hemisphere to display.
+    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+        Name of colormap to use or a custom look up table. If array, must
+        be (n x 3) or (n x 4) array for with RGB or RGBA values between
+        0 and 255. Defaults to 'hot'.
+    time_label : str | callable | None
+        Format of the time label (a format string, a function that maps
+        floating point time values to strings, or None for no label). The
+        default is ``time=%0.2f ms``.
+    smoothing_steps : int
+        The amount of smoothing
+    transparent : bool | None
+        If True, use a linear transparency between fmin and fmid.
+        None will choose automatically based on colormap type.
+    brain_alpha : float
+        Alpha value to apply globally to the surface meshes. Defaults to 0.4.
+    overlay_alpha : float
+        Alpha value to apply globally to the overlay. Defaults to
+        ``brain_alpha``.
+    vector_alpha : float
+        Alpha value to apply globally to the vector glyphs. Defaults to 1.
+    scale_factor : float | None
+        Scaling factor for the vector glyphs. By default, an attempt is made to
+        automatically determine a sane value.
+    time_viewer : bool
+        Display time viewer GUI.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    figure : instance of mayavi.core.scene.Scene | list | int | None
+        If None, a new figure will be created. If multiple views or a
+        split view is requested, this must be a list of the appropriate
+        length. If int is provided it will be used to identify the Mayavi
+        figure by it's id or create a new figure with the given id.
+    views : str | list
+        View to use. See surfer.Brain().
+    colorbar : bool
+        If True, display colorbar on scene.
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+
+            ``kind`` : 'value' | 'percent'
+                Flag to specify type of limits.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is not 'mne'.
+                Left, middle, and right bound for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is 'mne'.
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
+    cortex : str or tuple
+        specifies how binarized curvature values are rendered.
+        either the name of a preset PySurfer cortex colorscheme (one of
+        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
+        name of mayavi colormap, or a tuple with values (colormap, min,
+        max, reverse) to fully specify the curvature colors.
+    size : float or pair of floats
+        The size of the window, in pixels. can be one number to specify
+        a square window, or the (width, height) of a rectangular window.
+    background : matplotlib color
+        Color of the background of the display window.
+    foreground : matplotlib color
+        Color of the foreground of the display window.
+    initial_time : float | None
+        The time to display on the plot initially. ``None`` to display the
+        first time sample (default).
+    time_unit : 's' | 'ms'
+        Whether time is represented in seconds ("s", default) or
+        milliseconds ("ms").
+
+    Returns
+    -------
+    brain : Brain
+        A instance of surfer.viz.Brain from PySurfer.
+
+    Notes
+    -----
+    .. versionadded:: 0.15
+
+    If the current magnitude overlay is not desired, set ``overlay_alpha=0``
+    and ``smoothing_steps=1``.
+    """
+    # Import here to avoid circular imports
+    import surfer
+    from surfer import Brain, TimeViewer
+    from ..source_estimate import VectorSourceEstimate
+
+    if not isinstance(stc, VectorSourceEstimate):
+        raise ValueError('stc has to be a vector source estimate')
+
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    subject = _check_subject(stc.subject, subject, True)
+    surfer_version = LooseVersion(surfer.__version__)
+    v08 = LooseVersion('0.8')
+    if surfer_version < v08:
+        raise ImportError("This function requires PySurfer 0.8 (you are "
+                          "running version %s). You can update PySurfer "
+                          "using:\n\n    $ pip install -U pysurfer" %
+                          surfer.__version__)
+
+    if hemi not in ['lh', 'rh', 'split', 'both']:
+        raise ValueError('hemi has to be either "lh", "rh", "split", '
+                         'or "both"')
+
+    time_label, times = _handle_time(time_label, time_unit, stc.times)
+
+    # convert control points to locations in colormap
+    scale_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
+    transparent = True if transparent is None else transparent
+
+    if hemi in ['both', 'split']:
+        hemis = ['lh', 'rh']
+    else:
+        hemis = [hemi]
+
+    if overlay_alpha is None:
+        overlay_alpha = brain_alpha
+    if overlay_alpha == 0:
+        smoothing_steps = 1  # Disable smoothing to save time.
+
+    title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
+    with warnings.catch_warnings(record=True):  # traits warnings
+        brain = Brain(subject, hemi=hemi, surf='white', curv=True,
+                      title=title, cortex=cortex, size=size,
+                      background=background, foreground=foreground,
+                      figure=figure, subjects_dir=subjects_dir,
+                      views=views, alpha=brain_alpha)
+
+    for hemi in hemis:
+        hemi_idx = 0 if hemi == 'lh' else 1
+        if hemi_idx == 0:
+            data = stc.data[:len(stc.vertices[0])]
+        else:
+            data = stc.data[len(stc.vertices[0]):]
+        vertices = stc.vertices[hemi_idx]
+        if len(data) > 0:
+            with warnings.catch_warnings(record=True):  # traits warnings
+                brain.add_data(data, colormap=colormap, vertices=vertices,
+                               smoothing_steps=smoothing_steps, time=times,
+                               time_label=time_label, alpha=overlay_alpha,
+                               hemi=hemi, colorbar=colorbar,
+                               vector_alpha=vector_alpha,
+                               scale_factor=scale_factor,
+                               initial_time=initial_time)
+
+        # scale colormap and set time (index) to display
+        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                                  fmax=scale_pts[2], transparent=transparent)
+
+    if time_viewer:
+        TimeViewer(brain)
+
     return brain
 
 
