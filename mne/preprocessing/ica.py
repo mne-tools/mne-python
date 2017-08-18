@@ -1183,6 +1183,7 @@ class ICA(ContainsMixin):
         zero out components, and inverse transform the data.
         This procedure will reconstruct M/EEG signals from which
         the dynamics described by the excluded components is subtracted.
+        The data is processed in place.
 
         Parameters
         ----------
@@ -1204,6 +1205,11 @@ class ICA(ContainsMixin):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+
+        Returns
+        -------
+        out : instance of Raw, Epochs or Evoked
+            The processed data.
         """
         if isinstance(inst, BaseRaw):
             out = self._apply_raw(raw=inst, include=include,
