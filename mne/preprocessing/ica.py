@@ -1205,7 +1205,7 @@ class ICA(ContainsMixin):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
-            
+
         Returns
         -------
         out : instance of Raw, Epochs or Evoked
