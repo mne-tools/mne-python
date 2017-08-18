@@ -546,7 +546,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
 @verbose
 def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
-                             copy=True, verbose=None):
+                             is_mixed=False,
+                             copy=True, verbose=None):  
     """Convert forward solution between different source orientations.
 
     Parameters
@@ -569,6 +570,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : Forward
         The modified forward solution.
     """
+    
+    print('\n *** is mixed = {} *** \n'.format(is_mixed))
     fwd = fwd.copy() if copy else fwd
 
     # We need to change these entries (only):
@@ -602,6 +605,50 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             logger.info('    [done]')
         fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
         fwd['surf_ori'] = True
+    elif is_mixed:
+
+        vertno = [s['vertno'] for s in fwd['src']]
+        nvert = [len(vn) for vn in vertno]
+
+        # source_nn_cortex contains the normal orientation of the cortex,
+        # dim is n_source_cortex x 3
+        n_source_cortex = np.sum(nvert[:2])
+        source_nn_cortex = np.concatenate([s['nn'][s['vertno'], :]
+                                               for s in fwd['src'][:2]], axis=0)
+        print('dim of source_nn_cortex {}'.format(source_nn_cortex.shape))
+        
+        n_source_aseg = np.sum(nvert[2:])
+        source_nn_aseg = np.kron(np.ones((n_source_aseg, 1)), np.eye(3))
+        print('dim of source_nn_aseg {}'.format(source_nn_aseg.shape))
+        
+        fwd['source_nn'] = np.concatenate((source_nn_cortex, source_nn_aseg), axis=0)
+        print('dim of source_nn {}'.format(fwd['source_nn'].shape))
+        
+        n_col = n_source_cortex + n_source_aseg*3
+        
+        if n_col != fwd['source_nn'].shape[0]:
+            raise ValueError('mismatch btw ncol and fwd[''source_nn''].shape[0]')        
+        
+        fix_rot = _block_diag(source_nn_cortex.T, 1)
+        
+        LF_all = fwd['_orig_sol']
+        LF_cortex = LF_all[:, :n_source_cortex*3]        
+        LF_aseg = LF_all[:, n_source_cortex*3:]
+        
+        if (LF_all.shape[1] - LF_cortex.shape[1]) != n_source_aseg*3:
+            raise ValueError('dim mismatch!!!***####')
+        
+        LF_cortex_fixed = (LF_cortex * fix_rot).astype('float32')
+        print('LF_Cortex_fixed dim {}'.format(LF_cortex_fixed.shape))
+        
+        fwd['sol']['data'] = np.concatenate((LF_cortex_fixed, LF_aseg), axis=1)
+        print('LF all dim {}'.format(fwd['sol']['data'].shape))
+        
+        fwd['sol']['ncol'] = n_col
+        fwd['source_ori'] = 5  ## TODO choose a number to include in FIFF!!!
+        fwd['surf_ori'] = False  # TODO to be sure True or False
+        
+        
     elif surf_ori:  # Free, surf-oriented
         #   Rotate the local source coordinate systems
         nuse_total = sum([s['nuse'] for s in fwd['src']])

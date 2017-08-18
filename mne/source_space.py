@@ -1154,7 +1154,52 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     # take point locations in MRI space and convert to MNI coordinates
     xfm = _read_talxfm(subject, subjects_dir, mode)
     data = np.array([rr[h][v, :] for h, v in zip(hemis, vertices)])
-    return apply_trans(xfm['trans'], data)
+    return apply_trans(xfm['trans'], data), xfm
+
+
+##############################################################################
+# Volume to MNI conversion
+
+
+@verbose
+def aseg_vertex_to_mni(vertices, subject, subjects_dir=None, mode=None,
+                       verbose=None):
+    """Convert the array of vertices for a hemisphere to MNI coordinates.
+    Parameters
+    ----------
+    vertices : int, or list of int
+        Vertex number(s) to convert
+    subject : string
+        Name of the subject to load surfaces from.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    mode : string | None
+        Either 'nibabel' or 'freesurfer' for the software to use to
+        obtain the transforms. If None, 'nibabel' is tried first, falling
+        back to 'freesurfer' if it fails. Results should be equivalent with
+        either option, but nibabel may be quicker (and more pythonic).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+    Returns
+    -------
+    coordinates : n_vertices x 3 array of float
+        The MNI coordinates (in mm) of the vertices
+    Notes
+    -----
+    This function requires either nibabel (in Python) or Freesurfer
+    (with utility "mri_info") to be correctly installed.
+    """
+    if not has_freesurfer() and not has_nibabel():
+        raise RuntimeError('NiBabel (Python) or Freesurfer (Unix) must be '
+                           'correctly installed and accessible from Python')
+
+    if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
+        vertices = [vertices]
+
+    # take point locations in MRI space and convert to MNI coordinates
+    xfm = _read_talxfm(subject, subjects_dir, mode)
+    return apply_trans(xfm['trans'], vertices), xfm
 
 
 @verbose
@@ -2446,7 +2491,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
         roi_str = src[nr]['seg_name']
         try:
             ind = all_labels_aseg[0].index(roi_str)
-            color = np.array(all_labels_aseg[1][ind]) / 255
+            color = tuple(np.array(all_labels_aseg[1][ind]) / 255.)
         except ValueError:
             pass
 
