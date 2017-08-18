@@ -1198,7 +1198,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         vmin=None, vmax=None, cmap=None, sensors=True,
-                        colorbar=True, scale=None, scale_time=1e3, unit=None,
+                        colorbar=None, scale=None, scale_time=1e3, unit=None,
                         res=64, size=1, cbar_fmt='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
@@ -1256,8 +1256,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True (default),
         circles will be used.
-    colorbar : bool
-        Plot a colorbar.
+    colorbar : bool | None
+        Plot a colorbar in the rightmost column of the figure.
+        None (default) is the same as True, but emits a warning if custom
+        ``axes`` are provided to remind the user that the colorbar will
+        occupy the last :class:`matplotlib.pyplot.Axes` instance.
     scale : dict | float | None
         Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
         for grad and 1e15 for mag.
@@ -1349,6 +1352,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     from matplotlib.widgets import Slider
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
 
+    if colorbar is None:
+        colorbar = True
+        colorbar_warn = True
+    else:
+        colorbar_warn = False
     mask_params = _handle_default('mask_params', mask_params)
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
@@ -1400,7 +1408,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         axes = list()
         for ax_idx in range(len(times)):
             axes.append(plt.subplot(gs[ax_idx]))
-    elif colorbar:
+    elif colorbar and colorbar_warn:
         warn('Colorbar is drawn to the rightmost column of the figure. Be '
              'sure to provide enough space for it or turn it off with '
              'colorbar=False.')
