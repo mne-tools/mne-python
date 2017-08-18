@@ -52,12 +52,10 @@ def _reg_pinv(x, reg):
 
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
     # get a list of all channel names:
-    fwd_ch_names = set([c['ch_name'] for c in forward['info']['chs']])
+    fwd_ch_names = set([ch['ch_name'] for ch in forward['info']['chs']])
 
     # handle channels from forward model and info:
-    ch_names = [c['ch_name'] for c in info['chs']
-                if c['ch_name'] not in info['bads'] and
-                c['ch_name'] in fwd_ch_names]
+    ch_names = _compare_ch_names(info['ch_names'], fwd_ch_names, info['bads'])
 
     # inform about excluding channels:
     if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
@@ -73,19 +71,23 @@ def _setup_picks(info, forward, data_cov=None, noise_cov=None):
     # handle channels from data cov if data cov is not None
     # Note: data cov is supposed to be None in tf_lcmv
     if data_cov is not None:
-        ch_names = [c for c in ch_names
-                    if c not in data_cov['bads'] and
-                    c in data_cov.ch_names]
+        ch_names = _compare_ch_names(ch_names, data_cov.ch_names,
+                                     data_cov['bads'])
 
     # handle channels from noise cov if noise cov available:
     if noise_cov is not None:
-        ch_names = [c for c in ch_names
-                    if c not in noise_cov['bads'] and
-                    c in noise_cov.ch_names]
+        ch_names = _compare_ch_names(ch_names, noise_cov.ch_names,
+                                     noise_cov['bads'])
 
     picks = [info['ch_names'].index(k) for k in ch_names if k in
              info['ch_names']]
     return picks
+
+
+def _compare_ch_names(names1, names2, bads):
+    """Return channel names common to both lists but not in bads"""
+    ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
+    return ch_names
 
 
 def _check_one_ch_type(info, picks, noise_cov):
@@ -406,13 +408,13 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
                          'forward operator with a surface-based source space '
                          'is used.')
     # Restrict forward solution to selected channels
-    info_ch_names = [c['ch_name'] for c in info['chs']]
+    info_ch_names = [ch['ch_name'] for ch in info['chs']]
     ch_names = [info_ch_names[k] for k in picks]
     fwd_ch_names = forward['sol']['row_names']
     # Keep channels in forward present in info:
-    fwd_ch_names = [c for c in fwd_ch_names if c in info_ch_names]
+    fwd_ch_names = [ch for ch in fwd_ch_names if ch in info_ch_names]
     forward = pick_channels_forward(forward, fwd_ch_names)
-    picks_forward = [fwd_ch_names.index(c) for c in ch_names]
+    picks_forward = [fwd_ch_names.index(ch) for ch in ch_names]
 
     # Get gain matrix (forward operator)
     if label is not None:
