@@ -1859,8 +1859,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
 
 class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
-    """Container for surface source estimates that include both magnitude and
-    direction.
+    """Container for vector surface source estimates.
 
     For each vertex, the magnitude of the current is defined in the X, Y and Z
     directions.
@@ -1902,6 +1901,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
     """
+
     @verbose
     def save(self, fname, ftype='h5', verbose=None):
         """Save the full source estimate to an HDF5 file.
