@@ -51,6 +51,7 @@ def _reg_pinv(x, reg):
 
 
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
+    """Return good channels common to forward model and covariance matrices."""
     # get a list of all channel names:
     fwd_ch_names = forward['info']['ch_names']
 
@@ -85,14 +86,13 @@ def _setup_picks(info, forward, data_cov=None, noise_cov=None):
 
 
 def _compare_ch_names(names1, names2, bads):
-    """Return channel names common to both lists but not in bads"""
+    """Return channel names of common and good channels."""
     ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
     return ch_names
 
 
 def _check_one_ch_type(info, picks, noise_cov):
-    # check number of sensor types present in the data and presence of
-    # noise covariance matrix
+    """Check number of sensor types and presence of noise covariance matrix."""
     info_pick = pick_info(info, sel=picks)
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
