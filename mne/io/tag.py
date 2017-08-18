@@ -314,8 +314,18 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                                      sparse_ptrs), shape=shape)
         else:
             #    RCS
-            sparse_indices = np.frombuffer(fid.read(4 * nnz), dtype='>i4')
-            sparse_ptrs = np.frombuffer(fid.read(4 * (nrow + 1)), dtype='>i4')
+            tmp_indices = fid.read(4 * nnz)
+            sparse_indices = np.frombuffer(tmp_indices, dtype='>i4')
+            tmp_ptrs = fid.read(4 * (nrow + 1))
+            sparse_ptrs = np.frombuffer(tmp_ptrs, dtype='>i4')
+            if (sparse_ptrs[-1] > len(sparse_indices) or
+                    np.any(sparse_ptrs < 0)):
+                # There was a bug in MNE-C that caused some data to be
+                # stored without byte swapping
+                sparse_indices = np.concatenate(
+                    (np.fromstring(tmp_indices[:4 * (ncol + 1)], dtype='>i4'),
+                     np.fromstring(tmp_indices[4 * (ncol + 1):], dtype='<i4')))
+                sparse_ptrs = np.fromstring(tmp_ptrs, dtype='<i4')
             data = sparse.csr_matrix((sparse_data, sparse_indices,
                                      sparse_ptrs), shape=shape)
     else:
