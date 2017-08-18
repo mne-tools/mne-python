@@ -172,7 +172,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
     data = evoked.data
     tmin = evoked.times[0]
 
-    picks = _setup_picks(picks=None, info=info, forward=forward)
+    picks = _setup_picks(info=info, forward=forward)
     data = data[picks]
 
     stc = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
@@ -244,7 +244,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
     info = epochs.info
     tmin = epochs.times[0]
 
-    picks = _setup_picks(picks=None, info=info, forward=forward)
+    picks = _setup_picks(info=info, forward=forward)
     data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
@@ -349,7 +349,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
     else:
         fstep = 1  # dummy value
 
-    picks = _setup_picks(picks=None, info=info, forward=forward)
+    picks = _setup_picks(info=info, forward=forward)
 
     is_free_ori, _, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks=picks,

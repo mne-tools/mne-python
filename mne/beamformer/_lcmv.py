@@ -24,6 +24,17 @@ from ..externals import six
 from ..channels.channels import _contains_ch_type
 
 
+def _deprecate_picks(info, picks):
+    if picks is not None:
+        warn('Specifying picks is deprecated and will be removed in 0.16. '
+             'Specifying the selection of channels in info and setting picks '
+             'to None will remove this warning.',
+             DeprecationWarning)
+
+        info = pick_info(info, picks)
+    return info
+
+
 def _reg_pinv(x, reg):
     """Compute a regularized pseudoinverse of a square array."""
     if reg == 0:
@@ -39,36 +50,49 @@ def _reg_pinv(x, reg):
     return linalg.pinv(x), d
 
 
-def _setup_picks(picks, info, forward, noise_cov=None):
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+def _setup_picks(info, forward, data_cov=None, noise_cov=None):
+    """Returns good channels common to forward model and cov. matrices."""
+    # get a list of all channel names:
+    fwd_ch_names = forward['info']['ch_names']
 
-    ok_ch_names = set([c['ch_name'] for c in forward['info']['chs']])
-    if noise_cov is not None:
-        ok_ch_names.union(set(noise_cov.ch_names))
+    # handle channels from forward model and info:
+    ch_names = _compare_ch_names(info['ch_names'], fwd_ch_names, info['bads'])
 
-    if noise_cov is not None and set(info['bads']) != set(noise_cov['bads']):
+    # inform about excluding channels:
+    if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
+            (len(set(ch_names).intersection(data_cov['bads'])) > 0)):
+        logger.info('info["bads"] and data_cov["bads"] do not match, '
+                    'excluding bad channels from both.')
+    if (noise_cov is not None and
+            set(info['bads']) != set(noise_cov['bads']) and
+            (len(set(ch_names).intersection(noise_cov['bads'])) > 0)):
         logger.info('info["bads"] and noise_cov["bads"] do not match, '
                     'excluding bad channels from both.')
 
-    bads = set(info['bads'])
+    # handle channels from data cov if data cov is not None
+    # Note: data cov is supposed to be None in tf_lcmv
+    if data_cov is not None:
+        ch_names = _compare_ch_names(ch_names, data_cov.ch_names,
+                                     data_cov['bads'])
+
+    # handle channels from noise cov if noise cov available:
     if noise_cov is not None:
-        bads.union(set(noise_cov['bads']))
-
-    ok_ch_names -= bads
-
-    ch_names = [info['chs'][k]['ch_name'] for k in picks]
-    ch_names = [c for c in ch_names if c in ok_ch_names]
+        ch_names = _compare_ch_names(ch_names, noise_cov.ch_names,
+                                     noise_cov['bads'])
 
     picks = [info['ch_names'].index(k) for k in ch_names if k in
              info['ch_names']]
     return picks
 
 
+def _compare_ch_names(names1, names2, bads):
+    """Returns channel names of common and good channels."""
+    ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
+    return ch_names
+
+
 def _check_one_ch_type(info, picks, noise_cov):
-    # check number of sensor types present in the data and presence of
-    # noise covariance matrix
+    """Checks number of sensor types and presence of noise cov. matrix."""
     info_pick = pick_info(info, sel=picks)
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
@@ -79,7 +103,7 @@ def _check_one_ch_type(info, picks, noise_cov):
 
 
 def _pick_channels_spatial_filter(ch_names, filters):
-    """Return data channel indices to be used with spatial filter.
+    """Returns data channel indices to be used with spatial filter.
 
     Unlike ``pick_channels``, this respects the order of ch_names.
     """
@@ -103,9 +127,9 @@ def _check_cov_matrix(data_cov):
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              picks=None, pick_ori=None, rank=None,
+              pick_ori=None, rank=None,
               weight_norm='unit-noise-gain', verbose=None):
-    """Compute LCMV spatial filter.
+    """Computes LCMV spatial filter.
 
     Parameters
     ----------
@@ -124,9 +148,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         gradiometers with magnetometers or EEG with MEG.
     label : Label
         Restricts the LCMV solution to a given label.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
     pick_ori : None | 'normal' | 'max-power'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
@@ -161,7 +182,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    picks = _setup_picks(picks, info, forward, noise_cov)
+    picks = _setup_picks(info, forward, data_cov, noise_cov)
 
     is_free_ori, ch_names, proj, vertno, G = \
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
@@ -296,12 +317,12 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
 
 def _subject_from_filter(filters):
-    """Get subject id from inverse operator."""
+    """Gets subject id from inverse operator."""
     return filters['src'][0].get('subject_his_id', None)
 
 
 def _check_proj_match(info, filters):
-    """Check whether SSP projections in data and spatial filter match."""
+    """Checks whether SSP projections in data and spatial filter match."""
     proj_data, _, _ = make_projector(info['projs'],
                                      filters['ch_names'])
     if not np.array_equal(proj_data, filters['proj']):
@@ -311,7 +332,7 @@ def _check_proj_match(info, filters):
 
 
 def _apply_lcmv(data, filters, info, tmin, max_ori_out):
-    """Apply LCMV spatial filter to data for source reconstruction."""
+    """Applies LCMV spatial filter to data for source reconstruction."""
     if max_ori_out == 'abs':
         warn('max_ori_out and the return of absolute values is deprecated and '
              'will be removed in 0.16. Set it to "signed" to remove this '
@@ -387,13 +408,13 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
                          'forward operator with a surface-based source space '
                          'is used.')
     # Restrict forward solution to selected channels
-    info_ch_names = [c['ch_name'] for c in info['chs']]
+    info_ch_names = [ch['ch_name'] for ch in info['chs']]
     ch_names = [info_ch_names[k] for k in picks]
     fwd_ch_names = forward['sol']['row_names']
     # Keep channels in forward present in info:
-    fwd_ch_names = [c for c in fwd_ch_names if c in info_ch_names]
+    fwd_ch_names = [ch for ch in fwd_ch_names if ch in info_ch_names]
     forward = pick_channels_forward(forward, fwd_ch_names)
-    picks_forward = [fwd_ch_names.index(c) for c in ch_names]
+    picks_forward = [fwd_ch_names.index(ch) for ch in ch_names]
 
     # Get gain matrix (forward operator)
     if label is not None:
@@ -614,6 +635,8 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     picks : array-like of int
         Channel indices to use for beamforming (if None all channels
         are used except bad channels).
+        picks is deprecated and will be removed in 0.16, use pick_channels or
+        pick_types instead.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -656,12 +679,15 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
+    info = evoked.info
+    info = _deprecate_picks(info, picks)
+
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    filters = make_lcmv(info=evoked.info, forward=forward, data_cov=data_cov,
-                        reg=reg, noise_cov=noise_cov, label=label, picks=picks,
+    filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
+                        reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
     # apply spatial filter to evoked data
@@ -706,6 +732,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     picks : array-like of int
         Channel indices to use for beamforming (if None all channels
         are used except bad channels).
+        picks is deprecated and will be removed in 0.16, use pick_channels or
+        pick_types instead.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -748,12 +776,15 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
+    info = epochs.info
+    info = _deprecate_picks(info, picks)
+
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    filters = make_lcmv(info=epochs.info, forward=forward, data_cov=data_cov,
-                        reg=reg, noise_cov=noise_cov, label=label, picks=picks,
+    filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
+                        reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
     # apply spatial filter to epochs
@@ -798,6 +829,8 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     picks : array-like of int
         Channel indices to use for beamforming (if None all channels
         are used except bad channels).
+        picks is deprecated and will be removed in 0.16, use pick_channels or
+        pick_types instead.
     pick_ori : None | 'normal' | 'max-power'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
@@ -844,12 +877,15 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
+    info = raw.info
+    info = _deprecate_picks(info, picks)
+
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    filters = make_lcmv(info=raw.info, forward=forward, data_cov=data_cov,
-                        reg=reg, noise_cov=noise_cov, label=label, picks=picks,
+    filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
+                        reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
 
     # apply spatial filter to epochs
@@ -999,6 +1035,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     picks : array-like of int
         Channel indices to use for beamforming (if None all channels
         are used except bad channels).
+        picks is deprecated and will be removed in 0.16, use pick_channels
+        or pick_types instead.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -1029,6 +1067,9 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
+    info = epochs.info
+    info = _deprecate_picks(info, picks)
+
     _check_reference(epochs)
 
     if pick_ori not in [None, 'normal']:
@@ -1052,13 +1093,14 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                          'underlying raw instance to this function')
 
     if noise_covs is None:
-        picks = _setup_picks(picks, epochs.info, forward)
+        picks = _setup_picks(info, forward, data_cov=None)
     else:
-        picks = _setup_picks(picks, epochs.info, forward, noise_covs[0])
+        picks = _setup_picks(info, forward, data_cov=None,
+                             noise_cov=noise_covs[0])
     ch_names = [epochs.ch_names[k] for k in picks]
 
     # check number of sensor types present in the data
-    _check_one_ch_type(epochs.info, picks, noise_covs)
+    _check_one_ch_type(info, picks, noise_covs)
 
     # Use picks from epochs for picking channels in the raw object
     raw_picks = [raw.ch_names.index(c) for c in ch_names]
