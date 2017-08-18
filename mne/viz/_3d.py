@@ -27,7 +27,7 @@ from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
-from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
+from ..source_space import (SourceSpaces, _create_surf_spacing, _check_spacing)
 
 from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,

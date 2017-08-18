@@ -25,6 +25,8 @@ print(__doc__)
 data_path = sample.data_path()
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-vol-7-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
+subjects_dir = data_path + '/subjects'
+fname_t1 = subjects_dir + '/sample/mri/T1.mgz'
 
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
@@ -39,16 +41,22 @@ src = inverse_operator['src']
 stc = apply_inverse(evoked, inverse_operator, lambda2, method)
 stc.crop(0.0, 0.2)
 
-# Export result as a 4D nifti object
+# Export result as a 4D NIfTI object
 img = stc.as_volume(src,
                     mri_resolution=False)  # set True for full MRI resolution
 
-# Save it as a nifti file
+# Save it as a NIfTI file:
 # nib.save(img, 'mne_%s_inverse.nii.gz' % method)
 
-t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
+###############################################################################
+# Plot with our wrapper to :func:`nilearn.plotting.plot_glass_brain`:
 
-# Plotting with nilearn ######################################################
-plot_stat_map(index_img(img, 61), t1_fname, threshold=8.,
+stc.plot_glass_brain(subject='sample', subjects_dir=subjects_dir,
+                     src=src, vmin=8, vmax=26)
+
+###############################################################################
+# Plot directly with :func:`nilearn.plotting.plot_stat_map`:
+
+plot_stat_map(index_img(img, 61), fname_t1, threshold=8.,
               title='%s (t=%.1f s.)' % (method, stc.times[61]))
 plt.show()

@@ -1097,6 +1097,7 @@ requires_ftp = partial(
 requires_nitime = partial(requires_module, name='nitime')
 requires_h5py = partial(requires_module, name='h5py')
 requires_numpydoc = partial(requires_module, name='numpydoc')
+requires_nilearn = partial(requires_module, name='nilearn')
 
 
 def check_version(library, min_version):

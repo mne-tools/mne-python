@@ -244,6 +244,7 @@ Visualization
    plot_evoked_field
    plot_evoked_white
    plot_filter
+   plot_stc_glass_brain
    plot_head_positions
    plot_ideal_filter
    plot_compare_evokeds

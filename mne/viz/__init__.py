@@ -23,3 +23,4 @@ from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
                   _plot_sources_raw, _plot_sources_epochs, plot_ica_properties)
 from .montage import plot_montage
 from .decoding import plot_gat_matrix, plot_gat_times
+from .source_estimate import plot_stc_glass_brain
