@@ -51,7 +51,7 @@ def _reg_pinv(x, reg):
 
 
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
-    """Return good channels common to forward model and covariance matrices."""
+    """Returns good channels common to forward model and cov. matrices."""
     # get a list of all channel names:
     fwd_ch_names = forward['info']['ch_names']
 
@@ -86,13 +86,13 @@ def _setup_picks(info, forward, data_cov=None, noise_cov=None):
 
 
 def _compare_ch_names(names1, names2, bads):
-    """Return channel names of common and good channels."""
+    """Returns channel names of common and good channels."""
     ch_names = [ch for ch in names1 if ch not in bads and ch in names2]
     return ch_names
 
 
 def _check_one_ch_type(info, picks, noise_cov):
-    """Check number of sensor types and presence of noise covariance matrix."""
+    """Checks number of sensor types and presence of noise cov. matrix."""
     info_pick = pick_info(info, sel=picks)
     ch_types =\
         [_contains_ch_type(info_pick, tt) for tt in ('mag', 'grad', 'eeg')]
@@ -103,7 +103,7 @@ def _check_one_ch_type(info, picks, noise_cov):
 
 
 def _pick_channels_spatial_filter(ch_names, filters):
-    """Return data channel indices to be used with spatial filter.
+    """Returns data channel indices to be used with spatial filter.
 
     Unlike ``pick_channels``, this respects the order of ch_names.
     """
@@ -129,7 +129,7 @@ def _check_cov_matrix(data_cov):
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
               pick_ori=None, rank=None,
               weight_norm='unit-noise-gain', verbose=None):
-    """Compute LCMV spatial filter.
+    """Computes LCMV spatial filter.
 
     Parameters
     ----------
@@ -317,12 +317,12 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
 
 def _subject_from_filter(filters):
-    """Get subject id from inverse operator."""
+    """Gets subject id from inverse operator."""
     return filters['src'][0].get('subject_his_id', None)
 
 
 def _check_proj_match(info, filters):
-    """Check whether SSP projections in data and spatial filter match."""
+    """Checks whether SSP projections in data and spatial filter match."""
     proj_data, _, _ = make_projector(info['projs'],
                                      filters['ch_names'])
     if not np.array_equal(proj_data, filters['proj']):
@@ -332,7 +332,7 @@ def _check_proj_match(info, filters):
 
 
 def _apply_lcmv(data, filters, info, tmin, max_ori_out):
-    """Apply LCMV spatial filter to data for source reconstruction."""
+    """Applies LCMV spatial filter to data for source reconstruction."""
     if max_ori_out == 'abs':
         warn('max_ori_out and the return of absolute values is deprecated and '
              'will be removed in 0.16. Set it to "signed" to remove this '
