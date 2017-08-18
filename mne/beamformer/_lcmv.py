@@ -52,19 +52,19 @@ def _reg_pinv(x, reg):
 
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
     # get a list of all channel names:
-    fwd_ch_names = set([ch['ch_name'] for ch in forward['info']['chs']])
+    fwd_ch_names = forward['info']['ch_names']
 
     # handle channels from forward model and info:
     ch_names = _compare_ch_names(info['ch_names'], fwd_ch_names, info['bads'])
 
     # inform about excluding channels:
     if (data_cov is not None and set(info['bads']) != set(data_cov['bads']) and
-            (set(ch_names) & set(data_cov['bads']))):
+            (len(set(ch_names).intersection(data_cov['bads'])) > 0)):
         logger.info('info["bads"] and data_cov["bads"] do not match, '
                     'excluding bad channels from both.')
     if (noise_cov is not None and
             set(info['bads']) != set(noise_cov['bads']) and
-            (set(ch_names) & set(noise_cov['bads']))):
+            (len(set(ch_names).intersection(noise_cov['bads'])) > 0)):
         logger.info('info["bads"] and noise_cov["bads"] do not match, '
                     'excluding bad channels from both.')
 
