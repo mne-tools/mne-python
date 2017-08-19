@@ -14,7 +14,7 @@
         <div class="carousel-inner">
 
           <div class="item active">
-            <div class="chopper container"><img src="_images/sphx_glr_plot_mne_dspm_source_localization_007.png" alt="dSPM" class="carousel-image"></div>
+            <div class="chopper container"><img src="_images/sphx_glr_plot_mne_dspm_source_localization_009.png" alt="dSPM" class="carousel-image"></div>
             <div class="container">
               <div class="carousel-caption">
                 <h2>Source estimation</h2>

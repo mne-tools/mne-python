@@ -16,7 +16,7 @@ from mne.datasets import sample
 from mne.minimum_norm import (make_inverse_operator, apply_inverse,
                               write_inverse_operator)
 
-# sphinx_gallery_thumbnail_number = 7
+# sphinx_gallery_thumbnail_number = 9
 
 ###############################################################################
 # Process MEG data
@@ -135,7 +135,8 @@ brain_fsaverage.show_view('lateral')
 ###############################################################################
 # Dipole orientations
 # -------------------
-# The ``pick_ori`` parameter of the :func:`mne.apply_inverse` command controls
+# The ``pick_ori`` parameter of the
+# :func:`mne.minimum_norm.apply_inverse` function controls
 # the orientation of the dipoles. One useful setting is ``pick_ori='vector'``,
 # which will return an estimate that does not only contain the source power at
 # each dipole, but also the orientation of the dipoles.
