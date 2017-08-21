@@ -958,7 +958,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
 
             fid.seek(68 * len(channels), 1)  # obsolete
             lowpass = np.fromfile(fid, np.float32, len(channels))
-            highpass = np.fromfile(fid, np.float32,  len(channels))
+            highpass = np.fromfile(fid, np.float32, len(channels))
             notch = np.fromfile(fid, np.float32, len(channels))
 
             # number of samples per record
