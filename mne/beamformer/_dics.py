@@ -21,9 +21,8 @@ from ..externals import six
 
 
 @verbose
-def make_dics(info, forward, noise_csd, data_csd, reg=0.05,
-              label=None, picks=None, pick_ori=None, real_filter=False,
-              verbose=None):
+def make_dics(info, forward, noise_csd, data_csd, reg=0.05, label=None,
+              pick_ori=None, real_filter=False, verbose=None):
     """Compute Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
     .. note:: Fixed orientation forward operators with ``real_filter=False``
@@ -48,9 +47,6 @@ def make_dics(info, forward, noise_csd, data_csd, reg=0.05,
         The regularization for the cross-spectral density.
     label : Label | None
         Restricts the solution to a given label.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
@@ -84,7 +80,7 @@ def make_dics(info, forward, noise_csd, data_csd, reg=0.05,
            in Large-Scale Cortical Networks Predicts Perception.
            Neuron 69:387-396.
     """  # noqa: E501
-    picks = _setup_picks(picks=picks, info=info, forward=forward)
+    picks = _setup_picks(info=info, forward=forward)
 
     is_free_ori, ch_names, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
@@ -276,7 +272,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
 
 @verbose
 def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
-         pick_ori=None, real_filter=False, picks=None, verbose=None):
+         pick_ori=None, real_filter=False, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
     Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ beamformer
@@ -309,9 +305,6 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
     real_filter : bool
         If True, take only the real part of the cross-spectral-density matrices
         to compute real filters as in [2]_. Default is False.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -340,13 +333,9 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
            Neuron 69:387-396.
     """  # noqa: E501
 
-    picks = _setup_picks(info=info, forward=forward)
-    data = data[picks]
-
     filters = make_dics(info=evoked.info, forward=forward, noise_csd=noise_csd,
                         data_csd=data_csd, reg=reg, label=label,
-                        pick_ori=pick_ori, picks=picks,
-                        real_filter=real_filter)
+                        pick_ori=pick_ori, real_filter=real_filter)
 
     stc = apply_dics(evoked=evoked, filters=filters)
 
@@ -356,7 +345,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
 @verbose
 def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
                 pick_ori=None, return_generator=False, real_filter=False,
-                picks=None, verbose=None):
+                verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
     Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
@@ -392,9 +381,6 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
     real_filter : bool
         If True, take only the real part of the cross-spectral-density matrices
         to compute real filters as in [1]_. Default is False.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -416,8 +402,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
     """
     filters = make_dics(info=epochs.info, forward=forward, noise_csd=noise_csd,
                         data_csd=data_csd, reg=reg, label=label,
-                        pick_ori=pick_ori, picks=picks,
-                        real_filter=real_filter)
+                        pick_ori=pick_ori, real_filter=real_filter)
 
     stc = apply_dics_epochs(epochs=epochs, filters=filters,
                             return_generator=return_generator)
