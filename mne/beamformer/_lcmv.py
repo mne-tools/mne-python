@@ -253,6 +253,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
                 eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),
                                                        np.dot(Wk, Gk)))
+                eig_vals = np.real(eig_vals)
+                eig_vecs = np.real(eig_vecs)
                 idx_max = eig_vals.argmax()
                 max_ori = eig_vecs[:, idx_max]
                 Wk[:] = np.dot(max_ori, Wk)
@@ -326,9 +328,9 @@ def _check_proj_match(info, filters):
     proj_data, _, _ = make_projector(info['projs'],
                                      filters['ch_names'])
     if not np.array_equal(proj_data, filters['proj']):
-            raise ValueError('The SSP projections present in the data '
-                             'do not match the projections used when '
-                             'calculating the spatial filter.')
+        raise ValueError('The SSP projections present in the data '
+                         'do not match the projections used when '
+                         'calculating the spatial filter.')
 
 
 def _apply_lcmv(data, filters, info, tmin, max_ori_out):
@@ -407,8 +409,9 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
         raise ValueError('Normal orientation can only be picked when a '
                          'forward operator with a surface-based source space '
                          'is used.')
-    # Restrict forward solution to selected channels
-    info_ch_names = [ch['ch_name'] for ch in info['chs']]
+    # Restrict forward solution to selected channels (without bads)
+    info_ch_names = [ch['ch_name'] for ch in info['chs']
+                     if ch['ch_name'] not in info['bads']]
     ch_names = [info_ch_names[k] for k in picks]
     fwd_ch_names = forward['sol']['row_names']
     # Keep channels in forward present in info:
@@ -538,7 +541,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
 
     sel = _pick_channels_spatial_filter(epochs.ch_names, filters)
     data = epochs.get_data()[:, sel, :]
-    stcs = _apply_lcmv(data=data,  filters=filters, info=info,
+    stcs = _apply_lcmv(data=data, filters=filters, info=info,
                        tmin=tmin, max_ori_out=max_ori_out)
 
     if not return_generator:
