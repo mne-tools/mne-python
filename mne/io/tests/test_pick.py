@@ -8,7 +8,8 @@ import numpy as np
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
-                 pick_info, pick_channels, __file__, create_info)
+                 pick_info, pick_channels, create_info)
+from mne import __file__ as _root_init_fname
 from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
@@ -258,7 +259,7 @@ def test_picks_by_channels():
 def test_clean_info_bads():
     """Test cleaning info['bads'] when bad_channels are excluded."""
 
-    raw_file = op.join(op.dirname(__file__), 'io', 'tests', 'data',
+    raw_file = op.join(op.dirname(_root_init_fname), 'io', 'tests', 'data',
                        'test_raw.fif')
     raw = read_raw_fif(raw_file)
 

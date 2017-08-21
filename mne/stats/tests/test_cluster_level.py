@@ -406,7 +406,7 @@ def test_permutation_connectivity_equiv():
 
 
 @slow_test
-def spatio_temporal_cluster_test_connectivity():
+def test_spatio_temporal_cluster_connectivity():
     """Test spatio-temporal cluster permutations."""
     try:
         try:

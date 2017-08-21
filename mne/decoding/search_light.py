@@ -53,7 +53,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             repr_str += ', fitted with %i estimators' % len(self.estimators_)
         return repr_str + '>'
 
-    def fit(self, X, y):
+    def fit(self, X, y, **fit_params):
         """Fit a series of independent estimators to the dataset.
 
         Parameters
@@ -65,6 +65,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
+        **fit_params : dict of string -> object
+            Parameters to pass to the fit method of the estimator.
 
         Returns
         -------
@@ -73,16 +75,17 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         """
         self._check_Xy(X, y)
         self.estimators_ = list()
+        self.fit_params = fit_params
         # For fitting, the parallelization is across estimators.
         parallel, p_func, n_jobs = parallel_func(_sl_fit, self.n_jobs)
         n_jobs = min(n_jobs, X.shape[-1])
         estimators = parallel(
-            p_func(self.base_estimator, split, y)
+            p_func(self.base_estimator, split, y, **fit_params)
             for split in np.array_split(X, n_jobs, axis=-1))
         self.estimators_ = np.concatenate(estimators, 0)
         return self
 
-    def fit_transform(self, X, y):
+    def fit_transform(self, X, y, **fit_params):
         """Fit and transform a series of independent estimators to the dataset.
 
         Parameters
@@ -94,13 +97,15 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
+        **fit_params : dict of string -> object
+            Parameters to pass to the fit method of the estimator.
 
         Returns
         -------
         y_pred : array, shape (n_samples, n_tasks) | (n_samples, n_tasks, n_targets)
             The predicted values for each estimator.
         """  # noqa: E501
-        return self.fit(X, y).transform(X)
+        return self.fit(X, y, **fit_params).transform(X)
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
@@ -265,7 +270,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         return score
 
 
-def _sl_fit(estimator, X, y):
+def _sl_fit(estimator, X, y, **fit_params):
     """Aux. function to fit SlidingEstimator in parallel.
 
     Fit a clone estimator to each slice of data.
@@ -279,6 +284,8 @@ def _sl_fit(estimator, X, y):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     y : array, shape (n_sample, )
         The target values.
+    fit_params : dict | None
+        Parameters to pass to the fit method of the estimator.
 
     Returns
     -------
@@ -289,7 +296,7 @@ def _sl_fit(estimator, X, y):
     estimators_ = list()
     for ii in range(X.shape[-1]):
         est = clone(estimator)
-        est.fit(X[..., ii], y)
+        est.fit(X[..., ii], y, **fit_params)
         estimators_.append(est)
     return estimators_
 

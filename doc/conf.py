@@ -373,9 +373,9 @@ def linkcode_resolve(domain, info):
 
     fn = relpath(fn, start=dirname(mne.__file__))
 
-    if 'git' in mne.__version__:
-        return "http://github.com/mne-tools/mne-python/blob/master/mne/%s%s" % (  # noqa
-           fn, linespec)
+    if 'dev' in mne.__version__:
+        kind = 'master'
     else:
-        return "http://github.com/mne-tools/mne-python/blob/maint/%s/mne/%s%s" % (  # noqa
-           mne.__version__, fn, linespec)
+        kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
+    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
+       kind, fn, linespec)

@@ -85,6 +85,12 @@ Changelog
 
     - Add function :func:`mne.channels.get_builtin_montages` to list all built-in montages by `Clemens Brunner`_
 
+    - :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` now accept ``**fit_params`` at fitting by `Jean-Remi King`_
+
+    - Add :class:`mne.VectorSourceEstimate` class which enables working with both source power and dipole orientations by `Marijn van Vliet`_
+
+    - Add option ``pick_ori='vector'`` to :func:`mne.minimum_norm.apply_inverse` to produce :class:`mne.VectorSourceEstimate` by `Marijn van Vliet`_
+
 BUG
 ~~~
 
@@ -149,10 +155,15 @@ BUG
     - Fix bug in :func:`mne.viz.plot_compare_evokeds` where ``truncate_yaxis`` was ignored (default is now ``False``), by `Jona Sassenhagen`_
 
     - Fix bug in :func:`mne.viz.plot_evoked` where all xlabels were removed when using ``spatial_colors=True``, by `Jesper Duemose Nielsen`_
-    
+
+    - Fix field mapping :func:`mne.make_field_map` and MEG bad channel interpolation functions (e.g., :meth:`mne.Evoked.interpolate_bads`) to choose a better number of components during pseudoinversion when few channels are available, by `Eric Larson`_
+
 API
 ~~~
-	- Add ``channel_start`` parameter in :func:`mne.preprocessing.ica` make explicit that ICA component labelling starts from 1 in 0.15, default will change to 0 in 0.16 by `Stefan Repplinger`_ and `Eric Larson`_ 
+
+	  - Add ``channel_start`` parameter in :func:`mne.preprocessing.ica` to make explicit that ICA component labelling starts from 1 in 0.15, default will change to 0 in 0.16 by `Stefan Repplinger`_ and `Eric Larson`_ 
+
+    - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
 
     - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
@@ -187,6 +198,10 @@ API
     - Deprecate ``plot_trans`` in favor of :func:`mne.viz.plot_alignment` and add ``bem`` parameter for plotting conductor model by `Jaakko Leppakangas`_
 
     - :func:`mne.beamformer.tf_lcmv` now has a ``raw`` parameter to accommodate epochs objects that already have data loaded with ``preload=True``, with :meth:`mne.Epochs.load_data`, or that are read from disk, by `Eric Larson`_
+
+    - :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` now use a Hamming window (instead of a Hann window) by `Clemens Brunner`_
+
+    - ``picks`` parameter in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, :func:`mne.beamformer.lcmv_raw`, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
 .. _changes_0_14:
 

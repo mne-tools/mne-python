@@ -25,7 +25,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax)
 from ..utils import logger, _clean_names, warn, _pl
-from ..io.pick import pick_info
+from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -305,8 +305,10 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
         for type_idx, this_type in enumerate(ch_types_used):
             idx = picks[types == this_type]
             if len(idx) < 2 or (this_type == 'grad' and len(idx) < 4):
-                warn('Need more than one channel to make topography for %s. '
-                     'Disabling interactivity.' % this_type)
+                # prevent unnecessary warnings for e.g. EOG
+                if this_type in _DATA_CH_TYPES_SPLIT:
+                    warn('Need more than one channel to make topography for '
+                         '%s. Disabling interactivity.' % this_type)
                 selectables[type_idx] = False
 
     if selectable:

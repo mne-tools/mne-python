@@ -137,6 +137,20 @@ class ICA(ContainsMixin):
               Extended-Infomax seems to be more stable in this respect
               enhancing reproducibility and stability of results.
 
+    .. warning:: ICA is sensitive to low-frequency drifts and therefore
+                 requires the data to be high-pass filtered prior to fitting.
+                 Typically, a cutoff frequency of 1 Hz is recommended. Note
+                 that FIR filters prior to MNE 0.15 used the ``'firwin2'``
+                 design method, which generally produces rather shallow filters
+                 that might not work for ICA processing. Therefore, it is
+                 recommended to use IIR filters for MNE up to 0.14. In MNE
+                 0.15, FIR filters can be designed with the ``'firwin'``
+                 method, which generally produces much steeper filters. This
+                 method will be the default FIR design method in MNE 0.16. In
+                 MNE 0.15, you need to explicitly set ``fir_design='firwin'``
+                 to use this method. This is the recommended filter method for
+                 ICA preprocessing.
+
     Parameters
     ----------
     n_components : int | float | None
@@ -558,7 +572,11 @@ class ICA(ContainsMixin):
         if isinstance(self.n_components, float):
             # compute eplained variance manually, cf. sklearn bug
             # fixed in #2664
-            explained_variance_ratio_ = pca.explained_variance_ / full_var
+            if check_version('sklearn', '0.19'):
+                explained_variance_ratio_ = pca.explained_variance_ratio_
+            else:
+                explained_variance_ratio_ = pca.explained_variance_ / full_var
+            del full_var
             n_components_ = np.sum(explained_variance_ratio_.cumsum() <=
                                    self.n_components)
             if n_components_ < 1:
@@ -1176,6 +1194,7 @@ class ICA(ContainsMixin):
         zero out components, and inverse transform the data.
         This procedure will reconstruct M/EEG signals from which
         the dynamics described by the excluded components is subtracted.
+        The data is processed in place.
 
         Parameters
         ----------
@@ -1197,6 +1216,11 @@ class ICA(ContainsMixin):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+
+        Returns
+        -------
+        out : instance of Raw, Epochs or Evoked
+            The processed data.
         """
         if isinstance(inst, BaseRaw):
             out = self._apply_raw(raw=inst, include=include,

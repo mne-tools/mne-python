@@ -206,22 +206,6 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
 
 def _get_components(x_in, connectivity, return_list=True):
     """Get connected components from a mask and a connectivity matrix."""
-    try:
-        from sklearn.utils._csgraph import cs_graph_components
-    except ImportError:
-        try:
-            from scikits.learn.utils._csgraph import cs_graph_components
-        except ImportError:
-            try:
-                from sklearn.utils.sparsetools import connected_components
-                cs_graph_components = connected_components
-            except ImportError:
-                # in theory we might be able to shoehorn this into using
-                # _get_clusters_spatial if we transform connectivity into
-                # a neighbor list, and it might end up being faster anyway,
-                # but for now:
-                raise ImportError('scikit-learn must be installed')
-
     mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
     data = connectivity.data[mask]
     row = connectivity.row[mask]
@@ -232,7 +216,7 @@ def _get_components(x_in, connectivity, return_list=True):
     col = np.concatenate((col, idx))
     data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
     connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
-    _, components = cs_graph_components(connectivity)
+    _, components = sparse.csgraph.connected_components(connectivity)
     if return_list:
         start = np.min(components)
         stop = np.max(components)
