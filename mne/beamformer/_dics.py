@@ -332,7 +332,6 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
            in Large-Scale Cortical Networks Predicts Perception.
            Neuron 69:387-396.
     """  # noqa: E501
-
     filters = make_dics(info=evoked.info, forward=forward, noise_csd=noise_csd,
                         data_csd=data_csd, reg=reg, label=label,
                         pick_ori=pick_ori, real_filter=real_filter)
