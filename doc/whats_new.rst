@@ -160,6 +160,9 @@ BUG
 
 API
 ~~~
+
+	  - Add ``channel_start`` parameter in :func:`mne.preprocessing.ica` to make explicit that ICA component labelling starts from 1 in 0.15, default will change to 0 in 0.16 by `Stefan Repplinger`_ and `Eric Larson`_ 
+
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
 
     - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.

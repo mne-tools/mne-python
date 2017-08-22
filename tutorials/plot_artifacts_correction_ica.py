@@ -105,19 +105,20 @@ ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 
 ###############################################################################
 # Instead of opening individual figures with component properties, we can
-# also pass an instance of Raw or Epochs in ``inst`` arument to
+# also pass an instance of Raw or Epochs in ``inst`` argument to
 # ``ica.plot_components``. This would allow us to open component properties
 # interactively by clicking on individual component topomaps. In the notebook
-# this woks only when running matplotlib in interactive mode (``%matplotlib``).
+# this works only when running matplotlib in interactive mode
+# (``%matplotlib``).
 
-# uncomment the code below to test the inteactive mode of plot_components:
+# uncomment the code below to test the interactive mode of plot_components:
 # ica.plot_components(picks=range(10), inst=raw)
 
 ###############################################################################
 # Advanced artifact detection
 # ---------------------------
 #
-# Let's use a more efficient way to find artefacts
+# Let's use a more efficient way to find artifacts
 
 eog_average = create_eog_epochs(raw, reject=dict(mag=5e-12, grad=4000e-13),
                                 picks=picks_meg).average()
@@ -190,10 +191,10 @@ ica.plot_properties(ecg_epochs, picks=ecg_inds, psd_args={'fmax': 35.})
 #
 # We could either:
 #
-# 1. make a bipolar reference from frontal EEG sensors and use as virtual EOG
-#    channel. This can be tricky though as you can only hope that the frontal
-#    EEG channels only reflect EOG and not brain dynamics in the prefrontal
-#    cortex.
+# 1. make a bipolar reference from frontal EEG sensors and use it as a virtual
+#    EOG channel. This can be tricky though as you can only hope that the
+#    frontal EEG channels only reflect EOG and not brain dynamics in the
+#    prefrontal cortex.
 # 2. go for a semi-automated approach, using template matching.
 #
 # In MNE-Python option 2 is easily achievable and it might give better results,
@@ -202,7 +203,7 @@ ica.plot_properties(ecg_epochs, picks=ecg_inds, psd_args={'fmax': 35.})
 from mne.preprocessing.ica import corrmap  # noqa
 
 ###############################################################################
-# The idea behind corrmap is that artefact patterns are similar across subjects
+# The idea behind corrmap is that artifact patterns are similar across subjects
 # and can thus be identified by correlating the different patterns resulting
 # from each solution with a template. The procedure is therefore
 # semi-automatic. :func:`mne.preprocessing.corrmap` hence takes a list of
