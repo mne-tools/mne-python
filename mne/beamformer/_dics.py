@@ -67,9 +67,11 @@ def make_dics(info, forward, noise_csd, data_csd, reg=0.05, label=None,
         weights : array
             The filter weights of the beamformer.
         data_csd : instance of CrossSpectralDensity
-            The data cross-spectral density used to compute the beamformer.
+            The data cross-spectral density matrix used to compute the
+            beamformer.
         noise_csd : instance of CrossSpectralDensity
-            The noise cross-spectral density used to compute the beamformer.
+            The noise cross-spectral density matrix used to compute the
+            beamformer.
         pick_ori : None | 'normal'
             Orientation selection used in filter computation.
         ch_names : list
