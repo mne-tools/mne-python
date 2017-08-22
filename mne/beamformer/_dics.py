@@ -60,7 +60,28 @@ def make_dics(info, forward, noise_csd, data_csd, reg=0.05, label=None,
     Returns
     -------
     filters | dict
-        Beamformer weights.
+        Dictionary containing filter weights from DICS beamformer.
+
+        Parameters
+        ----------
+        weights : array
+            The filter weights of the beamformer.
+        data_csd : instance of CrossSpectralDensity
+            The data cross-spectral density used to compute the beamformer.
+        noise_csd : instance of CrossSpectralDensity
+            The noise cross-spectral density used to compute the beamformer.
+        pick_ori : None | 'normal'
+            Orientation selection used in filter computation.
+        ch_names : list
+            Channels used to compute the beamformer.
+        proj : array
+            Projections used to compute the beamformer.
+        vertices : list
+            Vertices for which the filter weights were computed.
+        is_free_ori : bool
+            If True, the filter was computed with free source orientation.
+        src : instance of SourceSpaces
+            Source space information.
 
     See Also
     --------
@@ -131,7 +152,7 @@ def make_dics(info, forward, noise_csd, data_csd, reg=0.05, label=None,
     filters = dict(weights=W, data_csd=data_csd, noise_csd=noise_csd,
                    pick_ori=pick_ori, ch_names=ch_names, proj=proj,
                    vertices=vertno, is_free_ori=is_free_ori,
-                   nsource=forward['nsource'], src=deepcopy(forward['src']))
+                   src=deepcopy(forward['src']))
 
     return filters
 
