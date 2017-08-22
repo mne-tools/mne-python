@@ -43,18 +43,18 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Before applying artifact correction please learn about your actual artifacts
 # by reading :ref:`tut_artifacts_detect`.
 #
-#  .. warning:: ICA is sensitive to low-frequency drifts and therefore
-#               requires the data to be high-pass filtered prior to fitting.
-#               Typically, a cutoff frequency of 1 Hz is recommended. Note that
-#               FIR filters prior to MNE 0.15 used the ``'firwin2'`` design
-#               method, which generally produces rather shallow filters that
-#               might not work for ICA processing. Therefore, it is recommended
-#               to use IIR filters for MNE up to 0.14. In MNE 0.15, FIR filters
-#               can be designed with the ``'firwin'`` method, which generally
-#               produces much steeper filters. This method will be the default
-#               FIR design method in MNE 0.16. In MNE 0.15, you need to
-#               explicitly set ``fir_design='firwin'`` to use this method. This
-#               is the recommended filter method for ICA preprocessing.
+# .. warning:: ICA is sensitive to low-frequency drifts and therefore
+#              requires the data to be high-pass filtered prior to fitting.
+#              Typically, a cutoff frequency of 1 Hz is recommended. Note that
+#              FIR filters prior to MNE 0.15 used the ``'firwin2'`` design
+#              method, which generally produces rather shallow filters that
+#              might not work for ICA processing. Therefore, it is recommended
+#              to use IIR filters for MNE up to 0.14. In MNE 0.15, FIR filters
+#              can be designed with the ``'firwin'`` method, which generally
+#              produces much steeper filters. This method will be the default
+#              FIR design method in MNE 0.16. In MNE 0.15, you need to
+#              explicitly set ``fir_design='firwin'`` to use this method. This
+#              is the recommended filter method for ICA preprocessing.
 
 ###############################################################################
 # Fit ICA
