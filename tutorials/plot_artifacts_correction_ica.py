@@ -13,8 +13,11 @@ These components have to be correctly identified and removed.
 
 If EOG or ECG recordings are available, they can be used in ICA to
 automatically select the corresponding artifact components from the
-decomposition. To do so, you have to first build an Epoch object around
-blink or heartbeat event.
+decomposition. To do so, you have to first build an :class:`mne.Epochs` object
+around blink or heartbeat events.
+
+ICA is implemented in MNE using the :class:`mne.preprocessing.ICA` class,
+which we will review here.
 """
 
 import numpy as np
