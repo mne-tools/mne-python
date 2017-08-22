@@ -39,12 +39,10 @@ events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
-picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
-                       exclude='bads')
 
-# Read epochs
+# Create epochs, here for gradiometers + EOG only for simplicity
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), preload=True,
+                    picks=('grad', 'eog'), baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6))
 
 ###############################################################################

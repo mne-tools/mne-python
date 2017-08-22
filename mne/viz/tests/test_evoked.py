@@ -279,7 +279,8 @@ def test_plot_compare_evokeds():
               dict(colors=dict(red=10., blue=-2))]
     for param in params:
         pytest.raises(ValueError, plot_compare_evokeds, evoked, **param)
-    pytest.raises(TypeError, plot_compare_evokeds, evoked, picks='str')
+    pytest.raises(ValueError, plot_compare_evokeds, evoked, picks='str')
+    plot_compare_evokeds(evoked, picks='meg')
     pytest.raises(TypeError, plot_compare_evokeds, evoked, vlines='x')
     plt.close('all')
     # `evoked` must contain Evokeds

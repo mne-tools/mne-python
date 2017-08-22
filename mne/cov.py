@@ -21,7 +21,7 @@ from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
-                      _picks_by_type, _pick_data_channels,
+                      _picks_by_type, _pick_data_channels, _picks_to_idx,
                       _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
@@ -358,8 +358,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    picks : array-like of int | None (default None)
-        Indices of channels to include (if None, data channels are used).
+    picks : XXX
+        XXX good data
     method : str | list | None (default 'empirical')
         The method used for covariance estimation.
         See :func:`mne.compute_covariance`.
@@ -451,6 +451,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
             picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
         pick_mask = slice(None)
+        picks = _picks_to_idx(raw.info, picks)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
                     picks=picks, reject=reject, flat=flat, verbose=False,
                     preload=False, proj=False,
@@ -1708,9 +1709,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         The noise covariance.
     info : dict
         The measurement info.
-    picks : array-like of int | None
-        The channels indices to include. If None the MEG and EEG
-        channels in info, except bad channels, are used.
+    picks : XXX
+        XXX good data (without reference MEG)
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -1734,9 +1734,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     rank : int
         Rank reduction of the whitener. Returned only if return_rank is True.
     """
-    if picks is None:
-        # If this changes, we will need to change _setup_plot_projector, too:
-        picks = _pick_data_channels(info, with_ref_meg=False, exclude='bads')
+    picks = _picks_to_idx(info, picks, with_ref_meg=False)
 
     ch_names = [info['ch_names'][k] for k in picks]
 
@@ -1771,9 +1769,8 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
         The evoked data
     noise_cov : instance of Covariance
         The noise covariance
-    picks : array-like of int | None
-        The channel indices to whiten. Can be None to whiten any data channel
-        such as MEG and EEG data.
+    picks : XXX
+        XXX good data
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
     rank : None | int | dict (default None)
@@ -1798,9 +1795,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
         The whitened evoked data.
     """
     evoked = evoked.copy()
-    if picks is None:
-        picks = pick_types(evoked.info, meg=True, eeg=True, seeg=True,
-                           ecog=True)
+    picks = _picks_to_idx(evoked.info, picks)
 
     if diag:
         noise_cov = noise_cov.as_diag()

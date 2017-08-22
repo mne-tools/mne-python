@@ -13,8 +13,9 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import _check_type_picks, check_version, fill_doc
-from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
+from ..utils import check_version, fill_doc
+from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
+                       _picks_to_idx)
 from ..cov import _check_scalings_user
 
 
@@ -439,9 +440,8 @@ class FilterEstimator(TransformerMixin):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    picks : array-like of int | None
-        Indices of channels to filter. If None only the data (MEG/EEG)
-        channels will be filtered.
+    picks : XXX
+        XXX good data
     filter_length : str (Default: '10s') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
         the filter length used is len(x). Otherwise, if int, overlap-add
@@ -492,7 +492,7 @@ class FilterEstimator(TransformerMixin):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
-        self.picks = _check_type_picks(picks)
+        self.picks = _picks_to_idx(info, picks)
         self.filter_length = filter_length
         self.l_trans_bandwidth = l_trans_bandwidth
         self.h_trans_bandwidth = h_trans_bandwidth

@@ -16,7 +16,8 @@ import copy
 import numpy as np
 
 from ..utils import verbose, get_config, set_config, logger, warn, _pl
-from ..io.pick import pick_types, channel_type, _get_channel_types
+from ..io.pick import (pick_types, channel_type, _get_channel_types,
+                       _picks_to_idx)
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
@@ -39,7 +40,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     ----------
     epochs : instance of Epochs
         The epochs.
-    picks : int | array-like of int | None
+    picks : XXX
         The indices of the channels to consider. If None and ``combine`` is
         also None, the first five good channels are plotted.
     sigma : float
@@ -164,14 +165,13 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ts_args["show_sensors"] = False
 
     if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+        picks = _picks_to_idx(epochs.info, picks)
         if group_by is None:
             logger.info("No picks and no groupby, showing the first five "
                         "channels ...")
             picks = picks[:5]  # take 5 picks to prevent spawning many figs
     else:
-        picks = np.atleast_1d(picks)
+        picks = _picks_to_idx(epochs.info, picks)
 
     if "invert_y" in ts_args:
         raise NotImplementedError("'invert_y' found in 'ts_args'. "
@@ -710,7 +710,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     ----------
     epochs : instance of Epochs
         The epochs object
-    picks : array-like of int | None
+    picks : XXX
         Channels to be included. If None only good data channels are used.
         Defaults to None
     scalings : dict | 'auto' | None
@@ -861,7 +861,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    picks : array-like of int | None
+    picks : XXX
         List of channels to use.
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
@@ -941,11 +941,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     from matplotlib.colors import colorConverter
     epochs = params['epochs']
 
-    if picks is None:
-        picks = _handle_picks(epochs)
-    if len(picks) < 1:
-        raise RuntimeError('No appropriate channels found. Please'
-                           ' check your picks')
+    picks = _picks_to_idx(epochs.info, picks)
     picks = sorted(picks)
     # Reorganize channels
     inds = list()

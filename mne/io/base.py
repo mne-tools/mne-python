@@ -17,8 +17,8 @@ import numpy as np
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
-from .pick import pick_types, channel_type, pick_channels, pick_info
-from .pick import _pick_data_channels, _pick_data_or_ica
+from .pick import (pick_types, channel_type, pick_channels, pick_info,
+                   _picks_to_idx)
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -52,16 +52,6 @@ from ..annotations import _ensure_annotation_object
 class ToDataFrameMixin(object):
     """Class to add to_data_frame capabilities to certain classes."""
 
-    def _get_check_picks(self, picks, picks_check):
-        """Get and check picks."""
-        if picks is None:
-            picks = list(range(self.info['nchan']))
-        else:
-            if not np.in1d(picks, np.arange(len(picks_check))).all():
-                raise ValueError('At least one picked channel is not present '
-                                 'in this object instance.')
-        return picks
-
     def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
                       scalings=None, copy=True, start=None, stop=None):
         """Export data in tabular structure as a pandas DataFrame.
@@ -74,9 +64,8 @@ class ToDataFrameMixin(object):
 
         Parameters
         ----------
-        picks : array-like of int | None
-            If None only MEG and EEG channels are kept
-            otherwise the channels indices in picks are kept.
+        picks : XXX
+            XXX all channels
         index : tuple of str | None
             Column to be used as index for the data. Valid string options
             are 'epoch', 'time' and 'condition'. If None, all three info
@@ -133,7 +122,7 @@ class ToDataFrameMixin(object):
                 # volume source estimates
                 col_names = ['VOL {}'.format(vert) for vert in self.vertices]
         elif isinstance(self, (BaseEpochs, BaseRaw, Evoked)):
-            picks = self._get_check_picks(picks, self.ch_names)
+            picks = _picks_to_idx(self.info, picks, 'all', exclude=())
             if isinstance(self, BaseEpochs):
                 default_index = ['condition', 'epoch', 'time']
                 data = self.get_data()[:, picks, :]
@@ -147,7 +136,7 @@ class ToDataFrameMixin(object):
                 names = [id_swapped[k] for k in self.events[:, 2]]
                 mindex.append(('condition', np.repeat(names, n_times)))
                 mindex.append(('epoch',
-                              np.repeat(np.arange(n_epochs), n_times)))
+                               np.repeat(np.arange(n_epochs), n_times)))
                 col_names = [self.ch_names[k] for k in picks]
 
             elif isinstance(self, (BaseRaw, Evoked)):
@@ -826,23 +815,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise RuntimeError("Unable to access raw data (need both channels "
                                "and time)")
 
-        if isinstance(item[0], slice):
-            start = item[0].start if item[0].start is not None else 0
-            nchan = self.info['nchan']
-            if start < 0:
-                start += nchan
-                if start < 0:
-                    raise ValueError('start must be >= -%s' % nchan)
-            stop = item[0].stop if item[0].stop is not None else nchan
-            if stop < 0:
-                stop += nchan
-                if stop < 0:
-                    raise ValueError('stop must be >= -%s' % nchan)
-            stop = min(stop, nchan)  # slices can legally exceed max
-            step = item[0].step if item[0].step is not None else 1
-            sel = list(range(start, stop, step))
-        else:
-            sel = item[0]
+        sel = _picks_to_idx(self.info, item[0])
 
         if isinstance(item[1], slice):
             time_slice = item[1]
@@ -931,9 +904,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        picks : array-like of int | None
-            Indices of channels to get data from. If None, data from all
-            channels is returned
+        picks : XXX
+            XXX all channels
         start : int
             The first sample to include. Defaults to 0.
         stop : int | None
@@ -959,8 +931,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         .. versionadded:: 0.14.0
         """
-        if picks is None:
-            picks = np.arange(self.info['nchan'])
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
         # convert to ints
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
         start = 0 if start is None else start
@@ -1052,9 +1023,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             operate on an array of shape ``(n_times,)`` if
             ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
             The function must return an ndarray shaped like its input.
-        picks : array-like of int (default: None)
-            Indices of channels to apply the function to. If None, all data
-            channels are used.
+        picks : XXX
+            Indices of channels to apply the function to.
+            XXX all data channels except reference MEG channels
         dtype : numpy.dtype (default: None)
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
@@ -1081,9 +1052,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The raw object with transformed data.
         """
         _check_preload(self, 'raw.apply_function')
-        if picks is None:
-            picks = _pick_data_channels(self.info, exclude=[],
-                                        with_ref_meg=False)
+        picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
@@ -1140,9 +1109,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        picks : array-like of int (default: None)
-            Indices of channels to apply the function to. If None, all data
-            channels are used.
+        picks : XXX
+            Indices of channels to apply the Hilbert transform to.
+            XXX all data channels except reference MEG channels
         envelope : bool (default: False)
             Compute the envelope signal of each channel.
         n_jobs: int
@@ -1233,9 +1202,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-        picks : array-like of int | None
-            Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered.
+        picks : XXX
+            Indices of channels to filter.
+            XXX all data channels
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -1388,9 +1357,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             np.arange(60, 241, 60) in the US or np.arange(50, 251, 50) in
             Europe. None can only be used with the mode 'spectrum_fit',
             where an F test is used to find sinusoidal components.
-        picks : array-like of int | None
-            Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered.
+        picks : XXX
+            Indices of channels to filter.
+            XXX all data channels
         filter_length : str | int
             Length of the FIR filter to use (if applicable):
 
@@ -1475,13 +1444,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         For details, see :func:`mne.filter.notch_filter`.
         """
         fs = float(self.info['sfreq'])
-        if picks is None:
-            picks = _pick_data_or_ica(self.info)
-            # let's be safe.
-            if len(picks) < 1:
-                raise RuntimeError('Could not find any valid channels for '
-                                   'your Raw object. Please contact the '
-                                   'MNE-Python developers.')
+        picks = _picks_to_idx(self.info, picks, exclude=(), none='data_or_ica')
         _check_preload(self, 'raw.notch_filter')
         self._data = notch_filter(
             self._data, fs, freqs, filter_length=filter_length,
@@ -1527,7 +1490,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         window : string or tuple
             Frequency-domain window to use in resampling.
             See :func:`scipy.signal.resample`.
-        stim_picks : array of int | None
+        stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
@@ -1721,8 +1684,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             unless data have been preloaded. Filenames should end with
             raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif
             or raw_tsss.fif.gz.
-        picks : array-like of int | None
-            Indices of channels to include. If None all channels are kept.
+        picks : XXX
+            Indices of channels to include.
+            XXX all channels
         tmin : float | None
             Time in seconds of first sample to save. If None first sample
             is used.
@@ -1920,9 +1884,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return_singular : bool
             If True, also return the singular values that were used
             to determine the rank.
-        picks : array_like of int, shape (n_selected_channels,)
+        picks : list of int
             The channels to be considered for rank estimation.
-            If None (default) meg and eeg channels are included.
+            XXX good data channels
         scalings : dict | 'norm'
             To achieve reliable rank estimation on multiple sensors,
             sensors have to be rescaled. This parameter controls the
@@ -1962,9 +1926,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
-        if picks is None:
-            picks = _pick_data_channels(self.info, exclude='bads',
-                                        with_ref_meg=False)
+        picks = _picks_to_idx(self.info, picks, with_ref_meg=False)
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
@@ -2303,9 +2265,9 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         use_fname = fname
     logger.info('Writing %s' % use_fname)
 
+    picks = _picks_to_idx(info, picks, 'all', ())
     fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
                                    reset_range, raw.annotations)
-    use_picks = slice(None) if picks is None else picks
 
     first_samp = raw.first_samp + start
     if first_samp != 0:
@@ -2365,7 +2327,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                 # write_nop(fid)
                 # write_nop(fid)
                 n_current_skip = 0
-        data, times = raw[use_picks, first:last]
+        data, times = raw[picks, first:last]
         assert len(times) == last - first
 
         if projector is not None:

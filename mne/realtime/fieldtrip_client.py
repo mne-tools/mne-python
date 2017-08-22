@@ -10,7 +10,7 @@ import time
 import numpy as np
 
 from ..io import _empty_info
-from ..io.pick import pick_info
+from ..io.pick import _picks_to_idx, pick_info
 from ..io.constants import FIFF
 from ..epochs import EpochsArray
 from ..utils import logger, warn, fill_doc
@@ -249,9 +249,9 @@ class FieldTripClient(object):
         ----------
         n_samples : int
             Number of samples to fetch.
-        picks : array-like of int | None
-            If None all channels are kept
-            otherwise the channels indices in picks are kept.
+        picks : XXX
+            Channels to keep.
+            XXX all channels
 
         Returns
         -------
@@ -272,14 +272,9 @@ class FieldTripClient(object):
         data = self.ft_client.getData([start, stop]).transpose()
 
         # create epoch from data
-        info = self.info
-        if picks is not None:
-            info = pick_info(info, picks)
-        else:
-            picks = range(info['nchan'])
-        epoch = EpochsArray(data[picks][np.newaxis], info, events)
-
-        return epoch
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        info = pick_info(self.info, picks)
+        return EpochsArray(data[picks][np.newaxis], info, events)
 
     def register_receive_callback(self, callback):
         """Register a raw buffer receive callback.

@@ -5,7 +5,7 @@
 import numpy as np
 
 from ..parallel import parallel_func
-from ..io.pick import _pick_data_channels
+from ..io.pick import _picks_to_idx
 from ..utils import logger, verbose, _time_mask
 from .multitaper import psd_array_multitaper
 
@@ -42,8 +42,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
                          'Evoked. Got type {}'.format(type(inst)))
 
     time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
-    if picks is None:
-        picks = _pick_data_channels(inst.info, with_ref_meg=False)
+    picks = _picks_to_idx(inst.info, picks, 'data', with_ref_meg=False)
     if proj:
         # Copy first so it's not modified
         inst = inst.copy().apply_proj()
@@ -162,9 +161,9 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_per_seg : int | None
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
-    picks : array-like of int | None
+    picks : XXX
         The selection of channels to include in the computation.
-        If None, take all channels.
+        XXX all good data channels without reference MEG channels
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
     n_jobs : int
@@ -242,9 +241,9 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    picks : array-like of int | None
+    picks : XXX
         The selection of channels to include in the computation.
-        If None, take all channels.
+        XXX all good data channels without reference MEG channels
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
     n_jobs : int

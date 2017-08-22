@@ -29,7 +29,8 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
-from .io.pick import channel_type, pick_types, _pick_data_channels
+from .io.pick import (channel_type, pick_types, _pick_data_channels,
+                      _picks_to_idx)
 from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
@@ -465,16 +466,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         order : int
             Either 0 or 1, the order of the detrending. 0 is a constant
             (DC) detrend, 1 is a linear detrend.
-        picks : array-like of int | None
-            If None only MEG, EEG, SEEG, ECoG and fNIRS channels are detrended.
+        picks : XXX
+            XXX good data channels
 
         Returns
         -------
         evoked : instance of Evoked
             The detrended evoked object.
         """
-        if picks is None:
-            picks = _pick_data_channels(self.info)
+        picks = _picks_to_idx(self.info, picks)
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
         return self
 

@@ -34,10 +34,9 @@ raw_sss = maxwell_filter(raw, cross_talk=ctc_fname, calibration=fine_cal_fname)
 tmin, tmax = -0.2, 0.5
 event_id = {'Auditory/Left': 1}
 events = mne.find_events(raw, 'STI 014')
-picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                       include=[], exclude='bads')
 for r, kind in zip((raw, raw_sss), ('Raw data', 'Maxwell filtered data')):
-    epochs = mne.Epochs(r, events, event_id, tmin, tmax, picks=picks,
+    epochs = mne.Epochs(r, events, event_id, tmin, tmax,
+                        picks=('meg', 'eog'),
                         baseline=(None, 0), reject=dict(eog=150e-6))
     evoked = epochs.average()
     evoked.plot(window_title=kind, ylim=dict(grad=(-200, 250),

@@ -78,7 +78,7 @@ def test_make_info():
                   ch_types=['eeg', 'eeg'])
     pytest.raises(TypeError, create_info, ch_names=[np.array([1])],
                   sfreq=1000)
-    pytest.raises(TypeError, create_info, ch_names=['Test Ch'], sfreq=1000,
+    pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types=np.array([1]))
     pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types='awesome')

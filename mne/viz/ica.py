@@ -7,7 +7,6 @@
 # License: Simplified BSD
 
 from functools import partial
-from numbers import Integral
 
 import numpy as np
 
@@ -22,7 +21,7 @@ from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..utils import warn, _validate_type
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _picks_to_idx
 from ..time_frequency.psd import psd_multitaper
 
 
@@ -44,9 +43,9 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         The ICA solution.
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
-    picks : int | array-like of int | None
-        The components to be displayed. If None, plot will show the
-        sources in the order as fitted.
+    picks : XXX
+        The components to be displayed.
+        XXX all sources in the order as fitted
     exclude : array-like of int
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
@@ -87,6 +86,8 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         exclude = ica.exclude
     elif len(ica.exclude) > 0:
         exclude = np.union1d(ica.exclude, exclude)
+    picks = _picks_to_idx(ica.n_components_, picks, 'all')
+
     if isinstance(inst, BaseRaw):
         fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
                                 stop=stop, show=show, title=title,
@@ -248,10 +249,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         The ICA solution.
     inst: instance of Epochs or Raw
         The data to use in plotting properties.
-    picks : int | array-like of int | None
-        The components to be displayed. If None, plot will show the first
-        five sources. If more than one components were chosen in the picks,
-        each one will be plotted in a separate figure. Defaults to None.
+    picks : XXXX
+        The components to be displayed.
+        XXX the first five sources.
+        If more than one components were chosen in the picks,
+        each one will be plotted in a separate figure.
     axes: list of matplotlib axes | None
         List of five matplotlib axes to use in plotting: [topomap_axis,
         image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
@@ -305,8 +307,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                          'got %s instead' % type(plot_std))
 
     # if no picks given - plot the first 5 components
-    picks = list(range(min(5, ica.n_components_))) if picks is None else picks
-    picks = [picks] if isinstance(picks, Integral) else picks
+    limit = min(5, ica.n_components_) if picks is None else len(ica.ch_names)
+    picks = _picks_to_idx(ica.info, picks, 'all')[:limit]
     if axes is None:
         fig, axes = _create_properties_layout(figsize=figsize)
     else:
@@ -393,9 +395,9 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
     ----------
     evoked : instance of mne.Evoked
         The Evoked to be used.
-    picks : int | array-like of int | None.
-        The components to be displayed. If None, plot will show the
-        sources in the order as fitted.
+    picks : XXX
+        The components to be displayed.
+        XXX all sources in the order as fitted.
     exclude : array-like of int
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
@@ -407,6 +409,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
         The ICA labels attribute.
     """
     import matplotlib.pyplot as plt
+    from matplotlib import patheffects
+
     if title is None:
         title = 'Reconstructed latent sources, time-locked'
 
@@ -418,8 +422,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
     # plot unclassified sources and label excluded ones
     lines = list()
     texts = list()
-    if picks is None:
-        picks = np.arange(evoked.data.shape[0])
     picks = np.sort(picks)
     idxs = [picks]
 
@@ -460,7 +462,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
             color = label_colors[key]
             # ... but display component number too
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
-                         zorder=2, color=color, label=exc_label))
+                                 zorder=2, color=color, label=exc_label))
         else:
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
                                  color='k', zorder=1))
@@ -482,7 +484,6 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
     lines = [lines]
     ch_names = evoked.ch_names
 
-    from matplotlib import patheffects
     path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
                                            alpha=0.75)]
     params = dict(axes=axes, texts=texts, lines=lines, idxs=idxs,
@@ -614,9 +615,9 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     exclude : array-like of int | None (default)
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
-    picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels
-        are used that were included on fitting).
+    picks : XXX
+        Indices of channels to include.
+        XXX all channels that were included during fitting.
     start : int
         X-axis start index. If None from the beginning.
     stop : int
@@ -639,8 +640,8 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     _validate_type(inst, (BaseRaw, Evoked), "inst", "Raw or Evoked")
     if title is None:
         title = 'Signals before (red) and after (black) cleaning'
-    if picks is None:
-        picks = [inst.ch_names.index(k) for k in ica.ch_names]
+    picks = ica.ch_names if picks is None else picks
+    picks = _picks_to_idx(inst.info, picks, exclude=())
     if exclude is None:
         exclude = ica.exclude
     if not isinstance(exclude, (np.ndarray, list)):
@@ -765,10 +766,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     """Plot the ICA components as raw array."""
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
-    if picks is None:
-        picks = range(len(orig_data))
     types = ['misc' for _ in picks]
-    picks = list(sorted(picks))
     eog_chs = pick_types(raw.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(raw.info, meg=False, ecg=True, ref_meg=False)
     data = [orig_data[pick] for pick in picks]
@@ -902,8 +900,6 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     info['bads'] = [c_names[x] for x in exclude]
     if title is None:
         title = 'ICA components'
-    if picks is None:
-        picks = list(range(ica.n_components_))
     if start is None:
         start = 0
     if stop is None:

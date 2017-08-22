@@ -17,7 +17,7 @@ import numpy as np
 
 from ..transforms import _pol_to_cart, _cart_to_sph
 from ..bem import fit_sphere_to_headshape
-from ..io.pick import pick_types
+from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import _clean_names, warn, _check_ch_locs
@@ -76,8 +76,9 @@ class Layout(object):
                              '.lout or .lay.')
 
         for ii in range(x.shape[0]):
-            out_str += ('%03d %8.2f %8.2f %8.2f %8.2f %s\n' % (self.ids[ii],
-                        x[ii], y[ii], width[ii], height[ii], self.names[ii]))
+            out_str += ('%03d %8.2f %8.2f %8.2f %8.2f %s\n'
+                        % (self.ids[ii], x[ii], y[ii],
+                           width[ii], height[ii], self.names[ii]))
 
         f = open(fname, 'w')
         f.write(out_str)
@@ -93,9 +94,9 @@ class Layout(object):
 
         Parameters
         ----------
-        picks : array-like
-            Indices of the channels to show. If None (default), all the
-            channels are shown.
+        picks : XXX
+            XXX no info, all channels
+            Indices of the channels to show.
         show : bool
             Show figure if True. Defaults to True.
 
@@ -296,9 +297,8 @@ def make_grid_layout(info, picks=None, n_col=None):
     info : instance of Info | None
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
-    picks : array-like of int | None
-        The indices of the channels to be included. If None, al misc channels
-        will be included.
+    picks : XXX
+        XXX all good misc channels
     n_col : int | None
         Number of columns to generate. If None, a square grid will be produced.
 
@@ -311,8 +311,7 @@ def make_grid_layout(info, picks=None, n_col=None):
     --------
     make_eeg_layout, generate_2d_layout
     """
-    if picks is None:
-        picks = pick_types(info, misc=True, ref_meg=False, exclude='bads')
+    picks = _picks_to_idx(info, picks, 'misc')
 
     names = [info['chs'][k]['ch_name'] for k in picks]
 
@@ -597,8 +596,8 @@ def _find_topomap_coords(info, picks, layout=None):
     ----------
     info : instance of Info
         Measurement info.
-    picks : list of int
-        Channel indices to generate topomap coords for.
+    picks : XXX
+        XXX all channels
     layout : None | instance of Layout
         Enforce using a specific layout. With None, a new map is generated
         and a layout is chosen based on the channels in the picks
@@ -609,8 +608,7 @@ def _find_topomap_coords(info, picks, layout=None):
     coords : array, shape = (n_chs, 2)
         2 dimensional coordinates for each sensor for a topomap plot.
     """
-    if len(picks) == 0:
-        raise ValueError("Need more than 0 channels.")
+    picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
 
     if layout is not None:
         chs = [info['chs'][i] for i in picks]
@@ -633,8 +631,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     ----------
     info : instance of Info
         The measurement info.
-    picks : list of int
-        The channel indices to generate topomap coords for.
+    picks : XXX
+        XXX all channels
     ignore_overlap : bool
         Whether to ignore overlapping positions in the layout. If False and
         positions overlap, an error is thrown.
@@ -649,6 +647,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     """
     from scipy.spatial.distance import pdist, squareform
 
+    picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
     chs = [info['chs'][i] for i in picks]
 
     # Use channel locations if available

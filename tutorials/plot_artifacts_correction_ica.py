@@ -33,9 +33,6 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 # 1Hz high pass is often helpful for fitting ICA (already lowpassed @ 40 Hz)
 raw.filter(1., None, n_jobs=1, fir_design='firwin')
 
-picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                           stim=False, exclude='bads')
-
 ###############################################################################
 # Before applying artifact correction please learn about your actual artifacts
 # by reading :ref:`sphx_glr_auto_tutorials_plot_artifacts_detection.py`.
@@ -87,7 +84,7 @@ print(ica)
 # we avoid fitting ICA on crazy environmental artifacts that would
 # dominate the variance and decomposition
 reject = dict(mag=5e-12, grad=4000e-13)
-ica.fit(raw, picks=picks_meg, decim=decim, reject=reject)
+ica.fit(raw, picks='meg', decim=decim, reject=reject)
 print(ica)
 
 ###############################################################################
@@ -131,7 +128,7 @@ ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 # Let's use a more efficient way to find artifacts
 
 eog_average = create_eog_epochs(raw, reject=dict(mag=5e-12, grad=4000e-13),
-                                picks=picks_meg).average()
+                                picks='meg').average()
 
 eog_epochs = create_eog_epochs(raw, reject=reject)  # get single EOG trials
 eog_inds, scores = ica.find_bads_eog(eog_epochs)  # find via correlation

@@ -10,8 +10,8 @@
 #
 # License: Simplified BSD
 
-from functools import partial
 from copy import deepcopy
+from functools import partial
 from numbers import Integral
 
 import numpy as np
@@ -19,7 +19,7 @@ import numpy as np
 from ..io.pick import (channel_type, _pick_data_channels,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
-                       _PICK_TYPES_DATA_DICT)
+                       _PICK_TYPES_DATA_DICT, _picks_to_idx)
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
@@ -266,8 +266,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
     titles = _handle_default('titles', titles)
     units = _handle_default('units', units)
 
-    if picks is None:
-        picks = list(range(info['nchan']))
+    picks = _picks_to_idx(info, picks, none='all', exclude=())
     if len(picks) != len(set(picks)):
         raise ValueError("`picks` are not unique. Please remove duplicates.")
 
@@ -283,8 +282,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             raise ValueError(
                 'exclude has to be a list of channel names or "bads"')
 
-        picks = [pick for pick in picks if pick not in exclude]
-    picks = np.array(picks)
+        picks = np.array([pick for pick in picks if pick not in exclude])
 
     types = np.array([channel_type(info, idx) for idx in picks], np.unicode)
     ch_types_used = list()
@@ -631,7 +629,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     ----------
     evoked : instance of Evoked
         The evoked data
-    picks : array-like of int | None
+    picks : XXX
         The indices of channels to plot. If None show all.
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
@@ -857,7 +855,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     ----------
     evoked : instance of Evoked
         The evoked data
-    picks : array-like of int | None
+    picks : XXX
         The indices of channels to plot. If None show all.
         This parameter can also be used to set the order the channels
         are shown in, as the channel image is sorted by the order of picks.
@@ -1279,7 +1277,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     title : str | None
         The title. If `None`, suppress printing channel type. If an empty
         string, a default title is created. Defaults to ''.
-    picks : array-like of int | None
+    picks : XXX
         The indices of channels to plot. If None show all. Defaults to None.
     exclude : None | list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
@@ -1696,7 +1694,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         area. All instances must have the same shape - channel numbers, time
         points etc.
         If dict, keys must be of type str.
-    picks : None | int | list of int
+    picks : XXX
         If int or list of int, the indices of the sensors to average and plot.
         If multiple channel types are selected, one figure will be returned for
         each channel type.
@@ -1874,9 +1872,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         vlines = [0.]
     _validate_type(vlines, (list, tuple), "vlines", "list or tuple")
 
-    if isinstance(picks, Integral):
-        picks = [picks]
-    elif picks is None:
+    picks = [] if picks is None else picks
+    picks = _picks_to_idx(info, picks, allow_empty=True)
+    if len(picks) == 0:
         logger.info("No picks, plotting the GFP ...")
         gfp = True
         picks = _pick_data_channels(info, with_ref_meg=False)
