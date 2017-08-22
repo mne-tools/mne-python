@@ -167,37 +167,37 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     Returns
     -------
-    filters | dict
+    filters : dict
         Dictionary containing filter weights from LCMV beamformer.
+        Contains the following keys:
 
-        Parameters
-        ----------
-        weights : array
-            The filter weights of the beamformer.
-        data_cov : instance of Covariance
-            The data covariance matrix used to compute the beamformer.
-        noise_cov : instance of Covariance | None
-            The noise covariance matrix used to compute the beamformer.
-        whitener : None | array
-            Whitening matrix, provided if whitening was applied to the
-            covariance matrix and leadfield during computation of the
-            beamformer weights.
-        weight_norm : 'unit-noise-gain'| 'nai' | None
-            Type of weight normalization used to compute the filter weights.
-        pick_ori : None | 'normal'
-            Orientation selection used in filter computation.
-        ch_names : list
-            Channels used to compute the beamformer.
-        proj : array
-            Projections used to compute the beamformer.
-        is_ssp : bool
-            If True, projections were applied prior to filter computation.
-        vertices : list
-            Vertices for which the filter weights were computed.
-        is_free_ori : bool
-            If True, the filter was computed with free source orientation.
-        src : instance of SourceSpaces
-            Source space information.
+            'weights' : {array}
+                The filter weights of the beamformer.
+            'data_cov' : {instance of Covariance}
+                The data covariance matrix used to compute the beamformer.
+            'noise_cov' : {instance of Covariance | None}
+                The noise covariance matrix used to compute the beamformer.
+            'whitener' : {None | array}
+                Whitening matrix, provided if whitening was applied to the
+                covariance matrix and leadfield during computation of the
+                beamformer weights.
+            'weight_norm' : {'unit-noise-gain'| 'nai' | None}
+                Type of weight normalization used to compute the filter
+                weights.
+            'pick_ori' : {None | 'normal'}
+                Orientation selection used in filter computation.
+            'ch_names' : {list}
+                Channels used to compute the beamformer.
+            'proj' : {array}
+                Projections used to compute the beamformer.
+            'is_ssp' : {bool}
+                If True, projections were applied prior to filter computation.
+            'vertices' : {list}
+                Vertices for which the filter weights were computed.
+            'is_free_ori' : {bool}
+                If True, the filter was computed with free source orientation.
+            'src' : {instance of SourceSpaces}
+                Source space information.
 
     Notes
     -----
