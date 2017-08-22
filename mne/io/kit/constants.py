@@ -39,10 +39,12 @@ KIT.BEFS = [0, 50, 60, 50]
 # coreg constants
 KIT.DIG_POINTS = 10000
 
-# create system specific dicts
-KIT_NY = Bunch(**KIT)
-KIT_AD = Bunch(**KIT)
 
+# System-specific constants
+# -------------------------
+
+# NYU New York
+KIT_NY = Bunch(**KIT)
 # NY-system channel information
 KIT_NY.NCHAN = 192
 KIT_NY.NMEGCHAN = 157
@@ -79,7 +81,15 @@ KIT_UMD_2014 = Bunch(**KIT_UMD)
 KIT_UMD_2014.DYNAMIC_RANGE = 2 ** 15
 
 
+# Academia Sinica at Taiwan
+# Same as NYU New York except for number of misc channels
+KIT_AS = Bunch(**KIT_NY)
+KIT_AS.NCHAN = 255
+KIT_AS.NMISCCHAN = 95
+
+
 # AD-system channel information
+KIT_AD = Bunch(**KIT)
 KIT_AD.NCHAN = 256
 KIT_AD.NMEGCHAN = 208
 KIT_AD.NREFCHAN = 16
@@ -107,7 +117,11 @@ KIT_AD.HPFS = [0, 0.03, 0.1, 0.3, 1, 3, 10, 30]
 KIT_AD.LPFS = [10, 20, 50, 100, 200, 500, 1000, 10000]
 
 
+# Assigning systems to constants
+# ------------------------------
+
 # KIT recording system is encoded in the SQD file as integer:
+KIT.SYSTEM_AS = 261  # Academia Sinica at Taiwan, 2008 or 2009 onwards
 KIT.SYSTEM_NYU_2008 = 32  # NYU-NY, July 7, 2008 -
 KIT.SYSTEM_NYU_2009 = 33  # NYU-NY, January 24, 2009 -
 KIT.SYSTEM_NYU_2010 = 34  # NYU-NY, January 22, 2010 -
@@ -118,7 +132,8 @@ KIT.SYSTEM_UMD_2004 = 51  # UMD Marie Mount Hall, October 1, 2004 -
 KIT.SYSTEM_UMD_2014_07 = 52  # UMD update to 16 bit ADC, July 4, 2014 -
 KIT.SYSTEM_UMD_2014_12 = 53  # UMD December 4, 2014 -
 
-KIT_CONSTANTS = {KIT.SYSTEM_NYU_2008: KIT_NY,
+KIT_CONSTANTS = {KIT.SYSTEM_AS: KIT_AS,
+                 KIT.SYSTEM_NYU_2008: KIT_NY,
                  KIT.SYSTEM_NYU_2009: KIT_NY,
                  KIT.SYSTEM_NYU_2010: KIT_NY,
                  KIT.SYSTEM_NYUAD_2011: KIT_AD,
@@ -128,7 +143,8 @@ KIT_CONSTANTS = {KIT.SYSTEM_NYU_2008: KIT_NY,
                  KIT.SYSTEM_UMD_2014_07: KIT_UMD_2014,
                  KIT.SYSTEM_UMD_2014_12: KIT_UMD_2014}
 
-KIT_LAYOUT = {KIT.SYSTEM_NYU_2008: 'KIT-157',
+KIT_LAYOUT = {KIT.SYSTEM_AS: None,
+              KIT.SYSTEM_NYU_2008: 'KIT-157',
               KIT.SYSTEM_NYU_2009: 'KIT-157',
               KIT.SYSTEM_NYU_2010: 'KIT-157',
               KIT.SYSTEM_NYUAD_2011: 'KIT-AD',
@@ -139,7 +155,8 @@ KIT_LAYOUT = {KIT.SYSTEM_NYU_2008: 'KIT-157',
               KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3'}
 
 # Names stored along with ID in SQD files
-SYSNAMES = {KIT.SYSTEM_NYU_2009: 'NYU 160ch System since Jan24 2009',
+SYSNAMES = {KIT.SYSTEM_AS: 'Academia Sinica',
+            KIT.SYSTEM_NYU_2009: 'NYU 160ch System since Jan24 2009',
             KIT.SYSTEM_NYU_2010: 'NYU 160ch System since Jan24 2009',
             KIT.SYSTEM_NYUAD_2012: "New York University Abu Dhabi",
             KIT.SYSTEM_NYUAD_2014: "New York University Abu Dhabi",
