@@ -84,8 +84,8 @@ KIT_UMD_2014.DYNAMIC_RANGE = 2 ** 15
 # Academia Sinica at Taiwan
 # Same as NYU New York except for number of misc channels
 KIT_AS = Bunch(**KIT_NY)
-KIT_AS.NCHAN = 255
-KIT_AS.NMISCCHAN = 95
+KIT_AS.NCHAN = 256
+KIT_AS.NMISCCHAN = 96
 
 
 # AD-system channel information
