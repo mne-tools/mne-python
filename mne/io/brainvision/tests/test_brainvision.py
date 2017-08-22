@@ -454,8 +454,7 @@ def test_events():
 
 def test_brainvision_with_montage():
     """Test reading embedded montage information"""
-    raw = read_raw_brainvision(vhdr_v2_path, montage=True, eog=eog,
-                               misc=['ReRef'], event_id=event_id)
+    raw = read_raw_brainvision(vhdr_v2_path, eog=eog, misc=['ReRef'])
     for i, d in enumerate(raw.info['dig'], 1):
         assert_equal(d['coord_frame'], FIFF.FIFFV_COORD_HEAD)
         assert_equal(d['ident'], i)
