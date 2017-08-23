@@ -1414,9 +1414,10 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
-                         linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
-                         truncate_yaxis=False, ylim=dict(), invert_y=False,
-                         axes=None, title=None, show=True):
+                         linestyles=['-'], styles=None, vlines=[0.],
+                         ci=0.95, ci_alpha=0.333, truncate_yaxis=False,
+                         ylim=dict(), invert_y=False, axes=None,
+                         title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1482,6 +1483,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         determines the CI width. E.g., if this value is .95 (the default),
         the 95% parametric confidence interval is drawn.
         If None, no shaded confidence band is plotted.
+    ci_alpha : float
+        The alpha value (opacity) of the confidence band.
     truncate_yaxis : bool
         If True, the left y axis is truncated to half the max value and
         rounded to .25 to reduce visual clutter. Defaults to True.
@@ -1599,10 +1602,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if ymin is None and (gfp is True or ch_type == 'grad'):
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
-    # deal with dict/list of lists and the CI
-    if not isinstance(ci, np.float):
-        msg = '"ci" must be float, got {0} instead.'
-        raise TypeError(msg.format(type(ci)))
+    if ci is not None:
+        # deal with dict/list of lists and the CI
+        if not isinstance(ci, np.float):
+            msg = '"ci" must be float, got {0} instead.'
+            raise TypeError(msg.format(type(ci)))
 
     # if we have a dict/list of lists, we compute the grand average and the CI
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
@@ -1719,7 +1723,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             sem_ = sem_array[condition]
             axes.fill_between(times, sem_[0].flatten() * scaling,
                               sem_[1].flatten() * scaling, zorder=100,
-                              color=styles[condition]['c'], alpha=.333)
+                              color=styles[condition]['c'], alpha=ci_alpha)
 
     # truncate the y axis
     orig_ymin, orig_ymax = axes.get_ylim()
@@ -1742,10 +1746,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             warn("ymin is positive, not truncating yaxis")
         ymax_bound = axes.get_ylim()[-1]
 
-    title = ", ".join(ch_names[:6]) if title is None else title
-    if len(ch_names) > 6 and gfp is False:
-        warn("More than 6 channels, truncating title ...")
-        title += ", ..."
+    if title is None:
+        title = ", ".join(ch_names[:6]) if title is None else title
+        if len(ch_names) > 6 and gfp is False:
+            warn("More than 6 channels, truncating title ...")
+            title += ", ..."
     axes.set_title(title)
 
     current_ymin = axes.get_ylim()[0]
