@@ -1339,20 +1339,36 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     return fig
 
 
-def _ci(arr, ci):
+def _ci(arr, ci, method="parametric"):
     """Calculate the `ci`% parametric confidence interval for `arr`.
 
     Aux function for plot_compare_evokeds.
     """
     from scipy import stats
-    mean, sigma = arr.mean(0), stats.sem(arr, 0)
-    # This is highly convoluted to support 17th century Scipy
-    # XXX Fix when Scipy 0.12 support is dropped!
-    # then it becomes just:
-    # return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
-    return np.asarray([stats.t.interval(ci, arr.shape[0],
-                       loc=mean_, scale=sigma_)
-                       for mean_, sigma_ in zip(mean, sigma)]).T
+
+    if method not in ["bayesian", "parametric"]:
+        # Add warning?
+        method = "parametric"  # Return to parametric if wrong value
+
+    if method == "bayesian":
+        ci_band = []
+        for data in arr.T:
+            res_mean, res_var, res_sigma = stats.bayes_mvs(data, alpha=ci)
+            interval = res_mean[1]
+            ci_band.append(interval)
+        ci_band = np.asarray(ci_band).T
+
+    if method == "parametric":
+        mean, sigma = arr.mean(0), stats.sem(arr, 0)
+        # This is highly convoluted to support 17th century Scipy
+        # XXX Fix when Scipy 0.12 support is dropped!
+        # then it becomes just:
+        # return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
+        ci_band = np.asarray([stats.t.interval(
+                ci, arr.shape[0], loc=mean_, scale=sigma_)
+                for mean_, sigma_ in zip(mean, sigma)]).T
+
+    return (ci_band)
 
 
 def _setup_styles(conditions, style_dict, style, default):
@@ -1415,9 +1431,9 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=[0.],
-                         ci=0.95, ci_alpha=0.333, truncate_yaxis=False,
-                         ylim=dict(), invert_y=False, axes=None,
-                         title=None, show=True):
+                         ci=0.95, ci_alpha=0.333, ci_method="parametric",
+                         truncate_yaxis=False, ylim=dict(), invert_y=False,
+                         axes=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1485,6 +1501,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         If None, no shaded confidence band is plotted.
     ci_alpha : float
         The alpha value (opacity) of the confidence band.
+    ci_method : str
+        Compute parametric (scipy.t.interval) or Bayesian (scipy.stats.bayes_mvs) confidence band. Should be "parametric" or "bayesian".
     truncate_yaxis : bool
         If True, the left y axis is truncated to half the max value and
         rounded to .25 to reduce visual clutter. Defaults to True.
@@ -1624,7 +1642,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 else:
                     data = np.asarray([evoked_.data[picks, :].mean(0)
                                        for evoked_ in evokeds[condition]])
-                sem_array[condition] = _ci(data, ci)
+                sem_array[condition] = _ci(data, ci, method=ci_method)
 
         # get the grand mean
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
