@@ -1942,7 +1942,8 @@ class Epochs(BaseEpochs):
                  baseline=(None, 0), picks=None, preload=False, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, on_missing='error',
-                 reject_by_annotation=True, metadata=None, verbose=None):  # noqa: D102
+                 reject_by_annotation=True, metadata=None,
+                 verbose=None):  # noqa: D102
         if not isinstance(raw, BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
                              'instance of mne.io.BaseRaw')
@@ -2080,7 +2081,8 @@ class EpochsArray(BaseEpochs):
     def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True,
-                 on_missing='error', metadata=None, verbose=None):  # noqa: D102
+                 on_missing='error', metadata=None,
+                 verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:

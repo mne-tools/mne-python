@@ -2169,7 +2169,7 @@ class FakeNoPandas(object):
 @requires_pandas
 def test_metadata():
     """Test metadata support with pandas."""
-    from pandas import DataFrame, to_numeric
+    from pandas import DataFrame
 
     data = np.random.randn(10, 2, 2000)
     chs = ['a', 'b']
@@ -2177,7 +2177,7 @@ def test_metadata():
     meta = np.array([[1.] * 5 + [3.] * 5,
                      ['a'] * 2 + ['b'] * 3 + ['c'] * 3 + [u'μ'] * 2]).T
     meta = DataFrame(meta, columns=['num', 'letter'])
-    meta['num'] = to_numeric(meta['num'])
+    meta['num'] = np.array(meta['num'], float)
     events = np.arange(meta.shape[0])
     events = np.column_stack([events, np.zeros([len(events), 2])]).astype(int)
     events[5:, -1] = 1
