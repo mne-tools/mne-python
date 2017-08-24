@@ -23,12 +23,11 @@ the data is stored as a dataframe...we should fix this :-)
 import mne
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from six.moves.urllib.request import urlopen
 
 # Load the data from the interwebz (XXX need to fix this)
-varname = 'https://www.dropbox.com/s/5y2rv7vlgilh52y/KWORD_VARIABLES_DGMH2015.txt?dl=1'
-dataname = 'https://www.dropbox.com/s/6mpunoswlxaa9bi/KWORD_ERP_LEXICAL_DECISION_DGMH2015.txt?dl=1'
+varname = 'https://www.dropbox.com/s/5y2rv7vlgilh52y/KWORD_VARIABLES_DGMH2015.txt?dl=1'  # noqa
+dataname = 'https://www.dropbox.com/s/6mpunoswlxaa9bi/KWORD_ERP_LEXICAL_DECISION_DGMH2015.txt?dl=1'  # noqa
 
 with urlopen(varname) as u:
     meta = pd.read_csv(u, delim_whitespace=True)
@@ -47,7 +46,7 @@ channel_types = ['misc' if "REJ" in ch else 'eeg' for ch in electrodes]
 df = df.drop(["ELECNAME"], axis=1)
 
 times = [int(x[:-2]) for x in df.columns]
-tmin, *_, tmax = np.array(times) / 1000
+tmin, tmax = np.array(times)[[0, -1]] / 1000.
 sfreq = int(len(times) / (tmax - tmin))
 
 # create info
@@ -72,7 +71,6 @@ epochs.metadata.head()
 
 ###############################################################################
 
-
 epochs.average().plot_joint(
     title="Grand Average (75 subjects, {} words)".format(len(meta)),
     show=False)
@@ -86,22 +84,3 @@ av2.plot_joint(show=False)
 ###############################################################################
 words = ['film', 'cent', 'shot', 'cold', 'main']
 epochs['WORD in {}'.format(words)].plot_image(show=False)
-
-###############################################################################
-
-categories = ["NumberOfLetters", "is_concrete"]
-avs = epochs.average(by=categories)
-
-colors = np.linspace(0, 1, num=len(avs))
-
-style_plot = dict(
-    colors=plt.cm.viridis(colors),
-    linestyles={'Concrete': '-', 'Abstract': '--'}
-)
-fig, ax = plt.subplots()
-mne.viz.evoked.plot_compare_evokeds(
-    avs, **style_plot, picks=list(avs.values())[0].ch_names.index("Pz"),
-    show=False, axes=ax).set_size_inches((6, 3))
-ax.legend(loc=[1.05, .1])
-
-plt.show()
