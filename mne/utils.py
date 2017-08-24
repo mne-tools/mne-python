@@ -2153,8 +2153,8 @@ def _check_preload(inst, msg):
 def _check_pandas_installed(strict=True):
     """Aux function."""
     try:
-        import pandas as pd
-        return pd
+        import pandas
+        return pandas
     except ImportError:
         if strict is True:
             raise RuntimeError('For this functionality to work the Pandas '

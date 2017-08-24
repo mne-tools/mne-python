@@ -762,7 +762,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
                          'could not be found.')
     t = [_aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
-    t = '  ' + '\n  '.join(t)
+    t = '\n'.join(t)
     return comments, aspect_kinds, t
 
 
@@ -1009,7 +1009,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             found_cond = np.where(goods)[0]
             if len(found_cond) != 1:
                 raise ValueError('condition "%s" (%s) not found, out of '
-                                 'found datasets:\n  %s'
+                                 'found datasets:\n%s'
                                  % (condition, kind, t))
             condition = found_cond[0]
         elif condition is None:

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
@@ -6,6 +7,7 @@
 import os.path as op
 from copy import deepcopy
 
+import pytest
 from nose.tools import (assert_true, assert_equal, assert_raises,
                         assert_not_equal)
 import pytest
@@ -16,6 +18,7 @@ import copy as cp
 import warnings
 import matplotlib
 
+import mne
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
                  write_evokeds, create_info, make_fixed_length_events,
@@ -25,8 +28,9 @@ from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
-from mne.utils import (_TempDir, requires_pandas,
-                       run_tests_if_main, requires_version)
+from mne.utils import (_TempDir, requires_pandas, slow_test,
+                       run_tests_if_main, requires_version,
+                       _check_pandas_installed)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
@@ -2148,16 +2152,30 @@ def test_default_values():
     assert_equal(hash(epoch_1), hash(epoch_2))
 
 
+class FakeNoPandas(object):
+    def __enter__(self):
+
+        def _check(strict=True):
+            if strict:
+                raise RuntimeError('Pandas not installed')
+            else:
+                return False
+        mne.epochs._check_pandas_installed = _check
+
+    def __exit__(self, *args):  # noqa: D105
+        mne.epochs._check_pandas_installed = _check_pandas_installed
+
+
+@requires_pandas
 def test_metadata():
     """Test metadata support with pandas."""
-    import pytest
     from pandas import DataFrame, to_numeric
 
     data = np.random.randn(10, 2, 2000)
     chs = ['a', 'b']
     info = create_info(chs, 1000)
     meta = np.array([[1.] * 5 + [3.] * 5,
-                     ['a'] * 2 + ['b'] * 3 + ['c'] * 3 + ['d'] * 2]).T
+                     ['a'] * 2 + ['b'] * 3 + ['c'] * 3 + [u'μ'] * 2]).T
     meta = DataFrame(meta, columns=['num', 'letter'])
     meta['num'] = to_numeric(meta['num'])
     events = np.arange(meta.shape[0])
@@ -2192,41 +2210,95 @@ def test_metadata():
         tmp_meta['foo'] = np.array  # This should be of type object
         epochs = EpochsArray(data, info, metadata=tmp_meta)
 
-    # Groupby etc
-    for meth in [epochs.standard_error, epochs.average]:
-        out = meth(by='letter', picks=[0])
-        assert_array_equal(set(out.keys()), set(meta['letter']))
-        for kind in out.keys():
-            print(out[kind].comment, kind)
-            assert out[kind].comment == 'letter : {}'.format(kind)
-
     # Getitem
     assert len(epochs['num < 2']) == 5
     assert len(epochs['num < 5']) == 10
     assert len(epochs['letter == "b"']) == 3
     assert len(epochs['num < 5']) == len(epochs['num < 5'].metadata)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         epochs['blah == "yo"']
 
     # I/O
     # Make sure values don't change with I/O
-    epochs.save('./tmp-epo.fif')
-    epochs_new = read_epochs('./tmp-epo.fif', preload=True)
+    tempdir = _TempDir()
+    temp_fname = op.join(tempdir, 'tmp-epo.fif')
+    temp_one_fname = op.join(tempdir, 'tmp-one-epo.fif')
+    epochs.save(temp_fname)
+    epochs_read = read_epochs(temp_fname, preload=True)
+    assert_metadata_equal(epochs.metadata, epochs_read.metadata)
     epochs_arr = EpochsArray(epochs._data, epochs.info, epochs.events,
                              tmin=0, event_id=epochs.event_id,
                              metadata=epochs.metadata)
+    assert_metadata_equal(epochs.metadata, epochs_arr.metadata)
 
-    assert_array_equal(epochs.metadata.sort_index(axis=1, ascending=False),
-                       epochs_arr.metadata.sort_index(axis=1, ascending=False))
-    assert_array_equal(epochs.metadata.sort_index(axis=1, ascending=False),
-                       epochs_new.metadata.sort_index(axis=1, ascending=False))
+    with pytest.raises(TypeError):  # Needs to be a dataframe
+        epochs.metadata = np.array([0])
 
-    with pytest.raises(ValueError):
-        # Needs to be a dataframe
-        epochs_tmp = epochs.copy()
-        epochs_tmp.metadata = np.array([0])
-        epochs_tmp.save('./break-epo.fif')
+    ###########################################################################
+    # Now let's fake having no Pandas and make sure everything works
+
+    epochs_one = epochs['one']
+    epochs_one.save(temp_one_fname)
+    epochs_one_read = read_epochs(temp_one_fname)
+    assert_metadata_equal(epochs_one.metadata, epochs_one_read.metadata)
+
+    with FakeNoPandas():
+        epochs_read = read_epochs(temp_fname)
+        assert isinstance(epochs_read.metadata, dict)
+        assert epochs_read.metadata['num']['5'] == 3.
+
+        epochs_one_read = read_epochs(temp_one_fname)
+        assert isinstance(epochs_one_read.metadata, dict)
+        assert epochs_one_read.metadata['num']['5'] == 3.
+
+        epochs_one_nopandas = epochs_read['one']
+        assert epochs_read.metadata['num']['5'] == 3.
+        assert epochs_one_nopandas.metadata['num']['5'] == 3.
+        # sel (no Pandas) == sel (w/ Pandas) -> save -> load (no Pandas)
+        assert_metadata_equal(epochs_one_nopandas.metadata,
+                              epochs_one_read.metadata)
+        epochs_one_nopandas.save(temp_one_fname)
+        # can't make this query
+        with pytest.raises(KeyError) as excinfo:
+            epochs_read['num < 2']
+            excinfo.match('.*Pandas query could not be performed.*')
+        # still can't, but with no metadata the message should be different
+        epochs_read.metadata = None
+        with pytest.raises(KeyError) as excinfo:
+            epochs_read['num < 2']
+            excinfo.match(r'^((?!Pandas).)*$')
+        del epochs_read
+        # sel (no Pandas) == sel (no Pandas) -> save -> load (no Pandas)
+        epochs_one_nopandas_read = read_epochs(temp_one_fname)
+        assert_metadata_equal(epochs_one_nopandas_read.metadata,
+                              epochs_one_nopandas.metadata)
+    # sel (w/ Pandas) == sel (no Pandas) -> save -> load (w/ Pandas)
+    epochs_one_nopandas_read = read_epochs(temp_one_fname)
+    assert_metadata_equal(epochs_one_nopandas_read.metadata,
+                          epochs_one.metadata)
+
+
+def assert_metadata_equal(got, exp):
+    """Assert metadata are equal."""
+    if exp is None:
+        assert got is None
+    elif isinstance(exp, dict):
+        assert isinstance(exp, dict)
+        assert list(got.keys()) == list(exp.keys())
+        for key in got.keys():
+            g = got[key]
+            e = exp[key]
+            assert list(g.keys()) == list(e.keys())
+            for k in g.keys():
+                assert g[k] == e[k], (key, k)
+    else:  # DataFrame
+        # XXX ideally we would solve this problem...
+        got = got.reset_index(drop=True)
+        exp = exp.reset_index(drop=True)
+        assert isinstance(got, type(exp))
+        check = (got == exp)
+        assert check.all().all()
 
 
 run_tests_if_main()

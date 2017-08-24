@@ -10,6 +10,7 @@
 #
 # License: BSD (3-clause)
 
+from collections import OrderedDict
 from copy import deepcopy
 import json
 import os.path as op
@@ -95,11 +96,13 @@ def _save_split(epochs, fname, part_idx, n_parts):
     # Metadata
     if epochs.metadata is not None:
         start_block(fid, FIFF.FIFFB_MNE_METADATA)
-        pd = _check_pandas_installed()
-        if not isinstance(epochs.metadata, pd.DataFrame):
-            raise ValueError('epochs.metadata must be a DataFrame')
-
-        write_string(fid, FIFF.FIFF_DESCRIPTION, epochs.metadata.to_json())
+        metadata = epochs.metadata
+        if not isinstance(metadata, dict):  # Pandas DataFrame
+            metadata = metadata.to_json(force_ascii=False).decode('utf-8')
+        else:
+            metadata = json.dumps(metadata)
+        assert isinstance(metadata, string_types)
+        write_string(fid, FIFF.FIFF_DESCRIPTION, metadata)
         end_block(fid, FIFF.FIFFB_MNE_METADATA)
 
     # First and last sample
@@ -325,14 +328,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._raw = raw
         self.info = info
         del info
-
-        # Parse metadata
-        if metadata is not None:
-            if len(metadata) != len(self.events):
-                raise ValueError('`metadata` must have the same number of '
-                                 'rows as events')
-            if not isinstance(metadata, _check_pandas_installed().DataFrame):
-                raise ValueError('`metadata` must be a pandas DataFrame')
+        self._metadata = None
         self.metadata = metadata
 
         if picks is None:
@@ -394,6 +390,50 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             for ii, epoch in enumerate(self._data):
                 self._data[ii] = np.dot(self._projector, epoch)
         self._filename = str(filename) if filename is not None else filename
+
+    @property
+    def metadata(self):
+        """Get a copy of the metadata."""
+        return deepcopy(self._metadata)
+
+    @metadata.setter
+    def metadata(self, metadata):
+        if metadata is not None:
+            pd = _check_pandas_installed(strict=False)
+            if pd is not False:
+                if not isinstance(metadata, pd.DataFrame):
+                    raise TypeError('metadata must be a pandas DataFrame, '
+                                    'got %s' % (type(metadata),))
+                if len(metadata) != len(self.events):
+                    raise ValueError('metadata must have the same number of '
+                                     'rows (%d) as events (%d)'
+                                     % (len(metadata), len(self.events)))
+                metadata = metadata.copy()
+                n_col = metadata.shape[1]
+            else:
+                if not isinstance(metadata, OrderedDict):
+                    raise TypeError('metdata must be an OrderedDict, got %s'
+                                    % (type(metadata),))
+                for key, val in metadata.items():
+                    if not isinstance(key, string_types):
+                        raise ValueError('metadata keys must be str, got %s'
+                                         % (type(key),))
+                    if not isinstance(val, dict):
+                        raise ValueError('metadata values must be lists, '
+                                         'got isinstance(metadata["%s"], %s)'
+                                         % (key, val))
+                metadata = deepcopy(metadata)
+                n_col = len(metadata)
+            n_col = ' with %d columns' % n_col
+        else:
+            n_col = ''
+        if self._metadata is not None:
+            action = 'Removing' if metadata is None else 'Replacing'
+            action += ' existing'
+        else:
+            action = 'Not setting' if metadata is None else 'Adding'
+        logger.info('%s metadata%s' % (action, n_col))
+        self._metadata = metadata
 
     def load_data(self):
         """Load the data if not already preloaded.
@@ -746,7 +786,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Provide a wrapper for Py3k."""
         return self.next(*args, **kwargs)
 
-    def average(self, picks=None, by=None):
+    def average(self, picks=None):
         """Compute average of epochs.
 
         Parameters
@@ -754,15 +794,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         picks : array-like of int | None
             If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
-        by : string | list of strings | None
-            If ``self.metadata`` is a DataFrame, return averages grouped
-            by the unique values specified. This effectively calls
-            ``self.metadata.groupby`` and returns a dictionary of Evoked
-            objects for each grouping with keys being group names.
 
         Returns
         -------
-        evoked : instance of Evoked
+        evoked : instance of Evoked | dict of Evoked
             The averaged epochs.
 
         Notes
@@ -776,35 +811,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         are not considered data channels (they are of misc type) and only data
         channels are selected when picks is None.
         """
-        if by is None:
-            out = self._compute_mean_or_stderr(picks, 'ave')
-        else:
-            out = self._iter_mean_or_stderr(picks, 'ave', by)
-        return out
+        return self._compute_mean_or_stderr(picks, 'ave')
 
-    def _groupby(self, by):
-        """Iterate via groupby using a column of ``self.metadata``."""
-        if not isinstance(self.metadata, _check_pandas_installed().DataFrame):
-            raise ValueError('`self.metadata` must be a DataFrame in '
-                             'order to use `by`')
-        metadata = self.metadata.reset_index()
-        groups = {}
-        for name, ixs in metadata.groupby(by=by):
-            groups[name] = ixs.index.values
-        return groups
-
-    def _iter_mean_or_stderr(self, picks, kind, by):
-        """Groupby metadata and calculate mean / stderr."""
-        out = dict()
-        for name, ixs in self._groupby(by).items():
-            if isinstance(by, str):
-                by = [by]
-            newname = '/'.join(str(ii) for ii in name)
-            out[newname] = self[ixs]._compute_mean_or_stderr(picks, 'ave')
-            out[newname].comment = '/'.join(by) + " : " + newname
-        return out
-
-    def standard_error(self, picks=None, by=None):
+    def standard_error(self, picks=None):
         """Compute standard error over epochs.
 
         Parameters
@@ -812,22 +821,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         picks : array-like of int | None
             If None only MEG, EEG, SEEG, ECoG, and fNIRS channels are kept
             otherwise the channels indices in picks are kept.
-        by : string | list of strings | None
-            If ``self.metadata`` is a DataFrame, return averages grouped
-            by the unique values specified. This effectively calls
-            ``self.metadata.groupby`` and returns Evoked objects for each
-            grouping.
 
         Returns
         -------
         evoked : instance of Evoked
             The standard error over epochs.
         """
-        if by is None:
-            out = self._compute_mean_or_stderr(picks, 'ave')
-        else:
-            out = self._iter_mean_or_stderr(picks, 'stderr', by)
-        return out
+        return self._compute_mean_or_stderr(picks, 'stderr')
 
     def _compute_mean_or_stderr(self, picks, mode='ave'):
         """Compute the mean or std over epochs and return Evoked."""
@@ -1370,6 +1370,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         s += ', baseline : %s' % str(self.baseline)
         s += ', ~%s' % (sizeof_fmt(self._size),)
         s += ', data%s loaded' % ('' if self.preload else ' not')
+        s += ' with metadata' if self.metadata is not None else ''
         if len(self.event_id) > 1:
             counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
                       for k, v in sorted(self.event_id.items())]
@@ -1380,27 +1381,32 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     def _keys_to_idx(self, keys):
         """Find entries in event dict."""
+        keys = [keys] if not isinstance(keys, (list, tuple)) else keys
         try:
             # Assume it's a condition name
-            idx = np.array([self.events[:, 2] == self.event_id[k]
-                            for k in _hid_match(self.event_id, keys)])
-            idxs = idx.any(axis=0)
-            return idxs
-        except KeyError:
-            err = 'Query does not match a condition name.'
-            DataFrame = _check_pandas_installed(strict=False).DataFrame
-            if len(keys) == 1 and isinstance(self.metadata, DataFrame) and \
-                    DataFrame is not False:
+            return np.any(np.array([self.events[:, 2] == self.event_id[k]
+                                    for k in _hid_match(self.event_id, keys)]),
+                          axis=0)
+        except KeyError as err:
+            # Could we in principle use metadata with these Epochs and keys?
+            if (len(keys) != 1 or self.metadata is None):
+                # If not, raise original error
+                raise
+            msg = str(err[0])  # message for KeyError
+            pd = _check_pandas_installed(strict=False)
+            # See if the query can be done
+            if pd is not False:
                 try:
                     # Try metadata matching
-                    idxs = np.where(self.metadata.eval(keys[0]).values)[0]
-                    return idxs
+                    return np.where(self.metadata.eval(keys[0]).values)[0]
                 except Exception:
-                    err = err[:-1]
-                    err += ' and is not a valid metadata query.'
-                    pass
-            # If none of the above code returns the ixs, throw the error
-            raise ValueError(err)
+                    msg += (' The epochs.metadata Pandas query did not '
+                            'yield any results.')
+            else:
+                # If not, warn this might be a problem
+                msg += (' The epochs.metadata Pandas query could not '
+                        'be performed, consider installing Pandas.')
+            raise KeyError(msg)
 
     def __getitem__(self, item):
         """Return an Epochs object with a copied subset of epochs.
@@ -1445,10 +1451,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             4. ``epochs['pandas query']``: Return ``Epochs`` object with a
                copy of the subset of epochs that match ``pandas query`` called
-               with ``self.metadata.eval``. Only called if Pandas is installed
-               and ``self.metadata`` is a DataFrame.
+               with ``self.metadata.eval``, e.g.::
 
+                   epochs["col_a > 2 and col_b == 'foo'"]
+
+               This is only called if Pandas is installed and ``self.metadata``
+               is a :class:`pandas.DataFrame`.
+
+               .. versionadded:: 0.16
         """
+        # Todo:
+        # - Add metadata query
+        # - Add error message when there is no Pandas but metadata is not None
         data = self._data
         del self._data
         epochs = self.copy()
@@ -1470,9 +1484,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             epochs.drop_log[k] = ['IGNORED']
         epochs.selection = key_selection
         epochs.events = np.atleast_2d(epochs.events[select])
-        pd = _check_pandas_installed(strict=False)
-        if isinstance(epochs.metadata, pd.DataFrame):
-            epochs.metadata = epochs.metadata.iloc[select]
+        if epochs.metadata is not None:
+            pd = _check_pandas_installed(strict=False)
+            if pd is not False:
+                metadata = epochs.metadata.iloc[select]
+            else:
+                metadata = OrderedDict()
+                for key, val in epochs.metadata.items():
+                    metadata[key] = OrderedDict(
+                        np.array(list(val.items()), np.object)[select])
+            epochs.metadata = metadata
         if epochs.preload:
             # ensure that each Epochs instance owns its own data so we can
             # resize later if necessary
@@ -1701,7 +1722,6 @@ def _hid_match(event_id, keys):
         The full keys that fit the selection criteria.
     """
     # form the hierarchical event ID mapping
-    keys = [keys] if not isinstance(keys, (list, tuple)) else keys
     use_keys = []
     for key in keys:
         if not isinstance(key, string_types):
@@ -1860,12 +1880,14 @@ class Epochs(BaseEpochs):
         Whether to reject based on annotations. If True (default), epochs
         overlapping with segments whose description begins with ``'bad'`` are
         rejected. If False, no rejection based on annotations is performed.
-    metadata : DataFrame | None
-        A DataFrame specifying more complex metadata about events. If given,
-        ``len(metadata)`` must equal ``len(events)``. The DataFrame may have
-        values of type (str | int | float). If metadata is given, then
-        pandas-style queries may be used to select subsets of data. E.g.,
-        ``epochs["col_a > 2 and col_b == 'foo'"]``.
+    metadata : None | instance of pandas.DataFrame
+        A :class:`pandas.DataFrame` specifying more complex metadata about
+        events. If given, ``len(metadata)`` must equal ``len(events)``.
+        The DataFrame may have values of type (str | int | float).
+        If metadata is given, then pandas-style queries may be used to select
+        subsets of data, see :meth:`mne.Epochs.__getitem__`.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -1912,7 +1934,7 @@ class Epochs(BaseEpochs):
     decimated, then projectors are (optionally) applied.
 
     For indexing and slicing using ``epochs[...]``, see
-    :func:`mne.Epochs.__getitem__`.
+    :meth:`mne.Epochs.__getitem__`.
     """
 
     @verbose
@@ -1923,7 +1945,7 @@ class Epochs(BaseEpochs):
                  reject_by_annotation=True, metadata=None, verbose=None):  # noqa: D102
         if not isinstance(raw, BaseRaw):
             raise ValueError('The first argument to `Epochs` must be an '
-                             'instance of `mne.io.Raw`')
+                             'instance of mne.io.BaseRaw')
         info = deepcopy(raw.info)
 
         # proj is on when applied in Raw
@@ -2028,12 +2050,10 @@ class EpochsArray(BaseEpochs):
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
     on_missing : str
         See :class:`mne.Epochs` docstring for details.
-    metadata : DataFrame | None
-        A DataFrame specifying more complex metadata about events. If given,
-        ``len(metadata)`` must equal ``len(events)``. The DataFrame may have
-        values of type (str | int | float). If metadata is given, then
-        pandas-style queries may be used to select subsets of data. E.g.,
-        ``epochs["col_a > 2 and col_b == 'foo'"]``.
+    metadata : None | instance of pandas.DataFrame
+        See :class:`mne.Epochs` docstring for details.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2041,6 +2061,7 @@ class EpochsArray(BaseEpochs):
     Notes
     -----
     Proper units of measure:
+
     * V: eeg, eog, seeg, emg, ecg, bio, ecog
     * T: mag
     * T/m: grad
@@ -2050,7 +2071,9 @@ class EpochsArray(BaseEpochs):
 
     See Also
     --------
-    io.RawArray, EvokedArray, create_info
+    create_info
+    EvokedArray
+    io.RawArray
     """
 
     @verbose
@@ -2307,21 +2330,21 @@ def _read_one_epoch_file(f, tree, preload):
         #   Metadata
         metadata = None
         metadata_tree = dir_tree_find(tree, FIFF.FIFFB_MNE_METADATA)
-        for dd in metadata_tree[0]['directory']:
-            kind = dd.kind
-            pos = dd.pos
-            if kind == FIFF.FIFF_DESCRIPTION:
-                tag = read_tag(fid, pos)
-                if tag.data == 'None':
-                    continue
-                if _check_pandas_installed(strict=False) is False:
-                    warn('Metadata found but pandas is not installed, not '
-                         'loading.')
-                    continue
-                import pandas as pd
-                # Overwrite metadata
-                metadata = pd.read_json(tag.data)
-                break
+        if len(metadata_tree) > 0:
+            for dd in metadata_tree[0]['directory']:
+                kind = dd.kind
+                pos = dd.pos
+                if kind == FIFF.FIFF_DESCRIPTION:
+                    metadata = read_tag(fid, pos).data
+                    pd = _check_pandas_installed(strict=False)
+                    metadata = json.loads(metadata,
+                                          object_pairs_hook=OrderedDict)
+                    assert isinstance(metadata, dict)
+                    if pd is not False:
+                        # metadata = pd.read_json(metadata)
+                        metadata = pd.DataFrame.from_dict(metadata)
+                        assert isinstance(metadata, pd.DataFrame)
+                    break
 
         #   Locate the data of interest
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
@@ -2518,7 +2541,7 @@ class EpochsFIF(BaseEpochs):
             fid, tree, _ = fiff_open(fname)
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, metadata, tmin, tmax,
-            baseline, selection, drop_log, epoch_shape, cals) = \
+             baseline, selection, drop_log, epoch_shape, cals) = \
                 _read_one_epoch_file(fid, tree, preload)
 
             # here we ignore missing events, since users should already be
@@ -2539,7 +2562,8 @@ class EpochsFIF(BaseEpochs):
                 fnames.append(next_fname)
 
         (info, data, events, event_id, tmin, tmax, metadata, baseline,
-         selection, drop_log, _) = _concatenate_epochs(ep_list, with_data=preload)
+         selection, drop_log, _) = \
+            _concatenate_epochs(ep_list, with_data=preload)
         # we need this uniqueness for non-preloaded data to work properly
         if len(np.unique(events[:, 0])) != len(events):
             raise RuntimeError('Event time samples were not unique')
@@ -2739,10 +2763,6 @@ def _concatenate_epochs(epochs_list, with_data=True):
     data = [out.get_data()] if with_data else None
     events = [out.events]
     metadata = [out.metadata]
-    if metadata[0] is not None:
-        if any(ii.metadata is None for ii in epochs_list):
-            raise ValueError("Cannot concatenate epochs with metadata to others"
-                             " without metadata.")
     baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
     info = deepcopy(out.info)
     verbose = out.verbose
@@ -2783,23 +2803,41 @@ def _concatenate_epochs(epochs_list, with_data=True):
         selection = np.concatenate((selection, epochs.selection))
         drop_log.extend(epochs.drop_log)
         event_id.update(epochs.event_id)
-        if metadata is not None:
-            metadata.append(epochs.metadata)
+        metadata.append(epochs.metadata)
     events = np.concatenate(events, axis=0)
+
     # Create metadata object (or make it None)
-    if metadata[0] is not None:
-        pd = _check_pandas_installed()
-        metadata = pd.concat(metadata)
+    n_have = sum(this_meta is not None for this_meta in metadata)
+    if n_have == 0:
+        metadata = None
+    elif n_have != len(metadata):
+        raise ValueError('%d of %d epochs instances have metadata, either '
+                         'all or none must have metadata'
+                         % (n_have, len(metadata)))
     else:
-        metadata = metadata[0]
+        pd = _check_pandas_installed(strict=False)
+        if pd is not False:
+            metadata = pd.concat(metadata)
+        else:  # dict of dicts
+            metadatas = metadata
+            metadata = OrderedDict()
+            keys = set(metadatas[0].keys())
+            for this_meta in metadatas[1:]:
+                if not keys == set(this_meta.keys()):
+                    raise ValueError('All epochs.metadata must contain the '
+                                     'same keys')
+            for key in keys:
+                metadata[key] = OrderedDict(
+                    sum((this_meta[key].items()
+                         for this_meta in metadatas), list()))
     if with_data:
         data = np.concatenate(data, axis=0)
     return (info, data, events, event_id, tmin, tmax, metadata, baseline,
             selection, drop_log, verbose)
 
 
-def _finish_concat(info, data, events, event_id, tmin, tmax, metadata, baseline,
-                   selection, drop_log, verbose):
+def _finish_concat(info, data, events, event_id, tmin, tmax, metadata,
+                   baseline, selection, drop_log, verbose):
     """Finish concatenation for epochs not read from disk."""
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(
