@@ -79,7 +79,7 @@ For full functionality, some functions require:
 
   - scikit-learn >= 0.18
   - nibabel >= 2.1.0
-  - pandas >= 0.12
+  - pandas >= 0.13
 
 To use NVIDIA CUDA for resampling and FFT FIR filtering, you will also need
 to install the NVIDIA CUDA SDK, pycuda, and scikits.cuda. See the

@@ -1345,57 +1345,57 @@ def test_epoch_eq():
     epochs_1 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     epochs_2 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
     epochs_1.drop_bad()  # make sure drops are logged
-    assert_true(len([l for l in epochs_1.drop_log if not l]) ==
-                len(epochs_1.events))
+    assert_equal(len([log for log in epochs_1.drop_log if not log]),
+                 len(epochs_1.events))
     drop_log1 = epochs_1.drop_log = [[] for _ in range(len(epochs_1.events))]
     drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
                  epochs_1.drop_log]
-    assert_true(drop_log1 == drop_log2)
-    assert_true(len([l for l in epochs_1.drop_log if not l]) ==
-                len(epochs_1.events))
+    assert_equal(drop_log1, drop_log2)
+    assert_equal(len([l for l in epochs_1.drop_log if not l]),
+                 len(epochs_1.events))
     assert_true(epochs_1.events.shape[0] != epochs_2.events.shape[0])
     equalize_epoch_counts([epochs_1, epochs_2], method='mintime')
-    assert_true(epochs_1.events.shape[0] == epochs_2.events.shape[0])
+    assert_equal(epochs_1.events.shape[0], epochs_2.events.shape[0])
     epochs_3 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     epochs_4 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
     equalize_epoch_counts([epochs_3, epochs_4], method='truncate')
-    assert_true(epochs_1.events.shape[0] == epochs_3.events.shape[0])
-    assert_true(epochs_3.events.shape[0] == epochs_4.events.shape[0])
+    assert_equal(epochs_1.events.shape[0], epochs_3.events.shape[0])
+    assert_equal(epochs_3.events.shape[0], epochs_4.events.shape[0])
 
     # equalizing conditions
     epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
                     tmin, tmax, picks=picks, reject=reject)
     epochs.drop_bad()  # make sure drops are logged
-    assert_true(len([l for l in epochs.drop_log if not l]) ==
-                len(epochs.events))
+    assert_equal(len([log for log in epochs.drop_log if not log]),
+                 len(epochs.events))
     drop_log1 = deepcopy(epochs.drop_log)
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'])
     # undo the eq logging
     drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
                  epochs.drop_log]
-    assert_true(drop_log1 == drop_log2)
+    assert_equal(drop_log1, drop_log2)
 
-    assert_true(len([l for l in epochs.drop_log if not l]) ==
-                len(epochs.events))
+    assert_equal(len([log for log in epochs.drop_log if not log]),
+                 len(epochs.events))
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
-    assert_true(new_shapes[0] == new_shapes[1])
-    assert_true(new_shapes[2] == new_shapes[2])
-    assert_true(new_shapes[3] == new_shapes[3])
+    assert_equal(new_shapes[0], new_shapes[1])
+    assert_equal(new_shapes[2], new_shapes[2])
+    assert_equal(new_shapes[3], new_shapes[3])
     # now with two conditions collapsed
     old_shapes = new_shapes
     epochs.equalize_event_counts([['a', 'b'], 'c'])
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
-    assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2])
-    assert_true(new_shapes[3] == old_shapes[3])
+    assert_equal(new_shapes[0] + new_shapes[1], new_shapes[2])
+    assert_equal(new_shapes[3], old_shapes[3])
     assert_raises(KeyError, epochs.equalize_event_counts, [1, 'a'])
 
     # now let's combine conditions
     old_shapes = new_shapes
     epochs.equalize_event_counts([['a', 'b'], ['c', 'd']])
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
-    assert_true(old_shapes[0] + old_shapes[1] == new_shapes[0] + new_shapes[1])
-    assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2] + new_shapes[3])
+    assert_equal(old_shapes[0] + old_shapes[1], new_shapes[0] + new_shapes[1])
+    assert_equal(new_shapes[0] + new_shapes[1], new_shapes[2] + new_shapes[3])
     assert_raises(ValueError, combine_event_ids, epochs, ['a', 'b'], {'ab': 1})
 
     combine_event_ids(epochs, ['a', 'b'], {'ab': 12}, copy=False)
@@ -1411,8 +1411,8 @@ def test_epoch_eq():
     epochs = combine_event_ids(epochs, ['c', 'd'], {'cd': 34})
     assert_true(np.all(np.logical_or(epochs.events[:, 2] == 12,
                                      epochs.events[:, 2] == 34)))
-    assert_true(epochs['ab'].events.shape[0] == old_shapes[0] + old_shapes[1])
-    assert_true(epochs['ab'].events.shape[0] == epochs['cd'].events.shape[0])
+    assert_equal(epochs['ab'].events.shape[0], old_shapes[0] + old_shapes[1])
+    assert_equal(epochs['ab'].events.shape[0], epochs['cd'].events.shape[0])
 
     # equalizing with hierarchical tags
     epochs = Epochs(raw, events, {'a/x': 1, 'b/x': 2, 'a/y': 3, 'b/y': 4},
@@ -1905,11 +1905,9 @@ def test_add_channels_epochs():
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
     epochs_meg2.info._update_redundant()
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+    with warnings.catch_warnings(record=True):  # duplicate names
         assert_raises(RuntimeError, add_channels_epochs,
                       [epochs_meg2, epochs_eeg])
-        assert_equal(len(w), 1)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['dev_head_t']['to'] += 1

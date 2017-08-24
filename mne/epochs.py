@@ -1119,15 +1119,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if out_of_bounds.any():
             first = indices[out_of_bounds][0]
             raise IndexError("Epoch index %d is out of bounds" % first)
-
-        for ii in indices:
-            self.drop_log[self.selection[ii]].append(reason)
-
-        self.selection = np.delete(self.selection, indices)
-        self.events = np.delete(self.events, indices, axis=0)
-        if self.preload:
-            self._data = np.delete(self._data, indices, axis=0)
-
+        keep = np.setdiff1d(np.arange(len(self.events)), indices)
+        self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(indices)
         logger.info('Dropped %d epoch%s' % (count, _pl(count)))
         return self
@@ -1384,24 +1377,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         keys = [keys] if not isinstance(keys, (list, tuple)) else keys
         try:
             # Assume it's a condition name
-            return np.any(np.array([self.events[:, 2] == self.event_id[k]
-                                    for k in _hid_match(self.event_id, keys)]),
-                          axis=0)
+            return np.where(np.any(
+                np.array([self.events[:, 2] == self.event_id[k]
+                          for k in _hid_match(self.event_id, keys)]),
+                axis=0))[0]
         except KeyError as err:
             # Could we in principle use metadata with these Epochs and keys?
             if (len(keys) != 1 or self.metadata is None):
                 # If not, raise original error
                 raise
-            msg = str(err[0])  # message for KeyError
+            msg = str(err.args[0])  # message for KeyError
             pd = _check_pandas_installed(strict=False)
             # See if the query can be done
             if pd is not False:
                 try:
                     # Try metadata matching
-                    return np.where(self.metadata.eval(keys[0]).values)[0]
-                except Exception:
+                    mask = self.metadata.eval(keys[0]).values
+                except Exception as exp:
                     msg += (' The epochs.metadata Pandas query did not '
-                            'yield any results.')
+                            'yield any results: %s' % (exp.args[0],))
+                else:
+                    return np.where(mask)[0]
             else:
                 # If not, warn this might be a problem
                 msg += (' The epochs.metadata Pandas query could not '
@@ -1460,12 +1456,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
                .. versionadded:: 0.16
         """
-        # Todo:
-        # - Add metadata query
-        # - Add error message when there is no Pandas but metadata is not None
+        return self._getitem(item)
+
+    def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True):
+        """Wrapper for __getitem__ with more options."""
         data = self._data
         del self._data
-        epochs = self.copy()
+        epochs = self.copy() if copy else self
         self._data, epochs._data = data, data
         del self
 
@@ -1481,7 +1478,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         key_selection = epochs.selection[select]
         for k in np.setdiff1d(epochs.selection, key_selection):
-            epochs.drop_log[k] = ['IGNORED']
+            epochs.drop_log[k] = [reason]
         epochs.selection = key_selection
         epochs.events = np.atleast_2d(epochs.events[select])
         if epochs.metadata is not None:
@@ -1498,9 +1495,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             # ensure that each Epochs instance owns its own data so we can
             # resize later if necessary
             epochs._data = np.require(epochs._data[select], requirements=['O'])
-        # update event id to reflect new content of epochs
-        epochs.event_id = dict((k, v) for k, v in epochs.event_id.items()
-                               if v in epochs.events[:, 2])
+        if drop_event_id:
+            # update event id to reflect new content of epochs
+            epochs.event_id = dict((k, v) for k, v in epochs.event_id.items()
+                                   if v in epochs.events[:, 2])
         return epochs
 
     def crop(self, tmin=None, tmax=None):
@@ -1695,7 +1693,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                      "orthogonal selection.")
 
         for eq in event_ids:
-            eq_inds.append(np.where(self._keys_to_idx(eq))[0])
+            eq_inds.append(self._keys_to_idx(eq))
 
         event_times = [self.events[e, 0] for e in eq_inds]
         indices = _get_drop_indices(event_times, method)
