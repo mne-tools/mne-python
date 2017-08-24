@@ -93,7 +93,7 @@ class SourceSpaces(list):
 
     @verbose
     def plot(self, head=False, brain=None, skull=None, subjects_dir=None,
-             verbose=None):
+             trans=None, verbose=None):
         """Plot the source space.
 
         Parameters
@@ -115,6 +115,11 @@ class SourceSpaces(list):
             and True otherwise.
         subjects_dir : string, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
+        trans : str | 'auto' | dict | None
+            The full path to the head<->MRI transform ``*-trans.fif`` file
+            produced during coregistration. If trans is None, an identity
+            matrix is assumed. This is only needed when the source space is in
+            head coordinates.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -126,17 +131,22 @@ class SourceSpaces(list):
             The figure.
         """
         from .viz import plot_alignment
+
         surfaces = list()
         bem = None
+
         if brain is None:
             brain = 'white' if any(ss['type'] == 'surf'
                                    for ss in self) else False
+
         if isinstance(brain, string_types):
             surfaces.append(brain)
         elif brain:
             surfaces.append('brain')
+
         if skull is None:
             skull = False if self.kind == 'surface' else True
+
         if isinstance(skull, string_types):
             surfaces.append(skull)
         elif skull is True:
@@ -152,13 +162,28 @@ class SourceSpaces(list):
             else:  # list of str
                 for surf in skull:
                     surfaces.append(surf)
+
         if head:
             surfaces.append('head')
+
+        if self[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+            coord_frame = 'head'
+            if trans is None:
+                raise ValueError('Source space is in head coordinates, but no '
+                                 'head<->MRI transform was given. Please '
+                                 'specify the full path to the appropriate '
+                                 '*-trans.fif file as the "trans" parameter.')
+        else:
+            coord_frame = 'mri'
+
         info = create_info(0, 1000., 'eeg')
+
         return plot_alignment(
-            info, trans=None, subject=self[0]['subject_his_id'],
-            subjects_dir=subjects_dir, surfaces=surfaces, coord_frame='mri',
-            meg=(), eeg=False, dig=False, ecog=False, bem=bem, src=self)
+            info, trans=trans, subject=self[0]['subject_his_id'],
+            subjects_dir=subjects_dir, surfaces=surfaces,
+            coord_frame=coord_frame, meg=(), eeg=False, dig=False, ecog=False,
+            bem=bem, src=self
+        )
 
     def __repr__(self):  # noqa: D105
         ss_repr = []
