@@ -2243,16 +2243,18 @@ def test_metadata():
 
     with FakeNoPandas():
         epochs_read = read_epochs(temp_fname)
-        assert isinstance(epochs_read.metadata, dict)
-        assert epochs_read.metadata['num']['5'] == 3.
+        assert isinstance(epochs_read.metadata, list)
+        assert isinstance(epochs_read.metadata[0], dict)
+        assert epochs_read.metadata[5]['num'] == 3.
 
         epochs_one_read = read_epochs(temp_one_fname)
-        assert isinstance(epochs_one_read.metadata, dict)
-        assert epochs_one_read.metadata['num']['5'] == 3.
+        assert isinstance(epochs_one_read.metadata, list)
+        assert isinstance(epochs_one_read.metadata[0], dict)
+        assert epochs_one_read.metadata[0]['num'] == 3.
 
         epochs_one_nopandas = epochs_read['one']
-        assert epochs_read.metadata['num']['5'] == 3.
-        assert epochs_one_nopandas.metadata['num']['5'] == 3.
+        assert epochs_read.metadata[5]['num'] == 3.
+        assert epochs_one_nopandas.metadata[0]['num'] == 3.
         # sel (no Pandas) == sel (w/ Pandas) -> save -> load (no Pandas)
         assert_metadata_equal(epochs_one_nopandas.metadata,
                               epochs_one_read.metadata)
@@ -2281,19 +2283,14 @@ def assert_metadata_equal(got, exp):
     """Assert metadata are equal."""
     if exp is None:
         assert got is None
-    elif isinstance(exp, dict):
-        assert isinstance(exp, dict)
-        assert list(got.keys()) == list(exp.keys())
-        for key in got.keys():
-            g = got[key]
-            e = exp[key]
+    elif isinstance(exp, list):
+        assert isinstance(got, list)
+        assert len(got) == len(exp)
+        for ii, (g, e) in enumerate(zip(got, exp)):
             assert list(g.keys()) == list(e.keys())
-            for k in g.keys():
-                assert g[k] == e[k], (key, k)
+        for key in g.keys():
+            assert g[key] == e[key], (ii, key)
     else:  # DataFrame
-        # XXX ideally we would solve this problem...
-        got = got.reset_index(drop=True)
-        exp = exp.reset_index(drop=True)
         assert isinstance(got, type(exp))
         check = (got == exp)
         assert check.all().all()

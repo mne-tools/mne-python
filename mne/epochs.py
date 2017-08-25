@@ -97,9 +97,9 @@ def _save_split(epochs, fname, part_idx, n_parts):
     if epochs.metadata is not None:
         start_block(fid, FIFF.FIFFB_MNE_METADATA)
         metadata = epochs.metadata
-        if not isinstance(metadata, dict):  # Pandas DataFrame
-            metadata = metadata.to_json()
-        else:
+        if not isinstance(metadata, list):
+            metadata = metadata.to_json(orient='records')
+        else:  # Pandas DataFrame
             metadata = json.dumps(metadata)
         assert isinstance(metadata, string_types)
         write_string(fid, FIFF.FIFF_DESCRIPTION, metadata)
@@ -408,22 +408,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     raise ValueError('metadata must have the same number of '
                                      'rows (%d) as events (%d)'
                                      % (len(metadata), len(self.events)))
-                metadata = metadata.copy()
+                metadata = metadata.reset_index(drop=True)  # makes a copy, too
                 n_col = metadata.shape[1]
             else:
-                if not isinstance(metadata, OrderedDict):
-                    raise TypeError('metdata must be an OrderedDict, got %s'
+                if not isinstance(metadata, list):
+                    raise TypeError('metdata must be a list, got %s'
                                     % (type(metadata),))
-                for key, val in metadata.items():
-                    if not isinstance(key, string_types):
-                        raise ValueError('metadata keys must be str, got %s'
-                                         % (type(key),))
-                    if not isinstance(val, dict):
-                        raise ValueError('metadata values must be lists, '
-                                         'got isinstance(metadata["%s"], %s)'
-                                         % (key, val))
                 metadata = deepcopy(metadata)
-                n_col = len(metadata)
+                n_col = len(metadata[0])
             n_col = ' with %d columns' % n_col
         else:
             n_col = ''
@@ -1486,11 +1478,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if pd is not False:
                 metadata = epochs.metadata.iloc[select]
             else:
-                metadata = OrderedDict()
-                for key, val in epochs.metadata.items():
-                    metadata[key] = OrderedDict(
-                        np.array(list(val.items()), np.object)[select])
-            epochs.metadata = metadata
+                metadata = np.array(epochs.metadata, 'object')[select].tolist()
+            epochs.metadata = metadata  # will reset the index for us
         if epochs.preload:
             # ensure that each Epochs instance owns its own data so we can
             # resize later if necessary
@@ -2337,12 +2326,13 @@ def _read_one_epoch_file(f, tree, preload):
                 if kind == FIFF.FIFF_DESCRIPTION:
                     metadata = read_tag(fid, pos).data
                     pd = _check_pandas_installed(strict=False)
+                    # use json.loads because this preserves ordering
+                    # (which is necessary for round-trip equivalence)
                     metadata = json.loads(metadata,
                                           object_pairs_hook=OrderedDict)
-                    assert isinstance(metadata, dict)
+                    assert isinstance(metadata, list)
                     if pd is not False:
-                        # metadata = pd.read_json(metadata)
-                        metadata = pd.DataFrame.from_dict(metadata)
+                        metadata = pd.DataFrame.from_records(metadata)
                         assert isinstance(metadata, pd.DataFrame)
                     break
 
@@ -2819,17 +2809,7 @@ def _concatenate_epochs(epochs_list, with_data=True):
         if pd is not False:
             metadata = pd.concat(metadata)
         else:  # dict of dicts
-            metadatas = metadata
-            metadata = OrderedDict()
-            keys = set(metadatas[0].keys())
-            for this_meta in metadatas[1:]:
-                if not keys == set(this_meta.keys()):
-                    raise ValueError('All epochs.metadata must contain the '
-                                     'same keys')
-            for key in keys:
-                metadata[key] = OrderedDict(
-                    sum((list(this_meta[key].items())
-                         for this_meta in metadatas), list()))
+            metadata = sum(metadata, list())
     if with_data:
         data = np.concatenate(data, axis=0)
     return (info, data, events, event_id, tmin, tmax, metadata, baseline,
