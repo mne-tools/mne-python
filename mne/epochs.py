@@ -98,7 +98,7 @@ def _save_split(epochs, fname, part_idx, n_parts):
         start_block(fid, FIFF.FIFFB_MNE_METADATA)
         metadata = epochs.metadata
         if not isinstance(metadata, dict):  # Pandas DataFrame
-            metadata = metadata.to_json(force_ascii=False).decode('utf-8')
+            metadata = metadata.to_json()
         else:
             metadata = json.dumps(metadata)
         assert isinstance(metadata, string_types)
@@ -1459,7 +1459,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self._getitem(item)
 
     def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True):
-        """Wrapper for __getitem__ with more options."""
+        """Wrap __getitem__ with more options."""
         data = self._data
         del self._data
         epochs = self.copy() if copy else self
@@ -2828,7 +2828,7 @@ def _concatenate_epochs(epochs_list, with_data=True):
                                      'same keys')
             for key in keys:
                 metadata[key] = OrderedDict(
-                    sum((this_meta[key].items()
+                    sum((list(this_meta[key].items())
                          for this_meta in metadatas), list()))
     if with_data:
         data = np.concatenate(data, axis=0)
