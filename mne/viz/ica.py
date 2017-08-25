@@ -103,7 +103,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         sources = ica.get_sources(inst)
         fig = _plot_ica_sources_evoked(
             evoked=sources, picks=picks, exclude=exclude, title=title,
-            labels=getattr(ica, 'labels_', None), show=show)
+            labels=getattr(ica, 'labels_', None), show=show, ica=ica)
     else:
         raise ValueError('Data input must be of Raw or Epochs type')
 
@@ -310,7 +310,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # aesthetics
         # ----------
-        axes[0].set_title('IC #{0:0>3}'.format(pick))
+        axes[0].set_title(ica._ica_names[pick])
 
         set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
 
@@ -361,7 +361,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     return all_fig
 
 
-def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
+def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
+                             labels=None):
     """Plot average over epochs in ICA space.
 
     Parameters
@@ -404,7 +405,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     exclude_labels = list()
     for ii in picks:
         if ii in exclude:
-            line_label = 'IC #%03d' % ii
+            line_label = ica._ica_names[ii]
             if labels is not None:
                 annot = list()
                 for this_label in labels_used:
@@ -753,7 +754,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     eog_chs = pick_types(raw.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(raw.info, meg=False, ecg=True, ref_meg=False)
     data = [orig_data[pick] for pick in picks]
-    c_names = ['IC #%03d' % x for x in range(len(orig_data))]
+    c_names = list(ica.ch_names)  # new list
     for eog_idx in eog_chs:
         c_names.append(raw.ch_names[eog_idx])
         types.append('eog')
@@ -850,8 +851,8 @@ def _pick_bads(event, params):
 def _close_event(events, params):
     """Exclude the selected components on close."""
     info = params['info']
-    c_names = ['IC #%03d' % x for x in range(params['ica'].n_components_)]
-    exclude = [c_names.index(x) for x in info['bads'] if x.startswith('IC')]
+    exclude = [params['ica']._ica_names.index(x)
+               for x in info['bads'] if x.startswith('ICA')]
     params['ica'].exclude = exclude
 
 
@@ -861,7 +862,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
-    c_names = ['IC #%03d' % x for x in range(ica.n_components_)]
+    c_names = list(ica._ica_names)
     ch_types = np.repeat('misc', ica.n_components_)
     for eog_idx in eog_chs:
         c_names.append(epochs.ch_names[eog_idx])
@@ -979,7 +980,7 @@ def _label_clicked(pos, params):
         if merge_grads:
             from ..channels.layout import _merge_grad_data
         for ii, data_ in zip(ic_idx, this_data):
-            ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
+            ax.set_title('%s %s' % (ica._ica_names[ii], ch_type), fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
             plot_topomap(data_.flatten(), pos, axes=ax, show=False)
             _hide_frame(ax)

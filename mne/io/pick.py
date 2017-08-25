@@ -734,8 +734,7 @@ def _pick_aux_channels(info, exclude='bads'):
 
 def _pick_data_or_ica(info):
     """Pick only data or ICA channels."""
-    ch_names = [c['ch_name'] for c in info['chs']]
-    if 'ICA ' in ','.join(ch_names):
+    if any(ch_name.startswith('ICA') for ch_name in info['ch_names']):
         picks = pick_types(info, exclude=[], misc=True)
     else:
         picks = _pick_data_channels(info, exclude=[], with_ref_meg=True)
