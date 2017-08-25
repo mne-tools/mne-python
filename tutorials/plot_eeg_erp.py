@@ -23,7 +23,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.set_eeg_reference()  # set EEG average reference
+raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 
 ###############################################################################
 # Let's restrict the data to the EEG channels
@@ -59,7 +59,7 @@ print(raw.info['chs'][0]['loc'])
 
 ###############################################################################
 # And it's actually possible to plot the channel locations using
-# the :func:`mne.io.Raw.plot_sensors` method
+# :func:`mne.io.Raw.plot_sensors`.
 
 raw.plot_sensors()
 raw.plot_sensors('3d')  # in 3D
@@ -69,7 +69,7 @@ raw.plot_sensors('3d')  # in 3D
 # -------------------
 #
 # In the case where your data don't have locations you can set them
-# using a :func:`mne.channels.Montage`. MNE comes with a set of default
+# using a :class:`mne.channels.Montage`. MNE comes with a set of default
 # montages. To read one of them do:
 
 montage = mne.channels.read_montage('standard_1020')
@@ -111,7 +111,7 @@ evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title)
 ###############################################################################
 # **Average reference**: This is normally added by default, but can also
 # be added explicitly.
-raw_car, _ = mne.set_eeg_reference(raw)
+raw_car, _ = mne.set_eeg_reference(raw, 'average', projection=True)
 evoked_car = mne.Epochs(raw_car, **epochs_params).average()
 del raw_car  # save memory
 

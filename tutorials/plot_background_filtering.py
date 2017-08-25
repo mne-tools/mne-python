@@ -209,7 +209,8 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 sec)', flim=flim)
 # based on desired response characteristics. These include:
 #
 #     1. The Remez_ algorithm (:func:`scipy.signal.remez`, `MATLAB firpm`_)
-#     2. Windowed FIR design (:func:`scipy.signal.firwin2`, `MATLAB fir2`_)
+#     2. Windowed FIR design (:func:`scipy.signal.firwin2`, `MATLAB fir2`_
+#        and :func:`scipy.signal.firwin`)
 #     3. Least squares designs (:func:`scipy.signal.firls`, `MATLAB firls`_)
 #     4. Frequency-domain design (construct filter in Fourier
 #        domain and use an :func:`IFFT <scipy.fftpack.ifft>` to invert it)
@@ -343,14 +344,34 @@ x += np.sin(2. * np.pi * 60. * np.arange(len(x)) / sfreq) / 2000.
 
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
+filter_dur = 6.6 / transition_band / 2.  # sec
+n = int(sfreq * filter_dur)
+freq = [0., f_p, f_s, sfreq / 2.]
+gain = [1., 1., 0., 0.]
+# This would be equivalent:
+h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                             fir_design='firwin')
+x_v16 = np.convolve(h, x)[len(h) // 2:]
+
+plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.16 default', flim=flim)
+
+###############################################################################
+# Filter it with a different design mode ``fir_design="firwin2"``, and also
+# compensate for the constant filter delay. This method does not produce
+# quite as sharp a transition compared to ``fir_design="firwin"``, despite
+# being twice as long:
+
+transition_band = 0.25 * f_p
+f_s = f_p + transition_band
 filter_dur = 6.6 / transition_band  # sec
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
-h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p)
-x_shallow = np.convolve(h, x)[len(h) // 2:]
+h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                             fir_design='firwin2')
+x_v14 = np.convolve(h, x)[len(h) // 2:]
 
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default', flim=flim)
 
@@ -371,8 +392,9 @@ gain = [1., 1., 0., 0.]
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                              h_trans_bandwidth=transition_band,
-                             filter_length='%ss' % filter_dur)
-x_steep = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
+                             filter_length='%ss' % filter_dur,
+                             fir_design='firwin2')
+x_v13 = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 
 plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.13 default', flim=flim)
 
@@ -393,7 +415,7 @@ plot_filter(h, sfreq, freq, gain, 'MNE-C default', flim=flim)
 # And now an example of a minimum-phase filter:
 
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
-                             phase='minimum')
+                             phase='minimum', fir_design='firwin')
 x_min = np.convolve(h, x)
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
@@ -428,15 +450,16 @@ def plot_signal(x, offset):
     axes[1].plot(freqs, 20 * np.log10(np.abs(X)))
     axes[1].set(xlim=flim)
 
-yticks = np.arange(6) / -30.
-yticklabels = ['Original', 'Noisy', 'FIR-shallow (0.14)', 'FIR-steep (0.13)',
-               'FIR-steep (MNE-C)', 'Minimum-phase']
+yticks = np.arange(7) / -30.
+yticklabels = ['Original', 'Noisy', 'FIR-firwin (0.16)', 'FIR-firwin2 (0.14)',
+               'FIR-steep (0.13)', 'FIR-steep (MNE-C)', 'Minimum-phase']
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
-plot_signal(x_shallow, offset=yticks[2])
-plot_signal(x_steep, offset=yticks[3])
-plot_signal(x_mne_c, offset=yticks[4])
-plot_signal(x_min, offset=yticks[5])
+plot_signal(x_v16, offset=yticks[2])
+plot_signal(x_v14, offset=yticks[3])
+plot_signal(x_v13, offset=yticks[4])
+plot_signal(x_mne_c, offset=yticks[5])
+plot_signal(x_min, offset=yticks[6])
 axes[0].set(xlim=tlim, title='FIR, Lowpass=%d Hz' % f_p, xticks=tticks,
             ylim=[-0.200, 0.025], yticks=yticks, yticklabels=yticklabels,)
 for text in axes[0].get_yticklabels():
@@ -759,7 +782,7 @@ baseline_plot(x)
 # and thus :func:`mne.io.Raw.filter` is used. This function under the hood
 # (among other things) calls :func:`mne.filter.filter_data` to actually
 # filter the data, which by default applies a zero-phase FIR filter designed
-# using :func:`scipy.signal.firwin2`. In Widmann *et al.* 2015 [7]_, they
+# using :func:`scipy.signal.firwin`. In Widmann *et al.* 2015 [7]_, they
 # suggest a specific set of parameters to use for high-pass filtering,
 # including:
 #
@@ -805,27 +828,28 @@ baseline_plot(x)
 # To choose the filter length automatically with ``filter_length='auto'``,
 # the reciprocal of the shortest transition bandwidth is used to ensure
 # decent attenuation at the stop frequency. Specifically, the reciprocal
-# (in samples) is multiplied by 6.2, 6.6, or 11.0 for the Hann, Hamming,
+# (in samples) is multiplied by 3.1, 3.3, or 5.0 for the Hann, Hamming,
 # or Blackman windows, respectively as selected by the ``fir_window``
-# argument.
+# argument for ``fir_design='firwin'``, and double these for
+# ``fir_design='firwin2'`` mode.
 #
-# .. note:: These multiplicative factors are double what is given in
-#           Ifeachor and Jervis [2]_ (p. 357). The window functions have a
-#           smearing effect on the frequency response; I&J thus take the
-#           approach of setting the stop frequency as
-#           :math:`f_s = f_p + f_{trans} / 2.`, but our stated definitions of
-#           :math:`f_s` and :math:`f_{trans}` do not
-#           allow us to do this in a nice way. Instead, we increase our filter
-#           length to achieve acceptable (20+ dB) attenuation by
-#           :math:`f_s = f_p + f_{trans}`, and excellent (50+ dB)
-#           attenuation by :math:`f_s + f_{trans}` (and usually earlier).
+# .. note:: For ``fir_design='firwin2'``, the multiplicative factors are
+#           doubled compared to what is given in Ifeachor and Jervis [2]_
+#           (p. 357), as :func:`scipy.signal.firwin2` has a smearing effect
+#           on the frequency response, which we compensate for by
+#           increasing the filter length. This is why
+#           ``fir_desgin='firwin'`` is preferred to ``fir_design='firwin2'``.
 #
 # In 0.14, we default to using a Hamming window in filter design, as it
 # provides up to 53 dB of stop-band attenuation with small pass-band ripple.
 #
 # .. note:: In band-pass applications, often a low-pass filter can operate
 #           effectively with fewer samples than the high-pass filter, so
-#           it is advisable to apply the high-pass and low-pass separately.
+#           it is advisable to apply the high-pass and low-pass separately
+#           when using ``fir_design='firwin2'``. For design mode
+#           ``fir_design='firwin'``, there is no need to separate the
+#           operations, as the lowpass and highpass elements are constructed
+#           separately to meet the transition band requirements.
 #
 # For more information on how to use the
 # MNE-Python filtering functions with real data, consult the preprocessing

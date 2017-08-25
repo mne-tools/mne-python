@@ -41,6 +41,7 @@ MNE-misc-data*
 MEGSIM*
 build
 coverage
+.cache/
 
 dist/
 doc/_build/
@@ -55,6 +56,7 @@ tags
 doc/coverages
 doc/samples
 cover
+examples/visualization/foobar.html
 
 *.orig
 

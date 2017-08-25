@@ -55,106 +55,303 @@ def _summarize_str(st):
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
+# XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
 class Info(dict):
-    """Information about the recording.
+    """Measurement information.
 
-    This data structure behaves like a dictionary. It contains all meta-data
+    This data structure behaves like a dictionary. It contains all metadata
     that is available for a recording.
 
-    The attributes listed below are the possible dictionary entries:
+    This class should not be instantiated directly. To create a measurement
+    information strucure, use :func:`mne.create_info`.
 
-    Attributes
+    The only entries that should be manually changed by the user are
+    ``info['bads']`` and ``info['description']``. All other entries should
+    be considered read-only, or should be modified by functions or methods.
+
+    Parameters
     ----------
+    acq_pars : str | None
+        MEG system acquition parameters.
+        See :class:`mne.AcqParserFIF` for details.
+    acq_stim : str | None
+        MEG system stimulus parameters.
     bads : list of str
         List of bad (noisy/broken) channels, by name. These channels will by
         default be ignored by many processing steps.
-    ch_names : list-like of str (read-only)
+    buffer_size_sec : float | None
+        Buffer size (in seconds) when reading the raw data in chunks.
+    ch_names : list of str
         The names of the channels.
-        This object behaves like a read-only Python list. Behind the scenes
-        it iterates over the channels dictionaries in `info['chs']`:
-        `info['ch_names'][x] == info['chs'][x]['ch_name']`
     chs : list of dict
-        A list of channel information structures.
-        See: :ref:`faq` for details.
+        A list of channel information dictionaries, one per channel.
+        See Notes for more information.
     comps : list of dict
         CTF software gradient compensation data.
-        See: :ref:`faq` for details.
+        See Notes for more information.
+    ctf_head_t : dict | None
+        The transformation from 4D/CTF head coordinates to Neuromag head
+        coordinates. This is only present in 4D/CTF data.
     custom_ref_applied : bool
         Whether a custom (=other than average) reference has been applied to
         the EEG data. This flag is checked by some algorithms that require an
         average reference to be set.
-    events : list of dict
-        Event list, usually extracted from the stim channels.
-        See: :ref:`faq` for details.
-    hpi_results : list of dict
-        Head position indicator (HPI) digitization points and fit information
-        (e.g., the resulting transform). See: :ref:`faq` for details.
-    meas_date : list of int
-        The first element of this list is a POSIX timestamp (milliseconds since
-        1970-01-01 00:00:00) denoting the date and time at which the
-        measurement was taken. The second element is the number of
-        microseconds.
-    nchan : int
-        Number of channels.
-    projs : list of dict
-        List of SSP operators that operate on the data.
-        See: :ref:`faq` for details.
-    sfreq : float
-        Sampling frequency in Hertz.
-        See: :ref:`faq` for details.
-    acq_pars : str | None
-        MEG system acquition parameters.
-    acq_stim : str | None
-        MEG system stimulus parameters.
-    buffer_size_sec : float | None
-        Buffer size (in seconds) when reading the raw data in chunks.
-    ctf_head_t : dict | None
-        The transformation from 4D/CTF head coordinates to Neuromag head
-        coordinates. This is only present in 4D/CTF data.
-        See: :ref:`faq` for details.
     description : str | None
         String description of the recording.
     dev_ctf_t : dict | None
         The transformation from device coordinates to 4D/CTF head coordinates.
         This is only present in 4D/CTF data.
-        See: :ref:`faq` for details.
     dev_head_t : dict | None
         The device to head transformation.
-        See: :ref:`faq` for details.
     dig : list of dict | None
         The Polhemus digitization data in head coordinates.
-        See: :ref:`faq` for details.
-    experimentor : str | None
+        See Notes for more information.
+    events : list of dict
+        Event list, sometimes extracted from the stim channels by Neuromag
+        systems. In general this should not be used and
+        :func:`mne.find_events` should be used for event processing.
+        See Notes for more information.
+    experimenter : str | None
         Name of the person that ran the experiment.
     file_id : dict | None
-        The fif ID datastructure of the measurement file.
-        See: :ref:`faq` for details.
+        The FIF globally unique ID. See Notes for more information.
     highpass : float | None
         Highpass corner frequency in Hertz. Zero indicates a DC recording.
-    hpi_meas : list of dict | None
+    hpi_meas : list of dict
         HPI measurements that were taken at the start of the recording
         (e.g. coil frequencies).
+        See Notes for details.
+    hpi_results : list of dict
+        Head position indicator (HPI) digitization points and fit information
+        (e.g., the resulting transform).
+        See Notes for details.
     hpi_subsystem : dict | None
         Information about the HPI subsystem that was used (e.g., event
         channel used for cHPI measurements).
+        See Notes for details.
     line_freq : float | None
         Frequency of the power line in Hertz.
     lowpass : float | None
         Lowpass corner frequency in Hertz.
+    meas_date : list of int
+        The first element of this list is a POSIX timestamp (milliseconds since
+        1970-01-01 00:00:00) denoting the date and time at which the
+        measurement was taken. The second element is the number of
+        microseconds.
     meas_id : dict | None
-        The ID assigned to this measurement by the acquisition system or during
-        file conversion.
-        See: :ref:`faq` for details.
+        The ID assigned to this measurement by the acquisition system or
+        during file conversion. Follows the same format as ``file_id``.
+    nchan : int
+        Number of channels.
+    proc_history : list of dict
+        The MaxFilter processing history.
+        See Notes for details.
     proj_id : int | None
         ID number of the project the experiment belongs to.
     proj_name : str | None
         Name of the project the experiment belongs to.
+    projs : list of Projection
+        List of SSP operators that operate on the data.
+        See :class:`mne.Projection` for details.
+    sfreq : float
+        Sampling frequency in Hertz.
     subject_info : dict | None
         Information about the subject.
-    proc_history : list of dict | None | not present in dict
-        The SSS info, the CTC correction and the calibaraions from the SSS
-        processing logs inside of a raw file.
-        See: :ref:`faq` for details.
+        See Notes for details.
+
+    See Also
+    --------
+    mne.create_info
+
+    Notes
+    -----
+    The following parameters have a nested structure.
+
+    * ``chs`` list of dict:
+
+        cal : float
+            The calibration factor to bring the channels to physical
+            units. Used in product with ``range`` to scale the data read
+            from disk.
+        ch_name : str
+            The channel name.
+        coil_type : int
+            Coil type, e.g. ``FIFFV_COIL_MEG``.
+        coord_frame : int
+            The coordinate frame used, e.g. ``FIFFV_COORD_HEAD``.
+        kind : int
+            The kind of channel, e.g. ``FIFFV_EEG_CH``.
+        loc : array, shape (12,)
+            Channel location. For MEG this is the position plus the
+            normal given by a 3x3 rotation matrix. For EEG this is the
+            position followed by reference position (with 6 unused).
+            The values are specified in device coordinates for MEG and in
+            head coordinates for EEG channels, respectively.
+        logno : int
+            Logical channel number, conventions in the usage of this
+            number vary.
+        range : float
+            The hardware-oriented part of the calibration factor.
+            This should be only applied to the continuous raw data.
+            Used in product with ``cal`` to scale data read from disk.
+        scanno : int
+            Scanning order number, starting from 1.
+        unit : int
+            The unit to use, e.g. ``FIFF_UNIT_T_M``.
+        unit_mul : int
+            Unit multipliers, most commontly ``FIFF_UNITM_NONE``.
+
+    * ``comps`` list of dict:
+
+        ctfkind : int
+            CTF compensation grade.
+        colcals : ndarray
+            Column calibrations.
+        mat : dict
+            A named matrix dictionary (with entries "data", "col_names", etc.)
+            containing the compensation matrix.
+        rowcals : ndarray
+            Row calibrations.
+        save_calibrated : bool
+            Were the compensation data saved in calibrated form.
+
+    * ``dig`` dict:
+
+        kind : int
+            Digitization kind, e.g. ``FIFFV_POINT_EXTRA``.
+        ident : int
+            Identifier.
+        r : ndarary, shape (3,)
+            Position.
+        coord_frame : int
+            Coordinate frame, e.g. ``FIFFV_COORD_HEAD``.
+
+    * ``events`` list of dict:
+
+        channels : list of int
+            Channel indices for the events.
+        list : ndarray, shape (n_events * 3,)
+            Events in triplets as number of samples, before, after.
+
+    * ``file_id`` dict:
+
+        version : int
+            FIF format version, i.e. ``FIFFC_VERSION``.
+        machid : ndarray, shape (2,)
+            Unique machine ID, usually derived from the MAC address.
+        secs : int
+            Time in seconds.
+        usecs : int
+            Time in microseconds.
+
+    * ``hpi_meas`` list of dict:
+
+        creator : str
+            Program that did the measurement.
+        sfreq : float
+            Sample rate.
+        nchan : int
+            Number of channels used.
+        nave : int
+            Number of averages used.
+        ncoil : int
+            Number of coils used.
+        first_samp : int
+            First sample used.
+        last_samp : int
+            Last sample used.
+        hpi_coils : list of dict
+            Coils, containing:
+
+                number: int
+                    Coil number
+                epoch : ndarray
+                    Buffer containing one epoch and channel.
+                slopes : ndarray, shape (n_channels,)
+                    HPI data.
+                corr_coeff : ndarray, shape (n_channels,)
+                    HPI curve fit correlations.
+                coil_freq : float
+                    HPI coil excitation frequency
+
+    * ``hpi_results`` list of dict:
+
+        dig_points : list
+            Digitization points (see ``dig`` definition) for the HPI coils.
+        order : ndarray, shape (ncoil,)
+            The determined digitization order.
+        used : ndarray, shape (nused,)
+            The indices of the used coils.
+        moments : ndarray, shape (ncoil, 3)
+            The coil moments.
+        goodness : ndarray, shape (ncoil,)
+            The goodness of fits.
+        good_limit : float
+            The goodness of fit limit.
+        dist_limit : float
+            The distance limit.
+        accept : int
+            Whether or not the fit was accepted.
+        coord_trans : instance of Transformation
+            The resulting MEG<->head transformation.
+
+    * ``hpi_subsystem`` dict:
+
+        ncoil : int
+            The number of coils.
+        event_channel : str
+            The event channel used to encode cHPI status (e.g., STI201).
+        hpi_coils : list of ndarray
+            List of length ``ncoil``, each 4-element ndarray contains the
+            event bits used on the event channel to indicate cHPI status
+            (using the first element of these arrays is typically
+            sufficient).
+
+    * ``proc_history`` list of dict:
+
+        block_id : dict
+            See ``id`` above.
+        date : ndarray, shape (2,)
+            2-element tuple of seconds and microseconds.
+        experimenter : str
+            Name of the person who ran the program.
+        creator : str
+            Program that did the processing.
+        max_info : dict
+            Maxwel filtering info, can contain:
+
+                sss_info : dict
+                    SSS processing information.
+                max_st
+                    tSSS processing information.
+                sss_ctc : dict
+                    Cross-talk processing information.
+                sss_cal : dict
+                    Fine-calibration information.
+        smartshield : dict
+            MaxShield information. This dictionary is (always?) empty,
+            but its presence implies that MaxShield was used during
+            acquisiton.
+
+    * ``subject_info`` dict:
+
+        id : int
+            Integer subject identifier.
+        his_id : str
+            String subject identifier.
+        last_name : str
+            Last name.
+        first_name : str
+            First name.
+        middle_name : str
+            Middle name.
+        birthday : tuple of int
+            Birthday in (year, month, day) format.
+        sex : int
+            Subject sex (0=unknown, 1=male, 2=female).
+        hand : int
+            Handedness (1=right, 2=left).
+
     """
 
     def copy(self):
@@ -219,7 +416,7 @@ class Info(dict):
                 entr += " (%s)" % ', '.join("%s: %d" % (ch_type.upper(), count)
                                             for ch_type, count
                                             in ch_counts.items())
-            strs.append('%s : %s%s' % (k, str(type(v))[7:-2], entr))
+            strs.append('%s : %s%s' % (k, type(v).__name__, entr))
             if k in ['sfreq', 'lowpass', 'highpass']:
                 strs[-1] += ' Hz'
         strs_non_empty = sorted(s for s in strs if '|' in s)
@@ -253,8 +450,16 @@ class Info(dict):
         if len(unique_ids) != self['nchan']:
             dups = set(self['ch_names'][x]
                        for x in np.setdiff1d(range(self['nchan']), unique_ids))
-            raise RuntimeError('Channel names are not unique, found '
-                               'duplicates for: %s' % dups)
+            warn('Channel names are not unique, found duplicates for: '
+                 '%s. Applying running numbers for duplicates.' % dups)
+            for ch_stem in dups:
+                overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
+                for idx, ch_idx in enumerate(overlaps):
+                    ch_name = ch_stem + '-%s' % idx
+                    assert ch_name not in self['ch_names']
+                    self['ch_names'][ch_idx] = ch_name
+                    self['chs'][ch_idx]['ch_name'] = ch_name
+
         if 'filename' in self:
             warn('the "filename" key is misleading\
                  and info should not have it')
@@ -263,6 +468,16 @@ class Info(dict):
         """Update the redundant entries."""
         self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
         self['nchan'] = len(self['chs'])
+
+
+def _simplify_info(info):
+    """Return a simplified info structure to speed up picking."""
+    chs = [{key: ch[key] for key in ('ch_name', 'kind', 'unit', 'coil_type',
+                                     'loc')}
+           for ch in info['chs']]
+    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
+    sub_info._update_redundant()
+    return sub_info
 
 
 def read_fiducials(fname):
@@ -408,8 +623,8 @@ def _read_dig_points(fname, comments='%', unit='auto'):
     if ext == '.elp' or ext == '.hsp':
         with open(fname) as fid:
             file_str = fid.read()
-        value_pattern = "\-?\d+\.?\d*e?\-?\d*"
-        coord_pattern = "({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+        value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
+        coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
         if ext == '.hsp':
             coord_pattern = '^' + coord_pattern
         points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
@@ -939,7 +1154,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['hpi_subsystem'] = hs
 
     #   Read processing history
-    _read_proc_history(fid, tree, info)
+    info['proc_history'] = _read_proc_history(fid, tree)
 
     #  Make the most appropriate selection for the measurement id
     if meas_info['parent_id'] is None:
@@ -1400,7 +1615,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq',
-                    'subject_info', 'sfreq', 'xplotter_layout']
+                    'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
 
@@ -1513,7 +1728,7 @@ RAW_INFO_FIELDS = (
     'file_id', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
     'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
-    'subject_info', 'xplotter_layout',
+    'subject_info', 'xplotter_layout', 'proc_history',
 )
 
 
@@ -1528,7 +1743,7 @@ def _empty_info(sfreq):
         'subject_info', 'xplotter_layout',
     )
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
-                  'projs')
+                  'projs', 'proc_history')
     info = Info()
     for k in _none_keys:
         info[k] = None

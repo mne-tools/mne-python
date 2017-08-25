@@ -3,24 +3,26 @@
 
 Computing covariance matrix
 ===========================
+
+Many methods in MNE, including e.g. source estimation and some classification
+algorithms, require covariance estimations from the recordings.
+In this tutorial we cover the basics of sensor covariance computations and
+construct a noise covariance matrix that can be used when computing the
+minimum-norm inverse solution. For more information, see :ref:`BABDEEEB`.
 """
+
 import os.path as op
 
 import mne
 from mne.datasets import sample
 
-###############################################################################
-# Source estimation method such as MNE require a noise estimations from the
-# recordings. In this tutorial we cover the basics of noise covariance and
-# construct a noise covariance matrix that can be used when computing the
-# inverse solution. For more information, see :ref:`BABDEEEB`.
 data_path = sample.data_path()
 raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(raw_fname)
-raw.set_eeg_reference()
+raw.set_eeg_reference('average', projection=True)
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 ###############################################################################

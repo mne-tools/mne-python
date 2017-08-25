@@ -89,6 +89,7 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
         else:
             TFR = ST[:, ::decim]
         TFR_abs = np.abs(TFR)
+        TFR_abs[TFR_abs == 0] = 1.
         if compute_itc:
             TFR /= TFR_abs
             itc[i_f] = np.abs(np.mean(TFR, axis=0))

@@ -152,13 +152,11 @@ html_theme_options = {
     'navbar_class': "navbar",
     'bootstrap_version': "3",  # default
     'navbar_links': [
-        ("Get started", "getting_started"),
-        ("Tutorials", "tutorials"),
-        ("Examples", "auto_examples/index"),
+        ("Install", "getting_started"),
+        ("Documentation", "documentation"),
         ("API", "python_reference"),
-        ("Manual", "manual/index"),
-        ("Contribute", "contribute_to_mne"),
-        ("FAQ", "faq"),
+        ("Examples", "auto_examples/index"),
+        ("Contribute", "contributing"),
     ],
     }
 
@@ -279,11 +277,14 @@ trim_doctests_flags = True
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'python': ('http://docs.python.org/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy-dev/', None),
-    'scipy': ('http://scipy.github.io/devdocs/', None),
-    'sklearn': ('http://scikit-learn.org/stable/', None),
-    'matplotlib': ('http://matplotlib.org/', None),
+    'python': ('http://docs.python.org', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy-dev', None),
+    'scipy': ('http://scipy.github.io/devdocs', None),
+    'matplotlib': ('http://matplotlib.org', None),
+    'sklearn': ('http://scikit-learn.org/stable', None),
+    'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
+    'nibabel': ('http://nipy.org/nibabel', None),
+    'nilearn': ('http://nilearn.github.io', None),
 }
 
 examples_dirs = ['../examples', '../tutorials']
@@ -302,15 +303,22 @@ sphinx_gallery_conf = {
     'doc_module': ('mne',),
     'reference_url': {
         'mne': None,
-        'matplotlib': 'http://matplotlib.org',
-        'numpy': 'http://docs.scipy.org/doc/numpy/reference',
+        'numpy': 'http://docs.scipy.org/doc/numpy',
         'scipy': 'http://docs.scipy.org/doc/scipy/reference',
-        'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
+        'matplotlib': 'http://matplotlib.org',
+        'sklearn': 'http://scikit-learn.org/stable',
+        'mayavi': 'http://docs.enthought.com/mayavi/mayavi',
+        'nibabel': 'http://nipy.org/nibabel',
+        'nilearn': 'http://nilearn.github.io',
+        },
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
     'find_mayavi_figures': find_mayavi_figures,
     'default_thumb_file': os.path.join('_static', 'mne_helmet.png'),
-    'mod_example_dir': 'generated',
+    'backreferences_dir': 'generated',
+    'plot_gallery': 'True',  # Avoid annoying Unicode/bool default warning
+    'download_section_examples': False,
+    'thumbnail_size': (160, 112),
     }
 
 numpydoc_class_members_toctree = False
@@ -365,9 +373,9 @@ def linkcode_resolve(domain, info):
 
     fn = relpath(fn, start=dirname(mne.__file__))
 
-    if 'git' in mne.__version__:
-        return "http://github.com/mne-tools/mne-python/blob/master/mne/%s%s" % (  # noqa
-           fn, linespec)
+    if 'dev' in mne.__version__:
+        kind = 'master'
     else:
-        return "http://github.com/mne-tools/mne-python/blob/maint/%s/mne/%s%s" % (  # noqa
-           mne.__version__, fn, linespec)
+        kind = 'maint/%s' % ('.'.join(mne.__version__.split('.')[:2]))
+    return "http://github.com/mne-tools/mne-python/blob/%s/mne/%s%s" % (  # noqa
+       kind, fn, linespec)

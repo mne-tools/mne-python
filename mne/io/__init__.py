@@ -34,13 +34,13 @@ from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
-from .edf import read_raw_edf
+from .edf import read_raw_edf, get_edf_events
 from .egi import read_raw_egi
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
 from .nicolet import read_raw_nicolet
 from .artemis123 import read_raw_artemis123
-from .eeglab import read_raw_eeglab, read_epochs_eeglab
+from .eeglab import read_raw_eeglab, read_epochs_eeglab, read_events_eeglab
 
 # for backward compatibility
 from .fiff import Raw

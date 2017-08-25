@@ -6,7 +6,7 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy import linalg
 
-from ..utils import logger, warn
+from ..utils import logger, warn, verbose
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
 from ..bem import _fit_sphere
@@ -104,7 +104,8 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
                          .format(type(inst)))
 
 
-def _interpolate_bads_eeg(inst):
+@verbose
+def _interpolate_bads_eeg(inst, verbose=None):
     """Interpolate bad EEG channels.
 
     Operates in place.
@@ -153,6 +154,7 @@ def _interpolate_bads_eeg(inst):
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
 
+@verbose
 def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     """Interpolate bad channels from data in good channels.
 

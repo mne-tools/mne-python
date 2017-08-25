@@ -14,7 +14,7 @@ from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
 from ..externals.six import string_types
-from ..utils import _check_type_picks, check_version
+from ..utils import _check_type_picks, check_version, warn
 from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
 from ..cov import _check_scalings_user
 
@@ -52,14 +52,14 @@ class _ConstantScaler():
         return self.fit(X, y).transform(X)
 
 
-def _sklearn_reshape_apply(func, return_result, X, *args):
+def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     """Reshape epochs and apply function."""
     if not isinstance(X, np.ndarray):
         raise ValueError("data should be an np.ndarray, got %s." % type(X))
     X = np.atleast_3d(X)
     orig_shape = X.shape
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
-    X = func(X, *args)
+    X = func(X, *args, **kwargs)
     if return_result:
         X.shape = (orig_shape[0], orig_shape[2], orig_shape[1])
         X = X.transpose(0, 2, 1)
@@ -69,7 +69,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args):
 class Scaler(TransformerMixin, BaseEstimator):
     u"""Standardize channel data.
 
-    This class scales data for each channel. It differs from scikit-learn_
+    This class scales data for each channel. It differs from scikit-learn
     classes (e.g., :class:`sklearn.preprocessing.StandardScaler`) in that
     it scales each *channel* by estimating μ and σ using data from all
     time points and epochs, as opposed to standardizing each *feature*
@@ -130,7 +130,7 @@ class Scaler(TransformerMixin, BaseEstimator):
             from sklearn.preprocessing import RobustScaler
             self._scaler = RobustScaler(self.with_mean, self.with_std)
 
-    def fit(self, epochs_data, y):
+    def fit(self, epochs_data, y=None):
         """Standardize data across channels.
 
         Parameters
@@ -145,7 +145,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         self : instance of Scaler
             Returns the modified instance.
         """
-        _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y)
+        _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y=y)
         return self
 
     def transform(self, epochs_data, y=None):
@@ -169,8 +169,38 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        if y is not None:
+            warn("The parameter y on transform() is "
+                 "deprecated and will be removed in 0.16",
+                 DeprecationWarning)
         return _sklearn_reshape_apply(self._scaler.transform, True,
-                                      epochs_data, y)
+                                      epochs_data)
+
+    def fit_transform(self, epochs_data, y=None):
+        """Fit to data, then transform it.
+
+        Fits transformer to epochs_data and y and returns a transformed version
+        of epochs_data.
+
+        Parameters
+        ----------
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
+            The data.
+        y : None | array, shape (n_epochs,)
+            The label for each epoch.
+            Defaults to None.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The data concatenated over channels.
+
+        Notes
+        -----
+        This function makes a copy of the data before the operations and the
+        memory usage may be large with big data.
+        """
+        return self.fit(epochs_data, y).transform(epochs_data)
 
     def inverse_transform(self, epochs_data):
         """Invert standardization of data across channels.
@@ -327,7 +357,7 @@ class PSDEstimator(TransformerMixin):
 
     See Also
     --------
-    psd_multitaper
+    mne.time_frequency.psd_multitaper
     """
 
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
@@ -604,7 +634,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        X : array, shape (n_trials, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
             The transformed data.
         """
         return self.fit(X).transform(X)
@@ -619,14 +649,47 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        X : array, shape (n_trials, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
+            The transformed data.
+        """
+        return self._apply_method(X, 'transform')
+
+    def inverse_transform(self, X):
+        """Inverse transform the data to its original space.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_components, n_times)
+            The data to be inverted.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_channels, n_times)
+            The transformed data.
+        """
+        return self._apply_method(X, 'inverse_transform')
+
+    def _apply_method(self, X, method):
+        """Vectorize time samples as trials, apply method and reshape back.
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_dims, n_times)
+            The data to be inverted.
+
+        Returns
+        -------
+        X : array, shape (n_epochs, n_dims, n_times)
             The transformed data.
         """
         n_epochs, n_channels, n_times = X.shape
         # trial as time samples
-        X = np.transpose(X, [1, 0, 2]).reshape([n_channels, n_epochs *
-                                                n_times]).T
-        X = self.estimator.transform(X)
+        X = np.transpose(X, [1, 0, 2])
+        X = np.reshape(X, [n_channels, n_epochs * n_times]).T
+        # apply method
+        method = getattr(self.estimator, method)
+        X = method(X)
+        # put it back to n_epochs, n_dimensions
         X = np.reshape(X.T, [-1, n_epochs, n_times]).transpose([1, 0, 2])
         return X
 
@@ -698,6 +761,15 @@ class TemporalFilter(TransformerMixin):
     fir_window : str, defaults to 'hamming'
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
+    fir_design : str
+        Can be "firwin" (default in 0.16) to use
+        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+        time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
+
+        ..versionadded:: 0.15
+
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -713,7 +785,7 @@ class TemporalFilter(TransformerMixin):
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
                  h_trans_bandwidth='auto', n_jobs=1, method='fir',
-                 iir_params=None, fir_window='hamming',
+                 iir_params=None, fir_window='hamming', fir_design=None,
                  verbose=None):  # noqa: D102
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -725,6 +797,7 @@ class TemporalFilter(TransformerMixin):
         self.method = method
         self.iir_params = iir_params
         self.fir_window = fir_window
+        self.fir_design = fir_design
         self.verbose = verbose
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
@@ -772,18 +845,20 @@ class TemporalFilter(TransformerMixin):
         shape = X.shape
         X = X.reshape(-1, shape[-1])
         (X, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
-         self.h_trans_bandwidth, self.filter_length, _, self.fir_window) = \
+         self.h_trans_bandwidth, self.filter_length, _, self.fir_window,
+         self.fir_design) = \
             _triage_filter_params(X, self.sfreq, self.l_freq, self.h_freq,
                                   self.l_trans_bandwidth,
                                   self.h_trans_bandwidth, self.filter_length,
                                   self.method, phase='zero',
-                                  fir_window=self.fir_window)
+                                  fir_window=self.fir_window,
+                                  fir_design=self.fir_design)
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
                         filter_length=self.filter_length,
                         l_trans_bandwidth=self.l_trans_bandwidth,
                         h_trans_bandwidth=self.h_trans_bandwidth,
                         n_jobs=self.n_jobs, method=self.method,
                         iir_params=self.iir_params, copy=False,
-                        fir_window=self.fir_window,
+                        fir_window=self.fir_window, fir_design=self.fir_design,
                         verbose=self.verbose)
         return X.reshape(shape)

@@ -15,15 +15,20 @@ import numpy as np
 from numpy.testing import assert_raises, assert_equal
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
-                 read_trans, read_dipole, SourceEstimate)
+                 read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
+                 make_sphere_model)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
-                     plot_trans, snapshot_brain_montage, plot_head_positions)
+                     plot_trans, snapshot_brain_montage, plot_head_positions,
+                     plot_alignment)
+from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab, _TempDir, requires_nibabel, check_version)
+                       _import_mlab, _TempDir, requires_nibabel, check_version,
+                       requires_version)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
+from mne.bem import read_bem_solution, read_bem_surfaces
 
 
 # Set our plotters to test mode
@@ -79,10 +84,11 @@ def test_plot_sparse_source_estimates():
     n_verts = sum(len(v) for v in vertices)
     stc_data = np.zeros((n_verts * n_time))
     stc_size = stc_data.size
-    stc_data[(np.random.rand(stc_size / 20) * stc_size).astype(int)] = \
-        np.random.RandomState(0).rand(stc_data.size / 20)
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
+        np.random.RandomState(0).rand(stc_data.size // 20)
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
+
     colormap = 'mne_analyze'
     plot_source_estimates(stc, 'sample', colormap=colormap,
                           background=(1, 1, 0),
@@ -121,7 +127,7 @@ def test_plot_evoked_field():
 
 @testing.requires_testing_data
 @requires_mayavi
-def test_plot_trans():
+def test_plot_alignment():
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
     tempdir = _TempDir()
@@ -147,46 +153,83 @@ def test_plot_trans():
         KIT=read_raw_kit(sqd_fname).info,
     )
     for system, info in infos.items():
-        ref_meg = False if system == 'KIT' else True
-        plot_trans(info, trans_fname, subject='sample', meg_sensors=True,
-                   subjects_dir=subjects_dir, ref_meg=ref_meg)
+        meg = ['helmet', 'sensors']
+        if system == 'KIT':
+            meg.append('ref')
+        plot_alignment(info, trans_fname, subject='sample',
+                       subjects_dir=subjects_dir, meg=meg)
         mlab.close(all=True)
     # KIT ref sensor coil def is defined
     plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
     mlab.close(all=True)
     info = infos['Neuromag']
-    assert_raises(ValueError, plot_trans, info, trans_fname,
-                  subject='sample', subjects_dir=subjects_dir,
-                  ch_type='bad-chtype')
-    assert_raises(TypeError, plot_trans, 'foo', trans_fname,
+    assert_raises(TypeError, plot_alignment, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
-    assert_raises(TypeError, plot_trans, info, trans_fname,
+    assert_raises(TypeError, plot_alignment, info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir, src='foo')
-    assert_raises(ValueError, plot_trans, info, trans_fname,
+    assert_raises(ValueError, plot_alignment, info, trans_fname,
                   subject='fsaverage', subjects_dir=subjects_dir,
                   src=sample_src)
-    sample_src.plot(subjects_dir=subjects_dir)
+    sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
+                    brain='white')
     mlab.close(all=True)
     # no-head version
     plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
     mlab.close(all=True)
     # all coord frames
     for coord_frame in ('meg', 'head', 'mri'):
-        plot_trans(info, meg_sensors=True, dig=True, coord_frame=coord_frame,
-                   trans=trans_fname, subject='sample',
-                   mri_fiducials=fiducials_path, subjects_dir=subjects_dir)
+        plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
+                       coord_frame=coord_frame, trans=trans_fname,
+                       subject='sample', mri_fiducials=fiducials_path,
+                       subjects_dir=subjects_dir, src=sample_src)
         mlab.close(all=True)
     # EEG only with strange options
     evoked_eeg_ecog = evoked.copy().pick_types(meg=False, eeg=True)
     evoked_eeg_ecog.info['projs'] = []  # "remove" avg proj
     evoked_eeg_ecog.set_channel_types({'EEG 001': 'ecog'})
     with warnings.catch_warnings(record=True) as w:
-        plot_trans(evoked_eeg_ecog.info, subject='sample', trans=trans_fname,
-                   source='outer_skin', meg_sensors=True, skull=True,
-                   eeg_sensors=['original', 'projected'], ecog_sensors=True,
-                   brain='white', head=True, subjects_dir=subjects_dir)
+        plot_alignment(evoked_eeg_ecog.info, subject='sample',
+                       trans=trans_fname, subjects_dir=subjects_dir,
+                       surfaces=['white', 'outer_skin', 'outer_skull'],
+                       meg=['helmet', 'sensors'],
+                       eeg=['original', 'projected'], ecog=True)
     mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
+
+    sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
+    bem_sol = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
+                                        'sample-1280-1280-1280-bem-sol.fif'))
+    bem_surfs = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
+                                          'sample-1280-1280-1280-bem.fif'))
+    sample_src[0]['coord_frame'] = 4  # hack for coverage
+    plot_alignment(info, trans_fname, subject='sample', meg='helmet',
+                   subjects_dir=subjects_dir, eeg='projected', bem=sphere,
+                   surfaces=['head', 'brain', 'inner_skull', 'outer_skull'],
+                   src=sample_src)
+    plot_alignment(info, trans_fname, subject='sample', meg=[],
+                   subjects_dir=subjects_dir, bem=bem_sol, eeg=True,
+                   surfaces=['head', 'inflated', 'outer_skull', 'inner_skull'])
+    plot_alignment(info, trans_fname, subject='sample',
+                   meg=True, subjects_dir=subjects_dir,
+                   surfaces=['head', 'inner_skull'], bem=bem_surfs)
+    sphere = make_sphere_model('auto', None, evoked.info)  # one layer
+    plot_alignment(info, trans_fname, subject='sample', meg=False,
+                   coord_frame='mri', subjects_dir=subjects_dir,
+                   surfaces=['brain'], bem=sphere)
+    # one layer bem with skull surfaces:
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=['brain', 'head', 'inner_skull'], bem=sphere)
+    # wrong eeg value:
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir, eeg='foo')
+    # wrong meg value:
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir, meg='bar')
+    # multiple brain surfaces:
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=['white', 'pial'])
 
 
 @testing.requires_testing_data
@@ -195,6 +238,7 @@ def test_plot_trans():
 def test_limits_to_control_points():
     """Test functionality for determing control points."""
     sample_src = read_source_spaces(src_fname)
+    kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5
@@ -205,74 +249,77 @@ def test_limits_to_control_points():
 
     # Test for simple use cases
     mlab = _import_mlab()
-    stc.plot(subjects_dir=subjects_dir)
-    stc.plot(clim=dict(pos_lims=(10, 50, 90)), subjects_dir=subjects_dir)
-    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,
-             subjects_dir=subjects_dir)
-    stc.plot(colormap='hot', clim='auto', subjects_dir=subjects_dir)
-    stc.plot(colormap='mne', clim='auto', subjects_dir=subjects_dir)
+    stc.plot(**kwargs)
+    stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
+    stc.plot(colormap='hot', clim='auto', **kwargs)
+    stc.plot(colormap='mne', clim='auto', **kwargs)
     figs = [mlab.figure(), mlab.figure()]
-    assert_raises(ValueError, stc.plot, clim='auto', figure=figs,
-                  subjects_dir=subjects_dir)
+    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
+    assert_raises(ValueError, stc.plot, clim='auto', figure=figs, **kwargs)
 
     # Test both types of incorrect limits key (lims/pos_lims)
     assert_raises(KeyError, plot_source_estimates, stc, colormap='mne',
-                  clim=dict(kind='value', lims=(5, 10, 15)),
-                  subjects_dir=subjects_dir)
+                  clim=dict(kind='value', lims=(5, 10, 15)), **kwargs)
     assert_raises(KeyError, plot_source_estimates, stc, colormap='hot',
-                  clim=dict(kind='value', pos_lims=(5, 10, 15)),
-                  subjects_dir=subjects_dir)
+                  clim=dict(kind='value', pos_lims=(5, 10, 15)), **kwargs)
 
     # Test for correct clim values
     assert_raises(ValueError, stc.plot,
-                  clim=dict(kind='value', pos_lims=[0, 1, 0]),
-                  subjects_dir=subjects_dir)
+                  clim=dict(kind='value', pos_lims=[0, 1, 0]), **kwargs)
     assert_raises(ValueError, stc.plot, colormap='mne',
-                  clim=dict(pos_lims=(5, 10, 15, 20)),
-                  subjects_dir=subjects_dir)
+                  clim=dict(pos_lims=(5, 10, 15, 20)), **kwargs)
     assert_raises(ValueError, stc.plot,
-                  clim=dict(pos_lims=(5, 10, 15), kind='foo'),
-                  subjects_dir=subjects_dir)
-    assert_raises(ValueError, stc.plot, colormap='mne', clim='foo',
-                  subjects_dir=subjects_dir)
-    assert_raises(ValueError, stc.plot, clim=(5, 10, 15),
-                  subjects_dir=subjects_dir)
+                  clim=dict(pos_lims=(5, 10, 15), kind='foo'), **kwargs)
+    assert_raises(ValueError, stc.plot, colormap='mne', clim='foo', **kwargs)
+    assert_raises(ValueError, stc.plot, clim=(5, 10, 15), **kwargs)
     assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto',
-                  subjects_dir=subjects_dir)
-    assert_raises(ValueError, stc.plot, hemi='foo', clim='auto',
-                  subjects_dir=subjects_dir)
+                  **kwargs)
+    assert_raises(ValueError, stc.plot, hemi='foo', clim='auto', **kwargs)
 
     # Test handling of degenerate data
-    stc.plot(clim=dict(kind='value', lims=[0, 0, 1]),
-             subjects_dir=subjects_dir)  # ok
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # thresholded maps
-        stc._data.fill(1.)
-        plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
-        assert_equal(len(w), 0)
-        stc._data[0].fill(0.)
-        plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
-        assert_equal(len(w), 0)
         stc._data.fill(0.)
-        plot_source_estimates(stc, subjects_dir=subjects_dir, time_unit='s')
+        plot_source_estimates(stc, **kwargs)
         assert_equal(len(w), 1)
     mlab.close(all=True)
 
 
 @testing.requires_testing_data
-@requires_mayavi
-def test_plot_dipole_locations():
-    """Test plotting dipole locations."""
-    dipoles = read_dipole(dip_fname)
-    trans = read_trans(trans_fname)
-    dipoles.plot_locations(trans, 'sample', subjects_dir, fig_name='foo')
-    assert_raises(ValueError, dipoles.plot_locations, trans, 'sample',
-                  subjects_dir, mode='foo')
+@requires_nibabel()
+def test_stc_mpl():
+    """Test plotting source estimates with matplotlib."""
+    import matplotlib.pyplot as plt
+    sample_src = read_source_spaces(src_fname)
+
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.ones((n_verts * n_time))
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
+    with warnings.catch_warnings(record=True):  # vertices not included
+        stc.plot(subjects_dir=subjects_dir, time_unit='s', views='ven',
+                 hemi='rh', smoothing_steps=2, subject='sample',
+                 backend='matplotlib', spacing='oct1', initial_time=0.001,
+                 colormap='Reds')
+        fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
+                       hemi='lh', smoothing_steps=2, subject='sample',
+                       backend='matplotlib', spacing='ico2', time_viewer=True)
+    time_viewer = fig.time_viewer
+    _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change time
+    time_viewer.canvas.key_press_event('ctrl+right')
+    time_viewer.canvas.key_press_event('left')
+    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
+                  hemi='both', subject='sample', backend='matplotlib')
+    assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
+                  time_unit='ss', subject='sample', backend='matplotlib')
+    plt.close('all')
 
 
 @testing.requires_testing_data
-@requires_nibabel
+@requires_nibabel()
 def test_plot_dipole_mri_orthoview():
     """Test mpl dipole plotting."""
     import matplotlib.pyplot as plt
@@ -299,7 +346,8 @@ def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
     fig = plot_trans(info, trans=None, subject='sample',
-                     subjects_dir=subjects_dir)
+                     skull=['outer_skull', 'inner_skull'],
+                     subjects_dir=subjects_dir)  # deprecated, for coverage
 
     xyz = np.vstack([ich['loc'][:3] for ich in info['chs']])
     ch_names = [ich['ch_name'] for ich in info['chs']]
@@ -314,6 +362,24 @@ def test_snapshot_brain_montage():
 
     # Make sure we raise error if the figure has no scene
     assert_raises(TypeError, snapshot_brain_montage, fig, info)
+
+
+@testing.requires_testing_data
+@requires_version('surfer', '0.8')
+@requires_mayavi
+def test_plot_vec_source_estimates():
+    """Test plotting of vector source estimates."""
+    sample_src = read_source_spaces(src_fname)
+
+    vertices = [s['vertno'] for s in sample_src]
+    n_verts = sum(len(v) for v in vertices)
+    n_time = 5
+    data = np.random.RandomState(0).rand(n_verts, 3, n_time)
+    stc = VectorSourceEstimate(data, vertices, 1, 1)
+
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        stc.plot('sample', subjects_dir=subjects_dir)
 
 
 run_tests_if_main()

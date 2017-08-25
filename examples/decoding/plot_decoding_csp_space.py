@@ -40,7 +40,7 @@ event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(2, None)  # replace baselining with high-pass
+raw.filter(2, None, fir_design='firwin')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 raw.info['bads'] = ['MEG 2443']  # set bad channels
@@ -63,7 +63,7 @@ from mne.decoding import CSP  # noqa
 
 n_components = 3  # pick some components
 svc = SVC(C=1, kernel='linear')
-csp = CSP(n_components=n_components)
+csp = CSP(n_components=n_components, norm_trace=False)
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
@@ -97,7 +97,7 @@ scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should match results above
 
 # And using reuglarized csp with Ledoit-Wolf estimator
-csp = CSP(n_components=n_components, reg='ledoit_wolf')
+csp = CSP(n_components=n_components, reg='ledoit_wolf', norm_trace=False)
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should get better results than above

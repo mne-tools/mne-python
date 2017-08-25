@@ -26,7 +26,11 @@ def test_plot_montage():
     """
     m = read_montage('easycap-M1')
     m.plot()
-    m.plot(show_names=True)
+    m.plot(kind='3d')
+    m.plot(kind='3d', show_names=True)
+    m.plot(kind='topomap')
+    m.plot(kind='topomap', show_names=True)
     d = read_dig_montage(hsp, hpi, elp, point_names)
     d.plot()
-    d.plot(show_names=True)
+    d.plot(kind='3d')
+    d.plot(kind='3d', show_names=True)

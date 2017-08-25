@@ -40,8 +40,14 @@ def run():
     parser.add_option('--output', dest='out_fname',
                       help='Name of the resulting fiff file',
                       metavar='filename')
+    parser.add_option('--debug', dest='debug', action='store_true',
+                      default=False,
+                      help='Set logging level for terminal output to debug')
 
     options, args = parser.parse_args()
+
+    if options.debug:
+        mne.set_log_level('debug')
 
     input_fname = options.input_fname
     if input_fname is None:

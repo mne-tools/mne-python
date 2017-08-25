@@ -4,6 +4,17 @@ machine:
     PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
     DISPLAY: ":99.0"
 
+# We should really build merged versions like on Travis, not the individual branches
+# Adapted from:
+# https://gist.github.com/amacneil/f14db753919e0af2d7d2f5a8da7fce65
+checkout:
+  post:
+    - echo ${CI_PULL_REQUEST//*pull\//} > merge.txt
+    - if [[ $(cat merge.txt) != "" ]]; then
+        echo "Merging $(cat merge.txt)";
+        git pull --ff-only origin "refs/pull/$(cat merge.txt)/merge";
+      fi
+
 dependencies:
   cache_directories:
     - "~/miniconda"
@@ -16,6 +27,8 @@ dependencies:
     - "~/mne_data/MNE-brainstorm-data"
     - "~/mne_data/MEGSIM"
     - "~/mne_data/MNE-eegbci-data"
+    - "~/mne_data/mTRF_1.5"
+    - "~/mne_data/MNE-fieldtrip_cmc-data"
     - "~/mne-tools.github.io"
   # Various dependencies
   pre:
@@ -32,19 +45,23 @@ dependencies:
         chmod +x ~/miniconda.sh;
         ~/miniconda.sh -b -p /home/ubuntu/miniconda;
         conda update --yes --quiet conda;
-        conda create -n circleenv --yes pip python=2.7 pip;
-        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
       else
         echo "Conda already set up.";
       fi
-    # Let's use old Mayavi because 4.5.0 (as of 2016/12/20) breaks plot_mne_inverse_coherence_epochs.py
-    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi vtk;
+    - if ! conda env list | grep circleenv; then
+        conda create -n circleenv --yes pip python=2.7 pip;
+        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
+      else
+        echo "Conda env already set up.";
+      fi;
+    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi nose;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
     - echo $CIRCLE_BRANCH
     - which python;
     - which pip;
+    - cat /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py | grep "ENABLE_USER_SITE"
     - pip install --upgrade pyface;
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
     - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
@@ -57,10 +74,14 @@ dependencies:
     - git fetch upstream;
     - git branch -a;
     - mkdir -p ~/mne_data;
-    - PATTERN="";
+    - if [[ `git log -1 --pretty=%B` == *"[circle front]"* ]]; then
+        PATTERN="plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\|plot_visualize_evoked.py\|";
+      else
+        PATTERN="";
+      fi;
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
-      elif [ "$CIRCLE_BRANCH" == "maint/0.13" ]; then
+      elif [ "$CIRCLE_BRANCH" == "maint/0.14" ]; then
         echo html_stable > build.txt;
       else
         FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
@@ -101,6 +122,12 @@ dependencies:
             if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*mtrf.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.mtrf.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*fieldtrip_cmc.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.fieldtrip_cmc.data_path(update_path=True))";
+            fi;
           fi;
         done;
         echo PATTERN="$PATTERN";
@@ -127,16 +154,14 @@ dependencies:
 
 test:
   override:
-    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern; else make test-doc; cd doc; make $(cat ../build.txt); fi:
+    # Mayavi can bomb on exit (yay!), turning a successful build into a failure.
+    # We thus tee into a log (which returns 0) and then parse afterward for
+    # what immediately precedes the "Build finished." line.
+    - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot | tee $CIRCLE_ARTIFACTS/log.txt; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern | tee $CIRCLE_ARTIFACTS/log.txt; else make test-doc; cd doc; make $(cat ../build.txt) | tee $CIRCLE_ARTIFACTS/log.txt; fi:
           timeout: 1500
-
-general:
-  # branches:
-  #   only:
-  #     - master
-  # Open the doc to the API
-  artifacts:
-    - "doc/_build/html"
+    - tail $CIRCLE_ARTIFACTS/log.txt | grep -E "auto_tutorials\s*\[100%\]\s*plot_|Build finished"
+  post:
+    - cp -a doc/_build/html $CIRCLE_ARTIFACTS/
 
 deployment:
   production:
@@ -148,7 +173,7 @@ deployment:
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
   stable:
-    branch: maint/0.13
+    branch: maint/0.14
     commands:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"

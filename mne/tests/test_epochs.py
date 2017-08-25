@@ -104,7 +104,7 @@ def test_average_movements():
     raw = read_raw_fif(fname_raw_move, allow_maxshield='yes')
     raw.info['bads'] += ['MEG2443']  # mark some bad MEG channel
     raw.crop(*crop).load_data()
-    raw.filter(None, 20)
+    raw.filter(None, 20, fir_design='firwin')
     events = make_fixed_length_events(raw, event_id)
     picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                        ecg=True, eog=True, exclude=())
@@ -148,7 +148,7 @@ def test_average_movements():
     # compare to averaged movecomp version (should be fairly similar)
     raw_sss = read_raw_fif(fname_raw_movecomp_sss)
     raw_sss.crop(*crop).load_data()
-    raw_sss.filter(None, 20)
+    raw_sss.filter(None, 20, fir_design='firwin')
     picks_sss = pick_types(raw_sss.info, meg=True, eeg=True, stim=True,
                            ecg=True, eog=True, exclude=())
     assert_array_equal(picks, picks_sss)
@@ -513,7 +513,7 @@ def test_epoch_combine_ids():
                     tmin, tmax, picks=picks, preload=False)
     events_new = merge_events(events, [1, 2], 12)
     epochs_new = combine_event_ids(epochs, ['a', 'b'], {'ab': 12})
-    assert_equal(epochs_new['ab'].name, 'ab')
+    assert_equal(epochs_new['ab']._name, 'ab')
     assert_array_equal(events_new, epochs_new.events)
     # should probably add test + functionality for non-replacement XXX
 
@@ -698,6 +698,7 @@ def test_read_write_epochs():
         epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'),
                                    preload=preload)
         assert_equal(epochs_read2.event_id, epochs.event_id)
+        assert_equal(epochs_read2['a:a'].average().comment, 'a:a')
 
         # add reject here so some of the epochs get dropped
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -793,7 +794,7 @@ def test_epochs_proj():
                             eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
-    epochs.set_eeg_reference().apply_proj()
+    epochs.set_eeg_reference(projection=True).apply_proj()
     assert_true(_has_eeg_average_ref_proj(epochs.info['projs']))
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
@@ -835,10 +836,10 @@ def test_epochs_proj():
     epochs.save(temp_fname)
     for preload in (True, False):
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
-        epochs.set_eeg_reference().apply_proj()
+        epochs.set_eeg_reference(projection=True).apply_proj()
         assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
-        epochs.set_eeg_reference()
+        epochs.set_eeg_reference(projection=True)
         assert_raises(AssertionError, assert_allclose,
                       epochs.get_data().mean(axis=1), 0., atol=1e-15)
         epochs.apply_proj()
@@ -911,8 +912,8 @@ def test_evoked_standard_error():
     evoked = [epochs.average(), epochs.standard_error()]
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), evoked)
     evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), [0, 1])
-    evoked3 = [read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown'),
-               read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown',
+    evoked3 = [read_evokeds(op.join(tempdir, 'evoked-ave.fif'), '1'),
+               read_evokeds(op.join(tempdir, 'evoked-ave.fif'), '1',
                             kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
         assert_true(evoked_new[0]._aspect_kind ==
@@ -1063,7 +1064,7 @@ def test_comparision_with_c():
     c_evoked = read_evokeds(evoked_nf_name, condition=0)
     epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=None,
                     preload=True, proj=False)
-    evoked = epochs.set_eeg_reference().apply_proj().average()
+    evoked = epochs.set_eeg_reference(projection=True).apply_proj().average()
     sel = pick_channels(c_evoked.ch_names, evoked.ch_names)
     evoked_data = evoked.data
     c_evoked_data = c_evoked.data[sel]
@@ -1410,15 +1411,15 @@ def test_access_by_name():
     raw, events, picks = _get_data()
 
     # Test various invalid inputs
-    assert_raises(ValueError, Epochs, raw, events, {1: 42, 2: 42}, tmin,
+    assert_raises(TypeError, Epochs, raw, events, {1: 42, 2: 42}, tmin,
                   tmax, picks=picks)
-    assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
+    assert_raises(TypeError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
                   tmin, tmax, picks=picks)
-    assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
+    assert_raises(TypeError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
                   tmin, tmax, picks=picks)
-    assert_raises(ValueError, Epochs, raw, events, 'foo', tmin, tmax,
+    assert_raises(TypeError, Epochs, raw, events, 'foo', tmin, tmax,
                   picks=picks)
-    assert_raises(ValueError, Epochs, raw, events, ['foo'], tmin, tmax,
+    assert_raises(TypeError, Epochs, raw, events, ['foo'], tmin, tmax,
                   picks=picks)
 
     # Test accessing non-existent events (assumes 12345678 does not exist)
@@ -1478,8 +1479,8 @@ def test_access_by_name():
     assert_array_almost_equal(epochs.get_data(), epochs6.get_data(), 20)
 
     # Make sure we preserve names
-    assert_equal(epochs['a'].name, 'a')
-    assert_equal(epochs[['a', 'b']]['a'].name, 'a')
+    assert_equal(epochs['a']._name, 'a')
+    assert_equal(epochs[['a', 'b']]['a']._name, 'a')
 
 
 @requires_pandas
@@ -1504,7 +1505,7 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
     for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
-        df = epochs.to_data_frame(index=ind)
+        df = epochs.to_data_frame(picks=[11, 12, 14], index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
         # test that non-indexed data were present as categorial variables
         assert_array_equal(sorted(df.reset_index().columns[:3]),
@@ -1547,15 +1548,16 @@ def test_epochs_proj_mixin():
     for preload in [True, False]:
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         proj='delayed', preload=preload,
-                        reject=reject).set_eeg_reference()
+                        reject=reject).set_eeg_reference(projection=True)
         epochs_proj = Epochs(
             raw, events[:4], event_id, tmin, tmax, picks=picks,
             proj=True, preload=preload,
-            reject=reject).set_eeg_reference().apply_proj()
+            reject=reject).set_eeg_reference(projection=True).apply_proj()
 
-        epochs_noproj = Epochs(
-            raw, events[:4], event_id, tmin, tmax, picks=picks,
-            proj=False, preload=preload, reject=reject).set_eeg_reference()
+        epochs_noproj = Epochs(raw, events[:4], event_id, tmin, tmax,
+                               picks=picks, proj=False, preload=preload,
+                               reject=reject)
+        epochs_noproj.set_eeg_reference(projection=True)
 
         assert_allclose(epochs.copy().apply_proj().get_data(),
                         epochs_proj.get_data(), rtol=1e-10, atol=1e-25)
@@ -1580,7 +1582,8 @@ def test_epochs_proj_mixin():
 
     # test mixin against manual application
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=None, proj=False).set_eeg_reference()
+                    baseline=None,
+                    proj=False).set_eeg_reference(projection=True)
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
@@ -2047,6 +2050,14 @@ def test_concatenate_epochs():
     epochs1.event_id = dict(a=1)
     epochs2.event_id = dict(a=2)
     assert_raises(ValueError, concatenate_epochs, [epochs1, epochs2])
+
+    # check events are shifted, but relative position are equal
+    epochs_list = [epochs.copy() for ii in range(3)]
+    epochs_cat = concatenate_epochs(epochs_list)
+    for ii in range(3):
+        evs = epochs_cat.events[ii * len(epochs):(ii + 1) * len(epochs)]
+        rel_pos = epochs_list[ii].events[:, 0] - evs[:, 0]
+        assert_true(sum(rel_pos - rel_pos[0]) == 0)
 
 
 def test_add_channels():

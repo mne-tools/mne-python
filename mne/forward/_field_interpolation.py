@@ -11,12 +11,14 @@ from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
-from ..transforms import transform_surface_to, read_trans, _find_trans
+from ..transforms import (transform_surface_to, read_trans, _find_trans,
+                          _ensure_trans)
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
+from ..externals.six import string_types
 
 
 def _is_axial_coil(coil):
@@ -76,8 +78,10 @@ def _compute_mapping_matrix(fmd, info):
     # Eigenvalue truncation
     sumk = np.cumsum(sing)
     sumk /= sumk[-1]
-    fmd['nest'] = np.where(sumk > (1.0 - fmd['miss']))[0][0]
-    logger.info('    [Truncate at %d missing %g]' % (fmd['nest'], fmd['miss']))
+    fmd['nest'] = np.where(sumk > (1.0 - fmd['miss']))[0][0] + 1
+    logger.info('    Truncating at %d/%d components to omit less than %g '
+                '(%0.2g)' % (fmd['nest'], len(sing), fmd['miss'],
+                             1. - sumk[fmd['nest'] - 1]))
     sing = 1.0 / sing[:fmd['nest']]
 
     # Put the inverse together
@@ -358,8 +362,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         to compute the MEG field map. The default value is ``'helmet'``
     origin : array-like, shape (3,) | str
         Origin of internal and external multipolar moment space in head
-        coords and in meters. The default is ``'auto'``, which means
-        a head-digitization-based origin fit.
+        coords and in meters. Can be ``'auto'``, which means
+        a head-digitization-based origin fit. Default is ``(0., 0., 0.04)``.
 
         .. versionadded:: 0.11
 
@@ -399,7 +403,9 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         raise RuntimeError('No data available for mapping.')
 
     if trans is not None:
-        trans = read_trans(trans)
+        if isinstance(trans, string_types):
+            trans = read_trans(trans)
+        trans = _ensure_trans(trans, 'head', 'mri')
 
     if meg_surf not in ['helmet', 'head']:
         raise ValueError('Surface to plot MEG fields must be '

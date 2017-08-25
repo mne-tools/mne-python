@@ -78,15 +78,15 @@ def test_plot_topo():
     # Show topography
     evoked = _get_epochs().average()
     # should auto-find layout
-    plot_evoked_topo([evoked, evoked], merge_grads=True)
+    plot_evoked_topo([evoked, evoked], merge_grads=True, background_color='w')
     # Test jointplot
     evoked.plot_joint()
 
     def return_inds(d):  # to test function kwarg to zorder arg of evoked.plot
         return list(range(d.shape[0]))
-    ts_args = dict(spatial_colors=True, zorder=return_inds)
-    evoked.plot_joint(title='test', ts_args=ts_args,
-                      topomap_args=dict(colorbar=True, times=[0.]))
+    evoked.plot_joint(title='test', topomap_args=dict(contours=0, res=8),
+                      ts_args=dict(spatial_colors=True, zorder=return_inds))
+    assert_raises(ValueError, evoked.plot_joint, ts_args=dict(axes=True))
 
     warnings.simplefilter('always', UserWarning)
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
@@ -120,8 +120,10 @@ def test_plot_topo():
         _plot_update_evoked_topo_proj(params, bools)
     # should auto-generate layout
     plot_evoked_topo(picked_evoked_eeg.copy(),
-                     fig_background=np.zeros((4, 3, 3)), proj=True)
-    picked_evoked.plot_topo(merge_grads=True)  # Test RMS plot of grad pairs
+                     fig_background=np.zeros((4, 3, 3)), proj=True,
+                     background_color='k')
+    # Test RMS plot of grad pairs
+    picked_evoked.plot_topo(merge_grads=True, background_color='w')
     plt.close('all')
     for ax, idx in iter_topography(evoked.info):
         ax.plot(evoked.data[idx], color='red')

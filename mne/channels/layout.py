@@ -22,6 +22,7 @@ from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import _clean_names, warn
 from ..externals.six.moves import map
+from .channels import _get_ch_info
 
 
 class Layout(object):
@@ -88,11 +89,14 @@ class Layout(object):
         return '<Layout | %s - Channels: %s ...>' % (self.kind,
                                                      ', '.join(self.names[:3]))
 
-    def plot(self, show=True):
+    def plot(self, picks=None, show=True):
         """Plot the sensor positions.
 
         Parameters
         ----------
+        picks : array-like
+            Indices of the channels to show. If None (default), all the
+            channels are shown.
         show : bool
             Show figure if True. Defaults to True.
 
@@ -106,7 +110,7 @@ class Layout(object):
         .. versionadded:: 0.12.0
         """
         from ..viz.topomap import plot_layout
-        return plot_layout(self, show=show)
+        return plot_layout(self, picks=picks, show=show)
 
 
 def _read_lout(fname):
@@ -386,41 +390,12 @@ def find_layout(info, ch_type=None, exclude='bads'):
         raise ValueError('Invalid channel type (%s) requested '
                          '`ch_type` must be %s' % (ch_type, our_types))
 
-    chs = info['chs']
-    # Only take first 16 bits, as higher bits store CTF comp order
-    coil_types = set([ch['coil_type'] & 0xFFFF for ch in chs])
-    channel_types = set([ch['kind'] for ch in chs])
-
-    has_vv_mag = any(k in coil_types for k in
-                     [FIFF.FIFFV_COIL_VV_MAG_T1, FIFF.FIFFV_COIL_VV_MAG_T2,
-                      FIFF.FIFFV_COIL_VV_MAG_T3])
-    has_vv_grad = any(k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
-                                                FIFF.FIFFV_COIL_VV_PLANAR_T2,
-                                                FIFF.FIFFV_COIL_VV_PLANAR_T3])
+    (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
+     has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
+     has_eeg_coils_and_meg, has_eeg_coils_only) = _get_ch_info(info)
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
-    is_old_vv = ' ' in chs[0]['ch_name']
-
-    has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
-    ctf_other_types = (FIFF.FIFFV_COIL_CTF_REF_MAG,
-                       FIFF.FIFFV_COIL_CTF_REF_GRAD,
-                       FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD)
-    has_CTF_grad = (FIFF.FIFFV_COIL_CTF_GRAD in coil_types or
-                    (FIFF.FIFFV_MEG_CH in channel_types and
-                     any(k in ctf_other_types for k in coil_types)))
-    # hack due to MNE-C bug in IO of CTF
-    # only take first 16 bits, as higher bits store CTF comp order
-    n_kit_grads = sum(ch['coil_type'] & 0xFFFF == FIFF.FIFFV_COIL_KIT_GRAD
-                      for ch in chs)
-
-    has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
-                       n_kit_grads])
-    has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
-                     FIFF.FIFFV_EEG_CH in channel_types)
-    has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
-    has_eeg_coils_only = has_eeg_coils and not has_any_meg
-
     if ch_type == "meg" and not has_any_meg:
         raise RuntimeError('No MEG channels present. Cannot find MEG layout.')
 
@@ -450,7 +425,10 @@ def find_layout(info, ch_type=None, exclude='bads'):
     elif n_kit_grads > 0:
         layout_name = _find_kit_layout(info, n_kit_grads)
     else:
-        return None
+        xy = _auto_topomap_coords(info, picks=range(info['nchan']),
+                                  ignore_overlap=True, to_sphere=False)
+        return generate_2d_layout(xy, ch_names=info['ch_names'], name='custom',
+                                  normalize=False)
 
     layout = read_layout(layout_name)
     if not is_old_vv:
@@ -639,7 +617,7 @@ def _find_topomap_coords(info, picks, layout=None):
     return pos
 
 
-def _auto_topomap_coords(info, picks, ignore_overlap=False):
+def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
 
     The default is to use the electrode locations. The fallback option is to
@@ -655,6 +633,9 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
     ignore_overlap : bool
         Whether to ignore overlapping positions in the layout. If False and
         positions overlap, an error is thrown.
+    to_sphere : bool
+        If True, the radial distance of spherical coordinates is ignored, in
+        effect fitting the xyz-coordinates to a sphere. Defaults to True.
 
     Returns
     -------
@@ -727,8 +708,11 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False):
         raise ValueError('The following electrodes have overlapping positions:'
                          '\n    ' + str(problematic_electrodes) + '\nThis '
                          'causes problems during visualization.')
-    # use spherical (theta, pol) as (r, theta) for polar->cartesian
-    return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+
+    if to_sphere:
+        # use spherical (theta, pol) as (r, theta) for polar->cartesian
+        return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+    return _pol_to_cart(_cart_to_sph(locs3d))
 
 
 def _topo_to_sphere(pos, eegs):
@@ -878,7 +862,8 @@ def _merge_grad_data(data, method='rms'):
 
 
 def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
-                       ch_indices=None, name='ecog', bg_image=None):
+                       ch_indices=None, name='ecog', bg_image=None,
+                       normalize=True):
     """Generate a custom 2D layout from xy points.
 
     Generates a 2-D layout for plotting with plot_topo methods and
@@ -910,6 +895,9 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         image file, or an array that can be plotted with plt.imshow. If
         provided, xy points will be normalized by the width/height of this
         image. If not, xy points will be normalized by their own min/max.
+    normalize : bool
+        Whether to normalize the coordinates to run from 0 to 1. Defaults to
+        True.
 
     Returns
     -------
@@ -948,7 +936,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
             img = bg_image
         x /= img.shape[1]
         y /= img.shape[0]
-    else:
+    elif normalize:
         # Normalize x and y by their maxes
         for i_dim in [x, y]:
             i_dim -= i_dim.min(0)

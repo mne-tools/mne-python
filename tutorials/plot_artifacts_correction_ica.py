@@ -30,7 +30,8 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 40, n_jobs=2)  # 1Hz high pass is often helpful for fitting ICA
+# 1Hz high pass is often helpful for fitting ICA
+raw.filter(1., 40., n_jobs=2, fir_design='firwin')
 
 picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                            stim=False, exclude='bads')
@@ -38,6 +39,19 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 ###############################################################################
 # Before applying artifact correction please learn about your actual artifacts
 # by reading :ref:`tut_artifacts_detect`.
+#
+#  .. warning:: ICA is sensitive to low-frequency drifts and therefore
+#               requires the data to be high-pass filtered prior to fitting.
+#               Typically, a cutoff frequency of 1 Hz is recommended. Note that
+#               FIR filters prior to MNE 0.15 used the ``'firwin2'`` design
+#               method, which generally produces rather shallow filters that
+#               might not work for ICA processing. Therefore, it is recommended
+#               to use IIR filters for MNE up to 0.14. In MNE 0.15, FIR filters
+#               can be designed with the ``'firwin'`` method, which generally
+#               produces much steeper filters. This method will be the default
+#               FIR design method in MNE 0.16. In MNE 0.15, you need to
+#               explicitly set ``fir_design='firwin'`` to use this method. This
+#               is the recommended filter method for ICA preprocessing.
 
 ###############################################################################
 # Fit ICA
@@ -68,7 +82,6 @@ print(ica)
 
 ###############################################################################
 # Plot ICA components
-
 ica.plot_components()  # can you spot some potential bad guys?
 
 
@@ -110,8 +123,6 @@ ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 eog_average = create_eog_epochs(raw, reject=dict(mag=5e-12, grad=4000e-13),
                                 picks=picks_meg).average()
 
-# We simplify things by setting the maximum number of components to reject
-n_max_eog = 1  # here we bet on finding the vertical EOG components
 eog_epochs = create_eog_epochs(raw, reject=reject)  # get single EOG trials
 eog_inds, scores = ica.find_bads_eog(eog_epochs)  # find via correlation
 
@@ -142,7 +153,7 @@ print(ica.labels_)
 # components.
 #
 # Now let's see how we would modify our signals if we removed this component
-# from the data
+# from the data.
 ica.plot_overlay(eog_average, exclude=eog_inds, show=False)
 # red -> before, black -> after. Yes! We remove quite a lot!
 
@@ -159,11 +170,20 @@ ica.exclude.extend(eog_inds)
 # ica = read_ica('my-ica.fif')
 
 ###############################################################################
+# Note that nothing is yet removed from the raw data. To remove the effects of
+# the rejected components,
+# :meth:`the apply method <mne.preprocessing.ICA.apply>` must be called.
+# Here we apply it on the copy of the first ten seconds, so that the rest of
+# this tutorial still works as intended.
+raw_copy = raw.copy().crop(0, 10)
+ica.apply(raw_copy)
+raw_copy.plot()  # check the result
+
+###############################################################################
 # Exercise: find and remove ECG artifacts using ICA!
 ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5)
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
 ica.plot_properties(ecg_epochs, picks=ecg_inds, psd_args={'fmax': 35.})
-
 
 ###############################################################################
 # What if we don't have an EOG channel?
@@ -200,8 +220,8 @@ from mne.preprocessing.ica import corrmap  # noqa
 # data sets instead.
 
 # We'll start by simulating a group of subjects or runs from a subject
-start, stop = [0, len(raw.times) - 1]
-intervals = np.linspace(start, stop, 4, dtype=int)
+start, stop = [0, raw.times[-1]]
+intervals = np.linspace(start, stop, 4, dtype=np.float)
 icas_from_other_data = list()
 raw.pick_types(meg=True, eeg=False)  # take only MEG channels
 for ii, start in enumerate(intervals):
@@ -257,6 +277,7 @@ fig_template, fig_detected = corrmap(icas, template=template, label="blinks",
 # :func:`mne.preprocessing.corrmap`.
 eog_component = reference_ica.get_components()[:, eog_inds[0]]
 
+###############################################################################
 # If you calculate a new ICA solution, you can provide this array instead of
 # specifying the template in reference to the list of ICA objects you want
 # to run CORRMAP on. (Of course, the retrieved component map arrays can

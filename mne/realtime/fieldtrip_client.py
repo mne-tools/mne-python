@@ -155,7 +155,8 @@ class FieldTripClient(object):
                 this_info['scanno'] = idx
 
                 # extract numerical part of channel name
-                this_info['logno'] = int(re.findall('[^\W\d_]+|\d+', ch)[-1])
+                this_info['logno'] = \
+                    int(re.findall(r'[^\W\d_]+|\d+', ch)[-1])
 
                 if ch.startswith('EEG'):
                     this_info['kind'] = FIFF.FIFFV_EEG_CH
@@ -185,7 +186,7 @@ class FieldTripClient(object):
                 this_info['cal'] = 1.0
 
                 this_info['ch_name'] = ch
-                this_info['loc'] = None
+                this_info['loc'] = np.zeros(12)
 
                 if ch.startswith('EEG'):
                     this_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD

@@ -25,7 +25,7 @@ from mne.forward import Forward, _do_forward_solution
 from mne.dipole import Dipole, fit_dipole
 from mne.simulation import simulate_evoked
 from mne.source_estimate import VolSourceEstimate
-from mne.source_space import (get_volume_labels_from_aseg,
+from mne.source_space import (get_volume_labels_from_aseg, write_source_spaces,
                               _compare_source_spaces, setup_source_space)
 
 data_path = testing.data_path(download=False)
@@ -100,10 +100,10 @@ def test_magnetic_dipole():
     picks = pick_types(info, meg=True, eeg=False, exclude=[])
     info = pick_info(info, picks[:12])
     coils = _create_meg_coils(info['chs'], 'normal', trans)
-    # magnetic dipole at device origin
+    # magnetic dipole far (meters!) from device origin
     r0 = np.array([0., 13., -6.])
     for ch, coil in zip(info['chs'], coils):
-        rr = (ch['loc'][:3] + r0) / 2.
+        rr = (ch['loc'][:3] + r0) / 2.  # get halfway closer
         far_fwd = _magnetic_dipole_field_vec(r0[np.newaxis, :], [coil])
         near_fwd = _magnetic_dipole_field_vec(rr[np.newaxis, :], [coil])
         ratio = 8. if ch['ch_name'][-1] == '1' else 16.  # grad vs mag
@@ -136,8 +136,9 @@ def test_make_forward_solution_kit():
     # first set up a small testing source space
     temp_dir = _TempDir()
     fname_src_small = op.join(temp_dir, 'sample-oct-2-src.fif')
-    src = setup_source_space('sample', fname_src_small, 'oct2',
-                             subjects_dir=subjects_dir, add_dist=False)
+    src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
+                             add_dist=False)
+    write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
     n_src = 108  # this is the resulting # of verts in fwd
 
     # first use mne-C: convert file, make forward solution
@@ -206,7 +207,8 @@ def test_make_forward_solution_kit():
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python."""
     fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
-                                   fname_bem, mindist=5.0, eeg=True, meg=True)
+                                   fname_bem, mindist=5.0, eeg=True, meg=True,
+                                   n_jobs=-1)
     assert_true(isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
@@ -219,8 +221,9 @@ def test_make_forward_solution_sphere():
     """Test making a forward solution with a sphere model."""
     temp_dir = _TempDir()
     fname_src_small = op.join(temp_dir, 'sample-oct-2-src.fif')
-    src = setup_source_space('sample', fname_src_small, 'oct2',
-                             subjects_dir=subjects_dir, add_dist=False)
+    src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
+                             add_dist=False)
+    write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
     out_name = op.join(temp_dir, 'tmp-fwd.fif')
     run_subprocess(['mne_forward_solution', '--meg', '--eeg',
                     '--meas', fname_raw, '--src', fname_src_small,
@@ -254,12 +257,10 @@ def test_forward_mixed_source_space():
     label_names = get_volume_labels_from_aseg(fname_aseg)
     vol_labels = [label_names[int(np.random.rand() * len(label_names))]
                   for _ in range(2)]
-    vol1 = setup_volume_source_space('sample', fname=None, pos=20.,
-                                     mri=fname_aseg,
+    vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[0],
                                      add_interpolator=False)
-    vol2 = setup_volume_source_space('sample', fname=None, pos=20.,
-                                     mri=fname_aseg,
+    vol2 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[1],
                                      add_interpolator=False)
 
@@ -333,10 +334,10 @@ def test_make_forward_dipole():
     # Now simulate evoked responses for each of the test dipoles,
     # and fit dipoles to them (sphere model, MEG and EEG)
     times, pos, amplitude, ori, gof = [], [], [], [], []
-    snr = 20.  # add a tiny amount of noise to the simulated evokeds
+    nave = 100  # add a tiny amount of noise to the simulated evokeds
     for s in stc:
         evo_test = simulate_evoked(fwd, s, info, cov,
-                                   snr=snr, random_state=rng)
+                                   nave=nave, random_state=rng)
         # evo_test.add_proj(make_eeg_average_ref_proj(evo_test.info))
         dfit, resid = fit_dipole(evo_test, cov, sphere, None)
         times += dfit.times.tolist()

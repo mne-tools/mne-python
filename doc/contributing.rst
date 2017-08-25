@@ -4,8 +4,8 @@
 
 .. _contribute_to_mne:
 
-Contribute to MNE
-=================
+How to contribute to MNE
+========================
 
 .. contents:: Contents
    :local:
@@ -55,7 +55,7 @@ Code guidelines
 
   .. code-block:: bash
 
-     $ nosetests mne/tests/test_evoked:test_io_evoked -x --verbose
+     $ nosetests mne/tests/test_evoked.py:test_io_evoked -x --verbose
 
   Make sure you have the testing dataset, which you can get by doing::
 
@@ -136,6 +136,32 @@ with:
    $ PATTERN=plot_background_filtering.py make html_dev-pattern
 
 Consult the `sphinx gallery documentation`_ for more details.
+
+Deprecating
+-----------
+If you need to deprecate a function or a class, use the ``@deprecated`` decorator::
+
+    from mne.utils import deprecated
+
+    @deprecated('my_function will be deprecated in 0.XX, please use my_new_function instead.')
+    def my_function():
+       return 'foo'
+
+If you need to deprecate a parameter, use the mne warning function.
+For example to rename a parameter from `old_param` to `new_param` you can
+use something like this::
+
+    from mne.utils import warn
+
+    def my_function(new_param, old_param=None):
+        if old_param is not None:
+             warn('old_param is deprecated and will be replaced by new_param in 0.XX.',
+                  DeprecationWarning)
+             new_param = old_param
+        # Do what you have to do with new_param
+        return 'foo'
+
+
 
 Profiling
 ---------

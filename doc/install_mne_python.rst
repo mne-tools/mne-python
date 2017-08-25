@@ -110,14 +110,13 @@ To check that everything went fine, in ipython, type::
 
 If you get a new prompt with no error messages, you should be good to go!
 
-A good place to start is on our :ref:`tutorials` page or with our
-:ref:`general_examples`. You can launch a web browser to the documentation with::
+You can launch a web browser to the documentation with::
 
 
     >>> mne.open_docs()  # doctest: +SKIP
 
-Along the way, make frequent use of :ref:`api_reference` and
-:ref:`manual` to understand the capabilities of MNE.
+Along the way, make frequent use of the :ref:`api_reference` and
+:ref:`documentation` to understand the capabilities of MNE.
 
 For advanced topics like how to get NVIDIA :ref:`CUDA` support working for ~10x
 faster filtering and resampling, or if you're having trouble, visit

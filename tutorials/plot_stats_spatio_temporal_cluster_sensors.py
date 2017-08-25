@@ -24,7 +24,7 @@ from mne.viz import plot_topomap
 import mne
 from mne.stats import spatio_temporal_cluster_test
 from mne.datasets import sample
-from mne.channels import read_ch_connectivity
+from mne.channels import find_ch_connectivity
 
 print(__doc__)
 
@@ -40,8 +40,7 @@ tmax = 0.5
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 30, l_trans_bandwidth='auto', h_trans_bandwidth='auto',
-           filter_length='auto', phase='zero')
+raw.filter(1, 30, fir_design='firwin')
 events = mne.read_events(event_fname)
 
 ###############################################################################
@@ -63,9 +62,9 @@ X = [np.transpose(x, (0, 2, 1)) for x in X]  # transpose for clustering
 
 
 ###############################################################################
-# Load FieldTrip neighbor definition to setup sensor connectivity
-# ---------------------------------------------------------------
-connectivity, ch_names = read_ch_connectivity('neuromag306mag')
+# Find the FieldTrip neighbor definition to setup sensor connectivity
+# -------------------------------------------------------------------
+connectivity, ch_names = find_ch_connectivity(epochs.info, ch_type='mag')
 
 print(type(connectivity))  # it's a sparse matrix!
 

@@ -79,8 +79,8 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 
 info = mne.io.read_info(raw_fname)
-mne.viz.plot_trans(info, trans, subject=subject, dig=True,
-                   meg_sensors=True, subjects_dir=subjects_dir)
+mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
+                       meg=['helmet', 'sensors'], subjects_dir=subjects_dir)
 
 ###############################################################################
 # Compute Source Space
@@ -94,8 +94,7 @@ mne.viz.plot_trans(info, trans, subject=subject, dig=True,
 # and spacing parameter.
 
 src = mne.setup_source_space(subject, spacing='oct6',
-                             subjects_dir=subjects_dir,
-                             add_dist=False, overwrite=True)
+                             subjects_dir=subjects_dir, add_dist=False)
 print(src)
 
 ###############################################################################
@@ -115,7 +114,7 @@ from mayavi import mlab  # noqa
 from surfer import Brain  # noqa
 
 brain = Brain('sample', 'lh', 'inflated', subjects_dir=subjects_dir)
-surf = brain._geo
+surf = brain.geo['lh']
 
 vertidx = np.where(src[0]['inuse'])[0]
 
@@ -154,8 +153,7 @@ bem = mne.make_bem_solution(model)
 # See :func:`mne.make_forward_solution` for details on parameters meaning.
 
 fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
-                                fname=None, meg=True, eeg=False,
-                                mindist=5.0, n_jobs=2)
+                                meg=True, eeg=False, mindist=5.0, n_jobs=2)
 print(fwd)
 
 ###############################################################################
@@ -164,6 +162,24 @@ print(fwd)
 
 leadfield = fwd['sol']['data']
 print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
+
+###############################################################################
+# To extract the numpy array containing the forward operator corresponding to
+# the source space `fwd['src']` with cortical orientation constraint
+# we can use the following:
+
+fwd_fixed = mne.convert_forward_solution(fwd, surf_ori=True,
+                                         force_fixed=True)
+leadfield = fwd_fixed['sol']['data']
+print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
+
+###############################################################################
+# This is equivalent to the following code that explicitly applies the
+# forward operator to a source estimate composed of the identity operator:
+n_dipoles = leadfield.shape[1]
+vertices = [src_hemi['vertno'] for src_hemi in fwd_fixed['src']]
+stc = mne.SourceEstimate(1e-9 * np.eye(n_dipoles), vertices, tmin=0., tstep=1)
+leadfield = mne.apply_forward(fwd_fixed, stc, info).data / 1e-9
 
 ###############################################################################
 # To save to disk a forward solution you can use

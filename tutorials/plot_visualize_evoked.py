@@ -4,6 +4,8 @@
 =====================
 Visualize Evoked data
 =====================
+
+In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
 """
 import os.path as op
 import numpy as np
@@ -11,8 +13,9 @@ import matplotlib.pyplot as plt
 
 import mne
 
+# sphinx_gallery_thumbnail_number = 9
+
 ###############################################################################
-# In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
 # First we read the evoked object from a file. Check out
 # :ref:`tut_epoching_and_averaging` to get to this stage from raw data.
 data_path = mne.datasets.sample.data_path()
@@ -82,11 +85,15 @@ evoked_r_aud.plot_topomap(times='peaks', ch_type='mag')
 # customise your plots even further. First we create a set of matplotlib
 # axes in a single figure and plot all of our evoked categories next to each
 # other.
-fig, ax = plt.subplots(1, 5)
-evoked_l_aud.plot_topomap(times=0.1, axes=ax[0], show=False)
-evoked_r_aud.plot_topomap(times=0.1, axes=ax[1], show=False)
-evoked_l_vis.plot_topomap(times=0.1, axes=ax[2], show=False)
-evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
+fig, ax = plt.subplots(1, 5, figsize=(8, 2))
+kwargs = dict(times=0.1, show=False, vmin=-300, vmax=300)
+evoked_l_aud.plot_topomap(axes=ax[0], colorbar=True, **kwargs)
+evoked_r_aud.plot_topomap(axes=ax[1], colorbar=False, **kwargs)
+evoked_l_vis.plot_topomap(axes=ax[2], colorbar=False, **kwargs)
+evoked_r_vis.plot_topomap(axes=ax[3], colorbar=False, **kwargs)
+for ax, title in zip(ax[:4], ['Aud/L', 'Aud/R', 'Vis/L', 'Vis/R']):
+    ax.set_title(title)
+plt.show()
 
 ###############################################################################
 # Notice that we created five axes, but had only four categories. The fifth
@@ -109,11 +116,11 @@ evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
 # (:func:`mne.Evoked.plot`) of the joint plot.
 # For an example of specific styling using these ``topomap_args`` and
 # ``ts_args`` arguments, here, topomaps at specific time points
-# (70 and 105 msec) are shown, sensors are not plotted (via an argument
+# (90 and 200 ms) are shown, sensors are not plotted (via an argument
 # forwarded to `plot_topomap`), and the Global Field Power is shown:
 ts_args = dict(gfp=True)
 topomap_args = dict(sensors=False)
-evoked_r_aud.plot_joint(title='right auditory', times=[.07, .105],
+evoked_r_aud.plot_joint(title='right auditory', times=[.09, .20],
                         ts_args=ts_args, topomap_args=topomap_args)
 
 ###############################################################################
@@ -156,11 +163,11 @@ evoked_r_aud.plot_image(picks=picks)
 # Finally we plot the sensor data as a topographical view. In the simple case
 # we plot only left auditory responses, and then we plot them all in the same
 # figure for comparison. Click on the individual plots to open them bigger.
-title = 'MNE sample data (condition : %s)'
-evoked_l_aud.plot_topo(title=title % evoked_l_aud.comment)
-colors = 'yellow', 'green', 'red', 'blue'
-mne.viz.plot_evoked_topo(evoked, color=colors,
-                         title=title % 'Left/Right Auditory/Visual')
+title = 'MNE sample data\n(condition : %s)'
+evoked_l_aud.plot_topo(title=title % evoked_l_aud.comment,
+                       background_color='k', color=['white'])
+mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
+                         background_color='w')
 
 ###############################################################################
 # Visualizing field lines in 3D

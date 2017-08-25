@@ -279,7 +279,7 @@ def _read_proj(fid, node, verbose=None):
 
     Returns
     -------
-    projs: dict
+    projs : list of Projection
         The list of projections.
     """
     projs = list()
@@ -501,6 +501,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
     vecs = np.zeros((nchan, nvec))
     nvec = 0
     nonzero = 0
+    bads = set(bads)
     for k, p in enumerate(projs):
         if not p['active'] or include_active:
             if (len(p['data']['col_names']) !=
@@ -512,8 +513,9 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
             # the projection vectors omitting bad channels
             sel = []
             vecsel = []
+            p_set = set(p['data']['col_names'])  # faster membership access
             for c, name in enumerate(ch_names):
-                if name in p['data']['col_names'] and name not in bads:
+                if name not in bads and name in p_set:
                     sel.append(c)
                     vecsel.append(p['data']['col_names'].index(name))
 
@@ -527,7 +529,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
             for v in range(p['data']['nrow']):
                 psize = sqrt(np.sum(this_vecs[:, v] * this_vecs[:, v]))
                 if psize > 0:
-                    orig_n = p['data']['data'].shape[1]
+                    orig_n = p['data']['data'].any(axis=0).sum()
                     # Average ref still works if channels are removed
                     if len(vecsel) < 0.9 * orig_n and not inplace and \
                             (p['kind'] != FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF or

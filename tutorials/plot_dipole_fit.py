@@ -52,11 +52,14 @@ dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
 # Calculate and visualise magnetic field predicted by dipole with maximum GOF
 # and compare to the measured data, highlighting the ipsilateral (right) source
 fwd, stc = make_forward_dipole(dip, fname_bem, evoked.info, fname_trans)
-pred_evoked = simulate_evoked(fwd, stc, evoked.info, None, snr=np.inf)
+pred_evoked = simulate_evoked(fwd, stc, evoked.info, cov=None, nave=np.inf)
 
-# find time point with highes GOF to plot
+# find time point with highest GOF to plot
 best_idx = np.argmax(dip.gof)
 best_time = dip.times[best_idx]
+print('Highest GOF %0.1f%% at t=%0.1f ms with confidence volume %0.1f cm^3'
+      % (dip.gof[best_idx], best_time * 1000,
+         dip.conf['vol'][best_idx] * 100 ** 3))
 # rememeber to create a subplot for the colorbar
 fig, axes = plt.subplots(nrows=1, ncols=4, figsize=[10., 3.4])
 vmin, vmax = -400, 400  # make sure each plot has same colour range

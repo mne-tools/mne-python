@@ -1,8 +1,8 @@
 .. _cookbook:
 
-========
-Cookbook
-========
+==========================
+The typical M/EEG workflow
+==========================
 
 .. contents:: Contents
    :local:
@@ -294,13 +294,14 @@ Using this model, the BEM solution can be computed using
     >>> write_bem_solution('sample-5120-5120-5120-bem-sol.fif', bem_sol)
 
 After the BEM is set up it is advisable to check that the
-BEM model meshes are correctly positioned using *e.g.*, :class:`mne.Report`.
+BEM model meshes are correctly positioned using *e.g.*
+:func:`mne.viz.plot_alignment` or :class:`mne.report.Report`.
 
 .. note:: Up to this point all processing stages depend on the
           anatomical (geometrical) information only and thus remain
           identical across different MEG studies.
 
-.. note:: If you use custom head models you might need to set the ``ico=None`` 
+.. note:: If you use custom head models you might need to set the ``ico=None``
           parameter to ``None`` and skip subsampling of the surface.
 
 

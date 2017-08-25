@@ -5,8 +5,8 @@
 
 import numpy as np
 import warnings
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-from numpy.testing import assert_allclose
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose, assert_array_less)
 
 from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            tf_mixed_norm_solver,
@@ -48,13 +48,15 @@ def test_l21_mxne():
         *args, active_set_size=None,
         debias=True, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_cd, active_set, _ = mixed_norm_solver(
+    X_hat_cd, active_set, _, gap_cd = mixed_norm_solver(
         *args, active_set_size=None,
-        debias=True, solver='cd')
+        debias=True, solver='cd', return_gap=True)
+    assert_array_less(gap_cd, 1e-8)
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_bcd, active_set, _ = mixed_norm_solver(
+    X_hat_bcd, active_set, E, gap_bcd = mixed_norm_solver(
         M, G, alpha, maxit=1000, tol=1e-8, active_set_size=None,
-        debias=True, solver='bcd')
+        debias=True, solver='bcd', return_gap=True)
+    assert_array_less(gap_bcd, 9.6e-9)
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_allclose(X_hat_prox, X_hat_cd, rtol=1e-2)
     assert_allclose(X_hat_prox, X_hat_bcd, rtol=1e-2)
@@ -109,9 +111,10 @@ def test_tf_mxne():
 
     M, G, active_set = _generate_tf_data()
 
-    X_hat_tf, active_set_hat_tf, E = tf_mixed_norm_solver(
+    X_hat_tf, active_set_hat_tf, E, gap_tfmxne = tf_mixed_norm_solver(
         M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
-        n_orient=1, tstep=4, wsize=32)
+        n_orient=1, tstep=4, wsize=32, return_gap=True)
+    assert_array_less(gap_tfmxne, 1e-8)
     assert_array_equal(np.where(active_set_hat_tf)[0], active_set)
 
 

@@ -6,6 +6,7 @@
 
 from collections import Counter
 import os
+import sys
 from warnings import warn
 
 import numpy as np
@@ -23,6 +24,7 @@ from pyface.api import (confirm, error, FileDialog, OK, YES, information,
 from traits.api import (HasTraits, HasPrivateTraits, cached_property, Instance,
                         Property, Bool, Button, Enum, File, Float, Int, List,
                         Str, Array, DelegatesTo)
+from traits.trait_base import ETSConfig
 from traitsui.api import (View, Item, HGroup, VGroup, spring, TextEditor,
                           CheckListEditor, EnumEditor, Handler)
 from traitsui.menu import NoButtons
@@ -46,8 +48,8 @@ if backend_is_wx:
     hsp_wildcard = ['Head Shape Points (*.hsp;*.txt)|*.hsp;*.txt']
     elp_wildcard = ['Head Shape Fiducials (*.elp;*.txt)|*.elp;*.txt']
     kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
-elif os.name == 'nt':
-    # on Windows, multiple wildcards does not seem to work
+elif sys.platform in ('win32',  'linux2'):
+    # on Windows and Ubuntu, multiple wildcards does not seem to work
     hsp_wildcard = ['*.hsp', '*.txt']
     elp_wildcard = ['*.elp', '*.txt']
     kit_con_wildcard = ['*.sqd', '*.con']
@@ -280,7 +282,9 @@ class Kit2FiffModel(HasPrivateTraits):
             data, times = self.raw[self.misc_chs]
         except Exception as err:
             if self.show_gui:
-                error(None, str(err), "Error Creating FsAverage")
+                error(None, "Error reading SQD data file: %s (Check the "
+                      "terminal output for details)" % str(err),
+                      "Error Reading SQD File")
             raise
         finally:
             if self.show_gui:
@@ -310,7 +314,7 @@ class Kit2FiffModel(HasPrivateTraits):
             if self.show_gui:
                 error(None, "Error reading SQD data file: %s (Check the "
                       "terminal output for details)" % str(err),
-                      "Error Reading SQD file")
+                      "Error Reading SQD File")
             raise
 
     @cached_property
@@ -663,6 +667,11 @@ class Kit2FiffFrame(HasTraits):
                        ),
                 handler=Kit2FiffFrameHandler(),
                 height=700, resizable=True, buttons=NoButtons)
+
+    def __init__(self, *args, **kwargs):  # noqa: D102
+        logger.debug(
+            "Initializing Kit2fiff-GUI with %s backend", ETSConfig.toolkit)
+        HasTraits.__init__(self, *args, **kwargs)
 
     # can't be static method due to Traits
     def _model_default(self):

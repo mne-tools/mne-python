@@ -1,10 +1,15 @@
-"""Functions for fetching remote datasets."""
+"""Functions for fetching remote datasets.
 
+See `datasets`_ for more information.
+"""
+
+from . import fieldtrip_cmc
 from . import brainstorm
 from . import visual_92_categories
 from . import eegbci
 from . import megsim
 from . import misc
+from . import mtrf
 from . import sample
 from . import somato
 from . import multimodal

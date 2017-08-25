@@ -49,7 +49,7 @@ score_funcs_unsuited = ['pointbiserialr', 'ansari']
 try:
     from sklearn.utils.validation import NonBLASDotWarning
     warnings.simplefilter('error', NonBLASDotWarning)
-except:
+except Exception:
     pass
 
 
@@ -157,7 +157,7 @@ def test_ica_reset():
         'pca_explained_variance_',
         'pca_mean_'
     )
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True):  # convergence
         ica = ICA(
             n_components=3, max_pca_components=3, n_pca_components=3,
             method='fastica', max_iter=1).fit(raw, picks=picks)
@@ -173,8 +173,7 @@ def test_ica_reset():
 def test_ica_core():
     """Test ICA on raw and epochs."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+
     # XXX. The None cases helped revealing bugs but are time consuming.
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
@@ -210,7 +209,7 @@ def test_ica_core():
         assert_raises(RuntimeError, ica.get_sources, epochs)
 
         # test decomposition
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings(record=True):  # convergence
             ica.fit(raw, picks=pcks, start=start, stop=stop)
             repr(ica)  # to test repr
         assert_true('mag' in ica)  # should now work without error
@@ -283,6 +282,7 @@ def test_ica_additional():
     tempdir = _TempDir()
     stop2 = 500
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    raw.annotations = Annotations([0.5], [0.5], ['BAD'])
     # XXX This breaks the tests :(
     # raw.info['bads'] = [raw.ch_names[1]]
     test_cov = read_cov(test_cov_name)
@@ -315,8 +315,15 @@ def test_ica_additional():
     ica = ICA(n_components=3, max_pca_components=4,
               n_pca_components=4)
     assert_raises(RuntimeError, ica.save, '')
+
     with warnings.catch_warnings(record=True):
         ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
+
+    # check passing a ch_name to find_bads_ecg
+    with warnings.catch_warnings(record=True):  # filter length
+        _, scores_1 = ica.find_bads_ecg(raw)
+        _, scores_2 = ica.find_bads_ecg(raw, raw.ch_names[1])
+    assert_false(scores_1[0] == scores_2[0])
 
     # test corrmap
     ica2 = ica.copy()
@@ -408,15 +415,12 @@ def test_ica_additional():
 
         # test filtering
         d1 = ica_raw._data[0].copy()
-        ica_raw.filter(4, 20, l_trans_bandwidth='auto',
-                       h_trans_bandwidth='auto', filter_length='auto',
-                       phase='zero', fir_window='hamming')
+        ica_raw.filter(4, 20, fir_design='firwin2')
         assert_equal(ica_raw.info['lowpass'], 20.)
         assert_equal(ica_raw.info['highpass'], 4.)
         assert_true((d1 != ica_raw._data[0]).any())
         d1 = ica_raw._data[0].copy()
-        ica_raw.notch_filter([10], filter_length='auto', trans_bandwidth=10,
-                             phase='zero', fir_window='hamming')
+        ica_raw.notch_filter([10], trans_bandwidth=10, fir_design='firwin')
         assert_true((d1 != ica_raw._data[0]).any())
 
         ica.n_pca_components = 2
@@ -461,7 +465,7 @@ def test_ica_additional():
         assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     os.remove(test_ica_fname)
-    # check scrore funcs
+    # check score funcs
     for name, func in get_score_funcs().items():
         if name in score_funcs_unsuited:
             continue
@@ -497,11 +501,15 @@ def test_ica_additional():
         assert_equal(len(scores), ica.n_components_)
 
         idx, scores = ica.find_bads_ecg(epochs, method='ctps')
+
         assert_equal(len(scores), ica.n_components_)
         assert_raises(ValueError, ica.find_bads_ecg, epochs.average(),
                       method='ctps')
         assert_raises(ValueError, ica.find_bads_ecg, raw,
                       method='crazy-coupling')
+
+        idx, scores = ica.find_bads_eog(raw)
+        assert_equal(len(scores), ica.n_components_)
 
         raw.info['chs'][raw.ch_names.index('EOG 061') - 1]['kind'] = 202
         idx, scores = ica.find_bads_eog(raw)
@@ -584,13 +592,15 @@ def test_ica_additional():
 
     ica = ICA()
     ica.fit(raw, picks=picks[:5])
-    ica.find_bads_ecg(raw)
+    with warnings.catch_warnings(record=True):  # filter length
+        ica.find_bads_ecg(raw)
     ica.find_bads_eog(epochs, ch_name='MEG 0121')
     assert_array_equal(raw_data, raw[:][0])
 
     raw.drop_channels(['MEG 0122'])
-    assert_raises(RuntimeError, ica.find_bads_eog, raw)
-    assert_raises(RuntimeError, ica.find_bads_ecg, raw)
+    with warnings.catch_warnings(record=True):  # filter length
+        assert_raises(RuntimeError, ica.find_bads_eog, raw)
+        assert_raises(RuntimeError, ica.find_bads_ecg, raw)
 
 
 @requires_sklearn
@@ -714,6 +724,7 @@ def test_eog_channel():
 
 @requires_sklearn
 def test_max_pca_components_none():
+    """Test max_pca_components=None."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)
@@ -729,7 +740,8 @@ def test_max_pca_components_none():
 
     ica = ICA(max_pca_components=max_pca_components,
               n_components=n_components, random_state=random_state)
-    ica.fit(epochs)
+    with warnings.catch_warnings(record=True):  # convergence
+        ica.fit(epochs)
     ica.save(output_fname)
 
     ica = read_ica(output_fname)
@@ -742,6 +754,7 @@ def test_max_pca_components_none():
 
 @requires_sklearn
 def test_n_components_none():
+    """Test n_components=None."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)
@@ -757,7 +770,8 @@ def test_n_components_none():
 
     ica = ICA(max_pca_components=max_pca_components,
               n_components=n_components, random_state=random_state)
-    ica.fit(epochs)
+    with warnings.catch_warnings(record=True):  # convergence
+        ica.fit(epochs)
     ica.save(output_fname)
 
     ica = read_ica(output_fname)
@@ -770,6 +784,7 @@ def test_n_components_none():
 
 @requires_sklearn
 def test_n_components_and_max_pca_components_none():
+    """Test n_components and max_pca_components=None."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)
@@ -785,7 +800,8 @@ def test_n_components_and_max_pca_components_none():
 
     ica = ICA(max_pca_components=max_pca_components,
               n_components=n_components, random_state=random_state)
-    ica.fit(epochs)
+    with warnings.catch_warnings(record=True):  # convergence
+        ica.fit(epochs)
     ica.save(output_fname)
 
     ica = read_ica(output_fname)

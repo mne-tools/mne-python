@@ -16,7 +16,7 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-__version__ = '0.14.dev0'
+__version__ = '0.15.dev0'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
@@ -47,7 +47,8 @@ from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       convert_forward_solution, make_field_map,
                       make_forward_dipole)
 from .source_estimate import (read_source_estimate, MixedSourceEstimate,
-                              SourceEstimate, VolSourceEstimate, morph_data,
+                              SourceEstimate, VectorSourceEstimate,
+                              VolSourceEstimate, morph_data,
                               morph_data_precomputed, compute_morph_matrix,
                               grade_to_tris, grade_to_vertices,
                               spatial_src_connectivity,
@@ -95,6 +96,7 @@ from . import cuda
 from . import datasets
 from . import dipole
 from . import epochs
+from . import event
 from . import externals
 from . import io
 from . import filter

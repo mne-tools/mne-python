@@ -65,8 +65,7 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 # noise you can simply low pass filter the data.
 
 # low pass filtering below 50 Hz
-raw.filter(None, 50., h_trans_bandwidth='auto', filter_length='auto',
-           phase='zero')
+raw.filter(None, 50., fir_design='firwin')
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 ###############################################################################
@@ -75,12 +74,15 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 #
 # To remove slow drifts, you can high pass.
 #
-# .. warning:: There can be issues using high-passes greater than 0.1 Hz
-#              (see examples in :ref:`tut_filtering_hp_problems`),
-#              so apply high-pass filters with caution.
+# .. warning:: In several applications such as event-related potential (ERP)
+#              and event-related field (ERF) analysis, high-pass filters with
+#              cutoff frequencies greater than 0.1 Hz are usually considered
+#              problematic since they significantly change the shape of the
+#              resulting averaged waveform (see examples in
+#              :ref:`tut_filtering_hp_problems`). In such applications, apply
+#              high-pass filters with caution.
 
-raw.filter(1., None, l_trans_bandwidth='auto', filter_length='auto',
-           phase='zero')
+raw.filter(1., None, fir_design='firwin')
 raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 
 
@@ -89,8 +91,7 @@ raw.plot_psd(area_mode='range', tmax=10.0, picks=picks, average=False)
 # a so-called *band-pass* filter by running the following:
 
 # band-pass filtering in the range 1 Hz - 50 Hz
-raw.filter(1, 50., l_trans_bandwidth='auto', h_trans_bandwidth='auto',
-           filter_length='auto', phase='zero')
+raw.filter(1, 50., fir_design='firwin')
 
 ###############################################################################
 # Downsampling and decimation

@@ -21,10 +21,10 @@ import numpy as np
 from mne import pick_types
 from mne.datasets import testing
 from mne.externals.six import iterbytes
-from mne.utils import run_tests_if_main, requires_pandas
+from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.edf.edf import _parse_tal_channel
+from mne.io.edf.edf import _parse_tal_channel, get_edf_events
 from mne.event import find_events
 
 warnings.simplefilter('always')
@@ -56,7 +56,7 @@ def test_bdf_data():
     """Test reading raw bdf files."""
     raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path,
                               montage=montage_path, eog=eog, misc=misc,
-                              exclude=['M2', 'IEOG'])
+                              exclude=['M2', 'IEOG'], stim_channel=-1)
     assert_true('RawEDF' in repr(raw_py))
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
@@ -79,7 +79,8 @@ def test_edf_overlapping_annotations():
     """Test EDF with overlapping annotations."""
     n_warning = 2
     with warnings.catch_warnings(record=True) as w:
-        read_raw_edf(edf_overlap_annot_path, preload=True, verbose=True)
+        read_raw_edf(edf_overlap_annot_path, preload=True, stim_channel='auto',
+                     verbose=True)
         assert_equal(sum('overlapping' in str(ww.message) for ww in w),
                      n_warning)
 
@@ -94,7 +95,7 @@ def test_edf_data():
     """Test edf files."""
     raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
                            stim_channel=None, exclude=['Ergo-Left', 'H10'])
-    raw_py = read_raw_edf(edf_path, preload=True)
+    raw_py = read_raw_edf(edf_path, stim_channel='auto', preload=True)
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
     # Test saving and loading when annotations were parsed.
     edf_events = find_events(raw_py, output='step', shortest_event=0,
@@ -121,6 +122,23 @@ def test_edf_data():
 
     assert_array_equal(edf_events, events)
 
+    # Test with number of records not in header (-1).
+    tempdir = _TempDir()
+    broken_fname = op.join(tempdir, 'broken.edf')
+    with open(edf_path, 'rb') as fid_in:
+        fid_in.seek(0, 2)
+        n_bytes = fid_in.tell()
+        fid_in.seek(0, 0)
+        rbytes = fid_in.read(int(n_bytes * 0.4))
+    with open(broken_fname, 'wb') as fid_out:
+        fid_out.write(rbytes[:236])
+        fid_out.write(bytes('-1      '.encode()))
+        fid_out.write(rbytes[244:])
+    with warnings.catch_warnings(record=True):  # record mismatches
+        raw = read_raw_edf(broken_fname, preload=True, stim_channel='auto')
+        read_raw_edf(broken_fname, exclude=raw.ch_names[:132], preload=True,
+                     stim_channel='auto')
+
 
 @testing.requires_testing_data
 def test_stim_channel():
@@ -141,6 +159,8 @@ def test_stim_channel():
     data_eeglab = raw_eeglab[picks]
 
     assert_array_almost_equal(data_py, data_eeglab, 10)
+    events = get_edf_events(raw_py)
+    assert_true(len(events) - 1 == len(find_events(raw_py)))  # start not found
 
     # Test uneven sampling
     raw_py = read_raw_edf(edf_uneven_path, stim_channel=None)
@@ -155,17 +175,21 @@ def test_stim_channel():
     data_py = np.repeat(data_py, repeats=upsample)
     assert_array_equal(data_py, data_eeglab)
 
-    assert_raises(RuntimeError, read_raw_edf, edf_path, preload=False)
+    assert_raises(RuntimeError, read_raw_edf, edf_path, preload=False,
+                  stim_channel=-1)
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        raw = read_raw_edf(edf_stim_resamp_path, verbose=True)
+        raw = read_raw_edf(edf_stim_resamp_path, verbose=True, stim_channel=-1)
     assert_equal(len(w), 1)
     assert_true('Events may jitter' in str(w[0].message))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw[:]
     assert_equal(len(w), 0)
+
+    events = raw_py.get_edf_events()
+    assert_true(len(events) == 0)
 
 
 def test_parse_annotation():
@@ -189,7 +213,7 @@ def test_parse_annotation():
 def test_edf_annotations():
     """Test if events are detected correctly in a typical MNE workflow."""
     # test an actual file
-    raw = read_raw_edf(edf_path, preload=True)
+    raw = read_raw_edf(edf_path, preload=True, stim_channel='auto')
     edf_events = find_events(raw, output='step', shortest_event=0,
                              stim_channel='STI 014')
 

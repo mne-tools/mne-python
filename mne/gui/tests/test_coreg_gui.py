@@ -126,7 +126,7 @@ def test_coreg_model():
     # find BEM files
     bems = set()
     for fname in os.listdir(op.join(subjects_dir, 'sample', 'bem')):
-        match = re.match('sample-(.+-bem)\.fif', fname)
+        match = re.match(r'sample-(.+-bem)\.fif', fname)
         if match:
             bems.add(match.group(1))
     assert_equal(set(bemsol), bems)
@@ -171,6 +171,13 @@ def test_coreg_gui():
             assert_true(frame.model.mri.use_high_res_head)
             frame.model.mri.use_high_res_head = False
             frame.model.grow_hair = 40.
+
+            # scale
+            frame.coreg_panel.n_scale_params = 3
+            frame.coreg_panel.scale_x_inc = True
+            assert_equal(frame.model.scale_x, 1.01)
+            frame.coreg_panel.scale_y_dec = True
+            assert_equal(frame.model.scale_y, 0.99)
 
             # reset parameters
             frame.coreg_panel.reset_params = True

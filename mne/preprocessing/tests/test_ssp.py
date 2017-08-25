@@ -24,13 +24,11 @@ def test_compute_proj_ecg():
     raw.load_data()
     for average in [False, True]:
         # For speed, let's not filter here (must also not reject then)
-        projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                         ch_name='MEG 1531', bads=['MEG 2443'],
-                                         average=average, avg_ref=True,
-                                         no_proj=True, l_freq=None,
-                                         h_freq=None, reject=None,
-                                         tmax=dur_use, qrs_threshold=0.5,
-                                         filter_length=6000)
+        projs, events = compute_proj_ecg(
+            raw, n_mag=2, n_grad=2, n_eeg=2, ch_name='MEG 1531',
+            bads=['MEG 2443'], average=average, avg_ref=True, no_proj=True,
+            l_freq=None, h_freq=None, reject=None, tmax=dur_use,
+            qrs_threshold=0.5, filter_length=6000)
         assert_true(len(projs) == 7)
         # heart rate at least 0.5 Hz, but less than 3 Hz
         assert_true(events.shape[0] > 0.5 * dur_use and
@@ -51,11 +49,10 @@ def test_compute_proj_ecg():
         # without setting a bad channel, this should throw a warning
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                             ch_name='MEG 1531', bads=[],
-                                             average=average, avg_ref=True,
-                                             no_proj=True, l_freq=None,
-                                             h_freq=None, tmax=dur_use)
+            projs, events = compute_proj_ecg(
+                raw, n_mag=2, n_grad=2, n_eeg=2, ch_name='MEG 1531', bads=[],
+                average=average, avg_ref=True, no_proj=True, l_freq=None,
+                h_freq=None, tmax=dur_use)
         assert_true(len(w) >= 1)
         assert_equal(projs, None)
 

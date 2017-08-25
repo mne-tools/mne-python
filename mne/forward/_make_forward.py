@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
 import os
 from os import path as op
 import numpy as np
@@ -16,6 +17,7 @@ from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform)
 from ..utils import logger, verbose, warn
+from ..parallel import check_n_jobs
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, SourceSpaces)
 from ..source_estimate import VolSourceEstimate
@@ -23,8 +25,7 @@ from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 from ..externals.six import string_types
 
-from .forward import (Forward, write_forward_solution, _merge_meg_eeg_fwds,
-                      convert_forward_solution)
+from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
 from ._compute_forward import _compute_forwards
 
 
@@ -65,51 +66,59 @@ def _read_coil_defs(elekta_defs=False, verbose=None):
     return coils
 
 
+# Typically we only have 1 or 2 coil def files, but they can end up being
+# read a lot. Let's keep a list of them and just reuse them:
+_coil_register = {}
+
+
 def _read_coil_def_file(fname):
     """Read a coil def file."""
-    big_val = 0.5
-    coils = list()
-    with open(fname, 'r') as fid:
-        lines = fid.readlines()
-    lines = lines[::-1]
-    while len(lines) > 0:
-        line = lines.pop()
-        if line[0] != '#':
-            vals = np.fromstring(line, sep=' ')
-            assert len(vals) in (6, 7)  # newer numpy can truncate comment
-            start = line.find('"')
-            end = len(line.strip()) - 1
-            assert line.strip()[end] == '"'
-            desc = line[start:end]
-            npts = int(vals[3])
-            coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
-                        accuracy=vals[2], size=vals[4], base=vals[5])
-            # get parameters of each component
-            rmag = list()
-            cosmag = list()
-            w = list()
-            for p in range(npts):
-                # get next non-comment line
-                line = lines.pop()
-                while(line[0] == '#'):
-                    line = lines.pop()
+    if fname not in _coil_register:
+        big_val = 0.5
+        coils = list()
+        with open(fname, 'r') as fid:
+            lines = fid.readlines()
+        lines = lines[::-1]
+        while len(lines) > 0:
+            line = lines.pop()
+            if line[0] != '#':
                 vals = np.fromstring(line, sep=' ')
-                assert len(vals) == 7
-                # Read and verify data for each integration point
-                w.append(vals[0])
-                rmag.append(vals[[1, 2, 3]])
-                cosmag.append(vals[[4, 5, 6]])
-            w = np.array(w)
-            rmag = np.array(rmag)
-            cosmag = np.array(cosmag)
-            size = np.sqrt(np.sum(cosmag ** 2, axis=1))
-            if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
-                raise RuntimeError('Unreasonable integration point')
-            if np.any(size <= 0):
-                raise RuntimeError('Unreasonable normal')
-            cosmag /= size[:, np.newaxis]
-            coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
-            coils.append(coil)
+                assert len(vals) in (6, 7)  # newer numpy can truncate comment
+                start = line.find('"')
+                end = len(line.strip()) - 1
+                assert line.strip()[end] == '"'
+                desc = line[start:end]
+                npts = int(vals[3])
+                coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
+                            accuracy=vals[2], size=vals[4], base=vals[5])
+                # get parameters of each component
+                rmag = list()
+                cosmag = list()
+                w = list()
+                for p in range(npts):
+                    # get next non-comment line
+                    line = lines.pop()
+                    while(line[0] == '#'):
+                        line = lines.pop()
+                    vals = np.fromstring(line, sep=' ')
+                    assert len(vals) == 7
+                    # Read and verify data for each integration point
+                    w.append(vals[0])
+                    rmag.append(vals[[1, 2, 3]])
+                    cosmag.append(vals[[4, 5, 6]])
+                w = np.array(w)
+                rmag = np.array(rmag)
+                cosmag = np.array(cosmag)
+                size = np.sqrt(np.sum(cosmag ** 2, axis=1))
+                if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
+                    raise RuntimeError('Unreasonable integration point')
+                if np.any(size <= 0):
+                    raise RuntimeError('Unreasonable normal')
+                cosmag /= size[:, np.newaxis]
+                coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
+                coils.append(coil)
+        _coil_register[fname] = coils
+    coils = deepcopy(_coil_register[fname])
     logger.info('%d coil definitions read', len(coils))
     return coils
 
@@ -240,7 +249,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
 @verbose
 def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
                        elekta_defs=False, head_frame=True, do_es=False,
-                       verbose=None):
+                       do_picking=True, verbose=None):
     """Prepare MEG coil definitions for forward calculation.
 
     Parameters
@@ -262,6 +271,8 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         If True (default), use head frame coords. Otherwise, use device frame.
     do_es : bool
         If True, compute and store ex, ey, ez, and r0_exey.
+    do_picking : bool
+        If True, pick info and return it.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -279,7 +290,6 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     """
     accuracy = 'accurate' if accurate else 'normal'
     info_extra = 'info'
-    meg_info = None
     megnames, megcoils, compcoils = [], [], []
 
     # Find MEG channels
@@ -292,7 +302,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         raise RuntimeError('Could not find any MEG channels')
 
     # Get channel info and names for MEG channels
-    megchs = pick_info(info, picks)['chs']
+    megchs = [info['chs'][pick] for pick in picks]
     megnames = [info['ch_names'][p] for p in picks]
     logger.info('Read %3d MEG channels from %s'
                 % (len(picks), info_extra))
@@ -318,7 +328,6 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     ncomp_data = len(info['comps'])
     ref_meg = True if not ignore_ref else False
     picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
-    meg_info = pick_info(info, picks) if nmeg > 0 else None
 
     # Create coil descriptions with transformation to head or device frame
     templates = _read_coil_defs(elekta_defs=elekta_defs)
@@ -346,7 +355,10 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_DEVICE
         logger.info('MEG coil definitions created in device coordinate.')
 
-    return megcoils, compcoils, megnames, meg_info
+    out = (megcoils, compcoils, megnames)
+    if do_picking:
+        out = out + (pick_info(info, picks) if nmeg > 0 else None,)
+    return out
 
 
 @verbose
@@ -398,8 +410,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
 @verbose
 def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                          bem_extra='', trans='', info_extra='',
-                         meg=True, eeg=True, ignore_ref=False, fname=None,
-                         overwrite=False, verbose=None):
+                         meg=True, eeg=True, ignore_ref=False, verbose=None):
     """Prepare for forward computation."""
     # Read the source locations
     logger.info('')
@@ -421,8 +432,8 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     _print_coord_trans(mri_head_t)
 
     # make a new dict with the relevant information
-    arg_list = [info_extra, trans, src, bem_extra, fname, meg, eeg,
-                mindist, overwrite, n_jobs, verbose]
+    arg_list = [info_extra, trans, src, bem_extra, meg, eeg, mindist,
+                n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
     info = Info(chs=info['chs'], comps=info['comps'],
@@ -482,9 +493,9 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
 
 
 @verbose
-def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
-                          eeg=True, mindist=0.0, ignore_ref=False,
-                          overwrite=False, n_jobs=1, verbose=None):
+def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
+                          mindist=0.0, ignore_ref=False, n_jobs=1,
+                          verbose=None):
     """Calculate a forward solution for a subject.
 
     Parameters
@@ -506,10 +517,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     bem : dict | str
         Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
         use, or a loaded sphere model (dict).
-    fname : str | None
-        Destination forward solution filename. If None, the solution
-        will not be saved. Deprecated and removed in 0.15, Use
-        :func:`mne.write_forward_solution` instead.
     meg : bool
         If True (Default), include MEG computations.
     eeg : bool
@@ -520,11 +527,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since forward computation
         with reference channels is not currently supported.
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
-        Deprecated and removed in 0.15. Use :func:`mne.write_forward_solution`
-        instead.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -557,9 +559,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     # (could also be HEAD to MRI)
     mri_head_t, trans = _get_trans(trans)
     bem_extra = 'dict' if isinstance(bem, dict) else bem
-    if fname is not None and op.isfile(fname) and not overwrite:
-        raise IOError('file "%s" exists, consider using overwrite=True'
-                      % fname)
     if not isinstance(info, (Info, string_types)):
         raise TypeError('info should be an instance of Info or string')
     if isinstance(info, string_types):
@@ -567,6 +566,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
         info = read_info(info, verbose=False)
     else:
         info_extra = 'instance of Info'
+    n_jobs = check_n_jobs(n_jobs)
 
     # Report the setup
     logger.info('Source space                 : %s' % src)
@@ -582,12 +582,11 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     logger.info('Do computations in %s coordinates',
                 _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
     logger.info('Free source orientations')
-    logger.info('Destination for the solution : %s' % fname)
 
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
         update_kwargs, bem = _prepare_for_forward(
             src, mri_head_t, info, bem, mindist, n_jobs, bem_extra, trans,
-            info_extra, meg, eeg, ignore_ref, fname, overwrite)
+            info_extra, meg, eeg, ignore_ref)
     del (src, mri_head_t, trans, info_extra, bem_extra, mindist,
          meg, eeg, ignore_ref)
 
@@ -609,12 +608,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     # done in the C code) because mne-python assumes forward solution source
     # spaces are in head coords.
     fwd.update(**update_kwargs)
-    if fname is not None:
-        logger.info('writing %s...', fname)
-        warn("Parameters 'fname' and 'overwrite' are deprecated and removed in"
-             "version 0.15. Use mne.write_forward_solution instead.")
-        write_forward_solution(fname, fwd, overwrite, verbose=False)
-
     logger.info('Finished.')
     return fwd
 
@@ -685,8 +678,8 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
 
     # Forward operator created for channels in info (use pick_info to restrict)
     # Use defaults for most params, including min_dist
-    fwd = make_forward_solution(info, trans, src, bem, fname=None,
-                                n_jobs=n_jobs, verbose=verbose)
+    fwd = make_forward_solution(info, trans, src, bem, n_jobs=n_jobs,
+                                verbose=verbose)
     # Convert from free orientations to fixed (in-place)
     convert_forward_solution(fwd, surf_ori=False, force_fixed=True,
                              copy=False, verbose=None)

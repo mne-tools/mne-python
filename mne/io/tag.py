@@ -181,10 +181,10 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
 
 def _loc_to_coil_trans(loc):
     """Convert loc vector to coil_trans."""
-    # deal with nasty OSX Anaconda bug by casting to float64
-    loc = loc.astype(np.float64)
-    coil_trans = np.concatenate([loc.reshape(4, 3).T[:, [1, 2, 3, 0]],
-                                 np.array([0, 0, 0, 1]).reshape(1, 4)])
+    coil_trans = np.zeros((4, 4))
+    coil_trans[:3, 3] = loc[:3]
+    coil_trans[:3, :3] = np.reshape(loc[3:], (3, 3)).T
+    coil_trans[-1, -1] = 1.
     return coil_trans
 
 
@@ -438,6 +438,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
     return jd2jcal(int(np.fromstring(fid.read(4), dtype=">i4")))
+
 
 # Read types call dict
 _call_dict = {

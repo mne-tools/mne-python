@@ -7,7 +7,6 @@
 import numpy as np
 import copy as cp
 from scipy import linalg
-from .ica import _get_fast_dot
 from .. import EvokedArray, Evoked
 from ..cov import Covariance, _regularized_covariance
 from ..decoding import TransformerMixin, BaseEstimator
@@ -307,8 +306,7 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
                 self.n_components * len(self.classes_), n_comp))
 
         # Transform
-        fast_dot = _get_fast_dot()
-        return fast_dot(self.patterns_.T, X).transpose(1, 0, 2)
+        return np.dot(self.patterns_.T, X).transpose(1, 0, 2)
 
     def _check_Xy(self, X, y=None):
         """Check X and y types and dimensions."""
@@ -371,7 +369,7 @@ class Xdawn(_XdawnTransformer):
 
     See Also
     --------
-    mne.decoding.CSP
+    mne.decoding.CSP, mne.decoding.SPoC
 
     References
     ----------
@@ -445,7 +443,7 @@ class Xdawn(_XdawnTransformer):
 
         # Main fitting function
         filters, patterns, evokeds = _fit_xdawn(
-            X, y,  n_components=n_components, reg=self.reg,
+            X, y, n_components=n_components, reg=self.reg,
             signal_cov=self.signal_cov, events=events, tmin=tmin, sfreq=sfreq)
 
         # Re-order filters and patterns according to event_id
@@ -600,12 +598,10 @@ class Xdawn(_XdawnTransformer):
 
     def _pick_sources(self, data, include, exclude, eid):
         """Aux method."""
-        fast_dot = _get_fast_dot()
-
         logger.info('Transforming to Xdawn space')
 
         # Apply unmixing
-        sources = fast_dot(self.filters_[eid].T, data)
+        sources = np.dot(self.filters_[eid].T, data)
 
         if include not in (None, list()):
             mask = np.ones(len(sources), dtype=np.bool)
@@ -617,7 +613,7 @@ class Xdawn(_XdawnTransformer):
             sources[exclude_] = 0.
             logger.info('Zeroing out %i Xdawn components' % len(exclude_))
         logger.info('Inverse transforming to sensor space')
-        data = fast_dot(self.patterns_[eid], sources)
+        data = np.dot(self.patterns_[eid], sources)
 
         return data
 

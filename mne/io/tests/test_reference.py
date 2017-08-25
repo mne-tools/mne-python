@@ -82,13 +82,13 @@ def test_apply_reference():
     # The CAR reference projection should have been removed by the function
     assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
 
-    # Test that disabling the reference does not break anything
-    reref, ref_data = _apply_reference(raw, [])
-    assert_array_equal(raw._data, reref._data)
-
     # Test that data is modified in place when copy=False
     reref, ref_data = _apply_reference(raw, ['EEG 001', 'EEG 002'])
     assert_true(raw is reref)
+
+    # Test that disabling the reference does not change anything
+    reref, ref_data = _apply_reference(raw.copy(), [])
+    assert_array_equal(raw._data, reref._data)
 
     # Test re-referencing Epochs object
     raw = read_raw_fif(fif_fname, preload=False)
@@ -121,7 +121,7 @@ def test_apply_reference():
             data=dict(
                 col_names=['EEG 001', 'EEG 002'],
                 row_names=None,
-                data=[[1, 1]],
+                data=np.array([[1, 1]]),
                 ncol=2,
                 nrow=1
             ),
@@ -142,9 +142,9 @@ def test_set_eeg_reference():
     raw = read_raw_fif(fif_fname, preload=True)
     raw.info['projs'] = []
 
-    # Test setting an average reference
+    # Test setting an average reference projection
     assert_true(not _has_eeg_average_ref_proj(raw.info['projs']))
-    reref, ref_data = set_eeg_reference(raw)
+    reref, ref_data = set_eeg_reference(raw, projection=True)
     assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
     assert_true(not reref.info['projs'][0]['active'])
     assert_true(ref_data is None)
@@ -156,13 +156,13 @@ def test_set_eeg_reference():
 
     # Test setting an average reference when one was already present
     with warnings.catch_warnings(record=True):
-        reref, ref_data = set_eeg_reference(raw, copy=False)
+        reref, ref_data = set_eeg_reference(raw, copy=False, projection=True)
     assert_true(ref_data is None)
 
     # Test setting an average reference on non-preloaded data
     raw_nopreload = read_raw_fif(fif_fname, preload=False)
     raw_nopreload.info['projs'] = []
-    reref, ref_data = set_eeg_reference(raw_nopreload)
+    reref, ref_data = set_eeg_reference(raw_nopreload, projection=True)
     assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
     assert_true(not reref.info['projs'][0]['active'])
 
@@ -178,7 +178,7 @@ def test_set_eeg_reference():
 
     # Test moving from custom to average reference
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'])
-    reref, _ = set_eeg_reference(reref)
+    reref, _ = set_eeg_reference(reref, projection=True)
     assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
     assert_equal(reref.info['custom_ref_applied'], False)
 
@@ -187,14 +187,35 @@ def test_set_eeg_reference():
     reref = raw.copy()
     reref.info['custom_ref_applied'] = True
     reref.pick_types(eeg=False)  # Cause making average ref fail
-    assert_raises(ValueError, set_eeg_reference, reref)
+    assert_raises(ValueError, set_eeg_reference, reref, projection=True)
     assert_true(reref.info['custom_ref_applied'])
 
     # Test moving from average to custom reference
-    reref, ref_data = set_eeg_reference(raw)
+    reref, ref_data = set_eeg_reference(raw, projection=True)
     reref, _ = set_eeg_reference(reref, ['EEG 001', 'EEG 002'])
     assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
     assert_equal(reref.info['custom_ref_applied'], True)
+
+    # Test that disabling the reference does not change anything
+    reref, ref_data = set_eeg_reference(raw, [])
+    assert_array_equal(raw._data, reref._data)
+
+    # Test that average reference gives identical results when calculated
+    # via SSP projection (projection=True) or directly (projection=False)
+    raw.info['projs'] = []
+    reref_1, _ = set_eeg_reference(raw.copy(), projection=True)
+    reref_1.apply_proj()
+    reref_2, _ = set_eeg_reference(raw.copy(), projection=False)
+    assert_allclose(reref_1._data, reref_2._data, rtol=1e-6, atol=1e-15)
+
+    # Test average reference without projection
+    reref, ref_data = set_eeg_reference(raw.copy(), ref_channels="average",
+                                        projection=False)
+    _test_reference(raw, reref, ref_data, eeg_chans)
+
+    # projection=True only works for ref_channels='average'
+    assert_raises(ValueError, set_eeg_reference, raw, [], True, True)
+    assert_raises(ValueError, set_eeg_reference, raw, ['EEG 001'], True, True)
 
 
 @testing.requires_testing_data
@@ -236,6 +257,13 @@ def test_set_bipolar_reference():
     # Minimalist call
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002')
     assert_true('EEG 001-EEG 002' in reref.ch_names)
+
+    # Minimalist call with twice the same anode
+    reref = set_bipolar_reference(raw,
+                                  ['EEG 001', 'EEG 001', 'EEG 002'],
+                                  ['EEG 002', 'EEG 003', 'EEG 003'])
+    assert_true('EEG 001-EEG 002' in reref.ch_names)
+    assert_true('EEG 001-EEG 003' in reref.ch_names)
 
     # Set multiple references at once
     reref = set_bipolar_reference(

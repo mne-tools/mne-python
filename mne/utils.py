@@ -16,6 +16,8 @@ import inspect
 import json
 import logging
 from math import log, ceil
+import multiprocessing
+import operator
 import os
 import os.path as op
 import platform
@@ -50,6 +52,7 @@ def _memory_usage(*args, **kwargs):
         args[0]()
     return [-1]
 
+
 try:
     from memory_profiler import memory_usage
 except ImportError:
@@ -71,6 +74,17 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
 
 ###############################################################################
 # RANDOM UTILITIES
+
+
+def _ensure_int(x, name='unknown', must_be='an int'):
+    """Ensure a variable is an integer."""
+    # This is preferred over numbers.Integral, see:
+    # https://github.com/scipy/scipy/pull/7351#issuecomment-299713159
+    try:
+        x = int(operator.index(x))
+    except TypeError:
+        raise TypeError('%s must be %s, got %s' % (name, must_be, type(x)))
+    return x
 
 
 def _pl(x):
@@ -338,21 +352,26 @@ def warn(message, category=RuntimeWarning):
     import mne
     root_dir = op.dirname(mne.__file__)
     frame = None
-    stack = inspect.stack()
-    last_fname = ''
-    for fi, frame in enumerate(stack):
-        fname, lineno = frame[1:3]
-        if fname == '<string>' and last_fname == 'utils.py':  # in verbose dec
-            last_fname = fname
-            continue
-        # treat tests as scripts
-        # and don't capture unittest/case.py (assert_raises)
-        if not (fname.startswith(root_dir) or
-                ('unittest' in fname and 'case' in fname)) or \
-                op.basename(op.dirname(fname)) == 'tests':
-            break
-        last_fname = op.basename(fname)
     if logger.level <= logging.WARN:
+        last_fname = ''
+        frame = inspect.currentframe()
+        while frame:
+            fname = frame.f_code.co_filename
+            lineno = frame.f_lineno
+            # in verbose dec
+            if fname == '<string>' and last_fname == 'utils.py':
+                last_fname = fname
+                frame = frame.f_back
+                continue
+            # treat tests as scripts
+            # and don't capture unittest/case.py (assert_raises)
+            if not (fname.startswith(root_dir) or
+                    ('unittest' in fname and 'case' in fname)) or \
+                    op.basename(op.dirname(fname)) == 'tests':
+                break
+            last_fname = op.basename(fname)
+            frame = frame.f_back
+        del frame
         # We need to use this instead of warn(message, category, stacklevel)
         # because we move out of the MNE stack, so warnings won't properly
         # recognize the module name (and our warnings.simplefilter will fail)
@@ -1483,6 +1502,7 @@ known_config_types = (
     'MNE_DATASETS_EEGBCI_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_MISC_PATH',
+    'MNE_DATASETS_MTRF_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_MULTIMODAL_PATH',
@@ -1490,6 +1510,7 @@ known_config_types = (
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+    'MNE_DATASETS_FIELDTRIP_CMC_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -1964,10 +1985,20 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
 
 
 def sizeof_fmt(num):
-    """Turn number of bytes into human-readable str."""
+    """Turn number of bytes into human-readable str.
+
+    Parameters
+    ----------
+    num : int
+        The number of bytes.
+
+    Returns
+    -------
+    size : str
+        The size in human-readable format.
+    """
     units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
     decimals = [0, 0, 1, 2, 2, 2]
-    """Human friendly file size"""
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
         quotient = float(num) / 1024 ** exponent
@@ -2118,6 +2149,19 @@ def _check_subject(class_subject, input_subject, raise_error=True):
         return None
 
 
+def _check_preload(inst, msg):
+    """Ensure data are preloaded."""
+    from .epochs import BaseEpochs
+
+    name = 'raw'
+    if isinstance(inst, BaseEpochs):
+        name = 'epochs'
+    if not inst.preload:
+        raise RuntimeError(msg + ' requires %s data to be loaded. Use '
+                           'preload=True (or string) in the constructor or '
+                           '%s.load_data().' % (name, name))
+
+
 def _check_pandas_installed():
     """Aux function."""
     try:
@@ -2229,7 +2273,7 @@ def run_tests_if_main(measure_mem=False):
                 elapsed = int(round(time.time() - t1))
                 if elapsed >= max_elapsed:
                     max_elapsed, elapsed_name = elapsed, name
-                sys.stdout.write('time: %s sec%s\n' % (elapsed, mem))
+                sys.stdout.write('time: %0.3f sec%s\n' % (elapsed, mem))
                 sys.stdout.flush()
             except Exception as err:
                 if 'skiptest' in err.__class__.__name__.lower():
@@ -2238,9 +2282,10 @@ def run_tests_if_main(measure_mem=False):
                 else:
                     raise
     elapsed = int(round(time.time() - t0))
-    sys.stdout.write('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory'
-                     ' %s MB (%s)\n' % (count, elapsed, max_elapsed,
-                                        elapsed_name, peak_mem, peak_name))
+    sys.stdout.write('Total: %s tests\n• %0.3f sec (%0.3f sec for %s)\n• '
+                     'Peak memory %s MB (%s)\n'
+                     % (count, elapsed, max_elapsed, elapsed_name, peak_mem,
+                        peak_name))
 
 
 class ArgvSetter(object):
@@ -2361,15 +2406,6 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
     return mask
 
 
-def _get_fast_dot():
-    """Get fast dot."""
-    try:
-        from sklearn.utils.extmath import fast_dot
-    except ImportError:
-        fast_dot = np.dot
-    return fast_dot
-
-
 def random_permutation(n_samples, random_state=None):
     """Emulate the randperm matlab function.
 
@@ -2410,7 +2446,6 @@ def compute_corr(x, y):
     """Compute pearson correlations between a vector and a matrix."""
     if len(x) == 0 or len(y) == 0:
         raise ValueError('x or y has zero length')
-    fast_dot = _get_fast_dot()
     X = np.array(x, float)
     Y = np.array(y, float)
     X -= X.mean(0)
@@ -2419,7 +2454,7 @@ def compute_corr(x, y):
     # if covariance matrix is fully expanded, Y needs a
     # transpose / broadcasting else Y is correct
     y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
-    return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
+    return (np.dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
 
 
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
@@ -2545,7 +2580,18 @@ def sys_info(fid=None, show_paths=False):
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
     out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
-    out += 'Executable:'.ljust(ljust) + sys.executable + '\n\n'
+    out += 'Executable:'.ljust(ljust) + sys.executable + '\n'
+    out += 'CPU:'.ljust(ljust) + ('%s: %s cores\n' %
+                                  (platform.processor(),
+                                   multiprocessing.cpu_count()))
+    out += 'Memory:'.ljust(ljust)
+    try:
+        import psutil
+    except ImportError:
+        out += 'Unavailable (requires "psutil" package)'
+    else:
+        out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
+    out += '\n'
     old_stdout = sys.stdout
     capture = StringIO()
     try:

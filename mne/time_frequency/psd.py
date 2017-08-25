@@ -14,7 +14,7 @@ from .multitaper import psd_array_multitaper
 def _psd_func(epoch, noverlap, n_per_seg, nfft, fs, freq_mask, func):
     """Aux function."""
     return func(epoch, fs=fs, nperseg=n_per_seg, noverlap=noverlap,
-                nfft=nfft, window='hann')[2][..., freq_mask, :]
+                nfft=nfft, window='hamming')[2][..., freq_mask, :]
 
 
 def _check_nfft(n, n_fft, n_per_seg, n_overlap):
@@ -33,7 +33,7 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     return n_fft, n_per_seg, n_overlap
 
 
-def _check_psd_data(inst, tmin, tmax, picks, proj):
+def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
     """Check PSD data / pull arrays from inst."""
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
@@ -52,7 +52,8 @@ def _check_psd_data(inst, tmin, tmax, picks, proj):
     sfreq = inst.info['sfreq']
     if isinstance(inst, BaseRaw):
         start, stop = np.where(time_mask)[0][[0, -1]]
-        data, times = inst[picks, start:(stop + 1)]
+        rba = 'NaN' if reject_by_annotation else reject_by_annotation
+        data = inst.get_data(picks, start, stop + 1, reject_by_annotation=rba)
     elif isinstance(inst, BaseEpochs):
         data = inst.get_data()[:, picks][:, :, time_mask]
     else:  # Evoked
@@ -83,9 +84,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         The number of points of overlap between segments. Will be adjusted
         to be <= n_per_seg. The default value is 0.
     n_per_seg : int | None
-        Length of each Welch segment. The smaller it is with respect to the
-        signal length the smoother are the PSDs. Defaults to None, which sets
-        n_per_seg equal to n_fft.
+        Length of each Welch segment (windowed with a Hamming window). Defaults
+        to None, which sets n_per_seg equal to n_fft.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -127,20 +127,20 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
                              for d in x_splits)
 
     # Combining, reducing windows and reshaping to original data shape
-    # XXX : we can certainly avoid the allocation before the mean
-    psds = np.concatenate(f_spectrogram, axis=0).mean(axis=-1)
-    psds = psds.reshape(np.hstack([dshape, -1]))
+    psds = np.concatenate([np.nanmean(f_s, axis=-1)
+                           for f_s in f_spectrogram], axis=0)
+    psds.shape = np.hstack([dshape, -1])
     return psds, freqs
 
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
-              verbose=None):
+              reject_by_annotation=True, verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
-    Calculates periodigrams for a sliding window over the
-    time dimension, then averages them together for each channel/epoch.
+    Calculates periodograms for a sliding window over the time dimension, then
+    averages them together for each channel/epoch.
 
     Parameters
     ----------
@@ -157,13 +157,14 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_fft : int
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
+        If n_per_seg is None, n_fft must be >= number of time points
+        in the data.
     n_overlap : int
         The number of points of overlap between segments. Will be adjusted
         to be <= n_per_seg. The default value is 0.
     n_per_seg : int | None
-        Length of each Welch segment. The smaller it is with respect to the
-        signal length the smoother are the PSDs. Defaults to None, which sets
-        n_per_seg equal to n_fft.
+        Length of each Welch segment (windowed with a Hamming window). Defaults
+        to None, which sets n_per_seg equal to n_fft.
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -171,6 +172,13 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Apply SSP projection vectors. If inst is ndarray this is not used.
     n_jobs : int
         Number of CPUs to use in the computation.
+    reject_by_annotation : bool
+        Whether to omit bad segments from the data while computing the
+        PSD. If True, annotated segments with a description that starts
+        with 'bad' are omitted. Has no effect if ``inst`` is an Epochs or
+        Evoked object. Defaults to True.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -194,7 +202,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     .. versionadded:: 0.12.0
     """
     # Prep data
-    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)
+    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj,
+                                  reject_by_annotation=reject_by_annotation)
     return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
                            n_overlap=n_overlap, n_per_seg=n_per_seg,
                            n_jobs=n_jobs, verbose=verbose)

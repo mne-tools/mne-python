@@ -12,11 +12,11 @@ from ..io.pick import pick_channels_evoked
 from ..cov import compute_whitener
 from ..utils import logger, verbose
 from ..dipole import Dipole
-from ._lcmv import _prepare_beamformer_input, _setup_picks
+from ._lcmv import _prepare_beamformer_input, _setup_picks, _deprecate_picks
 
 
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
-                     picks=None, return_explained_data=False):
+                     picks=None):
     """RAP-MUSIC for evoked data.
 
     Parameters
@@ -36,8 +36,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    return_explained_data : bool
-        If True, the explained data is returned as an array.
 
     Returns
     -------
@@ -103,13 +101,12 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
 
         A[:, k] = Ak.ravel()
 
-        if return_explained_data:
-            gain_k = gain[:, idx_k]
-            if n_orient == 3:
-                gain_k = np.dot(gain_k,
-                                np.dot(forward['source_nn'][idx_k],
-                                       source_ori))
-            gain_dip[:, k] = gain_k.ravel()
+        gain_k = gain[:, idx_k]
+        if n_orient == 3:
+            gain_k = np.dot(gain_k,
+                            np.dot(forward['source_nn'][idx_k],
+                                   source_ori))
+        gain_dip[:, k] = gain_k.ravel()
 
         oris[k] = source_ori
         poss[k] = source_pos
@@ -124,12 +121,9 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
 
     sol = linalg.lstsq(A, data)[0]
 
-    gof, explained_data = [], None
-    if return_explained_data:
-        explained_data = np.dot(gain_dip, sol)
-        gof = (linalg.norm(np.dot(whitener, explained_data)) /
-               linalg.norm(data))
-
+    explained_data = np.dot(gain_dip, sol)
+    residual = data - np.dot(whitener, explained_data)
+    gof = 1. - np.sum(residual ** 2, axis=0) / np.sum(data ** 2, axis=0)
     return _make_dipoles(times, poss,
                          oris, sol, gof), explained_data
 
@@ -156,15 +150,13 @@ def _make_dipoles(times, poss, oris, sol, gof):
     dipoles : list
         The list of Dipole instances.
     """
-    amplitude = sol * 1e9
     oris = np.array(oris)
 
     dipoles = []
     for i_dip in range(poss.shape[0]):
         i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
         i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        dipoles.append(Dipole(times, i_pos, amplitude[i_dip],
-                              i_ori, gof))
+        dipoles.append(Dipole(times, i_pos, sol[i_dip], i_ori, gof))
 
     return dipoles
 
@@ -201,6 +193,9 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
     (RAP-MUSIC) on evoked data.
 
+    .. note:: The goodness of fit (GOF) of all the returned dipoles is the
+              same and corresponds to the GOF of the full set of dipoles.
+
     Parameters
     ----------
     evoked : instance of Evoked
@@ -216,6 +211,8 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
+        picks is deprecated and will be removed in 0.16, specify the selection
+        of channels in info instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -252,13 +249,15 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     data = evoked.data
     times = evoked.times
 
-    picks = _setup_picks(picks, info, forward, noise_cov)
+    info = _deprecate_picks(info, picks)
+
+    picks = _setup_picks(info, forward, data_cov=None, noise_cov=noise_cov)
 
     data = data[picks]
 
     dipoles, explained_data = _apply_rap_music(data, info, times, forward,
                                                noise_cov, n_dipoles,
-                                               picks, return_residual)
+                                               picks)
 
     if return_residual:
         residual = evoked.copy()

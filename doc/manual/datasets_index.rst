@@ -12,7 +12,7 @@ use the ``data_path`` (fetches full dataset) or the ``load_data`` (fetches datas
 
 Sample
 ======
-:func:`mne.datasets.sample.data_path()`
+:func:`mne.datasets.sample.data_path`
 
 :ref:`ch_sample_data` is recorded using a 306-channel Neuromag vectorview system.
 
@@ -34,29 +34,29 @@ IO for the `ctf` format as well in addition to the C converter utilities. Please
 
 Auditory
 ^^^^^^^^
-:func:`mne.datasets.brainstorm.bst_raw.data_path()`.
+:func:`mne.datasets.brainstorm.bst_raw.data_path`.
 
 Details about the data can be found at the Brainstorm `auditory dataset tutorial`_.
 
 .. topic:: Examples
 
-    * :ref:`Brainstorm auditory dataset tutorial<sphx_glr_auto_examples_datasets_plot_brainstorm_data.py>`: Partially replicates the original Brainstorm tutorial.
+    * :ref:`Brainstorm auditory dataset tutorial <sphx_glr_auto_examples_datasets_plot_brainstorm_data.py>`: Partially replicates the original Brainstorm tutorial.
 
 Resting state
 ^^^^^^^^^^^^^
-:func:`mne.datasets.brainstorm.bst_resting.data_path()`
+:func:`mne.datasets.brainstorm.bst_resting.data_path`
 
 Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
 Median nerve
 ^^^^^^^^^^^^
-:func:`mne.datasets.brainstorm.bst_raw.data_path()`
+:func:`mne.datasets.brainstorm.bst_raw.data_path`
 
 Details can be found at the Brainstorm `median nerve dataset tutorial`_.
 
 MEGSIM
 ======
-:func:`mne.datasets.megsim.load_data()`
+:func:`mne.datasets.megsim.load_data`
 
 This dataset contains experimental and simulated MEG data. To load data from this dataset, do::
 
@@ -73,7 +73,7 @@ Detailed description of the dataset can be found in the related publication [1]_
 
 SPM faces
 =========
-:func:`mne.datasets.spm_face.data_path()`
+:func:`mne.datasets.spm_face.data_path`
 
 The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perception.
 
@@ -83,7 +83,7 @@ The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perceptio
 
 EEGBCI motor imagery
 ====================
-:func:`mne.datasets.eegbci.load_data()`
+:func:`mne.datasets.eegbci.load_data`
 
 The EEGBCI dataset is documented in [2]_. The data set is available at PhysioNet [3]_.
 The dataset contains 64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+ format.
@@ -110,7 +110,7 @@ to discuss the possibility to add more publicly available datasets.
 
 Somatosensory
 =============
-:func:`mne.datasets.somato.data_path()`
+:func:`mne.datasets.somato.data_path`
 
 This dataset contains somatosensory data with event-related synchronizations
 (ERS) and desynchronizations (ERD).
@@ -121,7 +121,7 @@ This dataset contains somatosensory data with event-related synchronizations
 
 Multimodal
 ==========
-:func:`mne.datasets.multimodal.data_path()`
+:func:`mne.datasets.multimodal.data_path`
 
 This dataset contains a single subject recorded at Otaniemi (Aalto University)
 with auditory, visual, and somatosensory stimuli.
@@ -133,7 +133,7 @@ with auditory, visual, and somatosensory stimuli.
 
 Visual 92 object categories
 ===========================
-:func:`mne.datasets.visual_92_categories.data_path()`.
+:func:`mne.datasets.visual_92_categories.data_path`.
 
 This dataset is recorded using a 306-channel Neuromag vectorview system.
 
@@ -147,6 +147,22 @@ Representational Similarity Analysis (RSA).
     * :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>`: Partially replicates the results from Cichy et al. (2014).
 
 
+mTRF Dataset
+============
+:func:`mne.datasets.mtrf.data_path`.
+
+This dataset contains 128 channel EEG as well as natural speech stimulus features,
+which is also available `here <https://sourceforge.net/projects/aespa/files/>`_.
+
+The experiment consisted of subjects listening to natural speech.
+The dataset contains several feature representations of the speech stimulus,
+suitable for using to fit continuous regression models of neural activity.
+More details and a description of the package can be found in [5]_.
+
+.. topic:: Examples
+
+    * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field.py>`: Partially replicates the results from Crosse et al. (2016).
+
 References
 ==========
 
@@ -157,3 +173,5 @@ References
 .. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220
 
 .. [4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object recognition in space and time." Nature neuroscience (2014): 17(3), 455-462
+
+.. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A., & Lalor, E. C. The Multivariate Temporal Response Function (mTRF) Toolbox: A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli. Frontiers in Human Neuroscience (2016): 10.
