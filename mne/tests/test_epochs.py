@@ -6,6 +6,7 @@
 
 import os.path as op
 from copy import deepcopy
+from distutils.version import LooseVersion
 
 import pytest
 from nose.tools import (assert_true, assert_equal, assert_raises,
@@ -2291,7 +2292,13 @@ def assert_metadata_equal(got, exp):
         for key in g.keys():
             assert g[key] == e[key], (ii, key)
     else:  # DataFrame
-        assert isinstance(got, type(exp))
+        import pandas
+        assert isinstance(exp, pandas.DataFrame)
+        assert isinstance(got, pandas.DataFrame)
+        assert set(got.columns) == set(exp.columns)
+        if LooseVersion(pandas.__version__) < LooseVersion('0.19'):
+            # Old Pandas does not necessarily order them properly
+            got = got[exp.columns]
         check = (got == exp)
         assert check.all().all()
 
