@@ -1384,7 +1384,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if pd is not False:
                 try:
                     # Try metadata matching
-                    mask = self.metadata.eval(keys[0]).values
+                    mask = self.metadata.eval(keys[0], engine='python').values
                 except Exception as exp:
                     msg += (' The epochs.metadata Pandas query did not '
                             'yield any results: %s' % (exp.args[0],))
