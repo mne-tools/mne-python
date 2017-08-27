@@ -160,6 +160,7 @@ def test_plot_tfr_topo():
 
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
+    # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
     _fake_click(fig, fig.axes[-1], (0.08, 0.65))
     assert_equal(num_figures_before + 1, len(plt.get_fignums()))
     plt.close('all')
