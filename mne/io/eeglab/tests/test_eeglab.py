@@ -27,6 +27,7 @@ epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile.set')
 montage = op.join(base_dir, 'test_chans.locs')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
+print(base_dir)
 
 
 @requires_version('scipy', '0.12')
@@ -81,6 +82,9 @@ def test_io_set():
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
     eeg.event = eeg.event[0]  # single event
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
+
+    #import pdb
+    #pdb.set_trace()
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
