@@ -602,7 +602,7 @@ def get_kit_info(rawfile):
 
         # check that we can read this file
         if fll_type not in KIT.FLL_SETTINGS:
-            raise IOError("Unkown FLL type: %i" % fll_type)
+            raise IOError("Unknown FLL type: %i" % fll_type)
         if sysid in SYSNAMES and sysname != SYSNAMES[sysid]:
             warn("KIT file %s has system-name %r, expected %r" %
                  (rawfile, sysname, SYSNAMES[sysid]))
