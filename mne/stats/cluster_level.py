@@ -601,8 +601,7 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
 
         assert isinstance(order, np.ndarray)
         # new surrogate data with specified sign flip
-        if not order.size == n_samp:
-            raise ValueError('rng string must be n_samples long')
+        assert order.size == n_samp  # should be guaranteed by parent
         signs = 2 * order[:, None].astype(int) - 1
         if not np.all(np.equal(np.abs(signs), 1)):
             raise ValueError('signs from rng must be +/- 1')
@@ -749,6 +748,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     T_obs.shape = sample_shape
 
     # convert our seed to orders
+    # check to see if we can do an exact test
+    # (for a two-tailed test, we can exploit symmetry to just do half)
     extra = ''
     rng = check_random_state(seed)
     del seed
@@ -790,9 +791,6 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         # make sure the progress bar adds to up 100% across n jobs
         return (ProgressBar(len(seeds), spinner=True) if
                 logger.level <= logging.INFO else None)
-
-    # check to see if we can do an exact test
-    # note for a two-tailed test, we can exploit symmetry to just do half
 
     # Step 3: repeat permutations for step-down-in-jumps procedure
     n_removed = 1  # number of new clusters added
