@@ -134,6 +134,11 @@ KIT.CH_LABEL = {
     KIT.CHANNEL_NULL: 'MISC',
 }
 
+# Acquisition modes
+KIT.CONTINUOUS = 1
+KIT.EVOKED = 2
+KIT.EPOCHS = 3
+
 # coreg constants
 KIT.DIG_POINTS = 10000
 

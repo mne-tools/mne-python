@@ -100,9 +100,9 @@ class RawKIT(BaseRaw):
         info, kit_info = get_kit_info(input_fname)
         kit_info['slope'] = slope
         kit_info['stimthresh'] = stimthresh
-        if kit_info['acq_type'] != 1:
-            err = 'SQD file contains epochs, not raw data. Wrong reader.'
-            raise TypeError(err)
+        if kit_info['acq_type'] != KIT.CONTINUOUS:
+            raise TypeError('SQD file contains epochs, not raw data. Wrong '
+                            'reader.')
         logger.info('Creating Info structure...')
 
         last_samps = [kit_info['n_samples'] - 1]
@@ -396,14 +396,13 @@ class EpochsKIT(BaseEpochs):
         if len(events) != self._raw_extras[0]['n_epochs']:
             raise ValueError('Event list does not match number of epochs.')
 
-        if self._raw_extras[0]['acq_type'] == 3:
+        if self._raw_extras[0]['acq_type'] == KIT.EPOCHS:
             self._raw_extras[0]['data_offset'] = KIT.RAW_OFFSET
             self._raw_extras[0]['data_length'] = KIT.INT
             self._raw_extras[0]['dtype'] = 'h'
         else:
-            err = ('SQD file contains raw data, not epochs or average. '
-                   'Wrong reader.')
-            raise TypeError(err)
+            raise TypeError('SQD file contains raw data, not epochs or '
+                            'average. Wrong reader.')
 
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
@@ -585,8 +584,6 @@ def get_kit_info(rawfile):
             adc_range = unpack('d', fid.read(KIT.DOUBLE))[0]
         adc_polarity, adc_allocated, adc_stored = unpack('3i',
                                                          fid.read(3 * KIT.INT))
-        sqd['adc_range'] = adc_range
-        sqd['adc_bit'] = adc_stored
 
         logger.info("SQD file basic information:")
         logger.info("Meg160 version = V%iR%03i", version, revision)
@@ -673,7 +670,6 @@ def get_kit_info(rawfile):
             input_gain = (amp_data & input_gain_mask) >> input_gain_bit
             output_gain = (amp_data & output_gain_mask) >> output_gain_bit
             total_amp_gain = KIT.GAINS[input_gain] * KIT.GAINS[output_gain]
-        sqd['amp_gain'] = total_amp_gain
 
         # filter settings
         if fll_type < 100:  # Hanger Type
@@ -707,15 +703,15 @@ def get_kit_info(rawfile):
         fid.seek(acqcond_offset)
         sqd['acq_type'], = acq_type, = unpack('i', fid.read(KIT.INT))
         sqd['sfreq'], = unpack('d', fid.read(KIT.DOUBLE))
-        if acq_type == 1:
+        if acq_type == KIT.CONTINUOUS:
             samples_count, = unpack('i', fid.read(KIT.INT))
             sqd['n_samples'], = unpack('i', fid.read(KIT.INT))
-        elif acq_type == 2 or acq_type == 3:
+        elif acq_type == KIT.EVOKED or acq_type == KIT.EPOCHS:
             sqd['frame_length'], = unpack('i', fid.read(KIT.INT))
             sqd['pretrigger_length'], = unpack('i', fid.read(KIT.INT))
             sqd['average_count'], = unpack('i', fid.read(KIT.INT))
             sqd['n_epochs'], = unpack('i', fid.read(KIT.INT))
-            if acq_type == 2:
+            if acq_type == KIT.EVOKED:
                 sqd['n_samples'] = sqd['frame_length']
             else:
                 sqd['n_samples'] = sqd['frame_length'] * sqd['n_epochs']
