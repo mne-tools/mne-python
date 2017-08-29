@@ -22,7 +22,7 @@ from mne.tests.common import assert_dig_allclose
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
-from mne.io.kit.constants import KIT, KIT_CONSTANTS, KIT_NY, KIT_UMD_2014
+from mne.io.kit.constants import KIT
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.surface import _get_ico_surface
 
@@ -60,7 +60,6 @@ def test_data():
                               stimthresh=1)
     assert_true('RawKIT' in repr(raw_py))
     assert_equal(raw_mrk.info['kit_system_id'], KIT.SYSTEM_NYU_2010)
-    assert_true(KIT_CONSTANTS[raw_mrk.info['kit_system_id']] is KIT_NY)
 
     # Test stim channel
     raw_stim = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path,
@@ -96,7 +95,6 @@ def test_data():
     _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
     raw = read_raw_kit(sqd_umd_path)
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_UMD_2014_12)
-    assert_true(KIT_CONSTANTS[raw.info['kit_system_id']] is KIT_UMD_2014)
 
 
 def test_epochs():
@@ -146,7 +144,8 @@ def test_ch_loc():
                           stim='<')
     raw_bin = read_raw_fif(op.join(data_dir, 'test_bin_raw.fif'))
 
-    ch_py = raw_py._raw_extras[0]['sensor_locs'][:, :5]
+    ch_py = np.array([ch['loc'] for ch in
+                      raw_py._raw_extras[0]['channels'][:160]])
     # ch locs stored as m, not mm
     ch_py[:, :3] *= 1e3
     ch_sns = read_sns(op.join(data_dir, 'sns.txt'))

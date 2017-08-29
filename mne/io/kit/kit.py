@@ -3,10 +3,13 @@
 RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 """
 
-# Author: Teon Brooks <teon.brooks@gmail.com>
+# Authors: Teon Brooks <teon.brooks@gmail.com>
+#          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
+from collections import defaultdict
+from math import sin, cos
 from os import SEEK_CUR, path as op
 from struct import unpack
 import time
@@ -24,7 +27,7 @@ from ..utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from .constants import KIT, KIT_CONSTANTS, SYSNAMES
+from .constants import KIT, SYSNAMES
 from .coreg import read_mrk
 from ...externals.six import string_types
 from ...event import read_events
@@ -197,18 +200,18 @@ class RawKIT(BaseRaw):
 
             # modify info
             nchan = self._raw_extras[0]['nchan'] + 1
-            ch_name = 'STI 014'
-            chan_info = {}
-            chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['logno'] = nchan
-            chan_info['scanno'] = nchan
-            chan_info['range'] = 1.0
-            chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-            chan_info['unit_mul'] = 0
-            chan_info['ch_name'] = ch_name
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['loc'] = np.zeros(12)
-            chan_info['kind'] = FIFF.FIFFV_STIM_CH
+            chan_info = {
+                'cal':  KIT.CALIB_FACTOR,
+                'logno':  nchan,
+                'scanno':  nchan,
+                'range':  1.0,
+                'unit':  FIFF.FIFF_UNIT_NONE,
+                'unit_mul':  0,
+                'ch_name':  'STI 014',
+                'coil_type':  FIFF.FIFFV_COIL_NONE,
+                'loc':  np.zeros(12),
+                'kind':  FIFF.FIFFV_STIM_CH,
+            }
             info['chs'].append(chan_info)
             info._update_redundant()
         if self.preload:
@@ -223,14 +226,8 @@ class RawKIT(BaseRaw):
         """Read a chunk of raw data."""
         nchan = self._raw_extras[fi]['nchan']
         data_left = (stop - start) * nchan
-        # amplifier applies only to the sensor channels
-        n_sens = self._raw_extras[fi]['n_sens']
-        sensor_gain = self._raw_extras[fi]['sensor_gain'].copy()
-        sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
-                                self._raw_extras[fi]['amp_gain'])
-        conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                self._raw_extras[fi]['DYNAMIC_RANGE']) *
-                               sensor_gain)
+        conv_factor = self._raw_extras[fi]['conv_factor']
+
         n_bytes = 2
         # Read up to 100 MB of data at a time.
         blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
@@ -249,7 +246,7 @@ class RawKIT(BaseRaw):
                 block = block.reshape(nchan, -1, order='F').astype(float)
                 blk_stop = blk_start + block.shape[1]
                 data_view = data[:, blk_start:blk_stop]
-                block *= conv_factor[:, np.newaxis]
+                block *= conv_factor
 
                 # Create a synthetic stim channel
                 if stim is not None:
@@ -455,18 +452,8 @@ class EpochsKIT(BaseEpochs):
             count = n_samples * nchan
             fid.seek(data_offset)
             data = np.fromfile(fid, dtype=dtype, count=count)
-            data = data.reshape((n_samples, nchan))
-        # amplifier applies only to the sensor channels
-        n_sens = self._raw_extras[0]['n_sens']
-        sensor_gain = np.copy(self._raw_extras[0]['sensor_gain'])
-        sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
-                                self._raw_extras[0]['amp_gain'])
-        conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                self._raw_extras[0]['DYNAMIC_RANGE']) *
-                               sensor_gain, ndmin=2)
-        data = conv_factor * data
-        # reshape
-        data = data.T
+        data = data.reshape((n_samples, nchan)).T
+        data = data * self._raw_extras[0]['conv_factor']
         data = data.reshape((nchan, n_epochs, epoch_length))
         data = data.transpose((1, 0, 2))
 
@@ -566,157 +553,210 @@ def get_kit_info(rawfile):
         fid.seek(KIT.BASIC_INFO)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(basic_offset)
-        # skips version, revision
-        fid.seek(KIT.INT * 2, SEEK_CUR)
+        # check file format version
+        version, revision = unpack('2i', fid.read(2 * KIT.INT))
+        if version < 2 or (version == 2 and revision < 3):
+            raise IOError("SQD file format V%iR%03i not supported." %
+                          (version, revision))
+
         sysid = unpack('i', fid.read(KIT.INT))[0]
         # basic info
-        sysname = unpack('128s', fid.read(KIT.STRING))
-        sysname = sysname[0].decode().split('\n')[0]
-        if sysid not in KIT_CONSTANTS:
-            raise NotImplementedError("Data from the KIT system %s (ID %s) "
-                                      "can not currently be read, please "
-                                      "contact the MNE-Python developers."
-                                      % (sysname, sysid))
-        KIT_SYS = KIT_CONSTANTS[sysid]
-        logger.info("KIT-System ID %i: %s" % (sysid, sysname))
+        system_name = unpack('128s', fid.read(128))[0].decode()
+        # use first line as shorthand
+        sysname = system_name[:system_name.index('\n')]
+        # model name
+        model_name = unpack('128s', fid.read(128))[0].decode()
+        # channels
+        sqd['nchan'] = channel_count = unpack('i', fid.read(KIT.INT))[0]
+        comment = unpack('256s', fid.read(256))[0].decode()
+        create_time, last_modified_time = unpack('2i', fid.read(2 * KIT.INT))
+        fid.seek(KIT.INT * 3, SEEK_CUR)  # reserved
+        dewar_style = unpack('i', fid.read(KIT.INT))[0]
+        fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
+        fll_type = unpack('i', fid.read(KIT.INT))[0]
+        fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
+        trigger_type = unpack('i', fid.read(KIT.INT))[0]
+        fid.seek(KIT.INT * 3, SEEK_CUR)  # spare
+        adboard_type = unpack('i', fid.read(KIT.INT))[0]
+        fid.seek(KIT.INT * 29, SEEK_CUR)  # reserved
+
+        if version == 2 and revision == 3:
+            adc_range = float(unpack('i', fid.read(KIT.INT))[0])
+        else:
+            adc_range = unpack('d', fid.read(KIT.DOUBLE))[0]
+        adc_polarity, adc_allocated, adc_stored = unpack('3i',
+                                                         fid.read(3 * KIT.INT))
+        sqd['adc_range'] = adc_range
+        sqd['adc_bit'] = adc_stored
+
+        logger.info("SQD file basic information:")
+        logger.info("Meg160 version = V%iR%03i", version, revision)
+        logger.info("System ID      = %i", sysid)
+        logger.info("System name    = %s", system_name.replace('\n', '/'))
+        logger.info("Model name     = %s", model_name)
+        logger.info("Channel count  = %i", channel_count)
+        logger.info("Comment        = %s", comment)
+        logger.info("Dewar style    = %i", dewar_style)
+        logger.info("FLL type       = %i", fll_type)
+        logger.info("Trigger type   = %i", trigger_type)
+        logger.info("A/D board type = %i", adboard_type)
+        logger.info("ADC range      = +/-%s[V]", adc_range / 2.)
+        logger.info("ADC allocate   = %i[bit]", adc_allocated)
+        logger.info("ADC bit        = %i[bit]", adc_stored)
+
+        # check that we can read this file
+        if fll_type not in KIT.FLL_SETTINGS:
+            raise IOError("Unkown FLL type: %i" % fll_type)
         if sysid in SYSNAMES:
             if sysname != SYSNAMES[sysid]:
                 warn("KIT file %s has system-name %r, expected %r"
                      % (rawfile, sysname, SYSNAMES[sysid]))
 
-        # channels
-        fid.seek(KIT.STRING, SEEK_CUR)  # skips modelname
-        sqd['nchan'] = unpack('i', fid.read(KIT.INT))[0]
-        # channel locations
-        fid.seek(KIT_SYS.CHAN_LOC_OFFSET)
-        chan_offset = unpack('i', fid.read(KIT.INT))[0]
-        chan_size = unpack('i', fid.read(KIT.INT))[0]
-
-        fid.seek(chan_offset)
-        sensors = []
-        for i in range(KIT_SYS.N_SENS):
+        # channel information
+        fid.seek(KIT.CHAN_LOC_OFFSET)
+        chan_offset, chan_size = unpack('2i', fid.read(2 * KIT.INT))
+        sqd['channels'] = channels = []
+        for i in range(channel_count):
             fid.seek(chan_offset + chan_size * i)
-            sens_type = unpack('i', fid.read(KIT.INT))[0]
-            if sens_type == 1:
-                # magnetometer
-                # x,y,z,theta,phi,coilsize
-                sensors.append(np.fromfile(fid, dtype='d', count=6))
-            elif sens_type == 2:
-                # axialgradiometer
-                # x,y,z,theta,phi,baseline,coilsize
-                sensors.append(np.fromfile(fid, dtype='d', count=7))
-            elif sens_type == 3:
-                # planargradiometer
-                # x,y,z,theta,phi,btheta,bphi,baseline,coilsize
-                sensors.append(np.fromfile(fid, dtype='d', count=9))
-            elif sens_type in (257, 0):
-                # reference channels
-                sensors.append(np.zeros(7))
-                sqd['i'] = sens_type
+            channel_type, = unpack('i', fid.read(KIT.INT))
+            if channel_type in KIT.CHANNELS_MEG:
+                channels.append({
+                    'type': channel_type,
+                    # (x, y, z, theta, phi) for all MEG channels. Some channel
+                    # types have additional information which we're not using.
+                    'loc': np.fromfile(fid, dtype='d', count=5)
+                })
+            elif channel_type in KIT.CHANNELS_MISC:
+                channel_no, = unpack('i', fid.read(KIT.INT))
+                name, = unpack('64s', fid.read(64))
+                channels.append({
+                    'type': channel_type,
+                    'no': channel_no,
+                })
+            elif channel_type == KIT.CHANNEL_NULL:
+                channels.append({'type': channel_type})
             else:
-                raise IOError("Unknown KIT channel type: %i" % sens_type)
-        sqd['sensor_locs'] = np.array(sensors)
-        if len(sqd['sensor_locs']) != KIT_SYS.N_SENS:
-            raise IOError("An error occurred while reading %s" % rawfile)
+                raise IOError("Unknown KIT channel type: %i" % channel_type)
 
-        # amplifier gain
-        fid.seek(KIT_SYS.AMPLIFIER_INFO)
-        amp_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
-        fid.seek(amp_offset)
-        amp_data = unpack('i', fid.read(KIT_SYS.INT))[0]
-
-        gain1 = KIT_SYS.GAINS[(KIT_SYS.GAIN1_MASK & amp_data) >>
-                              KIT_SYS.GAIN1_BIT]
-        gain2 = KIT_SYS.GAINS[(KIT_SYS.GAIN2_MASK & amp_data) >>
-                              KIT_SYS.GAIN2_BIT]
-        if KIT_SYS.GAIN3_BIT:
-            gain3 = KIT_SYS.GAINS[(KIT_SYS.GAIN3_MASK & amp_data) >>
-                                  KIT_SYS.GAIN3_BIT]
-            sqd['amp_gain'] = gain1 * gain2 * gain3
-        else:
-            sqd['amp_gain'] = gain1 * gain2
-
-        # filter settings
-        sqd['lowpass'] = KIT_SYS.LPFS[(KIT_SYS.LPF_MASK & amp_data) >>
-                                      KIT_SYS.LPF_BIT]
-        sqd['highpass'] = KIT_SYS.HPFS[(KIT_SYS.HPF_MASK & amp_data) >>
-                                       KIT_SYS.HPF_BIT]
-        sqd['notch'] = KIT_SYS.BEFS[(KIT_SYS.BEF_MASK & amp_data) >>
-                                    KIT_SYS.BEF_BIT]
-
+        # Channel sensitivity information:
         # only sensor channels requires gain. the additional misc channels
         # (trigger channels, audio and voice channels) are passed
         # through unaffected
+        fid.seek(KIT.CHAN_SENS)
+        sensitivity_offset, = unpack('i', fid.read(KIT.INT))
+        fid.seek(sensitivity_offset)
+        # (offset [Volt], gain [Tesla/Volt]) for each channel
+        data = np.fromfile(fid, dtype='d', count=channel_count * 2)
+        data.shape = (channel_count, 2)
+        sensor_offset, sensor_gain = data.T
 
-        fid.seek(KIT_SYS.CHAN_SENS)
-        sens_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
-        fid.seek(sens_offset)
-        sens = np.fromfile(fid, dtype='d', count=sqd['nchan'] * 2)
-        sens.shape = (sqd['nchan'], 2)
-        sqd['sensor_gain'] = np.ones(KIT_SYS.NCHAN)
-        sqd['sensor_gain'][:KIT_SYS.N_SENS] = sens[:KIT_SYS.N_SENS, 1]
-
-        fid.seek(KIT_SYS.SAMPLE_INFO)
-        acqcond_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
-        fid.seek(acqcond_offset)
-        acq_type = unpack('i', fid.read(KIT_SYS.INT))[0]
-        sqd['sfreq'] = unpack('d', fid.read(KIT_SYS.DOUBLE))[0]
-        if acq_type == 1:
-            fid.read(KIT_SYS.INT)  # initialized estimate of samples
-            sqd['n_samples'] = unpack('i', fid.read(KIT_SYS.INT))[0]
-        elif acq_type == 2 or acq_type == 3:
-            sqd['frame_length'] = unpack('i', fid.read(KIT_SYS.INT))[0]
-            sqd['pretrigger_length'] = unpack('i', fid.read(KIT_SYS.INT))[0]
-            sqd['average_count'] = unpack('i', fid.read(KIT_SYS.INT))[0]
-            sqd['n_epochs'] = unpack('i', fid.read(KIT_SYS.INT))[0]
-            sqd['n_samples'] = sqd['frame_length'] * sqd['n_epochs']
+        # amplifier gain
+        fid.seek(KIT.AMPLIFIER_INFO)
+        amp_offset = unpack('i', fid.read(KIT.INT))[0]
+        fid.seek(amp_offset)
+        amp_data = unpack('i', fid.read(KIT.INT))[0]
+        if fll_type >= 100:
+            gain1_bit = 12
+            gain1_mask = 0x00007000
+            gain2_bit = 28
+            gain2_mask = 0x70000000
+            gain3_bit = 24
+            gain3_mask = 0x07000000
+            gain1 = (amp_data & gain1_mask) >> gain1_bit
+            gain2 = (amp_data & gain2_mask) >> gain2_bit
+            gain3 = (amp_data & gain3_mask) >> gain3_bit
+            total_amp_gain = KIT.GAINS[gain1] * KIT.GAINS[gain2] * KIT.GAINS[gain3]
         else:
-            err = ("Your file is neither continuous nor epoched data. "
-                   "What type of file is it?!")
-            raise TypeError(err)
-        sqd['n_sens'] = KIT_SYS.N_SENS
-        sqd['nmegchan'] = KIT_SYS.NMEGCHAN
-        sqd['nmiscchan'] = KIT_SYS.NMISCCHAN
-        sqd['DYNAMIC_RANGE'] = KIT_SYS.DYNAMIC_RANGE
-        sqd['acq_type'] = acq_type
+            input_gain_bit = 11
+            input_gain_mask = 0x1800
+            output_gain_bit = 0
+            output_gain_mask = 0x0007
+            input_gain = (amp_data & input_gain_mask) >> input_gain_bit
+            output_gain = (amp_data & output_gain_mask) >> output_gain_bit
+            total_amp_gain = KIT.GAINS[input_gain] * KIT.GAINS[output_gain]
+        sqd['amp_gain'] = total_amp_gain
 
-        # Create raw.info dict for raw fif object with SQD data
-        info = _empty_info(float(sqd['sfreq']))
-        info.update(meas_date=int(time.time()), lowpass=sqd['lowpass'],
-                    highpass=sqd['highpass'], buffer_size_sec=1.,
-                    kit_system_id=sysid)
+        # filter settings
+        if fll_type < 100:  # Hanger Type
+            hanger_hpf_bit = 4
+            hanger_hpf_mask = 0x007
+            hanger_lpf_bit = 8
+            hanger_lpf_mask = 0x0700
+            hanger_bef_bit = 14
+            hanger_bef_mask = 0xc000
+            hpf = (amp_data & hanger_hpf_mask) >> hanger_hpf_bit
+            lpf = (amp_data & hanger_lpf_mask) >> hanger_lpf_bit
+            bef = (amp_data & hanger_bef_mask) >> hanger_bef_bit
+        else:  # Kapper Type
+            kapper_hpf_bit = 8
+            kapper_hpf_mask = 0x00000700
+            kapper_lpf_bit = 16
+            kapper_lpf_mask = 0x00070000
+            kapper_bef_bit = 0
+            kapper_bef_mask = 0x00000003
+            hpf = (amp_data & kapper_hpf_mask) >> kapper_hpf_bit
+            lpf = (amp_data & kapper_lpf_mask) >> kapper_lpf_bit
+            bef = (amp_data & kapper_bef_mask) >> kapper_bef_bit
+        hpf_options, lpf_options, bef_options = KIT.FLL_SETTINGS[fll_type]
+        sqd['highpass'] = KIT.HPFS[hpf_options][hpf]
+        sqd['lowpass'] = KIT.LPFS[lpf_options][lpf]
+        sqd['notch'] = KIT.BEFS[bef_options][bef]
 
-        # Creates a list of dicts of meg channels for raw.info
-        logger.info('Setting channel info structure...')
-        locs = sqd['sensor_locs']
-        chan_locs = apply_trans(als_ras_trans, locs[:, :3])
-        chan_angles = locs[:, 3:]
-        for idx, (ch_loc, ch_angles) in enumerate(zip(chan_locs, chan_angles),
-                                                  1):
-            chan_info = {'cal': KIT.CALIB_FACTOR,
-                         'logno': idx,
-                         'scanno': idx,
-                         'range': KIT.RANGE,
-                         'unit_mul': KIT.UNIT_MUL,
-                         'ch_name': 'MEG %03d' % idx,
-                         'unit': FIFF.FIFF_UNIT_T,
-                         'coord_frame': FIFF.FIFFV_COORD_DEVICE}
-            if idx <= sqd['nmegchan']:
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
-                chan_info['kind'] = FIFF.FIFFV_MEG_CH
+        # Acquisition Parameters
+        fid.seek(KIT.SAMPLE_INFO)
+        acqcond_offset, = unpack('i', fid.read(KIT.INT))
+        fid.seek(acqcond_offset)
+        sqd['acq_type'], = acq_type, = unpack('i', fid.read(KIT.INT))
+        sqd['sfreq'], = unpack('d', fid.read(KIT.DOUBLE))
+        if acq_type == 1:
+            samples_count, = unpack('i', fid.read(KIT.INT))
+            sqd['n_samples'], = unpack('i', fid.read(KIT.INT))
+        elif acq_type == 2 or acq_type == 3:
+            sqd['frame_length'], = unpack('i', fid.read(KIT.INT))
+            sqd['pretrigger_length'], = unpack('i', fid.read(KIT.INT))
+            sqd['average_count'], = unpack('i', fid.read(KIT.INT))
+            sqd['n_epochs'], = unpack('i', fid.read(KIT.INT))
+            if acq_type == 2:
+                sqd['n_samples'] = sqd['frame_length']
             else:
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_REF_MAG
-                chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
+                sqd['n_samples'] = sqd['frame_length'] * sqd['n_epochs']
+        else:
+            raise IOError("Invalid acquisition type: %i. Your file is neither "
+                          "continuous nor epoched data." % (acq_type,))
 
+    # precompute conversion factor for reading data
+    meg_idx = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
+    # is this correct??? SQD file also has gains for non-MEG sensors
+    sensor_gain[np.invert(meg_idx)] = 1.
+    # conversion factor
+    conv_factor = (adc_range / (2. ** adc_stored)) * sensor_gain
+    # amplifier applies only to the MEG channels???
+    # MEG160 applies amp gain to all channels (but also labels them as T)
+    conv_factor[meg_idx] /= total_amp_gain
+    # conv_factor /= total_amp_gain
+    sqd['conv_factor'] = conv_factor[:, np.newaxis]
+
+    # Create raw.info dict for raw fif object with SQD data
+    info = _empty_info(float(sqd['sfreq']))
+    info.update(meas_date=create_time, lowpass=sqd['lowpass'],
+                highpass=sqd['highpass'], buffer_size_sec=1.,
+                kit_system_id=sysid)
+
+    # Creates a list of dicts of meg channels for raw.info
+    logger.info('Setting channel info structure...')
+    info['chs'] = fiff_channels = []
+    channel_index = defaultdict(lambda: 0)
+    for idx, ch in enumerate(channels, 1):
+        if ch['type'] in KIT.CHANNELS_MEG:
+            ch_name = 'MEG %03d' % idx
             # create three orthogonal vector
             # ch_angles[0]: theta, ch_angles[1]: phi
-            ch_angles = np.radians(ch_angles)
-            x = np.sin(ch_angles[0]) * np.cos(ch_angles[1])
-            y = np.sin(ch_angles[0]) * np.sin(ch_angles[1])
-            z = np.cos(ch_angles[0])
+            theta, phi = np.radians(ch['loc'][3:])
+            x = sin(theta) * cos(phi)
+            y = sin(theta) * sin(phi)
+            z = cos(theta)
             vec_z = np.array([x, y, z])
-            length = linalg.norm(vec_z)
-            vec_z /= length
+            vec_z /= linalg.norm(vec_z)
             vec_x = np.zeros(vec_z.size, dtype=np.float)
             if vec_z[1] < vec_z[2]:
                 if vec_z[0] < vec_z[1]:
@@ -728,29 +768,33 @@ def get_kit_info(rawfile):
             else:
                 vec_x[2] = 1.0
             vec_x -= np.sum(vec_x * vec_z) * vec_z
-            length = linalg.norm(vec_x)
-            vec_x /= length
+            vec_x /= linalg.norm(vec_x)
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
-            vecs = np.vstack((vec_x, vec_y, vec_z))
+            vecs = np.vstack((ch['loc'][:3], vec_x, vec_y, vec_z))
             vecs = apply_trans(als_ras_trans, vecs)
-            chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
-            info['chs'].append(chan_info)
-
-        # label trigger and misc channels
-        for idx in range(1, sqd['nmiscchan'] + 1):
-            ch_idx = idx + KIT_SYS.N_SENS
-            chan_info = {'cal': KIT.CALIB_FACTOR,
-                         'logno': ch_idx,
-                         'scanno': ch_idx,
-                         'range': 1.0,
-                         'unit': FIFF.FIFF_UNIT_V,
-                         'unit_mul': 0,
-                         'ch_name': 'MISC %03d' % idx,
-                         'coil_type': FIFF.FIFFV_COIL_NONE,
-                         'loc': np.zeros(12),
-                         'kind': FIFF.FIFFV_MISC_CH}
-            info['chs'].append(chan_info)
+            unit = FIFF.FIFF_UNIT_T
+            loc = vecs.ravel()
+        else:
+            ch_type_label = KIT.CH_LABEL[ch['type']]
+            channel_index[ch_type_label] += 1
+            ch_type_index = channel_index[ch_type_label]
+            ch_name = '%s %03i' % (ch_type_label, ch_type_index)
+            unit = FIFF.FIFF_UNIT_V
+            loc = np.zeros(12)
+        fiff_channels.append({
+            'cal': KIT.CALIB_FACTOR,
+            'logno': idx,
+            'scanno': idx,
+            'range': KIT.RANGE,
+            'unit': unit,
+            'unit_mul': KIT.UNIT_MUL,
+            'ch_name': ch_name,
+            'coord_frame': FIFF.FIFFV_COORD_DEVICE,
+            'coil_type': KIT.CH_TO_FIFF_COIL[ch['type']],
+            'kind': KIT.CH_TO_FIFF_KIND[ch['type']],
+            'loc': loc,
+        })
     info._update_redundant()
     return info, sqd
 
