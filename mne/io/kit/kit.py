@@ -12,7 +12,6 @@ from collections import defaultdict
 from math import sin, cos
 from os import SEEK_CUR, path as op
 from struct import unpack
-import time
 
 import numpy as np
 from scipy import linalg
@@ -607,10 +606,9 @@ def get_kit_info(rawfile):
         # check that we can read this file
         if fll_type not in KIT.FLL_SETTINGS:
             raise IOError("Unkown FLL type: %i" % fll_type)
-        if sysid in SYSNAMES:
-            if sysname != SYSNAMES[sysid]:
-                warn("KIT file %s has system-name %r, expected %r"
-                     % (rawfile, sysname, SYSNAMES[sysid]))
+        if sysid in SYSNAMES and sysname != SYSNAMES[sysid]:
+            warn("KIT file %s has system-name %r, expected %r" %
+                 (rawfile, sysname, SYSNAMES[sysid]))
 
         # channel information
         fid.seek(KIT.CHAN_LOC_OFFSET)
@@ -665,7 +663,8 @@ def get_kit_info(rawfile):
             gain1 = (amp_data & gain1_mask) >> gain1_bit
             gain2 = (amp_data & gain2_mask) >> gain2_bit
             gain3 = (amp_data & gain3_mask) >> gain3_bit
-            total_amp_gain = KIT.GAINS[gain1] * KIT.GAINS[gain2] * KIT.GAINS[gain3]
+            total_amp_gain = (KIT.GAINS[gain1] * KIT.GAINS[gain2] *
+                              KIT.GAINS[gain3])
         else:
             input_gain_bit = 11
             input_gain_mask = 0x1800
