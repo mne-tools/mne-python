@@ -615,6 +615,10 @@ def get_kit_info(rawfile):
             fid.seek(chan_offset + chan_size * i)
             channel_type, = unpack('i', fid.read(KIT.INT))
             if channel_type in KIT.CHANNELS_MEG:
+                if channel_type not in KIT.CH_TO_FIFF_COIL:
+                    raise NotImplementedError(
+                        "KIT channel type %i can not be read. Please contact "
+                        "the mne-python developers." % channel_type)
                 channels.append({
                     'type': channel_type,
                     # (x, y, z, theta, phi) for all MEG channels. Some channel
