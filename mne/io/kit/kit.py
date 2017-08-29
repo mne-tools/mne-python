@@ -232,8 +232,7 @@ class RawKIT(BaseRaw):
         blk_size = min(data_left, (100000000 // n_bytes // nchan) * nchan)
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
-            data_offset = KIT.RAW_OFFSET
-            fid.seek(data_offset)
+            fid.seek(144)
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
             pointer = start * nchan * KIT.SHORT
@@ -397,7 +396,6 @@ class EpochsKIT(BaseEpochs):
             raise ValueError('Event list does not match number of epochs.')
 
         if self._raw_extras[0]['acq_type'] == KIT.EPOCHS:
-            self._raw_extras[0]['data_offset'] = KIT.RAW_OFFSET
             self._raw_extras[0]['data_length'] = KIT.INT
             self._raw_extras[0]['dtype'] = 'h'
         else:
@@ -433,25 +431,23 @@ class EpochsKIT(BaseEpochs):
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
-        #  Initial checks
-        epoch_length = self._raw_extras[0]['frame_length']
-        n_epochs = self._raw_extras[0]['n_epochs']
-        n_samples = self._raw_extras[0]['n_samples']
-        filename = self._raw_extras[0]['filename']
+        info = self._raw_extras[0]
+        epoch_length = info['frame_length']
+        n_epochs = info['n_epochs']
+        n_samples = info['n_samples']
+        filename = info['filename']
+        dtype = info['dtype']
+        nchan = info['nchan']
 
         with open(filename, 'rb', buffering=0) as fid:
-            # extract data
-            data_offset = self._raw_extras[0]['data_offset']
-            dtype = self._raw_extras[0]['dtype']
-            fid.seek(data_offset)
+            fid.seek(144)
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
-            nchan = self._raw_extras[0]['nchan']
             count = n_samples * nchan
             fid.seek(data_offset)
             data = np.fromfile(fid, dtype=dtype, count=count)
         data = data.reshape((n_samples, nchan)).T
-        data = data * self._raw_extras[0]['conv_factor']
+        data = data * info['conv_factor']
         data = data.reshape((nchan, n_epochs, epoch_length))
         data = data.transpose((1, 0, 2))
 
@@ -548,7 +544,7 @@ def get_kit_info(rawfile):
     sqd = dict()
     sqd['rawfile'] = rawfile
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
-        fid.seek(KIT.BASIC_INFO)
+        fid.seek(16)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(basic_offset)
         # check file format version
@@ -608,7 +604,7 @@ def get_kit_info(rawfile):
                  (rawfile, sysname, SYSNAMES[sysid]))
 
         # channel information
-        fid.seek(KIT.CHAN_LOC_OFFSET)
+        fid.seek(64)
         chan_offset, chan_size = unpack('2i', fid.read(2 * KIT.INT))
         sqd['channels'] = channels = []
         for i in range(channel_count):
@@ -641,7 +637,7 @@ def get_kit_info(rawfile):
         # only sensor channels requires gain. the additional misc channels
         # (trigger channels, audio and voice channels) are passed
         # through unaffected
-        fid.seek(KIT.CHAN_SENS)
+        fid.seek(80)
         sensitivity_offset, = unpack('i', fid.read(KIT.INT))
         fid.seek(sensitivity_offset)
         # (offset [Volt], gain [Tesla/Volt]) for each channel
@@ -650,7 +646,7 @@ def get_kit_info(rawfile):
         sensor_offset, sensor_gain = data.T
 
         # amplifier gain
-        fid.seek(KIT.AMPLIFIER_INFO)
+        fid.seek(112)
         amp_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(amp_offset)
         amp_data = unpack('i', fid.read(KIT.INT))[0]
@@ -702,7 +698,7 @@ def get_kit_info(rawfile):
         sqd['notch'] = KIT.BEFS[bef_options][bef]
 
         # Acquisition Parameters
-        fid.seek(KIT.SAMPLE_INFO)
+        fid.seek(128)
         acqcond_offset, = unpack('i', fid.read(KIT.INT))
         fid.seek(acqcond_offset)
         sqd['acq_type'], = acq_type, = unpack('i', fid.read(KIT.INT))
