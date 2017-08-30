@@ -199,19 +199,11 @@ class RawKIT(BaseRaw):
 
             # modify info
             nchan = self._raw_extras[0]['nchan'] + 1
-            chan_info = {
-                'cal':  KIT.CALIB_FACTOR,
-                'logno':  nchan,
-                'scanno':  nchan,
-                'range':  1.0,
-                'unit':  FIFF.FIFF_UNIT_NONE,
-                'unit_mul':  0,
-                'ch_name':  'STI 014',
-                'coil_type':  FIFF.FIFFV_COIL_NONE,
-                'loc':  np.zeros(12),
-                'kind':  FIFF.FIFFV_STIM_CH,
-            }
-            info['chs'].append(chan_info)
+            info['chs'].append(dict(
+                cal=KIT.CALIB_FACTOR, logno=nchan, scanno=nchan, range=1.0,
+                unit=FIFF.FIFF_UNIT_NONE, unit_mul=0, ch_name='STI 014',
+                coil_type=FIFF.FIFFV_COIL_NONE, loc=np.zeros(12),
+                kind=FIFF.FIFFV_STIM_CH))
             info._update_redundant()
         if self.preload:
             err = "Can't change stim channel after preloading data"
@@ -782,19 +774,12 @@ def get_kit_info(rawfile):
             ch_name = '%s %03i' % (ch_type_label, ch_type_index)
             unit = FIFF.FIFF_UNIT_V
             loc = np.zeros(12)
-        fiff_channels.append({
-            'cal': KIT.CALIB_FACTOR,
-            'logno': idx,
-            'scanno': idx,
-            'range': KIT.RANGE,
-            'unit': unit,
-            'unit_mul': KIT.UNIT_MUL,
-            'ch_name': ch_name,
-            'coord_frame': FIFF.FIFFV_COORD_DEVICE,
-            'coil_type': KIT.CH_TO_FIFF_COIL[ch['type']],
-            'kind': KIT.CH_TO_FIFF_KIND[ch['type']],
-            'loc': loc,
-        })
+        fiff_channels.append(dict(
+            cal=KIT.CALIB_FACTOR, logno=idx, scanno=idx, range=KIT.RANGE,
+            unit=unit, unit_mul=KIT.UNIT_MUL, ch_name=ch_name,
+            coord_frame=FIFF.FIFFV_COORD_DEVICE,
+            coil_type=KIT.CH_TO_FIFF_COIL[ch['type']],
+            kind=KIT.CH_TO_FIFF_KIND[ch['type']], loc=loc))
     info._update_redundant()
     return info, sqd
 
