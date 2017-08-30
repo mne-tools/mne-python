@@ -176,9 +176,12 @@ class RawKIT(BaseRaw):
             How to decode trigger values from stim channels. 'binary' read stim
             channel events as binary code, 'channel' encodes channel number.
         """
-        if stim_code not in ('binary', 'channel'):
+        if self.preload:
+            raise NotImplementedError("Can't change stim channel after "
+                                      "loading data")
+        elif stim_code not in ('binary', 'channel'):
             raise ValueError("stim_code=%r, needs to be 'binary' or 'channel'"
-                             % stim_code)
+                             % (stim_code,))
 
         if stim is not None:
             if isinstance(stim, str):
@@ -205,9 +208,6 @@ class RawKIT(BaseRaw):
                 coil_type=FIFF.FIFFV_COIL_NONE, loc=np.zeros(12),
                 kind=FIFF.FIFFV_STIM_CH))
             info._update_redundant()
-        if self.preload:
-            err = "Can't change stim channel after preloading data"
-            raise NotImplementedError(err)
 
         self._raw_extras[0]['stim'] = stim
         self._raw_extras[0]['stim_code'] = stim_code
