@@ -157,15 +157,9 @@ BUG
     - Fix bug in :func:`mne.viz.plot_compare_evokeds` where ``truncate_yaxis`` was ignored (default is now ``False``), by `Jona Sassenhagen`_
 
     - Fix bug in :func:`mne.viz.plot_evoked` where all xlabels were removed when using ``spatial_colors=True``, by `Jesper Duemose Nielsen`_
-<<<<<<< HEAD
-    
-    - Fix bug in :func:`mne.io.read_raw_brainvision` which would fail with an ``ImportError`` when using ``montage=True``, by `Jesper Duemose Nielsen`_
-    
-=======
 
     - Fix field mapping :func:`mne.make_field_map` and MEG bad channel interpolation functions (e.g., :meth:`mne.Evoked.interpolate_bads`) to choose a better number of components during pseudoinversion when few channels are available, by `Eric Larson`_
 
->>>>>>> 65ebb736fb2d236609b32ba1a6283072d16c4138
 API
 ~~~
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
