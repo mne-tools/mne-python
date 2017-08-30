@@ -2483,8 +2483,14 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
     Notes
     -----
-    This function can be used to morph data from one hemisphere to the other
-    by setting ``xhemi=True``. This requires appropriate ``sphere.left_right``
+    This function can be used to morph data between hemispheres by setting
+    ``xhemi=True``. The full cross-hemisphere morph matrix maps left to right
+    and right to left. A matrix for cross-mapping only one hemisphere can be
+    constructed by specifying the appropriate vertices, for example, to map the
+    right hemisphere to the left:
+    ``vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]``.
+
+    Cross-hemisphere mapping requires appropriate ``sphere.left_right``
     morph-maps in the subject's directory. These morph maps are included
     with the ``fsaverage_sym`` FreeSurfer subject, and can be created for other
     subjects with the ``mris_left_right_register`` FreeSurfer command. The
