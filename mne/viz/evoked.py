@@ -1367,7 +1367,7 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, statfun='mean'):
     stat = np.array([statfun(arr[inds]) for inds in boot_indices])
     ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
     ci_low, ci_up = np.percentile(stat, ci, axis=0)
-    return np.array([ci_up, ci_low])
+    return np.array([ci_low, ci_up])
 
 
 def _ci(arr, ci=.95, method="bootstrap", n_bootstraps=2000):
