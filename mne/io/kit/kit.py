@@ -647,7 +647,8 @@ def get_kit_info(rawfile):
         amp_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(amp_offset)
         amp_data = unpack('i', fid.read(KIT.INT))[0]
-        if fll_type >= 100:
+        if fll_type >= 100:  # Kapper Type
+            # gain
             gain1_bit = 12
             gain1_mask = 0x00007000
             gain2_bit = 28
@@ -659,27 +660,7 @@ def get_kit_info(rawfile):
             gain3 = (amp_data & gain3_mask) >> gain3_bit
             total_amp_gain = (KIT.GAINS[gain1] * KIT.GAINS[gain2] *
                               KIT.GAINS[gain3])
-        else:
-            input_gain_bit = 11
-            input_gain_mask = 0x1800
-            output_gain_bit = 0
-            output_gain_mask = 0x0007
-            input_gain = (amp_data & input_gain_mask) >> input_gain_bit
-            output_gain = (amp_data & output_gain_mask) >> output_gain_bit
-            total_amp_gain = KIT.GAINS[input_gain] * KIT.GAINS[output_gain]
-
-        # filter settings
-        if fll_type < 100:  # Hanger Type
-            hanger_hpf_bit = 4
-            hanger_hpf_mask = 0x007
-            hanger_lpf_bit = 8
-            hanger_lpf_mask = 0x0700
-            hanger_bef_bit = 14
-            hanger_bef_mask = 0xc000
-            hpf = (amp_data & hanger_hpf_mask) >> hanger_hpf_bit
-            lpf = (amp_data & hanger_lpf_mask) >> hanger_lpf_bit
-            bef = (amp_data & hanger_bef_mask) >> hanger_bef_bit
-        else:  # Kapper Type
+            # filter settings
             kapper_hpf_bit = 8
             kapper_hpf_mask = 0x00000700
             kapper_lpf_bit = 16
@@ -689,6 +670,25 @@ def get_kit_info(rawfile):
             hpf = (amp_data & kapper_hpf_mask) >> kapper_hpf_bit
             lpf = (amp_data & kapper_lpf_mask) >> kapper_lpf_bit
             bef = (amp_data & kapper_bef_mask) >> kapper_bef_bit
+        else:  # Hanger Type
+            # gain
+            input_gain_bit = 11
+            input_gain_mask = 0x1800
+            output_gain_bit = 0
+            output_gain_mask = 0x0007
+            input_gain = (amp_data & input_gain_mask) >> input_gain_bit
+            output_gain = (amp_data & output_gain_mask) >> output_gain_bit
+            total_amp_gain = KIT.GAINS[input_gain] * KIT.GAINS[output_gain]
+            # filter settings
+            hanger_hpf_bit = 4
+            hanger_hpf_mask = 0x007
+            hanger_lpf_bit = 8
+            hanger_lpf_mask = 0x0700
+            hanger_bef_bit = 14
+            hanger_bef_mask = 0xc000
+            hpf = (amp_data & hanger_hpf_mask) >> hanger_hpf_bit
+            lpf = (amp_data & hanger_lpf_mask) >> hanger_lpf_bit
+            bef = (amp_data & hanger_bef_mask) >> hanger_bef_bit
         hpf_options, lpf_options, bef_options = KIT.FLL_SETTINGS[fll_type]
         sqd['highpass'] = KIT.HPFS[hpf_options][hpf]
         sqd['lowpass'] = KIT.LPFS[lpf_options][lpf]
