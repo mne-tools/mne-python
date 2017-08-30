@@ -62,6 +62,18 @@ def test_data():
     assert_true('RawKIT' in repr(raw_py))
     assert_equal(raw_mrk.info['kit_system_id'], KIT.SYSTEM_NYU_2010)
 
+    # check number/kind of channels
+    assert_equal(len(raw_py.info['chs']), 193)
+    kit_channels = (('kind', {FIFF.FIFFV_MEG_CH: 157, FIFF.FIFFV_REF_MEG_CH: 3,
+                              FIFF.FIFFV_MISC_CH: 32, FIFF.FIFFV_STIM_CH: 1}),
+                    ('coil_type', {FIFF.FIFFV_COIL_KIT_GRAD: 157,
+                                   FIFF.FIFFV_COIL_KIT_REF_MAG: 3,
+                                   FIFF.FIFFV_COIL_NONE: 33}))
+    for label, target in kit_channels:
+        actual = {id_: sum(ch[label] == id_ for ch in raw_py.info['chs']) for
+                  id_ in target.keys()}
+        assert_equal(actual, target)
+
     # Test stim channel
     raw_stim = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path,
                             stim='<', preload=False)
@@ -98,11 +110,7 @@ def test_data():
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_UMD_2014_12)
     # check number/kind of channels
     assert_equal(len(raw.info['chs']), 193)
-    kinds = {FIFF.FIFFV_MEG_CH: 157, FIFF.FIFFV_REF_MEG_CH: 3,
-             FIFF.FIFFV_MISC_CH: 32, FIFF.FIFFV_STIM_CH: 1}
-    types = {FIFF.FIFFV_COIL_KIT_GRAD: 157, FIFF.FIFFV_COIL_KIT_REF_MAG: 3,
-             FIFF.FIFFV_COIL_NONE: 33}
-    for label, target in (('kind', kinds), ('coil_type', types)):
+    for label, target in kit_channels:
         actual = {id_: sum(ch[label] == id_ for ch in raw.info['chs']) for
                   id_ in target.keys()}
         assert_equal(actual, target)
