@@ -41,7 +41,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     epochs : instance of Epochs
         The epochs.
     picks : int | array-like of int | None
-        The indices of the channels to consider. If None and `combine` is
+        The indices of the channels to consider. If None and ``combine` is
         also None, the first five good channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
@@ -53,8 +53,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         If vmin is None and multiple plots are returned, the limit is
         equalized within channel types.
         Hint: to specify the lower limit of the data, use
-
-            `vmin=lambda data: data.min()`
+        ``vmin=lambda data: data.min()``.
 
     vmax : None | float | callable
         The max value in the image (and the ER[P/F]). The unit is uV for
@@ -116,7 +115,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         in the format (n_epochs, n_channels, n_times). It must return an
         array (n_epochs, n_times). For example:
 
-            `combine = lambda data: np.median(data, 1)`
+        :: combine = lambda data: np.median(data, 1)
 
         Defaults to None if picks are given, otherwise 'gfp'.
 
@@ -130,7 +129,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         will become plot titles. This is useful for e.g. ROIs. Each entry must
         contain only one channel type. For example:
 
-           `group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])`
+        :: group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
         If not None, combine must not be None. Defaults to None if picks are
         given, otherwise 'type'.
@@ -497,7 +496,7 @@ def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
         tight_layout(fig=fig)
-    fig._axes_dict = axes_dict
+    fig._axes_dict = axes_dict  # storing this here for easy access later
 
     # finish
     plt_show(show)
