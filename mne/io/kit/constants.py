@@ -130,10 +130,11 @@ KIT.EPOCHS = 3
 # coreg constants
 KIT.DIG_POINTS = 10000
 
-# Assigning systems to constants
-# ------------------------------
+# Known KIT systems
+# -----------------
 # KIT recording system is encoded in the SQD file as integer:
-KIT.SYSTEM_AS = 261  # Academia Sinica at Taiwan, 2008 or 2009 onwards
+KIT.SYSTEM_AS = 260  # Academia Sinica at Taiwan
+KIT.SYSTEM_AS_2008 = 261  # Academia Sinica, 2008 or 2009 -
 KIT.SYSTEM_NYU_2008 = 32  # NYU-NY, July 7, 2008 -
 KIT.SYSTEM_NYU_2009 = 33  # NYU-NY, January 24, 2009 -
 KIT.SYSTEM_NYU_2010 = 34  # NYU-NY, January 22, 2010 -
@@ -143,24 +144,31 @@ KIT.SYSTEM_NYUAD_2014 = 442  # NYU-AD move to NYUAD campus Nov 20, 2014 -
 KIT.SYSTEM_UMD_2004 = 51  # UMD Marie Mount Hall, October 1, 2004 -
 KIT.SYSTEM_UMD_2014_07 = 52  # UMD update to 16 bit ADC, July 4, 2014 -
 KIT.SYSTEM_UMD_2014_12 = 53  # UMD December 4, 2014 -
-
-KIT_LAYOUT = {KIT.SYSTEM_AS: None,
-              KIT.SYSTEM_NYU_2008: 'KIT-157',
-              KIT.SYSTEM_NYU_2009: 'KIT-157',
-              KIT.SYSTEM_NYU_2010: 'KIT-157',
-              KIT.SYSTEM_NYUAD_2011: 'KIT-AD',
-              KIT.SYSTEM_NYUAD_2012: 'KIT-AD',
-              KIT.SYSTEM_NYUAD_2014: 'KIT-AD',
-              KIT.SYSTEM_UMD_2004: None,
-              KIT.SYSTEM_UMD_2014_07: None,
-              KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3'}
-
-# Names stored along with ID in SQD files
-SYSNAMES = {KIT.SYSTEM_AS: 'Academia Sinica',
-            KIT.SYSTEM_NYU_2009: 'NYU 160ch System since Jan24 2009',
-            KIT.SYSTEM_NYU_2010: 'NYU 160ch System since Jan24 2009',
-            KIT.SYSTEM_NYUAD_2012: "New York University Abu Dhabi",
-            KIT.SYSTEM_NYUAD_2014: "New York University Abu Dhabi",
-            KIT.SYSTEM_UMD_2004: "University of Maryland",
-            KIT.SYSTEM_UMD_2014_07: "University of Maryland",
-            KIT.SYSTEM_UMD_2014_12: "University of Maryland"}
+# Sensor layouts, used for plotting and connectivity
+KIT_LAYOUT = {
+    KIT.SYSTEM_AS: None,
+    KIT.SYSTEM_AS_2008: None,
+    KIT.SYSTEM_NYU_2008: 'KIT-157',
+    KIT.SYSTEM_NYU_2009: 'KIT-157',
+    KIT.SYSTEM_NYU_2010: 'KIT-157',
+    KIT.SYSTEM_NYUAD_2011: 'KIT-AD',
+    KIT.SYSTEM_NYUAD_2012: 'KIT-AD',
+    KIT.SYSTEM_NYUAD_2014: 'KIT-AD',
+    KIT.SYSTEM_UMD_2004: None,
+    KIT.SYSTEM_UMD_2014_07: None,
+    KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
+}
+# Names displayed in the info dict description
+KIT_SYSNAMES = {
+    KIT.SYSTEM_AS: 'Academia Sinica, -2008',
+    KIT.SYSTEM_AS_2008: 'Academia Sinica, 2008-',
+    KIT.SYSTEM_NYU_2008: 'NYU New York, 2008-9',
+    KIT.SYSTEM_NYU_2009: 'NYU New York, 2009-10',
+    KIT.SYSTEM_NYU_2010: 'NYU New York, 2010-',
+    KIT.SYSTEM_NYUAD_2011: 'New York University Abu Dhabi, 2011-12',
+    KIT.SYSTEM_NYUAD_2012: 'New York University Abu Dhabi, 2012-14',
+    KIT.SYSTEM_NYUAD_2014: 'New York University Abu Dhabi, 2014-',
+    KIT.SYSTEM_UMD_2004: 'University of Maryland, 2004-14',
+    KIT.SYSTEM_UMD_2014_07: 'University of Maryland, 2014',
+    KIT.SYSTEM_UMD_2014_12: 'University of Maryland, 2014-',
+}

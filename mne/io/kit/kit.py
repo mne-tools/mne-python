@@ -26,7 +26,7 @@ from ..utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from .constants import KIT, SYSNAMES
+from .constants import KIT
 from .coreg import read_mrk
 from ...externals.six import string_types
 from ...event import read_events
@@ -591,9 +591,6 @@ def get_kit_info(rawfile):
         # check that we can read this file
         if fll_type not in KIT.FLL_SETTINGS:
             raise IOError("Unknown FLL type: %i" % fll_type)
-        if sysid in SYSNAMES and sysname != SYSNAMES[sysid]:
-            warn("KIT file %s has system-name %r, expected %r" %
-                 (rawfile, sysname, SYSNAMES[sysid]))
 
         # channel information
         fid.seek(64)
