@@ -1,7 +1,7 @@
 """
-========================================================================
-Plot single trial activity, EEG channels grouped by ROI and sorted by RT
-========================================================================
+===========================================================
+Plot single trial activity, grouped by ROI and sorted by RT
+===========================================================
 
 This will produce what is sometimes called an event related
 potential / field (ERP/ERF) image.

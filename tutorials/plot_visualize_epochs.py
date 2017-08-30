@@ -77,9 +77,9 @@ epochs.plot_image(278, cmap='interactive', sigma=1., vmin=-250, vmax=250)
 # We can also give an overview of all channels by calculating  the global
 # field power (or other other aggregation methods). However, combining
 # multiple channel types (e.g., MEG and EEG) in this way is not sensible.
-# Instead, we can use the `group_by` parameter. Setting `group_by` to `type`
-# combines channels by type.
-# `group_by` can also be used to group channels into arbitrary groups, e.g.
+# Instead, we can use the ``group_by`` parameter. Setting ``group_by`` to
+# 'type' combines channels by type.
+# ``group_by`` can also be used to group channels into arbitrary groups, e.g.
 # regions of interests, by providing a dictionary containing
 # group name -> channel indices mappings.
 epochs.plot_image(combine='gfp', group_by='type', sigma=2., cmap="inferno")

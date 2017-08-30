@@ -96,8 +96,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Must be of length three if colorbar is True (with the last list element
         being the colorbar axes) or two if colorbar is False. If both fig and
         axes are passed, an error is raised.
-        If `group_by` is a dict, this cannot be a list, but it can be a dict of
-        lists of axes, with the keys matching those of `group_by`. In that
+        If ``group_by`` is a dict, this cannot be a list, but it can be a dict of
+        lists of axes, with the keys matching those of ``group_by``. In that
         case, the provided axes will be used for the corresponding groups.
         Defaults to None.
     overlay_times : array-like, shape (n_epochs,) | None
@@ -113,12 +113,11 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         array (n_epochs, n_times).
         If callable, it must accept one positional input, the data
         in the format (n_epochs, n_channels, n_times). It must return an
-        array (n_epochs, n_times). For example:
+        array (n_epochs, n_times). For example::
 
-        :: combine = lambda data: np.median(data, 1)
+        combine = lambda data: np.median(data, 1)
 
         Defaults to None if picks are given, otherwise 'gfp'.
-
     group_by : None | str | dict
         If not None, combining happens over channel groups defined by this
         parameter.
@@ -127,9 +126,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         If a dict, the values must be picks and one figure will be returned
         for each entry, aggregating over the corresponding pick groups; keys
         will become plot titles. This is useful for e.g. ROIs. Each entry must
-        contain only one channel type. For example:
+        contain only one channel type. For example::
 
-        :: group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
+        group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
         If not None, combine must not be None. Defaults to None if picks are
         given, otherwise 'type'.
@@ -179,7 +178,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     ch_types = [channel_type(epochs.info, idx) for idx in picks]
     if len(set(ch_types)) > 1 and group_by is None and combine is not None:
         warn("Combining over multiple channel types. "
-             "Please use `group_by`.")
+             "Please use ``group_by``.")
     for ch_type in ch_types:
         if ch_type not in scalings:
             # We know it's not in either scalings or units since keys match
@@ -192,10 +191,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                              "got " + str(type(group_by)))
     else:
         if axes is not None and isinstance(group_by, dict):
-            raise ValueError("If group_by is a dict, axes must be a dict or "
-                             "None, got " + str(type(group_by)))
+            raise ValueError("If ``group_by`` is a dict, axes must be a dict "
+                             "or None, got " + str(type(group_by)))
     if isinstance(group_by, dict) and combine is None:
-        raise ValueError("If `group_by` is a dict, `combine` must not be "
+        raise ValueError("If ``group_by`` is a dict, ``combine`` must not be "
                          "None.")
 
     # call helpers to prepare the plot
@@ -296,7 +295,7 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
             all_ch_types.append(this_ch_type[0])
             names.append(name)
     else:
-        raise ValueError("If `group_by` is not None, it must be a dict "
+        raise ValueError("If ``group_by`` is not None, it must be a dict "
                          "or 'type', got " + type(group_by))
     return all_picks, all_ch_types, names  # all_picks is a list of lists
 
@@ -333,13 +332,13 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
         combine = lambda data: np.median(data, axis=1)  # noqa
     elif not callable(combine):
         raise ValueError(
-            "`combine` must be None, a callable or one out of 'mean' "
+            "``combine`` must be None, a callable or one out of 'mean' "
             "or 'gfp'. Got " + str(type(combine)))
     for ch_type, picks_, name in zip(all_ch_types, all_picks, names):
         if len(np.atleast_1d(picks_)) < 2:
             raise ValueError("Cannot combine over only one sensor. "
                              "Consider using different values for "
-                             "`picks` and/or `group_by`.")
+                             "``picks`` and/or ``group_by``.")
         if ch_type == "grad":
             def pair_and_combine(data):
                 data = data ** 2

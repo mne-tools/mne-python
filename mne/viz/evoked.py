@@ -1501,7 +1501,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
     ci : float | callable | None
-        If not None and `evokeds` is a [list/dict] of lists, a shaded
+        If not None and ``evokeds`` is a [list/dict] of lists, a shaded
         confidence interval is drawn around the individual time series. If
         float, a percentile bootstrap method is used to estimate the confidence
         interval and this value determines the CI width. E.g., if this value is
