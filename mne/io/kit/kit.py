@@ -610,6 +610,11 @@ def get_kit_info(rawfile):
         for i in range(channel_count):
             fid.seek(chan_offset + chan_size * i)
             channel_type, = unpack('i', fid.read(KIT.INT))
+            # System 52 mislabeled reference channels as NULL. This was fixed
+            # in system 53; not sure about 51...
+            if sysid == 52 and i < 160 and channel_type == KIT.CHANNEL_NULL:
+                channel_type = KIT.CHANNEL_MAGNETOMETER_REFERENCE
+
             if channel_type in KIT.CHANNELS_MEG:
                 if channel_type not in KIT.CH_TO_FIFF_COIL:
                     raise NotImplementedError(
