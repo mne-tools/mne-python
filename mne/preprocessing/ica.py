@@ -598,6 +598,7 @@ class ICA(ContainsMixin):
         del pca
         # update number of components
         self.n_components_ = sel.stop
+        self._update_ica_names()
         if self.n_pca_components is not None:
             if self.n_pca_components > len(self.pca_components_):
                 self.n_pca_components = len(self.pca_components_)
@@ -618,6 +619,10 @@ class ICA(ContainsMixin):
         self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
+
+    def _update_ica_names(self):
+        """Update ICA names when n_components_ is set."""
+        self._ica_names = ['ICA%03d' % ii for ii in range(self.n_components_)]
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
@@ -828,16 +833,14 @@ class ICA(ContainsMixin):
         # set channel names and info
         ch_names = []
         ch_info = info['chs'] = []
-        for ii in range(self.n_components_):
-            this_source = 'ICA %03d' % (ii + 1)
-            ch_names.append(this_source)
-            ch_info.append(dict(ch_name=this_source, cal=1,
-                                logno=ii + 1, coil_type=FIFF.FIFFV_COIL_NONE,
-                                kind=FIFF.FIFFV_MISC_CH,
-                                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
-                                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
-                                unit=FIFF.FIFF_UNIT_NONE,
-                                range=1.0, scanno=ii + 1, unit_mul=0))
+        for ii, name in enumerate(self._ica_names):
+            ch_names.append(name)
+            ch_info.append(dict(
+                ch_name=name, cal=1, logno=ii + 1,
+                coil_type=FIFF.FIFFV_COIL_NONE, kind=FIFF.FIFFV_MISC_CH,
+                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_NONE,
+                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
+                range=1.0, scanno=ii + 1, unit_mul=0))
 
         if add_channels is not None:
             # re-append additionally picked ch_names
@@ -1971,6 +1974,7 @@ def read_ica(fname):
     ica.pca_mean_ = f(pca_mean)
     ica.pca_components_ = f(pca_components)
     ica.n_components_ = unmixing_matrix.shape[0]
+    ica._update_ica_names()
     ica.pca_explained_variance_ = f(pca_explained_variance)
     ica.unmixing_matrix_ = f(unmixing_matrix)
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_)
@@ -2301,7 +2305,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
         if template:
-            ttl = 'Subj. {0}, IC {1}'.format(subject, idx)
+            ttl = 'Subj. {0}, {1}'.format(subject, ica._ica_names[idx])
             ax.set_title(ttl, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)

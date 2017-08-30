@@ -91,6 +91,8 @@ Changelog
 
     - Add option ``pick_ori='vector'`` to :func:`mne.minimum_norm.apply_inverse` to produce :class:`mne.VectorSourceEstimate` by `Marijn van Vliet`_
 
+    - Add support for :class:`numpy.random.RandomState` argument to ``seed`` in :mod:`statistical clustering functions <mne.stats>` and better documentation of exact 1-sample tests by `Eric Larson`_
+
 BUG
 ~~~
 
@@ -167,6 +169,8 @@ BUG
 API
 ~~~
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
+
+    - ICA channel names have now been reformatted to start from zero, e.g. ``"ICA000"``, to match indexing schemes in :class:`mne.preprocessing.ICA` and related functions, by `Stefan Repplinger`_ and `Eric Larson`_
 
     - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
@@ -2265,3 +2269,5 @@ of commits):
 .. _Britta Westner: https://github.com/britta-wstnr
 
 .. _Lukáš Hejtmánek: https://github.com/hejtmy
+
+.. _Stefan Repplinger: https://github.com/stfnrpplngr
