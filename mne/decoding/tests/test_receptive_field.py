@@ -123,6 +123,12 @@ def test_receptive_field():
     rf.fit(X, y)
     assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
 
+    # Testing fill mean
+    rf = ReceptiveField(tmin, tmax, 1, feature_names, fill_mean=True,
+                        estimator=mod)
+    rf.fit(X, y)
+    assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
+
     y_pred = rf.predict(X)
     assert_allclose(y[rf.valid_samples_], y_pred[rf.valid_samples_], atol=1e-2)
     scores = rf.score(X, y)
