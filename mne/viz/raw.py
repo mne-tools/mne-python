@@ -594,6 +594,11 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  reject_by_annotation=True, verbose=None):
     """Plot the power spectral density across channels.
 
+    Different channel types are drawn in sub-plots. When the data has been
+    processed with a bandpass, lowpass or highpass filter, dashed lines
+    indicate the boundaries of the filter (--). The line noise frequency is
+    also indicated with a dashed line (-.).
+
     Parameters
     ----------
     raw : instance of io.Raw

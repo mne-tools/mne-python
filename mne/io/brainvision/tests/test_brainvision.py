@@ -300,7 +300,8 @@ def test_brainvision_data():
 def test_brainvision_vectorized_data():
     """Test reading BrainVision data files with vectorized data."""
 
-    raw = read_raw_brainvision(vhdr_old_path, preload=True)
+    with warnings.catch_warnings(record=True):  # software filter settings
+        raw = read_raw_brainvision(vhdr_old_path, preload=True)
 
     assert_array_equal(raw._data.shape, (30, 251))
 

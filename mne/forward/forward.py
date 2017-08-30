@@ -1501,7 +1501,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             pass  # spacing in mm
         else:
             # allow both "ico4" and "ico-4" style values
-            match = re.match("(oct|ico)-?(\d+)$", spacing)
+            match = re.match(r"(oct|ico)-?(\d+)$", spacing)
             if match is None:
                 raise ValueError("Invalid spacing parameter: %r" % spacing)
             spacing = '-'.join(match.groups())

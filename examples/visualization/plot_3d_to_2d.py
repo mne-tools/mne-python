@@ -63,7 +63,7 @@ print('Created %s channel positions' % len(ch_names))
 # :func:`mne.viz.plot_alignment`, which visualizes electrode positions.
 
 fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
-                     surfaces=['pial'])
+                     surfaces=['pial'], meg=False)
 mlab.view(200, 70)
 xy, im = snapshot_brain_montage(fig, mon)
 

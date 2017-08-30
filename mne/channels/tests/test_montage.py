@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+import os
 import os.path as op
 import warnings
 
@@ -17,7 +18,7 @@ from mne.tests.common import assert_dig_allclose
 from mne.channels.montage import (read_montage, _set_montage, read_dig_montage,
                                   get_builtin_montages)
 from mne.utils import _TempDir, run_tests_if_main
-from mne import create_info, EvokedArray, read_evokeds
+from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.bem import _fit_sphere
 from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
@@ -43,6 +44,31 @@ hsp = op.join(kit_dir, 'test_hsp.txt')
 hpi = op.join(kit_dir, 'test_mrk.sqd')
 bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
+
+
+def test_documented():
+    """Test that montages are documented."""
+    docs = read_montage.__doc__
+    lines = [line[4:] for line in docs.splitlines()]
+    start = stop = None
+    for li, line in enumerate(lines):
+        if line.startswith('====') and li < len(lines) - 2 and \
+                lines[li + 1].startswith('Kind') and\
+                lines[li + 2].startswith('===='):
+            start = li + 3
+        elif start is not None and li > start and line.startswith('===='):
+            stop = li
+            break
+    assert_true(start is not None)
+    assert_true(stop is not None)
+    kinds = [line.split(' ')[0] for line in lines[start:stop]]
+    kinds = [kind for kind in kinds if kind != '']
+    montages = os.listdir(op.join(op.dirname(_mne_file), 'channels', 'data',
+                                  'montages'))
+    montages = sorted(op.splitext(m)[0] for m in montages)
+    assert_equal(len(set(montages)), len(montages))
+    assert_equal(len(set(kinds)), len(kinds), msg=sorted(kinds))
+    assert_equal(set(montages), set(kinds))
 
 
 def test_montage():

@@ -459,6 +459,8 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
                                      [None], ['eeg'], n_jobs,
                                      verbose=False)[0]
         eegblink = _to_forward_dict(eegblink, eegnames)
+    else:
+        eegblink = None
 
     # short circuit here if there are no MEG channels (don't need to iterate)
     if len(pick_types(info, meg=True)) == 0:
