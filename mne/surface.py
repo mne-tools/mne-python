@@ -874,28 +874,24 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
     map_names = [map_name_temp % (subject_from, subject_to),
                  map_name_temp % (subject_to, subject_from)]
 
-    # find existing file, otherwise make it
+    # find existing file
     for map_name in map_names:
         fname = op.join(mmap_dir, '%s-morph.fif' % map_name)
         if op.exists(fname):
-            break
+            return _read_morph_map(fname, subject_from, subject_to)
+    # if file does not exist, make it
+    warn('Morph map "%s" does not exist, creating it and saving it to '
+         'disk (this may take a few minutes)' % fname)
+    logger.info(log_msg % (subject_from, subject_to))
+    mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
+    if subject_to == subject_from:
+        mmap_2 = None
     else:
-        warn('Morph map "%s" does not exist, creating it and saving it to '
-             'disk (this may take a few minutes)' % fname)
-        logger.info(log_msg % (subject_from, subject_to))
-        mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
-        if subject_to == subject_from:
-            mmap_2 = None
-        else:
-            logger.info(log_msg % (subject_to, subject_from))
-            mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir,
-                                     xhemi)
-        _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2)
-        return mmap_1
-
-    left_map, right_map = _read_morph_map(fname, subject_from, subject_to)
-
-    return left_map, right_map
+        logger.info(log_msg % (subject_to, subject_from))
+        mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir,
+                                 xhemi)
+    _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2)
+    return mmap_1
 
 
 def _read_morph_map(fname, subject_from, subject_to):
