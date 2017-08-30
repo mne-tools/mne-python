@@ -894,6 +894,38 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
         return mmap_1
 
     left_map, right_map = _read_morph_map(fname, subject_from, subject_to)
+
+    return left_map, right_map
+
+
+def _read_morph_map(fname, subject_from, subject_to):
+    """Read a morph map from disk."""
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        # Locate all maps
+        maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
+        if len(maps) == 0:
+            raise ValueError('Morphing map data not found')
+
+        # Find the correct ones
+        left_map = None
+        right_map = None
+        for m in maps:
+            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
+            if tag.data == subject_from:
+                tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
+                if tag.data == subject_to:
+                    #  Names match: which hemishere is this?
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
+                    if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
+                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                        left_map = tag.data
+                        logger.info('    Left-hemisphere map read.')
+                    elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
+                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                        right_map = tag.data
+                        logger.info('    Right-hemisphere map read.')
+
     if left_map is None or right_map is None:
         raise ValueError('Could not find both hemispheres in %s' % fname)
 
@@ -929,37 +961,6 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
             write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
             end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
     end_file(fid)
-
-
-def _read_morph_map(fname, subject_from, subject_to):
-    """Read a morph map from disk."""
-    f, tree, _ = fiff_open(fname)
-    with f as fid:
-        # Locate all maps
-        maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
-        if len(maps) == 0:
-            raise ValueError('Morphing map data not found')
-
-        # Find the correct ones
-        left_map = None
-        right_map = None
-        for m in maps:
-            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
-            if tag.data == subject_from:
-                tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
-                if tag.data == subject_to:
-                    #  Names match: which hemishere is this?
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
-                    if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
-                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                        left_map = tag.data
-                        logger.info('    Left-hemisphere map read.')
-                    elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
-                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                        right_map = tag.data
-                        logger.info('    Right-hemisphere map read.')
-
-    return left_map, right_map
 
 
 def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
