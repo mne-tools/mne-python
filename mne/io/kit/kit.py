@@ -638,9 +638,9 @@ def get_kit_info(rawfile):
         sensitivity_offset, = unpack('i', fid.read(KIT.INT))
         fid.seek(sensitivity_offset)
         # (offset [Volt], gain [Tesla/Volt]) for each channel
-        data = np.fromfile(fid, dtype='d', count=channel_count * 2)
-        data.shape = (channel_count, 2)
-        sensor_offset, sensor_gain = data.T
+        sensitivity = np.fromfile(fid, dtype='d', count=channel_count * 2)
+        sensitivity.shape = (channel_count, 2)
+        channel_offset, channel_gain = sensitivity.T
 
         # amplifier gain
         fid.seek(112)
@@ -717,15 +717,10 @@ def get_kit_info(rawfile):
                           "continuous nor epoched data." % (acq_type,))
 
     # precompute conversion factor for reading data
-    meg_idx = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
-    # is this correct??? SQD file also has gains for non-MEG sensors
-    sensor_gain[np.invert(meg_idx)] = 1.
-    # conversion factor
-    conv_factor = (adc_range / (2. ** adc_stored)) * sensor_gain
-    # amplifier applies only to the MEG channels???
-    # MEG160 applies amp gain to all channels (but also labels them as T)
-    conv_factor[meg_idx] /= total_amp_gain
-    # conv_factor /= total_amp_gain
+    is_meg = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
+    ad_to_volt = adc_range / (2. ** adc_stored)
+    ad_to_tesla = ad_to_volt / total_amp_gain * channel_gain
+    conv_factor = np.where(is_meg, ad_to_tesla, ad_to_volt)
     sqd['conv_factor'] = conv_factor[:, np.newaxis]
 
     # Create raw.info dict for raw fif object with SQD data
