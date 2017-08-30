@@ -648,47 +648,24 @@ def get_kit_info(rawfile):
         fid.seek(amp_offset)
         amp_data = unpack('i', fid.read(KIT.INT))[0]
         if fll_type >= 100:  # Kapper Type
-            # gain
-            gain1_bit = 12
-            gain1_mask = 0x00007000
-            gain2_bit = 28
-            gain2_mask = 0x70000000
-            gain3_bit = 24
-            gain3_mask = 0x07000000
-            gain1 = (amp_data & gain1_mask) >> gain1_bit
-            gain2 = (amp_data & gain2_mask) >> gain2_bit
-            gain3 = (amp_data & gain3_mask) >> gain3_bit
-            total_amp_gain = (KIT.GAINS[gain1] * KIT.GAINS[gain2] *
-                              KIT.GAINS[gain3])
+            # gain:             mask           bit
+            gain1 = (amp_data & 0x00007000) >> 12
+            gain2 = (amp_data & 0x70000000) >> 28
+            gain3 = (amp_data & 0x07000000) >> 24
+            amp_gain = (KIT.GAINS[gain1] * KIT.GAINS[gain2] * KIT.GAINS[gain3])
             # filter settings
-            kapper_hpf_bit = 8
-            kapper_hpf_mask = 0x00000700
-            kapper_lpf_bit = 16
-            kapper_lpf_mask = 0x00070000
-            kapper_bef_bit = 0
-            kapper_bef_mask = 0x00000003
-            hpf = (amp_data & kapper_hpf_mask) >> kapper_hpf_bit
-            lpf = (amp_data & kapper_lpf_mask) >> kapper_lpf_bit
-            bef = (amp_data & kapper_bef_mask) >> kapper_bef_bit
+            hpf = (amp_data & 0x00000700) >> 8
+            lpf = (amp_data & 0x00070000) >> 16
+            bef = (amp_data & 0x00000003) >> 0
         else:  # Hanger Type
             # gain
-            input_gain_bit = 11
-            input_gain_mask = 0x1800
-            output_gain_bit = 0
-            output_gain_mask = 0x0007
-            input_gain = (amp_data & input_gain_mask) >> input_gain_bit
-            output_gain = (amp_data & output_gain_mask) >> output_gain_bit
-            total_amp_gain = KIT.GAINS[input_gain] * KIT.GAINS[output_gain]
+            input_gain = (amp_data & 0x1800) >> 11
+            output_gain = (amp_data & 0x0007) >> 0
+            amp_gain = KIT.GAINS[input_gain] * KIT.GAINS[output_gain]
             # filter settings
-            hanger_hpf_bit = 4
-            hanger_hpf_mask = 0x007
-            hanger_lpf_bit = 8
-            hanger_lpf_mask = 0x0700
-            hanger_bef_bit = 14
-            hanger_bef_mask = 0xc000
-            hpf = (amp_data & hanger_hpf_mask) >> hanger_hpf_bit
-            lpf = (amp_data & hanger_lpf_mask) >> hanger_lpf_bit
-            bef = (amp_data & hanger_bef_mask) >> hanger_bef_bit
+            hpf = (amp_data & 0x007) >> 4
+            lpf = (amp_data & 0x0700) >> 8
+            bef = (amp_data & 0xc000) >> 14
         hpf_options, lpf_options, bef_options = KIT.FLL_SETTINGS[fll_type]
         sqd['highpass'] = KIT.HPFS[hpf_options][hpf]
         sqd['lowpass'] = KIT.LPFS[lpf_options][lpf]
@@ -719,7 +696,7 @@ def get_kit_info(rawfile):
     # precompute conversion factor for reading data
     is_meg = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
     ad_to_volt = adc_range / (2. ** adc_stored)
-    ad_to_tesla = ad_to_volt / total_amp_gain * channel_gain
+    ad_to_tesla = ad_to_volt / amp_gain * channel_gain
     conv_factor = np.where(is_meg, ad_to_tesla, ad_to_volt)
     sqd['conv_factor'] = conv_factor[:, np.newaxis]
 
