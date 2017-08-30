@@ -21,6 +21,7 @@ from mne.transforms import apply_trans
 from mne.tests.common import assert_dig_allclose
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
+from mne.io.constants import FIFF
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT
 from mne.io.tests.test_raw import _test_raw_reader
@@ -95,6 +96,16 @@ def test_data():
     _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
     raw = read_raw_kit(sqd_umd_path)
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_UMD_2014_12)
+    # check number/kind of channels
+    assert_equal(len(raw.info['chs']), 193)
+    kinds = {FIFF.FIFFV_MEG_CH: 157, FIFF.FIFFV_REF_MEG_CH: 3,
+             FIFF.FIFFV_MISC_CH: 32, FIFF.FIFFV_STIM_CH: 1}
+    types = {FIFF.FIFFV_COIL_KIT_GRAD: 157, FIFF.FIFFV_COIL_KIT_REF_MAG: 3,
+             FIFF.FIFFV_COIL_NONE: 33}
+    for label, target in (('kind', kinds), ('coil_type', types)):
+        actual = {id_: sum(ch[label] == id_ for ch in raw.info['chs']) for
+                  id_ in target.keys()}
+        assert_equal(actual, target)
 
 
 def test_epochs():
