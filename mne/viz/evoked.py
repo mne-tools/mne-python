@@ -1501,6 +1501,21 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth":1}}` to set
         the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
         not supported.
+    cmap : None | str | instance of matplotlib.colormap
+        If not None, plot evoked potentials with colors from a color gradient -
+        either the one provided, or, if 'str', the colormap retrieved from
+        Matplotlib (e.g., 'viridis' or 'Reds'). In that case, the color of
+        each line depends on ``evokeds`` and ``cmap``.
+        If ``evokeds`` is a list and ``colors`` is `None`, the color will
+        depend on the list position. If ``colors`` is a list, it must contain
+        integers where the list positions correspond to ``evokeds``, and the
+        value corresponds to the position on the colorbar.
+        If ``evokeds`` is a dict, ``colors`` should be a dict mapping from
+        (potentially HED-style) condition tags to integers corresponding to
+        positions on the colorbar. E.g., ::
+            
+            cmap='viridis', cmap=dict(cond1=1 cond2=2, cond3=3), 
+
     vlines : list of int
         A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
@@ -1559,6 +1574,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if isinstance(evokeds, Evoked):
         evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
     elif not isinstance(evokeds, dict):
+        if cmap is not None:
+            if colors is None:
+                colors = dict(
+                    (str(ii + 1), ii) for ii, evoked in enumerate(evokeds))
+            colors = {}
         evokeds = dict((str(ii + 1), evoked)
                        for ii, evoked in enumerate(evokeds))
     for cond in evokeds.keys():
@@ -1711,6 +1731,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             not isinstance(colors, dict) and len(colors) > 1):
         colors = dict((condition, color) for condition, color
                       in zip(conditions, colors))
+
+    if cmap is not None:
+        if 
 
     if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
         # XXX should put a good list of default colors into defaults.py
