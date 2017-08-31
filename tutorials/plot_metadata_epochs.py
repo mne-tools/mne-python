@@ -1,4 +1,5 @@
 """
+
 ================================================
 Pandas querying and metadata with Epochs objects
 ================================================
@@ -69,34 +70,74 @@ epochs['cent'].average().plot(show=False)
 # of each epoch. We'll create a new column in our metadata object and use
 # it to generate averages for many subsets of trials.
 
-# Create a new metadata column
-meta = epochs.metadata
-is_concrete = meta["WordFrequency"] > meta["WordFrequency"].median()
-meta["is_concrete"] = np.where(is_concrete, 'Concrete', 'Abstract')
-epochs.metadata = meta
+# Create two new metadata columns
+metadata = epochs.metadata
+is_concrete = metadata["Concreteness"] > metadata["Concreteness"].median()
+metadata["is_concrete"] = np.where(is_concrete, 'Concrete', 'Abstract')
+is_concrete = metadata["NumberOfLetters"] > 5
+metadata["is_long"] = np.where(is_concrete, 'Long', 'Short')
+epochs.metadata = metadata
 
-# We'll create a dictionary so that we can plot with ``plot_compare_evokeds``
-categories = ["NumberOfLetters", "is_concrete"]
-avs = {}
-for (cat1, cat2), _ in epochs.metadata.groupby(categories):
-    query = 'NumberOfLetters == {} and is_concrete == "{}"'.format(cat1, cat2)
-    this_epochs = epochs[query]
-    avs["{}/{}".format(cat1, cat2)] = this_epochs.average()
+###############################################################################
+# Now we can quickly extract (and plot) subsets of the data. For example, to
+# look at words split by word length and concreteness:
 
-# Style the plot
-colors = np.linspace(0, 1, num=len(avs))
+query = "is_long == '{0}' & is_concrete == '{1}'"
+evokeds = dict()
+for concreteness in ("Concrete", "Abstract"):
+    for length in ("Long", "Short"):
+        subset = epochs[query.format(length, concreteness)]
+        evokeds["/".join((concreteness, length))] = list(subset.iter_evoked())
+
+# For the actual visualisation, we store a number of shared parameters.
 style_plot = dict(
-    colors=plt.get_cmap('YlGnBu_r')(colors),
-    linestyles={'Concrete': '-', 'Abstract': '--'}
+    colors={"Long": "Crimson", "Short": "Cornflowerblue"},
+    linestyles={"Concrete": "-", "Abstract": ":"},
+    split_legend=True,
+    ci=.68,
+    show_sensors='lower right',
+    show_legend='lower left',
+    truncate_yaxis="max_ticks",
+    picks=epochs.ch_names.index("Pz"),
 )
 
-# Make the plot
-ix_plot = mne.pick_channels(epochs.ch_names, ['Pz'])
-fig, ax = plt.subplots(figsize=(6, 3))
-fig = mne.viz.evoked.plot_compare_evokeds(
-    avs, picks=ix_plot, show=False, axes=ax, **style_plot)
-ax.legend(loc=[1.05, .1])
+fig, ax = plt.subplots(figsize=(6, 4))
+mne.viz.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
 plt.show()
+
+###############################################################################
+# To compare words which are 4, 5, 6, 7 or 8 letters long:
+
+letters = epochs.metadata["NumberOfLetters"].unique().astype(str)
+
+evokeds = dict()
+for n_letters in letters:
+    evokeds[n_letters] = epochs["NumberOfLetters == " + n_letters].average()
+
+style_plot["colors"] = {n_letters: int(n_letters) for n_letters in letters}
+style_plot["cmap"] = ("# of Letters", "viridis_r")
+del style_plot['linestyles']
+
+fig, ax = plt.subplots(figsize=(6, 4))
+mne.viz.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
+plt.show()
+
+###############################################################################
+# And finally, for the interaction between concreteness and continuous length
+# in letters:
+evokeds = dict()
+query = "is_concrete == '{0}' & NumberOfLetters == {1}"
+for concreteness in ("Concrete", "Abstract"):
+    for n_letters in letters:
+        subset = epochs[query.format(concreteness, n_letters)]
+        evokeds["/".join((concreteness, n_letters))] = subset.average()
+
+style_plot["linestyles"] = {"Concrete": "-", "Abstract": ":"}
+
+fig, ax = plt.subplots(figsize=(6, 4))
+mne.viz.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
+plt.show()
+
 
 ###############################################################################
 # .. note::

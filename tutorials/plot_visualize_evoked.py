@@ -137,6 +137,9 @@ evoked_r_aud.plot_joint(title='right auditory', times=[.09, .20],
 # with :func:`mne.viz.plot_compare_evokeds`.
 # The plot is styled with dictionary arguments, again using "/"-separated tags.
 # We plot a MEG channel with a strong auditory response.
+#
+# For move advanced plotting using :func:`mne.viz.plot_compare_evokeds`
+# see also :ref:`metadata_epochs`.
 conditions = ["Left Auditory", "Right Auditory", "Left visual", "Right visual"]
 evoked_dict = dict()
 for condition in conditions:
@@ -149,7 +152,7 @@ linestyles = dict(Auditory='-', visual='--')
 pick = evoked_dict["Left/Auditory"].ch_names.index('MEG 1811')
 
 mne.viz.plot_compare_evokeds(evoked_dict, picks=pick, colors=colors,
-                             linestyles=linestyles)
+                             linestyles=linestyles, split_legend=True)
 
 ###############################################################################
 # We can also plot the activations as images. The time runs along the x-axis
