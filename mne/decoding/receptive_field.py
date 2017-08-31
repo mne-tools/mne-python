@@ -10,6 +10,7 @@ import numpy as np
 
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
+from ..fixes import is_regressor
 from ..externals.six import string_types
 
 
@@ -147,7 +148,7 @@ class ReceptiveField(BaseEstimator):
         if self.scoring not in _SCORERS.keys():
             raise ValueError('scoring must be one of %s, got'
                              '%s ' % (sorted(_SCORERS.keys()), self.scoring))
-        from sklearn.base import is_regressor, clone
+        from sklearn.base import clone
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
         # Initialize delays

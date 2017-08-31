@@ -15,7 +15,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
-from mne.utils import requires_sklearn_0_15, run_tests_if_main, check_version
+from mne.utils import requires_version, run_tests_if_main, check_version
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -179,7 +179,7 @@ def test_vectorizer():
                   np.random.rand(102, 12, 12))
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.15')
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
     from sklearn.decomposition import PCA

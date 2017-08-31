@@ -14,7 +14,7 @@ from mne.epochs import equalize_epoch_counts, concatenate_epochs
 from mne.decoding import GeneralizationAcrossTime
 from mne import Epochs, read_events, pick_types
 from mne.io import read_raw_fif
-from mne.utils import requires_sklearn, run_tests_if_main
+from mne.utils import requires_version, run_tests_if_main
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -53,7 +53,7 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
     return gat
 
 
-@requires_sklearn
+@requires_version('sklearn', '0.17')
 def test_gat_plot_matrix():
     """Test GAT matrix plot."""
     gat = _get_data()
@@ -62,7 +62,7 @@ def test_gat_plot_matrix():
     assert_raises(RuntimeError, gat.plot)
 
 
-@requires_sklearn
+@requires_version('sklearn', '0.17')
 def test_gat_plot_diagonal():
     """Test GAT diagonal plot."""
     gat = _get_data()
@@ -71,7 +71,7 @@ def test_gat_plot_diagonal():
     assert_raises(RuntimeError, gat.plot)
 
 
-@requires_sklearn
+@requires_version('sklearn', '0.17')
 def test_gat_plot_times():
     """Test GAT times plot."""
     gat = _get_data()
@@ -97,7 +97,7 @@ def chance(ax):
     return ax.get_children()[1].get_lines()[0].get_ydata()[0]
 
 
-@requires_sklearn
+@requires_version('sklearn', '0.17')
 def test_gat_chance_level():
     """Test GAT plot_times chance level."""
     gat = _get_data()
@@ -114,7 +114,7 @@ def test_gat_chance_level():
     assert_raises(RuntimeError, gat.plot)
 
 
-@requires_sklearn
+@requires_version('sklearn', '0.17')
 def test_gat_plot_nonsquared():
     """Test GAT diagonal plot."""
     gat = _get_data(test_times=dict(start=0.))

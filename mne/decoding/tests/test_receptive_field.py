@@ -10,7 +10,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import io, pick_types
-from mne.utils import requires_sklearn_0_15, run_tests_if_main
+from mne.utils import requires_version, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -59,7 +59,7 @@ def test_compute_reg_neighbors():
                     err_msg='%s: %s' % (reg_type, (n_ch_x, n_delays)))
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.17')
 def test_rank_deficiency():
     """Test signals that are rank deficient."""
     # See GH#4253
@@ -117,7 +117,7 @@ def test_time_delay():
         assert_equal(X_delayed.shape[-1], (tmax - tmin) * isfreq + 1)
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.17')
 def test_receptive_field():
     """Test model prep and fitting."""
     from sklearn.linear_model import Ridge
@@ -296,7 +296,7 @@ def test_time_delaying_fast_calc():
             assert_allclose(x_xt, x_xt_true, atol=1e-7, err_msg=(smin, smax))
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.17')
 def test_receptive_field_fast():
     """Test that the fast solving works like Ridge."""
     from sklearn.linear_model import Ridge

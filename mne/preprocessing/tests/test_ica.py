@@ -11,6 +11,7 @@ import warnings
 
 from nose.tools import (assert_true, assert_raises, assert_equal, assert_false,
                         assert_not_equal, assert_is_none)
+import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
@@ -28,7 +29,7 @@ from mne.io import read_raw_fif, Info, RawArray
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.tests.common import assert_naming
-from mne.utils import (catch_logging, _TempDir, requires_sklearn, slow_test,
+from mne.utils import (catch_logging, _TempDir, requires_sklearn,
                        run_tests_if_main)
 
 # Set our plotters to test mode
@@ -274,7 +275,7 @@ def test_ica_core():
     assert_raises(ValueError, ica.apply, offender)
 
 
-@slow_test
+@pytest.mark.slowtest
 @requires_sklearn
 def test_ica_additional():
     """Test additional ICA functionality."""

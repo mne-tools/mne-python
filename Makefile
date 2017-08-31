@@ -39,15 +39,15 @@ testing_data:
 
 test: in
 	rm -f .coverage
-	$(PYTESTS) -a 'not ultra_slow_test' mne
+	$(PYTESTS) -m 'not ultraslowtest' mne
 
 test-verbose: in
 	rm -f .coverage
-	$(PYTESTS) -a 'not ultra_slow_test' mne --verbose
+	$(PYTESTS) -m 'not ultraslowtest' mne --verbose
 
 test-fast: in
 	rm -f .coverage
-	$(PYTESTS) -a 'not slow_test' mne
+	$(PYTESTS) -m 'not slowtest' mne
 
 test-full: in
 	rm -f .coverage

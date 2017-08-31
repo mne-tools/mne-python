@@ -10,13 +10,14 @@ import shutil
 import warnings
 
 from nose.tools import assert_true, assert_equal, assert_raises
+import pytest
 
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
-                       requires_PIL, run_tests_if_main, slow_test)
+                       requires_PIL, run_tests_if_main)
 from mne.viz import plot_alignment
 
 import matplotlib
@@ -43,7 +44,7 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_PIL
 def test_render_report():
@@ -185,7 +186,7 @@ def test_render_add_sections():
     assert_true(repr(report))
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_mayavi
 @requires_nibabel()

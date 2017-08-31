@@ -1,11 +1,12 @@
-
 import os.path as op
+import pytest
+
 import mne
 from mne.datasets import testing
 from mne import read_forward_solution
 from mne.minimum_norm import (read_inverse_operator,
                               point_spread_function, cross_talk_function)
-from mne.utils import slow_test, run_tests_if_main
+from mne.utils import run_tests_if_main
 
 from nose.tools import assert_true
 
@@ -24,7 +25,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_psf_ctf():
     """Test computation of PSFs and CTFs for linear estimators

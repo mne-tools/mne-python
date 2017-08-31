@@ -81,7 +81,6 @@ reporting a bug, which should look something like this::
     nibabel:       Not found
     nitime:        Not found
     mayavi:        Not found
-    nose:          1.3.7
     pandas:        Not found
     pycuda:        Not found
     skcuda:        Not found

@@ -4,6 +4,7 @@ import warnings
 import gc
 
 from nose.tools import assert_true, assert_raises
+import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
@@ -16,7 +17,7 @@ from mne import (read_forward_solution, apply_forward, apply_forward_raw,
 from mne.tests.common import assert_naming
 from mne.label import read_label
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
-                       run_tests_if_main, slow_test)
+                       run_tests_if_main)
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward)
 
@@ -94,7 +95,7 @@ def test_convert_forward():
     gc.collect()
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_io_forward():
     """Test IO for forward solutions

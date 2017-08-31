@@ -11,6 +11,7 @@ from copy import deepcopy
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
+import pytest
 
 from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  make_sphere_model, create_info, setup_volume_source_space,
@@ -22,7 +23,7 @@ from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
 from mne.io import read_raw_fif, RawArray
 from mne.time_frequency import psd_welch
-from mne.utils import _TempDir, run_tests_if_main, slow_test
+from mne.utils import _TempDir, run_tests_if_main
 
 
 warnings.simplefilter('always')
@@ -187,7 +188,7 @@ def test_simulate_raw_sphere():
                   blink=True)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_simulate_raw_bem():
     """Test simulation of raw data with BEM."""
@@ -234,7 +235,7 @@ def test_simulate_raw_bem():
         assert_true(med_diff < tol, msg='%s: %s' % (bem, med_diff))
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_simulate_raw_chpi():
     """Test simulation of raw data with cHPI."""

@@ -12,6 +12,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
+import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
@@ -23,7 +24,7 @@ from mne.tests.common import assert_dig_allclose
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne import pick_types
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 from mne.transforms import Transform, combine_transforms, invert_transform
 from mne.externals import six
 
@@ -97,7 +98,7 @@ def test_transforms():
         assert_array_equal(dev_head_t_new['trans'], dev_head_t_old['trans'])
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_raw():
     """Test bti conversion to Raw object."""
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,
