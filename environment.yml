@@ -1,0 +1,32 @@
+name: mne
+channels:
+- defaults
+- conda-forge
+- menpo  # for mayavi
+dependencies:
+- python=3.6
+- pip
+- mkl
+- numpy
+- scipy
+- matplotlib
+- pandas
+- scikit-learn
+- jupyter
+- ipython
+- statsmodels
+- h5py
+- vtk
+- mayavi
+- pip:
+  - -e git+git://github.com/nipy/PySurfer.git
+  - nibabel
+  - neo
+  - pillow
+  - nose
+  - pytest
+  - pytest-cov
+  - sphinx
+  - sphinx_bootstrap_theme
+  - numpydoc
+  - sphinx-gallery
