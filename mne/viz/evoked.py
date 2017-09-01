@@ -1454,7 +1454,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     Parameters
     ----------
     evokeds : instance of mne.Evoked | list | dict
-        If a single evoked instance, it is plotted as a time series.
+        If a single Evoked instance, it is plotted as a time series.
         If a dict whose values are Evoked objects, the contents are plotted as
         single time series each and the keys are used as condition labels.
         If a list of Evokeds, the contents are plotted with indices as labels.
@@ -1474,7 +1474,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         Power plotted.
     gfp : bool
         If True, the channel type wise GFP is plotted.
-        If `picks` is an empty list (default), this is set to True.
+        If ``picks`` is an empty list (default), this is set to True.
     colors : list | dict | None
         If a list, will be sequentially used for line colors.
         If a dict, can map evoked keys or '/'-separated (HED) tags to
@@ -1498,7 +1498,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         parameters will be passed to the line plot call of the corresponding
         condition, overriding defaults.
         E.g., if evokeds is a dict with the keys "Aud/L", "Aud/R",
-        "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth":1}}` to set
+        "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth": 1}}` to set
         the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
         not supported.
     cmap : None | dict | str | instance of matplotlib.colormap
@@ -1511,10 +1511,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         integers where the list positions correspond to ``evokeds``, and the
         value corresponds to the position on the colorbar.
         If ``evokeds`` is a dict, ``colors`` should be a dict mapping from
-        (potentially HED-style) condition tags to integers corresponding to
-        positions on the colorbar. E.g., ::
-            
-            cmap='viridis', cmap=dict(cond1=1 cond2=2, cond3=3), 
+        (potentially HED-style) condition tags to numbers corresponding to
+        rank order positions on the colorbar. E.g., ::
+
+            evokeds={"cond1/A": ev1, "cond2/A": ev2, "cond3/A": ev3, "B": ev4},
+            cmap='viridis', colors=dict(cond1=1 cond2=2, cond3=3),
+            linestyles={"A": "-", "B": ":"}
 
         If ``cmap`` is a (non-string) iterable of length 2, the first must be
         a string which will become the colorbar label, and the second one
@@ -1566,8 +1568,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         When plotting multiple channel types, can also be a list of axes, one
         per channel type.
     title : None | str
-        If str, will be plotted as figure title. If None, the channel
-        names will be shown.
+        If str, will be plotted as figure title. If None, the channel names
+        will be shown.
+    split_legend : bool
+        If True, the legend shows color and linestyle separately. Defaults to
+        True if ``cmap`` is not None, else defaults to False.
     show : bool
         If True, show the figure.
 
@@ -1763,6 +1768,13 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 l = mlines.Line2D([], [], color='k', linestyle=s, label=style)
                 legend_lines.append(l)
     if cmap is not None:
+        for color_value in colors.values():
+            try:
+                float(color_value)
+            except ValueError:
+                raise ValueError("If ``cmap`` is not None, the values of "
+                                 "``colors`` needs to be numeric. Got " +
+                                 str(type(color_value)))
         cmapper = getattr(plt.cm, cmap, plt.cm.hot)
         color_conds = list(colors.keys())
         all_colors = [colors[c] for c in color_conds]
