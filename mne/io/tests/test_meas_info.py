@@ -135,7 +135,7 @@ def test_info():
         info_str = '%s' % obj.info
         assert_equal(len(info_str.split('\n')), len(obj.info.keys()) + 2)
         assert_true(all(k in info_str for k in obj.info.keys()))
-        assert '2002-12-03 14:01:10' in repr(obj.info)
+        assert '2002-12-03 19:01:10 GMT' in repr(obj.info), repr(obj.info)
 
     # Test read-only fields
     info = raw.info.copy()

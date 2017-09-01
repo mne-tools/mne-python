@@ -783,9 +783,10 @@ def has_freesurfer():
 
 def requires_nibabel(vox2ras_tkr=False):
     """Check for nibabel."""
+    import pytest
     extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
-    return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
-                                 'Requires nibabel%s' % extra)
+    return pytest.mark.skipif(not has_nibabel(vox2ras_tkr),
+                              reason='Requires nibabel%s' % extra)
 
 
 def buggy_mkl_svd(function):
@@ -805,9 +806,10 @@ def buggy_mkl_svd(function):
 
 def requires_version(library, min_version):
     """Check for a library version."""
-    return np.testing.dec.skipif(not check_version(library, min_version),
-                                 'Requires %s version >= %s'
-                                 % (library, min_version))
+    import pytest
+    return pytest.mark.skipif(not check_version(library, min_version),
+                              reason=('Requires %s version >= %s'
+                                      % (library, min_version)))
 
 
 def requires_module(function, name, call=None):

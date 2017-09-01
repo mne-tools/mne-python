@@ -31,6 +31,7 @@ dependencies:
   - nose
   - pytest
   - pytest-cov
+  - pytest-sugar
   - sphinx_bootstrap_theme
   - numpydoc
   - sphinx-gallery
