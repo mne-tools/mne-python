@@ -1,10 +1,12 @@
 environment:
   global:
-      PYTHON: "C:\\conda"
-      CONDA_ENVIRONMENT: "environment.yml"
+    PYTHON: "C:\\conda"
+    CONDA_ENVIRONMENT: "environment.yml"
   matrix:
-      - PYTHON_VERSION: "2.7"
-        PYTHON_ARCH: "64"
+    - PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+cache:
+  - "C:\\Users\\appveyor\\AppData\\Local\\pip\\"
 
 install:
   - "git clone git://github.com/astropy/ci-helpers.git"

@@ -8,14 +8,23 @@ cache:
   - $HOME/.ccache
 env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
-    global: PYTHON_VERSION=2.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
+    global: PYTHON_VERSION=2.7
+            MNE_LOGGING_LEVEL=warning
+            TEST_LOCATION=src
             SPLIT_0=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
             SPLIT_1="minimum_norm preprocessing realtime simulation stats time_frequency viz"
             TRAVIS_PYTHON_VERSION=3.6
+            SETUP_XVFB=True
 os: linux
 
 matrix:
     include:
+        # No data + style testing
+        - env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
+               OPTION="--doctest-ignore-import-errors"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar pytest-cov pytest-attrib"
+
         # 3.6 + non-default stim channel
         - env: SPLIT=0 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
                CONDA_ENVIRONMENT="environment.yml"
@@ -33,10 +42,10 @@ matrix:
         # 2.7
         - env: SPLIT=0
                CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib"
         - env: SPLIT=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib"
 
         # Oldest supported dependencies
         - env: SPLIT=0
@@ -53,12 +62,6 @@ matrix:
         - env: SPLIT=1 DEPS=minimial
                CONDA_DEPENDENCIES="numpy scipy matplotlib pytest"
                PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib"
-
-        # No data + style testing
-        - env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
-               OPTION="--doctest-ignore-import-errors"
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov nose-timer nose-faulthandler check-manifest pytest-sugar pytest-cov pytest-attrib"
 
 # Setup anaconda
 before_install:
@@ -78,9 +81,6 @@ before_install:
         fi;
         mne_surf2bem --version;
       fi;
-    - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
-      fi;
     - if [ "${SPLIT}" == "0" ]; then
         MNE_DIRS=${SPLIT_0};
       elif [ "${SPLIT}" == "1" ]; then
@@ -90,7 +90,10 @@ before_install:
       fi
 
 install:
-    # Suppress the parallel outputs for logging cleanliness
+    # Need to uninstall the PIP-installed version
+    - if [ -z CONDA_ENVIRONMENT ]; then
+        pip uninstall mne;
+      fi;
     - python setup.py build
     - python setup.py install
     - python -c "import mne; mne.sys_info()"
