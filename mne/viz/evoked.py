@@ -1683,6 +1683,14 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if (ymin is None) and all_positive:
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
+<<<<<<< HEAD
+=======
+    # deal with dict/list of lists and the CI
+    if not isinstance(ci, np.float):
+        msg = '"ci" must be float, got {0} instead.'
+        raise TypeError(msg.format(type(ci)))
+
+>>>>>>> tests
     # if we have a dict/list of lists, we compute the grand average and the CI
     if ci is None:
         ci = False
@@ -1777,7 +1785,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                                  str(type(color_value)))
         cmapper = getattr(plt.cm, cmap, plt.cm.hot)
         color_conds = list(colors.keys())
-        all_colors = [colors[c] for c in color_conds]
+        all_colors = [colors[cond] for cond in color_conds]
         n_colors = len(all_colors)
         color_order = np.array(all_colors).argsort()
 
@@ -1918,21 +1926,17 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             axes.legend(ncol=1 + (len(conditions) // 5), **legend_params)
 
     if split_legend and cmap is not None:
+        # plot the colorbar ... complicated cause we don't have a heatmap
         import matplotlib as mpl
 
-        print("colors_:", colors_)
         colors_l = np.array([n for n in color_conds])[color_order]
-        print("colors_l 1:", colors_l)
-        colors_m = [colors_[k] for k in colors_l]
         colors_m = list()
         for k1 in colors_l:
             for k2 in colors:
                 if k1 in k2:
                     colors_m.append(colors[k2])
                     continue
-        print("colors_m:", colors_m)
-        colors_l = np.array([float(n) for n in colors_l])
-        print("colors_l 2:", colors_l)
+        colors_l = list(range(len(colors_l)))
         l = plt.cm.jet.from_list(colors_l + [colors_l[-1] + 100],
                                  colors_m + [colors_m[-1]])
 
@@ -1941,7 +1945,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         sm.set_array(colors_l)
 
         cbar = plt.colorbar(sm, ax=axes)
-        offset = np.diff(np.concatenate((all_colors, [all_colors[-1] + 1]))) / 2
+        offset = np.diff(np.concatenate((all_colors,
+                                         [all_colors[-1] + 1]))) / 2
         cbar.set_ticks(np.array(all_colors) + offset)
         cbar.set_ticklabels(all_colors)
         cbar.set_label(cmap_label)
