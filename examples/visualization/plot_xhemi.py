@@ -35,10 +35,13 @@ mm = mne.compute_morph_matrix(
     subjects_dir=subjects_dir)
 
 # SourceEstimate on the left hemisphere:
-stc_lh = mne.SourceEstimate(stc.lh_data, [stc.vertices[0], []], stc.tmin, stc.tstep, stc.subject)
+stc_lh = mne.SourceEstimate(stc.lh_data, [stc.vertices[0], []], stc.tmin,
+                            stc.tstep, stc.subject)
 # SourceEstimate of the right hemisphere, morphed to the left:
-stc_rh_on_lh = mne.SourceEstimate(mm * stc.rh_data, [stc.vertices[0], []], stc.tmin, stc.tstep, stc.subject)
+stc_rh_on_lh = mne.SourceEstimate(mm * stc.rh_data, [stc.vertices[0], []],
+                                  stc.tmin, stc.tstep, stc.subject)
 # Since both STCs are now on the same hemisphere we can subtract them:
 diff = stc_lh - stc_rh_on_lh
 
-diff.plot(hemi='lh', subjects_dir=subjects_dir, initial_time=0.07, size=(800, 600))
+diff.plot(hemi='lh', subjects_dir=subjects_dir, initial_time=0.07,
+          size=(800, 600))
