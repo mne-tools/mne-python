@@ -1,8 +1,7 @@
 environment:
   global:
       PYTHON: "C:\\conda"
-      CONDA_DEPENDENCIES: "setuptools numpy scipy matplotlib scikit-learn mayavi pandas h5py PIL pyside pytest"
-      PIP_DEPENDENCIES: "git+git://github.com/nipy/PySurfer.git nibabel nitime nose-timer nose-faulthandler pytest-attrib"
+      CONDA_ENVIRONMENT: "environment.yml"
   matrix:
       - PYTHON_VERSION: "2.7"
         PYTHON_ARCH: "64"

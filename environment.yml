@@ -2,7 +2,7 @@ name: mne
 channels:
 - defaults
 - conda-forge
-- menpo  # for mayavi
+- clinicalgraphics  # for vtk
 dependencies:
 - python=3.6
 - pip
@@ -10,15 +10,19 @@ dependencies:
 - numpy
 - scipy
 - matplotlib
+- pyqt=4.11.4
+- qt=4.8.7
 - pandas
 - scikit-learn
 - jupyter
 - ipython
 - statsmodels
 - h5py
+- sphinx
 - vtk
-- mayavi
 - pip:
+  - mne
+  - mayavi
   - "git+https://github.com/nipy/PySurfer.git"
   - nibabel
   - nilearn
@@ -27,7 +31,6 @@ dependencies:
   - nose
   - pytest
   - pytest-cov
-  - sphinx
   - sphinx_bootstrap_theme
   - numpydoc
   - sphinx-gallery
