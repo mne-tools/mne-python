@@ -115,7 +115,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         in the format (n_epochs, n_channels, n_times). It must return an
         array (n_epochs, n_times). For example::
 
-        combine = lambda data: np.median(data, 1)
+            combine = lambda data: np.median(data, 1)
 
         Defaults to None if picks are given, otherwise 'gfp'.
     group_by : None | str | dict
@@ -128,7 +128,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         will become plot titles. This is useful for e.g. ROIs. Each entry must
         contain only one channel type. For example::
 
-        group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
+            group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
         If not None, combine must not be None. Defaults to None if picks are
         given, otherwise 'type'.
