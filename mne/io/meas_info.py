@@ -9,6 +9,7 @@ from copy import deepcopy
 from datetime import datetime as dt
 import os.path as op
 import re
+import platform
 
 import numpy as np
 from scipy import linalg
@@ -1685,7 +1686,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         raise ValueError('ch_types and ch_names must be the same length '
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
-    info['meas_date'] = np.array([0, 0], np.int32)
+    # The minium timestamp in Windows is 86400
+    if 'Windows' in platform.system():
+        info['meas_date'] = np.array([86400, 86400], np.int32)
+    else:
+        info['meas_date'] = np.array([0, 0], np.int32)
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
