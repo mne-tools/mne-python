@@ -1441,10 +1441,10 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
-                         linestyles=['-'], styles=None, vlines=list((0.,)),
-                         ci=0.95, truncate_yaxis=False, truncate_xaxis=True,
-                         ylim=dict(), invert_y=False, show_sensors=None,
-                         show_legend=True, axes=None, title=None, show=True):
+                         linestyles=['-'], styles=None, cmap=None, vlines=list((0.,)),
+                         ci=0.95, truncate_yaxis=False, truncate_xaxis=True, ylim=dict(),
+                         invert_y=False, show_legend=True, show_sensors=None,
+                         split_legend=True, axes=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1501,7 +1501,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth":1}}` to set
         the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
         not supported.
-    cmap : None | str | instance of matplotlib.colormap
+    cmap : None | dict | str | instance of matplotlib.colormap
         If not None, plot evoked potentials with colors from a color gradient -
         either the one provided, or, if 'str', the colormap retrieved from
         Matplotlib (e.g., 'viridis' or 'Reds'). In that case, the color of
@@ -1515,6 +1515,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         positions on the colorbar. E.g., ::
             
             cmap='viridis', cmap=dict(cond1=1 cond2=2, cond3=3), 
+
+        If ``cmap`` is a (non-string) iterable of length 2, the first must be
+        a string which will become the colorbar label, and the second one
+        must be a colormap, e.g. ::
+
+            cmap=('conds', 'viridis'), cmap=dict(cond1=1 cond2=2, cond3=3),
 
     vlines : list of int
         A list of integers corresponding to the positions, in seconds,
@@ -1552,6 +1558,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     show_legend : bool | int
         If not False, show a legend. If int, the position of the axes
         (forwarded to ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
+    split_legend : bool
+        If True, the legend shows color and linestyle separately. Defaults to
+        True if ``cmap`` is not None, else defaults to False.
     axes : None | `matplotlib.axes.Axes` instance | list of `axes`
         What axes to plot to. If None, a new axes is created.
         When plotting multiple channel types, can also be a list of axes, one
@@ -1733,7 +1742,43 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                       in zip(conditions, colors))
 
     if cmap is not None:
-        if 
+        if not isinstance(cmap, string_types) and len(cmap) == 2:
+            cmap_label, cmap = cmap
+        else:
+            cmap_label = ""
+
+    if split_legend is None:
+        split_legend = cmap is not None
+    if split_legend is True:
+        import matplotlib.lines as mlines
+        legend_lines = list()
+        if cmap is None:
+            for color in sorted(colors.keys()):
+                l = mlines.Line2D([], [], linestyle="-",
+                                  color=colors[color], label=color)
+                legend_lines.append(l)
+
+        if len(list(linestyles)) > 1:
+            for style, s in linestyles.items():
+                l = mlines.Line2D([], [], color='k', linestyle=s, label=style)
+                legend_lines.append(l)
+    if cmap is not None:
+        cmapper = getattr(plt.cm, cmap, plt.cm.hot)
+        color_conds = list(colors.keys())
+        all_colors = [colors[c] for c in color_conds]
+        n_colors = len(all_colors)
+        color_order = np.array(all_colors).argsort()
+
+        the_colors = cmapper(np.linspace(0, 1, n_colors))
+
+        colors_ = {cond: ind
+               for cond, ind in zip(colors, color_order)}
+        colors = dict()
+        for cond in evokeds.keys():
+            for cond_number, color in colors_.items():
+                if cond_number in cond:
+                    colors[cond] = the_colors[color]
+                    continue
 
     if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
         # XXX should put a good list of default colors into defaults.py
@@ -1849,11 +1894,48 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             _plot_legend(pos, ["k" for pick in picks], axes, list(), outlines,
                          show_sensors, size=20)
 
-    if show_legend and len(conditions) > 1:
+    if len(conditions) > 1:
         if show_legend is True:
             show_legend = 'best'
-        axes.legend(loc=show_legend, ncol=1 + (len(conditions) // 5),
-                    frameon=True)
+        legend_params = dict(loc=show_legend, frameon=True)
+        if split_legend:
+            if len(legend_lines) > 1:
+                axes.legend(handles=legend_lines,
+                           ncol=1 + (len(legend_lines) // 4), **legend_params)
+        else:
+            axes.legend(ncol=1 + (len(conditions) // 5), **legend_params)
+
+    if split_legend and cmap is not None:
+        import matplotlib as mpl
+
+        print("colors_:", colors_)
+        colors_l = np.array([n for n in color_conds])[color_order]
+        print("colors_l 1:", colors_l)
+        colors_m = [colors_[k] for k in colors_l]
+        colors_m = list()
+        for k1 in colors_l:
+            for k2 in colors:
+                if k1 in k2:
+                    colors_m.append(colors[k2])
+                    continue
+        print("colors_m:", colors_m)
+        colors_l = np.array([float(n) for n in colors_l])
+        print("colors_l 2:", colors_l)
+        l = plt.cm.jet.from_list(colors_l + [colors_l[-1] + 100],
+                                 colors_m + [colors_m[-1]])
+
+        norm = mpl.colors.BoundaryNorm(all_colors + [all_colors[-1] + 1], l.N)
+        sm = plt.cm.ScalarMappable(cmap=l, norm=norm)
+        sm.set_array(colors_l)
+
+        cbar = plt.colorbar(sm, ax=axes)
+        offset = np.diff(np.concatenate((all_colors, [all_colors[-1] + 1]))) / 2
+        cbar.set_ticks(np.array(all_colors) + offset)
+        cbar.set_ticklabels(all_colors)
+        cbar.set_label(cmap_label)
+        fig.cbar = cbar
+
+    fig.ts_ax = axes
 
     plt_show(show)
     return fig
