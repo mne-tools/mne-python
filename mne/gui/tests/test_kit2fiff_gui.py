@@ -3,11 +3,11 @@
 # License: BSD (3-clause)
 
 import os
+from unittest import SkipTest
 import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
-from nose import SkipTest
 from nose.tools import assert_true, assert_false, assert_equal
 
 import mne

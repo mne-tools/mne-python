@@ -366,9 +366,9 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
              '0.16.', DeprecationWarning)
         ref_channels = 'average'
 
-    if projection is None:
+    if projection is None and ref_channels == 'average':
         warn('The behavior of set_eeg_reference will change in 0.16 when '
-             'computing the average reference. Currently, a projection is '
+             'ref_channels="average". Currently, a projection is '
              'computed, which has to be applied manually with the apply_proj '
              'method. In 0.16, the average reference will be directly applied.'
              ' Set projection=True if you want to retain the old behavior, or '

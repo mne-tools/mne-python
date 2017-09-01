@@ -31,7 +31,7 @@ dependencies:
   - nose
   - pytest
   - pytest-cov
-  - pytest-attrib
   - sphinx_bootstrap_theme
   - numpydoc
   - sphinx-gallery
+  - traitsui

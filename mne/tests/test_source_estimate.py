@@ -7,7 +7,7 @@ from copy import deepcopy
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
-
+import pytest
 from scipy.fftpack import fft
 
 from mne.datasets import testing
@@ -24,7 +24,7 @@ from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
 from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_h5py, run_tests_if_main, slow_test)
+                       requires_h5py, run_tests_if_main)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -85,7 +85,7 @@ def test_spatial_inter_hemi_connectivity():
         assert_true(set(use_labels) - set(good_labels) == set())
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_stc():
     """Test volume STCs."""
@@ -358,7 +358,7 @@ def test_stc_arithmetic():
                        np.mean(vec_stc.data, 2)[:, :, None])
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_stc_methods():
     """Test stc methods lh_data, rh_data, bin(), resample()."""
@@ -523,7 +523,7 @@ def test_extract_label_time_course():
     assert_true(x.size == 0)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morph_data():
     """Test morphing of data."""

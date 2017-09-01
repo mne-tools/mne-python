@@ -3,11 +3,12 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import warnings
+
 import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import assert_raises, assert_equal, assert_true
-import warnings
-
+import pytest
 
 from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
                  pick_info)
@@ -20,7 +21,7 @@ from mne.chpi import (_calculate_chpi_positions, _calculate_chpi_coil_locs,
 from mne.fixes import assert_raises_regex
 from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.simulation import simulate_raw
-from mne.utils import run_tests_if_main, _TempDir, catch_logging, slow_test
+from mne.utils import run_tests_if_main, _TempDir, catch_logging
 from mne.datasets import testing
 from mne.tests.common import assert_meg_snr
 
@@ -175,7 +176,7 @@ def _decimate_chpi(raw, decim=4):
     return raw_dec
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_calculate_chpi_positions():
     """Test calculation of cHPI positions."""
@@ -244,7 +245,7 @@ def test_calculate_chpi_positions_on_chpi5_in_one_second_steps():
     _assert_quats(py_quats, mf_quats, dist_tol=0.0008, angle_tol=.5)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_calculate_chpi_positions_on_chpi5_in_shorter_steps():
     """Comparing estimated cHPI positions with MF results (smaller steps)."""

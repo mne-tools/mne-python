@@ -29,6 +29,7 @@ import sys
 import tempfile
 import time
 import traceback
+from unittest import SkipTest
 import warnings
 import webbrowser
 
@@ -745,21 +746,6 @@ class use_log_level(object):
         set_log_level(self.old_level)
 
 
-@nottest
-def slow_test(f):
-    """Mark slow tests (decorator)."""
-    f.slow_test = True
-    return f
-
-
-@nottest
-def ultra_slow_test(f):
-    """Mark ultra slow tests (decorator)."""
-    f.ultra_slow_test = True
-    f.slow_test = True
-    return f
-
-
 def has_nibabel(vox2ras_tkr=False):
     """Determine if nibabel is installed.
 
@@ -810,7 +796,6 @@ def buggy_mkl_svd(function):
             return function(*args, **kwargs)
         except np.linalg.LinAlgError as exp:
             if 'SVD did not converge' in str(exp):
-                from nose.plugins.skip import SkipTest
                 msg = 'Intel MKL SVD convergence error detected, skipping test'
                 warn(msg)
                 raise SkipTest(msg)
@@ -828,10 +813,6 @@ def requires_version(library, min_version):
 def requires_module(function, name, call=None):
     """Skip a test if package is not available (decorator)."""
     call = ('import %s' % name) if call is None else call
-    try:
-        from nose.plugins.skip import SkipTest
-    except ImportError:
-        SkipTest = AssertionError
 
     @wraps(function)
     def dec(*args, **kwargs):  # noqa: D102

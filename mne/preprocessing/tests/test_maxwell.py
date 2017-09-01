@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 
 from numpy.testing import assert_equal, assert_allclose
+import pytest
 from nose.tools import assert_true, assert_raises
 
 from mne import compute_raw_covariance, pick_types
@@ -22,7 +23,7 @@ from mne.preprocessing.maxwell import (
     _bases_real_to_complex, _prep_mf_coils)
 from mne.fixes import _get_sph_harm
 from mne.tests.common import assert_meg_snr
-from mne.utils import (_TempDir, run_tests_if_main, slow_test, catch_logging,
+from mne.utils import (_TempDir, run_tests_if_main, catch_logging,
                        requires_version, object_diff, buggy_mkl_svd)
 
 warnings.simplefilter('always')  # Always throw warnings
@@ -119,7 +120,7 @@ def read_crop(fname, lims=(0, None)):
     return read_raw_fif(fname, allow_maxshield='yes').crop(*lims)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_movement_compensation():
     """Test movement compensation."""
@@ -205,7 +206,7 @@ def test_movement_compensation():
                    chpi_med_tol=5)
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_other_systems():
     """Test Maxwell filtering on KIT, BTI, and CTF files."""
     # KIT
@@ -479,7 +480,7 @@ def test_maxwell_filter_additional():
     assert_equal(cov_sss_rank, _get_n_moments(int_order))
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_bads_reconstruction():
     """Test Maxwell filter reconstruction of bad channels."""
@@ -536,7 +537,7 @@ def test_spatiotemporal():
                   st_correlation=0.)
 
 
-@slow_test
+@pytest.mark.slowtest
 @requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal_only():
@@ -638,7 +639,7 @@ def test_fine_calibration():
                   calibration=fine_cal_fname)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_regularization():
     """Test Maxwell filter regularization."""
@@ -771,7 +772,7 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
 
 
 @buggy_mkl_svd
-@slow_test
+@pytest.mark.slowtest
 @requires_svd_convergence
 @testing.requires_testing_data
 def test_shielding_factor():
@@ -888,7 +889,7 @@ def test_shielding_factor():
     _assert_shielding(raw_sss, erm_power, 44)
 
 
-@slow_test
+@pytest.mark.slowtest
 @requires_svd_convergence
 @testing.requires_testing_data
 def test_all():
@@ -923,7 +924,7 @@ def test_all():
         assert_meg_snr(sss_py, sss_mf, mins[ii], meds[ii], msg=rf)
 
 
-@slow_test
+@pytest.mark.slowtest
 @requires_svd_convergence
 @testing.requires_testing_data
 def test_triux():

@@ -23,7 +23,7 @@ matrix:
         - env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                OPTION="--doctest-ignore-import-errors"
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar pytest-cov pytest-attrib nose"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar pytest-cov"
 
         # 3.6 + non-default stim channel
         - env: SPLIT=0 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
@@ -41,27 +41,27 @@ matrix:
 
         # 2.7
         - env: SPLIT=0
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib nose"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest nose"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov"
         - env: SPLIT=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib nose"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest nose"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov"
 
         # Oldest supported dependencies
         - env: SPLIT=0
-               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 pytest"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib nose"
+               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 pytest nose"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov"
         - env: SPLIT=1
-               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 pytest"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib nose"
+               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 pytest nose"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov"
 
         # Minimal first half
         - env: SPLIT=0 DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib nose"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest nose"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov"
         - env: SPLIT=1 DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib nose"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest nose"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov"
 
 # Setup anaconda
 before_install:
@@ -140,9 +140,9 @@ script:
     - echo "Other stuff"
     # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        CONDITION='not slow_test';
+        CONDITION='not slowtest';
       else
-        CONDITION='not ultra_slow_test';
+        CONDITION='not ultraslowtest';
       fi;
     # Determine directories to test
     - if [ "${MNE_DIRS}" != "" ]; then
@@ -153,8 +153,8 @@ script:
       else
         USE_DIRS="mne/";
       fi;
-    - echo py.test --doctest-modules -a "\"${CONDITION}\"" ${OPTION} --cov=mne --showlocals --durations=20 ${USE_DIRS};
-    - py.test --doctest-modules -a "\"${CONDITION}\"" ${OPTION} --cov=mne --showlocals --durations=20 ${USE_DIRS};
+    - echo py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS};
+    - py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS};
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
         check-manifest --ignore doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;

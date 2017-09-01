@@ -2,6 +2,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_almost_equal
+import pytest
 
 from scipy.linalg import svd, pinv
 import scipy.io as sio
@@ -9,7 +10,7 @@ import scipy.io as sio
 from mne.io import read_raw_fif
 from mne import pick_types
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import random_permutation, slow_test, run_tests_if_main
+from mne.utils import random_permutation, run_tests_if_main
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -58,7 +59,7 @@ def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     return Y
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mne_python_vs_eeglab():
     """ Test eeglab vs mne_python infomax code."""

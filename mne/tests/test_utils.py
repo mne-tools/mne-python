@@ -51,7 +51,7 @@ def clean_lines(lines=[]):
 
 def test_buggy_mkl():
     """Test decorator for buggy MKL issues."""
-    from nose.plugins.skip import SkipTest
+    from unittest import SkipTest
 
     @buggy_mkl_svd
     def foo(a, b):

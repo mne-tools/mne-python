@@ -64,7 +64,7 @@ You can test if MNE CUDA support is working by running the associated test:
 
 .. code-block:: bash
 
-    $ nosetests mne/tests/test_filter.py
+    $ pytest mne/tests/test_filter.py
 
 If ``MNE_USE_CUDA=true`` and all tests pass with none skipped, then
 MNE-Python CUDA support works.

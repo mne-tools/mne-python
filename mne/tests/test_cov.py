@@ -4,15 +4,16 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import itertools as itt
+import warnings
 
 from nose.tools import assert_true
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
 from nose.tools import assert_raises
+import pytest
 import numpy as np
 from scipy import linalg
-import warnings
-import itertools as itt
 
 from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
                      _auto_low_rank_model, _apply_scaling_cov,
@@ -25,8 +26,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov)
 from mne.io import read_raw_fif, RawArray, read_info
 from mne.tests.common import assert_naming, assert_snr
-from mne.utils import (_TempDir, slow_test, requires_sklearn_0_15,
-                       run_tests_if_main)
+from mne.utils import _TempDir, requires_sklearn_0_15, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type
 
@@ -223,7 +223,7 @@ def test_cov_estimation_on_raw():
                                      reject=dict(eog=1000e-6))
 
 
-@slow_test
+@pytest.mark.slowtest
 @requires_sklearn_0_15
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
@@ -248,7 +248,7 @@ def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
         assert_equal(cov.nfree, cov_desired.nfree)
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_cov_estimation_with_triggers():
     """Test estimation from raw with triggers."""
     tempdir = _TempDir()
@@ -377,7 +377,7 @@ def test_whiten_evoked():
     assert_raises(RuntimeError, whiten_evoked, evoked, cov_bad, picks)
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_rank():
     """Test cov rank estimation."""
     # Test that our rank estimation works properly on a simple case
@@ -548,7 +548,7 @@ def test_auto_low_rank():
                   n_jobs=n_jobs, method_params=method_params, cv=cv)
 
 
-@slow_test
+@pytest.mark.slowtest
 @requires_sklearn_0_15
 def test_compute_covariance_auto_reg():
     """Test automated regularization."""

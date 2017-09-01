@@ -7,11 +7,12 @@ import copy
 import os.path as op
 
 from nose.tools import assert_equal, assert_true, assert_raises
+import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import (requires_sklearn, requires_sklearn_0_15, slow_test,
+from mne.utils import (requires_sklearn, requires_sklearn_0_15,
                        run_tests_if_main, check_version, use_log_level)
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
@@ -42,7 +43,7 @@ def make_epochs():
     return epochs
 
 
-@slow_test
+@pytest.mark.slowtest
 @requires_sklearn_0_15
 def test_generalization_across_time():
     """Test time generalization decoding

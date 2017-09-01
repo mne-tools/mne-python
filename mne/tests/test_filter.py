@@ -5,6 +5,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
+import pytest
 from scipy.signal import resample as sp_resample, butter
 from scipy.fftpack import fft, fftfreq
 
@@ -15,7 +16,7 @@ from mne.filter import (filter_data, resample, _resample_stim_channels,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
                         estimate_ringing_samples, create_filter, _Interp2)
 
-from mne.utils import (sum_squared, run_tests_if_main, slow_test,
+from mne.utils import (sum_squared, run_tests_if_main,
                        catch_logging, requires_version, _TempDir,
                        requires_mne, run_subprocess)
 
@@ -279,7 +280,7 @@ def test_resample_stim_channel():
 
 
 @requires_version('scipy', '0.16')
-@slow_test
+@pytest.mark.slowtest
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling."""
     sfreq = 100

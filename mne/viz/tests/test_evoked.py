@@ -14,11 +14,12 @@ import warnings
 import numpy as np
 from numpy.testing import assert_raises, assert_equal, assert_allclose
 from nose.tools import assert_true
+import pytest
 
 from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.utils import slow_test, run_tests_if_main
+from mne.utils import run_tests_if_main
 from mne.viz.evoked import (_line_plot_onselect, plot_compare_evokeds,
                             _parametric_ci, _bootstrap_ci, _ci)
 from mne.viz.utils import _fake_click
