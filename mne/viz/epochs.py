@@ -138,7 +138,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     ts_args : dict
         Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
         the evoked plot below the image. Defaults to an empty dictionary,
-        meaning `plot_compare_evokeds` will be called with default parameters.
+        meaning `plot_compare_evokeds` will be called with default parameters
+        (although yaxis truncation will be turned off).
 
     Returns
     -------
