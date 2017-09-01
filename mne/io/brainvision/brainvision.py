@@ -231,13 +231,13 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     # blocks, such as that the filename are specifying are not
     # guaranteed to be ASCII.
 
-    codepage = 'utf-8'
     try:
         # if there is an explicit codepage set, use it
         # we pretend like it's ascii when searching for the codepage
         cp_setting = re.search('Codepage=(.+)',
                                txt.decode('ascii', 'ignore'),
                                re.IGNORECASE & re.MULTILINE)
+        codepage = 'utf-8'
         if cp_setting:
             codepage = cp_setting.group(1).strip()
         # BrainAmp Recorder also uses ANSI codepage
