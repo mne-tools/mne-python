@@ -1617,7 +1617,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ymin, ymax = ylim.get(ch_type, [None, None])
 
     # deal with dict/list of lists and the CI
-    if not (isinstance(ci, np.float) or callable(ci)):
+    if ci is not None and not (isinstance(ci, np.float) or callable(ci)):
         raise TypeError('ci must be float or callable, got ' + str(type(ci)))
 
     scaling = _handle_default("scalings")[ch_type]
@@ -1634,6 +1634,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
     # if we have a dict/list of lists, we compute the grand average and the CI
+    if ci is None:
+        ci = False
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
         if ci is not False:
             if callable(ci):

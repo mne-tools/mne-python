@@ -96,8 +96,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Must be of length three if colorbar is True (with the last list element
         being the colorbar axes) or two if colorbar is False. If both fig and
         axes are passed, an error is raised.
-        If ``group_by`` is a dict, this cannot be a list, but it can be a dict of
-        lists of axes, with the keys matching those of ``group_by``. In that
+        If ``group_by`` is a dict, this cannot be a list, but it can be a dict
+        of lists of axes, with the keys matching those of ``group_by``. In that
         case, the provided axes will be used for the corresponding groups.
         Defaults to None.
     overlay_times : array-like, shape (n_epochs,) | None
