@@ -23,7 +23,7 @@ matrix:
         - env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                OPTION="--doctest-ignore-import-errors"
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar pytest-cov pytest-attrib"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar pytest-cov pytest-attrib nose"
 
         # 3.6 + non-default stim channel
         - env: SPLIT=0 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
@@ -42,26 +42,26 @@ matrix:
         # 2.7
         - env: SPLIT=0
                CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib nose"
         - env: SPLIT=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov pytest-attrib nose"
 
         # Oldest supported dependencies
         - env: SPLIT=0
                CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 pytest"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib nose"
         - env: SPLIT=1
                CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 pytest"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib nose"
 
         # Minimal first half
         - env: SPLIT=0 DEPS=minimial
                CONDA_DEPENDENCIES="numpy scipy matplotlib pytest"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib nose"
         - env: SPLIT=1 DEPS=minimial
                CONDA_DEPENDENCIES="numpy scipy matplotlib pytest"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-attrib nose"
 
 # Setup anaconda
 before_install:
