@@ -22,7 +22,7 @@ matrix:
         # No data + style testing
         - env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                OPTION="--doctest-ignore-import-errors"
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest nose"
                PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar pytest-cov"
 
         # 3.6 + non-default stim channel

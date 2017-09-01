@@ -20,6 +20,8 @@ dependencies:
 - h5py
 - sphinx
 - vtk
+- nose
+- pytest
 - pip:
   - mne
   - mayavi
@@ -28,11 +30,9 @@ dependencies:
   - nilearn
   - neo
   - pillow
-  - nose
-  - pytest
   - pytest-cov
   - pytest-sugar
   - sphinx_bootstrap_theme
   - numpydoc
   - sphinx-gallery
-  - traitsui
+  - "git+https://github.com/enthought/traitsui.git"

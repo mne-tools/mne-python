@@ -119,10 +119,6 @@ def test_kit2fiff_model():
 @requires_mayavi
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""
-    if os.environ.get('TRAVIS_OS_NAME') == 'linux':
-        raise SkipTest("Skipping on Travis for Linux due to GUI error")
-    if os.environ.get('APPVEYOR') == 'True':
-        raise SkipTest("Skipping on AppVeyor due to GUI error")
     home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir

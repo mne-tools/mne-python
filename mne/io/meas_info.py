@@ -59,8 +59,7 @@ def _summarize_str(st):
 def _stamp_to_dt(stamp):
     """Convert timestamp to datetime object in Windows-friendly way."""
     # The min on windows is 86400
-    stamp = np.array(stamp, int)  # usually comes as int32
-    assert stamp.shape == (2,)
+    stamp = [int(s) for s in stamp]
     return (datetime.datetime.utcfromtimestamp(stamp[0]) +
             datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
 

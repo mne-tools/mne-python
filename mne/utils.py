@@ -821,8 +821,10 @@ def requires_module(function, name, call=None):
         try:
             exec(call) in globals(), locals()
         except Exception as exc:
-            raise SkipTest('Test %s skipped, requires %s. Got exception (%s)'
-                           % (function.__name__, name, exc))
+            msg = 'Test %s skipped, requires %s.' % (function.__name__, name)
+            if len(str(exc)) > 0:
+                msg += ' Got exception (%s)' % (exc,)
+            raise SkipTest(msg)
         return function(*args, **kwargs)
     return dec
 
