@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os
+import sys
 from unittest import SkipTest
 import warnings
 
@@ -122,6 +123,9 @@ def test_kit2fiff_gui():
     home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
+    if sys.version[0] == '3' and (os.environ.get('APPVEYOR') == 'True' or
+                                  os.environ.get('TRAVIS') == 'true'):
+        raise SkipTest('traitsui broken on Py3k')
     try:
         with warnings.catch_warnings(record=True):  # traits warnings
             warnings.simplefilter('always')

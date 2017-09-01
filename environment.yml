@@ -35,4 +35,3 @@ dependencies:
   - sphinx_bootstrap_theme
   - numpydoc
   - sphinx-gallery
-  - "git+https://github.com/enthought/traitsui.git"

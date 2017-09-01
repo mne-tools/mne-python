@@ -5,6 +5,8 @@
 import os
 import os.path as op
 import re
+import sys
+from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -146,6 +148,9 @@ def test_coreg_gui():
     home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
+    if sys.version[0] == '3' and (os.environ.get('APPVEYOR') == 'True' or
+                                  os.environ.get('TRAVIS') == 'true'):
+        raise SkipTest('traitsui broken on Py3k')
     try:
         assert_raises(ValueError, mne.gui.coregistration, subject='Elvis',
                       subjects_dir=subjects_dir)
