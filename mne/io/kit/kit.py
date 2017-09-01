@@ -548,8 +548,6 @@ def get_kit_info(rawfile):
         sysid = unpack('i', fid.read(KIT.INT))[0]
         # basic info
         system_name = unpack('128s', fid.read(128))[0].decode()
-        # use first line as shorthand
-        sysname = system_name[:system_name.index('\n')]
         # model name
         model_name = unpack('128s', fid.read(128))[0].decode()
         # channels
