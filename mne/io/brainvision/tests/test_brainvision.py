@@ -61,8 +61,7 @@ warnings.simplefilter('always')
 def test_vhdr_codepage_ansi():
     """Test BV reading with ANSI codepage."""
     raw_init = read_raw_brainvision(vhdr_path, event_id=event_id)
-    # tempdir = _TempDir()
-    tempdir = '/tmp/'
+    tempdir = _TempDir()
     ansi_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
     ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
     ansi_eeg_path = op.join(tempdir, op.split(eeg_path)[-1])
