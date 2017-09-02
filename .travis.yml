@@ -91,7 +91,7 @@ before_install:
 
 install:
     # Need to uninstall the PIP-installed version
-    - if [ -z CONDA_ENVIRONMENT ]; then
+    - if [ ! -z $CONDA_ENVIRONMENT ]; then
         pip uninstall mne;
       fi;
     - python setup.py build
