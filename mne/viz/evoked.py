@@ -1683,14 +1683,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if (ymin is None) and all_positive:
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
-<<<<<<< HEAD
-=======
-    # deal with dict/list of lists and the CI
-    if not isinstance(ci, np.float):
-        msg = '"ci" must be float, got {0} instead.'
-        raise TypeError(msg.format(type(ci)))
-
->>>>>>> tests
     # if we have a dict/list of lists, we compute the grand average and the CI
     if ci is None:
         ci = False
@@ -1764,17 +1756,20 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         split_legend = cmap is not None
     if split_legend is True:
         import matplotlib.lines as mlines
-        legend_lines = list()
+        # mpl 1.3 requires us to split it like this. with recent mpl,
+        # we could use the label parameter of the Line2D
+        legend_lines, legend_labels = list(), list()
         if cmap is None:
             for color in sorted(colors.keys()):
-                l = mlines.Line2D([], [], linestyle="-",
-                                  color=colors[color], label=color)
+                l = mlines.Line2D([], [], linestyle="-", color=colors[color])
                 legend_lines.append(l)
+                legend_labels.append(color)
 
         if len(list(linestyles)) > 1:
             for style, s in linestyles.items():
-                l = mlines.Line2D([], [], color='k', linestyle=s, label=style)
+                l = mlines.Line2D([], [], color='k', linestyle=s)
                 legend_lines.append(l)
+                legend_labels.append(style)
     if cmap is not None:
         for color_value in colors.values():
             try:
@@ -1920,8 +1915,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         legend_params = dict(loc=show_legend, frameon=True)
         if split_legend:
             if len(legend_lines) > 1:
-                axes.legend(handles=legend_lines,
-                           ncol=1 + (len(legend_lines) // 4), **legend_params)
+                axes.legend(legend_lines, legend_labels,  # see above: mpl 1.3
+                            ncol=1 + (len(legend_lines) // 4), **legend_params)
         else:
             axes.legend(ncol=1 + (len(conditions) // 5), **legend_params)
 
