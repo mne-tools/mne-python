@@ -38,6 +38,7 @@ from . import viz
 
 from .externals.six.moves import zip
 from .externals.six import string_types
+from .fixes import BaseEstimator
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -881,7 +882,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
     estimator_cov_info = list()
     msg = 'Estimating covariance using %s'
-    _RegCovariance, _ShrunkCovariance = _get_covariance_classes()
     for this_method in method:
         data_ = data.copy()
         name = this_method.__name__ if callable(this_method) else this_method
@@ -1071,117 +1071,113 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
     return est, runtime_info
 
 
-def _get_covariance_classes():
-    """Prepare special cov estimators."""
-    from sklearn.covariance import (EmpiricalCovariance, shrunk_covariance,
-                                    ShrunkCovariance)
+class _RegCovariance(BaseEstimator):
+    """Aux class."""
 
-    class _RegCovariance(EmpiricalCovariance):
-        """Aux class."""
+    def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
+                 store_precision=False, assume_centered=False):
+        from sklearn.covariance import EmpiricalCovariance
+        self.estimator = EmpiricalCovariance(
+            store_precision=store_precision,
+            assume_centered=assume_centered)
+        self.info = info
+        self.grad = grad
+        self.mag = mag
+        self.eeg = eeg
+        self.store_precision = store_precision
+        self.assume_centered = assume_centered
 
-        def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
-                     store_precision=False, assume_centered=False):
-            self.info = info
-            self.grad = grad
-            self.mag = mag
-            self.eeg = eeg
-            self.store_precision = store_precision
-            self.assume_centered = assume_centered
+    def fit(self, X):
+        self.covariance_ = self.estimator.fit(X).covariance_
+        self.covariance_ = 0.5 * (self.covariance_ + self.covariance_.T)
+        cov_ = Covariance(
+            data=self.covariance_, names=self.info['ch_names'],
+            bads=self.info['bads'], projs=self.info['projs'],
+            nfree=len(self.covariance_))
+        cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
+                          eeg=self.eeg, proj=False,
+                          exclude='bads')  # ~proj == important!!
+        self.estimator.covariance_ = self.covariance_ = cov_.data
 
-        def fit(self, X):
-            EmpiricalCovariance.fit(self, X)
-            self.covariance_ = 0.5 * (self.covariance_ + self.covariance_.T)
-            cov_ = Covariance(
-                data=self.covariance_, names=self.info['ch_names'],
-                bads=self.info['bads'], projs=self.info['projs'],
-                nfree=len(self.covariance_))
-            cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
-                              eeg=self.eeg, proj=False,
-                              exclude='bads')  # ~proj == important!!
-            self.covariance_ = cov_.data
-            return self
+        return self
 
-    class _ShrunkCovariance(ShrunkCovariance):
-        """Aux class."""
+    def score(self, X_test, y=None):
+        """Delegate call to modified EmpiricalCovariance instance."""
+        return self.estimator.score(X_test, y=y)
 
-        def __init__(self, store_precision, assume_centered,
-                     shrinkage=0.1):
-            self.store_precision = store_precision
-            self.assume_centered = assume_centered
-            self.shrinkage = shrinkage
+    def get_precision(self):
+        """Delegate call to modified EmpiricalCovariance instance."""
+        return self.estimator.get_precision()
 
-        def fit(self, X):
-            EmpiricalCovariance.fit(self, X)
-            cov = self.covariance_
 
-            if not isinstance(self.shrinkage, (list, tuple)):
-                shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
-            else:
-                shrinkage = self.shrinkage
+class _ShrunkCovariance(BaseEstimator):
+    """Aux class."""
 
-            zero_cross_cov = np.zeros_like(cov, dtype=bool)
-            for a, b in itt.combinations(shrinkage, 2):
-                picks_i, picks_j = a[2], b[2]
-                ch_ = a[0], b[0]
-                if 'eeg' in ch_:
-                    zero_cross_cov[np.ix_(picks_i, picks_j)] = True
-                    zero_cross_cov[np.ix_(picks_j, picks_i)] = True
+    def __init__(self, store_precision, assume_centered,
+                 shrinkage=0.1):
+        from sklearn.covariance import EmpiricalCovariance
+        self.estimator = EmpiricalCovariance(
+            store_precision=store_precision,
+            assume_centered=assume_centered)
 
-            self.zero_cross_cov_ = zero_cross_cov
+        self.store_precision = store_precision
+        self.assume_centered = assume_centered
+        self.shrinkage = shrinkage
 
-            # Apply shrinkage to blocks
-            for ch_type, c, picks in shrinkage:
-                sub_cov = cov[np.ix_(picks, picks)]
-                cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
-                                                              shrinkage=c)
+    def fit(self, X):
+        from sklearn.covariance import shrunk_covariance
+        cov = self.estimator.fit(X).covariance_
 
-            # Apply shrinkage to cross-cov
-            for a, b in itt.combinations(shrinkage, 2):
-                shrinkage_i, shrinkage_j = a[1], b[1]
-                picks_i, picks_j = a[2], b[2]
-                c_ij = np.sqrt((1. - shrinkage_i) * (1. - shrinkage_j))
-                cov[np.ix_(picks_i, picks_j)] *= c_ij
-                cov[np.ix_(picks_j, picks_i)] *= c_ij
+        if not isinstance(self.shrinkage, (list, tuple)):
+            shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
+        else:
+            shrinkage = self.shrinkage
 
-            # Set to zero the necessary cross-cov
-            if np.any(zero_cross_cov):
-                cov[zero_cross_cov] = 0.0
+        zero_cross_cov = np.zeros_like(cov, dtype=bool)
+        for a, b in itt.combinations(shrinkage, 2):
+            picks_i, picks_j = a[2], b[2]
+            ch_ = a[0], b[0]
+            if 'eeg' in ch_:
+                zero_cross_cov[np.ix_(picks_i, picks_j)] = True
+                zero_cross_cov[np.ix_(picks_j, picks_i)] = True
 
-            self.covariance_ = cov
-            return self
+        self.zero_cross_cov_ = zero_cross_cov
 
-        def score(self, X_test, y=None):
-            """Compute the log-likelihood of a Gaussian data set.
+        # Apply shrinkage to blocks
+        for ch_type, c, picks in shrinkage:
+            sub_cov = cov[np.ix_(picks, picks)]
+            cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
+                                                          shrinkage=c)
 
-            This uses `self.covariance_` as an estimator of the data's
-            covariance matrix.
+        # Apply shrinkage to cross-cov
+        for a, b in itt.combinations(shrinkage, 2):
+            shrinkage_i, shrinkage_j = a[1], b[1]
+            picks_i, picks_j = a[2], b[2]
+            c_ij = np.sqrt((1. - shrinkage_i) * (1. - shrinkage_j))
+            cov[np.ix_(picks_i, picks_j)] *= c_ij
+            cov[np.ix_(picks_j, picks_i)] *= c_ij
 
-            Parameters
-            ----------
-            X_test : array-like, shape = [n_samples, n_features]
-                Test data of which we compute the likelihood, where n_samples
-                is the number of samples and n_features is the number of
-                features. X_test is assumed to be drawn from the same
-                distribution as the data used in fit (including centering).
+        # Set to zero the necessary cross-cov
+        if np.any(zero_cross_cov):
+            cov[zero_cross_cov] = 0.0
 
-            y : not used, present for API consistence purpose.
+        self.estimator.covariance_ = self.covariance_ = cov
+        return self
 
-            Returns
-            -------
-            res : float
-                The likelihood of the data set with `self.covariance_` as an
-                estimator of its covariance matrix.
-            """
-            from sklearn.covariance import empirical_covariance, log_likelihood
-            # compute empirical covariance of the test set
-            test_cov = empirical_covariance(X_test - self.location_,
-                                            assume_centered=True)
-            if np.any(self.zero_cross_cov_):
-                test_cov[self.zero_cross_cov_] = 0.
-            res = log_likelihood(test_cov, self.get_precision())
-            return res
+    def score(self, X_test, y=None):
+        """Delegate to modified EmpiricalCovariance instance."""
+        from sklearn.covariance import empirical_covariance, log_likelihood
+        # compute empirical covariance of the test set
+        test_cov = empirical_covariance(X_test - self.estimator.location_,
+                                        assume_centered=True)
+        if np.any(self.zero_cross_cov_):
+            test_cov[self.zero_cross_cov_] = 0.
+        res = log_likelihood(test_cov, self.estimator.get_precision())
+        return res
 
-    return _RegCovariance, _ShrunkCovariance
+    def get_precision(self):
+        """Delegate to modified EmpiricalCovariance instance."""
+        return self.estimator.get_precision()
 
 
 ###############################################################################

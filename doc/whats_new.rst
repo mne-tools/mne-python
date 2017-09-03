@@ -162,6 +162,8 @@ BUG
 
     - Fix field mapping :func:`mne.make_field_map` and MEG bad channel interpolation functions (e.g., :meth:`mne.Evoked.interpolate_bads`) to choose a better number of components during pseudoinversion when few channels are available, by `Eric Larson`_
 
+    - Fix :func:`mne.compute_covariance` to support multiprocessing for shrinkage estimators by `Denis Engemann`_
+
 API
 ~~~
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
@@ -189,6 +191,8 @@ API
     - Make function `mne.io.eeglab.read_events_eeglab` public to allow loading overlapping events from EEGLAB files, by `Jona Sassenhagen`_.
 
     - :func:`mne.find_events` ``mask_type`` parameter will change from ``'not_and'`` to ``'and'`` in 0.16.
+
+    - :func:`mne.viz.evoked.plot_evoked_white` now exposes a rank parameter to allow manually specifying the spatial degrees of freedom. The function issues a warning when the apparent rank of the covariance differs from the expected rank of the data, as indicated by SSP and SSS processing histories. By `Denis Engemann`_
 
     - Instead of raising an error, duplicate channel names in the data file are now appended with a running number by `Jaakko Leppakangas`_
 
