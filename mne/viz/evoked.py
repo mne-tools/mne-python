@@ -1786,8 +1786,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
         the_colors = cmapper(np.linspace(0, 1, n_colors))
 
-        colors_ = {cond: ind
-                   for cond, ind in zip(colors, color_order)}
+        colors_ = {cond: ind for cond, ind in zip(colors, color_order)}
         colors = dict()
         for cond in evokeds.keys():
             for cond_number, color in colors_.items():
