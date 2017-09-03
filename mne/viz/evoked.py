@@ -24,7 +24,7 @@ from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax, _grad_pair_pick_and_name)
-from ..utils import logger, _clean_names, warn, _pl
+from ..utils import logger, _clean_names, warn, _pl, check_random_state
 from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines
@@ -1352,7 +1352,8 @@ def _parametric_ci(arr, ci=.95):
                        for mean_, sigma_ in zip(mean, sigma)]).T
 
 
-def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, statfun='mean'):
+def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, statfun='mean',
+                  random_state=None):
     """Get confidence intervals from non-parametric bootstrap."""
     if statfun == "mean":
         statfun = lambda x: x.mean(axis=0)  # noqa
@@ -1360,10 +1361,11 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, statfun='mean'):
         statfun = lambda x: np.median(x, axis=0)  # noqa
     elif not callable(statfun):
         raise ValueError("statfun must be 'mean', 'median' or callable.")
-    ntrials, ntimes = arr.shape
-    indices = np.arange(ntrials, dtype=int)  # BCA would be cool to have too
-    boot_indices = np.random.choice(indices, replace=True,
-                                    size=(ntrials, len(indices)))
+    n_trials = arr.shape[0]
+    indices = np.arange(n_trials, dtype=int)  # BCA would be cool to have too
+    rng = check_random_state(random_state)
+    boot_indices = rng.choice(indices, replace=True,
+                                    size=(n_trials, len(indices)))
     stat = np.array([statfun(arr[inds]) for inds in boot_indices])
     ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
     ci_low, ci_up = np.percentile(stat, ci, axis=0)
@@ -1505,9 +1507,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         confidence interval is drawn around the individual time series. If
         float, a percentile bootstrap method is used to estimate the confidence
         interval and this value determines the CI width. E.g., if this value is
-        .95 (the default), the 95% parametric confidence interval is drawn. If
-        a callable, must take as its single argument an array
-        (observations x times) and return the upper and lower confidence bands.
+        .95 (the default), the 95% confidence interval is drawn. If a callable,
+        it must take as its single argument an array (observations x times) and
+        return the upper and lower confidence bands.
         If None, no confidence band is plotted.
     truncate_yaxis : bool
         If True, the left y axis is truncated to half the max absolute value

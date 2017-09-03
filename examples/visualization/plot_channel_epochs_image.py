@@ -75,5 +75,5 @@ plt_times = np.linspace(0, .2, len(epochs))
 
 plt.close('all')
 mne.viz.plot_epochs_image(epochs, [good_pick, bad_pick], sigma=.5,
-                          cmap='magma', order=order_func,
+                          order=order_func, vmin=-250, vmax=250,
                           overlay_times=plt_times, show=True)

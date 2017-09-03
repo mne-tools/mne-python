@@ -33,7 +33,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None, cmap=None, fig=None,
                       axes=None, overlay_times=None, combine=None,
-                      group_by=None, evoked=True, ts_args=dict()):
+                      group_by=None, evoked=True, ts_args=dict(), title=None):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -140,6 +140,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         the evoked plot below the image. Defaults to an empty dictionary,
         meaning `plot_compare_evokeds` will be called with default parameters
         (although yaxis truncation will be turned off).
+    title : None | str
+        If str, will be plotted as figure title. Else, the channels will be
+        indicated.
 
     Returns
     -------
@@ -240,7 +243,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar,
                                                evoked)
         axes_list.append(axes_dict)
-        title = ax_name if isinstance(axes, dict) else name
+        title = ((ax_name if isinstance(axes, dict) else name)
+                 if title is None else title)
         this_fig = _plot_epochs_image(
             epochs_, data, vmin=vmin, vmax=vmax, colorbar=colorbar, show=False,
             unit=units[ch_type], ch_type=ch_type, cmap=cmap,
