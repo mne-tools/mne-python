@@ -40,7 +40,6 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     def __init__(self, base_estimator, scoring=None, n_jobs=1):  # noqa: D102
         _check_estimator(base_estimator)
         self.base_estimator = base_estimator
-        self._estimator_type = getattr(base_estimator, "_estimator_type", None)
         self.n_jobs = n_jobs
         self.scoring = scoring
 
