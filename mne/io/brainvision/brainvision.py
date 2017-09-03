@@ -6,6 +6,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Phillip Alday <phillip.alday@unisa.edu.au>
+#          Okba Bekhelifi <okba.bekhelifi@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -33,7 +34,7 @@ class RawBrainVision(BaseRaw):
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    montage : str | True | None | instance of Montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         read sensor locations if present. See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -230,15 +231,20 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     # blocks, such as that the filename are specifying are not
     # guaranteed to be ASCII.
 
-    codepage = 'utf-8'
     try:
         # if there is an explicit codepage set, use it
         # we pretend like it's ascii when searching for the codepage
         cp_setting = re.search('Codepage=(.+)',
                                txt.decode('ascii', 'ignore'),
                                re.IGNORECASE & re.MULTILINE)
+        codepage = 'utf-8'
         if cp_setting:
             codepage = cp_setting.group(1).strip()
+        # BrainAmp Recorder also uses ANSI codepage
+        # an ANSI codepage raises a LookupError exception
+        # python recognize ANSI decoding as cp1252
+        if codepage == 'ANSI':
+            codepage = 'cp1252'
         txt = txt.decode(codepage)
     except UnicodeDecodeError:
         # if UTF-8 (new standard) or explicit codepage setting fails,
@@ -348,7 +354,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
-    montage : str | True | None | instance of Montage
+    montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         read sensor locations if present. See the documentation of
         :func:`mne.channels.read_montage` for more information.
@@ -388,6 +394,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                                    re.IGNORECASE & re.MULTILINE)
             if cp_setting:
                 codepage = cp_setting.group(1).strip()
+            # BrainAmp Recorder also uses ANSI codepage
+            # an ANSI codepage raises a LookupError exception
+            # python recognize ANSI decoding as cp1252
+            if codepage == 'ANSI':
+                codepage = 'cp1252'
             settings = settings.decode(codepage)
         except UnicodeDecodeError:
             # if UTF-8 (new standard) or explicit codepage setting fails,
@@ -490,15 +501,14 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             # 1: radius, 2: theta, 3: phi
             pol = np.deg2rad(theta)
             az = np.deg2rad(phi)
-            pos = _sph_to_cart(np.atleast_2d([radius * 85., az,
-                                              pol])).squeeze()
-            if np.unique(pos).size == 1 and ch_name not in list(eog) + misc:
+            pos = _sph_to_cart(np.array([[radius * 85., az, pol]]))[0]
+            if (pos == 0).all() and ch_name not in list(eog) + misc:
                 to_misc.append(ch_name)
             montage_pos.append(pos)
         montage_sel = np.arange(len(montage_pos))
         montage = Montage(montage_pos, montage_names, 'Brainvision',
                           montage_sel)
-        if any(to_misc):
+        if len(to_misc) > 0:
             misc += to_misc
             warn('No coordinate information found for channels {}. '
                  'Setting channel types to misc. To avoid this warning, set '

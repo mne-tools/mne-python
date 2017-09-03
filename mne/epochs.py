@@ -1935,7 +1935,7 @@ class EpochsArray(BaseEpochs):
         If None (default), all event values are set to 1 and event time-samples
         are set to range(n_epochs).
     tmin : float
-        Start time before event. If nothing provided, defaults to -0.2.
+        Start time before event. If nothing provided, defaults to 0.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
         the keys can later be used to access associated events. Example:

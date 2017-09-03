@@ -25,6 +25,7 @@ FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
 vmrk_path = op.join(data_dir, 'test.vmrk')
+eeg_path = op.join(data_dir, 'test.eeg')
 
 vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
                                                  'test_partially_disabled'
@@ -55,6 +56,36 @@ eog = ['HL', 'HR', 'Vb']
 event_id = {'Sync On': 5}
 
 warnings.simplefilter('always')
+
+
+def test_vhdr_codepage_ansi():
+    """Test BV reading with ANSI codepage."""
+    raw_init = read_raw_brainvision(vhdr_path, event_id=event_id)
+    tempdir = _TempDir()
+    ansi_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
+    ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
+    ansi_eeg_path = op.join(tempdir, op.split(eeg_path)[-1])
+    # copy data file
+    shutil.copy(eeg_path, ansi_eeg_path)
+    # modify header file
+    with open(ansi_vhdr_path, 'wb') as fout:
+        with open(vhdr_path, 'rb') as fin:
+            for line in fin:
+                # Common Infos section
+                if line.startswith(b'Codepage'):
+                    line = b'Codepage=ANSI\n'
+                fout.write(line)
+    # modify marker file
+    with open(ansi_vmrk_path, 'wb') as fout:
+        with open(vmrk_path, 'rb') as fin:
+            for line in fin:
+                # Common Infos section
+                if line.startswith(b'Codepage'):
+                    line = b'Codepage=ANSI\n'
+                fout.write(line)
+    raw = read_raw_brainvision(ansi_vhdr_path, event_id=event_id)
+    data_new, times_new = raw[:]
+    assert_equal(raw_init.ch_names, raw.ch_names)
 
 
 def test_ascii():
@@ -461,6 +492,13 @@ def test_brainvision_with_montage():
         assert_equal(d['ident'], i)
         assert_equal(d['kind'], FIFF.FIFFV_POINT_EEG)
         assert_equal(len(d['r']), 3)
+
+    raw_none = read_raw_brainvision(vhdr_v2_path)
+    for r, n in zip(raw.info['chs'], raw_none.info['chs']):
+        try:
+            assert_equal(r['kind'], n['kind'])
+        except AssertionError:
+            assert_array_equal(r['loc'], n['loc'])
 
 
 run_tests_if_main()
