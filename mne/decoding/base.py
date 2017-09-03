@@ -60,6 +60,7 @@ class LinearModel(BaseEstimator):
             model = LogisticRegression()
 
         self.model = model
+        self._estimator_type = getattr(model, "_estimator_type", None)
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.

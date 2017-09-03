@@ -58,11 +58,16 @@ def test_get_coef():
     simple and pipeline estimators.
     """
     from sklearn.base import TransformerMixin, BaseEstimator
+    from sklearn.base import is_classifier, is_regressor
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
     from sklearn.linear_model import Ridge, LinearRegression
 
+    lm = LinearModel()
+    assert_true(is_classifier(lm))
+
     lm = LinearModel(Ridge())
+    assert_true(is_regressor(lm))
 
     # Define a classifier, an invertible transformer and an non-invertible one.
 
