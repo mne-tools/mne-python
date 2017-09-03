@@ -2,6 +2,7 @@ environment:
   global:
     PYTHON: "C:\\conda"
     CONDA_ENVIRONMENT: "environment.yml"
+    PIP_DEPENDENCIES: "codecov"
   matrix:
     - PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
@@ -22,5 +23,8 @@ install:
 build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
-  # Run the project tests, but (sadly) exclude ones that take a long time
+  # Run the project tests, but exclude ones that take a very long time
   - "py.test -m \"not ultraslowtest\" mne"
+
+on_success:
+  - "codecov"

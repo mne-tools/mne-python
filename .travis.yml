@@ -26,18 +26,22 @@ matrix:
                PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar pytest-cov"
 
         # 3.6 + non-default stim channel
-        - env: SPLIT=0 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
+        - env: SPLIT=0 MNE_STIM_CHANNEL=STI101
                CONDA_ENVIRONMENT="environment.yml"
-        - env: SPLIT=1 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
+               PIP_DEPENDENCIES="codecov"
+        - env: SPLIT=1 MNE_STIM_CHANNEL=STI101
                CONDA_ENVIRONMENT="environment.yml"
+               PIP_DEPENDENCIES="codecov"
 
         # OSX
         - os: osx
-          env: SPLIT=0
+          env: SPLIT=0 TEST_LOCATION=install
                CONDA_ENVIRONMENT="environment.yml"
+               PIP_DEPENDENCIES="codecov"
         - os: osx
-          env: SPLIT=1
+          env: SPLIT=1 TEST_LOCATION=install
                CONDA_ENVIRONMENT="environment.yml"
+               PIP_DEPENDENCIES="codecov"
 
         # 2.7
         - env: SPLIT=0
@@ -161,9 +165,5 @@ script:
       fi;
 
 after_success:
-    # Need to run from source dir to exectue "git" commands
-    - if [ "${TEST_LOCATION}" == "src" ]; then
-        echo "Running codecov";
-        cd ${SRC_DIR};
-        codecov;
-      fi;
+    - cd ${SRC_DIR};
+    - codecov;
