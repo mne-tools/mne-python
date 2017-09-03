@@ -145,12 +145,12 @@ def test_coreg_model():
 @requires_mayavi
 def test_coreg_gui():
     """Test CoregFrame."""
-    home_dir = _TempDir()
-    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
-    os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
     if sys.version[0] == '3' and (os.environ.get('APPVEYOR') == 'True' or
                                   os.environ.get('TRAVIS') == 'true'):
         raise SkipTest('traitsui broken on Py3k')
+    home_dir = _TempDir()
+    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
+    os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
     try:
         assert_raises(ValueError, mne.gui.coregistration, subject='Elvis',
                       subjects_dir=subjects_dir)
