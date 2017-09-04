@@ -169,6 +169,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         picks = np.atleast_1d(picks)
 
     manual_ylims = "ylim" in ts_args
+    vlines = ts_args.get("vlines", [0.])
 
     # input checks
     if (combine is None and (fig is not None or axes is not None) and
@@ -259,11 +260,19 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             curr_min, curr_max = ylims[ch_type]
             ylims[ch_type] = min(curr_min, this_min), max(curr_max, this_max),
 
-    if evoked is True and not manual_ylims:
+    if evoked is True:  # adjust ylims
         for group, axes_dict in zip(groups, axes_list):
             ch_type = group[1]
-            axes_dict["evoked"].set_ylim(ylims[ch_type])
-
+            ax = axes_dict["evoked"]
+            if not manual_ylims:
+                ax.set_ylim(ylims[ch_type])
+            if epochs_.times[0] < 0 < epochs_.times[-1]:
+                upper_v, lower_v = ylims[ch_type]
+                overlay = (overlay_times.mean(), np.median(overlay_times))
+                for line in vlines
+                    ax.vlines(line, upper_v, lower_v, colors='k',
+                              linestyles='-' if line in overlay  else "--",
+                              linewidth=2. if line in overlay else 1.)
     plt_show(show)
     return figs
 
@@ -417,6 +426,8 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
     ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0], title='',
                     truncate_yaxis=False, truncate_xaxis=False, show=False)
     ts_args_.update(**ts_args)
+    if "vlines" in ts_args_:
+        del ts_args_["vlines"]
 
     return [data * scaling, overlay_times, vmin * scaling, vmax * scaling,
             ts_args_]
@@ -488,7 +499,7 @@ def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
         from mne.viz import plot_compare_evokeds
         plot_compare_evokeds(
             {"cond": list(epochs.iter_evoked())}, axes=axes_dict["evoked"],
-            **ts_args)
+            vlines=[], **ts_args)
         axes_dict["evoked"].set_xlim(epochs.times[[0, -1]])
         ax.set_xticks(())
 
