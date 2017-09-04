@@ -1365,7 +1365,7 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, statfun='mean',
     indices = np.arange(n_trials, dtype=int)  # BCA would be cool to have too
     rng = check_random_state(random_state)
     boot_indices = rng.choice(indices, replace=True,
-                                    size=(n_trials, len(indices)))
+                              size=(n_trials, len(indices)))
     stat = np.array([statfun(arr[inds]) for inds in boot_indices])
     ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
     ci_low, ci_up = np.percentile(stat, ci, axis=0)
