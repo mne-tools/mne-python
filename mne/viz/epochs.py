@@ -169,7 +169,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         picks = np.atleast_1d(picks)
 
     manual_ylims = "ylim" in ts_args
-    vlines = ts_args.get("vlines", [0.])
+    vlines = ts_args.get(
+        "vlines", [0] if (epochs.times[0] < 0 < epochs.times[-1]) else [])
 
     # input checks
     if (combine is None and (fig is not None or axes is not None) and
@@ -266,7 +267,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             ax = axes_dict["evoked"]
             if not manual_ylims:
                 ax.set_ylim(ylims[ch_type])
-            if epochs_.times[0] < 0 < epochs_.times[-1]:
+            if len(vlines) > 0:
                 upper_v, lower_v = ylims[ch_type]
                 if overlay_times is not None:
                     overlay = {overlay_times.mean(), np.median(overlay_times)}
