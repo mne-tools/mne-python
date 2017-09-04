@@ -274,7 +274,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                     overlay = {}
                 for line in vlines:
                     ax.vlines(line, upper_v, lower_v, colors='k',
-                              linestyles='-' if line in overlay  else "--",
+                              linestyles='-' if line in overlay else "--",
                               linewidth=2. if line in overlay else 1.)
     plt_show(show)
     return figs
