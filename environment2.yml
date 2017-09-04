@@ -3,7 +3,7 @@ channels:
 - conda-forge
 - defaults
 dependencies:
-- python=2.7.12=1
+- python=2.7
 - pip
 - mkl
 - numpy
@@ -11,7 +11,6 @@ dependencies:
 - matplotlib
 - pyqt=4.11.4
 - qt=4.8.7
-- tk=8.5.18=0
 - traits=4.4.0=py27_0
 - traitsui=4.4.0=py27_0
 - traitlets=4.3.2=py27_0
@@ -27,6 +26,7 @@ dependencies:
 - vtk
 - nose
 - pytest
+- spyder
 - pip:
   - mne
   - "git+https://github.com/nipy/PySurfer.git"

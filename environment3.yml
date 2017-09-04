@@ -22,6 +22,7 @@ dependencies:
 - vtk
 - nose
 - pytest
+- spyder
 - pip:
   - mne
   - mayavi

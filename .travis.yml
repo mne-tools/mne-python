@@ -137,7 +137,6 @@ install:
         COVERAGE=--with-coverage;
       fi;
 
-
 script:
     - echo "Print locale "
     - locale
@@ -148,6 +147,7 @@ script:
       else
         CONDITION='not ultraslowtest';
       fi;
+    - python -c "import mne; print(mne.sys_info())"
     # Determine directories to test
     - if [ "${MNE_DIRS}" != "" ]; then
         USE_DIRS="";

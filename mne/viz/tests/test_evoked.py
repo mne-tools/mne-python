@@ -73,7 +73,7 @@ def _get_epochs_delayed_ssp():
     return epochs_delayed_ssp
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_plot_evoked():
     """Test plotting of evoked."""
     import matplotlib.pyplot as plt
