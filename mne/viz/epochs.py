@@ -265,8 +265,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         for group, axes_dict in zip(groups, axes_list):
             ch_type = group[1]
             ax = axes_dict["evoked"]
-            if not manual_ylims:
-                ax.set_ylim(ylims[ch_type])
             if len(vlines) > 0:
                 upper_v, lower_v = ylims[ch_type]
                 if overlay_times is not None:
@@ -277,6 +275,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                     ax.vlines(line, upper_v, lower_v, colors='k',
                               linestyles='-' if line in overlay else "--",
                               linewidth=2. if line in overlay else 1.)
+            if not manual_ylims:
+                ax.set_ylim(ylims[ch_type])
+
     plt_show(show)
     return figs
 
