@@ -1,7 +1,7 @@
 environment:
   global:
     PYTHON: "C:\\conda"
-    CONDA_ENVIRONMENT: "environment.yml"
+    CONDA_ENVIRONMENT: "environment2.yml"
     PIP_DEPENDENCIES: "codecov"
   matrix:
     - PYTHON_VERSION: "2.7"

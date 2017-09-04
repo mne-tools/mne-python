@@ -1,10 +1,9 @@
-name: mne
+name: mne27
 channels:
-- defaults
 - conda-forge
-- clinicalgraphics  # for vtk
+- defaults
 dependencies:
-- python=3.6
+- python=2.7.12=1
 - pip
 - mkl
 - numpy
@@ -12,6 +11,12 @@ dependencies:
 - matplotlib
 - pyqt=4.11.4
 - qt=4.8.7
+- tk=8.5.18=0
+- traits=4.4.0=py27_0
+- traitsui=4.4.0=py27_0
+- traitlets=4.3.2=py27_0
+- vtk=5.10.1=py27_0
+- mayavi=4.4.0=np19py27_0
 - pandas
 - scikit-learn
 - jupyter
@@ -24,7 +29,6 @@ dependencies:
 - pytest
 - pip:
   - mne
-  - mayavi
   - "git+https://github.com/nipy/PySurfer.git"
   - nibabel
   - nilearn

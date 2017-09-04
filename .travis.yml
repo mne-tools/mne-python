@@ -23,33 +23,33 @@ matrix:
         - env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                OPTION="--doctest-ignore-import-errors"
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest nose"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar pytest-cov"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-cov"
 
         # 3.6 + non-default stim channel
         - env: SPLIT=0 MNE_STIM_CHANNEL=STI101
-               CONDA_ENVIRONMENT="environment.yml"
+               CONDA_ENVIRONMENT="environment3.yml"
                PIP_DEPENDENCIES="codecov"
         - env: SPLIT=1 MNE_STIM_CHANNEL=STI101
-               CONDA_ENVIRONMENT="environment.yml"
+               CONDA_ENVIRONMENT="environment3.yml"
                PIP_DEPENDENCIES="codecov"
 
         # OSX
         - os: osx
           env: SPLIT=0 TEST_LOCATION=install
-               CONDA_ENVIRONMENT="environment.yml"
+               CONDA_ENVIRONMENT="environment3.yml"
                PIP_DEPENDENCIES="codecov"
         - os: osx
           env: SPLIT=1 TEST_LOCATION=install
-               CONDA_ENVIRONMENT="environment.yml"
+               CONDA_ENVIRONMENT="environment3.yml"
                PIP_DEPENDENCIES="codecov"
 
         # 2.7
         - env: SPLIT=0
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest nose"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov"
+               CONDA_ENVIRONMENT="environment2.yml"
+               PIP_DEPENDENCIES="codecov"
         - env: SPLIT=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest nose"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime joblib nibabel codecov pytest-sugar pytest-cov"
+               CONDA_ENVIRONMENT="environment2.yml"
+               PIP_DEPENDENCIES="codecov"
 
         # Oldest supported dependencies
         - env: SPLIT=0
