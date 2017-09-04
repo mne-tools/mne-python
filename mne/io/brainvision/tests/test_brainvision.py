@@ -495,9 +495,7 @@ def test_brainvision_with_montage():
 
     raw_none = read_raw_brainvision(vhdr_v2_path)
     for r, n in zip(raw.info['chs'], raw_none.info['chs']):
-        try:
-            assert_equal(r['kind'], n['kind'])
-        except AssertionError:
+        if r['kind'] != n['kind']:
             assert_array_equal(r['loc'], n['loc'])
 
 
