@@ -268,7 +268,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 ax.set_ylim(ylims[ch_type])
             if epochs_.times[0] < 0 < epochs_.times[-1]:
                 upper_v, lower_v = ylims[ch_type]
-                overlay = (overlay_times.mean(), np.median(overlay_times))
+                if overlay_times is not None:
+                    overlay = {overlay_times.mean(), np.median(overlay_times)}
+                else:
+                    overlay = {}
                 for line in vlines:
                     ax.vlines(line, upper_v, lower_v, colors='k',
                               linestyles='-' if line in overlay  else "--",
