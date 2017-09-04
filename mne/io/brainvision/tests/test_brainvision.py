@@ -484,4 +484,19 @@ def test_events():
     assert_equal(raw.info['chs'][-1]['ch_name'], 'STI 014')
 
 
+def test_brainvision_with_montage():
+    """Test reading embedded montage information"""
+    raw = read_raw_brainvision(vhdr_v2_path, eog=eog, misc=['ReRef'])
+    for i, d in enumerate(raw.info['dig'], 1):
+        assert_equal(d['coord_frame'], FIFF.FIFFV_COORD_HEAD)
+        assert_equal(d['ident'], i)
+        assert_equal(d['kind'], FIFF.FIFFV_POINT_EEG)
+        assert_equal(len(d['r']), 3)
+
+    raw_none = read_raw_brainvision(vhdr_v2_path)
+    for r, n in zip(raw.info['chs'], raw_none.info['chs']):
+        if r['kind'] != n['kind']:
+            assert_array_equal(r['loc'], n['loc'])
+
+
 run_tests_if_main()

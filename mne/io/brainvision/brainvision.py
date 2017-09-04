@@ -35,8 +35,8 @@ class RawBrainVision(BaseRaw):
     vhdr_fname : str
         Path to the EEG header file.
     montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
+        Path or instance of montage containing electrode positions. If None,
+        read sensor locations if present. See the documentation of
         :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
@@ -354,9 +354,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
-    montage : str | True | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions. If None,
+        read sensor locations if present. See the documentation of
         :func:`mne.channels.read_montage` for more information.
 
     Returns
@@ -488,20 +488,31 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
     # create montage
-    if montage is True:
-        from ...transforms import _sphere_to_cartesian
+    if cfg.has_section('Coordinates') and montage is None:
+        from ...transforms import _sph_to_cart
         from ...channels.montage import Montage
         montage_pos = list()
         montage_names = list()
+        to_misc = list()
         for ch in cfg.items('Coordinates'):
-            montage_names.append(ch_dict[ch[0]])
+            ch_name = ch_dict[ch[0]]
+            montage_names.append(ch_name)
             radius, theta, phi = map(float, ch[1].split(','))
             # 1: radius, 2: theta, 3: phi
-            pos = _sphere_to_cartesian(r=radius, theta=theta, phi=phi)
+            pol = np.deg2rad(theta)
+            az = np.deg2rad(phi)
+            pos = _sph_to_cart(np.array([[radius * 85., az, pol]]))[0]
+            if (pos == 0).all() and ch_name not in list(eog) + misc:
+                to_misc.append(ch_name)
             montage_pos.append(pos)
         montage_sel = np.arange(len(montage_pos))
         montage = Montage(montage_pos, montage_names, 'Brainvision',
                           montage_sel)
+        if len(to_misc) > 0:
+            misc += to_misc
+            warn('No coordinate information found for channels {}. '
+                 'Setting channel types to misc. To avoid this warning, set '
+                 'channel types explicitly.'.format(to_misc))
 
     ch_names[-1] = 'STI 014'
     cals[-1] = 1.
