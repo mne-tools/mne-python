@@ -129,16 +129,32 @@ def test_plot_epochs_image():
     epochs = _get_epochs()
     epochs.plot_image(picks=[1, 2])
     overlay_times = [0.1]
-    epochs.plot_image(order=[0], overlay_times=overlay_times, vmin=0.01)
-    epochs.plot_image(overlay_times=overlay_times, vmin=-0.001, vmax=0.001)
+    epochs.plot_image(picks=[1], order=[0], overlay_times=overlay_times,
+                      vmin=0.01, title="test"
+                      )
+    epochs.plot_image(picks=[1], overlay_times=overlay_times, vmin=-0.001,
+                      vmax=0.001)
     assert_raises(ValueError, epochs.plot_image,
-                  overlay_times=[0.1, 0.2])
+                  picks=[1], overlay_times=[0.1, 0.2])
     assert_raises(ValueError, epochs.plot_image,
-                  order=[0, 1])
+                  picks=[1], order=[0, 1])
+    assert_raises(ValueError, epochs.plot_image, axes=dict(), group_by=list(),
+                  combine='mean')
+    assert_raises(ValueError, epochs.plot_image, axes=list(), group_by=dict(),
+                  combine='mean')
+    assert_raises(ValueError, epochs.plot_image, combine='error', picks=[1, 2])
+    assert_raises(ValueError, epochs.plot_image, units={"hi": 1},
+                  scalings={"ho": 1})
+    epochs.load_data().pick_types(meg='mag')
+    epochs.plot_image(group_by='type', combine='mean')
+    epochs.plot_image(group_by={"1": [1, 2], "2": [1, 2]}, combine='mean')
+    epochs.plot_image(vmin=lambda x: x.min())
+    assert_raises(ValueError, epochs.plot_image, axes=1, fig=2)
     with warnings.catch_warnings(record=True) as w:
-        epochs.plot_image(overlay_times=[1.1])
+        epochs.plot_image(overlay_times=[1.1], combine="gfp")
+        assert_raises(ValueError, epochs.plot_image, combine='error')
         warnings.simplefilter('always')
-    assert_equal(len(w), 1)
+    assert_equal(len(w), 4)
 
     plt.close('all')
 

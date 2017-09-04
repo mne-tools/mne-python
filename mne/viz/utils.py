@@ -2142,12 +2142,16 @@ def _set_ax_facecolor(ax, face_color):
 
 
 def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
-                     ymax_bound=None, unit=None):
-    y_range = -np.subtract(*axes.get_ylim())
+                     ymax_bound=None, unit=None, truncate_xaxis=True):
+    ymin, ymax = axes.get_ylim()
+    y_range = -np.subtract(ymin, ymax)
 
     # style the spines/axes
     axes.spines["top"].set_position('zero')
-    axes.spines["top"].set_smart_bounds(True)
+    if truncate_xaxis is True:
+        axes.spines["top"].set_smart_bounds(True)
+    else:
+        axes.spines['top'].set_bounds(tmin, tmax)
 
     axes.tick_params(direction='out')
     axes.tick_params(right="off")
@@ -2160,7 +2164,7 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
 
     # set y label and ylabel position
     if unit is not None:
-        axes.set_ylabel(unit, rotation=0)
+        axes.set_ylabel(unit + "\n", rotation=90)
         ylabel_height = (-(current_ymin / y_range)
                          if 0 > current_ymin  # ... if we have negative values
                          else (axes.get_yticks()[-1] / 2 / y_range))
@@ -2171,7 +2175,12 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
     axes.set_xticks(xticks)
     axes.set_xticklabels(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
-    axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    if truncate_xaxis is True:
+        axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    else:
+        axes.spines['bottom'].set_bounds(tmin, tmax)
+    if ymin >= 0:
+        axes.spines["top"].set_color('none')
     axes.spines["left"].set_zorder(0)
 
     # finishing touches
@@ -2179,6 +2188,9 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.invert_yaxis()
     axes.spines['right'].set_color('none')
     axes.set_xlim(tmin, tmax)
+    if truncate_xaxis is False:
+        axes.axis("tight")
+        axes.set_autoscale_on(False)
 
 
 def _handle_decim(info, decim, lowpass):
@@ -2197,3 +2209,18 @@ def _handle_decim(info, decim, lowpass):
     decim = _check_decim(info, decim, 0)[0]
     data_picks = _pick_data_channels(info, exclude=())
     return decim, data_picks
+
+
+def _grad_pair_pick_and_name(info, picks):
+    """Deal with grads. (Helper for a few viz functions)."""
+    from ..channels.layout import _pair_grad_sensors
+    picked_chans = list()
+    pairpicks = _pair_grad_sensors(info, topomap_coords=False)
+    for ii in np.arange(0, len(pairpicks), 2):
+        first, second = pairpicks[ii], pairpicks[ii + 1]
+        if first in picks or second in picks:
+            picked_chans.append(first)
+            picked_chans.append(second)
+    picks = list(sorted(set(picked_chans)))
+    ch_names = [info["ch_names"][pick] for pick in picks]
+    return picks, ch_names
