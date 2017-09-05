@@ -99,7 +99,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         If ``group_by`` is a dict, this cannot be a list, but it can be a dict
         of lists of axes, with the keys matching those of ``group_by``. In that
         case, the provided axes will be used for the corresponding groups.
-        Defaults to None.
+        Defaults to `None`.
     overlay_times : array-like, shape (n_epochs,) | None
         If not None the parameter is interpreted as time instants in seconds
         and is added to the image. It is typically useful to display reaction
@@ -112,12 +112,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         standard deviation or the GFP over channels are plotted.
         array (n_epochs, n_times).
         If callable, it must accept one positional input, the data
-        in the format (n_epochs, n_channels, n_times). It must return an
-        array (n_epochs, n_times). For example::
+        in the format `(n_epochs, n_channels, n_times)`. It must return an
+        array `(n_epochs, n_times)`. For example::
 
-            combine = lambda data: np.median(data, 1)
+            combine = lambda data: np.median(data, axis=1)
 
-        Defaults to None if picks are given, otherwise 'gfp'.
+        Defaults to `None` if picks are provided, otherwise 'gfp'.
     group_by : None | str | dict
         If not None, combining happens over channel groups defined by this
         parameter.
@@ -130,8 +130,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
             group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
-        If not None, combine must not be None. Defaults to None if picks are
-        given, otherwise 'type'.
+        If not None, combine must not be None. Defaults to `None` if picks are
+        provided, otherwise 'type'.
 
     evoked : Bool
         Draw the ER[P/F] below the image or not.
@@ -139,7 +139,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
         the evoked plot below the image. Defaults to an empty dictionary,
         meaning `plot_compare_evokeds` will be called with default parameters
-        (although yaxis truncation will be turned off).
+        (yaxis truncation will be turned off).
     title : None | str
         If str, will be plotted as figure title. Else, the channels will be
         indicated.
@@ -265,6 +265,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         for group, axes_dict in zip(groups, axes_list):
             ch_type = group[1]
             ax = axes_dict["evoked"]
+            if not manual_ylims:
+                ax.set_ylim(ylims[ch_type])
             if len(vlines) > 0:
                 upper_v, lower_v = ylims[ch_type]
                 if overlay_times is not None:
@@ -275,8 +277,6 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                     ax.vlines(line, upper_v, lower_v, colors='k',
                               linestyles='-' if line in overlay else "--",
                               linewidth=2. if line in overlay else 1.)
-            if not manual_ylims:
-                ax.set_ylim(ylims[ch_type])
 
     plt_show(show)
     return figs
