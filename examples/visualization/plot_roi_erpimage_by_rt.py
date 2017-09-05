@@ -67,5 +67,5 @@ for pick, channel in enumerate(epochs.ch_names):
 # The actual plots
 for combine_measures in ('gfp', 'median'):
     epochs.plot_image(group_by=rois, order=order, overlay_times=rts / 1000.,
-                      vmin=lambda x: x.min(), sigma=1.5,
-                      combine=combine_measures)
+                      sigma=1.5, combine=combine_measures,
+                      ts_args=dict(vlines=[0, rts.mean() / 1000.]))
