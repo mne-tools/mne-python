@@ -36,8 +36,9 @@ class RawBrainVision(BaseRaw):
         Path to the EEG header file.
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
-        read sensor locations if present. See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+        read sensor locations from header file if present, otherwise (0, 0, 0).
+        See the documentation of :func:`mne.channels.read_montage` for more
+        information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
@@ -356,8 +357,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         header file, units are in microvolts. Default scale factor is 1.
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
-        read sensor locations if present. See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+        read sensor locations from header file if present, otherwise (0, 0, 0).
+        See the documentation of :func:`mne.channels.read_montage` for more
+        information.
 
     Returns
     -------
