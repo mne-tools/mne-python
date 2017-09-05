@@ -14,7 +14,6 @@ env:
             SPLIT_0=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
             SPLIT_1="minimum_norm preprocessing realtime simulation stats time_frequency viz"
             TRAVIS_PYTHON_VERSION=3.6
-            SETUP_XVFB=True
 os: linux
 
 matrix:
@@ -92,6 +91,9 @@ before_install:
       else
         MNE_DIRS="";
       fi
+    - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+      fi;
 
 install:
     # Need to uninstall the PIP-installed version

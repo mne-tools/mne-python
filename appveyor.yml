@@ -19,7 +19,7 @@ install:
   - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
   - "SET MNE_LOGGING_LEVEL=warning"
   - "python -c \"import mne; mne.datasets.testing.data_path()\""
-  - "python -c \"print(mne.sys_info())\""
+  - "python -c \"import mne; print(mne.sys_info())\""
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
