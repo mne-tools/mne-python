@@ -15,7 +15,6 @@ install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "activate test"
   - "python setup.py develop"
-  - "SET MNE_SKIP_NETWORK_TESTS=1"
   - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
   - "SET MNE_LOGGING_LEVEL=warning"
   - "python -c \"import mne; mne.datasets.testing.data_path()\""
