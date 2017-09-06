@@ -222,7 +222,7 @@ def test_simulate_raw_bem():
     cov = make_ad_hoc_cov(raw.info)
     # The tolerance for the BEM is surprisingly high (28) but I get the same
     # result when using MNE-C and Xfit, even when using a proper 5120 BEM :(
-    for use_raw, bem, tol in ((raw_sim_sph, sphere, 1),
+    for use_raw, bem, tol in ((raw_sim_sph, sphere, 2),
                               (raw_sim_bem, bem_fname, 31)):
         events = find_events(use_raw, 'STI 014')
         assert_equal(len(locs), 6)
