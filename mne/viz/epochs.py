@@ -245,12 +245,12 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar,
                                                evoked)
         axes_list.append(axes_dict)
-        title = ((ax_name if isinstance(axes, dict) else name)
+        title_ = ((ax_name if isinstance(axes, dict) else name)
                  if title is None else title)
         this_fig = _plot_epochs_image(
             epochs_, data, vmin=vmin, vmax=vmax, colorbar=colorbar, show=False,
             unit=units[ch_type], ch_type=ch_type, cmap=cmap,
-            axes_dict=axes_dict, title=title, overlay_times=overlay_times,
+            axes_dict=axes_dict, title=title_, overlay_times=overlay_times,
             evoked=evoked, ts_args=ts_args)
         figs.append(this_fig)
 
