@@ -18,9 +18,8 @@ from nose.tools import assert_true
 from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.utils import slow_test, run_tests_if_main
-from mne.viz.evoked import (_line_plot_onselect, plot_compare_evokeds,
-                            _parametric_ci, _bootstrap_ci, _ci)
+from mne.utils import slow_test, run_tests_if_main, _parametric_ci
+from mne.viz.evoked import (_line_plot_onselect, plot_compare_evokeds)
 from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
@@ -165,13 +164,6 @@ def test_plot_evoked():
         contrast["blue/stim"] = blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
                              ylim=dict(mag=(1, 10)), ci=_parametric_ci)
-        # isolated test of CI functions
-        arr = np.linspace(0, 1, 1000)[..., np.newaxis]
-        assert_allclose(_ci(arr, method="parametric"),
-                        _ci(arr, method="bootstrap"), rtol=.005)
-        assert_allclose(_bootstrap_ci(arr, statfun="median", random_state=0),
-                        _bootstrap_ci(arr, statfun="mean", random_state=0),
-                        rtol=.1)
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()

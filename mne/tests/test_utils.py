@@ -28,7 +28,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _get_call_line, compute_corr, sys_info, verbose,
                        check_fname, requires_ftp, get_config_path,
                        object_size, buggy_mkl_svd, _get_inst_data,
-                       copy_doc, copy_function_doc_to_method_doc, ProgressBar)
+                       copy_doc, copy_function_doc_to_method_doc, ProgressBar,
+                       _ci, _bootstrap_ci)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -788,5 +789,15 @@ def test_open_docs():
         assert_raises(ValueError, open_docs, 'api', 'foo')
     finally:
         webbrowser.open_new_tab = old_tab
+
+
+def test_ci():
+    # isolated test of CI functions
+    arr = np.linspace(0, 1, 1000)[..., np.newaxis]
+    assert_allclose(_ci(arr, method="parametric"),
+                    _ci(arr, method="bootstrap"), rtol=.005)
+    assert_allclose(_bootstrap_ci(arr, statfun="median", random_state=0),
+                    _bootstrap_ci(arr, statfun="mean", random_state=0),
+                    rtol=.1)
 
 run_tests_if_main()
