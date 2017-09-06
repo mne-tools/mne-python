@@ -246,7 +246,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                                                evoked)
         axes_list.append(axes_dict)
         title_ = ((ax_name if isinstance(axes, dict) else name)
-                 if title is None else title)
+                  if title is None else title)
         this_fig = _plot_epochs_image(
             epochs_, data, vmin=vmin, vmax=vmax, colorbar=colorbar, show=False,
             unit=units[ch_type], ch_type=ch_type, cmap=cmap,
