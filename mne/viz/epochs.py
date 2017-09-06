@@ -496,6 +496,8 @@ def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
     ax.set_ylabel('Epochs')
     ax.axis('auto')
     ax.axis('tight')
+    if overlay_times is not None:
+        ax.set_xlim(1e3 * epochs.times[0], 1e3 * epochs.times[-1])
     ax.axvline(0, color='k', linewidth=1, linestyle='--')
 
     # draw the evoked
