@@ -21,6 +21,7 @@ from mne.io import read_raw_fif
 from mne.utils import slow_test, run_tests_if_main
 from mne.viz.evoked import _line_plot_onselect, plot_compare_evokeds
 from mne.viz.utils import _fake_click
+from mne.stats import _parametric_ci
 
 # Set our plotters to test mode
 import matplotlib
