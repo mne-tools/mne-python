@@ -47,7 +47,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import somato
 from mne.baseline import rescale
-from mne.utils import _bootstrap_ci
+from mne.stats import _bootstrap_ci
 
 ###############################################################################
 # Set parameters
