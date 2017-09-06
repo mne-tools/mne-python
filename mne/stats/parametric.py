@@ -336,3 +336,16 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
 
     # handle single effect returns
     return [np.squeeze(np.asarray(vv)) for vv in (fvalues, pvalues)]
+
+
+def _parametric_ci(arr, ci=.95):
+    """Calculate the `ci`% parametric confidence interval for `arr`."""
+    from scipy import stats
+    mean, sigma = arr.mean(0), stats.sem(arr, 0)
+    # This is highly convoluted to support 17th century Scipy
+    # XXX Fix when Scipy 0.12 support is dropped!
+    # then it becomes just:
+    # return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
+    return np.asarray([stats.t.interval(ci, arr.shape[0],
+                       loc=mean_, scale=sigma_)
+                       for mean_, sigma_ in zip(mean, sigma)]).T

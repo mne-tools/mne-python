@@ -790,14 +790,4 @@ def test_open_docs():
     finally:
         webbrowser.open_new_tab = old_tab
 
-
-def test_ci():
-    # isolated test of CI functions
-    arr = np.linspace(0, 1, 1000)[..., np.newaxis]
-    assert_allclose(_ci(arr, method="parametric"),
-                    _ci(arr, method="bootstrap"), rtol=.005)
-    assert_allclose(_bootstrap_ci(arr, statfun="median", random_state=0),
-                    _bootstrap_ci(arr, statfun="mean", random_state=0),
-                    rtol=.1)
-
 run_tests_if_main()

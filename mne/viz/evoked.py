@@ -24,7 +24,7 @@ from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax, _grad_pair_pick_and_name)
-from ..utils import logger, _clean_names, warn, _pl, _ci
+from ..utils import logger, _clean_names, warn, _pl
 from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines
@@ -1602,6 +1602,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             if callable(ci):
                 _ci_fun = ci
             else:
+                from ..stats import _ci
                 _ci_fun = partial(_ci, ci=ci, method="bootstrap")
             # calculate the CI
             ci_array = dict()

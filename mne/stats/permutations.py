@@ -8,6 +8,7 @@
 from math import sqrt
 import numpy as np
 
+from ..utils import check_random_state
 from ..parallel import parallel_func
 from .. import verbose
 
@@ -149,3 +150,33 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     return T_obs, p_values, H0
 
 permutation_t_test.__test__ = False  # for nosetests
+
+
+def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, statfun='mean',
+                  random_state=None):
+    """Get confidence intervals from non-parametric bootstrap."""
+    if statfun == "mean":
+        statfun = lambda x: x.mean(axis=0)  # noqa
+    elif statfun == 'median':
+        statfun = lambda x: np.median(x, axis=0)  # noqa
+    elif not callable(statfun):
+        raise ValueError("statfun must be 'mean', 'median' or callable.")
+    n_trials = arr.shape[0]
+    indices = np.arange(n_trials, dtype=int)  # BCA would be cool to have too
+    rng = check_random_state(random_state)
+    boot_indices = rng.choice(indices, replace=True,
+                              size=(n_trials, len(indices)))
+    stat = np.array([statfun(arr[inds]) for inds in boot_indices])
+    ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
+    ci_low, ci_up = np.percentile(stat, ci, axis=0)
+    return np.array([ci_low, ci_up])
+
+
+def _ci(arr, ci=.95, method="bootstrap", n_bootstraps=2000, random_state=None):
+    """Calculate confidence interval. Aux function for plot_compare_evokeds."""
+    if method == "bootstrap":
+        return _bootstrap_ci(arr, ci=ci, n_bootstraps=n_bootstraps,
+                             random_state=random_state)
+    else:
+        from . import _parametric_ci
+        return _parametric_ci(arr, ci=ci)

@@ -95,7 +95,7 @@ Changelog
 
     - Extend :func:`mne.viz.plot_epochs_image`/:meth:`mne.Epochs.plot_image` with regards to grouping by or aggregating over channels. See the new example at `examples/visualization/plot_roi_erpimage_by_rt.py` by `Jona Sassenhagen`_
 
-    - Add bootstrapped confidence intervals to :func:`mne.viz.plot_compare_evokeds` (that can for now also be accessed as :func:`mne.utils._boostrap_ci`) by `Jona Sassenhagen`_ and `Denis Engemann`_
+    - Add bootstrapped confidence intervals to :func:`mne.viz.plot_compare_evokeds` (that can for now also be accessed as :func:`mne.stats._boostrap_ci`) by `Jona Sassenhagen`_ and `Denis Engemann`_
 
 BUG
 ~~~
