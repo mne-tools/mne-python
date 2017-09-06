@@ -12,7 +12,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises, assert_equal, assert_allclose
+from numpy.testing import assert_raises, assert_equal
 from nose.tools import assert_true
 
 from mne import read_events, Epochs, pick_types, read_cov
