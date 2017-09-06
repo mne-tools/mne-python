@@ -183,7 +183,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
                                                      count=1)[0]
 
-        data_size = event_offset - (900 + 75 * n_channels)
+        if event_offset < data_offset:  # no events
+            data_size = n_samples * n_channels
+        else:
+            data_size = event_offset - (data_offset + 75 * n_channels)
         if data_format == 'auto':
             if (n_samples == 0 or
                     data_size // (n_samples * n_channels) not in [2, 4]):
@@ -228,17 +231,20 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             cal = np.fromfile(fid, dtype='f4', count=1)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
-        fid.seek(event_offset)
-        event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
-        event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
-        if event_type == 1:
-            event_bytes = 8
-        elif event_type in (2, 3):
-            event_bytes = 19
+        if event_offset > data_offset:
+            fid.seek(event_offset)
+            event_type = np.fromfile(fid, dtype='<i1', count=1)[0]
+            event_size = np.fromfile(fid, dtype='<i4', count=1)[0]
+            if event_type == 1:
+                event_bytes = 8
+            elif event_type in (2, 3):
+                event_bytes = 19
+            else:
+                raise IOError('Unexpected event size.')
+            n_events = event_size // event_bytes
         else:
-            raise IOError('Unexpected event size.')
+            n_events = 0
 
-        n_events = event_size // event_bytes
         stim_channel = np.zeros(n_samples)  # Construct stim channel
         for i in range(n_events):
             fid.seek(event_offset + 9 + i * event_bytes)
