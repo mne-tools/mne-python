@@ -22,7 +22,7 @@ def make_data():
     return X, y
 
 
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.17')
 def test_search_light():
     """Test SlidingEstimator"""
     from sklearn.linear_model import Ridge, LogisticRegression
@@ -140,7 +140,7 @@ def test_search_light():
     assert_array_equal(y_preds[0], y_preds[1])
 
 
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.17')
 def test_generalization_light():
     """Test GeneralizingEstimator"""
     from sklearn.pipeline import make_pipeline

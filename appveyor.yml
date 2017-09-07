@@ -6,6 +6,9 @@ environment:
   matrix:
     - PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
+    - PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "64"
+
 cache:
   - "C:\\Users\\appveyor\\AppData\\Local\\pip\\"
 
@@ -15,10 +18,10 @@ install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "activate test"
   - "python setup.py develop"
+  - "python -c \"import mne; print(mne.sys_info())\""
   - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
   - "SET MNE_LOGGING_LEVEL=warning"
   - "python -c \"import mne; mne.datasets.testing.data_path()\""
-  - "python -c \"import mne; print(mne.sys_info())\""
 
 build: false  # Not a C# project, build stuff at the test step instead.
 

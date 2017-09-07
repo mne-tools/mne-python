@@ -33,6 +33,7 @@ dependencies:
   - pillow
   - pytest-cov
   - pytest-sugar
+  - pytest-xdist
   - flake8
   - pydocstyle
   - sphinx_bootstrap_theme

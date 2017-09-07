@@ -22,7 +22,7 @@ matrix:
         - env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                OPTION="--doctest-ignore-import-errors"
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest nose"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-cov"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-cov pytest-xdist"
 
         # 3.6 + non-default stim channel
         - env: SPLIT=0 MNE_STIM_CHANNEL=STI101
@@ -56,15 +56,12 @@ matrix:
                PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov"
         - env: SPLIT=1
                CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 pytest nose"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-xdist"
 
-        # Minimal first half
-        - env: SPLIT=0 DEPS=minimial
+        # Minimal
+        - env: DEPS=minimial
                CONDA_DEPENDENCIES="numpy scipy matplotlib pytest nose"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov"
-        - env: SPLIT=1 DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest nose"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-xdist"
 
 # Setup anaconda
 before_install:
@@ -159,7 +156,7 @@ script:
       else
         USE_DIRS="mne/";
       fi;
-    - echo py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS};
+    - echo py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS} -n 2;
     - py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS};
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;

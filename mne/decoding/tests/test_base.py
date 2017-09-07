@@ -186,7 +186,7 @@ def test_linearmodel():
     assert_raises(ValueError, clf.fit, X, np.random.rand(n, n_features, 99))
 
 
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.18')
 def test_cross_val_multiscore():
     """Test cross_val_multiscore for computing scores on decoding over time."""
     from sklearn.model_selection import KFold, cross_val_score

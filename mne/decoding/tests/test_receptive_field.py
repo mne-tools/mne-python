@@ -35,7 +35,7 @@ picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
 picks = picks[:2]
 
 
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.17')
 def test_rank_deficiency():
     """Test signals that are rank deficient."""
     # See GH#4253
@@ -98,7 +98,7 @@ def test_time_delay():
             assert_equal(len(X_delayed), (tmax - tmin) * isfreq + 1)
 
 
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.17')
 def test_receptive_field():
     """Test model prep and fitting."""
     from sklearn.linear_model import Ridge
@@ -176,7 +176,7 @@ def test_receptive_field():
     assert_raises(ValueError, rf.fit, X, y)
 
 
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.17')
 def test_receptive_field_fast():
     """Test that the fast solving works like Ridge."""
     from sklearn.linear_model import Ridge

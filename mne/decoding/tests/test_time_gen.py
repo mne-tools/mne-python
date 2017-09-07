@@ -45,7 +45,7 @@ def make_epochs():
 
 
 @pytest.mark.slowtest
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.17')
 def test_generalization_across_time():
     """Test time generalization decoding."""
     from sklearn.svm import SVC
