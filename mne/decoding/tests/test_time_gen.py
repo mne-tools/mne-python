@@ -12,7 +12,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import (requires_sklearn, requires_sklearn_0_15,
+from mne.fixes import is_classifier
+from mne.utils import (requires_sklearn, requires_version,
                        run_tests_if_main, check_version, use_log_level)
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
@@ -44,12 +45,10 @@ def make_epochs():
 
 
 @pytest.mark.slowtest
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.15')
 def test_generalization_across_time():
-    """Test time generalization decoding
-    """
+    """Test time generalization decoding."""
     from sklearn.svm import SVC
-    from sklearn.base import is_classifier
     # KernelRidge is used for testing 1) regression analyses 2) n-dimensional
     # predictions.
     from sklearn.kernel_ridge import KernelRidge

@@ -1063,6 +1063,39 @@ def _serialize_volume_info(volume_info):
 ##############################################################################
 # adapted from scikit-learn
 
+
+def is_classifier(estimator):
+    """Returns True if the given estimator is (probably) a classifier.
+
+    Parameters
+    ----------
+    estimator : object
+        Estimator object to test.
+
+    Returns
+    -------
+    out : bool
+        True if estimator is a classifier and False otherwise.
+    """
+    return getattr(estimator, "_estimator_type", None) == "classifier"
+
+
+def is_regressor(estimator):
+    """Returns True if the given estimator is (probably) a regressor.
+
+    Parameters
+    ----------
+    estimator : object
+        Estimator object to test.
+
+    Returns
+    -------
+    out : bool
+        True if estimator is a regressor and False otherwise.
+    """
+    return getattr(estimator, "_estimator_type", None) == "regressor"
+
+
 class BaseEstimator(object):
     """Base class for all estimators in scikit-learn
 

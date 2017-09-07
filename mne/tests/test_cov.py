@@ -26,7 +26,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  pick_channels_cov, pick_types, pick_info, make_ad_hoc_cov)
 from mne.io import read_raw_fif, RawArray, read_info
 from mne.tests.common import assert_naming, assert_snr
-from mne.utils import _TempDir, requires_sklearn_0_15, run_tests_if_main
+from mne.utils import _TempDir, requires_version, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type
 
@@ -224,7 +224,7 @@ def test_cov_estimation_on_raw():
 
 
 @pytest.mark.slowtest
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.15')
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
@@ -501,7 +501,7 @@ def test_cov_scaling():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.15')
 def test_auto_low_rank():
     """Test probabilistic low rank estimators."""
     n_samples, n_features, rank = 400, 10, 5
@@ -549,7 +549,7 @@ def test_auto_low_rank():
 
 
 @pytest.mark.slowtest
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.15')
 def test_compute_covariance_auto_reg():
     """Test automated regularization."""
     raw = read_raw_fif(raw_fname, preload=True)

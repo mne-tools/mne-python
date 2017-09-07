@@ -10,7 +10,7 @@ import numpy as np
 import time
 import numbers
 from ..parallel import parallel_func
-from ..fixes import BaseEstimator
+from ..fixes import BaseEstimator, is_classifier
 from ..utils import check_version, logger, warn
 
 
@@ -209,7 +209,6 @@ class LinearModel(BaseEstimator):
 
 def _set_cv(cv, estimator=None, X=None, y=None):
     """Set the default CV depending on whether clf is classifier/regressor."""
-    from sklearn.base import is_classifier
 
     # Detect whether classification or regression
     if estimator in ['classifier', 'regressor']:
@@ -426,7 +425,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     """
     # This code is copied from sklearn
 
-    from sklearn.base import is_classifier, clone
+    from sklearn.base import clone
     from sklearn.utils import indexable
     from sklearn.metrics.scorer import check_scoring
     from sklearn.model_selection._split import check_cv
