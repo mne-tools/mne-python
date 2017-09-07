@@ -7,6 +7,7 @@ from __future__ import print_function
 # License: BSD (3-clause)
 
 import atexit
+from collections import Iterable
 from distutils.version import LooseVersion
 from functools import wraps
 import ftplib
@@ -1054,7 +1055,6 @@ requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
 
 requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
-requires_statsmodels = partial(requires_module, name='statsmodels')
 requires_pysurfer = partial(requires_module, name='PySurfer',
                             call="""import warnings
 with warnings.catch_warnings(record=True):
@@ -1693,14 +1693,11 @@ class ProgressBar(object):
                  progress_character='.', spinner=False,
                  verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
-        try:
-            max_value = float(max_value)
-        except ValueError:
-            # input is an iterable
+        if isinstance(max_value, Iterable):
             self.max_value = len(max_value)
             self.iterable = max_value
         else:
-            self.max_value = max_value
+            self.max_value = float(max_value)
             self.iterable = None
         self.mesg = mesg
         self.max_chars = max_chars

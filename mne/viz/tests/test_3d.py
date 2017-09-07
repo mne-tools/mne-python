@@ -56,6 +56,7 @@ sqd_fname = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
+@requires_version('matplotlib', '1.5')  # pivot kwarg
 def test_plot_head_positions():
     """Test plotting of head positions."""
     import matplotlib.pyplot as plt
