@@ -429,7 +429,7 @@ def test_generalization_across_time():
                         assert_equal(scorer_name, scorer.__name__)
 
 
-@requires_sklearn
+@requires_version('sklearn', '0.17')
 def test_decoding_time():
     """Test TimeDecoding."""
     from sklearn.svm import SVR

@@ -53,7 +53,7 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     return X, Y, A
 
 
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.17')
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     from sklearn.base import TransformerMixin, BaseEstimator

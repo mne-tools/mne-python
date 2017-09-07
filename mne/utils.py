@@ -1693,13 +1693,15 @@ class ProgressBar(object):
                  progress_character='.', spinner=False,
                  verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
-        if isinstance(max_value, (float, int)):
-            self.max_value = max_value
-            self.iterable = None
-        else:
+        try:
+            max_value = float(max_value)
+        except ValueError:
             # input is an iterable
             self.max_value = len(max_value)
             self.iterable = max_value
+        else:
+            self.max_value = max_value
+            self.iterable = None
         self.mesg = mesg
         self.max_chars = max_chars
         self.progress_character = progress_character
