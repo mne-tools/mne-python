@@ -67,10 +67,7 @@ def test_rank_deficiency():
 def test_time_delay():
     """Test that time-delaying w/ times and samples works properly."""
     # Explicit delays + sfreq
-    X = rng.randn(2, 1000)
-    X_sp = np.zeros([2, 10])
-    X_sp[0, 1] = 1
-    X_sp = csr_matrix(X_sp)
+    X = rng.randn(1000, 2)
     test_tlims = [((0, 2), 1), ((0, .2), 10), ((-.1, .1), 10)]
     for (tmin, tmax), isfreq in test_tlims:
         # sfreq must be int/float
@@ -80,22 +77,20 @@ def test_time_delay():
         assert_raises(ValueError, _delay_time_series, X,
                       np.complex(tmin), tmax, 1)
         # Make sure swapaxes works
-        delayed = _delay_time_series(X, tmin, tmax, isfreq,
-                                     newaxis=2, axis=-1)
-        assert_equal(delayed.shape[2], 3)
+        delayed = _delay_time_series(X, tmin, tmax, isfreq)
+        assert_equal(delayed.shape, (1000, 2, 3))
         # Make sure delay slice is correct
         delays = _times_to_delays(tmin, tmax, isfreq)
         keep = _delays_to_slice(delays)
         assert_true(delayed[..., keep].shape[-1] > 0)
         assert_true(np.isnan(delayed[..., keep]).sum() == 0)
 
-        for idata in [X, X_sp]:
-            if tmin < 0:
-                continue
-            X_delayed = _delay_time_series(X, tmin, tmax, isfreq, axis=-1)
-            assert_array_equal(X_delayed[0], X)
-            assert_array_equal(X_delayed[1][0, :-1], X[0, 1:])
-            assert_equal(len(X_delayed), (tmax - tmin) * isfreq + 1)
+        if tmin < 0:
+            continue
+        X_delayed = _delay_time_series(X, tmin, tmax, isfreq)
+        assert_array_equal(X_delayed[:, :, 0], X)
+        assert_array_equal(X_delayed[:-1, 0, 1], X[1:, 0])
+        assert_equal(X_delayed.shape[-1], (tmax - tmin) * isfreq + 1)
 
 
 @requires_sklearn_0_15
@@ -109,23 +104,17 @@ def test_receptive_field():
     # Define parameters for the model and simulate inputs + weights
     tmin, tmax = 0., 10.
     n_feats = 3
-    X = rng.randn(n_feats, 10000)
+    X = rng.randn(10000, n_feats)
     w = rng.randn(int((tmax - tmin) + 1) * n_feats)
 
     # Delay inputs and cut off first 4 values since they'll be cut in the fit
-    X_del = np.vstack(_delay_time_series(X, tmin, tmax, 1., axis=-1))
-    y = np.dot(w, X_del)
-    X = np.rollaxis(X, -1, 0)  # time to first dimension
+    X_del = np.concatenate(
+        _delay_time_series(X, tmin, tmax, 1.).transpose(2, 0, 1), axis=1)
+    y = np.dot(X_del, w)
 
     # Fit the model and test values
     feature_names = ['feature_%i' % ii for ii in [0, 1, 2]]
     rf = ReceptiveField(tmin, tmax, 1, feature_names, estimator=mod)
-    rf.fit(X, y)
-    assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
-
-    # Testing fill mean
-    rf = ReceptiveField(tmin, tmax, 1, feature_names, fill_mean=True,
-                        estimator=mod)
     rf.fit(X, y)
     assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
 
@@ -267,11 +256,19 @@ def test_receptive_field_fast():
         x += 1e3
         model.fit(x, y)
         if estimator.fit_intercept:
-            val, itol, ctol = [-6000, 4000], 15, 5e-2
+            val = [-6000, 4000]
+            # XXX This suggests there is some bug in the intercept code of TDR
+            itol = 15 if estimator is tdr else 0.5
+            ctol = 1e-2 if estimator is tdr else 5e-4
         else:
-            val, itol, ctol = 0., 0., 2.  # much worse
-        assert_allclose(model.estimator_.intercept_, val, atol=itol)
-        assert_allclose(model.coef_, expected, atol=ctol)
+            val = itol = 0.
+            # Same tolerances for TDR and Ridge, so the non-intercept code
+            # is approximately equivalent
+            ctol = 2.
+        assert_allclose(model.estimator_.intercept_, val, atol=itol,
+                        err_msg=repr(estimator))
+        assert_allclose(model.coef_, expected, atol=ctol, rtol=ctol,
+                        err_msg=repr(estimator))
         model = ReceptiveField(slim[0], slim[1], 1., fit_intercept=False)
         model.fit(x, y)
         assert_allclose(model.estimator_.intercept_, 0., atol=1e-7)
