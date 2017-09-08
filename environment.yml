@@ -1,9 +1,9 @@
 name: mne
 channels:
 - defaults
-- menpo  # Needed for VTK
+- clinicalgraphics  # Needed for VTK
 dependencies:
-- python=3.5
+- python=3.6
 - pip
 - mkl
 - numpy
