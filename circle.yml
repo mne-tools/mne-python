@@ -51,7 +51,7 @@ dependencies:
     - if conda env list | grep mne; then
         conda env remove -yn mne;
       fi;
-    - conda env create -f mne
+    - conda env create -f environment.yml
     - pip install --upgrade git+https://github.com/sphinx-gallery/sphinx-gallery.git;
     - echo $CIRCLE_BRANCH
     - which python;
