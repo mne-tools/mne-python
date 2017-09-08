@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -6,7 +7,7 @@
 
 from collections import Counter
 from copy import deepcopy
-from datetime import datetime as dt
+import datetime
 import os.path as op
 import re
 
@@ -53,6 +54,14 @@ _kind_dict = dict(
 def _summarize_str(st):
     """Make summary string."""
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
+
+
+def _stamp_to_dt(stamp):
+    """Convert timestamp to datetime object in Windows-friendly way."""
+    # The min on windows is 86400
+    stamp = [int(s) for s in stamp]
+    return (datetime.datetime.utcfromtimestamp(stamp[0]) +
+            datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
 
 
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
@@ -398,7 +407,7 @@ class Info(dict):
                     entr = _summarize_str(entr)
             elif k == 'meas_date' and np.iterable(v):
                 # first entry in meas_date is meaningful
-                entr = dt.fromtimestamp(v[0]).strftime('%Y-%m-%d %H:%M:%S')
+                entr = _stamp_to_dt(v).strftime('%Y-%m-%d %H:%M:%S') + ' GMT'
             elif k == 'kit_system_id' and v is not None:
                 from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
@@ -675,7 +684,7 @@ def _write_dig_points(fname, dig_points):
     if ext == '.txt':
         with open(fname, 'wb') as fid:
             version = __version__
-            now = dt.now().strftime("%I:%M%p on %B %d, %Y")
+            now = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
             fid.write(b("% Ascii 3D points file created by mne-python version "
                         "{version} at {now}\n".format(version=version,
                                                       now=now)))
