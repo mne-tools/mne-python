@@ -3,10 +3,9 @@ environment:
     PYTHON: "C:\\conda"
     PIP_DEPENDENCIES: "codecov"
     PYTHON_ARCH: "64"
-    PYTHON_VERSION: "2.7"
+    PYTHON_VERSION: "3.5"
   matrix:
-    - CONDA_ENVIRONMENT: "environment2.yml"
-    - CONDA_ENVIRONMENT: "environment3.yml"
+    - CONDA_ENVIRONMENT: "environment.yml"
 
 cache:
   - "C:\\Users\\appveyor\\AppData\\Local\\pip\\"

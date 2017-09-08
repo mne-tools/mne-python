@@ -13,8 +13,8 @@ from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.fixes import is_classifier
-from mne.utils import (requires_sklearn, requires_version,
-                       run_tests_if_main, check_version, use_log_level)
+from mne.utils import (requires_version, run_tests_if_main, check_version,
+                       use_log_level)
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 

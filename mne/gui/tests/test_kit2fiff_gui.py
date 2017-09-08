@@ -3,8 +3,6 @@
 # License: BSD (3-clause)
 
 import os
-import sys
-from unittest import SkipTest
 import warnings
 
 import numpy as np
@@ -120,9 +118,6 @@ def test_kit2fiff_model():
 @requires_mayavi
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""
-    if sys.version[0] == '3' and (os.environ.get('APPVEYOR') == 'True' or
-                                  os.environ.get('TRAVIS') == 'true'):
-        raise SkipTest('traitsui broken on Py3k')
     home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir

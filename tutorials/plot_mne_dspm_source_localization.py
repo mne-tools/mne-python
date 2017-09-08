@@ -145,7 +145,7 @@ stc_vec = apply_inverse(evoked, inverse_operator, lambda2,
                         method=method, pick_ori='vector')
 stc_vec.plot(hemi='rh', subjects_dir=subjects_dir,
              clim=dict(kind='value', lims=[8, 12, 15]),
-             initial_time=time_max, time_unit='s')
+             initial_time=time_max, time_unit='s', smoothing_steps=5)
 
 ###############################################################################
 # Note that there is a relationship between the orientation of the dipoles and

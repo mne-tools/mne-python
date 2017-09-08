@@ -209,7 +209,6 @@ class LinearModel(BaseEstimator):
 
 def _set_cv(cv, estimator=None, X=None, y=None):
     """Set the default CV depending on whether clf is classifier/regressor."""
-
     # Detect whether classification or regression
     if estimator in ['classifier', 'regressor']:
         est_is_classifier = estimator == 'classifier'

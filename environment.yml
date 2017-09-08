@@ -1,44 +1,39 @@
-name: mne27
+name: mne35
 channels:
-- conda-forge
+- menpo
 - defaults
 dependencies:
-- python=2.7
+- python=3.5
 - pip
 - mkl
 - numpy
 - scipy
 - matplotlib
-- pyqt=4.11.4
-- qt=4.8.7
-- traits=4.4.0=py27_0
-- traitsui=4.4.0=py27_0
-- traitlets=4.3.2=py27_0
-- vtk=5.10.1=py27_0
-- mayavi=4.4.0=np19py27_0
+- pyqt=4
+- mayavi
 - pandas
 - scikit-learn
+- joblib
 - jupyter
-- ipython
 - statsmodels
 - h5py
 - sphinx
-- vtk
 - nose
 - pytest
+- pytest-cov
 - spyder
 - pip:
-  - mne
   - "git+https://github.com/nipy/PySurfer.git"
   - nibabel
   - nilearn
   - neo
   - pillow
-  - pytest-cov
   - pytest-sugar
   - pytest-xdist
   - flake8
   - pydocstyle
+  - sphinx-gallery
   - sphinx_bootstrap_theme
   - numpydoc
-  - sphinx-gallery
+  - "git+git://github.com/enthought/traitsui.git@ee8ef0a34dfc1db18a8e2c0301cc18d96b7a3e2f"
+  - "git+git://github.com/enthought/pyface.git@13a064de48adda3c880350545717d8cf8929afad"
