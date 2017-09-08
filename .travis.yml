@@ -14,10 +14,13 @@ env:
             SPLIT_0=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
             SPLIT_1="minimum_norm preprocessing realtime simulation stats time_frequency viz"
             TRAVIS_PYTHON_VERSION=3.6
-            PIP_DEPENDENCIES="codecov"
+            PIP_DEPENDENCIES="codecov pytest-faulthandler"
+            MKL_NUM_THREADS=1
 os: linux
 
 # No 2.7 env provided currently because of QDate API junk
+# Can't move to 3.6 until mayavi/traitsui/pyface properly integrate with Qt5
+# Use specific commits for traitsui/pyface to deal with Py3k bugs
 matrix:
     include:
         # No data + style testing

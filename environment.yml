@@ -1,4 +1,4 @@
-name: mne35
+name: mne
 channels:
 - menpo
 - defaults
