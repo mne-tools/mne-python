@@ -400,7 +400,7 @@ class Info(dict):
                 # first entry in meas_date is meaningful
                 entr = dt.fromtimestamp(v[0]).strftime('%Y-%m-%d %H:%M:%S')
             elif k == 'kit_system_id' and v is not None:
-                from .kit.constants import SYSNAMES as KIT_SYSNAMES
+                from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
