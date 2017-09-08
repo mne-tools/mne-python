@@ -173,7 +173,7 @@ script:
         USE_DIRS="mne/";
       fi;
     - echo py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS};
-    - py.test -a "\"${CONDITION}\"" ${OPTION} ${USE_DIRS};
+    - py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS};
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
         check-manifest --ignore doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
