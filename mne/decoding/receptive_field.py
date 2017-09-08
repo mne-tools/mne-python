@@ -411,7 +411,7 @@ def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0,
         fill_value = X.mean(axis=axis, keepdims=True)
         if epoch_axis is not None:
             fill_value = np.mean(fill_value, axis=epoch_axis, keepdims=True)
-            delayed[...] = fill_value
+        delayed[...] = fill_value
     for ii, ix_delay in enumerate(delays):
         take = [slice(None)] * X.ndim
         put = [slice(None)] * X.ndim
