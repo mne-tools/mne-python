@@ -7,89 +7,69 @@ cache:
   - $HOME/.cache/pip
   - $HOME/.ccache
 env:
-    global: PYTHON_VERSION=2.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
+    # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
+    global: PYTHON_VERSION=2.7
+            MNE_LOGGING_LEVEL=warning
+            TEST_LOCATION=src
+            SPLIT_0=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
+            SPLIT_1="minimum_norm preprocessing realtime simulation stats time_frequency viz"
+            TRAVIS_PYTHON_VERSION=3.6
+            PIP_DEPENDENCIES="codecov pytest-faulthandler"
+            MKL_NUM_THREADS=1
+os: linux
 
+# No 2.7 env provided currently because of QDate API junk
+# Can't move to 3.6 until mayavi/traitsui/pyface properly integrate with Qt5
+# Use specific commits for traitsui/pyface to deal with Py3k bugs
 matrix:
     include:
-        # Full (Linux, 2.7) first half
-        - os: linux
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # Full (Linux, 2.7) second half
-        - os: linux
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
-        # OSX first half
-        - os: osx
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # OSX second half
-        - os: osx
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi pytest"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov nose-timer nose-faulthandler pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
-        # Py3k + non-default stim channel first half
-        - os: linux
-          env: PYTHON_VERSION=3.6 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest"
-               PIP_DEPENDENCIES="nitime joblib nibabel codecov nose-timer pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # Py3k + non-default stim channel second half
-        - os: linux
-          env: PYTHON_VERSION=3.6 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest"
-               PIP_DEPENDENCIES="nitime joblib nibabel codecov nose-timer pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
-        # Old dependencies first half
-        - os: linux
-          env: CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 pytest"
-               PIP_DEPENDENCIES="codecov nose-timer nose-faulthandler pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # Old dependencies second half
-        - os: linux
-          env: CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 pytest"
-               PIP_DEPENDENCIES="codecov nose-timer nose-faulthandler pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
-        # Minimal first half
-        - os: linux
-          env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest"
-               PIP_DEPENDENCIES="codecov nose-timer nose-faulthandler pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # Minimal second half
-        - os: linux
-          env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest"
-               PIP_DEPENDENCIES="codecov nose-timer nose-faulthandler pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
         # No data + style testing
-        - os: linux
-          env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest"
-               PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov nose-timer nose-faulthandler check-manifest pytest-sugar pytest-cov pytest-attrib"
-               MNE_DIRS=""
+        - env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                OPTION="--doctest-ignore-import-errors"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx nose pytest pytest-cov"
+               PIP_DEPENDENCIES="flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-xdist"
+
+        # 3.5 env file + non-default stim channel
+        - env: SPLIT=0 MNE_STIM_CHANNEL=STI101
+               CONDA_ENVIRONMENT="environment.yml"
+        - env: SPLIT=1 MNE_STIM_CHANNEL=STI101
+               CONDA_ENVIRONMENT="environment.yml"
+
+        # OSX
+        - os: osx
+          env: SPLIT=0 TEST_LOCATION=install
+               CONDA_ENVIRONMENT="environment.yml"
+        - os: osx
+          env: SPLIT=1 TEST_LOCATION=install
+               CONDA_ENVIRONMENT="environment.yml"
+
+        # 2.7 (no mayavi so we can use latest versions of everything else)
+        - env: SPLIT=0
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest pytest-cov"
+               PIP_DEPENDENCIES="nitime nilearn nibabel joblib codecov pytest-sugar pytest-attrib"
+        - env: SPLIT=1
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest pytest-cov"
+               PIP_DEPENDENCIES="nitime nilearn nibabel joblib codecov pytest-sugar pytest-attrib"
+
+        # Oldest supported dependencies
+        - env: SPLIT=0
+               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 nose pytest pytest-cov"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov"
+        - env: SPLIT=1
+               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 nose pytest pytest-cov"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-cov pytest-xdist"
+
+        # Minimal
+        - env: DEPS=minimial
+               CONDA_DEPENDENCIES="numpy scipy matplotlib nose pytest pytest-cov"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-xdist"
 
 # Setup anaconda
 before_install:
+    # Mayavi needs a display to build via pip (?!)
+    - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+      fi;
     - git clone https://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
@@ -106,12 +86,19 @@ before_install:
         fi;
         mne_surf2bem --version;
       fi;
-    - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
-      fi;
+    - if [ "${SPLIT}" == "0" ]; then
+        MNE_DIRS=${SPLIT_0};
+      elif [ "${SPLIT}" == "1" ]; then
+        MNE_DIRS=${SPLIT_1};
+      else
+        MNE_DIRS="";
+      fi
 
 install:
-    # Suppress the parallel outputs for logging cleanliness
+    # Need to uninstall the PIP-installed version
+    - if [ ! -z $CONDA_ENVIRONMENT ]; then
+        pip uninstall -qy mne;
+      fi;
     - python setup.py build
     - python setup.py install
     - python -c "import mne; mne.sys_info()"
@@ -151,17 +138,17 @@ install:
         COVERAGE=--with-coverage;
       fi;
 
-
 script:
     - echo "Print locale "
     - locale
     - echo "Other stuff"
     # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        CONDITION='not slow_test';
+        CONDITION='not slowtest';
       else
-        CONDITION='not ultra_slow_test';
+        CONDITION='not ultraslowtest';
       fi;
+    - python -c "import mne; print(mne.sys_info())"
     # Determine directories to test
     - if [ "${MNE_DIRS}" != "" ]; then
         USE_DIRS="";
@@ -171,17 +158,13 @@ script:
       else
         USE_DIRS="mne/";
       fi;
-    - echo py.test --doctest-modules -a "\"${CONDITION}\"" ${OPTION} --cov=mne --showlocals --durations=20 ${USE_DIRS};
-    - py.test --doctest-modules -a "\"${CONDITION}\"" ${OPTION} --cov=mne --showlocals --durations=20 ${USE_DIRS};
+    - echo py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS} -n 2;
+    - py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS};
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
         check-manifest --ignore doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
       fi;
 
 after_success:
-    # Need to run from source dir to exectue "git" commands
-    - if [ "${TEST_LOCATION}" == "src" ]; then
-        echo "Running codecov";
-        cd ${SRC_DIR};
-        codecov;
-      fi;
+    - cd ${SRC_DIR};
+    - codecov;

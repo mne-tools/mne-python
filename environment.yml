@@ -1,0 +1,42 @@
+name: mne
+channels:
+- defaults
+- clinicalgraphics  # Needed for VTK
+dependencies:
+- python=3.6
+- pip
+- mkl
+- numpy
+- scipy
+- matplotlib
+- pyqt=5
+- vtk=7
+- pandas
+- scikit-learn
+- joblib
+- jupyter
+- statsmodels
+- h5py
+- sphinx
+- nose
+- pytest
+- pytest-cov
+- spyder
+- pip:
+  - mne
+  - "git+https://github.com/enthought/traits.git@a7a83182048c08923953e302658b51b68c802132"
+  - "git+https://github.com/enthought/pyface.git@13a064de48adda3c880350545717d8cf8929afad"
+  - "git+https://github.com/enthought/traitsui.git@ee8ef0a34dfc1db18a8e2c0301cc18d96b7a3e2f"
+  - "git+https://github.com/enthought/mayavi.git@9730c320a8f52764a03210e9f3f376e547944077"
+  - "git+https://github.com/nipy/PySurfer.git"
+  - nibabel
+  - nilearn
+  - neo
+  - pillow
+  - pytest-sugar
+  - pytest-xdist
+  - flake8
+  - pydocstyle
+  - sphinx-gallery
+  - sphinx_bootstrap_theme
+  - numpydoc

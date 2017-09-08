@@ -6,6 +6,7 @@ import warnings
 from shutil import copyfile
 from scipy import sparse
 from nose.tools import assert_true, assert_raises
+import pytest
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne.datasets import testing
@@ -14,7 +15,7 @@ from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
 from mne.utils import (_TempDir, requires_mayavi, requires_tvtk,
-                       run_tests_if_main, slow_test, object_diff)
+                       run_tests_if_main, object_diff)
 from mne.io import read_info
 from mne.transforms import _get_trans
 
@@ -86,7 +87,7 @@ def test_compute_nearest():
         assert_array_equal(nn1, nn2)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_morph_maps():
     """Test reading and creating morph maps."""

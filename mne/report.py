@@ -14,12 +14,11 @@ import codecs
 import time
 from glob import glob
 import base64
-from datetime import datetime as dt
 
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .io import Raw, read_info
+from .io import Raw, read_info, _stamp_to_dt
 from .utils import (_TempDir, logger, verbose, get_subjects_dir, warn,
                     _import_mlab)
 from .viz import plot_events, plot_alignment, plot_cov
@@ -1570,7 +1569,7 @@ class Report(object):
             ecg = 'Not available'
         meas_date = raw.info['meas_date']
         if meas_date is not None:
-            meas_date = dt.fromtimestamp(meas_date[0]).strftime("%B %d, %Y")
+            meas_date = _stamp_to_dt(meas_date).strftime("%B %d, %Y") + ' GMT'
         tmin = raw.first_samp / raw.info['sfreq']
         tmax = raw.last_samp / raw.info['sfreq']
 

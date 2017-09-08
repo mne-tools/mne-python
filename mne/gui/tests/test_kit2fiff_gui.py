@@ -7,7 +7,6 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
-from nose import SkipTest
 from nose.tools import assert_true, assert_false, assert_equal
 
 import mne
@@ -119,8 +118,6 @@ def test_kit2fiff_model():
 @requires_mayavi
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""
-    if os.environ.get('TRAVIS_OS_NAME') == 'linux':
-        raise SkipTest("Skipping on Travis for Linux due to GUI error")
     home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir

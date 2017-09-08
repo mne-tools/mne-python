@@ -4,12 +4,12 @@ import warnings
 
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal, assert_raises
+import pytest
 
 import mne
 from mne import Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.io import read_raw_fif
-from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
-                       grand_average)
+from mne.utils import _TempDir, run_tests_if_main, requires_h5py, grand_average
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
@@ -240,7 +240,7 @@ def test_dpsswavelet():
     assert_true(len(Ws[0]) == len(freqs))  # As many wavelets as asked for
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_tfr_multitaper():
     """Test tfr_multitaper."""
     sfreq = 200.0

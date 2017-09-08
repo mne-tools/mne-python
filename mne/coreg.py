@@ -1150,7 +1150,7 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         spacing = src_name  # spacing in mm
         src_pattern = src_fname
     else:
-        match = re.match("(oct|ico)-?(\d+)$", src_name)
+        match = re.match(r"(oct|ico)-?(\d+)$", src_name)
         if match:
             spacing = '-'.join(match.groups())
             src_pattern = src_fname

@@ -14,6 +14,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 from nose.tools import assert_true, assert_raises, assert_not_equal
+import pytest
 
 from mne.datasets import testing
 from mne.io.constants import FIFF
@@ -21,7 +22,7 @@ from mne.io import RawArray, concatenate_raws, read_raw_fif
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info)
-from mne.utils import (_TempDir, requires_pandas, slow_test, object_diff,
+from mne.utils import (_TempDir, requires_pandas, object_diff,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
@@ -155,7 +156,7 @@ def test_copy_append():
     assert_equal(data.shape[1], 2 * raw._data.shape[1])
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_rank_estimation():
     """Test raw rank estimation."""
@@ -217,7 +218,7 @@ def _compare_combo(raw, new, times, n_times):
         assert_allclose(orig, new[:, ti][0])
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_multiple_files():
     """Test loading multiple files simultaneously."""
@@ -468,7 +469,7 @@ def test_load_bad_channels():
     assert_equal([], raw_new.info['bads'])
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)."""
@@ -750,7 +751,7 @@ def test_preload_modify():
         assert_allclose(data, data_new)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface."""

@@ -129,34 +129,27 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         session_date = read_str(fid, 10)
         time = read_str(fid, 12)
         date = session_date.split('/')
-        if len(date) != 3:
-            meas_date = -1
-        else:
+        if len(date) == 3 and len(time) == 3:
             if date[2].startswith('9'):
                 date[2] = '19' + date[2]
             elif len(date[2]) == 2:
                 date[2] = '20' + date[2]
             time = time.split(':')
-            if len(time) == 3:
-                if date_format == 'mm/dd/yy':
-                    pass
-                elif date_format == 'dd/mm/yy':
-                    date[0], date[1] = date[1], date[0]
-                else:
-                    raise ValueError("Only date formats 'mm/dd/yy' and "
-                                     "'dd/mm/yy' supported. "
-                                     "Got '%s'." % date_format)
-                # Assuming mm/dd/yy
-                date = datetime.datetime(int(date[2]), int(date[0]),
-                                         int(date[1]), int(time[0]),
-                                         int(time[1]), int(time[2]))
-                meas_date = calendar.timegm(date.utctimetuple())
-            else:
-                meas_date = -1
-        if meas_date < 0:
-            warn('  Could not parse meas date from the header. Setting to '
-                 '[0, 0]...')
-            meas_date = 0
+            if date_format == 'dd/mm/yy':
+                date[0], date[1] = date[1], date[0]
+            elif date_format != 'mm/dd/yy':
+                raise ValueError("Only date formats 'mm/dd/yy' and "
+                                 "'dd/mm/yy' supported. "
+                                 "Got '%s'." % date_format)
+            # Assuming mm/dd/yy
+            date = datetime.datetime(int(date[2]), int(date[0]),
+                                     int(date[1]), int(time[0]),
+                                     int(time[1]), int(time[2]))
+            meas_date = np.array([calendar.timegm(date.utctimetuple()), 0])
+        else:
+            warn('  Could not parse meas date from the header. '
+                 'Setting to None.')
+            meas_date = None
         fid.seek(370)
         n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
         fid.seek(376)
@@ -292,7 +285,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     baselines.append(0)  # For stim channel
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
                     stim_channel=stim_channel, n_bytes=n_bytes)
-    info.update(meas_date=np.array([meas_date, 0]),
+    info.update(meas_date=meas_date,
                 description=str(session_label), buffer_size_sec=10., bads=bads,
                 subject_info=subject_info, chs=chs)
     info._update_redundant()

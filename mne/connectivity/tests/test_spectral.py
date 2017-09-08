@@ -2,13 +2,14 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
+import pytest
 from nose.tools import assert_true, assert_raises
 
 from mne.connectivity import spectral_connectivity
 from mne.connectivity.spectral import _CohEst, _get_n_epochs
 
 from mne import SourceEstimate
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 from mne.filter import filter_data
 
 warnings.simplefilter('always')
@@ -30,7 +31,7 @@ def _stc_gen(data, sfreq, tmin, combo=False):
             yield (arr, stc)
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_spectral_connectivity():
     """Test frequency-domain connectivity methods"""
     # Use a case known to have no spurious correlations (it would bad if

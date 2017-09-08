@@ -4,10 +4,11 @@
 
 import numpy as np
 from nose.tools import assert_equal, assert_raises, assert_true
+import pytest
 
 from mne import create_info
 from mne.io import RawArray
-from mne.utils import logger, catch_logging, slow_test, run_tests_if_main
+from mne.utils import logger, catch_logging, run_tests_if_main
 
 
 def bad_1(x):
@@ -23,7 +24,7 @@ def printer(x):
     return x
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_apply_function_verbose():
     """Test apply function verbosity
     """
@@ -45,5 +46,6 @@ def test_apply_function_verbose():
         assert_true(out is raw)
         raw.apply_function(printer, verbose=True)
         assert_equal(sio.getvalue().count('\n'), n_chan)
+
 
 run_tests_if_main()

@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_allclose, assert_array_equal
+import pytest
 
 from mne import (read_dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
@@ -15,8 +16,7 @@ from mne import (read_dipole, read_forward_solution,
 from mne.dipole import get_phantom_dipoles
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
-                       run_subprocess)
+from mne.utils import run_tests_if_main, _TempDir, requires_mne, run_subprocess
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -94,7 +94,7 @@ def test_dipole_fitting_ctf():
     fit_dipole(evoked, cov, sphere)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_mne
 def test_dipole_fitting():

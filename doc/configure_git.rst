@@ -152,7 +152,7 @@ These steps can be broken out to be more explicit as:
 
 #. Ensure unit tests pass
 
-   Make sure before starting to code that all unit tests pass with `nose`_:
+   Make sure before starting to code that all unit tests pass with `pytest`_:
 
    .. code-block:: bash
 

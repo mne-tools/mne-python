@@ -12,6 +12,7 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_raises
+import pytest
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
                  read_dipole, SourceEstimate)
@@ -21,8 +22,7 @@ from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate, plot_filter)
-from mne.utils import (requires_nibabel, run_tests_if_main, slow_test,
-                       requires_version)
+from mne.utils import requires_nibabel, run_tests_if_main, requires_version
 
 # Set our plotters to test mode
 import matplotlib
@@ -149,7 +149,7 @@ def test_plot_source_spectrogram():
                   [[1, 2], [3, 4]], tmax=7)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_plot_snr():
     """Test plotting SNR estimate."""
@@ -163,5 +163,6 @@ def test_plot_dipole_amplitudes():
     """Test plotting dipole amplitudes."""
     dipoles = read_dipole(dip_fname)
     dipoles.plot_amplitudes(show=False)
+
 
 run_tests_if_main()
