@@ -23,7 +23,10 @@ dependencies:
 - pytest-cov
 - spyder
 - pip:
-  - "git+https://github.com/nipy/PySurfer.git"
+  - mne
+  - "git+git://github.com/enthought/pyface.git@13a064de48adda3c880350545717d8cf8929afad"
+  - "git+git://github.com/enthought/traitsui.git@ee8ef0a34dfc1db18a8e2c0301cc18d96b7a3e2f"
+  - "git+git://github.com/nipy/PySurfer.git"
   - nibabel
   - nilearn
   - neo
@@ -35,5 +38,3 @@ dependencies:
   - sphinx-gallery
   - sphinx_bootstrap_theme
   - numpydoc
-  - "git+git://github.com/enthought/traitsui.git@ee8ef0a34dfc1db18a8e2c0301cc18d96b7a3e2f"
-  - "git+git://github.com/enthought/pyface.git@13a064de48adda3c880350545717d8cf8929afad"
