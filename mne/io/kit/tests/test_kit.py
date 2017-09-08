@@ -129,7 +129,8 @@ def test_data():
     assert_equal(raw.info['chs'][100]['coil_type'], FIFF.FIFFV_COIL_KIT_GRAD)
     assert_equal(raw.info['chs'][157]['ch_name'], 'MEG 158')
     assert_equal(raw.info['chs'][157]['kind'], FIFF.FIFFV_REF_MEG_CH)
-    assert_equal(raw.info['chs'][157]['coil_type'], FIFF.FIFFV_COIL_KIT_REF_MAG)
+    assert_equal(raw.info['chs'][157]['coil_type'],
+                 FIFF.FIFFV_COIL_KIT_REF_MAG)
     assert_equal(raw.info['chs'][160]['ch_name'], 'EEG 001')
     assert_equal(raw.info['chs'][160]['kind'], FIFF.FIFFV_EEG_CH)
     assert_equal(raw.info['chs'][160]['coil_type'], FIFF.FIFFV_COIL_EEG)
