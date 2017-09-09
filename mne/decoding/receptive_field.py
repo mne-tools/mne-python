@@ -364,7 +364,7 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
 
     Parameters
     ----------
-    X : array, shape (n_times[, n_epochs], n_features)
+    X : array, shape (n_times[, n_epochs][, n_features])
         The time series to delay.
     tmin : int | float
         The starting lag. Negative values correspond to times in the past.
@@ -379,7 +379,7 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
 
     Returns
     -------
-    delayed : array, shape(n_times,[, n_epochs], n_features, n_delays)
+    delayed : array, shape(n_times[, n_epochs][, n_features], n_delays)
         The delayed data. It has the same shape as X, with an extra dimension
         appended to the end.
 
@@ -390,10 +390,11 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
     >>> x = np.arange(1, 6)
     >>> x_del = _delay_time_series(x, tmin, tmax, sfreq)
     >>> print(x_del)
-    [[ 0.  0.  1.  2.  3.]
-     [ 0.  1.  2.  3.  4.]
-     [ 1.  2.  3.  4.  5.]
-     [ 2.  3.  4.  5.  0.]]
+    [[ 0.  0.  1.  2.]
+     [ 0.  1.  2.  3.]
+     [ 1.  2.  3.  4.]
+     [ 2.  3.  4.  5.]
+     [ 3.  4.  5.  0.]]
     """
     _check_delayer_params(tmin, tmax, sfreq)
     delays = _times_to_delays(tmin, tmax, sfreq)

@@ -6,7 +6,6 @@ import os.path as op
 
 from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
-from scipy.sparse import csr_matrix
 
 from numpy.testing import assert_array_equal, assert_allclose
 
@@ -15,6 +14,7 @@ from mne.utils import requires_sklearn_0_15, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
+from mne.decoding.time_delaying_ridge import _compute_reg_neighbors
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -33,6 +33,29 @@ raw = io.read_raw_fif(raw_fname, preload=True)
 picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                    eog=False, exclude='bads')
 picks = picks[:2]
+
+
+def test_compute_reg_neighbors():
+    """Test fast calculation of laplacian regularizer."""
+    for reg_type in (
+            ('ridge', 'ridge'),
+            ('ridge', 'laplacian'),
+            ('laplacian', 'ridge'),
+            ('laplacian', 'laplacian')):
+        for n_ch_x, n_delays in (
+                (1, 1), (1, 2), (2, 1), (1, 3), (3, 1), (1, 4), (4, 1),
+                (2, 2), (2, 3), (3, 2), (3, 3),
+                (2, 4), (4, 2), (3, 4), (4, 3), (4, 4),
+                (5, 4), (4, 5), (5, 5),
+                (20, 9), (9, 20)):
+            for normed in (True, False):
+                reg_direct = _compute_reg_neighbors(
+                    n_ch_x, n_delays, reg_type, 'direct', normed=normed)
+                reg_csgraph = _compute_reg_neighbors(
+                    n_ch_x, n_delays, reg_type, 'csgraph', normed=normed)
+                assert_allclose(
+                    reg_direct, reg_csgraph, atol=1e-7,
+                    err_msg='%s: %s' % (reg_type, (n_ch_x, n_delays)))
 
 
 @requires_sklearn_0_15

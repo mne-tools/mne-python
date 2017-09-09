@@ -8,6 +8,7 @@
 import warnings
 
 import numpy as np
+from scipy import sparse, linalg
 
 from .base import BaseEstimator
 from ..filter import next_fast_len
@@ -55,9 +56,52 @@ def _compute_corrs(X, y, smin, smax):
     return x_xt, x_y, n_ch_x
 
 
+def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
+                           normed=True):
+    """Compute regularization parameter from neighbors."""
+    reg_time = (reg_type[0] == 'laplacian' and n_delays > 1)
+    reg_chs = (reg_type[1] == 'laplacian' and n_ch_x > 1)
+    if not reg_time and not reg_chs:
+        return np.eye(n_ch_x * n_delays)
+    # regularize time
+    if reg_time:
+        reg = np.eye(n_delays)
+        stride = n_delays + 1
+        reg.flat[1::stride] += -1
+        reg.flat[n_delays::stride] += -1
+        reg.flat[n_delays + 1:-n_delays - 1:stride] += 1
+        args = [reg] * n_ch_x
+        reg = linalg.block_diag(*args)
+    else:
+        reg = np.zeros((n_delays * n_ch_x,) * 2)
+
+    # regularize features
+    if reg_chs:
+        block = n_delays * n_delays
+        row_offset = block * n_ch_x
+        stride = n_delays * n_ch_x + 1
+        reg.flat[n_delays:-row_offset:stride] += -1
+        reg.flat[n_delays + row_offset::stride] += 1
+        reg.flat[row_offset:-n_delays:stride] += -1
+        reg.flat[:-(n_delays + row_offset):stride] += 1
+    assert np.array_equal(reg[::-1, ::-1], reg)
+
+    if method == 'direct':
+        if normed:
+            norm = np.sqrt(np.diag(reg))
+            reg /= norm
+            reg /= norm[:, np.newaxis]
+        return reg
+    else:
+        # Use csgraph. Note that our -1's above are really the neighbors!
+        # If we ever want to allow arbitrary adjacency matrices, this is how
+        # we'd want to do it.
+        reg = sparse.csgraph.laplacian(-reg, normed=normed)
+    return reg
+
+
 def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     """Fit the model using correlation matrices."""
-    from scipy import linalg
     known_types = ('ridge', 'laplacian')
     if isinstance(reg_type, string_types):
         reg_type = (reg_type,) * 2
@@ -72,24 +116,8 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     # do the regularized solving
     n_ch_out = x_y.shape[0]
     assert x_y.shape[1] % n_ch_x == 0
-    n_trf = x_y.shape[1] // n_ch_x
-
-    # regularize time
-    reg = np.eye(n_trf)
-    if reg_type[0] == 'laplacian':
-        reg.flat[1::reg.shape[0] + 1] += -1
-        reg.flat[reg.shape[0] + 1:-reg.shape[0] - 1:reg.shape[0] + 1] += 1
-        reg.flat[reg.shape[0]::reg.shape[0] + 1] += -1
-    args = [reg] * n_ch_x
-    reg = linalg.block_diag(*args)
-
-    # regularize features
-    if reg_type[1] == 'laplacian':
-        row_offset = n_trf * n_trf * n_ch_x
-        reg.flat[n_trf::n_trf * n_ch_x + 1] += -1
-        reg.flat[row_offset + n_trf:-row_offset:n_trf * n_ch_x + 1] += 1
-        reg.flat[n_trf * n_trf * n_ch_x::n_trf * n_ch_x + 1] += -1
-
+    n_delays = x_y.shape[1] // n_ch_x
+    reg = _compute_reg_neighbors(n_ch_x, n_delays, reg_type)
     mat = x_xt + alpha * reg
     # From sklearn
     try:
@@ -101,7 +129,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
         warnings.warn('Singular matrix in solving dual problem. Using '
                       'least-squares solution instead.')
         w = linalg.lstsq(mat, x_y.T, lapack_driver='gelsy')[0]
-    w = w.T.reshape([n_ch_out, n_ch_in, n_trf])
+    w = w.T.reshape([n_ch_out, n_ch_in, n_delays])
     return w
 
 

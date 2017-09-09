@@ -192,7 +192,7 @@ X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
 X_train, X_test, y_train, y_test = [np.rollaxis(ii, -1, 0) for ii in
                                     (X_train, X_test, y_train, y_test)]
 # Model the simulated data as a function of the spectrogram input
-alphas = np.logspace(-4, 0, 10)
+alphas = np.logspace(-3, 3, 7)
 scores = np.zeros_like(alphas)
 models = []
 for ii, alpha in enumerate(alphas):
@@ -244,8 +244,8 @@ mne.viz.tight_layout()
 # in [1]_, [2]_, and [4]_.
 
 # Plot model score for each ridge parameter
-fig = plt.figure(figsize=(20, 4))
-ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
+fig = plt.figure(figsize=(10, 4))
+ax = plt.subplot2grid([2, len(alphas)], [1, 0], 1, len(alphas))
 ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
 ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
             (ix_best_alpha - 1, scores[ix_best_alpha] - .01),
@@ -257,7 +257,7 @@ mne.viz.tight_layout()
 
 # Plot the STRF of each ridge parameter
 for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
-    ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
+    ax = plt.subplot2grid([2, len(alphas)], [0, ii], 1, 1)
     ax.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
     plt.xticks([], [])
     plt.yticks([], [])
@@ -294,10 +294,8 @@ mne.viz.tight_layout()
 #    indexed by MSE) compared to Tikhonov regularization.
 #
 
-alphas = np.logspace(-4, 0, 10)
-old_scores = scores
-scores = np.zeros_like(alphas)
-models = []
+scores_lap = np.zeros_like(alphas)
+models_lap = []
 for ii, alpha in enumerate(alphas):
     estimator = TimeDelayingRidge(tmin, tmax, sfreq, reg_type='laplacian',
                                   alpha=alpha)
@@ -305,8 +303,8 @@ for ii, alpha in enumerate(alphas):
     rf.fit(X_train, y_train)
 
     # Now make predictions about the model output, given input stimuli.
-    scores[ii] = rf.score(X_test, y_test)
-    models.append(rf)
+    scores_lap[ii] = rf.score(X_test, y_test)
+    models_lap.append(rf)
 
 ix_best_alpha = np.argmax(scores)
 
@@ -320,15 +318,15 @@ ix_best_alpha = np.argmax(scores)
 # This matches the "true" receptive field structure and results in a better
 # model fit.
 
-fig = plt.figure(figsize=(20, 4))
-ax = plt.subplot2grid([2, 10], [1, 0], 1, 10)
-ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
-ax.plot(np.arange(len(alphas)), old_scores, marker='o', color='0.5', ls=':')
-ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
-            (ix_best_alpha - 0.8, scores[ix_best_alpha] - .01),
+fig = plt.figure(figsize=(10, 6))
+ax = plt.subplot2grid([3, len(alphas)], [2, 0], 1, len(alphas))
+ax.plot(np.arange(len(alphas)), scores_lap, marker='o', color='r')
+ax.plot(np.arange(len(alphas)), scores, marker='o', color='0.5', ls=':')
+ax.annotate('Best parameter', (ix_best_alpha, scores_lap[ix_best_alpha]),
+            (ix_best_alpha - 0.8, scores_lap[ix_best_alpha] - .1),
             arrowprops={'arrowstyle': '->'})
-ax.annotate('Ridge regularization', (ix_best_alpha, old_scores[ix_best_alpha]),
-            (ix_best_alpha - 0.5, old_scores[ix_best_alpha] - .02),
+ax.annotate('Ridge regularization', (ix_best_alpha, scores[ix_best_alpha]),
+            (ix_best_alpha - 0.5, scores[ix_best_alpha] - .2),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
 ax.set(xlabel="Laplacian regularization value", ylabel="Score ($R^2$)",
@@ -336,12 +334,18 @@ ax.set(xlabel="Laplacian regularization value", ylabel="Score ($R^2$)",
 mne.viz.tight_layout()
 
 # Plot the STRF of each ridge parameter
-for ii, (rf, i_alpha) in enumerate(zip(models, alphas)):
-    ax = plt.subplot2grid([2, 10], [0, ii], 1, 1)
+xlim = times[[0, -1]]
+for ii, (rf_lap, rf, i_alpha) in enumerate(zip(models_lap, models, alphas)):
+    ax = plt.subplot2grid([3, len(alphas)], [0, ii], 1, 1)
+    ax.pcolormesh(times, rf_lap.feature_names, rf_lap.coef_[0], **kwargs)
+    ax.set(xticks=[], yticks=[])
+    if ii == 0:
+        ax.set(ylabel='Laplacian')
+    ax = plt.subplot2grid([3, len(alphas)], [1, ii], 1, 1)
     ax.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
-    plt.xticks([], [])
-    plt.yticks([], [])
-    plt.autoscale(tight=True)
+    ax.set(xticks=[], yticks=[])
+    if ii == 0:
+        ax.set(ylabel='Ridge')
 fig.suptitle('Model coefficients / scores for laplacian regularization', y=1)
 mne.viz.tight_layout()
 
