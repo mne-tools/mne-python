@@ -17,7 +17,8 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  read_source_estimate, morph_data, extract_label_time_course,
                  spatio_temporal_tris_connectivity,
                  spatio_temporal_src_connectivity,
-                 spatial_inter_hemi_connectivity)
+                 spatial_inter_hemi_connectivity,
+                 spatial_src_connectivity)
 from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
                                  grade_to_tris)
 
@@ -879,6 +880,18 @@ def test_vec_stc():
     # Vector components projected onto the vertex normals
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
+
+
+@requires_sklearn
+@testing.requires_testing_data
+def test_vol_connectivity():
+    from scipy import sparse
+    vol = read_source_spaces(fname_vsrc)
+    connectivity = spatial_src_connectivity(vol)
+    n_vertices = vol[0]['inuse'].sum()
+    assert_equal(connectivity.shape, (n_vertices, n_vertices))
+    assert_true(np.all(connectivity.data == 1))
+    assert_true(isinstance(vol, sparse.coo.coo_matrix))
 
 
 run_tests_if_main()

@@ -2809,7 +2809,8 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
     Parameters
     ----------
     src : instance of SourceSpaces
-        The source space.
+        The source space. It can be a surface source space or a
+        volume source space.
     dist : float, or None
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors. If None, immediate neighbors
@@ -2823,7 +2824,24 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
     connectivity : sparse COO matrix
         The connectivity matrix describing the spatial graph structure.
     """
-    return spatio_temporal_src_connectivity(src, 1, dist)
+    if src[0]['type'] == 'vol':
+        assert len(src) == 1  # not a mixed source space
+        if dist is not None:
+            raise ValueError('dist has to be None for a volume '
+                             'source space. Got %s.' % dist)
+        from sklearn.feature_extraction import grid_to_graph
+        vertices = np.where(src[0]['inuse'])[0]
+        n_vertices = len(vertices)
+        data = (1 + np.arange(n_vertices))[:, np.newaxis]
+        stc_tmp = VolSourceEstimate(data, vertices, tmin=0., tstep=1.)
+        img = stc_tmp.as_volume(src, mri_resolution=False)
+        img_data = img.get_data()[:, :, :, 0]
+        img_data = img_data.T
+        connectivity = grid_to_graph(*img_data.shape, mask=(img_data != 0))
+    else:
+        connectivity = spatio_temporal_src_connectivity(src, 1, dist)
+
+    return connectivity
 
 
 @verbose
