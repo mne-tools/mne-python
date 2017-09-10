@@ -761,6 +761,8 @@ def test_spatio_temporal_src_connectivity():
     src[1]['use_tris'] = np.array([[0, 1, 2]])
     src[0]['vertno'] = np.array([0, 1, 2])
     src[1]['vertno'] = np.array([0, 1, 2])
+    src[0]['type'] = 'surf'
+    src[1]['type'] = 'surf'
     connectivity2 = spatio_temporal_src_connectivity(src, 2)
     assert_array_equal(connectivity.todense(), connectivity2.todense())
     # add test for dist connectivity
@@ -768,6 +770,8 @@ def test_spatio_temporal_src_connectivity():
     src[1]['dist'] = np.ones((3, 3)) - np.eye(3)
     src[0]['vertno'] = [0, 1, 2]
     src[1]['vertno'] = [0, 1, 2]
+    src[0]['type'] = 'surf'
+    src[1]['type'] = 'surf'
     connectivity3 = spatio_temporal_src_connectivity(src, 2, dist=2)
     assert_array_equal(connectivity.todense(), connectivity3.todense())
     # add test for source space connectivity with omitted vertices
@@ -887,11 +891,18 @@ def test_vec_stc():
 def test_vol_connectivity():
     from scipy import sparse
     vol = read_source_spaces(fname_vsrc)
+
+    assert_raises(ValueError, spatial_src_connectivity, vol, dist=1.)
+
     connectivity = spatial_src_connectivity(vol)
     n_vertices = vol[0]['inuse'].sum()
     assert_equal(connectivity.shape, (n_vertices, n_vertices))
     assert_true(np.all(connectivity.data == 1))
     assert_true(isinstance(connectivity, sparse.coo_matrix))
+
+    connectivity2 = spatio_temporal_src_connectivity(vol, n_times=2)
+    assert_equal(connectivity2.shape, (2 * n_vertices, 2 * n_vertices))
+    assert_true(np.all(connectivity2.data == 1))
 
 
 run_tests_if_main()
