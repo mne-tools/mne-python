@@ -193,6 +193,8 @@ class ReceptiveField(BaseEstimator):
 
         # Create input features
         n_times, n_epochs, n_feats = X.shape
+        n_outputs = y.shape[-1]
+        n_delays = len(self.delays_)
 
         # Update feature names if we have none
         if self.feature_names is None:
@@ -203,13 +205,28 @@ class ReceptiveField(BaseEstimator):
 
         # Create input features
         X, y = self._delay_and_reshape(X, y)
+
         self.estimator_.fit(X, y)
-        del X, y
         coef = get_coef(self.estimator_, 'coef_')  # (n_targets, n_features)
-        shape = [n_feats, len(self.delays_)]
+        shape = [n_feats, n_delays]
         if self._y_dim > 1:
             shape.insert(0, -1)
         self.coef_ = coef.reshape(shape)
+
+        if not isinstance(self.estimator_, TimeDelayingRidge):
+            # inverse-transform model weights.
+            coef = np.reshape(self.coef_, (n_feats * n_delays, n_outputs))
+            # inv_coef is of shape = (n_feats * n_delays, n_outputs)
+            inv_coef = np.linalg.multi_dot([np.dot(X.T, X),
+                                            coef,
+                                            np.linalg.inv(np.dot(y.T, y))])
+            # Reshape coef back to (n_feats, n_delays, n_outputs)
+            self.inverse_coef_ = inv_coef.reshape(shape)
+        else:
+            pass  # TODO
+
+        del X, y
+
         return self
 
     def predict(self, X):
