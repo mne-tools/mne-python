@@ -891,7 +891,7 @@ def test_vol_connectivity():
     n_vertices = vol[0]['inuse'].sum()
     assert_equal(connectivity.shape, (n_vertices, n_vertices))
     assert_true(np.all(connectivity.data == 1))
-    assert_true(isinstance(vol, sparse.coo.coo_matrix))
+    assert_true(isinstance(connectivity, sparse.coo_matrix))
 
 
 run_tests_if_main()
