@@ -201,6 +201,7 @@ def test_time_delaying_fast_calc():
     # all negative
     smin, smax = -2, -1
     X_del = _delay_time_series(X, smin, smax, 1.)
+    # (n_times, n_features, n_delays) -> (n_times, n_features * n_delays)
     X_del.shape = (X.shape[0], -1)
     expected = np.array([[0, 0, 1], [0, 1, 2], [0, 0, 5], [0, 5, 7]]).T
     assert_allclose(X_del, expected)
@@ -239,7 +240,7 @@ def test_time_delaying_fast_calc():
     x_xt = _compute_corrs(X, np.zeros((X.shape[0], 1)), -smax, -smin + 1)[0]
     assert_allclose(x_xt, expected)
 
-    # slightly harder
+    # slightly harder to get the non-Toeplitz correction correct
     X = np.array([[1, 2, 3, 5]]).T
     smin, smax = -3, 0
     X_del = _delay_time_series(X, smin, smax, 1.)

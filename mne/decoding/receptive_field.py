@@ -315,8 +315,8 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
 
     Parameters
     ----------
-    X : array, shape (n_times[, n_epochs][, n_features])
-        The time series to delay.
+    X : array, shape (n_times[, n_epochs], n_features)
+        The time series to delay. Must be 2D or 3D.
     tmin : int | float
         The starting lag. Negative values correspond to times in the past.
     tmax : int | float
