@@ -14,7 +14,8 @@ from mne.utils import requires_sklearn_0_15, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
-from mne.decoding.time_delaying_ridge import _compute_reg_neighbors
+from mne.decoding.time_delaying_ridge import (_compute_reg_neighbors,
+                                              _compute_corrs)
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -194,6 +195,106 @@ def test_receptive_field():
     assert_raises(ValueError, rf.fit, X, y)
 
 
+def test_time_delaying_fast_calc():
+    """Test time delaying and fast calculations."""
+    X = np.array([[1, 2, 3], [5, 7, 11]]).T
+    # all negative
+    smin, smax = -2, -1
+    X_del = _delay_time_series(X, smin, smax, 1.)
+    X_del.shape = (X.shape[0], -1)
+    expected = np.array([[0, 0, 1], [0, 1, 2], [0, 0, 5], [0, 5, 7]]).T
+    assert_allclose(X_del, expected)
+    Xt_X = np.dot(X_del.T, X_del)
+    expected = [[1, 2, 5, 7], [2, 5, 10, 19], [5, 10, 25, 35], [7, 19, 35, 74]]
+    assert_allclose(Xt_X, expected)
+    x_xt = _compute_corrs(X, np.zeros((X.shape[0], 1)), -smax, -smin + 1)[0]
+    assert_allclose(x_xt, expected)
+    # all positive
+    smin, smax = 1, 2
+    X_del = _delay_time_series(X, smin, smax, 1.)
+    X_del.shape = (X.shape[0], -1)
+    expected = np.array([[2, 3, 0], [3, 0, 0], [7, 11, 0], [11, 0, 0]]).T
+    assert_allclose(X_del, expected)
+    Xt_X = np.dot(X_del.T, X_del)
+    expected = [[13, 6, 47, 22], [6, 9, 21, 33],
+                [47, 21, 170, 77], [22, 33, 77, 121]]
+    assert_allclose(Xt_X, expected)
+    x_xt = _compute_corrs(X, np.zeros((X.shape[0], 1)), -smax, -smin + 1)[0]
+    assert_allclose(x_xt, expected)
+    # both sides
+    smin, smax = -1, 1
+    X_del = _delay_time_series(X, smin, smax, 1.)
+    X_del.shape = (X.shape[0], -1)
+    expected = np.array([[0, 1, 2], [1, 2, 3], [2, 3, 0],
+                         [0, 5, 7], [5, 7, 11], [7, 11, 0]]).T
+    assert_allclose(X_del, expected)
+    Xt_X = np.dot(X_del.T, X_del)
+    expected = [[5, 8, 3, 19, 29, 11],
+                [8, 14, 8, 31, 52, 29],
+                [3, 8, 13, 15, 31, 47],
+                [19, 31, 15, 74, 112, 55],
+                [29, 52, 31, 112, 195, 112],
+                [11, 29, 47, 55, 112, 170]]
+    assert_allclose(Xt_X, expected)
+    x_xt = _compute_corrs(X, np.zeros((X.shape[0], 1)), -smax, -smin + 1)[0]
+    assert_allclose(x_xt, expected)
+
+    # slightly harder
+    X = np.array([[1, 2, 3, 5]]).T
+    smin, smax = -3, 0
+    X_del = _delay_time_series(X, smin, smax, 1.)
+    X_del.shape = (X.shape[0], -1)
+    expected = np.array([[0, 0, 0, 1], [0, 0, 1, 2],
+                         [0, 1, 2, 3], [1, 2, 3, 5]]).T
+    assert_allclose(X_del, expected)
+    Xt_X = np.dot(X_del.T, X_del)
+    expected = [[1, 2, 3, 5], [2, 5, 8, 13], [3, 8, 14, 23], [5, 13, 23, 39]]
+    assert_allclose(Xt_X, expected)
+    x_xt = _compute_corrs(X, np.zeros((X.shape[0], 1)), -smax, -smin + 1)[0]
+    assert_allclose(x_xt, expected)
+
+    # even worse
+    X = np.array([[1, 2, 3], [5, 7, 11]]).T
+    smin, smax = -2, 0
+    X_del = _delay_time_series(X, smin, smax, 1.)
+    X_del.shape = (X.shape[0], -1)
+    expected = np.array([[0, 0, 1], [0, 1, 2], [1, 2, 3],
+                         [0, 0, 5], [0, 5, 7], [5, 7, 11]]).T
+    assert_allclose(X_del, expected)
+    Xt_X = np.dot(X_del.T, X_del)
+    expected = np.array([[1, 2, 3, 5, 7, 11],
+                         [2, 5, 8, 10, 19, 29],
+                         [3, 8, 14, 15, 31, 52],
+                         [5, 10, 15, 25, 35, 55],
+                         [7, 19, 31, 35, 74, 112],
+                         [11, 29, 52, 55, 112, 195]])
+    assert_allclose(Xt_X, expected)
+    x_xt = _compute_corrs(X, np.zeros((X.shape[0], 1)), -smax, -smin + 1)[0]
+    assert_allclose(x_xt, expected)
+
+    # And a bunch of random ones for good measure
+    rng = np.random.RandomState(0)
+    X = rng.randn(25, 3)
+    y = np.empty((25, 2))
+    vals = (0, -1, 1, -2, 2, -11, 11)
+    for smax in vals:
+        for smin in vals:
+            if smin > smax:
+                continue
+            for ii in range(X.shape[1]):
+                kernel = rng.randn(smax - smin + 1)
+                kernel -= np.mean(kernel)
+                y[:, ii % y.shape[-1]] = np.convolve(X[:, ii], kernel, 'same')
+            x_xt, x_yt, n_ch_x = _compute_corrs(X, y, -smax, -smin + 1)
+            X_del = _delay_time_series(X, smin, smax, 1., fill_mean=False)
+            x_yt_true = np.einsum('tfd,to->ofd', X_del, y)
+            x_yt_true = np.reshape(x_yt_true, (x_yt_true.shape[0], -1)).T
+            assert_allclose(x_yt, x_yt_true, atol=1e-7, err_msg=(smin, smax))
+            X_del.shape = (X.shape[0], -1)
+            x_xt_true = np.dot(X_del.T, X_del).T
+            assert_allclose(x_xt, x_xt_true, atol=1e-7, err_msg=(smin, smax))
+
+
 @requires_sklearn_0_15
 def test_receptive_field_fast():
     """Test that the fast solving works like Ridge."""
@@ -242,6 +343,9 @@ def test_receptive_field_fast():
     # should appear in the resulting RF
     for ii in range(1, 5):
         y[ii:, ii % 2] += (-1) ** ii * ii * x[:-ii, ii % 3]
+    y -= np.mean(y, axis=0)
+    x -= np.mean(x, axis=0)
+    x_off = x + 1e3
     expected = [
         [[0, 0, 0, 0, 0, 0],
          [0, 4, 0, 0, 0, 0],
@@ -270,19 +374,15 @@ def test_receptive_field_fast():
     tdr_no = TimeDelayingRidge(slim[0], slim[1], 1., 0., fit_intercept=False)
     for estimator in (Ridge(alpha=0.), tdr,
                       Ridge(alpha=0., fit_intercept=False), tdr_no):
-        x -= np.mean(x, axis=0)
-        y -= np.mean(y, axis=0)
         model = ReceptiveField(slim[0], slim[1], 1., estimator=estimator)
         model.fit(x, y)
         assert_allclose(model.estimator_.intercept_, 0., atol=1e-2)
         assert_allclose(model.coef_, expected, atol=1e-1)
-        x += 1e3
-        model.fit(x, y)
+        model.fit(x_off, y)
         if estimator.fit_intercept:
             val = [-6000, 4000]
-            # XXX This suggests there is some bug in the intercept code of TDR
-            itol = 15 if estimator is tdr else 0.5
-            ctol = 1e-2 if estimator is tdr else 5e-4
+            itol = 0.5
+            ctol = 5e-4
         else:
             val = itol = 0.
             # Same tolerances for TDR and Ridge, so the non-intercept code
@@ -293,9 +393,9 @@ def test_receptive_field_fast():
         assert_allclose(model.coef_, expected, atol=ctol, rtol=ctol,
                         err_msg=repr(estimator))
         model = ReceptiveField(slim[0], slim[1], 1., fit_intercept=False)
-        model.fit(x, y)
+        model.fit(x_off, y)
         assert_allclose(model.estimator_.intercept_, 0., atol=1e-7)
-        score = model.score(x, y)
+        score = model.score(x_off, y)
         assert_true(score > 0.6, msg=score)
 
 

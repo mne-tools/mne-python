@@ -16,49 +16,131 @@ from ..externals.six import string_types
 
 
 def _compute_corrs(X, y, smin, smax):
-    """Compute the auto- and cross-correlations."""
+    """Compute auto- and cross-correlations."""
+    if X.ndim == 2:
+        assert y.ndim == 2
+        X = X[:, np.newaxis, :]
+        y = y[:, np.newaxis, :]
+    assert X.shape[:2] == y.shape[:2]
     len_trf = smax - smin
-    len_x, n_ch_x = X.shape
-    len_y, n_ch_y = y.shape
+    len_x, n_epochs, n_ch_x = X.shape
+    len_y, n_epcohs, n_ch_y = y.shape
     assert len_x == len_y
 
     n_fft = next_fast_len(X.shape[0] + max(smax, 0) - min(smin, 0) - 1)
-    X_fft = np.fft.rfft(X.T, n_fft)
-    y_fft = np.fft.rfft(y.T, n_fft)
-    # del X, y
 
-    # compute the autocorrelations
-    ac = np.zeros((n_ch_x, n_ch_x, len_trf * 2 - 1))
-    for ch0 in range(n_ch_x):
-        for ch1 in range(ch0, n_ch_x):
-            # This is equivalent to:
-            # ac_temp = np.correlate(X[:, ch0], X[:, ch1], mode='full')
-            # ac_temp = np.roll(ac_temp_2, X.shape[0])
-            ac_temp = np.fft.irfft(X_fft[ch0] * X_fft[ch1].conj(), n_fft)
-            ac[ch0, ch1] = np.concatenate((ac_temp[-len_trf + 1:],
-                                           ac_temp[:len_trf]))
-            if ch0 != ch1:
-                ac[ch1, ch0] = ac[ch0, ch1][::-1]
+    x_xt = np.zeros([n_ch_x * len_trf] * 2)
+    x_y = np.zeros((len_trf, n_ch_x, n_ch_y), order='F')
+    for ei in range(n_epochs):
+        this_X = X[:, ei, :]
+        X_fft = np.fft.rfft(this_X, n_fft, axis=0)
+        y_fft = np.fft.rfft(y[:, ei, :], n_fft, axis=0)
 
-    # compute the crosscorrelations
-    x_y = np.zeros((n_ch_y, n_ch_x, len_trf))
-    for ch_in in range(n_ch_x):
-        for ch_out in range(n_ch_y):
-            cc_temp = np.fft.irfft(y_fft[ch_out] * X_fft[ch_in].conj(), n_fft)
+        # compute the autocorrelations
+        for ch0 in range(n_ch_x):
+            other_sl = slice(ch0, n_ch_x)
+            ac_temp = np.fft.irfft(X_fft[:, ch0][:, np.newaxis] *
+                                   X_fft[:, other_sl].conj(), n_fft, axis=0)
+            n_other = ac_temp.shape[1]
+            row = ac_temp[:len_trf]  # zero and positive lags
+            col = ac_temp[-1:-len_trf:-1]  # negative lags
+            # Our autocorrelation structure is a Toeplitz matrix, but
+            # it's faster to create the Toeplitz ourselves.
+            x_xt_temp = np.zeros((len_trf, len_trf, n_other))
+            for ii in range(len_trf):
+                x_xt_temp[ii, ii:] = row[:len_trf - ii]
+                x_xt_temp[ii + 1:, ii] = col[:len_trf - ii - 1]
+            row_adjust = np.zeros((len_trf, n_other))
+            col_adjust = np.zeros((len_trf, n_other))
+
+            # However, we need to adjust for coeffs that are cut off by
+            # the mode="same"-like behavior of the algorithm,
+            # i.e. the non-zero delays should not have the same AC value
+            # as the zero-delay ones (because they actually have fewer
+            # coefficents).
+            #
+            # These adjustments also follow a Toeplitz structure, but it's
+            # computationally more efficient to manually accumulate and
+            # subtract from each row and col, rather than accumulate a single
+            # adjustment matrix using Toeplitz repetitions then subtract
+
+            # Adjust positive lags where the tail gets cut off
+            for idx in range(1, smax):
+                ii = idx - smin
+                end_sl = slice(X.shape[0] - idx, -smax - min(ii, 0), -1)
+                c = (this_X[-idx, other_sl][np.newaxis] *
+                     this_X[end_sl, ch0][:, np.newaxis])
+                r = this_X[-idx, ch0] * this_X[end_sl, other_sl]
+                if ii <= 0:
+                    col_adjust += c
+                    row_adjust += r
+                    if ii == 0:
+                        x_xt_temp[0, :] = row - row_adjust
+                        x_xt_temp[1:, 0] = col - col_adjust[1:]
+                else:
+                    col_adjust[:-ii] += c
+                    row_adjust[:-ii] += r
+                    x_xt_temp[ii, ii:] = row[:-ii] - row_adjust[:-ii]
+                    x_xt_temp[ii + 1:, ii] = col[:-ii] - col_adjust[1:-ii]
+
+            # Adjust negative lags where the head gets cut off
+            x_xt_temp = x_xt_temp[::-1][:, ::-1]
+            row_adjust.fill(0.)
+            col_adjust.fill(0.)
+            for idx in range(0, -smin):
+                ii = idx + smax
+                start_sl = slice(idx, -smin + min(ii, 0))
+                c = (this_X[idx, other_sl][np.newaxis] *
+                     this_X[start_sl, ch0][:, np.newaxis])
+                r = this_X[idx, ch0] * this_X[start_sl, other_sl]
+                if ii <= 0:
+                    col_adjust += c
+                    row_adjust += r
+                    if ii == 0:
+                        x_xt_temp[0, :] -= row_adjust
+                        x_xt_temp[1:, 0] -= col_adjust[1:]
+                else:
+                    col_adjust[:-ii] += c
+                    row_adjust[:-ii] += r
+                    x_xt_temp[ii, ii:] -= row_adjust[:-ii]
+                    x_xt_temp[ii + 1:, ii] -= col_adjust[1:-ii]
+
+            for oi in range(n_other):
+                ch1 = oi + ch0
+                # Store the result
+                this_result = x_xt_temp[:, :, oi]
+                x_xt[ch0 * len_trf:(ch0 + 1) * len_trf,
+                     ch1 * len_trf:(ch1 + 1) * len_trf] += this_result
+                if ch0 != ch1:
+                    x_xt[ch1 * len_trf:(ch1 + 1) * len_trf,
+                         ch0 * len_trf:(ch0 + 1) * len_trf] += this_result.T
+
+            # compute the crosscorrelations
+            cc_temp = np.fft.irfft(
+                y_fft * X_fft[:, ch0][:, np.newaxis].conj(), n_fft, axis=0)
             if smin < 0 and smax >= 0:
-                x_y[ch_out, ch_in] = np.append(cc_temp[smin:], cc_temp[:smax])
+                x_y[:smax, ch0] += cc_temp[:smax][::-1]
+                x_y[smax:, ch0] += cc_temp[smin:][::-1]
             else:
-                x_y[ch_out, ch_in] = cc_temp[smin:smax]
+                x_y[:, ch0] += cc_temp[smin:smax][::-1]
 
-    # make xxt and xy
-    x_xt = _make_x_xt(ac)
-    x_y.shape = (n_ch_y, n_ch_x * len_trf)
+    x_y = np.reshape(x_y, (n_ch_x * len_trf, n_ch_y), order='F')
     return x_xt, x_y, n_ch_x
 
 
 def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
-                           normed=True):
+                           normed=False):
     """Compute regularization parameter from neighbors."""
+    known_types = ('ridge', 'laplacian')
+    if isinstance(reg_type, string_types):
+        reg_type = (reg_type,) * 2
+    if len(reg_type) != 2:
+        raise ValueError('reg_type must have two elements, got %s'
+                         % (len(reg_type),))
+    for r in reg_type:
+        if r not in known_types:
+            raise ValueError('reg_type entries must be one of %s, got %s'
+                             % (known_types, r))
     reg_time = (reg_type[0] == 'laplacian' and n_delays > 1)
     reg_chs = (reg_type[1] == 'laplacian' and n_ch_x > 1)
     if not reg_time and not reg_chs:
@@ -102,21 +184,10 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
 
 def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     """Fit the model using correlation matrices."""
-    known_types = ('ridge', 'laplacian')
-    if isinstance(reg_type, string_types):
-        reg_type = (reg_type,) * 2
-    if len(reg_type) != 2:
-        raise ValueError('reg_type must have two elements, got %s'
-                         % (len(reg_type),))
-    for r in reg_type:
-        if r not in known_types:
-            raise ValueError('reg_type entries must be one of %s, got %s'
-                             % (known_types, r))
-
     # do the regularized solving
-    n_ch_out = x_y.shape[0]
-    assert x_y.shape[1] % n_ch_x == 0
-    n_delays = x_y.shape[1] // n_ch_x
+    n_ch_out = x_y.shape[1]
+    assert x_y.shape[0] % n_ch_x == 0
+    n_delays = x_y.shape[0] // n_ch_x
     reg = _compute_reg_neighbors(n_ch_x, n_delays, reg_type)
     mat = x_xt + alpha * reg
     # From sklearn
@@ -124,30 +195,13 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
         # Note: we must use overwrite_a=False in order to be able to
         #       use the fall-back solution below in case a LinAlgError
         #       is raised
-        w = linalg.solve(mat, x_y.T, sym_pos=True, overwrite_a=False)
+        w = linalg.solve(mat, x_y, sym_pos=True, overwrite_a=False)
     except np.linalg.LinAlgError:
         warnings.warn('Singular matrix in solving dual problem. Using '
                       'least-squares solution instead.')
-        w = linalg.lstsq(mat, x_y.T, lapack_driver='gelsy')[0]
+        w = linalg.lstsq(mat, x_y, lapack_driver='gelsy')[0]
     w = w.T.reshape([n_ch_out, n_ch_in, n_delays])
     return w
-
-
-def _make_x_xt(ac):
-    len_trf = (ac.shape[2] + 1) // 2
-    n_ch = ac.shape[0]
-    xxt = np.zeros([n_ch * len_trf] * 2)
-    for ch0 in range(n_ch):
-        for ch1 in range(n_ch):
-            xxt_temp = np.zeros((len_trf, len_trf))
-            xxt_temp[0, :] = ac[ch0, ch1, len_trf - 1:]
-            xxt_temp[:, 0] = ac[ch0, ch1, len_trf - 1::-1]
-            for ii in range(1, len_trf):
-                xxt_temp[ii, ii:] = ac[ch0, ch1, len_trf - 1:-ii]
-                xxt_temp[ii:, ii] = ac[ch0, ch1, len_trf - 1:ii - 1:-1]
-            xxt[ch0 * len_trf:(ch0 + 1) * len_trf,
-                ch1 * len_trf:(ch1 + 1) * len_trf] = xxt_temp
-    return xxt
 
 
 class TimeDelayingRidge(BaseEstimator):
@@ -213,9 +267,9 @@ class TimeDelayingRidge(BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_samples, n_features)
+        X : array, shape (n_samples[, n_epochs], n_features)
             The training input samples to estimate the linear coefficients.
-        y : array, shape (n_samples, n_outputs)
+        y : array, shape (n_samples[, n_epochs],  n_outputs)
             The target values.
 
         Returns
@@ -223,6 +277,12 @@ class TimeDelayingRidge(BaseEstimator):
         self : instance of TimeDelayingRidge
             Returns the modified instance.
         """
+        if X.ndim == 3:
+            assert y.ndim == 3
+            assert X.shape[:2] == y.shape[:2]
+        else:
+            assert X.ndim == 2 and y.ndim == 2
+            assert X.shape[0] == y.shape[0]
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
@@ -230,15 +290,17 @@ class TimeDelayingRidge(BaseEstimator):
             # We could do this in the Fourier domain, too, but it should
             # be a bit cleaner numerically to do it here.
             X_offset = np.mean(X, axis=0)
-            X = X - X_offset
             y_offset = np.mean(y, axis=0)
+            if X.ndim == 3:
+                X_offset = X_offset.mean(axis=0)
+                y_offset = np.mean(y_offset, axis=0)
+            X = X - X_offset
             y = y - y_offset
         else:
             X_offset = y_offset = 0.
         x_xt, x_y, n_ch_x = _compute_corrs(X, y, self._smin, self._smax)
         self.coef_ = _fit_corrs(x_xt, x_y, n_ch_x,
                                 self.reg_type, self.alpha, n_ch_x)
-        self.coef_ = self.coef_[..., ::-1]
         # This is the sklearn formula from LinearModel (will be 0. for no fit)
         if self.fit_intercept:
             self.intercept_ = y_offset - np.dot(X_offset, self.coef_.sum(-1).T)
@@ -251,7 +313,7 @@ class TimeDelayingRidge(BaseEstimator):
 
         Parameters
         ----------
-        X : array, shape (n_samples, n_features)
+        X : array, shape (n_samples[, n_epochs], n_features)
             The data.
 
         Returns
@@ -259,13 +321,21 @@ class TimeDelayingRidge(BaseEstimator):
         X : ndarray
             The predicted response.
         """
-        out = np.zeros((X.shape[0], self.coef_.shape[0]))
+        if X.ndim == 2:
+            X = X[:, np.newaxis, :]
+            singleton = True
+        else:
+            singleton = False
+        out = np.zeros(X.shape[:2] + (self.coef_.shape[0],))
         smin = self._smin
         offset = max(smin, 0)
-        for oi in range(self.coef_.shape[0]):
-            for fi in range(self.coef_.shape[1]):
-                temp = np.convolve(X[:, fi], self.coef_[oi, fi][::-1])
-                temp = temp[max(-smin, 0):][:len(out) - offset]
-                out[offset:len(temp) + offset, oi] += temp
+        for ei in range(X.shape[1]):
+            for oi in range(self.coef_.shape[0]):
+                for fi in range(self.coef_.shape[1]):
+                    temp = np.convolve(X[:, ei, fi], self.coef_[oi, fi][::-1])
+                    temp = temp[max(-smin, 0):][:len(out) - offset]
+                    out[offset:len(temp) + offset, ei, oi] += temp
         out += self.intercept_
+        if singleton:
+            out = out[:, 0, :]
         return out

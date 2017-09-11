@@ -81,7 +81,7 @@ sfreq /= n_decim
 #
 # We'll simulate a linear receptive field for a theoretical neural signal. This
 # defines how the signal will respond to power in this receptive field space.
-n_freqs = 16
+n_freqs = 20
 tmin, tmax = -.4, 0.1
 
 # To simulate the data we'll create explicit delays here
@@ -167,7 +167,7 @@ for ii, iep in enumerate(X_del):
 X_plt = scale(np.hstack(X[:2]).T).T
 y_plt = scale(np.hstack(y[:2]))
 time = np.arange(X_plt.shape[-1]) / sfreq
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True)
 ax1.pcolormesh(time, freqs, X_plt, vmin=0, vmax=4, cmap='viridis')
 ax1.set_title('Input auditory features')
 ax1.set(ylim=[freqs.min(), freqs.max()], ylabel='Frequency (Hz)')
@@ -212,7 +212,7 @@ coefs = best_mod.coef_[0]
 best_pred = best_mod.predict(X_test)[:, 0]
 
 # Plot the original STRF, and the one that we recovered with modeling.
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6, 3), sharey=True, sharex=True)
 ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
 ax2.pcolormesh(times, rf.feature_names, coefs, **kwargs)
 ax1.set_title('Original STRF')
@@ -248,7 +248,7 @@ fig = plt.figure(figsize=(10, 4))
 ax = plt.subplot2grid([2, len(alphas)], [1, 0], 1, len(alphas))
 ax.plot(np.arange(len(alphas)), scores, marker='o', color='r')
 ax.annotate('Best parameter', (ix_best_alpha, scores[ix_best_alpha]),
-            (ix_best_alpha - 1, scores[ix_best_alpha] - .01),
+            (ix_best_alpha, scores[ix_best_alpha] - .1),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
 ax.set(xlabel="Ridge regularization value", ylabel="Score ($R^2$)",
@@ -306,7 +306,7 @@ for ii, alpha in enumerate(alphas):
     scores_lap[ii] = rf.score(X_test, y_test)
     models_lap.append(rf)
 
-ix_best_alpha = np.argmax(scores)
+ix_best_alpha_lap = np.argmax(scores_lap)
 
 ###############################################################################
 # Compare model performance
@@ -322,11 +322,12 @@ fig = plt.figure(figsize=(10, 6))
 ax = plt.subplot2grid([3, len(alphas)], [2, 0], 1, len(alphas))
 ax.plot(np.arange(len(alphas)), scores_lap, marker='o', color='r')
 ax.plot(np.arange(len(alphas)), scores, marker='o', color='0.5', ls=':')
-ax.annotate('Best parameter', (ix_best_alpha, scores_lap[ix_best_alpha]),
-            (ix_best_alpha - 0.8, scores_lap[ix_best_alpha] - .1),
+ax.annotate('Best Laplacian', (ix_best_alpha_lap,
+                               scores_lap[ix_best_alpha_lap]),
+            (ix_best_alpha_lap, scores_lap[ix_best_alpha_lap] - .1),
             arrowprops={'arrowstyle': '->'})
-ax.annotate('Ridge regularization', (ix_best_alpha, scores[ix_best_alpha]),
-            (ix_best_alpha - 0.5, scores[ix_best_alpha] - .2),
+ax.annotate('Best Ridge', (ix_best_alpha, scores[ix_best_alpha]),
+            (ix_best_alpha, scores[ix_best_alpha] - .1),
             arrowprops={'arrowstyle': '->'})
 plt.xticks(np.arange(len(alphas)), ["%.0e" % ii for ii in alphas])
 ax.set(xlabel="Laplacian regularization value", ylabel="Score ($R^2$)",
@@ -343,10 +344,25 @@ for ii, (rf_lap, rf, i_alpha) in enumerate(zip(models_lap, models, alphas)):
         ax.set(ylabel='Laplacian')
     ax = plt.subplot2grid([3, len(alphas)], [1, ii], 1, 1)
     ax.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
-    ax.set(xticks=[], yticks=[])
+    ax.set(xticks=[], yticks=[], xlim=times[[0, -1]])
     if ii == 0:
         ax.set(ylabel='Ridge')
 fig.suptitle('Model coefficients / scores for laplacian regularization', y=1)
+mne.viz.tight_layout()
+
+# Plot the original STRF, and the one that we recovered with modeling.
+rf = models[ix_best_alpha]
+rf_lap = models_lap[ix_best_alpha_lap]
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(9, 3),
+                                    sharey=True, sharex=True)
+ax1.pcolormesh(delays_sec, freqs, weights, **kwargs)
+ax2.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
+ax3.pcolormesh(times, rf_lap.feature_names, rf_lap.coef_[0], **kwargs)
+ax1.set_title('Original STRF')
+ax2.set_title('Best Ridge STRF')
+ax3.set_title('Best Laplacian STRF')
+plt.setp([iax.get_xticklabels() for iax in [ax1, ax2, ax3]], rotation=45)
+plt.autoscale(tight=True)
 mne.viz.tight_layout()
 
 plt.show()
