@@ -24,7 +24,7 @@ from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax, _grad_pair_pick_and_name)
-from ..utils import logger, _clean_names, warn, _pl, check_random_state
+from ..utils import logger, _clean_names, warn, _pl
 from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines
@@ -1339,47 +1339,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     return fig
 
 
-def _parametric_ci(arr, ci=.95):
-    """Calculate the `ci`% parametric confidence interval for `arr`."""
-    from scipy import stats
-    mean, sigma = arr.mean(0), stats.sem(arr, 0)
-    # This is highly convoluted to support 17th century Scipy
-    # XXX Fix when Scipy 0.12 support is dropped!
-    # then it becomes just:
-    # return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
-    return np.asarray([stats.t.interval(ci, arr.shape[0],
-                       loc=mean_, scale=sigma_)
-                       for mean_, sigma_ in zip(mean, sigma)]).T
-
-
-def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, statfun='mean',
-                  random_state=None):
-    """Get confidence intervals from non-parametric bootstrap."""
-    if statfun == "mean":
-        statfun = lambda x: x.mean(axis=0)  # noqa
-    elif statfun == 'median':
-        statfun = lambda x: np.median(x, axis=0)  # noqa
-    elif not callable(statfun):
-        raise ValueError("statfun must be 'mean', 'median' or callable.")
-    n_trials = arr.shape[0]
-    indices = np.arange(n_trials, dtype=int)  # BCA would be cool to have too
-    rng = check_random_state(random_state)
-    boot_indices = rng.choice(indices, replace=True,
-                              size=(n_trials, len(indices)))
-    stat = np.array([statfun(arr[inds]) for inds in boot_indices])
-    ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
-    ci_low, ci_up = np.percentile(stat, ci, axis=0)
-    return np.array([ci_low, ci_up])
-
-
-def _ci(arr, ci=.95, method="bootstrap", n_bootstraps=2000):
-    """Calculate confidence interval. Aux function for plot_compare_evokeds."""
-    if method == "bootstrap":
-        return _bootstrap_ci(arr, ci=ci, n_bootstraps=n_bootstraps)
-    else:
-        return _parametric_ci(arr, ci=ci)
-
-
 def _setup_styles(conditions, style_dict, style, default):
     """Set linestyles and colors for plot_compare_evokeds."""
     # check user-supplied style to condition matching
@@ -1641,9 +1600,10 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
         if ci is not False:
             if callable(ci):
-                _ci = ci
+                _ci_fun = ci
             else:
-                _ci = partial(_bootstrap_ci, ci=ci)
+                from ..stats import _ci
+                _ci_fun = partial(_ci, ci=ci, method="bootstrap")
             # calculate the CI
             ci_array = dict()
             for condition in conditions:
@@ -1651,7 +1611,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 # (e.g. channel count)
                 data = np.asarray([evoked_.data[picks, :].mean(0)
                                    for evoked_ in evokeds[condition]])
-                ci_array[condition] = _ci(data) * scaling
+                ci_array[condition] = _ci_fun(data) * scaling
 
         # get the grand mean
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))

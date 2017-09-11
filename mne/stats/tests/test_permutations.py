@@ -2,11 +2,12 @@
 #
 # License: BSD (3-clause)
 
-from numpy.testing import assert_array_equal, assert_almost_equal
+from numpy.testing import (assert_array_equal, assert_almost_equal,
+                           assert_allclose)
 import numpy as np
 from scipy import stats
 
-from mne.stats.permutations import permutation_t_test
+from mne.stats.permutations import permutation_t_test, _ci, _bootstrap_ci
 from mne.utils import run_tests_if_main
 
 
@@ -36,5 +37,14 @@ def test_permutation_t_test():
     assert_almost_equal(T_obs[0], T_obs_scipy, 8)
     assert_almost_equal(p_values[0], p_values_scipy, 2)
 
+
+def test_ci():
+    # isolated test of CI functions
+    arr = np.linspace(0, 1, 1000)[..., np.newaxis]
+    assert_allclose(_ci(arr, method="parametric"),
+                    _ci(arr, method="bootstrap"), rtol=.005)
+    assert_allclose(_bootstrap_ci(arr, statfun="median", random_state=0),
+                    _bootstrap_ci(arr, statfun="mean", random_state=0),
+                    rtol=.1)
 
 run_tests_if_main()
