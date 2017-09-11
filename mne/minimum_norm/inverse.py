@@ -1327,14 +1327,16 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                              'forward solution to do depth weighting even '
                              'when calculating a fixed-orientation inverse.')
         if not forward['surf_ori']:
-            forward = convert_forward_solution(forward.copy(), surf_ori=True)
+            forward = convert_forward_solution(forward, surf_ori=True,
+                                               copy=True)
         assert forward['surf_ori']
     if loose is not None:
         if not (0 <= loose <= 1):
             raise ValueError('loose value should be smaller than 1 and bigger '
                              'than 0, or None for not loose orientations.')
         if loose < 1 and not forward['surf_ori']:
-            forward = convert_forward_solution(forward.copy(), surf_ori=True)
+            forward = convert_forward_solution(forward, surf_ori=True,
+                                               copy=True)
 
     #
     # 1. Read the bad channels
