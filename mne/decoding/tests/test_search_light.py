@@ -142,9 +142,11 @@ def test_search_light():
 
     # Bagging classifiers
     X = np.random.rand(10, 3, 4)
-    pipe = SlidingEstimator(BaggingClassifier(None, 2))
-    pipe.fit(X, y)
-    pipe.score(X, y)
+    for n_jobs in (1, 2):
+        pipe = SlidingEstimator(BaggingClassifier(None, 2), n_jobs=n_jobs)
+        pipe.fit(X, y)
+        pipe.score(X, y)
+        assert_true(isinstance(pipe.estimators_[0], BaggingClassifier))
 
 
 @requires_sklearn_0_15

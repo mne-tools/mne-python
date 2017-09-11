@@ -82,6 +82,10 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         estimators = parallel(
             p_func(self.base_estimator, split, y, **fit_params)
             for split in np.array_split(X, n_jobs, axis=-1))
+
+        # Each parallel job can have a different number of training estimators
+        # We can't directly concatenate them because of sklearn's Bagging API
+        # (see scikit-learn #9720)
         self.estimators_ = np.empty(X.shape[-1], dtype=object)
         idx = 0
         for job_estimators in estimators:
