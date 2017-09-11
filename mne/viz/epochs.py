@@ -41,7 +41,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     epochs : instance of Epochs
         The epochs.
     picks : int | array-like of int | None
-        The indices of the channels to consider. If None and ``combine` is
+        The indices of the channels to consider. If None and ``combine`` is
         also None, the first five good channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along

@@ -431,7 +431,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/inverse/plot_tf_dics.rst
     auto_examples/inverse/plot_tf_lcmv.rst
     auto_examples/inverse/plot_time_frequency_mixed_norm_inverse.rst
-    auto_examples/inverse/plot_vector_source_estimate.rst
+    auto_examples/inverse/plot_vector_mne_solution.rst
 
 .. raw:: html
 

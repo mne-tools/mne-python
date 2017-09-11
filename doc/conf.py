@@ -319,7 +319,8 @@ sphinx_gallery_conf = {
     'plot_gallery': 'True',  # Avoid annoying Unicode/bool default warning
     'download_section_examples': False,
     'thumbnail_size': (160, 112),
-    }
+    'min_reported_time': 1.,
+}
 
 numpydoc_class_members_toctree = False
 

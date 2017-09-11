@@ -44,6 +44,8 @@ modeling with continuous inputs is described in:
 #
 # License: BSD (3-clause)
 
+# sphinx_gallery_thumbnail_number = 7
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -339,17 +341,18 @@ xlim = times[[0, -1]]
 for ii, (rf_lap, rf, i_alpha) in enumerate(zip(models_lap, models, alphas)):
     ax = plt.subplot2grid([3, len(alphas)], [0, ii], 1, 1)
     ax.pcolormesh(times, rf_lap.feature_names, rf_lap.coef_[0], **kwargs)
-    ax.set(xticks=[], yticks=[])
+    ax.set(xticks=[], yticks=[], xlim=xlim)
     if ii == 0:
         ax.set(ylabel='Laplacian')
     ax = plt.subplot2grid([3, len(alphas)], [1, ii], 1, 1)
     ax.pcolormesh(times, rf.feature_names, rf.coef_[0], **kwargs)
-    ax.set(xticks=[], yticks=[], xlim=times[[0, -1]])
+    ax.set(xticks=[], yticks=[], xlim=xlim)
     if ii == 0:
         ax.set(ylabel='Ridge')
 fig.suptitle('Model coefficients / scores for laplacian regularization', y=1)
 mne.viz.tight_layout()
 
+###############################################################################
 # Plot the original STRF, and the one that we recovered with modeling.
 rf = models[ix_best_alpha]
 rf_lap = models_lap[ix_best_alpha_lap]
