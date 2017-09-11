@@ -82,7 +82,12 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         estimators = parallel(
             p_func(self.base_estimator, split, y, **fit_params)
             for split in np.array_split(X, n_jobs, axis=-1))
-        self.estimators_ = np.concatenate(estimators, 0)
+        self.estimators_ = np.empty(X.shape[-1], dtype=object)
+        idx = 0
+        for job_estimators in estimators:
+            for est in job_estimators:
+                self.estimators_[idx] = est
+                idx += 1
         return self
 
     def fit_transform(self, X, y, **fit_params):
