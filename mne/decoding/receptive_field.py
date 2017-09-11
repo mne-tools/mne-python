@@ -213,18 +213,18 @@ class ReceptiveField(BaseEstimator):
             shape.insert(0, -1)
         self.coef_ = coef.reshape(shape)
 
+        # Inverse-transform model weights.
+        # inv_coef has shape = (n_feats * n_delays, n_outputs)
+        coef = np.reshape(self.coef_, (n_feats * n_delays, n_outputs))
         if not isinstance(self.estimator_, TimeDelayingRidge):
-            # inverse-transform model weights.
-            coef = np.reshape(self.coef_, (n_feats * n_delays, n_outputs))
-            # inv_coef is of shape = (n_feats * n_delays, n_outputs)
-            inv_coef = np.linalg.multi_dot([np.dot(X.T, X),
-                                            coef,
+            inv_coef = np.linalg.multi_dot([np.dot(X.T, X), coef,
                                             np.linalg.inv(np.dot(y.T, y))])
-            # Reshape coef back to (n_feats, n_delays, n_outputs)
-            self.inverse_coef_ = inv_coef.reshape(shape)
         else:
-            pass  # TODO
+            inv_coef = np.linalg.multi_dot([self.estimator_.x_xt_, coef,
+                                            np.linalg.inv(np.dot(y.T, y))])
 
+        # reshape to (n_feats, n_delays, n_outputs)
+        self.inverse_coef_ = inv_coef.reshape(shape)
         del X, y
 
         return self
