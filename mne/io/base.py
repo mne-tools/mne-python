@@ -28,6 +28,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, write_name_list, _get_split_size)
 
+from ..annotations import _annotations_starts_stops
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels)
 from ..parallel import parallel_func
@@ -737,7 +738,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Exit with block."""
         try:
             self.close()
-        except:
+        except Exception:
             return exception_type, exception_val, trace
 
     def _parse_get_set_params(self, item):
@@ -879,36 +880,23 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if picks is None:
             picks = np.arange(self.info['nchan'])
         start = 0 if start is None else start
-        stop = self.n_times if stop is None else stop
+        stop = min(self.n_times if stop is None else stop, self.n_times)
         if self.annotations is None or reject_by_annotation is None:
             data, times = self[picks, start:stop]
-            if return_times:
-                return data, times
-            return data
+            return (data, times) if return_times else data
         if reject_by_annotation.lower() not in ['omit', 'nan']:
             raise ValueError("reject_by_annotation must be None, 'omit' or "
                              "'NaN'. Got %s." % reject_by_annotation)
-        sfreq = self.info['sfreq']
-        bads = [idx for idx, desc in enumerate(self.annotations.description)
-                if desc.upper().startswith('BAD')]
-        onsets = self.annotations.onset[bads]
-        onsets = _sync_onset(self, onsets)
-        ends = onsets + self.annotations.duration[bads]
-        omit = np.concatenate([np.where(onsets > stop / sfreq)[0],
-                               np.where(ends < start / sfreq)[0]])
-        onsets, ends = np.delete(onsets, omit), np.delete(ends, omit)
+        onsets, ends = _annotations_starts_stops(self, ['BAD'])
+        keep = (onsets < stop) & (ends > start)
+        onsets = np.maximum(onsets[keep], start)
+        ends = np.minimum(ends[keep], stop)
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
             if return_times:
                 return data, times
             return data
-        stop = min(stop, self.n_times)
-        order = np.argsort(onsets)
-        onsets = self.time_as_index(onsets[order])
-        ends = self.time_as_index(ends[order])
 
-        np.clip(onsets, start, stop, onsets)
-        np.clip(ends, start, stop, ends)
         used = np.ones(stop - start, bool)
         for onset, end in zip(onsets, ends):
             if onset >= end:
@@ -1103,7 +1091,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
-               fir_window='hamming', fir_design=None, verbose=None):
+               fir_window='hamming', fir_design=None,
+               skip_by_annotation=None, verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -1200,7 +1189,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             time-domain design technique that generally gives improved
             attenuation using fewer samples than "firwin2".
 
-            ..versionadded:: 0.15
+            .. versionadded:: 0.15
+
+        skip_by_annotation : str | list of str
+            If a string (or list of str), any annotation segment that begins
+            with the given string will not be included in filtering, and
+            segments on either side of the given excluded annotated segment
+            will be filtered separately (i.e., as independent signals).
+            The default in 0.16 (``'edge'``) will separately filter any
+            segments that were concatenated by :func:`mne.concatenate_raws`
+            or :meth:`mne.io.Raw.append`. To disable, provide an empty list.
+
+            .. versionadded:: 0.16.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1242,10 +1242,29 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 logger.info('Filtering a subset of channels. The highpass and '
                             'lowpass values in the measurement info will not '
                             'be updated.')
-        filter_data(self._data, self.info['sfreq'], l_freq, h_freq, picks,
-                    filter_length, l_trans_bandwidth, h_trans_bandwidth,
-                    n_jobs, method, iir_params, copy=False, phase=phase,
-                    fir_window=fir_window, fir_design=fir_design)
+        # Deal with annotations
+        if skip_by_annotation is None:
+            if self.annotations is not None and any(
+                    desc.upper().startswith('EDGE')
+                    for desc in self.annotations.description):
+                warn('skip_by_annotation defaults to [] in 0.15 but will '
+                     'change to "edge" in 0.16, set it explicitly to avoid '
+                     'this warning', DeprecationWarning)
+            skip_by_annotation = []
+        onsets, ends = _annotations_starts_stops(self, skip_by_annotation,
+                                                 'skip_by_annotation')
+        if len(onsets) == 0 or onsets[0] != 0:
+            onsets = np.concatenate([[0], onsets])
+            ends = np.concatenate([[0], ends])
+        if len(ends) == 1 or ends[-1] != len(self.times):
+            onsets = np.concatenate([onsets, [len(self.times)]])
+            ends = np.concatenate([ends, [len(self.times)]])
+        for start, stop in zip(ends[:-1], onsets[1:]):
+            filter_data(
+                self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
+                picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
+                n_jobs, method, iir_params, copy=False, phase=phase,
+                fir_window=fir_window, fir_design=fir_design)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
         if update_info:
@@ -1459,7 +1478,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if events is None:
             try:
                 original_events = find_events(self)
-            except:
+            except Exception:
                 pass
 
         sfreq = float(sfreq)
@@ -1512,7 +1531,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          'information to become unreliable. Consider finding '
                          'events on the original data and passing the event '
                          'matrix as a parameter.')
-            except:
+            except Exception:
                 pass
 
             return self
@@ -1986,13 +2005,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # now combine information from each raw file to construct new self
         annotations = self.annotations
         edge_samps = list()
-        for r in raws:
+        for ri, r in enumerate(raws):
             annotations = _combine_annotations((annotations, r.annotations),
                                                self._last_samps,
                                                self._first_samps,
                                                self.info['sfreq'],
                                                self.info['meas_date'])
-            edge_samps.append(sum(self._last_samps) - sum(self._first_samps))
+            edge_samps.append(sum(self._last_samps) -
+                              sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
@@ -2004,9 +2024,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.annotations = annotations
         for edge_samp in edge_samps:
             onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
-            self.annotations.append(onset, (1. / self.info['sfreq']),
-                                    'BAD boundary')
-
+            self.annotations.append(onset, 0., 'BAD boundary')
+            self.annotations.append(onset, 0., 'EDGE boundary')
         if not (len(self._first_samps) == len(self._last_samps) ==
                 len(self._raw_extras) == len(self._filenames)):
             raise RuntimeError('Append error')  # should never happen

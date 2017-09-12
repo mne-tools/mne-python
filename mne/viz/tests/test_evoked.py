@@ -21,6 +21,7 @@ from mne.io import read_raw_fif
 from mne.utils import slow_test, run_tests_if_main
 from mne.viz.evoked import _line_plot_onselect, plot_compare_evokeds
 from mne.viz.utils import _fake_click
+from mne.stats import _parametric_ci
 
 # Set our plotters to test mode
 import matplotlib
@@ -124,6 +125,8 @@ def test_plot_evoked():
 
         # plot_compare_evokeds: test condition contrast, CI, color assignment
         plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
+        plot_compare_evokeds(evoked.copy().pick_types(meg='grad'),
+                             picks=[1, 2])
         evoked.rename_channels({'MEG 2142': "MEG 1642"})
         assert len(plot_compare_evokeds(evoked)) == 2
         colors = dict(red='r', blue='b')
@@ -161,7 +164,7 @@ def test_plot_evoked():
         contrast["red/stim"] = red
         contrast["blue/stim"] = blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
-                             ylim=dict(mag=(1, 10)))
+                             ylim=dict(mag=(1, 10)), ci=_parametric_ci)
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()

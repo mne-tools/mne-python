@@ -14,7 +14,7 @@ from .multitaper import psd_array_multitaper
 def _psd_func(epoch, noverlap, n_per_seg, nfft, fs, freq_mask, func):
     """Aux function."""
     return func(epoch, fs=fs, nperseg=n_per_seg, noverlap=noverlap,
-                nfft=nfft, window='hann')[2][..., freq_mask, :]
+                nfft=nfft, window='hamming')[2][..., freq_mask, :]
 
 
 def _check_nfft(n, n_fft, n_per_seg, n_overlap):
@@ -84,9 +84,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         The number of points of overlap between segments. Will be adjusted
         to be <= n_per_seg. The default value is 0.
     n_per_seg : int | None
-        Length of each Welch segment. The smaller it is with respect to the
-        signal length the smoother are the PSDs. Defaults to None, which sets
-        n_per_seg equal to n_fft.
+        Length of each Welch segment (windowed with a Hamming window). Defaults
+        to None, which sets n_per_seg equal to n_fft.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -140,8 +139,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               reject_by_annotation=True, verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
-    Calculates periodigrams for a sliding window over the
-    time dimension, then averages them together for each channel/epoch.
+    Calculates periodograms for a sliding window over the time dimension, then
+    averages them together for each channel/epoch.
 
     Parameters
     ----------
@@ -164,9 +163,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         The number of points of overlap between segments. Will be adjusted
         to be <= n_per_seg. The default value is 0.
     n_per_seg : int | None
-        Length of each Welch segment. The smaller it is with respect to the
-        signal length the smoother are the PSDs. Defaults to None, which sets
-        n_per_seg equal to n_fft.
+        Length of each Welch segment (windowed with a Hamming window). Defaults
+        to None, which sets n_per_seg equal to n_fft.
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.

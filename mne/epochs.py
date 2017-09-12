@@ -999,15 +999,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                              show=show)
 
     @copy_function_doc_to_method_doc(plot_epochs_image)
-    def plot_image(self, picks=None, sigma=0., vmin=None,
-                   vmax=None, colorbar=True, order=None, show=True,
-                   units=None, scalings=None, cmap='RdBu_r',
-                   fig=None, axes=None, overlay_times=None):
+    def plot_image(self, picks=None, sigma=0., vmin=None, vmax=None,
+                   colorbar=True, order=None, show=True, units=None,
+                   scalings=None, cmap=None, fig=None, axes=None,
+                   overlay_times=None, combine=None, group_by=None,
+                   evoked=True, ts_args=dict(), title=None):
         return plot_epochs_image(self, picks=picks, sigma=sigma, vmin=vmin,
                                  vmax=vmax, colorbar=colorbar, order=order,
                                  show=show, units=units, scalings=scalings,
                                  cmap=cmap, fig=fig, axes=axes,
-                                 overlay_times=overlay_times)
+                                 overlay_times=overlay_times, combine=combine,
+                                 group_by=group_by, evoked=evoked,
+                                 ts_args=ts_args, title=title)
 
     @verbose
     def drop(self, indices, reason='USER', verbose=None):
@@ -1935,7 +1938,7 @@ class EpochsArray(BaseEpochs):
         If None (default), all event values are set to 1 and event time-samples
         are set to range(n_epochs).
     tmin : float
-        Start time before event. If nothing provided, defaults to -0.2.
+        Start time before event. If nothing provided, defaults to 0.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
         the keys can later be used to access associated events. Example:

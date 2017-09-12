@@ -467,13 +467,18 @@ class SetChannelsMixin(object):
         rename_channels(self.info, mapping)
 
     @verbose
-    def set_montage(self, montage, verbose=None):
+    def set_montage(self, montage, set_dig=True, verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
         montage : instance of Montage or DigMontage
             The montage to use.
+        set_dig : bool
+            If True, update the digitization information (``info['dig']``)
+            in addition to the channel positions (``info['chs'][idx]['loc']``).
+
+            .. versionadded: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -486,7 +491,7 @@ class SetChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         from .montage import _set_montage
-        _set_montage(self.info, montage)
+        _set_montage(self.info, montage, set_dig=set_dig)
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
@@ -820,7 +825,9 @@ class UpdateChannelsMixin(object):
 class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
-    def interpolate_bads(self, reset_bads=True, mode='accurate'):
+    @verbose
+    def interpolate_bads(self, reset_bads=True, mode='accurate',
+                         verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -830,9 +837,13 @@ class InterpolationMixin(object):
         reset_bads : bool
             If True, remove the bads from info.
         mode : str
-            Either `'accurate'` or `'fast'`, determines the quality of the
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
             Legendre polynomial expansion used for interpolation of MEG
             channels.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Returns
         -------

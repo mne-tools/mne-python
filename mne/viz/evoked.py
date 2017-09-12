@@ -23,9 +23,9 @@ from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
-                    _setup_vmin_vmax)
+                    _setup_vmin_vmax, _grad_pair_pick_and_name)
 from ..utils import logger, _clean_names, warn, _pl
-from ..io.pick import pick_info
+from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -305,8 +305,10 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
         for type_idx, this_type in enumerate(ch_types_used):
             idx = picks[types == this_type]
             if len(idx) < 2 or (this_type == 'grad' and len(idx) < 4):
-                warn('Need more than one channel to make topography for %s. '
-                     'Disabling interactivity.' % this_type)
+                # prevent unnecessary warnings for e.g. EOG
+                if this_type in _DATA_CH_TYPES_SPLIT:
+                    warn('Need more than one channel to make topography for '
+                         '%s. Disabling interactivity.' % this_type)
                 selectables[type_idx] = False
 
     if selectable:
@@ -388,7 +390,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                     y_offset = this_ylim[0]
                 this_gfp += y_offset
                 ax.fill_between(times, y_offset, this_gfp, color='none',
-                                facecolor=gfp_color, zorder=1, alpha=0.25)
+                                facecolor=gfp_color, zorder=1, alpha=0.2)
                 line_list.append(ax.plot(times, this_gfp, color=gfp_color,
                                          zorder=3, alpha=line_alpha)[0])
                 ax.text(times[0] + 0.01 * (times[-1] - times[0]),
@@ -1212,7 +1214,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                 ", ".join(list(illegal_args))))
 
     # channel selection
-    # simply create a new evoked object(s) with the desired channel selection
+    # simply create a new evoked object with the desired channel selection
     evoked = evoked.copy()
 
     if picks is not None:
@@ -1337,22 +1339,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     return fig
 
 
-def _ci(arr, ci):
-    """Calculate the `ci`% parametric confidence interval for `arr`.
-
-    Aux function for plot_compare_evokeds.
-    """
-    from scipy import stats
-    mean, sigma = arr.mean(0), stats.sem(arr, 0)
-    # This is highly convoluted to support 17th century Scipy
-    # XXX Fix when Scipy 0.12 support is dropped!
-    # then it becomes just:
-    # return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
-    return np.asarray([stats.t.interval(ci, arr.shape[0],
-                       loc=mean_, scale=sigma_)
-                       for mean_, sigma_ in zip(mean, sigma)]).T
-
-
 def _setup_styles(conditions, style_dict, style, default):
     """Set linestyles and colors for plot_compare_evokeds."""
     # check user-supplied style to condition matching
@@ -1412,9 +1398,10 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
-                         linestyles=['-'], styles=None, vlines=[0.], ci=0.95,
-                         truncate_yaxis=False, ylim=dict(), invert_y=False,
-                         axes=None, title=None, show=True):
+                         linestyles=['-'], styles=None, vlines=list((0.,)),
+                         ci=0.95, truncate_yaxis=False, truncate_xaxis=True,
+                         ylim=dict(), invert_y=False, axes=None, title=None,
+                         show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1474,15 +1461,21 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     vlines : list of int
         A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
-    ci : float | None
-        If not None and `evokeds` is a [list/dict] of lists, a confidence
-        interval is drawn around the individual time series. This value
-        determines the CI width. E.g., if this value is .95 (the default),
-        the 95% parametric confidence interval is drawn.
-        If None, no shaded confidence band is plotted.
+    ci : float | callable | None
+        If not None and ``evokeds`` is a [list/dict] of lists, a shaded
+        confidence interval is drawn around the individual time series. If
+        float, a percentile bootstrap method is used to estimate the confidence
+        interval and this value determines the CI width. E.g., if this value is
+        .95 (the default), the 95% confidence interval is drawn. If a callable,
+        it must take as its single argument an array (observations x times) and
+        return the upper and lower confidence bands.
+        If None, no confidence band is plotted.
     truncate_yaxis : bool
-        If True, the left y axis is truncated to half the max value and
-        rounded to .25 to reduce visual clutter. Defaults to True.
+        If True, the left y axis is truncated to half the max absolute value
+        and rounded to .25 to reduce visual clutter. Defaults to False.
+    truncate_xaxis : bool
+        If True, the x axis is truncated to span from the first to the last.
+        xtick. Defaults to True.
     ylim : dict | None
         ylim for plots (after scaling has been applied). e.g.
         ylim = dict(eeg=[-20, 20])
@@ -1491,7 +1484,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     invert_y : bool
         If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
-    axes : None | `matplotlib.pyplot.axes` instance | list of `axes`
+    axes : None | `matplotlib.axes.Axes` instance | list of `axes`
         What axes to plot to. If None, a new axes is created.
         When plotting multiple channel types, can also be a list of axes, one
         per channel type.
@@ -1529,6 +1522,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          "or a collection of mne.Evoked's")
     times = example.times
     tmin, tmax = times[0], times[-1]
+    if (tmin >= 0 or tmax <= 0) and vlines == [0.]:
+        vlines = list()
 
     if isinstance(picks, Integral):
         picks = [picks]
@@ -1540,6 +1535,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         if len(picks) == 0:
             raise ValueError("No valid channels were found to plot the GFP. " +
                              "Use 'picks' instead to select them manually.")
+
+    if ylim is None:
+        ylim = dict()
 
     # deal with picks: infer indices and names
     if gfp is True:
@@ -1579,55 +1577,49 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ch_type = ch_types[0]
         ymin, ymax = ylim.get(ch_type, [None, None])
 
+    # deal with dict/list of lists and the CI
+    if ci is not None and not (isinstance(ci, np.float) or callable(ci)):
+        raise TypeError('ci must be float or callable, got ' + str(type(ci)))
+
     scaling = _handle_default("scalings")[ch_type]
     unit = _handle_default("units")[ch_type]
 
-    if ch_type == 'grad' and gfp is not True:  # deal with grad pairs
-        from ..channels.layout import _merge_grad_data, _pair_grad_sensors
-        picked_chans = list()
-        pairpicks = _pair_grad_sensors(example.info, topomap_coords=False)
-        for ii in np.arange(0, len(pairpicks), 2):
-            first, second = pairpicks[ii], pairpicks[ii + 1]
-            if first in picks or second in picks:
-                picked_chans.append(first)
-                picked_chans.append(second)
-        picks = list(sorted(set(picked_chans)))
-        ch_names = [example.ch_names[pick] for pick in picks]
+    all_positive = gfp  # True if not gfp, False if gfp
+    if ch_type == 'grad' and len(picks) > 1:  # deal with grad pairs
+        from ..channels.layout import _merge_grad_data
+        all_positive = True
+        if gfp is not True:
+            picks, ch_names = _grad_pair_pick_and_name(example.info, picks)
 
-    if ymin is None and (gfp is True or ch_type == 'grad'):
+    if (ymin is None) and all_positive:
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
-    # deal with dict/list of lists and the CI
-    if not isinstance(ci, np.float):
-        msg = '"ci" must be float, got {0} instead.'
-        raise TypeError(msg.format(type(ci)))
-
     # if we have a dict/list of lists, we compute the grand average and the CI
+    if ci is None:
+        ci = False
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
-        if ci is not None and gfp is not True:
+        if ci is not False:
+            if callable(ci):
+                _ci_fun = ci
+            else:
+                from ..stats import _ci
+                _ci_fun = partial(_ci, ci=ci, method="bootstrap")
             # calculate the CI
-            sem_array = dict()
+            ci_array = dict()
             for condition in conditions:
                 # this will fail if evokeds do not have the same structure
                 # (e.g. channel count)
-                if ch_type == 'grad' and gfp is not True:
-                    data = np.asarray([
-                        _merge_grad_data(
-                            evoked_.data[picks, :]).mean(0)
-                        for evoked_ in evokeds[condition]])
-                else:
-                    data = np.asarray([evoked_.data[picks, :].mean(0)
-                                       for evoked_ in evokeds[condition]])
-                sem_array[condition] = _ci(data, ci)
+                data = np.asarray([evoked_.data[picks, :].mean(0)
+                                   for evoked_ in evokeds[condition]])
+                ci_array[condition] = _ci_fun(data) * scaling
 
         # get the grand mean
         evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
                        for cond in conditions)
-
-        if gfp is True and ci is not None:
-            warn("Confidence Interval not drawn when plotting GFP.")
     else:
         ci = False
+
+    if ci is False:
         # check if they are compatible (XXX there should be a cleaner way)
         combine_evoked(list(evokeds.values()), weights='nave')
     # we now have dicts for data ('evokeds' - grand averaged Evoked's)
@@ -1700,24 +1692,26 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     any_negative, any_positive = False, False
     for condition in conditions:
         # plot the actual data ('d') as a line
-        if ch_type == 'grad' and gfp is False:
-            d = ((_merge_grad_data(evokeds[condition]
-                 .data[picks, :])).T * scaling).mean(-1)
+        if ch_type == 'grad' and len(picks) > 1 and gfp is False:
+            d = (_merge_grad_data(evokeds[condition]
+                 .data[picks, :]).T * scaling).mean(-1)
         else:
-            func = np.std if gfp is True else np.mean
-            d = func((evokeds[condition].data[picks, :].T * scaling), -1)
+            d = evokeds[condition].data[picks, :].T * scaling
+            if gfp is True:
+                d = np.sqrt((d * d).mean(axis=-1))
+            else:
+                d = d.mean(-1)
         axes.plot(times, d, zorder=1000, label=condition, **styles[condition])
-        if np.any(d > 0):
+        if any(d > 0) or all_positive:
             any_positive = True
         if np.any(d < 0):
             any_negative = True
 
-        # plot the confidence interval (standard error of the mean/'sem_')
-        if ci and gfp is not True:
-            sem_ = sem_array[condition]
-            axes.fill_between(times, sem_[0].flatten() * scaling,
-                              sem_[1].flatten() * scaling, zorder=100,
-                              color=styles[condition]['c'], alpha=.333)
+        # plot the confidence interval
+        if ci and (gfp is not True):
+            ci_ = ci_array[condition]
+            axes.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
+                              zorder=9, color=styles[condition]['c'], alpha=.3)
 
     # truncate the y axis
     orig_ymin, orig_ymax = axes.get_ylim()
@@ -1736,8 +1730,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
             any_positive, any_negative)
     else:
-        if ymin is not None and ymin > 0:
-            warn("ymin is positive, not truncating yaxis")
+        if truncate_yaxis is True and ymin is not None and ymin > 0:
+            warn("ymin is all-positive, not truncating yaxis")
         ymax_bound = axes.get_ylim()[-1]
 
     title = ", ".join(ch_names[:6]) if title is None else title
@@ -1756,7 +1750,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     axes.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
                 linewidth=1., zorder=1)
 
-    _setup_ax_spines(axes, vlines, tmin, tmax, invert_y, ymax_bound, unit)
+    _setup_ax_spines(axes, vlines, tmin, tmax, invert_y, ymax_bound, unit,
+                     truncate_xaxis)
 
     if len(conditions) > 1:
         plt.legend(loc='best', ncol=1 + (len(conditions) // 5), frameon=True)

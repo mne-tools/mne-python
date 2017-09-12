@@ -42,7 +42,7 @@ def _prepare_source_params(inst, inverse_operator, label=None,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
+    K, noise_norm, vertno, _ = _assemble_kernel(inv, label, method, pick_ori)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -118,7 +118,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     stcs : dict with a SourceEstimate (or VolSourceEstimate) for each band
         The estimated source space induced power estimates.
     """
-    method = _check_method(method)
+    _check_method(method)
 
     frequencies = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
                                  for _, band in six.iteritems(bands)])
@@ -359,8 +359,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
     """  # noqa
-    method = _check_method(method)
-    pick_ori = _check_ori(pick_ori)
+    _check_method(method)
+    _check_ori(pick_ori, inverse_operator['source_ori'])
 
     power, plv, vertno = _source_induced_power(epochs,
                                                inverse_operator, frequencies,
@@ -434,7 +434,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         The PSD (in dB) of each of the sources.
     """
     from scipy.signal import hanning
-    pick_ori = _check_ori(pick_ori)
+    _check_ori(pick_ori, inverse_operator['source_ori'])
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 

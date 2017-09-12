@@ -121,17 +121,13 @@ class ReceptiveField(BaseEstimator):
         """Delay and reshape the variables."""
         if not isinstance(self.estimator_, TimeDelayingRidge):
             # X is now shape (n_times, n_epochs, n_feats, n_delays)
-            X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
-                                       newaxis=X.ndim,
-                                       fill_mean=self.fit_intercept)
-        else:
-            X_del = X[..., np.newaxis]
-
-        X_del = _reshape_for_est(X_del)
-        # Concat times + epochs
-        if y is not None:
-            y = y.reshape(-1, y.shape[-1], order='F')
-        return X_del, y
+            X = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
+                                   fill_mean=self.fit_intercept)
+            X = _reshape_for_est(X)
+            # Concat times + epochs
+            if y is not None:
+                y = y.reshape(-1, y.shape[-1], order='F')
+        return X, y
 
     def fit(self, X, y):
         """Fit a receptive field model.
@@ -195,17 +191,6 @@ class ReceptiveField(BaseEstimator):
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 
         # Create input features
-        # (eventually the FFT-based method could be made more memory efficient
-        # by moving the padding to TimeDelayingRidge, which would need to be
-        # made epochs-aware)
-
-        # zero-pad if necessary
-        if isinstance(self.estimator, TimeDelayingRidge):
-            X = _pad_time_series(X, n_delays=len(self.delays_),
-                                 fill_mean=self.fit_intercept)
-            y = _pad_time_series(y, n_delays=len(self.delays_),
-                                 fill_mean=self.fit_intercept)
-        # convert to sklearn and back
         X, y = self._delay_and_reshape(X, y)
         self.estimator_.fit(X, y)
         del X, y
@@ -234,10 +219,6 @@ class ReceptiveField(BaseEstimator):
             raise ValueError('Estimator has not been fit yet.')
         X, _, X_dim = self._check_dimensions(X, None, predict=True)[:3]
         del _
-        # zero-pad if necessary
-        if isinstance(self.estimator, TimeDelayingRidge):
-            X = _pad_time_series(X, n_delays=len(self.delays_),
-                                 fill_mean=self.fit_intercept)
         # convert to sklearn and back
         pred_shape = X.shape[:-1]
         if self._y_dim > 1:
@@ -245,9 +226,6 @@ class ReceptiveField(BaseEstimator):
         X, _ = self._delay_and_reshape(X)
         y_pred = self.estimator_.predict(X)
         y_pred = y_pred.reshape(pred_shape, order='F')
-        # undo padding
-        if isinstance(self.estimator, TimeDelayingRidge):
-            y_pred = y_pred[:-(len(self.delays_) - 1)]
         shape = list(y_pred.shape)
         if X_dim <= 2:
             shape.pop(1)  # epochs
@@ -332,42 +310,13 @@ class ReceptiveField(BaseEstimator):
         return X, y, X_dim, y_dim
 
 
-def _pad_time_series(X, n_delays, fill_mean=True):
-    """Return a zero- or mean-padded input time series.
-
-    Parameters
-    ----------
-    X : array, shape (n_times[, n_epochs], n_features)
-        The time series to pad.
-    n_delays : int
-        The number of delays.
-    fill_mean : bool
-        If True, the fill value will be the mean along the time dimension
-        of the feature. If False, the fill value will be zero.
-
-    Returns
-    -------
-    padded : array, shape(n_padded[, n_epochs], n_features)
-        The padded data, where ``n_padded = n_times + n_delays - 1``.
-    """
-    fill_value = 0
-    if fill_mean:
-        fill_value = np.mean(X, axis=0, keepdims=True)
-        if X.ndim == 3:
-            fill_value = np.mean(fill_value, axis=1, keepdims=True)
-    X = np.pad(X, ((0, n_delays - 1),) + ((0, 0),) * (X.ndim - 1), 'constant')
-    X[-(n_delays - 1):] = fill_value
-    return X
-
-
-def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0,
-                       epoch_axis=1, fill_mean=False):
+def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
     """Return a time-lagged input time series.
 
     Parameters
     ----------
     X : array, shape (n_times[, n_epochs], n_features)
-        The time series to delay.
+        The time series to delay. Must be 2D or 3D.
     tmin : int | float
         The starting lag. Negative values correspond to times in the past.
     tmax : int | float
@@ -375,20 +324,15 @@ def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0,
         Must be >= tmin.
     sfreq : int | float
         The sampling frequency of the series. Defaults to 1.0.
-    newaxis : int
-        The axis in the output array that corresponds to time delays.
-        Defaults to 0, for the first axis.
     fill_mean : bool
         If True, the fill value will be the mean along the time dimension
         of the feature. If False, the fill value will be zero.
-    axis : int
-        The axis corresponding to the time dimension.
 
     Returns
     -------
-    delayed : array, shape(..., n_delays, ...)
+    delayed : array, shape(n_times[, n_epochs][, n_features], n_delays)
         The delayed data. It has the same shape as X, with an extra dimension
-        created at ``newaxis`` that corresponds to each delay.
+        appended to the end.
 
     Examples
     --------
@@ -397,35 +341,29 @@ def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0,
     >>> x = np.arange(1, 6)
     >>> x_del = _delay_time_series(x, tmin, tmax, sfreq)
     >>> print(x_del)
-    [[ 0.  0.  1.  2.  3.]
-     [ 0.  1.  2.  3.  4.]
-     [ 1.  2.  3.  4.  5.]
-     [ 2.  3.  4.  5.  0.]]
+    [[ 0.  0.  1.  2.]
+     [ 0.  1.  2.  3.]
+     [ 1.  2.  3.  4.]
+     [ 2.  3.  4.  5.]
+     [ 3.  4.  5.  0.]]
     """
     _check_delayer_params(tmin, tmax, sfreq)
     delays = _times_to_delays(tmin, tmax, sfreq)
-    # XXX : add Vectorize=True parameter to switch on/off 2D output
     # Iterate through indices and append
-    delayed = np.zeros((len(delays),) + X.shape)
+    delayed = np.zeros(X.shape + (len(delays),))
     if fill_mean:
-        fill_value = X.mean(axis=axis, keepdims=True)
-        if epoch_axis is not None:
-            fill_value = np.mean(fill_value, axis=epoch_axis, keepdims=True)
-            delayed[...] = fill_value
+        mean_value = X.mean(axis=0)
+        if X.ndim == 3:
+            mean_value = np.mean(mean_value, axis=0)
+        delayed[:] = mean_value[:, np.newaxis]
     for ii, ix_delay in enumerate(delays):
-        take = [slice(None)] * X.ndim
-        put = [slice(None)] * X.ndim
         # Create zeros to populate w/ delays
         if ix_delay < 0:
-            take[axis] = slice(None, ix_delay)
-            put[axis] = slice(-ix_delay, None)
+            delayed[-ix_delay:, ..., ii] = X[:ix_delay]
         elif ix_delay > 0:
-            take[axis] = slice(ix_delay, None)
-            put[axis] = slice(None, -ix_delay)
-        delayed[ii][put] = X[take]
-
-    # Now swapaxes so that the new axis is in the right place
-    delayed = np.rollaxis(delayed, 0, newaxis + 1)
+            delayed[:-ix_delay, ..., ii] = X[ix_delay:]
+        else:  # == 0
+            delayed[..., ii] = X
     return delayed
 
 

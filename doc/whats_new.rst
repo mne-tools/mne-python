@@ -85,10 +85,24 @@ Changelog
 
     - Add function :func:`mne.channels.get_builtin_montages` to list all built-in montages by `Clemens Brunner`_
 
+    - :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` now accept ``**fit_params`` at fitting by `Jean-Remi King`_
+
+    - Add :class:`mne.VectorSourceEstimate` class which enables working with both source power and dipole orientations by `Marijn van Vliet`_
+
+    - Add option ``pick_ori='vector'`` to :func:`mne.minimum_norm.apply_inverse` to produce :class:`mne.VectorSourceEstimate` by `Marijn van Vliet`_
+
+    - Add support for :class:`numpy.random.RandomState` argument to ``seed`` in :mod:`statistical clustering functions <mne.stats>` and better documentation of exact 1-sample tests by `Eric Larson`_
+
+    - Extend :func:`mne.viz.plot_epochs_image`/:meth:`mne.Epochs.plot_image` with regards to grouping by or aggregating over channels. See the new example at `examples/visualization/plot_roi_erpimage_by_rt.py` by `Jona Sassenhagen`_
+
+    - Add bootstrapped confidence intervals to :func:`mne.viz.plot_compare_evokeds` (that can for now also be accessed as :func:`mne.stats._boostrap_ci`) by `Jona Sassenhagen`_ and `Denis Engemann`_
+
 BUG
 ~~~
 
     - Fixed a bug when creating spherical volumetric grid source spaces in :func:`setup_volume_source_space` by improving the minimum-distance computations, which in general will decrease the number of used source space points by `Eric Larson`_
+
+    - Fix bug in :meth:`mne.io.read_raw_brainvision` read .vhdr files with ANSI codepage by `Okba Bekhelifi`_ and `Alex Gramfort`_
 
     - Fix unit scaling when reading in EGI digitization files using :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
@@ -149,9 +163,17 @@ BUG
     - Fix bug in :func:`mne.viz.plot_compare_evokeds` where ``truncate_yaxis`` was ignored (default is now ``False``), by `Jona Sassenhagen`_
 
     - Fix bug in :func:`mne.viz.plot_evoked` where all xlabels were removed when using ``spatial_colors=True``, by `Jesper Duemose Nielsen`_
-    
+
+    - Fix field mapping :func:`mne.make_field_map` and MEG bad channel interpolation functions (e.g., :meth:`mne.Evoked.interpolate_bads`) to choose a better number of components during pseudoinversion when few channels are available, by `Eric Larson`_
+
+    - Fix bug in :func:`mne.io.read_raw_brainvision`, changed default to read coordinate information if available and added test, by `Jesper Duemose Nielsen`_
+
 API
 ~~~
+    - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
+
+    - ICA channel names have now been reformatted to start from zero, e.g. ``"ICA000"``, to match indexing schemes in :class:`mne.preprocessing.ICA` and related functions, by `Stefan Repplinger`_ and `Eric Larson`_
+
     - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
     - Add ``weight_norm`` parameter to enable both unit-noise-gain beamformer and neural activity index (weight normalization) and make whitening optional by allowing ``noise_cov=None`` in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, and :func:`mne.beamformer.lcmv_raw`, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
@@ -185,6 +207,10 @@ API
     - Deprecate ``plot_trans`` in favor of :func:`mne.viz.plot_alignment` and add ``bem`` parameter for plotting conductor model by `Jaakko Leppakangas`_
 
     - :func:`mne.beamformer.tf_lcmv` now has a ``raw`` parameter to accommodate epochs objects that already have data loaded with ``preload=True``, with :meth:`mne.Epochs.load_data`, or that are read from disk, by `Eric Larson`_
+
+    - :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` now use a Hamming window (instead of a Hann window) by `Clemens Brunner`_
+
+    - ``picks`` parameter in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, :func:`mne.beamformer.lcmv_raw`, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
 .. _changes_0_14:
 
@@ -2245,3 +2271,7 @@ of commits):
 .. _Britta Westner: https://github.com/britta-wstnr
 
 .. _Lukáš Hejtmánek: https://github.com/hejtmy
+
+.. _Stefan Repplinger: https://github.com/stfnrpplngr
+
+.. _Okba Bekhelifi: https://github.com/okbalefthanded

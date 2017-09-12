@@ -780,7 +780,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     if merge_grads:
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
-    axes.set_title('IC #%03d' % idx, fontsize=12)
+    axes.set_title(ica._ica_names[idx], fontsize=12)
     vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
     im = plot_topomap(data.ravel(), pos, vmin=vmin_, vmax=vmax_,
                       res=res, axes=axes, cmap=cmap, outlines=outlines,
@@ -947,10 +947,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     if merge_grads:
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax in zip(picks, data, axes):
-        if ii in ica.exclude:
-            ax.set_title('IC #%03d' % ii, fontsize=12, color='gray')
-        else:
-            ax.set_title('IC #%03d' % ii, fontsize=12)
+        kwargs = dict(color='gray') if ii in ica.exclude else dict()
+        ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
@@ -958,7 +956,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                           image_mask=image_mask, contours=contours,
                           image_interp=image_interp, show=False,
                           sensors=sensors)[0]
-        im.axes.set_label('IC #%03d' % ii)
+        im.axes.set_label(ica._ica_names[ii])
         if colorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -976,8 +974,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         def onclick(event, ica=ica, inst=inst):
             # check which component to plot
             label = event.inaxes.get_label()
-            if 'IC #' in label:
-                ic = int(label[4:])
+            if label.startswith('ICA'):
+                ic = int(label[-3:])
                 ica.plot_properties(inst, picks=ic, show=True)
         fig.canvas.mpl_connect('button_press_event', onclick)
 
@@ -1198,7 +1196,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         vmin=None, vmax=None, cmap=None, sensors=True,
-                        colorbar=True, scale=None, scale_time=1e3, unit=None,
+                        colorbar=None, scale=None, scale_time=1e3, unit=None,
                         res=64, size=1, cbar_fmt='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
@@ -1256,8 +1254,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True (default),
         circles will be used.
-    colorbar : bool
-        Plot a colorbar.
+    colorbar : bool | None
+        Plot a colorbar in the rightmost column of the figure.
+        None (default) is the same as True, but emits a warning if custom
+        ``axes`` are provided to remind the user that the colorbar will
+        occupy the last :class:`matplotlib.axes.Axes` instance.
     scale : dict | float | None
         Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
         for grad and 1e15 for mag.
@@ -1349,6 +1350,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     from matplotlib.widgets import Slider
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
 
+    if colorbar is None:
+        colorbar = True
+        colorbar_warn = True
+    else:
+        colorbar_warn = False
     mask_params = _handle_default('mask_params', mask_params)
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
@@ -1400,7 +1406,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         axes = list()
         for ax_idx in range(len(times)):
             axes.append(plt.subplot(gs[ax_idx]))
-    elif colorbar:
+    elif colorbar and colorbar_warn:
         warn('Colorbar is drawn to the rightmost column of the figure. Be '
              'sure to provide enough space for it or turn it off with '
              'colorbar=False.')

@@ -527,9 +527,9 @@ def _read_dipole_text(fname):
     # actually parse the fields
     def_line = def_line.lstrip('%').lstrip('#').strip()
     # MNE writes it out differently than Elekta, let's standardize them...
-    fields = re.sub('([X|Y|Z] )\(mm\)',  # "X (mm)", etc.
+    fields = re.sub(r'([X|Y|Z] )\(mm\)',  # "X (mm)", etc.
                     lambda match: match.group(1).strip() + '/mm', def_line)
-    fields = re.sub('\((.*?)\)',  # "Q(nAm)", etc.
+    fields = re.sub(r'\((.*?)\)',  # "Q(nAm)", etc.
                     lambda match: '/' + match.group(1), fields)
     fields = re.sub('(begin|end) ',  # "begin" and "end" with no units
                     lambda match: match.group(1) + '/ms', fields)
@@ -645,7 +645,7 @@ def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None):
 
 def _dipole_gof(uu, sing, vv, B, B2):
     """Calculate the goodness of fit from the forward SVD."""
-    ncomp = 3 if sing[2] / sing[0] > 0.2 else 2
+    ncomp = 3 if sing[2] / (sing[0] if sing[0] > 0 else 1.) > 0.2 else 2
     one = np.dot(vv[:ncomp], B)
     Bm2 = np.sum(one * one)
     gof = Bm2 / B2

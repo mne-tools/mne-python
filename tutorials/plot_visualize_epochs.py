@@ -10,12 +10,13 @@ import os.path as op
 import mne
 
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
-raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'))
+raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'
+                                  ), preload=True).load_data().filter(None, 9)
 raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
 events = mne.read_events(op.join(data_path, 'sample_audvis_raw-eve.fif'))
-epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=1.)
+epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5)
 
 ###############################################################################
 # This tutorial focuses on visualization of epoched data. All of the functions
@@ -70,11 +71,22 @@ epochs['smiley'].plot(events=events)
 # interactive mode you can scale and change the colormap with mouse scroll and
 # up/down arrow keys. You can also drag the colorbar with left/right mouse
 # button. Hitting space bar resets the scale.
-epochs.plot_image(278, cmap='interactive')
+epochs.plot_image(278, cmap='interactive', sigma=1., vmin=-250, vmax=250)
+
+###############################################################################
+# We can also give an overview of all channels by calculating  the global
+# field power (or other other aggregation methods). However, combining
+# multiple channel types (e.g., MEG and EEG) in this way is not sensible.
+# Instead, we can use the ``group_by`` parameter. Setting ``group_by`` to
+# 'type' combines channels by type.
+# ``group_by`` can also be used to group channels into arbitrary groups, e.g.
+# regions of interests, by providing a dictionary containing
+# group name -> channel indices mappings.
+epochs.plot_image(combine='gfp', group_by='type', sigma=2., cmap="inferno")
 
 ###############################################################################
 # You also have functions for plotting channelwise information arranged into a
 # shape of the channel array. The image plotting uses automatic scaling by
 # default, but noisy channels and different channel types can cause the scaling
 # to be a bit off. Here we define the limits by hand.
-epochs.plot_topo_image(vmin=-200, vmax=200, title='ERF images')
+epochs.plot_topo_image(vmin=-250, vmax=250, title='ERF images', sigma=2.)
