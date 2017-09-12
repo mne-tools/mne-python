@@ -1,10 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Sep 12 16:45:03 2017
-
-@author: jussi
-"""
+# Authors: Jussi Nurminen <jnu@iki.fi>
+# License: BSD Style.
 
 import tarfile
 from ...utils import _fetch_file, _url_to_local_path, verbose
@@ -25,7 +22,6 @@ def data_path(set='evoked', path=None, force_update=False, update_path=None,
 
     if set not in urls:
         raise ValueError('Invalid set specified')
-
 
     url = urls[set]
     _fetch_file(url)
