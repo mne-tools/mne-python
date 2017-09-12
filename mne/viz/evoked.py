@@ -1484,7 +1484,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     invert_y : bool
         If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
-    axes : None | `matplotlib.pyplot.axes` instance | list of `axes`
+    axes : None | `matplotlib.axes.Axes` instance | list of `axes`
         What axes to plot to. If None, a new axes is created.
         When plotting multiple channel types, can also be a list of axes, one
         per channel type.

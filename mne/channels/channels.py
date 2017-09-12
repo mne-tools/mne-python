@@ -837,7 +837,7 @@ class InterpolationMixin(object):
         reset_bads : bool
             If True, remove the bads from info.
         mode : str
-            Either `'accurate'` or `'fast'`, determines the quality of the
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
             Legendre polynomial expansion used for interpolation of MEG
             channels.
         verbose : bool, str, int, or None
