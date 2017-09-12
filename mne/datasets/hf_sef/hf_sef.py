@@ -1,30 +1,39 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larson.eric.d@gmail.com>
-# License: BSD Style.
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Sep 12 16:45:03 2017
 
-from functools import partial
+@author: jussi
+"""
 
-from ...utils import verbose
-from ..utils import (has_dataset, _data_path, _data_path_doc,
-                     _get_version, _version_doc)
-
-
-has_hf_sef_data = partial(has_dataset, name='hf_sef')
+import tarfile
+from ...utils import _fetch_file, _url_to_local_path, verbose
 
 
-@verbose
-def data_path(path=None, force_update=False, update_path=True, download=True,
-              verbose=None):  # noqa: D103
-    return _data_path(path=path, force_update=force_update,
-                      update_path=update_path, name='hf_sef',
-                      download=download)
+def data_path(set='evoked', path=None, force_update=False, update_path=None,
+              verbose=None):
 
-data_path.__doc__ = _data_path_doc.format(name='hf_sef',
-                                          conf='MNE_DATASETS_HF_SEF_PATH')
+    key = MNE_DATASETS_HF_SEF_PATH
+    name = HF_SEF
+    path = _get_path(path, key, name)
+    
+    
+    urls = {'evoked':
+            'https://zenodo.org/record/889235/files/hf_sef_evoked.tar.gz',
+            'raw':
+            'https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz'}
+
+    if set not in urls:
+        raise ValueError('Invalid set specified')
 
 
-def get_version():  # noqa: D103
-    return _get_version('hf_sef')
+    url = urls[set]
+    _fetch_file(url)
 
-get_version.__doc__ = _version_doc.format(name='hf_sef')
+    with tarfile.open(fn) as tar:
+        tar.extractall('/tmp')
+
+        
+
+
+   
