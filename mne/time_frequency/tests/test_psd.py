@@ -3,10 +3,11 @@ import os.path as op
 from numpy.testing import (assert_array_almost_equal, assert_raises,
                            assert_allclose)
 from nose.tools import assert_true, assert_equal
+import pytest
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.utils import slow_test, run_tests_if_main
+from mne.utils import run_tests_if_main
 from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -155,7 +156,7 @@ def test_psd():
         assert_true(psds_ev.shape == (len(kws['picks']), len(freqs)))
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch."""
     raw = read_raw_fif(raw_fname)

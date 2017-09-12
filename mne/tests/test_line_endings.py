@@ -5,7 +5,7 @@
 
 import os
 from nose.tools import assert_raises
-from nose.plugins.skip import SkipTest
+from unittest import SkipTest
 from os import path as op
 import sys
 

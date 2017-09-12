@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_equal)
+import pytest
 
 import copy as cp
 
@@ -19,7 +20,7 @@ from mne.io.proj import (make_projector, activate_proj,
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne.tests.common import assert_naming
-from mne.utils import _TempDir, run_tests_if_main, slow_test
+from mne.utils import _TempDir, run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -225,7 +226,7 @@ def test_compute_proj_epochs():
     assert_naming(w, 'test_proj.py', 2)
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_compute_proj_raw():
     """Test SSP computation on raw"""
     tempdir = _TempDir()

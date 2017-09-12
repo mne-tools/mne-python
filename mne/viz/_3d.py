@@ -1609,6 +1609,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         coords = surf['rr'][inuse]
         shape = faces.shape
         faces = stats.rankdata(faces, 'dense').reshape(shape) - 1
+        faces = np.round(faces).astype(int)  # should really be int-like anyway
     del surf
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)

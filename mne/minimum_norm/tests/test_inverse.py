@@ -5,6 +5,7 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_allclose, assert_array_equal)
 from scipy import sparse
 from nose.tools import assert_true, assert_raises
+import pytest
 import copy
 import warnings
 
@@ -24,7 +25,7 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
 from mne.tests.common import assert_naming
-from mne.utils import _TempDir, run_tests_if_main, slow_test
+from mne.utils import _TempDir, run_tests_if_main
 from mne.externals import six
 
 test_path = testing.data_path(download=False)
@@ -182,7 +183,7 @@ def test_warn_inverse_operator():
     assert_equal(len(w), 1)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_inverse_operator():
     """Test MNE inverse computation (precomputed and non-precomputed)."""
@@ -207,7 +208,7 @@ def test_make_inverse_operator():
     assert_true('mri_head_t' in my_inv_op)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_inverse_operator_channel_ordering():
     """Test MNE inverse computation is immune to channel reorderings."""
@@ -263,7 +264,7 @@ def test_inverse_operator_channel_ordering():
     assert_allclose(stc_1.data, stc_3.data, rtol=1e-5, atol=1e-5)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_apply_inverse_operator():
     """Test MNE inverse application."""
@@ -471,7 +472,7 @@ def test_inverse_operator_volume():
     assert_array_almost_equal(stc.times, stc2.times)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_io_inverse_operator():
     """Test IO of inverse_operator

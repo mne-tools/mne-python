@@ -7,6 +7,7 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_true, assert_equal
+import pytest
 
 from mne.datasets import testing
 from mne.label import read_label
@@ -14,7 +15,7 @@ from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 from mne.dipole import Dipole
 
 
@@ -38,7 +39,7 @@ def _check_stcs(stc1, stc2):
     assert_allclose(stc1.tstep, stc2.tstep)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mxne_inverse():
     """Test (TF-)MxNE inverse computation"""
