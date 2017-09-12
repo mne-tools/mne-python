@@ -469,4 +469,55 @@ def test_receptive_field_nd():
         assert_true(score > 0.6, msg=score)
 
 
+def test_inverse_coef():
+    """Test inverse coefficients computation."""
+    from sklearn.linear_model import Ridge
+
+    rng = np.random.RandomState(0)
+    tmin, tmax = 0., 10.
+    n_feats, n_targets, n_samples = 64, 2, 10000
+    n_delays = int((tmax - tmin) + 1)
+
+    def make_data(n_feats, n_targets, n_samples, tmin, tmax):
+        X = rng.randn(n_samples, n_feats)
+        w = rng.randn(int((tmax - tmin) + 1) * n_feats, n_targets)
+        # Delay inputs
+        X_del = np.concatenate(
+            _delay_time_series(X, tmin, tmax, 1.).transpose(2, 0, 1), axis=1)
+        y = np.dot(X_del, w)
+        return X, y
+
+    # Check coefficient dims
+    X, y = make_data(n_feats, n_targets, n_samples, tmin, tmax)
+    tdr = TimeDelayingRidge(tmin, tmax, 1., 0.1, 'laplacian')
+    for estimator in (0., 0.01, Ridge(alpha=0.), tdr):
+        rf = ReceptiveField(tmin, tmax, 1., estimator=estimator)
+        rf.fit(X, y)
+        inv_rf = ReceptiveField(tmin, tmax, 1., estimator=estimator)
+        inv_rf.fit(y, X)
+
+        assert_array_equal(rf.coef_.shape, rf.patterns_.shape,
+                           (n_targets, n_feats, n_delays))
+        assert_array_equal(inv_rf.coef_.shape, inv_rf.patterns_.shape,
+                           (n_feats, n_targets, n_delays))
+
+        # we should have np.dot(patterns.T,coef) ~ np.eye(n)
+        c0 = rf.coef_.reshape(n_targets, n_feats * n_delays)
+        c1 = rf.patterns_.reshape(n_targets, n_feats * n_delays)
+        assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.1)
+
+        # we should have rf.coef_ ~ inv_rf.patterns_ and vice versa
+        # TODO
+
+    # Check that warnings are issued when no regularization is applied
+    n_feats, n_targets, n_samples = 5, 60, 50
+    X, y = make_data(n_feats, n_targets, n_samples, tmin, tmax)
+    for estimator in (0., Ridge(alpha=0.)):
+        rf = ReceptiveField(tmin, tmax, 1., estimator=estimator)
+        with warnings.catch_warnings(record=True) as w:
+            rf.fit(y, X)
+            assert_equal(len(w), 1)
+            assert_true(str(w[0].message).startswith('scipy.linalg.solve'))
+
+
 run_tests_if_main()

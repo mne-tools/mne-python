@@ -7,6 +7,7 @@
 import numbers
 
 import numpy as np
+from scipy import linalg
 
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
@@ -213,19 +214,27 @@ class ReceptiveField(BaseEstimator):
             shape.insert(0, -1)
         self.coef_ = coef.reshape(shape)
 
-        # Inverse-transform model weights.
-        # inv_coef has shape = (n_feats * n_delays, n_outputs)
+        # Inverse-transform model weights,
         coef = np.reshape(self.coef_, (n_feats * n_delays, n_outputs))
-        if not isinstance(self.estimator_, TimeDelayingRidge):
-            inv_coef = np.linalg.multi_dot([np.dot(X.T, X), coef,
-                                            np.linalg.inv(np.dot(y.T, y))])
-        else:
-            inv_coef = np.linalg.multi_dot([self.estimator_.x_xt_, coef,
-                                            np.linalg.inv(np.dot(y.T, y))])
 
-        # reshape to (n_feats, n_delays, n_outputs)
-        self.inverse_coef_ = inv_coef.reshape(shape)
-        del X, y
+        if isinstance(self.estimator_, TimeDelayingRidge):
+            cov_ = self.estimator_.cov_ / float(n_times * n_epochs - 1)
+            y = y.reshape(-1, y.shape[-1], order='F')
+        else:
+            X = X - X.mean(0, keepdims=True)
+            cov_ = np.cov(X.T)
+        del X
+
+        # Inverse output covariance
+        inv_Y = 1. / float(n_times * n_epochs - 1)
+        if y.ndim == 2 and y.shape[1] != 1:
+            y = y - y.mean(0, keepdims=True)
+            inv_Y = linalg.pinv(np.cov(y.T))
+        del y
+
+        # Inverse coef according to Haufe's method
+        patterns = cov_.dot(coef.dot(inv_Y))  # (n_feats * n_delays, n_outputs)
+        self.patterns_ = patterns.reshape(shape)
 
         return self
 
