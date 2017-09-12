@@ -84,7 +84,7 @@ sfreq /= n_decim
 # We'll simulate a linear receptive field for a theoretical neural signal. This
 # defines how the signal will respond to power in this receptive field space.
 n_freqs = 20
-tmin, tmax = -.4, 0.1
+tmin, tmax = -0.1, 0.4
 
 # To simulate the data we'll create explicit delays here
 delays_samp = np.arange(np.round(tmin * sfreq),
@@ -97,8 +97,8 @@ grid = np.array(np.meshgrid(delays_sec, freqs))
 grid = grid.swapaxes(0, -1).swapaxes(0, 1)
 
 # Simulate a temporal receptive field with a Gabor filter
-means_high = [-.1, 500]
-means_low = [-.2, 2500]
+means_high = [.1, 500]
+means_low = [.2, 2500]
 cov = [[.001, 0], [0, 500000]]
 gauss_high = multivariate_normal.pdf(grid, means_high, cov)
 gauss_low = -1 * multivariate_normal.pdf(grid, means_low, cov)
@@ -144,12 +144,12 @@ for ii, ix_delay in enumerate(delays):
     # These arrays will take/put particular indices in the data
     take = [slice(None)] * X.ndim
     put = [slice(None)] * X.ndim
-    if ix_delay < 0:
-        take[-1] = slice(None, ix_delay)
-        put[-1] = slice(-ix_delay, None)
-    elif ix_delay > 0:
-        take[-1] = slice(ix_delay, None)
-        put[-1] = slice(None, -ix_delay)
+    if ix_delay > 0:
+        take[-1] = slice(None, -ix_delay)
+        put[-1] = slice(ix_delay, None)
+    elif ix_delay < 0:
+        take[-1] = slice(-ix_delay, None)
+        put[-1] = slice(None, ix_delay)
     X_del[ii][put] = X[take]
 
 # Now set the delayed axis to the 2nd dimension

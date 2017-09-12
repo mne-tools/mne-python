@@ -17,17 +17,18 @@ from ..externals.six import string_types
 class ReceptiveField(BaseEstimator):
     """Fit a receptive field model.
 
-    This allows you to fit a model using time-lagged input features. For
-    example, a spectro- or spatio-temporal receptive field (STRF).
+    This allows you to fit a forward model (stimulus to brain) using
+    time-lagged input features. For example, a spectro- or spatio-temporal
+    receptive field (STRF).
 
     Parameters
     ----------
     tmin : float
         The starting lag, in seconds (or samples if ``sfreq`` == 1).
-        Negative values correspond to times in the past.
+        Negative values correspond to times in the future.
     tmax : float
         The ending lag, in seconds (or samples if ``sfreq`` == 1).
-        Positive values correspond to times in the future.
+        Positive values correspond to times in the past.
         Must be >= tmin.
     sfreq : float
         The sampling frequency used to convert times into samples.
@@ -151,6 +152,9 @@ class ReceptiveField(BaseEstimator):
         from sklearn.base import clone
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
+        if self.tmin > self.tmax:
+            raise ValueError('tmin (%s) must be at most tmax (%s)'
+                             % (self.tmin, self.tmax))
         # Initialize delays
         self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
 
@@ -197,7 +201,8 @@ class ReceptiveField(BaseEstimator):
         del X, y
         coef = get_coef(self.estimator_, 'coef_')  # (n_targets, n_features)
         shape = [n_feats, len(self.delays_)]
-        shape = ([-1] if self._y_dim > 1 else []) + shape
+        if self._y_dim > 1:
+            shape.insert(0, -1)
         self.coef_ = coef.reshape(shape)
         return self
 
@@ -319,15 +324,17 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
     X : array, shape (n_times[, n_epochs], n_features)
         The time series to delay. Must be 2D or 3D.
     tmin : int | float
-        The starting lag. Negative values correspond to times in the past.
+        The starting lag.
     tmax : int | float
-        The ending lag. Positive values correspond to times in the future.
+        The ending lag.
         Must be >= tmin.
     sfreq : int | float
         The sampling frequency of the series. Defaults to 1.0.
     fill_mean : bool
         If True, the fill value will be the mean along the time dimension
-        of the feature. If False, the fill value will be zero.
+        of the feature, and each cropped and delayed segment of data
+        will be shifted to have the same mean value (ensuring that mean
+        subtraction works properly). If False, the fill value will be zero.
 
     Returns
     -------
@@ -337,16 +344,16 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
 
     Examples
     --------
-    >>> tmin, tmax = -0.2, 0.1
+    >>> tmin, tmax = -0.1, 0.2
     >>> sfreq = 10.
     >>> x = np.arange(1, 6)
     >>> x_del = _delay_time_series(x, tmin, tmax, sfreq)
     >>> print(x_del)
-    [[ 0.  0.  1.  2.]
-     [ 0.  1.  2.  3.]
-     [ 1.  2.  3.  4.]
-     [ 2.  3.  4.  5.]
-     [ 3.  4.  5.  0.]]
+    [[ 2.  1.  0.  0.]
+     [ 3.  2.  1.  0.]
+     [ 4.  3.  2.  1.]
+     [ 5.  4.  3.  2.]
+     [ 0.  5.  4.  3.]]
     """
     _check_delayer_params(tmin, tmax, sfreq)
     delays = _times_to_delays(tmin, tmax, sfreq)
@@ -360,11 +367,17 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
     for ii, ix_delay in enumerate(delays):
         # Create zeros to populate w/ delays
         if ix_delay < 0:
-            delayed[-ix_delay:, ..., ii] = X[:ix_delay]
+            out = delayed[:ix_delay, ..., ii]
+            use_X = X[-ix_delay:]
         elif ix_delay > 0:
-            delayed[:-ix_delay, ..., ii] = X[ix_delay:]
+            out = delayed[ix_delay:, ..., ii]
+            use_X = X[:-ix_delay]
         else:  # == 0
-            delayed[..., ii] = X
+            out = delayed[..., ii]
+            use_X = X
+        out[:] = use_X
+        if fill_mean:
+            out[:] += (mean_value - use_X.mean(axis=0))
     return delayed
 
 
@@ -378,12 +391,10 @@ def _times_to_delays(tmin, tmax, sfreq):
 
 def _delays_to_slice(delays):
     """Find the slice to be taken in order to remove missing values."""
-    # Negative values == cut off rows at the beginning
-    min_delay = np.clip(delays.min(), None, 0)
-    min_delay = None if min_delay >= 0 else -1 * min_delay
+    # Negative values == cut off rows at the end
+    min_delay = None if delays[-1] <= 0 else delays[-1]
     # Positive values == cut off rows at the end
-    max_delay = np.clip(delays.max(), 0, None)
-    max_delay = None if max_delay <= 0 else -1 * max_delay
+    max_delay = None if delays[0] >= 0 else delays[0]
     return slice(min_delay, max_delay)
 
 
@@ -421,5 +432,6 @@ def _corr_score(y_true, y, multioutput=None):
 def _r2_score(y_true, y, multioutput=None):
     from sklearn.metrics import r2_score
     return r2_score(y_true, y)
+
 
 _SCORERS = {'r2': _r2_score, 'corrcoef': _corr_score}
