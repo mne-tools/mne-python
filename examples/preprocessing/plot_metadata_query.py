@@ -2,6 +2,8 @@
 Querying epochs with rich metadata
 ----------------------------------
 
+Selecting a subset of epochs based on rich metadata.
+
 MNE allows you to include metadata along with your :class:`mne.Epochs` objects.
 This is in the form of a :class:`pandas.DataFrame` that has one row for each
 event, and an arbitrary number of columns corresponding to different
