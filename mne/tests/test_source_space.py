@@ -660,6 +660,14 @@ def test_morphed_source_space_return():
                        stc_morph_morph.data[:, 0])[0, 1]
     assert_true(corr > 0.99, corr)
 
+    # Explicitly test having two vertices map to the same target vertex. We
+    # simulate this by having two vertices be at the same position.
+    src_fs2 = src_fs.copy()
+    vert1, vert2 = src_fs2[0]['vertno'][:2]
+    src_fs2[0]['rr'][vert1] = src_fs2[0]['rr'][vert2]
+    stc_morph_return = stc_morph.to_original_src(
+        src_fs2, subjects_dir=subjects_dir)
+
     # Degenerate cases
     stc_morph.subject = None  # no .subject provided
     assert_raises(ValueError, stc_morph.to_original_src,
