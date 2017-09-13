@@ -539,7 +539,12 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         elif highpass[0] == 'DC':
             info['highpass'] = 0.
         else:
-            info['highpass'] = float(highpass[0])
+            hp = highpass[0]
+            try:
+                hp = float(hp)
+            except:
+                hp = 0.
+            info['highpass'] = hp
     else:
         info['highpass'] = float(np.max(highpass))
         warn('Channels contain different highpass filters. Highest filter '
@@ -609,7 +614,13 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         subtype = os.path.splitext(fname)[1][1:].lower()
 
         n_records = int(fid.read(8).decode())
-        record_length = np.array([float(fid.read(8)), 1.])  # in seconds
+        record_length = fid.read(8)
+        try:
+            record_length = float(record_length)
+        except:
+            record_length = float(record_length.split()[0])
+
+        record_length = np.array([record_length, 1.])  # in seconds
         if record_length[0] == 0:
             record_length = record_length[0] = 1.
             warn('Header information is incorrect for record length. Default '
