@@ -393,8 +393,9 @@ def test_make_inverse_operator_vector():
                                   loose=.2, depth=None)
 
     # Apply the inverse operators and check the result
-    for inv in [inv_1, inv_2, inv_4]:
-        for method in ['MNE', 'dSPM', 'sLORETA']:
+    for ii, inv in enumerate((inv_1, inv_2, inv_4)):
+        methods = ['MNE', 'dSPM', 'sLORETA'] if ii < 2 else ['MNE']
+        for method in methods:
             stc = apply_inverse(evoked, inv, method=method)
             stc_vec = apply_inverse(evoked, inv, pick_ori='vector',
                                     method=method)
