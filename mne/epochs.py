@@ -1389,6 +1389,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # update event id to reflect new content of epochs
         epochs.event_id = dict((k, v) for k, v in epochs.event_id.items()
                                if v in epochs.events[:, 2])
+
+        if len(epochs.event_id) == 0:
+            # 'epochs' is empty.
+            warn('Subset selection of item(s): %s is empty.' % item)
+
         return epochs
 
     def crop(self, tmin=None, tmax=None):
