@@ -84,7 +84,7 @@ def test_cache_dir():
             del os.environ['MNE_MEMMAP_MIN_SIZE']
 
 
-def test_perumation_large_n_samples():
+def test_permutation_large_n_samples():
     """Test that non-replacement works with large N."""
     X = np.random.RandomState(0).randn(72, 1) + 1
     for n_samples in (11, 72):
