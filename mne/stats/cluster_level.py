@@ -764,10 +764,32 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             # convert to binary array representation
             orders = np.arange(max_perms)
             extra = ' (exact test)'
-        else:
-            orders = rng.choice(max_perms, n_permutations - 1)
-        orders = [np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int)
-                  for s in orders]
+            orders = [np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int)
+                      for s in orders]
+        elif n_samples <= 20:  # fast way to do it for small(ish) n_samples
+            orders = rng.choice(max_perms, n_permutations - 1, replace=False)
+            orders = [np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int)
+                      for s in orders]
+        else:  # n_samples >= 64
+            # Here we can just use the hash-table (w/collision detection)
+            # functionality of a dict to ensure uniqueness
+            orders = np.zeros((n_permutations - 1, n_samples), int)
+            hashes = {}
+            ii = 0
+            # in the symmetric case, we should never flip one of the subjects
+            # to prevent positive/negative equivalent collisions
+            use_samples = n_samples - (tail == 0)
+            while ii < n_permutations - 1:
+                signs = tuple((rng.rand(use_samples) < 0.5).astype(int))
+                if signs not in hashes:
+                    orders[ii, :use_samples] = signs
+                    if tail == 0 and rng.rand() < 0.5:
+                        # To undo the non-flipping of the last subject in the
+                        # tail == 0 case, half the time we use the positive
+                        # last subject, half the time negative last subject
+                        orders[ii] = 1 - orders[ii]
+                    hashes[signs] = None
+                    ii += 1
     else:
         do_perm_func = _do_permutations
         X_full = np.concatenate(X, axis=0)
@@ -1021,9 +1043,6 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
                                      buffer_size=buffer_size)
 
 
-permutation_cluster_test.__test__ = False
-
-
 @verbose
 def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
                                    tail=0, stat_fun=ttest_1samp_no_p,
@@ -1161,9 +1180,6 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
                                      t_power=t_power, out_type=out_type,
                                      check_disjoint=check_disjoint,
                                      buffer_size=buffer_size)
-
-
-permutation_cluster_1samp_test.__test__ = False
 
 
 @verbose
@@ -1304,9 +1320,6 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     return out
 
 
-spatio_temporal_cluster_1samp_test.__test__ = False
-
-
 @verbose
 def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
                                  tail=0, stat_fun=f_oneway,
@@ -1419,9 +1432,6 @@ def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
                                    check_disjoint=check_disjoint,
                                    buffer_size=buffer_size)
     return out
-
-
-spatio_temporal_cluster_test.__test__ = False
 
 
 def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):

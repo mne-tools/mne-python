@@ -127,6 +127,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     std0 = np.sqrt(X2 - mu0 ** 2) * dof_scaling  # get std with var splitting
     T_obs = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
 
+    # XXX Someday this should be refactored with the cluster code
     if do_exact:
         perms = bin_perm_rep(n_samples, a=1, b=-1)[1:, :]
     else:
@@ -148,8 +149,6 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
         p_values = 1.0 - np.searchsorted(H0, -T_obs) / scaling
 
     return T_obs, p_values, H0
-
-permutation_t_test.__test__ = False  # for nosetests
 
 
 def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, statfun='mean',

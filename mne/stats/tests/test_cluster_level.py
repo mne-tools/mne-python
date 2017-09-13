@@ -84,6 +84,18 @@ def test_cache_dir():
             del os.environ['MNE_MEMMAP_MIN_SIZE']
 
 
+def test_permutation_large_n_samples():
+    """Test that non-replacement works with large N."""
+    X = np.random.RandomState(0).randn(72, 1) + 1
+    for n_samples in (11, 72):
+        tails = (0, 1) if n_samples <= 20 else (0,)
+        for tail in tails:
+            H0 = permutation_cluster_1samp_test(
+                X[:n_samples], threshold=1e-4, tail=tail)[-1]
+            assert H0.shape == (1024,)
+            assert len(np.unique(H0)) >= 1024 - (H0 == 0).sum()
+
+
 def test_permutation_step_down_p():
     """Test cluster level permutations with step_down_p."""
     try:
