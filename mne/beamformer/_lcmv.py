@@ -50,6 +50,19 @@ def _reg_pinv(x, reg):
     return linalg.pinv(x), d
 
 
+def _eig_inv(x, signalspace):
+    """Compute a pseudoinverse with smallest component set to zero."""
+    U, s, V = linalg.svd(x)
+
+    # pseudoinverse is computed by setting eigenvalues not included in
+    # signalspace to zero
+    s_inv = np.zeros(s.shape)
+    s_inv[signalspace] = 1 / s[signalspace]
+
+    x_inv = np.dot(V.T, np.dot(np.diag(s_inv), U.T))
+    return x_inv
+
+
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
     """Return good channels common to forward model and covariance matrices."""
     # get a list of all channel names:
