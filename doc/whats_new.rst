@@ -103,6 +103,8 @@ Changelog
     
     - Plotting raw data (:func:`mne.viz.plot_raw` or :meth:`mne.io.Raw.plot`) with events now includes event numbers (if there are not more than 50 events on a page) by `Clemens Brunner`_
 
+    - Add filtering functions :meth:`mne.Epochs.filter` and :meth:`mne.Evoked.filter`, as well as ``pad`` argument to :meth:`mne.io.Raw.filter`` by `Eric Larson`_
+
 BUG
 ~~~
 
@@ -180,6 +182,7 @@ BUG
 
     - Fix bug in DC and Nyquist frequency multitaper PSD computations, e.g. in :func:`mne.time_frequency.psd_multitaper`, by `Eric Larson`_
 
+    - Fix default padding type for :meth:`mne.Epochs.resample` and :meth:`mne.Evoked.resample` to be ``'edge'`` by default, by `Eric Larson`_
 
 API
 ~~~

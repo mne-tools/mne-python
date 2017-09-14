@@ -86,7 +86,7 @@ def test_1d_filter():
                     h = np.concatenate([[1.], np.zeros(n_filter - 1)])
                 # ensure we pad the signal the same way for both filters
                 n_pad = n_filter - 1
-                x_pad = _smart_pad(x, np.array([n_pad, n_pad]))
+                x_pad = _smart_pad(x, (n_pad, n_pad))
                 for phase in ('zero', 'linear', 'zero-double'):
                     # compute our expected result the slow way
                     if phase == 'zero':
@@ -420,21 +420,24 @@ def test_filter_auto():
     t = np.arange(N) / sfreq
     x += np.sin(2 * np.pi * sine_freq * t)
     x_orig = x.copy()
-    for fir_design in ('firwin2', 'firwin'):
-        kwargs = dict(fir_design=fir_design)
-        x = x_orig.copy()
-        x_filt = filter_data(x, sfreq, None, lp, **kwargs)
-        assert_array_equal(x, x_orig)
-        # the firwin2 function gets us this close
-        assert_allclose(x, x_filt, rtol=1e-4, atol=1e-2)
-        assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, None,
-                                               **kwargs))
-        assert_array_equal(x, x_orig)
-        assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, **kwargs))
-        assert_array_equal(x, x_orig)
-        assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, copy=False,
-                                               **kwargs))
-        assert_array_equal(x, x_filt)
+    for pad in ('reflect_limited', 'reflect', 'edge'):
+        for fir_design in ('firwin2', 'firwin'):
+            kwargs = dict(fir_design=fir_design, pad=pad)
+            x = x_orig.copy()
+            x_filt = filter_data(x, sfreq, None, lp, **kwargs)
+            assert_array_equal(x, x_orig)
+            n_edge = 10
+            assert_allclose(x[n_edge:-n_edge], x_filt[n_edge:-n_edge],
+                            atol=1e-2)
+            assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, None,
+                                                   **kwargs))
+            assert_array_equal(x, x_orig)
+            assert_array_equal(x_filt, filter_data(x, sfreq, None, lp,
+                                                   **kwargs))
+            assert_array_equal(x, x_orig)
+            assert_array_equal(x_filt, filter_data(x, sfreq, None, lp,
+                                                   copy=False, **kwargs))
+            assert_array_equal(x, x_filt)
 
     # degenerate conditions
     assert_raises(ValueError, filter_data, x, -sfreq, 1, 10)
