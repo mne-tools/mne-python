@@ -17,7 +17,7 @@ from ..externals.six import string_types
 class ReceptiveField(BaseEstimator):
     """Fit a receptive field model.
 
-    This allows you to fit a forward model (stimulus to brain) using
+    This allows you to fit an encoding model (stimulus to brain) using
     time-lagged input features. For example, a spectro- or spatio-temporal
     receptive field (STRF).
 
