@@ -112,7 +112,7 @@ def test_mxne_inverse():
 
     fwd = forward.copy()
     fwd['sol']['data'][:, np.random.randint(1000)] = 0.
-    stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
+    stc, _ = mixed_norm(evoked_l21, fwd, cov, alpha, loose=None,
                         depth=depth, maxit=300, tol=1e-8,
                         active_set_size=10, return_residual=True)
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
