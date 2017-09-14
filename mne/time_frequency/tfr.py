@@ -1542,9 +1542,9 @@ class EpochsTFR(_BaseTFR):
         return "<EpochsTFR  |  %s>" % s
 
     def __abs__(self):
-        out = self.copy()
-        np.abs(out.data, out=out.data)
-        return out
+        return EpochsTFR(info=self.info.copy(), data=np.abs(self.data),
+                         times=self.times.copy(), freqs=self.freqs.copy(),
+                         method=self.method, comment=self.comment)
 
     def copy(self):
         """Give a copy of the EpochsTFR.
@@ -1554,10 +1554,9 @@ class EpochsTFR(_BaseTFR):
         tfr : instance of EpochsTFR
             The copy.
         """
-        out = EpochsTFR(info=self.info.copy(), data=self.data.copy(),
-                        times=self.times.copy(), freqs=self.freqs.copy(),
-                        method=self.method, comment=self.comment)
-        return out
+        return EpochsTFR(info=self.info.copy(), data=self.data.copy(),
+                         times=self.times.copy(), freqs=self.freqs.copy(),
+                         method=self.method, comment=self.comment)
 
     def average(self):
         """Average the data across epochs.

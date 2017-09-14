@@ -104,6 +104,8 @@ def test_time_frequency():
                                       output="complex", average=False,
                                       return_itc=False)
     epochs_power_2 = abs(epochs_power_complex)
+    epochs_power_3 = epochs_power_2.copy()
+    epochs_power_3.data[:] = np.inf  # test that it's actually copied
     assert_array_almost_equal(epochs_power_2.data, epochs_power_picks.data)
     power_2 = epochs_power_2.average()
     assert_array_almost_equal(power_2.data, power.data)
