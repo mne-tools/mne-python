@@ -64,6 +64,7 @@ def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
 
     if depth is not None:
         depth_prior = np.sum(gain ** 2, axis=0) ** depth
+        # Spherical leadfield can be zero at the center
         depth_prior[depth_prior == 0.] = np.min(depth_prior[depth_prior != 0.])
         source_weighting = np.sqrt(1. / depth_prior)
     else:
