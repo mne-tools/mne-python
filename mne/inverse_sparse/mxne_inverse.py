@@ -64,7 +64,8 @@ def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
 
     if depth is not None:
         depth_prior = np.sum(gain ** 2, axis=0) ** depth
-        source_weighting = np.sqrt(depth_prior ** -1.)
+        depth_prior[depth_prior == 0.] = np.min(depth_prior[depth_prior != 0.])
+        source_weighting = np.sqrt(1. / depth_prior)
     else:
         source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
 
