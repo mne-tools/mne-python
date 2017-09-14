@@ -250,6 +250,9 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     del Cm
 
+    # detect leadfield rank on first voxel for now
+    rank_G = estimate_rank(G[:, 0:3], tol='auto')
+
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
     n_orient = 3 if is_free_ori else 1
@@ -269,8 +272,19 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 # finding optimal orientation for NAI and unit-noise-gain
                 # based on [2]_, Eq. 4.47
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),
-                                                       np.dot(Wk, Gk)))
+
+                if rank_G == 3:
+                    # use straight inverse with full rank leadfield
+                    eig_vals, eig_vecs = linalg.eig(np.dot(linalg.inv(tmp),
+                                                    np.dot(Wk, Gk)))
+                else:
+                    # use pseudo inverse computation setting smalles component
+                    # to zero if the leadfield is not full rank
+                    eig_vals, eig_vecs = linalg.eig(np.dot(
+                                                    _eig_inv(tmp,
+                                                             range(rank_G)),
+                                                    np.dot(Wk, Gk)))
+
                 idx_max = eig_vals.argmax()
                 max_ori = eig_vecs[:, idx_max]
                 Wk[:] = np.dot(max_ori, Wk)
