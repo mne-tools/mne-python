@@ -25,10 +25,8 @@ class ReceptiveField(BaseEstimator):
     ----------
     tmin : float
         The starting lag, in seconds (or samples if ``sfreq`` == 1).
-        Negative values correspond to times in the future.
     tmax : float
         The ending lag, in seconds (or samples if ``sfreq`` == 1).
-        Positive values correspond to times in the past.
         Must be >= tmin.
     sfreq : float
         The sampling frequency used to convert times into samples.
@@ -68,6 +66,14 @@ class ReceptiveField(BaseEstimator):
     See Also
     --------
     mne.decoding.TimeDelayingRidge
+
+    Notes
+    -----
+    For a causal system, the encoding model will have significant
+    non-zero values only at positive lags. In other words, lags point
+    backward in time relative to the input, so positive lags correspond
+    to previous input time samples, while negative lags correspond to
+    future input time samples.
 
     References
     ----------
