@@ -41,8 +41,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         and if ``bmax is None`` then ``bmax`` is set to the end of the
         interval. If baseline is ``(None, None)`` the entire time
         interval is used. If baseline is None, no correction is applied.
-    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' |
-           None
+    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
         Perform baseline correction by
           - subtracting the mean baseline power ('mean')
           - dividing by the mean baseline power ('ratio')
@@ -51,7 +50,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
             mean baseline power ('percent')
           - subtracting the mean baseline power and dividing by the standard
             deviation of the baseline power ('zscore')
-          - dividing by the mean baseline powerd, taking the log, and dividing
+          - dividing by the mean baseline power, taking the log, and dividing
             by the standard deviation of the baseline power ('zlogratio')
         If None no baseline correction is applied.
     copy : bool
@@ -64,7 +63,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     -------
     data_scaled: array
         Array of same shape as data after rescaling.
-    """
+    """  # noqa: E501
     data = data.copy() if copy else data
     msg = _log_rescale(baseline, mode)
     logger.info(msg)

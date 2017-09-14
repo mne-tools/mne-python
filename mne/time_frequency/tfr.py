@@ -906,8 +906,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 
-               'zlogratio' | None
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
             Perform baseline correction by
               - subtracting the mean baseline power ('mean')
               - dividing by the mean baseline power ('ratio')
@@ -917,7 +916,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
                 mean baseline power ('percent')
               - subtracting the mean baseline power and dividing by the
                 standard deviation of the baseline power ('zscore')
-              - dividing by the mean baseline powerd, taking the log, and 
+              - dividing by the mean baseline power, taking the log, and
                 dividing by the standard deviation of the baseline power
                 ('zlogratio')
             If None no baseline correction is applied.
@@ -929,7 +928,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         -------
         inst : instance of AverageTFR
             The modified instance.
-        """
+        """  # noqa: E501
         self.data = rescale(self.data, self.times, baseline, mode,
                             copy=False)
         return self
@@ -1022,8 +1021,7 @@ class AverageTFR(_BaseTFR):
             and if b is None then b is set to the end of the interval.
             If baseline is equal ot (None, None) all the time
             interval is used.
-        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' |
-               'zlogratio' | None
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
             Perform baseline correction by
               - subtracting the mean baseline power ('mean')
               - dividing by the mean baseline power ('ratio')
@@ -1033,7 +1031,7 @@ class AverageTFR(_BaseTFR):
                 mean baseline power ('percent')
               - subtracting the mean baseline power and dividing by the
                 standard deviation of the baseline power ('zscore')
-              - dividing by the mean baseline powerd, taking the log, and
+              - dividing by the mean baseline power, taking the log, and
                 dividing by the standard deviation of the baseline power
                 ('zlogratio')
             If None no baseline correction is applied.
@@ -1101,7 +1099,7 @@ class AverageTFR(_BaseTFR):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """
+        """  # noqa: E501
         from ..viz.topo import _imshow_tfr
         import matplotlib.pyplot as plt
         times, freqs = self.times.copy(), self.freqs.copy()
@@ -1205,8 +1203,7 @@ class AverageTFR(_BaseTFR):
             and if b is None then b is set to the end of the interval.
             If baseline is equal ot (None, None) all the time
             interval is used.
-        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' |
-               'zlogratio' | None
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
             Perform baseline correction by
               - subtracting the mean baseline power ('mean')
               - dividing by the mean baseline power ('ratio')
@@ -1216,7 +1213,7 @@ class AverageTFR(_BaseTFR):
                 mean baseline power ('percent')
               - subtracting the mean baseline power and dividing by the
                 standard deviation of the baseline power ('zscore')
-              - dividing by the mean baseline powerd, taking the log, and
+              - dividing by the mean baseline power, taking the log, and
                 dividing by the standard deviation of the baseline power
                 ('zlogratio')
             If None no baseline correction is applied.
@@ -1272,7 +1269,7 @@ class AverageTFR(_BaseTFR):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """
+        """  # noqa: E501
         from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
         from ..viz import add_background_image
         times = self.times.copy()
@@ -1346,8 +1343,7 @@ class AverageTFR(_BaseTFR):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' |
-               'zlogratio' | None
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
             Perform baseline correction by
               - subtracting the mean baseline power ('mean')
               - dividing by the mean baseline power ('ratio')
@@ -1357,7 +1353,7 @@ class AverageTFR(_BaseTFR):
                 mean baseline power ('percent')
               - subtracting the mean baseline power and dividing by the
                 standard deviation of the baseline power ('zscore')
-              - dividing by the mean baseline powerd, taking the log, and
+              - dividing by the mean baseline power, taking the log, and
                 dividing by the standard deviation of the baseline power
                 ('zlogratio')
             If None no baseline correction is applied.
@@ -1441,7 +1437,7 @@ class AverageTFR(_BaseTFR):
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
-        """
+        """  # noqa: E501
         from ..viz import plot_tfr_topomap
         return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                 fmax=fmax, ch_type=ch_type, baseline=baseline,

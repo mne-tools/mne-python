@@ -1020,8 +1020,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' |
-           None
+    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
         Perform baseline correction by
           - subtracting the mean baseline power ('mean')
           - dividing by the mean baseline power ('ratio')
@@ -1030,7 +1029,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
             mean baseline power ('percent')
           - subtracting the mean baseline power and dividing by the standard
             deviation of the baseline power ('zscore')
-          - dividing by the mean baseline powerd, taking the log, and dividing
+          - dividing by the mean baseline power, taking the log, and dividing
             by the standard deviation of the baseline power ('zlogratio')
         If None no baseline correction is applied.
     layout : None | Layout
@@ -1113,7 +1112,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     -------
     fig : matplotlib.figure.Figure
         The figure containing the topography.
-    """
+    """  # noqa: E501
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(tfr, ch_type)
     import matplotlib.pyplot as plt

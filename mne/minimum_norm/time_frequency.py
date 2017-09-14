@@ -96,8 +96,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         If a is None the beginning of the data is used and if b is None then b
         is set to the end of the interval. If baseline is equal to (None, None)
         all the time interval is used.
-    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' |
-                    'zlogratio' | None
+    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
         Perform baseline correction by
           - subtracting the mean baseline power ('mean')
           - dividing by the mean baseline power ('ratio')
@@ -106,7 +105,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
             mean baseline power ('percent')
           - subtracting the mean baseline power and dividing by the standard
             deviation of the baseline power ('zscore')
-          - dividing by the mean baseline powerd, taking the log, and dividing
+          - dividing by the mean baseline power, taking the log, and dividing
             by the standard deviation of the baseline power ('zlogratio')
         If None no baseline correction is applied.
     pca : bool
@@ -125,7 +124,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     -------
     stcs : dict with a SourceEstimate (or VolSourceEstimate) for each band
         The estimated source space induced power estimates.
-    """
+    """  # noqa: E501
     _check_method(method)
 
     frequencies = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
@@ -343,8 +342,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used.
-    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' |
-                    'zlogratio' | None
+    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
         Perform baseline correction by
           - subtracting the mean baseline power ('mean')
           - dividing by the mean baseline power ('ratio')
@@ -353,7 +351,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
             mean baseline power ('percent')
           - subtracting the mean baseline power and dividing by the standard
             deviation of the baseline power ('zscore')
-          - dividing by the mean baseline powerd, taking the log, and dividing
+          - dividing by the mean baseline power, taking the log, and dividing
             by the standard deviation of the baseline power ('zlogratio')
         If None no baseline correction is applied.
     pca : bool
@@ -369,7 +367,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    """
+    """  # noqa: E501
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
 
