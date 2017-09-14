@@ -1326,18 +1326,18 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
             raise ValueError('You need a free-orientation, surface-oriented '
                              'forward solution to do depth weighting even '
                              'when calculating a fixed-orientation inverse.')
-        if not forward['surf_ori']:
-            forward = convert_forward_solution(forward, surf_ori=True)
-        assert forward['surf_ori']
     if loose is not None:
         if not (0 <= loose <= 1):
             raise ValueError('loose value should be smaller than 1 and bigger '
                              'than 0, or None for not loose orientations.')
-        if loose < 1 and not forward['surf_ori']:
-            raise ValueError('Forward operator is not oriented in surface '
-                             'coordinates. A loose inverse operator requires '
-                             'a surface-based, free orientation forward '
-                             'operator.')
+
+    if (depth is not None or loose is not None):
+        if not forward['surf_ori']:
+            forward = convert_forward_solution(forward, surf_ori=True,
+                                               copy=True)
+            logger.info('Forward does not have surf_ori=True. Automatically '
+                        'convert forward solution')
+        assert forward['surf_ori']
 
     #
     # 1. Read the bad channels

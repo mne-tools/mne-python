@@ -390,10 +390,13 @@ def test_make_inverse_operator_vector():
     inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None)
     inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True,
                                   loose=None)
+    inv_4 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov,
+                                  loose=.2, depth=None)
 
     # Apply the inverse operators and check the result
-    for inv in [inv_1, inv_2]:
-        for method in ['MNE', 'dSPM', 'sLORETA']:
+    for ii, inv in enumerate((inv_1, inv_2, inv_4)):
+        methods = ['MNE', 'dSPM', 'sLORETA'] if ii < 2 else ['MNE']
+        for method in methods:
             stc = apply_inverse(evoked, inv, method=method)
             stc_vec = apply_inverse(evoked, inv, pick_ori='vector',
                                     method=method)
