@@ -590,7 +590,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
-             **tfr_params):
+             output=None, **tfr_params):
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
@@ -600,12 +600,14 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     data = data[:, picks, :]
 
     if average:
+        if output == 'complex':
+            raise ValueError('output must be "power" if average=True')
         if return_itc:
             output = 'avg_power_itc'
         else:
             output = 'avg_power'
     else:
-        output = 'power'
+        output = 'power' if output is None else output
         if return_itc:
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
@@ -635,7 +637,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                n_jobs=1, picks=None, zero_mean=True, average=True,
-               verbose=None):
+               output='power', verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Parameters
@@ -672,6 +674,11 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         If True average across Epochs.
 
         .. versionadded:: 0.13.0
+    output : str
+        Can be "power" (default) or "complex". If "complex", then
+        average must be False.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -693,7 +700,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     mne.time_frequency.tfr_array_stockwell
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
-                      zero_mean=zero_mean)
+                      zero_mean=zero_mean, output=output)
     return _tfr_aux('morlet', inst, freqs, decim, return_itc, picks,
                     average, **tfr_params)
 
@@ -1534,6 +1541,24 @@ class EpochsTFR(_BaseTFR):
         s += ', ~%s' % (sizeof_fmt(self._size),)
         return "<EpochsTFR  |  %s>" % s
 
+    def __abs__(self):
+        out = self.copy()
+        np.abs(out.data, out=out.data)
+        return out
+
+    def copy(self):
+        """Give a copy of the EpochsTFR.
+
+        Returns
+        -------
+        tfr : instance of EpochsTFR
+            The copy.
+        """
+        out = EpochsTFR(info=self.info.copy(), data=self.data.copy(),
+                        times=self.times.copy(), freqs=self.freqs.copy(),
+                        method=self.method, comment=self.comment)
+        return out
+
     def average(self):
         """Average the data across epochs.
 
@@ -1545,8 +1570,8 @@ class EpochsTFR(_BaseTFR):
         data = np.mean(self.data, axis=0)
         return AverageTFR(info=self.info.copy(), data=data,
                           times=self.times.copy(), freqs=self.freqs.copy(),
-                          nave=self.data.shape[0],
-                          method=self.method)
+                          nave=self.data.shape[0], method=self.method,
+                          comment=self.comment)
 
 
 def combine_tfr(all_tfr, weights='nave'):

@@ -95,6 +95,18 @@ def test_time_frequency():
     assert_array_almost_equal(power.data, power_picks_avg.data)
     assert_array_almost_equal(itc.data, itc_picks.data)
     assert_array_almost_equal(power.data, power_evoked.data)
+    # complex output
+    assert_raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
+                  return_itc=False, average=True, output="complex")
+    assert_raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
+                  output="complex", average=False, return_itc=True)
+    epochs_power_complex = tfr_morlet(epochs, freqs, n_cycles,
+                                      output="complex", average=False,
+                                      return_itc=False)
+    epochs_power_2 = abs(epochs_power_complex)
+    assert_array_almost_equal(epochs_power_2.data, epochs_power_picks.data)
+    power_2 = epochs_power_2.average()
+    assert_array_almost_equal(power_2.data, power.data)
 
     print(itc)  # test repr
     print(itc.ch_names)  # test property
