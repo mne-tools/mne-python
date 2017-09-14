@@ -558,9 +558,10 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
 
 @verbose
-def tfr_array_multitaper(epoch_data, sfreq, frequencies, n_cycles=7.0,
+def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
                          zero_mean=True, time_bandwidth=None, use_fft=True,
-                         decim=1, output='complex', n_jobs=1, verbose=None):
+                         decim=1, output='complex', n_jobs=1,
+                         frequencies=None, verbose=None):
     """Compute time-frequency transforms using wavelets and multitaper windows.
 
     Uses Morlet wavelets windowed with multiple DPSS tapers.
@@ -571,7 +572,7 @@ def tfr_array_multitaper(epoch_data, sfreq, frequencies, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    frequencies : array-like of floats, shape (n_freqs)
+    freqs : array-like of floats, shape (n_freqs)
         The frequencies.
     n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number or one per
@@ -633,8 +634,9 @@ def tfr_array_multitaper(epoch_data, sfreq, frequencies, n_cycles=7.0,
     .. versionadded:: 0.14.0
     """
     from .tfr import _compute_tfr
-    return _compute_tfr(epoch_data, frequencies, sfreq=sfreq,
+    return _compute_tfr(epoch_data, freqs, sfreq=sfreq,
                         method='multitaper', n_cycles=n_cycles,
                         zero_mean=zero_mean, time_bandwidth=time_bandwidth,
                         use_fft=use_fft, decim=decim, output=output,
-                        n_jobs=n_jobs, verbose=verbose)
+                        n_jobs=n_jobs, frequencies=frequencies,
+                        verbose=verbose)

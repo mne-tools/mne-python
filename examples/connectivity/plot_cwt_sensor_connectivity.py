@@ -59,15 +59,15 @@ targets = np.arange(len(picks))
 indices = seed_target_indices(seed, targets)
 
 # Define wavelet frequencies and number of cycles
-cwt_frequencies = np.arange(7, 30, 2)
-cwt_n_cycles = cwt_frequencies / 7.
+cwt_freqs = np.arange(7, 30, 2)
+cwt_n_cycles = cwt_freqs / 7.
 
 # Run the connectivity analysis using 2 parallel jobs
 sfreq = raw.info['sfreq']  # the sampling frequency
 con, freqs, times, _, _ = spectral_connectivity(
     epochs, indices=indices,
     method='wpli2_debiased', mode='cwt_morlet', sfreq=sfreq,
-    cwt_frequencies=cwt_frequencies, cwt_n_cycles=cwt_n_cycles, n_jobs=1)
+    cwt_freqs=cwt_freqs, cwt_n_cycles=cwt_n_cycles, n_jobs=1)
 
 # Mark the seed channel with a value of 1.0, so we can see it in the plot
 con[np.where(indices[1] == seed)] = 1.0

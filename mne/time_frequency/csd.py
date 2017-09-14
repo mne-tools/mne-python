@@ -8,7 +8,7 @@ import numpy as np
 from scipy.fftpack import fftfreq
 
 from ..io.pick import pick_types
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, _freqs_dep
 from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
 
@@ -28,25 +28,31 @@ class CrossSpectralDensity(object):
         List of projectors used in CSD calculation.
     bads :
         List of bad channels.
-    frequencies : float | list of float
+    freqs : float | list of float
         Frequency or frequencies for which the CSD matrix was calculated. If a
         list is passed, data is a sum across CSD matrices for all frequencies.
     n_fft : int
         Length of the FFT used when calculating the CSD matrix.
     """
 
-    def __init__(self, data, ch_names, projs, bads, frequencies,
-                 n_fft):  # noqa: D102
+    def __init__(self, data, ch_names, projs, bads, freqs,
+                 n_fft, frequencies=None):  # noqa: D102
+        freqs = _freqs_dep(freqs, frequencies)
         self.data = data
         self.dim = len(data)
         self.ch_names = cp.deepcopy(ch_names)
         self.projs = cp.deepcopy(projs)
         self.bads = cp.deepcopy(bads)
-        self.frequencies = np.atleast_1d(np.copy(frequencies))
+        self.freqs = np.atleast_1d(np.copy(freqs))
         self.n_fft = n_fft
 
+    @property
+    def frequencies(self):
+        """Deprecated and will be removed in 0.16. Use freqs."""
+        return self.freqs
+
     def __repr__(self):  # noqa: D105
-        s = 'frequencies : %s' % self.frequencies
+        s = 'frequencies : %s' % self.freqs
         s += ', size : %s x %s' % self.data.shape
         s += ', data : %s' % self.data
         return '<CrossSpectralDensity  |  %s>' % s
@@ -150,8 +156,8 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     sfreq = epochs.info['sfreq']
     orig_frequencies = fftfreq(n_fft, 1. / sfreq)
     freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
-    frequencies = orig_frequencies[freq_mask]
-    n_freqs = len(frequencies)
+    freqs = orig_frequencies[freq_mask]
+    n_freqs = len(freqs)
 
     if n_freqs == 0:
         raise ValueError('No discrete fourier transform results within '
@@ -200,15 +206,14 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         csd_mean_fsum = np.sum(csds_mean, 2)
         csd = CrossSpectralDensity(csd_mean_fsum, ch_names, projs,
                                    epochs.info['bads'],
-                                   frequencies=frequencies, n_fft=n_fft)
+                                   freqs=freqs, n_fft=n_fft)
         return csd
     else:
         csds = []
         for i in range(n_freqs):
             csds.append(CrossSpectralDensity(csds_mean[:, :, i], ch_names,
                                              projs, epochs.info['bads'],
-                                             frequencies=frequencies[i],
-                                             n_fft=n_fft))
+                                             freqs=freqs[i], n_fft=n_fft))
         return csds
 
 
@@ -276,8 +281,8 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
     n_fft = n_times if n_fft is None else n_fft
     orig_frequencies = fftfreq(n_fft, 1. / sfreq)
     freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
-    frequencies = orig_frequencies[freq_mask]
-    n_freqs = len(frequencies)
+    freqs = orig_frequencies[freq_mask]
+    n_freqs = len(freqs)
 
     if n_freqs == 0:
         raise ValueError('No discrete fourier transform results within '
@@ -320,7 +325,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
     if fsum is True:
         csds_mean = np.sum(csds_mean, 2)
 
-    return csds_mean, frequencies
+    return csds_mean, freqs
 
 
 def _compute_csd_params(n_times, sfreq, mode, mt_bandwidth, mt_low_bias,

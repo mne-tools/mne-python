@@ -2645,3 +2645,11 @@ def open_docs(kind=None, version=None):
         raise ValueError('version must be one of %s, got %s'
                          % (version, versions))
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
+
+
+def _freqs_dep(freqs, frequencies, prefix=''):
+    if frequencies is not None:
+        freqs = frequencies
+        warn('%sfrequencies is deprecated and will be removed in 0.16, use '
+             '%sfreqs instead.' % (prefix, prefix), DeprecationWarning)
+    return freqs

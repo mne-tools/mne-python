@@ -16,7 +16,7 @@ from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, _freqs_dep
 from ..externals import six
 
 
@@ -129,11 +129,11 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     """  # noqa: E501
     _check_method(method)
 
-    frequencies = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
-                                 for _, band in six.iteritems(bands)])
+    freqs = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
+                            for _, band in six.iteritems(bands)])
 
     powers, _, vertno = _source_induced_power(
-        epochs, inverse_operator, frequencies, label=label, lambda2=lambda2,
+        epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
         method=method, nave=nave, n_cycles=n_cycles, decim=decim,
         use_fft=use_fft, pca=pca, n_jobs=n_jobs, with_plv=False,
         prepared=prepared)
@@ -144,7 +144,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     subject = _subject_from_inverse(inverse_operator)
     _log_rescale(baseline, baseline_mode)  # for early failure
     for name, band in six.iteritems(bands):
-        idx = [k for k, f in enumerate(frequencies) if band[0] <= f <= band[1]]
+        idx = [k for k, f in enumerate(freqs) if band[0] <= f <= band[1]]
 
         # average power in band + mean over epochs
         power = np.mean(powers[:, idx, :], axis=1)
@@ -255,7 +255,7 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
 
 
 @verbose
-def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
+def _source_induced_power(epochs, inverse_operator, freqs, label=None,
                           lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                           decim=1, use_fft=False, pca=True, pick_ori="normal",
                           n_jobs=1, with_plv=True, zero_mean=False,
@@ -274,7 +274,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
 
     logger.info('Computing source power ...')
 
-    Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
+    Ws = morlet(Fs, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
     n_jobs = min(n_jobs, len(epochs_data))
     out = parallel(my_compute_source_tfrs(data=data, K=K, sel=sel, Ws=Ws,
@@ -300,12 +300,12 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
 
 
 @verbose
-def source_induced_power(epochs, inverse_operator, frequencies, label=None,
+def source_induced_power(epochs, inverse_operator, freqs, label=None,
                          lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                          decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
                          n_jobs=1, zero_mean=False, prepared=False,
-                         verbose=None):
+                         frequencies=None, verbose=None):
     """Compute induced power and phase lock.
 
     Computation can optionaly be restricted in a label.
@@ -371,19 +371,20 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+<<<<<<< HEAD
     """  # noqa: E501
+=======
+    """  # noqa
+    freqs = _freqs_dep(freqs, frequencies)
+>>>>>>> ENH: Deprecate frequencies
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
 
-    power, plv, vertno = _source_induced_power(epochs,
-                                               inverse_operator, frequencies,
-                                               label=label, lambda2=lambda2,
-                                               method=method, nave=nave,
-                                               n_cycles=n_cycles, decim=decim,
-                                               use_fft=use_fft,
-                                               pick_ori=pick_ori,
-                                               pca=pca, n_jobs=n_jobs,
-                                               prepared=False)
+    power, plv, vertno = _source_induced_power(
+        epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
+        method=method, nave=nave, n_cycles=n_cycles, decim=decim,
+        use_fft=use_fft, pick_ori=pick_ori, pca=pca, n_jobs=n_jobs,
+        prepared=False)
 
     # Run baseline correction
     power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
