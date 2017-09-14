@@ -2645,6 +2645,11 @@ def _spatio_temporal_src_connectivity_vol(src, n_times):
     vertices = np.where(src[0]['inuse'])[0]
     n_vertices = len(vertices)
     data = (1 + np.arange(n_vertices))[:, np.newaxis]
+    # XXX these lines can certainly be replaced by direct logic on the source
+    # space, rather than doing a temp STC, volume export, then data grab. Have
+    # you looked? This would also increase the number of volume source spaces
+    # that can be used to those without MRI, like volume source space within
+    # a generic sphere, because as_volume requires MRI vol source space)
     stc_tmp = VolSourceEstimate(data, vertices, tmin=0., tstep=1.)
     img = stc_tmp.as_volume(src, mri_resolution=False)
     img_data = img.get_data()[:, :, :, 0]
@@ -2656,6 +2661,7 @@ def _spatio_temporal_src_connectivity_vol(src, n_times):
 
 def _spatio_temporal_src_connectivity_ico(src, n_times):
     if src[0]['use_tris'] is None:
+        # XXX It would be nice to support non oct source spaces too...
         raise RuntimeError("The source space does not appear to be an ico "
                            "surface. Connectivity cannot be extracted from"
                            " non-ico source spaces.")
@@ -2716,9 +2722,11 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    # XXX we should compute connectivity for each source space and then
+    # use scipy.sparse.block_diag to concatenate them
     if src[0]['type'] == 'vol':
         if dist is not None:
-            raise ValueError('dist has to be None for a volume '
+            raise ValueError('dist must be None for a volume '
                              'source space. Got %s.' % dist)
 
         connectivity = _spatio_temporal_src_connectivity_vol(src, n_times)
