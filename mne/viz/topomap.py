@@ -1020,12 +1020,19 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or z-score (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline))
-        If None, baseline no correction will be performed.
+    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' |
+           None
+        Perform baseline correction by
+          - subtracting the mean baseline power ('mean')
+          - dividing by the mean baseline power ('ratio')
+          - dividing by the mean baseline power and taking the log ('logratio')
+          - subtracting the mean baseline power followed by dividing by the
+            mean baseline power ('percent')
+          - subtracting the mean baseline power and dividing by the standard
+            deviation of the baseline power ('zscore')
+          - dividing by the mean baseline powerd, taking the log, and dividing
+            by the standard deviation of the baseline power ('zlogratio')
+        If None no baseline correction is applied.
     layout : None | Layout
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout

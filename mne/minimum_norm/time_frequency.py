@@ -96,11 +96,19 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         If a is None the beginning of the data is used and if b is None then b
         is set to the end of the interval. If baseline is equal to (None, None)
         all the time interval is used.
-    baseline_mode : None | 'logratio' | 'zscore'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or zscore (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline)).
+    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' |
+                    'zlogratio' | None
+        Perform baseline correction by
+          - subtracting the mean baseline power ('mean')
+          - dividing by the mean baseline power ('ratio')
+          - dividing by the mean baseline power and taking the log ('logratio')
+          - subtracting the mean baseline power followed by dividing by the
+            mean baseline power ('percent')
+          - subtracting the mean baseline power and dividing by the standard
+            deviation of the baseline power ('zscore')
+          - dividing by the mean baseline powerd, taking the log, and dividing
+            by the standard deviation of the baseline power ('zlogratio')
+        If None no baseline correction is applied.
     pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
@@ -335,15 +343,18 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used.
-    baseline_mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or zscore (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline)), mean
-        simply subtracts the mean power, percent is the same as applying ratio
-        then mean, logratio is the same as mean but then rendered in log-scale,
-        zlogratio is the same as zscore but data is rendered in log-scale
-        first.
+    baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' |
+                    'zlogratio' | None
+        Perform baseline correction by
+          - subtracting the mean baseline power ('mean')
+          - dividing by the mean baseline power ('ratio')
+          - dividing by the mean baseline power and taking the log ('logratio')
+          - subtracting the mean baseline power followed by dividing by the
+            mean baseline power ('percent')
+          - subtracting the mean baseline power and dividing by the standard
+            deviation of the baseline power ('zscore')
+          - dividing by the mean baseline powerd, taking the log, and dividing
+            by the standard deviation of the baseline power ('zlogratio')
         If None no baseline correction is applied.
     pca : bool
         If True, the true dimension of data is estimated before running
@@ -358,7 +369,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    """  # noqa
+    """
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
 
