@@ -22,7 +22,7 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the project tests, but (sadly) exclude ones that take a long time
-  - "py.test -m \"not ultraslowtest\" mne "
+  - "py.test -m \"not ultraslowtest\" mne --cov=mne"
 
 on_success:
   - "codecov"

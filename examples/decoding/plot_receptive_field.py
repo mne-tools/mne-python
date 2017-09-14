@@ -82,7 +82,7 @@ mne.viz.tight_layout()
 # us to make predictions about the response to new stimuli.
 
 # Define the delays that we will use in the receptive field
-tmin, tmax = -.4, .2
+tmin, tmax = -.2, .4
 
 # Initialize the model
 rf = ReceptiveField(tmin, tmax, sfreq, feature_names=['envelope'],
@@ -131,7 +131,7 @@ mne.viz.tight_layout()
 # across the scalp. We will recreate `figure 1`_ and `figure 2`_ from [1]_.
 
 # Print mean coefficients across all time delays / channels (see Fig 1 in [1])
-time_plot = -.180  # For highlighting a specific time.
+time_plot = 0.180  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(4, 8))
 max_coef = mean_coefs.max()
 ax.pcolormesh(times, ix_chs, mean_coefs, cmap='RdBu_r',
