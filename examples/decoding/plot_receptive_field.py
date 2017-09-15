@@ -5,9 +5,11 @@ Receptive Field Estimation and Prediction
 
 This example reproduces figures from Lalor et al's mTRF toolbox in
 matlab [1]_. We will show how the :class:`mne.decoding.ReceptiveField` class
-can perform a similar function along with scikit-learn. We will fit a
-linear encoding model using the continuously-varying speech envelope to
-predict activity of a 128 channel EEG system.
+can perform a similar function along with scikit-learn. We will first fit a
+linear encoding (or forward) model using the continuously-varying speech
+envelope to predict activity of a 128 channel EEG system. Then, we will take
+the reverse approach and try to predict the speech envelope from the EEG (known
+in the litterature as backward model, or stimulus reconstruction).
 
 References
 ----------
@@ -16,12 +18,19 @@ References
        A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
        Frontiers in Human Neuroscience 10, 604. doi:10.3389/fnhum.2016.00604
 
+.. [2] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D.,
+       Blankertz, B., & Bießmann, F. (2014). On the interpretation of weight
+       vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
+       96–110. doi:10.1016/j.neuroimage.2013.10.067
+
 .. _figure 1: http://journal.frontiersin.org/article/10.3389/fnhum.2016.00604/full#F1
 .. _figure 2: http://journal.frontiersin.org/article/10.3389/fnhum.2016.00604/full#F2
+.. _figure 5: http://journal.frontiersin.org/article/10.3389/fnhum.2016.00604/full#F5
 """  # noqa: E501
 
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
 # License: BSD (3-clause)
 # sphinx_gallery_thumbnail_number = 3
@@ -57,7 +66,6 @@ sfreq /= decim
 speech = mne.filter.resample(speech, down=decim, npad='auto')
 raw = mne.filter.resample(raw, down=decim, npad='auto')
 
-
 # Read in channel positions and create our MNE objects from the raw data
 montage = mne.channels.read_montage('biosemi128')
 montage.selection = montage.selection[:128]
@@ -74,8 +82,8 @@ ax.set(title="Sample activity", xlabel="Time (s)")
 mne.viz.tight_layout()
 
 ###############################################################################
-# Create and fit a receptive field model
-# --------------------------------------
+# Create and fit a receptive field model (a.k.a. forward model)
+# -------------------------------------------------------------
 #
 # We will construct a model to find the linear relationship between the EEG
 # signal and a time-delayed version of the speech envelope. This allows
@@ -96,16 +104,16 @@ cv = KFold(n_splits)
 
 # Prepare model data (make time the first dimension)
 speech = speech.T
-Y, _ = raw[:]  # Outputs for the model
-Y = Y.T
+EEG, _ = raw[:]  # Outputs for the model
+EEG = EEG.T
 
 # Iterate through splits, fit the model, and predict/test on held-out data
 coefs = np.zeros((n_splits, n_channels, n_delays))
 scores = np.zeros((n_splits, n_channels))
 for ii, (train, test) in enumerate(cv.split(speech)):
-    print('split %s / %s' % (ii, n_splits))
-    rf.fit(speech[train], Y[train])
-    scores[ii] = rf.score(speech[test], Y[test])
+    print('split %s / %s' % (ii + 1, n_splits))
+    rf.fit(speech[train], EEG[train])
+    scores[ii] = rf.score(speech[test], EEG[test])
     # coef_ is shape (n_outputs, n_features, n_delays). we only have 1 feature
     coefs[ii] = rf.coef_[:, 0, :]
 times = rf.delays_ / float(rf.sfreq)
@@ -122,7 +130,6 @@ ax.axhline(0, ls='--', color='r')
 ax.set(title="Mean prediction score", xlabel="Channel", ylabel="Score ($r$)")
 mne.viz.tight_layout()
 
-###############################################################################
 # Investigate model coefficients
 # ------------------------------
 #
@@ -149,6 +156,96 @@ fig, ax = plt.subplots()
 mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
                      vmin=-max_coef, vmax=max_coef)
 ax.set(title="Topomap of model coefficients\nfor delay %s" % time_plot)
+mne.viz.tight_layout()
+
+
+###############################################################################
+# Create and fit a stimulus reconstruction model (a.k.a. backward model)
+# ----------------------------------------------------------------------
+#
+# We will now construct a model to find the linear relationship between the
+# speech signal and a time-delayed version of the EEG. This can be advantageous
+# as we exploit all of the available neural data in a multivariate context,
+# compared to the forward case which treats each M/EEG channel as an
+# independent feature. Therefore, low SNR stimuli such as speech will likely
+# have better backward models.
+
+# We use the same lags as in [1]_
+tmin, tmax = -.2, 0.
+
+# Initialize the model. Here the features are the EEG data. We also specify
+# ``patterns=True`` to compute forward-transformed coefficients during model
+# fitting (cf. next section). We'll use a Ridge regression estimator with a
+# alpha value as in [1]_.
+sr = ReceptiveField(tmin, tmax, sfreq, feature_names=raw.ch_names,
+                    estimator=1e4, scoring='corrcoef', patterns=True)
+# We'll have (tmax - tmin) * sfreq delays
+# and an extra 2 delays since we are inclusive on the beginning / end index
+n_delays = int((tmax - tmin) * sfreq) + 2
+
+n_splits = 3
+cv = KFold(n_splits)
+
+# Iterate through splits, fit the model, and predict/test on held-out data
+coefs = np.zeros((n_splits, n_channels, n_delays))
+patterns = coefs.copy()
+scores = np.zeros((n_splits,))
+for ii, (train, test) in enumerate(cv.split(speech)):
+    print('split %s / %s' % (ii + 1, n_splits))
+    sr.fit(EEG[train], speech[train])
+    scores[ii] = sr.score(EEG[test], speech[test])[0]
+    # coef_ is shape (n_outputs, n_features, n_delays). we have 128 features
+    coefs[ii] = sr.coef_[0, :, :]
+    patterns[ii] = sr.patterns_[0, :, :]
+times = sr.delays_ / float(sr.sfreq)
+
+# Average scores and coefficients across CV splits
+mean_coefs = coefs.mean(axis=0)
+mean_patterns = patterns.mean(axis=0)
+mean_scores = scores.mean(axis=0)
+max_coef = np.abs(mean_coefs).max()
+max_patterns = np.abs(mean_patterns).max()
+
+# Visualize stimulus reconstruction
+# ---------------------------------
+#
+# To get a sense of our model performance, we can plot the actual and predicted
+# stimulus envelopes side by side.
+
+y_pred = sr.predict(EEG[test])
+time = np.linspace(0, 2., 5 * int(sfreq))
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(time, speech[test][sr.valid_samples_][:int(5 * sfreq)],
+        color='grey', lw=2, ls='--')
+ax.plot(time, y_pred[sr.valid_samples_][:int(5 * sfreq)], color='r', lw=2)
+ax.legend([lns[0], ln1[0]], ['Envelope', 'Reconstruction'], frameon=False)
+ax.set(title="Stimulus reconstruction")
+ax.set_xlabel('Time (s)')
+mne.viz.tight_layout()
+
+# Investigate model coefficients
+# ------------------------------
+#
+# Finally, we will look at how the linear coefficients (sometimes
+# referred to as beta values) are distributed across the scalp. We will
+# recreate `figure 5`_ from [1]_. The backward model weights reﬂect the
+# channels that contribute most toward reconstructing the stimulus signal, but
+# are not directly interpretable in a neurophysiological sense. Here we also
+# look at the inversed model weights, which are easier to understand [2]_
+
+time_plot = (-.140, -.125)  # To average between two timepoints.
+ix_plot = np.arange(np.argmin(np.abs(time_plot[0] - times)),
+                    np.argmin(np.abs(time_plot[1] - times)))
+fig, ax = plt.subplots(1, 2)
+mne.viz.plot_topomap(np.mean(mean_coefs[:, ix_plot], axis=1),
+                     pos=info, axes=ax[0], show=False,
+                     vmin=-max_coef, vmax=max_coef)
+ax[0].set(title="Backward model coefficients")
+
+mne.viz.plot_topomap(np.mean(mean_patterns[:, ix_plot], axis=1),
+                     pos=info, axes=ax[1],
+                     show=False, vmin=-max_patterns, vmax=max_patterns)
+ax[1].set(title="Forward-transformed coefficients")
 mne.viz.tight_layout()
 
 plt.show()
