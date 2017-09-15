@@ -285,7 +285,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         is 0 or None then the solution is computed with fixed orientation.
         If loose is 1, it corresponds to free orientations.
         Default value set to 0.2 for surface-oriented source space and
-        set to 1. for volumic source space.
+        set to 1.0 for volumic or discrete source space.
     depth: None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     maxit : int
@@ -484,7 +484,7 @@ def _window_evoked(evoked, size):
 
 @verbose
 def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
-                  loose=0.2, depth=0.8, maxit=3000, tol=1e-4,
+                  loose='auto', depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
                   wsize=64, tstep=4, window=0.02, return_residual=False,
                   return_as_dipoles=False, verbose=None):
@@ -513,6 +513,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         that are parallel (tangential) to the cortical surface. If loose
         is 0 or None then the solution is computed with fixed orientation.
         If loose is 1, it corresponds to free orientations.
+        Default value set to 0.2 for surface-oriented source space and
+        set to 1.0 for volumic or discrete source space.
     depth: None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     maxit : int
@@ -586,6 +588,9 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     if (alpha_time < 0.) or (alpha_time > 100.):
         raise Exception('alpha_time must be in range [0, 100].'
                         ' Got alpha_time = %f' % alpha_time)
+
+    if loose == 'auto':
+        loose = 0.2 if forward['src'].kind == 'surface' else 1.
 
     # put the forward solution in fixed orientation if it's not already
     if loose is None and not is_fixed_orient(forward):
