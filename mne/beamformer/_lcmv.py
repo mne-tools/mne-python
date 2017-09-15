@@ -152,8 +152,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
-        If None, a vector beamformer is computed, combining the output for all
-        source orientations.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has free
+        orientation, a vector beamformer is computed, combining the output for
+        all source orientations.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -635,8 +637,10 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
-        If None, a vector beamformer is computed, combining the output for all
-        source orientations.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has free
+        orientation, a vector beamformer is computed, combining the output for
+        all source orientations.
     picks : array-like of int
         Channel indices to use for beamforming (if None all channels
         are used except bad channels).
@@ -732,8 +736,10 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
-        If None, a vector beamformer is computed, combining the output for all
-        source orientations.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has free
+        orientation, a vector beamformer is computed, combining the output for
+        all source orientations.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -844,8 +850,10 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
-        If None, a vector beamformer is computed, combining the output for all
-        source orientations.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has free
+        orientation, a vector beamformer is computed, combining the output for
+        all source orientations.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -1041,8 +1049,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
-        If None, a vector beamformer is computed, combining the output for all
-        source orientations.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has free
+        orientation, a vector beamformer is computed, combining the output for
+        all source orientations.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
