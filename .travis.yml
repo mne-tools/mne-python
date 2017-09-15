@@ -7,86 +7,73 @@ cache:
   - $HOME/.cache/pip
   - $HOME/.ccache
 env:
+    # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     global: PYTHON_VERSION=2.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
+            PIP_DEPENDENCIES="codecov pytest-faulthandler" OPTION=""
+            TRAVIS_PYTHON_VERSION=3.6
 
 matrix:
     include:
-        # Full (Linux, 2.7) first half
-        - os: linux
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # Full (Linux, 2.7) second half
-        - os: linux
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
-        # OSX first half
-        - os: osx
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # OSX second half
-        - os: osx
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
-        # Py3k + non-default stim channel first half
-        - os: linux
-          env: PYTHON_VERSION=3.6 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest pytest-cov"
-               PIP_DEPENDENCIES="nitime joblib nibabel codecov pytest-sugar pytest-faulthandler"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # Py3k + non-default stim channel second half
-        - os: linux
-          env: PYTHON_VERSION=3.6 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest pytest-cov"
-               PIP_DEPENDENCIES="nitime joblib nibabel codecov pytest-sugar pytest-faulthandler"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
-        # Old dependencies first half
-        - os: linux
-          env: CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 nose pytest pytest-cov"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-faulthandler"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # Old dependencies second half
-        - os: linux
-          env: CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 nose pytest pytest-cov"
-               PIP_DEPENDENCIES="codecov pytest-sugar pytest-faulthandler"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
-        # Minimal first half
-        - os: linux
-          env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib nose pytest pytest-cov"
-               PIP_DEPENDENCIES="codecov faulthandler pytest-sugar pytest-faulthandler"
-               MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io"
-               OPTION=""
-        # Minimal second half
-        - os: linux
-          env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib nose pytest pytest-cov"
-               PIP_DEPENDENCIES="codecov faulthandler pytest-sugar pytest-faulthandler"
-               MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz"
-               OPTION=""
-
         # No data + style testing
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx nose pytest pytest-cov"
                PIP_DEPENDENCIES="flake8 numpydoc codespell git+git://github.com/PyCQA/pydocstyle.git codecov check-manifest pytest-sugar"
-               MNE_DIRS=""
                OPTION="--doctest-ignore-import-errors"
+
+        # Full (Linux, 2.7)
+        - os: linux
+          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
+               SPLIT=0
+        - os: linux
+          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
+               SPLIT=1
+
+        # OSX
+        - os: osx
+          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
+               SPLIT=0
+        - os: osx
+          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
+               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
+               SPLIT=1
+
+        # Py3k + non-default stim channel
+        - os: linux
+          env: PYTHON_VERSION=3.6 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest pytest-cov"
+               PIP_DEPENDENCIES="nitime joblib nibabel codecov pytest-sugar pytest-faulthandler"
+               SPLIT=0
+        - os: linux
+          env: PYTHON_VERSION=3.6 TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
+               CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels nose pytest pytest-cov"
+               PIP_DEPENDENCIES="nitime joblib nibabel codecov pytest-sugar pytest-faulthandler"
+               SPLIT=1
+
+        # Old dependencies
+        - os: linux
+          env: CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 nose pytest pytest-cov"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-faulthandler"
+               SPLIT=0
+        - os: linux
+          env: CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.12 scikit-learn=0.14 nose pytest pytest-cov"
+               PIP_DEPENDENCIES="codecov pytest-sugar pytest-faulthandler"
+               SPLIT=1
+
+        # Minimal
+        - os: linux
+          env: DEPS=minimial
+               CONDA_DEPENDENCIES="numpy scipy matplotlib nose pytest pytest-cov"
+               PIP_DEPENDENCIES="codecov faulthandler pytest-sugar pytest-faulthandler"
+               SPLIT=0
+        - os: linux
+          env: DEPS=minimial
+               CONDA_DEPENDENCIES="numpy scipy matplotlib nose pytest pytest-cov"
+               PIP_DEPENDENCIES="codecov faulthandler pytest-sugar pytest-faulthandler"
+               SPLIT=1
 
 # Setup anaconda
 before_install:
@@ -122,6 +109,7 @@ install:
     # files to act as a FREESURFER_HOME for the coreg tests
     - if [ "${DEPS}" != "nodata" ]; then
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
+        ls -al /home/travis/mne_data/MNE-testing-data/MEG/sample/;
         if [ "${DEPS}" == "" && "${TRAVIS_OS_NAME}" == "linux" ]; then
           export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
           export MNE_SKIP_FS_FLASH_CALL=1;
@@ -164,13 +152,18 @@ script:
       fi;
     - python -c "import mne; print(mne.sys_info())"
     # Determine directories to test
-    - if [ "${MNE_DIRS}" != "" ]; then
+    - if [ -z ${SPLIT} ]; then
+        USE_DIRS="mne/";
+      else
+        if [ "${SPLIT}" == "0" ]; then
+          MNE_DIRS=". beamformer channels commands connectivity datasets decoding forward gui inverse_sparse io";
+        else
+          MNE_DIRS="minimum_norm preprocessing realtime simulation stats time_frequency viz";
+        fi;
         USE_DIRS="";
         for DIR in ${MNE_DIRS}; do
           USE_DIRS="mne/${DIR}/tests ${USE_DIRS}";
         done;
-      else
-        USE_DIRS="mne/";
       fi;
     - echo py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS} --cov=mne;
     - py.test -m "\"${CONDITION}\"" ${OPTION} ${USE_DIRS} --cov=mne;
