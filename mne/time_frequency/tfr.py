@@ -908,7 +908,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             interval is used.
         mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
             Perform baseline correction by
-            
+
               - subtracting the mean baseline power ('mean')
               - dividing by the mean baseline power ('ratio')
               - dividing by the mean baseline power and taking the log
@@ -920,10 +920,10 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
               - dividing by the mean baseline power, taking the log, and
                 dividing by the standard deviation of the baseline power
                 ('zlogratio')
-                
+
             If None no baseline correction is applied.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see 
+            If not None, override default verbose level (see
             :func:`mne.verbose`).
 
         Returns
@@ -1025,7 +1025,7 @@ class AverageTFR(_BaseTFR):
             interval is used.
         mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
             Perform baseline correction by
-            
+
               - subtracting the mean baseline power ('mean')
               - dividing by the mean baseline power ('ratio')
               - dividing by the mean baseline power and taking the log
@@ -1037,7 +1037,7 @@ class AverageTFR(_BaseTFR):
               - dividing by the mean baseline power, taking the log, and
                 dividing by the standard deviation of the baseline power
                 ('zlogratio')
-                
+
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -1209,7 +1209,7 @@ class AverageTFR(_BaseTFR):
             interval is used.
         mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
             Perform baseline correction by
-            
+
               - subtracting the mean baseline power ('mean')
               - dividing by the mean baseline power ('ratio')
               - dividing by the mean baseline power and taking the log
@@ -1221,7 +1221,7 @@ class AverageTFR(_BaseTFR):
               - dividing by the mean baseline power, taking the log, and
                 dividing by the standard deviation of the baseline power
                 ('zlogratio')
-                
+
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -1351,7 +1351,7 @@ class AverageTFR(_BaseTFR):
             interval is used.
         mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
             Perform baseline correction by
-            
+
               - subtracting the mean baseline power ('mean')
               - dividing by the mean baseline power ('ratio')
               - dividing by the mean baseline power and taking the log
@@ -1363,7 +1363,7 @@ class AverageTFR(_BaseTFR):
               - dividing by the mean baseline power, taking the log, and
                 dividing by the standard deviation of the baseline power
                 ('zlogratio')
-                
+
             If None no baseline correction is applied.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
