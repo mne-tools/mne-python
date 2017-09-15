@@ -259,7 +259,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
 
 
 @verbose
-def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
+def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=True,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
@@ -284,6 +284,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         that are parallel (tangential) to the cortical surface. If loose
         is 0 or None then the solution is computed with fixed orientation.
         If loose is 1, it corresponds to free orientations.
+        Default value set to 0.2 for surface-oriented source space and
+        set to 1. for volumic source space.
     depth: None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     maxit : int
@@ -359,6 +361,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     if not all(all_ch_names == evoked[i].ch_names
                for i in range(1, len(evoked))):
         raise Exception('All the datasets must have the same good channels.')
+
+    if loose == 'auto':
+        loose = 0.2 if forward['src'].kind == 'surface' else 1.
 
     # put the forward solution in fixed orientation if it's not already
     if loose is None and not is_fixed_orient(forward):
