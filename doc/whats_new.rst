@@ -215,6 +215,7 @@ API
     - ``picks`` parameter in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, :func:`mne.beamformer.lcmv_raw`, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
     - The keyword argument ``frequencies`` has been deprecated in favor of ``freqs`` in various time-frequency functions, e.g. :func:`mne.time_frequency.tfr.tfr_array_morlet`, by `Eric Larson`_
+
 .. _changes_0_14:
 
 Version 0.14
