@@ -23,22 +23,18 @@ matrix:
 
         # Full (Linux, 2.7)
         - os: linux
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
+          env: CONDA_ENVIRONMENT="environment.yml"
                SPLIT=0
         - os: linux
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
+          env: CONDA_ENVIRONMENT="environment.yml"
                SPLIT=1
 
         # OSX
         - os: osx
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
+          env: CONDA_ENVIRONMENT="environment.yml"
                SPLIT=0
         - os: osx
-          env: CONDA_DEPENDENCIES="numpy scipy matplotlib pandas scikit-learn h5py pillow statsmodels mayavi nose pytest pytest-cov"
-               PIP_DEPENDENCIES="git+git://github.com/nipy/PySurfer.git nitime faulthandler joblib nibabel codecov pytest-sugar pytest-faulthandler"
+          env: CONDA_ENVIRONMENT="environment.yml"
                SPLIT=1
 
         # Py3k + non-default stim channel
@@ -79,6 +75,9 @@ matrix:
 before_install:
     - git clone https://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
+    - if [ ! -z $CONDA_ENVIRONMENT ]; then
+        pip uninstall --yes mne;
+      fi;
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
     - if [ "${DEPS}" == "" ]; then
         export MNE_ROOT="${PWD}/minimal_cmds";

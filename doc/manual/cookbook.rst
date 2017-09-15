@@ -48,7 +48,7 @@ Sometimes some MEG or EEG channels are not functioning properly
 for various reasons. These channels should be excluded from
 analysis by marking them bad as::
 
-    >>> raw.info['bads'] = ['MEG2443']
+    >>> raw.info['bads'] = ['MEG2443']  # doctest: +SKIP
 
 Especially if a channel does not show
 a signal at all (flat) it is important to exclude it from the
@@ -122,17 +122,17 @@ Epoching of raw data is done using events, which define a ``t=0`` for your
 data chunks. Event times stamped to the acquisition software can be extracted
 using :func:`mne.find_events`::
 
-    >>> events = mne.find_events(raw)
+    >>> events = mne.find_events(raw)  # doctest: +SKIP
 
 The ``events`` array can then be modified, extended, or changed if necessary.
 If the original trigger codes and trigger times are correct for the analysis
 of interest, :class:`mne.Epochs` for the first event type (``1``) can be
 constructed using::
 
-    >>> reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
-    >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
-    >>>                     proj=True, picks=picks, baseline=(None, 0),
-    >>>                     preload=True, reject=reject)
+    >>> reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)  # doctest: +SKIP
+    >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,  # doctest: +SKIP
+    >>>                     proj=True, picks=picks, baseline=(None, 0),  # doctest: +SKIP
+    >>>                     preload=True, reject=reject)  # doctest: +SKIP
 
 .. note:: The rejection thresholds (set with argument ``reject``) are defined
           in T / m for gradiometers, T for magnetometers and V for EEG and EOG
@@ -151,7 +151,7 @@ information.
 Once the :class:`mne.Epochs` are constructed, they can be averaged to obtain
 :class:`mne.Evoked` data as::
 
-    >>> evoked = epochs.average()
+    >>> evoked = epochs.average()  # doctest: +SKIP
 
 
 Source localization
@@ -210,8 +210,8 @@ has been completed as described in :ref:`CHDBBCEJ`.
 For example, to create the reconstruction geometry for ``subject='sample'``
 with a ~5-mm spacing between the grid points, say::
 
-    >>> src = setup_source_space('sample', spacing='oct6')
-    >>> write_source_spaces('sample-oct6-src.fif', src)
+    >>> src = setup_source_space('sample', spacing='oct6')  # doctest: +SKIP
+    >>> write_source_spaces('sample-oct6-src.fif', src)  # doctest: +SKIP
 
 This creates the source spaces and writes them to disk.
 
@@ -259,8 +259,8 @@ Setting up the boundary-element model
 This stage sets up the subject-dependent data for computing
 the forward solutions:"
 
-    >>> model = make_bem_model('sample')
-    >>> write_bem_surfaces('sample-5120-5120-5120-bem.fif', model)
+    >>> model = make_bem_model('sample')  # doctest: +SKIP
+    >>> write_bem_surfaces('sample-5120-5120-5120-bem.fif', model)  # doctest: +SKIP
 
 Where ``surfaces`` is a list of BEM surfaces that have each been read using
 :func:`mne.read_surface`. This step also checks that the input surfaces
@@ -290,8 +290,8 @@ segmentation.
 Using this model, the BEM solution can be computed using
 :func:`mne.make_bem_solution` as::
 
-    >>> bem_sol = make_bem_solution(model)
-    >>> write_bem_solution('sample-5120-5120-5120-bem-sol.fif', bem_sol)
+    >>> bem_sol = make_bem_solution(model)  # doctest: +SKIP
+    >>> write_bem_solution('sample-5120-5120-5120-bem-sol.fif', bem_sol)  # doctest: +SKIP
 
 After the BEM is set up it is advisable to check that the
 BEM model meshes are correctly positioned using *e.g.*
@@ -344,7 +344,7 @@ potentials at the measurement sensors and electrodes due to dipole
 sources located on the cortex, can be calculated with help of
 :func:`mne.make_forward_solution` as::
 
-    >>> fwd = make_forward_solution(raw.info, fname_trans, src, bem_sol)
+    >>> fwd = make_forward_solution(raw.info, fname_trans, src, bem_sol)  # doctest: +SKIP
 
 .. _BABDEEEB:
 
@@ -365,14 +365,14 @@ ways:
   This is the recommended approach for evoked responses, *e.g.* using
   :func:`mne.compute_covariance`::
 
-      >>> cov = mne.compute_covariance(epochs, method='auto')
+      >>> cov = mne.compute_covariance(epochs, method='auto')  # doctest: +SKIP
 
 - Employ empty room data (collected without the subject) to
   calculate the full noise covariance matrix. This is recommended
   for analyzing ongoing spontaneous activity. This can be done using
   :func:`mne.compute_raw_covariance` as::
 
-      >>> cov = mne.compute_raw_covariance(raw_erm)
+      >>> cov = mne.compute_raw_covariance(raw_erm)  # doctest: +SKIP
 
 - Employ a section of continuous raw data collected in the presence
   of the subject to calculate the full noise covariance matrix. This
@@ -402,7 +402,7 @@ please consult :ref:`CBBDJFBJ`.
 This computation stage can be done by using
 :func:`mne.minimum_norm.make_inverse_operator` as::
 
-    >>> inv = mne.minimum_norm.make_inverse_operator(raw.info, fwd, cov, loose=0.2)
+    >>> inv = mne.minimum_norm.make_inverse_operator(raw.info, fwd, cov, loose=0.2)  # doctest: +SKIP
 
 Creating source estimates
 -------------------------
@@ -411,11 +411,11 @@ Once all the preprocessing steps described above have been
 completed, the inverse operator computed can be applied to the MEG
 and EEG data as::
 
-    >>> stc = mne.minimum_norm.apply_inverse(evoked, inv, lambda2=1. / 9.)
+    >>> stc = mne.minimum_norm.apply_inverse(evoked, inv, lambda2=1. / 9.)  # doctest: +SKIP
 
 And the results can be viewed as::
 
-    >>> stc.plot()
+    >>> stc.plot()  # doctest: +SKIP
 
 The interactive analysis tool :ref:`mne_analyze` can also
 be used to explore the data and to produce quantitative analysis
@@ -428,6 +428,6 @@ Group analyses
 Group analysis is facilitated by morphing source estimates, which can be
 done *e.g.*, to ``subject='fsaverage'`` as::
 
-    >>> stc_fsaverage = stc.morph('fsaverage')
+    >>> stc_fsaverage = stc.morph('fsaverage')  # doctest: +SKIP
 
 See :ref:`ch_morph` for more information.
