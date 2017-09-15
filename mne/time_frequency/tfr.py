@@ -1542,6 +1542,7 @@ class EpochsTFR(_BaseTFR):
         return "<EpochsTFR  |  %s>" % s
 
     def __abs__(self):
+        """Take the absolute value."""
         return EpochsTFR(info=self.info.copy(), data=np.abs(self.data),
                          times=self.times.copy(), freqs=self.freqs.copy(),
                          method=self.method, comment=self.comment)
