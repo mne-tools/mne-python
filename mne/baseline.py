@@ -43,6 +43,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         interval is used. If baseline is None, no correction is applied.
     mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
         Perform baseline correction by
+          
           - subtracting the mean baseline power ('mean')
           - dividing by the mean baseline power ('ratio')
           - dividing by the mean baseline power and taking the log ('logratio')
@@ -52,6 +53,7 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
             deviation of the baseline power ('zscore')
           - dividing by the mean baseline power, taking the log, and dividing
             by the standard deviation of the baseline power ('zlogratio')
+            
         If None no baseline correction is applied.
     copy : bool
         Whether to return a new instance or modify in place.

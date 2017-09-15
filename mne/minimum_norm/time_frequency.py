@@ -98,6 +98,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         all the time interval is used.
     baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
         Perform baseline correction by
+        
           - subtracting the mean baseline power ('mean')
           - dividing by the mean baseline power ('ratio')
           - dividing by the mean baseline power and taking the log ('logratio')
@@ -107,6 +108,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
             deviation of the baseline power ('zscore')
           - dividing by the mean baseline power, taking the log, and dividing
             by the standard deviation of the baseline power ('zlogratio')
+            
         If None no baseline correction is applied.
     pca : bool
         If True, the true dimension of data is estimated before running
@@ -340,10 +342,11 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used
         and if b is None then b is set to the end of the interval.
-        If baseline is equal ot (None, None) all the time
+        If baseline is equal to (None, None) all the time
         interval is used.
     baseline_mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
         Perform baseline correction by
+        
           - subtracting the mean baseline power ('mean')
           - dividing by the mean baseline power ('ratio')
           - dividing by the mean baseline power and taking the log ('logratio')
@@ -353,6 +356,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
             deviation of the baseline power ('zscore')
           - dividing by the mean baseline power, taking the log, and dividing
             by the standard deviation of the baseline power ('zlogratio')
+            
         If None no baseline correction is applied.
     pca : bool
         If True, the true dimension of data is estimated before running
