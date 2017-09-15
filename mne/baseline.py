@@ -41,15 +41,19 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         and if ``bmax is None`` then ``bmax`` is set to the end of the
         interval. If baseline is ``(None, None)`` the entire time
         interval is used. If baseline is None, no correction is applied.
-    mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or zscore (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline)), mean
-        simply subtracts the mean power, percent is the same as applying ratio
-        then mean, logratio is the same as mean but then rendered in log-scale,
-        zlogratio is the same as zscore but data is rendered in log-scale
-        first.
+    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+        Perform baseline correction by
+
+          - subtracting the mean baseline power ('mean')
+          - dividing by the mean baseline power ('ratio')
+          - dividing by the mean baseline power and taking the log ('logratio')
+          - subtracting the mean baseline power followed by dividing by the
+            mean baseline power ('percent')
+          - subtracting the mean baseline power and dividing by the standard
+            deviation of the baseline power ('zscore')
+          - dividing by the mean baseline power, taking the log, and dividing
+            by the standard deviation of the baseline power ('zlogratio')
+
         If None no baseline correction is applied.
     copy : bool
         Whether to return a new instance or modify in place.
@@ -96,18 +100,18 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         mean = 0  # otherwise we get an ugly nan
     if mode == 'mean':
         data -= mean
+    elif mode == 'ratio':
+        data /= mean
     elif mode == 'logratio':
         data /= mean
-        data = np.log10(data)  # a value of 1 means 10 times bigger
-    elif mode == 'ratio':
+        data = np.log10(data)
+    elif mode == 'percent':
+        data -= mean
         data /= mean
     elif mode == 'zscore':
         std = np.std(data[..., imin:imax], axis=-1)[..., None]
         data -= mean
         data /= std
-    elif mode == 'percent':
-        data -= mean
-        data /= mean
     elif mode == 'zlogratio':
         data /= mean
         data = np.log10(data)

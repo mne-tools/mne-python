@@ -913,24 +913,30 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see :func:`mne.verbose`).
+            If not None, override default verbose level (see
+            :func:`mne.verbose`).
 
         Returns
         -------
         inst : instance of AverageTFR
             The modified instance.
-
         """  # noqa: E501
         self.data = rescale(self.data, self.times, baseline, mode,
                             copy=False)
@@ -1022,17 +1028,23 @@ class AverageTFR(_BaseTFR):
             the interval is between "a (s)" and "b (s)".
             If a is None the beginning of the data is used
             and if b is None then b is set to the end of the interval.
-            If baseline is equal ot (None, None) all the time
+            If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -1091,7 +1103,8 @@ class AverageTFR(_BaseTFR):
             .. versionadded:: 0.14.0
 
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see :func:`mne.verbose`).
+            If not None, override default verbose level (see
+            :func:`mne.verbose`).
 
         Returns
         -------
@@ -1199,17 +1212,23 @@ class AverageTFR(_BaseTFR):
             the interval is between "a (s)" and "b (s)".
             If a is None the beginning of the data is used
             and if b is None then b is set to the end of the interval.
-            If baseline is equal ot (None, None) all the time
+            If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -1337,15 +1356,21 @@ class AverageTFR(_BaseTFR):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
