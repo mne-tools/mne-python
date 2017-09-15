@@ -1,7 +1,7 @@
 """
-===============================================================================
-Compute and visualize event-related desynchronization/synchronization (ERD/ERS)
-===============================================================================
+===============================
+Compute and visualize ERDS maps
+===============================
 
 This example calculates and displays ERDS maps of event-related EEG data. ERDS
 (sometimes also written as ERD/ERS) is short for event-related
@@ -88,7 +88,7 @@ epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
 freqs = np.arange(2, 31, 0.5)  # frequencies from 2-30Hz
 n_cycles = freqs  # use constant t/f resolution
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
-cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # get suitable colormap
+cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # zero maps to white
 
 for event in event_ids:
     power = tfr_multitaper(epochs[event], freqs=freqs, n_cycles=n_cycles,
