@@ -259,10 +259,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             raise NotImplementedError('Leadfield rank reduction is not yet '
                                       'implemented with free or fixed '
                                       'orientation.')
-        if isinstance(reduce_rank, int):
-            rank_G = reduce_rank
-        else:
+        if isinstance(reduce_rank, bool):
             rank_G = estimate_rank(G[:, 0:3], tol='auto') - 1
+        else:
+            rank_G = reduce_rank
 
         if rank_G <= 0:
             raise ValueError('Cannot reduce rank of leadfield to %i.' % rank_G)
