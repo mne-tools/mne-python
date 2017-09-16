@@ -25,7 +25,7 @@ from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
 from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_h5py, run_tests_if_main)
+                       requires_h5py, run_tests_if_main, requires_nibabel)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -887,6 +887,7 @@ def test_vec_stc():
 
 
 @requires_sklearn
+@requires_nibabel
 @testing.requires_testing_data
 def test_vol_connectivity():
     from scipy import sparse
