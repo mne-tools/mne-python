@@ -887,7 +887,7 @@ def test_vec_stc():
 
 
 @requires_sklearn
-@requires_nibabel
+@requires_nibabel()
 @testing.requires_testing_data
 def test_vol_connectivity():
     from scipy import sparse
