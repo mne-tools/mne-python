@@ -71,7 +71,8 @@ def _read_mff_header(filepath):
     info_filepath = filepath + "/" + "info.xml"  # add with filepath
     tags = ['mffVersion', 'recordTime']
     version_and_date = _extract(tags, filepath=info_filepath)
-    summaryinfo.update(version=version_and_date['mffVersion'][0],
+    version = version_and_date['mffVersion'][0] if len(version_and_date['mffVersion']) else ""
+    summaryinfo.update(version=version,
                        date=version_and_date['recordTime'][0],
                        n_samples=n_samples, n_trials=n_trials,
                        chan_type=chan_type, chan_unit=chan_unit,
@@ -298,6 +299,9 @@ class RawMff(BaseRaw):
         else:
             # No events
             self.event_id = None
+            self._new_trigger = None
+            event_codes = []
+            
         info = _empty_info(egi_info['sfreq'])
         info['buffer_size_sec'] = 1.  # reasonable default
         my_time = datetime.datetime(
