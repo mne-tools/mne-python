@@ -157,7 +157,9 @@ def test_xdawn_regularization():
     assert_raises(ValueError, xd.fit, epochs)
     # With rank-deficient input
     epochs.set_eeg_reference(['EEG 001'])
-    xd = Xdawn(correct_overlap=False)
+    xd = Xdawn(correct_overlap=False, reg=None)
+    assert_raises(ValueError, xd.fit, epochs)
+    xd = Xdawn(correct_overlap=False, reg=0.5)
     xd.fit(epochs)
 
 

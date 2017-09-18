@@ -178,9 +178,9 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
         # Fit spatial filters
         try:
             evals, evecs = linalg.eigh(evo_cov, signal_cov)
-        except linalg.LinAlgError:  # rank-deficient inputs
-            evals, evecs = linalg.eig(evo_cov, signal_cov)
-            evals = evals.real
+        except np.linalg.LinAlgError as exp:
+            raise ValueError('Could not compute eigenvalues, ensure '
+                             'proper regularization (%s)' % (exp,))
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
         _patterns = np.linalg.pinv(evecs.T)

@@ -170,7 +170,7 @@ BUG
 
     - Fix bug in :meth:`mne.SourceEstimate.to_original_src` where morphing failed if two vertices map to the same target vertex, by `Marijn van Vliet`_
 
-    - Fix :class:`mne.preprocessing.Xdawn` to handle rank deficiency and handle transforming :class:`mne.Evoked`, by `Eric Larson`_
+    - Fix :class:`mne.preprocessing.Xdawn` to give verbose error messages about rank deficiency and handle transforming :class:`mne.Evoked`, by `Eric Larson`_
 
 API
 ~~~
