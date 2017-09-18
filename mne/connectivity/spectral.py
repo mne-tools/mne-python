@@ -7,7 +7,6 @@ from functools import partial
 from inspect import getmembers
 
 import numpy as np
-from scipy.fftpack import fftfreq
 
 from .utils import check_indices
 from ..fixes import _get_args
@@ -977,8 +976,7 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
     if mode in ('multitaper', 'fourier'):
         # fmin fmax etc is only supported for these modes
         # decide which frequencies to keep
-        freqs_all = fftfreq(n_times, 1. / sfreq)
-        freqs_all = freqs_all[freqs_all >= 0]
+        freqs_all = np.fft.rfftfreq(n_times, 1. / sfreq)
     elif mode == 'cwt_morlet':
         # cwt_morlet mode
         if cwt_freqs is None:
