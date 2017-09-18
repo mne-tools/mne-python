@@ -9,7 +9,8 @@ desynchronization (ERD) and event-related synchronization (ERS) [1]_.
 Conceptually, ERD corresponds to a decrease in power in a specific frequency
 band relative to a baseline. Similarly, ERS corresponds to an increase in
 power. An ERDS map is a time/frequency representation of ERD/ERS over a range
-of frequencies [2]_.
+of frequencies [2]_. ERDS maps are also known as ERSP (event-related spectral
+perturbation) [3]_.
 
 We use a public EEG BCI data set containing two different motor imagery tasks
 available at PhysioNet. The two tasks are imagined hand and feet movement. Our
@@ -30,7 +31,10 @@ References
        Neurophysiology 110(11), 1842-1857, 1999.
 .. [2] B. Graimann, J. E. Huggins, S. P. Levine, G. Pfurtscheller.
        Visualization of significant ERD/ERS patterns in multichannel EEG and
-       ECoG data. Clinical  Neurophysiology 113(1), 43-47, 2002.
+       ECoG data. Clinical Neurophysiology 113(1), 43-47, 2002.
+.. [3] S. Makeig. Auditory event-related dynamics of the EEG spectrum and
+       effects of exposure to tones. Electroencephalography and Clinical
+       Neurophysiology 86(4), 283-293, 1993.
 """
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #
@@ -47,8 +51,12 @@ from mne.time_frequency import tfr_multitaper
 
 
 def center_cmap(cmap, vmin, vmax):
-    """Center given colormap at value 0.
-    """
+    """Center given colormap (ranging from vmin to vmax) at value 0.
+
+    Note that eventually this could also be achieved by re-normalizing a given
+    colormap by subclassing matplotlib.colors.Normalize as described here:
+    https://matplotlib.org/users/colormapnorms.html#custom-normalization-two-linear-ranges
+    """  # noqa 501
     vzero = abs(vmin) / (vmax - vmin)
     index_old = np.linspace(0, 1, cmap.N)
     index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
@@ -81,8 +89,8 @@ picks = mne.pick_channels(raw.info["ch_names"], ["C3", "Cz", "C4"])
 tmin, tmax = -1, 4  # define epochs around events (in s)
 event_ids = dict(hands=2, feet=3)  # map event IDs to tasks
 
-epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
-                    baseline=None, preload=True)
+epochs = mne.Epochs(raw, events, event_ids, tmin - 0.5, tmax + 0.5,
+                    picks=picks, baseline=None, preload=True)
 
 # compute ERDS maps ###########################################################
 freqs = np.arange(2, 36, 1)  # frequencies from 2-30Hz
@@ -93,6 +101,7 @@ cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # zero maps to white
 for event in event_ids:
     power = tfr_multitaper(epochs[event], freqs=freqs, n_cycles=n_cycles,
                            use_fft=True, return_itc=False, decim=2)
+    power.crop(tmin, tmax)
 
     fig, ax = plt.subplots(1, 3, figsize=(12, 4))
     for i in range(3):
