@@ -56,7 +56,7 @@ def center_cmap(cmap, vmin, vmax):
     Note that eventually this could also be achieved by re-normalizing a given
     colormap by subclassing matplotlib.colors.Normalize as described here:
     https://matplotlib.org/users/colormapnorms.html#custom-normalization-two-linear-ranges
-    """  # noqa 501
+    """  # noqa: E501
     vzero = abs(vmin) / (vmax - vmin)
     index_old = np.linspace(0, 1, cmap.N)
     index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
