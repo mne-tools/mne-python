@@ -38,7 +38,7 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
 
     References
     ----------
-    .. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are
+    .. [1] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are
     worth a picture: Snapshots of printed-word processing in an event-related potential
     megastudy. Psychological science, 2015
     """
