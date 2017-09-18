@@ -78,14 +78,14 @@ events = mne.find_events(raw, shortest_event=0, stim_channel='STI 014')
 picks = mne.pick_channels(raw.info["ch_names"], ["C3", "Cz", "C4"])
 
 # epoch data ##################################################################
-tmin, tmax = -1., 4.  # define epochs around events (in s)
+tmin, tmax = -1, 4  # define epochs around events (in s)
 event_ids = dict(hands=2, feet=3)  # map event IDs to tasks
 
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                     baseline=None, preload=True)
 
 # compute ERDS maps ###########################################################
-freqs = np.arange(2, 31, 0.5)  # frequencies from 2-30Hz
+freqs = np.arange(2, 36, 1)  # frequencies from 2-30Hz
 n_cycles = freqs  # use constant t/f resolution
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
 cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # zero maps to white
@@ -97,7 +97,7 @@ for event in event_ids:
     fig, ax = plt.subplots(1, 3, figsize=(12, 4))
     for i in range(3):
         power.plot([i], baseline=[-1, 0], mode="percent", vmin=vmin, vmax=vmax,
-                   cmap=(cmap, False), axes=ax[i], colorbar=False)
+                   cmap=(cmap, False), axes=ax[i], colorbar=False, show=False)
         ax[i].set_title(epochs.ch_names[i], fontsize=10)
         ax[i].set_xlabel("t (ms)")
         ax[i].axvline(0, linewidth=1, color="black", linestyle=":")  # event
