@@ -371,12 +371,8 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-<<<<<<< HEAD
     """  # noqa: E501
-=======
-    """  # noqa
     freqs = _freqs_dep(freqs, frequencies)
->>>>>>> ENH: Deprecate frequencies
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
 

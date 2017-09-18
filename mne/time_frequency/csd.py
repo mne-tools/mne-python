@@ -49,6 +49,8 @@ class CrossSpectralDensity(object):
     @property
     def frequencies(self):
         """Deprecated and will be removed in 0.16. Use freqs."""
+        warn('frequencies is deprecated and will be removed in 0.16, use'
+             'freqs instead', DeprecationWarning)
         return self.freqs
 
     def __repr__(self):  # noqa: D105
@@ -154,9 +156,9 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
 
     # Preparing frequencies of interest
     sfreq = epochs.info['sfreq']
-    orig_frequencies = fftfreq(n_fft, 1. / sfreq)
-    freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
-    freqs = orig_frequencies[freq_mask]
+    orig_freqs = np.fft.rfftfreq(n_fft, 1. / sfreq)
+    freq_mask = (orig_freqs > fmin) & (orig_freqs < fmax)
+    freqs = orig_freqs[freq_mask]
     n_freqs = len(freqs)
 
     if n_freqs == 0:
@@ -173,7 +175,7 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
                          dtype=complex)
 
     # Picking frequencies of interest
-    freq_mask_mt = freq_mask[orig_frequencies >= 0]
+    freq_mask_mt = freq_mask[orig_freqs >= 0]
 
     # Compute CSD for each epoch
     n_epochs = 0
@@ -279,9 +281,9 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
 
     # Preparing frequencies of interest
     n_fft = n_times if n_fft is None else n_fft
-    orig_frequencies = fftfreq(n_fft, 1. / sfreq)
-    freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
-    freqs = orig_frequencies[freq_mask]
+    orig_freqs = np.fft.rfftfreq(n_fft, 1. / sfreq)
+    freq_mask = (orig_freqs > fmin) & (orig_freqs < fmax)
+    freqs = orig_freqs[freq_mask]
     n_freqs = len(freqs)
 
     if n_freqs == 0:
@@ -297,7 +299,7 @@ def csd_array(X, sfreq, mode='multitaper', fmin=0, fmax=np.inf,
     csds_mean = np.zeros((n_series, n_series, n_freqs), dtype=complex)
 
     # Picking frequencies of interest
-    freq_mask_mt = freq_mask[orig_frequencies >= 0]
+    freq_mask_mt = freq_mask[orig_freqs >= 0]
 
     # Compute CSD for each trial
     for xi in X:

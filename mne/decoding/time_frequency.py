@@ -6,6 +6,7 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
+from ..utils import warn
 
 
 class TimeFrequency(TransformerMixin, BaseEstimator):
@@ -85,6 +86,8 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
     @property
     def frequencies(self):
         """Deprecated and will be removed in 0.16. use freqs."""
+        warn('frequencies is deprecated and will be removed in 0.16, use'
+             'freqs instead', DeprecationWarning)
         return self.freqs
 
     def fit_transform(self, X, y=None):
