@@ -21,17 +21,14 @@ Loading the data
 First we'll load the data. If metadata exists for an ``Epochs`` fif file,
 it will automatically be loaded in the ``.metadata`` attribute.
 """
+
 import mne
-from download import download  # Delete when we get this working within datasets
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the data from the internet
-download('https://www.dropbox.com/s/34afa1ipcy21g01/kword_metadata-epo.fif?dl=0',
-         './kword_metadata-epo.fif')
-
-path = './kword_metadata-epo.fif'
+path = mne.datasets.kiloword.data_path() + '/kword_metadata-epo.fif'
 epochs = mne.read_epochs(path)
 
 # The metadata exists as a Pandas DataFrame
@@ -73,8 +70,8 @@ epochs.metadata = meta
 categories = ["NumberOfLetters", "is_concrete"]
 avs = {}
 for (cat1, cat2), _ in epochs.metadata.groupby(categories):
-    this_epochs = epochs['NumberOfLetters == {} and is_concrete == "{}"'.format(
-        cat1, cat2)]
+    query = 'NumberOfLetters == {} and is_concrete == "{}"'.format(cat1, cat2)
+    this_epochs = epochs[query]
     avs["{}/{}".format(cat1, cat2)] = this_epochs.average()
 
 # Style the plot
@@ -86,10 +83,9 @@ style_plot = dict(
 
 # Make the plot
 ix_plot = mne.pick_channels(epochs.ch_names, ['Pz'])
-fig, ax = plt.subplots()
-mne.viz.evoked.plot_compare_evokeds(
-    avs, **style_plot, picks=ix_plot, show=False, axes=ax
-).set_size_inches((6, 3))
+fig, ax = plt.subplots(figsize=(6, 3))
+fig = mne.viz.evoked.plot_compare_evokeds(
+    avs, picks=ix_plot, show=False, axes=ax, **style_plot)
 ax.legend(loc=[1.05, .1])
 
 ###############################################################################
@@ -100,7 +96,5 @@ ax.legend(loc=[1.05, .1])
 
 data = epochs.get_data()
 metadata = epochs.metadata.copy()
-
 epochs_new = mne.EpochsArray(data, epochs.info, metadata=metadata)
-
 plt.show()

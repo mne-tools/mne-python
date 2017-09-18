@@ -138,6 +138,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 
     manual/io.rst
     auto_tutorials/plot_creating_data_structures.rst
+    auto_tutorials/plot_metadata_epochs.rst
     auto_tutorials/plot_modifying_data_inplace.rst
     auto_tutorials/plot_ecog.rst
     manual/memory.rst

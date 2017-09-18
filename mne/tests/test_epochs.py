@@ -11,7 +11,6 @@ from distutils.version import LooseVersion
 import pytest
 from nose.tools import (assert_true, assert_equal, assert_raises,
                         assert_not_equal)
-import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
 import numpy as np
@@ -29,9 +28,8 @@ from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
-from mne.utils import (_TempDir, requires_pandas, slow_test,
-                       run_tests_if_main, requires_version,
-                       _check_pandas_installed)
+from mne.utils import (_TempDir, requires_pandas, run_tests_if_main,
+                       requires_version, _check_pandas_installed)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif

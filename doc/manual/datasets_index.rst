@@ -196,6 +196,12 @@ functions in MNE and does not contain useful metadata for analysis.
       in electrocorticography.
 
 
+Kiloword dataset
+================
+:func:`mne.datasets.kiloword.data_path`.
+
+XXX Fill this in
+
 References
 ==========
 

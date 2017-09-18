@@ -6,6 +6,7 @@ See `datasets`_ for more information.
 from . import fieldtrip_cmc
 from . import brainstorm
 from . import visual_92_categories
+from . import kiloword
 from . import eegbci
 from . import hf_sef
 from . import megsim
