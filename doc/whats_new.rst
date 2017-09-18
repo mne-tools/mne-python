@@ -172,6 +172,7 @@ BUG
 
 API
 ~~~
+
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
 
     - ICA channel names have now been reformatted to start from zero, e.g. ``"ICA000"``, to match indexing schemes in :class:`mne.preprocessing.ICA` and related functions, by `Stefan Repplinger`_ and `Eric Larson`_
@@ -213,6 +214,8 @@ API
     - :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` now use a Hamming window (instead of a Hann window) by `Clemens Brunner`_
 
     - ``picks`` parameter in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, :func:`mne.beamformer.lcmv_raw`, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
+
+    - Add :func:`mne.beamformer.make_dics` and :func:`mne.beamformer.apply_dics` as well as :func:`mne.beamformer.apply_dics_epochs` to enable the separate computation and application of DICS beamformer weights by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
 .. _changes_0_14:
 
