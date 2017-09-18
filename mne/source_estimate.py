@@ -2639,22 +2639,19 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     return stc_to
 
 
-def _spatio_temporal_src_connectivity_vol(src, n_times):
+def _get_vol_mask(src):
+    """Get the volume source space mask."""
     assert len(src) == 1  # not a mixed source space
+    shape = src[0]['shape'][::-1]
+    mask = np.zeros(shape, bool)
+    mask.flat[src[0]['vertno']] = True
+    return mask
+
+
+def _spatio_temporal_src_connectivity_vol(src, n_times):
     from sklearn.feature_extraction import grid_to_graph
-    vertices = np.where(src[0]['inuse'])[0]
-    n_vertices = len(vertices)
-    data = (1 + np.arange(n_vertices))[:, np.newaxis]
-    # XXX these lines can certainly be replaced by direct logic on the source
-    # space, rather than doing a temp STC, volume export, then data grab. Have
-    # you looked? This would also increase the number of volume source spaces
-    # that can be used to those without MRI, like volume source space within
-    # a generic sphere, because as_volume requires MRI vol source space)
-    stc_tmp = VolSourceEstimate(data, vertices, tmin=0., tstep=1.)
-    img = stc_tmp.as_volume(src, mri_resolution=False)
-    img_data = img.get_data()[:, :, :, 0]
-    img_data = img_data.T
-    edges = grid_to_graph(*img_data.shape, mask=(img_data != 0))
+    mask = _get_vol_mask(src)
+    edges = grid_to_graph(*mask.shape, mask=mask)
     connectivity = _get_connectivity_from_edges(edges, n_times)
     return connectivity
 

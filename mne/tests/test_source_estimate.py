@@ -20,7 +20,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatial_inter_hemi_connectivity,
                  spatial_src_connectivity)
 from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
-                                 grade_to_tris)
+                                 grade_to_tris, _get_vol_mask)
 
 from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.label import read_labels_from_annot, label_sign_flip
@@ -887,9 +887,9 @@ def test_vec_stc():
 
 
 @requires_sklearn
-@requires_nibabel()
 @testing.requires_testing_data
 def test_vol_connectivity():
+    """Test volume connectivity."""
     from scipy import sparse
     vol = read_source_spaces(fname_vsrc)
 
@@ -904,6 +904,27 @@ def test_vol_connectivity():
     connectivity2 = spatio_temporal_src_connectivity(vol, n_times=2)
     assert_equal(connectivity2.shape, (2 * n_vertices, 2 * n_vertices))
     assert_true(np.all(connectivity2.data == 1))
+
+
+@requires_sklearn
+@requires_nibabel()
+@testing.requires_testing_data
+def test_vol_mask():
+    """Test extraction of volume mask."""
+    src = read_source_spaces(fname_vsrc)
+    mask = _get_vol_mask(src)
+    # Let's use an alternative way that should be equivalent
+    vertices = src[0]['vertno']
+    n_vertices = len(vertices)
+    data = (1 + np.arange(n_vertices))[:, np.newaxis]
+    stc_tmp = VolSourceEstimate(data, vertices, tmin=0., tstep=1.)
+    img = stc_tmp.as_volume(src, mri_resolution=False)
+    img_data = img.get_data()[:, :, :, 0].T
+    mask_nib = (img_data != 0)
+    assert_array_equal(img_data[mask_nib], data[:, 0])
+    assert_array_equal(np.where(mask_nib.ravel())[0], src[0]['vertno'])
+    assert_array_equal(mask, mask_nib)
+    assert_array_equal(img_data.shape, mask.shape)
 
 
 run_tests_if_main()
