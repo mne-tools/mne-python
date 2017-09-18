@@ -38,7 +38,9 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
 
     References
     ----------
-    .. [1] XXX Fill this in
+    .. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are
+    worth a picture: Snapshots of printed-word processing in an event-related potential
+    megastudy. Psychological science, 2015
     """
     return _data_path(path=path, force_update=force_update,
                       update_path=update_path, name='kiloword',

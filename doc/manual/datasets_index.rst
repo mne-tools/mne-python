@@ -200,7 +200,9 @@ Kiloword dataset
 ================
 :func:`mne.datasets.kiloword.data_path`.
 
-XXX Fill this in
+This dataset consists of averaged EEG data from 75 subjects performing a lexical decision
+task on 960 English words [6]_. The words are richly annotated, and can be used for e.g.
+multiple regression estimation of EEG correlates of printed word processing.
 
 References
 ==========
@@ -211,6 +213,8 @@ References
 
 .. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220
 
-.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object recognition in space and time." Nature neuroscience (2014): 17(3), 455-462
+.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. Resolving human object recognition in space and time. Nature Neuroscience (2014): 17(3), 455-462
 
 .. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A., & Lalor, E. C. The Multivariate Temporal Response Function (mTRF) Toolbox: A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli. Frontiers in Human Neuroscience (2016): 10.
+
+.. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are worth a picture: Snapshots of printed-word processing in an event-related potential megastudy. Psychological science, 2015
