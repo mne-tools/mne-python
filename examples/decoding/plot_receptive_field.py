@@ -18,8 +18,8 @@ References
        A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli.
        Frontiers in Human Neuroscience 10, 604. doi:10.3389/fnhum.2016.00604
 
-.. [2] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D.,
-       Blankertz, B., & Bießmann, F. (2014). On the interpretation of weight
+.. [2] Haufe, S., Meinecke, F., Goergen, K., Daehne, S., Haynes, J.-D.,
+       Blankertz, B., & Biessmann, F. (2014). On the interpretation of weight
        vectors of linear models in multivariate neuroimaging. NeuroImage, 87,
        96–110. doi:10.1016/j.neuroimage.2013.10.067
 
@@ -104,16 +104,16 @@ cv = KFold(n_splits)
 
 # Prepare model data (make time the first dimension)
 speech = speech.T
-EEG, _ = raw[:]  # Outputs for the model
-EEG = EEG.T
+Y, _ = raw[:]  # Outputs for the model
+Y = Y.T
 
 # Iterate through splits, fit the model, and predict/test on held-out data
 coefs = np.zeros((n_splits, n_channels, n_delays))
 scores = np.zeros((n_splits, n_channels))
 for ii, (train, test) in enumerate(cv.split(speech)):
     print('split %s / %s' % (ii + 1, n_splits))
-    rf.fit(speech[train], EEG[train])
-    scores[ii] = rf.score(speech[test], EEG[test])
+    rf.fit(speech[train], Y[train])
+    scores[ii] = rf.score(speech[test], Y[test])
     # coef_ is shape (n_outputs, n_features, n_delays). we only have 1 feature
     coefs[ii] = rf.coef_[:, 0, :]
 times = rf.delays_ / float(rf.sfreq)
@@ -192,8 +192,8 @@ patterns = coefs.copy()
 scores = np.zeros((n_splits,))
 for ii, (train, test) in enumerate(cv.split(speech)):
     print('split %s / %s' % (ii + 1, n_splits))
-    sr.fit(EEG[train], speech[train])
-    scores[ii] = sr.score(EEG[test], speech[test])[0]
+    sr.fit(Y[train], speech[train])
+    scores[ii] = sr.score(Y[test], speech[test])[0]
     # coef_ is shape (n_outputs, n_features, n_delays). we have 128 features
     coefs[ii] = sr.coef_[0, :, :]
     patterns[ii] = sr.patterns_[0, :, :]
@@ -212,7 +212,7 @@ max_patterns = np.abs(mean_patterns).max()
 # To get a sense of our model performance, we can plot the actual and predicted
 # stimulus envelopes side by side.
 
-y_pred = sr.predict(EEG[test])
+y_pred = sr.predict(Y[test])
 time = np.linspace(0, 2., 5 * int(sfreq))
 fig, ax = plt.subplots(figsize=(8, 4))
 ax.plot(time, speech[test][sr.valid_samples_][:int(5 * sfreq)],
@@ -228,10 +228,10 @@ mne.viz.tight_layout()
 #
 # Finally, we will look at how the linear coefficients (sometimes
 # referred to as beta values) are distributed across the scalp. We will
-# recreate `figure 5`_ from [1]_. The backward model weights reﬂect the
+# recreate `figure 5`_ from [1]_. The backward model weights reflect the
 # channels that contribute most toward reconstructing the stimulus signal, but
 # are not directly interpretable in a neurophysiological sense. Here we also
-# look at the inversed model weights, which are easier to understand [2]_
+# look at the inversed model weights, which are easier to understand [2]_.
 
 time_plot = (-.140, -.125)  # To average between two timepoints.
 ix_plot = np.arange(np.argmin(np.abs(time_plot[0] - times)),

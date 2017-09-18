@@ -101,10 +101,10 @@ class ReceptiveField(BaseEstimator):
            enhance speech intelligibility. Nature Communications,
            7, 13654 (2016). doi:10.1038/ncomms13654
 
-    .. [5] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D.,
-           Blankertz, B., & Bießmann, F. (2014). On the interpretation of
+    .. [5] Haufe, S., Meinecke, F., Goergen, K., Daehne, S., Haynes, J.-D.,
+           Blankertz, B., & Biessmann, F. (2014). On the interpretation of
            weight vectors of linear models in multivariate neuroimaging.
-           NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
+           NeuroImage, 87, 96-110. doi:10.1016/j.neuroimage.2013.10.067
     """
 
     def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
