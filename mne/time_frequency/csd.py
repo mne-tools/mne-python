@@ -5,7 +5,6 @@
 import copy as cp
 
 import numpy as np
-from scipy.fftpack import fftfreq
 
 from ..io.pick import pick_types
 from ..utils import logger, verbose, warn, _freqs_dep

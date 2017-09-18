@@ -170,6 +170,8 @@ BUG
 
     - Fix bug in :meth:`mne.SourceEstimate.to_original_src` where morphing failed if two vertices map to the same target vertex, by `Marijn van Vliet`_
 
+    - Fix bug in DC and Nyquist frequency multitaper PSD computations, e.g. in `mne.time_frequency.psd_multitaper`, by `Eric Larson`_
+
 API
 ~~~
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_

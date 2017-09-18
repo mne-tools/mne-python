@@ -143,6 +143,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     Volume 57 (1978), 1371430
     """
     from scipy import interpolate
+    from ..filter import next_fast_len
     Kmax = int(Kmax)
     W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
@@ -226,9 +227,9 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
-    n_fft = 2 ** int(np.ceil(np.log2(rxx_size)))
+    n_fft = next_fast_len(rxx_size)
     dpss_fft = np.fft.rfft(dpss, n_fft)
-    dpss_rxx = np.fft.irfft(dpss_fft * dpss_fft.conj())
+    dpss_rxx = np.fft.irfft(dpss_fft * dpss_fft.conj(), n_fft)
     dpss_rxx = dpss_rxx[:, :N]
 
     r = 4 * W * np.sinc(2 * W * nidx)
@@ -440,6 +441,10 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     x_mt = np.zeros((len(x), n_tapers, len(freqs)), dtype=np.complex128)
     for idx, sig in enumerate(x):
         x_mt[idx] = np.fft.rfft(sig[np.newaxis, :] * dpss, n=n_fft)
+    # Adjust DC and maybe Nyquist, depending on one-sided transform
+    x_mt[:, :, 0] /= np.sqrt(2.)
+    if x.shape[1] % 2 == 0:
+        x_mt[:, :, -1] /= np.sqrt(2.)
     return x_mt, freqs
 
 
@@ -515,7 +520,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
                                  low_bias=low_bias)
 
-    # descide which frequencies to keep
+    # decide which frequencies to keep
     freqs = np.fft.rfftfreq(x.shape[1], 1. / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
