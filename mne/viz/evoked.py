@@ -159,18 +159,24 @@ def _rgb(x, y, z):
     return rgb
 
 
-def _plot_legend(pos, colors, axis, bads, outlines, loc):
-    """Plot color/channel legends for butterfly plots with spatial colors."""
+def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
+    """Plot (possibly colorized) channel legends for evoked plots."""
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
-    ax = inset_axes(axis, width=str(30 / ratio) + '%', height='30%', loc=loc)
+    ax = inset_axes(axis, width=str(size / ratio) + '%',
+                    height=str(size) + '%', loc=loc)
+#    if not show_bads:
+#            not_in_bads = [x for x in range(len(pos)) if x not in bads]
+#            colors = np.array(colors[not_in_bads])
+#            pos = pos[not_in_bads]
     pos_x, pos_y = _prepare_topomap(pos, ax)
-    ax.scatter(pos_x, pos_y, color=colors, s=25, marker='.', zorder=1)
-    for idx in bads:
-        ax.scatter(pos_x[idx], pos_y[idx], s=5, marker='.', color='w',
+    ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
+#    if bads and show_bads:
+    if bads:
+        bads = np.array(bads)
+        ax.scatter(pos_x[bads], pos_y[bads], s=size / 6, marker='.', color='w',
                    zorder=1)
-
     _draw_outlines(ax, outlines)
 
 
@@ -1370,29 +1376,35 @@ def _setup_styles(conditions, style_dict, style, default):
 
 
 def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
-                    any_positive, any_negative):
+                    any_positive, any_negative, truncation_style):
     """Truncate the y axis in plot_compare_evokeds."""
-    abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
-                else np.abs(orig_ymin))
-    ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
-    # user supplied ymin and ymax overwrite everything
-    if ymin is not None and ymin > ymin_:
-        ymin_ = ymin
-    if ymax is not None and ymax < ymax_:
-        ymax_ = ymax
-    yticks = (ymin_ if any_negative else 0, ymax_ if any_positive else 0)
-    axes.set_yticks(yticks)
-    ymin_bound, ymax_bound = (-(abs_lims // fraction), abs_lims // fraction)
-    # user supplied ymin and ymax still overwrite everything
-    if ymin is not None and ymin > ymin_bound:
-        ymin_bound = ymin
-    if ymax is not None and ymax < ymax_bound:
-        ymax_bound = ymax
-    precision = 0.25  # round to .25
-    if ymin is None:
-        ymin_bound = round(ymin_bound / precision) * precision
-    if ymin is None:
-        ymax_bound = round(ymax_bound / precision) * precision
+    if truncation_style != "max_ticks":
+        abs_lims = (orig_ymax if orig_ymax > np.abs(orig_ymin)
+                    else np.abs(orig_ymin))
+        ymin_, ymax_ = (-(abs_lims // fraction), abs_lims // fraction)
+        # user supplied ymin and ymax overwrite everything
+        if ymin is not None and ymin > ymin_:
+            ymin_ = ymin
+        if ymax is not None and ymax < ymax_:
+            ymax_ = ymax
+        yticks = (ymin_ if any_negative else 0, ymax_ if any_positive else 0)
+        axes.set_yticks(yticks)
+        ymin_bound, ymax_bound = (-(abs_lims // fraction), abs_lims // fraction)
+        # user supplied ymin and ymax still overwrite everything
+        if ymin is not None and ymin > ymin_bound:
+            ymin_bound = ymin
+        if ymax is not None and ymax < ymax_bound:
+            ymax_bound = ymax
+        precision = 0.25  # round to .25
+        if ymin is None:
+            ymin_bound = round(ymin_bound / precision) * precision
+        if ymin is None:
+            ymax_bound = round(ymax_bound / precision) * precision
+    else:
+        ticks = axes.get_yticks()
+        ymin_bound, ymax_bound = ticks[[1, -2]]
+        if ymin_bound > 0:
+            ymin_bound = 0
     axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
     return ymin_bound, ymax_bound
 
@@ -1400,8 +1412,8 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, vlines=list((0.,)),
                          ci=0.95, truncate_yaxis=False, truncate_xaxis=True,
-                         ylim=dict(), invert_y=False, axes=None, title=None,
-                         show=True):
+                         ylim=dict(), invert_y=False, show_sensors=None,
+                         show_legend=True, axes=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1484,6 +1496,17 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     invert_y : bool
         If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
+    show_sensors: None|  bool | int | float | tuple
+        If not False, channel locations are plotted on a small head circle.
+        If an int > 1, the position of the axes (forwarded to
+        ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
+        If a float, the size of the legend relative to the axes.
+        If a tuple, must be one integer and one float, and will be interpreted
+        as (loc, size).
+        If None, defaults to True if ``gfp`` is False, else to False.
+    show_legend : bool | int
+        If not False, show a legend If an int > 1, the position of the axes
+        (forwarded to ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
     axes : None | `matplotlib.axes.Axes` instance | list of `axes`
         What axes to plot to. If None, a new axes is created.
         When plotting multiple channel types, can also be a list of axes, one
@@ -1541,6 +1564,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     # deal with picks: infer indices and names
     if gfp is True:
+        show_sensors = False if show_sensors is None else show_sensors
         ch_names = ['Global Field Power']
         if len(picks) < 2:
             raise ValueError("A GFP with less than 2 channels doesn't work, "
@@ -1549,6 +1573,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         if not isinstance(picks[0], (int, np.integer)):
             msg = "'picks' must be int or a list of int, not {0}."
             raise ValueError(msg.format(type(picks)))
+        show_sensors = True if show_sensors is None else show_sensors
         ch_names = [example.ch_names[pick] for pick in picks]
     ch_types = list(set(channel_type(example.info, pick_)
                     for pick_ in picks))
@@ -1725,10 +1750,10 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     fraction = 2 if axes.get_ylim()[0] >= 0 else 3
 
-    if truncate_yaxis is True:
+    if truncate_yaxis is not False:
         _, ymax_bound = _truncate_yaxis(
             axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
-            any_positive, any_negative)
+            any_positive, any_negative, truncate_yaxis)
     else:
         if truncate_yaxis is True and ymin is not None and ymin > 0:
             warn("ymin is all-positive, not truncating yaxis")
@@ -1753,8 +1778,25 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     _setup_ax_spines(axes, vlines, tmin, tmax, invert_y, ymax_bound, unit,
                      truncate_xaxis)
 
-    if len(conditions) > 1:
-        plt.legend(loc='best', ncol=1 + (len(conditions) // 5), frameon=True)
+    if show_sensors:
+        pos = _auto_topomap_coords(example.info, picks, ignore_overlap=True,
+                                   to_sphere=True)
+        pos, outlines = _check_outlines(
+                pos, np.array([1, 1]), {'center': (0, 0), 'scale': (0.5, 0.5)})
+        try:
+            loc, size = show_sensors
+        except (ValueError, TypeError):  # duck type iterable of len 2
+            if not isinstance(show_sensors, (np.int, np.float)):
+                raise TypeError("`show_sensors` must be a tuple of length 2",
+                                 "or numeric, not" + str(type(show_sensors)))
+            loc = show_sensors if int(show_sensors) > 1 else 2
+            size = .2 if isinstance(show_sensors, int) else show_sensors
+        _plot_legend(pos, ["k" for _ in picks], axes, [], outlines, loc,
+                     size=size * 100)
+
+    if show_legend and len(conditions) > 1:
+        loc = show_legend if int(show_legend) > 1 else 1
+        axes.legend(loc='best', ncol=1 + (len(conditions) // 5), frameon=True)
 
     plt_show(show)
     return fig
