@@ -336,6 +336,7 @@ class RawMff(BaseRaw):
         else:
             # No events
             self.event_id = None
+            event_codes = []
         info = _empty_info(egi_info['sfreq'])
         info['buffer_size_sec'] = 1.  # reasonable default
         my_time = datetime.datetime(
@@ -346,7 +347,7 @@ class RawMff(BaseRaw):
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
-        if self._new_trigger is not None:
+        if hasattr(self, '_new_trigger') and self._new_trigger is not None:
             ch_names.append('STI 014')  # channel for combined events
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
