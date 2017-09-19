@@ -49,8 +49,9 @@ class ReceptiveField(BaseEstimator):
         'r2' (coefficient of determination) or 'corrcoef' (the correlation
         coefficient).
     patterns : bool
-        If True, inverse coefficients will be computed upon fitting according
-        to the procedure described by Haufe et al. [5]_. Defaults to False.
+        If True, inverse coefficients will be computed upon fitting using the
+        covariance matrix of the inputs, and the cross-covariance of the
+        inputs/outputs, according to [5]_. Defaults to False.
 
     Attributes
     ----------
@@ -237,10 +238,11 @@ class ReceptiveField(BaseEstimator):
             del X
 
             # Inverse output covariance
-            inv_Y = 1. / float(n_times * n_epochs - 1)
             if y.ndim == 2 and y.shape[1] != 1:
                 y = y - y.mean(0, keepdims=True)
                 inv_Y = linalg.pinv(np.cov(y.T))
+            else:
+                inv_Y = 1. / float(n_times * n_epochs - 1)
             del y
 
             # Inverse coef according to Haufe's method

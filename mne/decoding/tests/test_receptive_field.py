@@ -510,13 +510,6 @@ def test_inverse_coef():
         c1 = rf.patterns_.reshape(n_targets, n_feats * n_delays)
         assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.1)
 
-        # TODO this fails.
-        # Shouldn't we have rf.coef_ ~ inv_rf.patterns_ and vice versa ?
-        # assert_allclose(inv_rf.coef_, np.transpose(rf.patterns_, (1, 0, 2)),
-        #                 rtol=0.1)
-        # assert_allclose(rf.coef_, np.transpose(inv_rf.patterns_, (1, 0, 2)),
-        #                 atol=0.1)
-
     # Check that warnings are issued when no regularization is applied
     n_feats, n_targets, n_samples = 5, 60, 50
     X, y = make_data(n_feats, n_targets, n_samples, tmin, tmax)

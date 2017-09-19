@@ -229,7 +229,7 @@ API
 
     - The keyword argument ``frequencies`` has been deprecated in favor of ``freqs`` in various time-frequency functions, e.g. :func:`mne.time_frequency.tfr.tfr_array_morlet`, by `Eric Larson`_
 
-    - Add ``patterns=False`` parameter in :class:`mne.decoding.ReceptiveField`. Turn on to compute inverse model coefficients.
+    - Add ``patterns=False`` parameter in :class:`mne.decoding.ReceptiveField`. Turn on to compute inverse model coefficients, by `Nicolas Barascud`_
 
 .. _changes_0_14:
 
