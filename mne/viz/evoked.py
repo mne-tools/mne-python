@@ -1779,20 +1779,26 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                      truncate_xaxis)
 
     if show_sensors:
-        pos = _auto_topomap_coords(example.info, picks, ignore_overlap=True,
-                                   to_sphere=True)
-        pos, outlines = _check_outlines(
-                pos, np.array([1, 1]), {'center': (0, 0), 'scale': (0.5, 0.5)})
         try:
-            loc, size = show_sensors
-        except (ValueError, TypeError):  # duck type iterable of len 2
-            if not isinstance(show_sensors, (np.int, np.float)):
-                raise TypeError("`show_sensors` must be a tuple of length 2",
-                                 "or numeric, not" + str(type(show_sensors)))
-            loc = show_sensors if int(show_sensors) > 1 else 2
-            size = .2 if isinstance(show_sensors, int) else show_sensors
-        _plot_legend(pos, ["k" for _ in picks], axes, [], outlines, loc,
-                     size=size * 100)
+            pos = _auto_topomap_coords(example.info, picks,
+                                       ignore_overlap=True, to_sphere=True)
+        except ValueError:
+            warn("Cannot find channel coordinates in the supplied Evokeds. "
+                 "Not showing channel locations.")
+        else:
+            pos, outlines = _check_outlines(
+                    pos, np.array([1, 1]), {'center': (0, 0),
+                                 'scale': (0.5, 0.5)})
+            try:
+                loc, size = show_sensors
+            except (ValueError, TypeError):  # duck type iterable of len 2
+                if not isinstance(show_sensors, (np.int, np.float)):
+                    raise TypeError("`show_sensors` must be numeric or of ",
+                                     "length 2, not" + str(type(show_sensors)))
+                loc = show_sensors if int(show_sensors) > 1 else 2
+                size = .2 if isinstance(show_sensors, int) else show_sensors
+            _plot_legend(pos, ["k" for _ in picks], axes, [], outlines, loc,
+                         size=size * 100)
 
     if show_legend and len(conditions) > 1:
         loc = show_legend if int(show_legend) > 1 else 1
