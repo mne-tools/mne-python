@@ -44,7 +44,6 @@ References
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-import matplotlib.gridspec as gridspec
 import mne
 from mne.datasets import eegbci
 from mne.io import concatenate_raws, read_raw_edf
