@@ -97,6 +97,8 @@ Changelog
 
     - Add bootstrapped confidence intervals to :func:`mne.viz.plot_compare_evokeds` (that can for now also be accessed as :func:`mne.stats._boostrap_ci`) by `Jona Sassenhagen`_ and `Denis Engemann`_
 
+    - Add example on how to plot ERDS maps (also known as ERSP) by `Clemens Brunner`_
+
     - Add support for volume source spaces to :func:`spatial_src_connectivity` and :func:`spatio_temporal_src_connectivity` by `Alex Gramfort`_
 
 BUG
