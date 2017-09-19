@@ -1,7 +1,6 @@
 """EGI NetStation Load Function."""
 
 import datetime
-import os
 import os.path as op
 import time
 from xml.dom.minidom import parse
@@ -73,7 +72,9 @@ def _read_mff_header(filepath):
 
     # Check presence of PNS data
     if 'PNS' in all_files:
-        # TODO: load PNS channels in the info
+        pns_fpath = op.join(filepath, all_files['PNS']['signal'])
+        pns_blocks = _get_blocks(pns_fpath)
+
         pns_file = op.join(filepath, 'pnsSet.xml')
         pns_obj = parse(pns_file)
         sensors = pns_obj.getElementsByTagName('sensor')
@@ -102,7 +103,9 @@ def _read_mff_header(filepath):
 
         summaryinfo.update(pns_types=pns_types, pns_units=pns_units,
                            pns_names=pns_names, n_pns_channels=len(pns_names),
-                           pns_fname=all_files['PNS']['signal'])
+                           pns_fname=all_files['PNS']['signal'],
+                           pns_sample_blocks=pns_blocks)
+
     info_filepath = op.join(filepath, 'info.xml')  # add with filepath
     tags = ['mffVersion', 'recordTime']
     version_and_date = _extract(tags, filepath=info_filepath)
@@ -408,6 +411,7 @@ class RawMff(BaseRaw):
         from ..utils import _mult_cal_one
         dtype = '<f4'  # Data read in four byte floats.
         n_bytes = np.dtype(dtype).itemsize
+
         egi_info = self._raw_extras[fi]
         offset = egi_info['header_sizes'][0] - n_bytes
         n_channels = egi_info['n_channels']
@@ -465,16 +469,18 @@ class RawMff(BaseRaw):
         if 'pns_names' in egi_info:
             # PNS Data is present
             pns_filepath = egi_info['pns_filepath']
-            offset = egi_info['header_sizes'][0] - n_bytes
             n_pns_channels = egi_info['n_pns_channels']
-            n_samples = egi_info['samples_block'][0]
-            block_size = n_samples * n_pns_channels
+            pns_info = egi_info['pns_sample_blocks']
+            n_samples = pns_info['samples_block'][0]
+            offset = pns_info['header_sizes'][0] - n_bytes
+            n_pns_channels_block = pns_info['n_channels']
+            block_size = n_samples * n_pns_channels_block
             data_offset = n_pns_channels * start * n_bytes + offset
             data_left = (stop - start) * n_pns_channels
-            egi_events = egi_info['egi_events'][:, start:stop]
             extra_samps = (start // n_samples)
             beginning = extra_samps * block_size
             data_left += (data_offset - offset) // n_bytes - beginning
+
             with open(pns_filepath, 'rb', buffering=0) as fid:
                 fid.seek(int(beginning * n_bytes + offset +
                              extra_samps * n_bytes))
@@ -492,7 +498,7 @@ class RawMff(BaseRaw):
                         fid.seek(header_size - 3 * n_bytes, 1)
 
                     block = np.fromfile(fid, dtype, block_size)
-                    block = block.reshape(n_pns_channels, -1, order='C')
+                    block = block.reshape(n_pns_channels_block, -1, order='C')
 
                     count = data_left - sample_start * n_pns_channels
                     end = count // n_pns_channels + 2
@@ -508,6 +514,5 @@ class RawMff(BaseRaw):
                             sample_start - s_offset + block.shape[1])
                     data_view = data[n_data1_channels:, sample_sl]
                     sample_start = sample_start + n_samples
-                    _mult_cal_one(data_view, block, idx,
-                                  cals[n_data1_channels:],
-                                  mult)
+                    _mult_cal_one(data_view, block[:n_pns_channels], idx,
+                                  cals[n_data1_channels:], mult)
