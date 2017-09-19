@@ -564,7 +564,6 @@ FIFF.FIFF_DECOUPLER_MATRIX          = 800
 FIFF.FIFFV_MNE_UNKNOWN_ORI          = 0
 FIFF.FIFFV_MNE_FIXED_ORI            = 1
 FIFF.FIFFV_MNE_FREE_ORI             = 2
-FIFF.FIFFV_MNE_FIXED_CPS_ORI        = 3
 
 FIFF.FIFFV_MNE_MEG                  = 1
 FIFF.FIFFV_MNE_EEG                  = 2

@@ -413,10 +413,18 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
 
     Notes
     -----
-    Forward solutions with free orientation are always stored on disk in
-    X/Y/Z RAS coordinates. To obtain surface-oriented forward operators after
-    reading the forward solution with :func:`read_forward_solution`, please
-    apply :func:`convert_forward_solution` with surf_ori=True.
+    Forward solutions, which are derived from an original forward solution with
+    free orientation, are always stored on disk as forward solution with free
+    orientation in X/Y/Z RAS coordinates. To apply any transformation to the
+    forward operator (surface orientation, fixed orienation) please apply
+    :func:`convert_forward_solution` after reading the forward solution with
+    :func:`read_forward_solution`.
+
+    Forward solutions, which are derived from an original forward solution with
+    fixed orientation, are stored on disk as forward solution with fixed
+    surface-based orientations. Please note that the transformation to
+    surface-based, fixed orienation cannot be reverted after loading the
+    forward solution with :func:`read_forward_solution`.
     """
     if force_fixed is not None:
         warn('force_fixed is deprecated and will be removed in 0.16. '
@@ -568,29 +576,7 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
         if is_fixed_orient(fwd, orig=True):
             fwd['source_nn'] = np.concatenate([_src['nn'][_src['vertno'], :]
                                               for _src in fwd['src']], axis=0)
-            if fwd['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-                logger.info('    Standard source space normals were employed '
-                            'in the rotation to the local surface coordinates'
-                            '....')
-                fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
-            else:
-                logger.info('    Average patch normals were employed in '
-                            'the rotation to the local surface coordinates..'
-                            '..')
-                pp = 0
-                for s in fwd['src']:
-                    for p in range(s['nuse']):
-                        #  Project out the surface normal and compute SVD
-                        nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
-                        nn = np.sum(nn, axis=0)[:, np.newaxis]
-                        nn /= linalg.norm(nn)
-                        U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
-                        #  Make sure that ez is in the direction of nn
-                        if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
-                            U *= -1.0
-                        fwd['source_nn'][pp, :] = U.T[2, :]
-                        pp += 1
-                fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_CPS_ORI
+            fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
             fwd['surf_ori'] = True
         else:
             fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
@@ -733,10 +719,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
                 x = sparse.block_diag([fix_rot] * 3)
                 fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
                 fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
-            if use_ave_nn is True:
-                fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_CPS_ORI
-            else:
-                fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+            fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
             fwd['surf_ori'] = True
         else:
             surf_rot = _block_diag(fwd['source_nn'].T, 3)
@@ -788,12 +771,18 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
     Notes
     -----
-    Forward solutions with free orientation are always stored on disk in X/Y/Z
-    RAS coordinates. Transformations to surface-based local coordinates
-    (surface orientation) will be inverted. To obtain surface-oriented forward
-    operators after reading the forward solution with
-    :func:`read_forward_solution`, please apply
-    :func:`convert_forward_solution` with surf_ori=True.
+    Forward solutions, which are derived from an original forward solution with
+    free orientation, are always stored on disk as forward solution with free
+    orientation in X/Y/Z RAS coordinates. Transformations (surface orientation,
+    fixed orienation) will be reverted. To reapply any transformation to the
+    forward operator please apply :func:`convert_forward_solution` after
+    reading the forward solution with :func:`read_forward_solution`.
+
+    Forward solutions, which are derived from an original forward solution with
+    fixed orientation, are stored on disk as forward solution with fixed
+    surface-based orientations. Please note that the transformation to
+    surface-based, fixed orienation cannot be reverted after loading the
+    forward solution with :func:`read_forward_solution`.
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -847,34 +836,34 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     #
     _write_source_spaces_to_fid(fid, src)
     n_vert = sum([ss['nuse'] for ss in src])
-    n_col = fwd['sol']['data'].shape[1]
-    if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-        assert n_col == n_vert
-    elif fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI:
-        assert n_col == n_vert
+    if fwd['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+        n_col = n_vert
     else:
-        assert n_col == 3 * n_vert
+        n_col = 3 * n_vert
 
-    # Undo surf_ori rotation
-    sol = fwd['sol']['data']
+    # Undo transformations
+    sol = fwd['_orig_sol'].copy()
     if fwd['sol_grad'] is not None:
-        sol_grad = fwd['sol_grad']['data']
+        sol_grad = fwd['_orig_sol_grad'].copy()
     else:
         sol_grad = None
 
-    if (fwd['surf_ori'] is True and
-            fwd['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI):
-        warn('Please note that forward solutions with free orientation are '
-             'always stored on disk in X/Y/Z RAS coordinates. The '
-             'transformation to surface-based local coordinates '
-             '(surface orientation) is inverted now. To obtain a '
-             'surface-oriented forward operator after reading the forward '
-             'solution with read_forward_solution, please apply '
-             'convert_forward_solution with surf_ori=True.', RuntimeWarning)
-        inv_rot = _inv_block_diag(fwd['source_nn'].T, 3)
-        sol = sol * inv_rot
-        if sol_grad is not None:
-            sol_grad = sol_grad * sparse.block_diag([inv_rot] * 3)  # dot prod
+    if fwd['surf_ori'] is True:
+        if fwd['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+            warn('The forward solution, which is stored on disk now, is based '
+                 'on a forward solution with fixed orientation. Please note '
+                 'that the transformation to surface-based, fixed orientation '
+                 'cannot be reverted after loading the forward solution with '
+                 'read_forward_solution.', RuntimeWarning)
+        else:
+            warn('This forward solution is based on a forward solution with '
+                 'free orientation. The original forward solution is stored '
+                 'on disk in X/Y/Z RAS coordinates. Any transformation '
+                 '(surface orientation or fixed orientation) will be reverted. '
+                 'To reapply any transformation to the forward operator '
+                 'please apply convert_forward_solution after reading the '
+                 'forward solution with read_forward_solution.',
+                 RuntimeWarning)
 
     #
     # MEG forward solution
@@ -895,7 +884,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         start_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
         write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, FIFF.FIFFV_MNE_MEG)
         write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, fwd['coord_frame'])
-        write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, fwd['source_ori'])
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION,
+                  fwd['_orig_source_ori'])
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, n_vert)
         write_int(fid, FIFF.FIFF_NCHAN, n_meg)
         write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION, meg_solution)
@@ -918,7 +908,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         start_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
         write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, FIFF.FIFFV_MNE_EEG)
         write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, fwd['coord_frame'])
-        write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, fwd['source_ori'])
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION,
+                  fwd['_orig_source_ori'])
         write_int(fid, FIFF.FIFF_NCHAN, n_eeg)
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, n_vert)
         write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION, eeg_solution)
@@ -938,13 +929,9 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 def is_fixed_orient(forward, orig=False):
     """Check if the forward operator is fixed orientation."""
     if orig:  # if we want to know about the original version
-        fixed_ori = (
-            (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or
-            (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI))
+        fixed_ori = (forward['_orig_source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
     else:  # most of the time we want to know about the current version
-        fixed_ori = (
-            (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or
-            (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_CPS_ORI))
+        fixed_ori = (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
     return fixed_ori
 
 
@@ -1349,12 +1336,31 @@ def restrict_forward_to_stc(fwd, stc):
 
     if is_fixed_orient(fwd):
         idx = src_sel
+        if fwd['sol_grad'] is not None:
+            idx_grad = (3 * src_sel[:, None] + np.arange(3)).ravel()
     else:
         idx = (3 * src_sel[:, None] + np.arange(3)).ravel()
+        if fwd['sol_grad'] is not None:
+            idx_grad = (9 * src_sel[:, None] + np.arange(9)).ravel()
 
     fwd_out['source_nn'] = fwd['source_nn'][idx]
     fwd_out['sol']['data'] = fwd['sol']['data'][:, idx]
+    if fwd['sol_grad'] is not None:
+        fwd_out['sol_grad']['data'] = fwd['sol_grad']['data'][:, idx_grad]
     fwd_out['sol']['ncol'] = len(idx)
+
+    if is_fixed_orient(fwd, orig=True):
+        idx = src_sel
+        if fwd['sol_grad'] is not None:
+            idx_grad = (3 * src_sel[:, None] + np.arange(3)).ravel()
+    else:
+        idx = (3 * src_sel[:, None] + np.arange(3)).ravel()
+        if fwd['sol_grad'] is not None:
+            idx_grad = (9 * src_sel[:, None] + np.arange(9)).ravel()
+
+    fwd_out['_orig_sol'] = fwd['_orig_sol'][:, idx]
+    if fwd['sol_grad'] is not None:
+        fwd_out['_orig_sol_grad'] = fwd['_orig_sol_grad'][:, idx_grad]
 
     for i in range(2):
         fwd_out['src'][i]['vertno'] = stc.vertices[i]
@@ -1407,6 +1413,12 @@ def restrict_forward_to_label(fwd, labels):
     fwd_out['nsource'] = 0
     fwd_out['source_nn'] = np.zeros((0, 3))
     fwd_out['sol']['data'] = np.zeros((fwd['sol']['data'].shape[0], 0))
+    fwd_out['_orig_sol'] = np.zeros((fwd['_orig_sol'].shape[0], 0))
+    if fwd['sol_grad'] is not None:
+        fwd_out['sol_grad']['data'] = np.zeros(
+            (fwd['sol_grad']['data'].shape[0], 0))
+        fwd_out['_orig_sol_grad'] = np.zeros(
+            (fwd['_orig_sol_grad'].shape[0], 0))
     fwd_out['sol']['ncol'] = 0
     nuse_lh = fwd['src'][0]['nuse']
 
@@ -1436,14 +1448,38 @@ def restrict_forward_to_label(fwd, labels):
 
         if is_fixed_orient(fwd):
             idx = src_sel
+            if fwd['sol_grad'] is not None:
+                idx_grad = (3 * src_sel[:, None] + np.arange(3)).ravel()
         else:
             idx = (3 * src_sel[:, None] + np.arange(3)).ravel()
+            if fwd['sol_grad'] is not None:
+                idx_grad = (9 * src_sel[:, None] + np.arange(9)).ravel()
 
-        fwd_out['source_nn'] = np.vstack([fwd_out['source_nn'],
-                                          fwd['source_nn'][idx]])
-        fwd_out['sol']['data'] = np.hstack([fwd_out['sol']['data'],
-                                            fwd['sol']['data'][:, idx]])
+        fwd_out['source_nn'] = np.vstack(
+            [fwd_out['source_nn'], fwd['source_nn'][idx]])
+        fwd_out['sol']['data'] = np.hstack(
+            [fwd_out['sol']['data'], fwd['sol']['data'][:, idx]])
+        if fwd['sol_grad'] is not None:
+            fwd_out['sol_grad']['data'] = np.hstack(
+                [fwd_out['sol_grad']['data'],
+                 fwd['sol_rad']['data'][:, idx_grad]])
         fwd_out['sol']['ncol'] += len(idx)
+
+        if is_fixed_orient(fwd, orig=True):
+            idx = src_sel
+            if fwd['sol_grad'] is not None:
+                idx_grad = (3 * src_sel[:, None] + np.arange(3)).ravel()
+        else:
+            idx = (3 * src_sel[:, None] + np.arange(3)).ravel()
+            if fwd['sol_grad'] is not None:
+                idx_grad = (9 * src_sel[:, None] + np.arange(9)).ravel()
+
+        fwd_out['_orig_sol'] = np.hstack(
+            [fwd_out['_orig_sol'], fwd['_orig_sol'][:, idx]])
+        if fwd['sol_grad'] is not None:
+            fwd_out['_orig_sol_grad'] = np.hstack(
+                [fwd_out['_orig_sol_grad'],
+                 fwd['_orig_sol_grad'][:, idx_grad]])
 
     return fwd_out
 

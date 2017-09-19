@@ -65,7 +65,6 @@ class InverseOperator(dict):
 
         source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
                       FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
-                      FIFF.FIFFV_MNE_FIXED_CPS_ORI: 'Fixed_CPS',
                       FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
         entr += ' | Source orientation: %s' % source_ori[self['source_ori']]
         entr += '>'

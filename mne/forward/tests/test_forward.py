@@ -145,10 +145,13 @@ def test_io_forward():
                                    use_cps=False)
     write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
+    fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
+                                        force_fixed=True, use_cps=False)
     assert_true(repr(fwd_read))
     assert_true(isinstance(fwd_read, Forward))
     assert_true(is_fixed_orient(fwd_read))
     compare_forwards(fwd, fwd_read)
+
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                    use_cps=True)
     leadfield = fwd['sol']['data']
@@ -160,6 +163,8 @@ def test_io_forward():
     assert_true(fwd['surf_ori'])
     write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
+    fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
+                                        force_fixed=True, use_cps=True)
     assert_true(repr(fwd_read))
     assert_true(isinstance(fwd_read, Forward))
     assert_true(is_fixed_orient(fwd_read))
@@ -177,6 +182,8 @@ def test_io_forward():
     assert_true(fwd['surf_ori'])
     write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
+    fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
+                                        force_fixed=True, use_cps=True)
     assert_true(repr(fwd_read))
     assert_true(isinstance(fwd_read, Forward))
     assert_true(is_fixed_orient(fwd_read))
@@ -298,6 +305,8 @@ def test_restrict_forward_to_stc():
     fname_copy = op.join(temp_dir, 'copy-fwd.fif')
     write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
+    fwd_out_read = convert_forward_solution(fwd_out_read, surf_ori=True,
+                                            force_fixed=False)
     compare_forwards(fwd_out, fwd_out_read)
 
 
