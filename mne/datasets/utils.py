@@ -11,6 +11,7 @@ import tarfile
 import stat
 import sys
 import zipfile
+from distutils.version import LooseVersion
 
 from .. import __version__ as mne_version
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
@@ -233,88 +234,125 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the hash.
+
+    # try to match url->archive_name->folder_name
+    urls = dict(  # the URLs to use
+        brainstorm=dict(
+            bst_auditory='https://osf.io/5t9n8/download',
+            bst_phantom_ctf='https://osf.io/sxr8y/download',
+            bst_phantom_elekta='https://osf.io/dpcku/download',
+            bst_raw='https://osf.io/9675n/download',
+            bst_resting='https://osf.io/m7bd3/download'),
+        fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
+             'datasets/foo.tgz',
+        misc='https://codeload.github.com/mne-tools/mne-misc-data/'
+             'tar.gz/%s' % releases['misc'],
+        sample="https://osf.io/86qa2/download",
+        somato='https://osf.io/tp4sg/download',
+        spm='https://osf.io/je4s8/download',
+        testing='https://codeload.github.com/mne-tools/mne-testing-data/'
+                'tar.gz/%s' % releases['testing'],
+        multimodal='https://ndownloader.figshare.com/files/5999598',
+        visual_92_categories=[
+            'https://osf.io/8ejrs/download',
+            'https://osf.io/t4yjp/download'],
+        mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/"
+             "mTRF_1.5.zip",
+        fieldtrip_cmc='ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/'
+                      'tutorial/SubjectCMC.zip',
+    )
+    # filename of the resulting downloaded archive (only needed if the URL
+    # name does not match resulting filename)
     archive_names = dict(
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
+        multimodal='MNE-multimodal-data.tar.gz',
         sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
         spm='MNE-spm-face.tar.gz',
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
-        multimodal='MNE-multimodal-data.tar.gz',
-        fake='foo.tgz',
-        visual_92_categories='MNE-visual_92_categories.tar.gz',
-        mtrf='mTRF_1.5.zip',
-        fieldtrip_cmc='SubjectCMC.zip'
+        visual_92_categories=['MNE-visual_92_categories-data-part1.tar.gz',
+                              'MNE-visual_92_categories-data-part2.tar.gz'],
     )
-    if archive_name is not None:
-        archive_names.update(archive_name)
+    # original folder names that get extracted (only needed if the
+    # archive does not extract the right folder name; e.g., usually GitHub)
+    folder_origs = dict(  # not listed means None (no need to move)
+        misc='mne-misc-data-%s' % releases['misc'],
+        testing='mne-testing-data-%s' % releases['testing'],
+    )
+    # finally, where we want them to extract to (only needed if the folder name
+    # is not the same as the last bit of the archive name without the file
+    # extension)
     folder_names = dict(
         brainstorm='MNE-brainstorm-data',
         fake='foo',
         misc='MNE-misc-data',
         mtrf='mTRF_1.5',
         sample='MNE-sample-data',
-        somato='MNE-somato-data',
-        multimodal='MNE-multimodal-data',
-        spm='MNE-spm-face',
         testing='MNE-testing-data',
         visual_92_categories='MNE-visual_92_categories-data',
         fieldtrip_cmc='MNE-fieldtrip_cmc-data'
     )
-    urls = dict(
-        brainstorm='https://mne-tools.s3.amazonaws.com/datasets/'
-                   'MNE-brainstorm-data/%s',
-        fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
-             'datasets/%s',
-        misc='https://codeload.github.com/mne-tools/mne-misc-data/'
-             'tar.gz/%s' % releases['misc'],
-        sample="https://mne-tools.s3.amazonaws.com/datasets/%s",
-        somato='https://mne-tools.s3.amazonaws.com/datasets/%s',
-        spm='https://mne-tools.s3.amazonaws.com/datasets/%s',
-        testing='https://codeload.github.com/mne-tools/mne-testing-data/'
-                'tar.gz/%s' % releases['testing'],
-        multimodal='https://ndownloader.figshare.com/files/5999598',
-        visual_92_categories='https://mne-tools.s3.amazonaws.com/datasets/%s',
-        mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/%s",
-        fieldtrip_cmc='ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/'
-                      'tutorial/%s'
-    )
     hashes = dict(
-        brainstorm=None,
+        brainstorm=dict(
+            bst_auditory='fa371a889a5688258896bfa29dd1700b',
+            bst_phantom_ctf='80819cb7f5b92d1a5289db3fb6acb33c',
+            bst_phantom_elekta='1badccbe17998d18cc373526e86a7aaf',
+            bst_raw='f82ba1f17b2e7a2d96995c1c08e1cc8d',
+            bst_resting='a14186aebe7bd2aaa2d28db43aa6587e'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
         misc='d822a720ef94302467cb6ad1d320b669',
-        sample='1d5da3a809fded1ef5734444ab5bf857',
+        sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
-        spm='ecce87351d88def59d3d4cdc561e2a60',
+        spm='9f43f67150e3b694b523a21eb929ea75',
         testing='02796b3ab145ee9cad680a545563beb5',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
-        visual_92_categories='46c7e590f4a48596441ce001595d5e58',
+        visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
+                              '203410a98afc9df9ae8ba9f933370e20'],
         mtrf='273a390ebbc48da2c3184b01a82e4636',
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c'
     )
-    folder_origs = dict(  # not listed means None
-        misc='mne-misc-data-%s' % releases['misc'],
-        testing='mne-testing-data-%s' % releases['testing'],
-    )
-    folder_name = folder_names[name]
-    archive_name = archive_names[name]
-    hash_ = hashes[name]
+    assert set(hashes.keys()) == set(urls.keys())
     url = urls[name]
+    hash_ = hashes[name]
     folder_orig = folder_origs.get(name, None)
-    if '%s' in url:
-        url = url % archive_name
-
-    folder_path = op.join(path, folder_name)
     if name == 'brainstorm':
-        extract_path = folder_path
-        folder_path = op.join(folder_path, archive_names[name].split('.')[0])
+        assert archive_name is not None
+        url = [url[archive_name.split('.')[0]]]
+        folder_path = [op.join(path, folder_names[name],
+                               archive_name.split('.')[0])]
+        hash_ = [hash_[archive_name.split('.')[0]]]
+        archive_name = [archive_name]
+    else:
+        url = [url] if not isinstance(url, list) else url
+        hash_ = [hash_] if not isinstance(hash_, list) else hash_
+        archive_name = archive_names.get(name)
+        if archive_name is None:
+            archive_name = [u.split('/')[-1] for u in url]
+        if not isinstance(archive_name, list):
+            archive_name = [archive_name]
+        folder_path = [op.join(path, folder_names.get(name, a.split('.')[0]))
+                       for a in archive_name]
+    if not isinstance(folder_orig, list):
+        folder_orig = [folder_orig] * len(url)
+    folder_path = [op.abspath(f) for f in folder_path]
+    assert hash_ is not None
+    assert all(isinstance(x, list) for x in (url, archive_name, hash_,
+                                             folder_path))
+    assert len(url) == len(archive_name) == len(hash_) == len(folder_path)
+    logger.debug('URL:          %s' % (url,))
+    logger.debug('archive_name: %s' % (archive_name,))
+    logger.debug('hash:         %s' % (hash_,))
+    logger.debug('folder_path:  %s' % (folder_path,))
 
-    rm_archive = False
-    martinos_path = '/cluster/fusion/sample_data/' + archive_name
-    neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
-
-    if not op.exists(folder_path) and not download:
+    need_download = any(not op.exists(f) for f in folder_path)
+    if need_download and not download:
         return ''
-    if not op.exists(folder_path) or force_update:
+
+    if need_download or force_update:
+        logger.debug('Downloading: need_download=%s, force_update=%s'
+                     % (need_download, force_update))
+        for f in folder_path:
+            logger.debug('  Exists: %s: %s' % (f, op.exists(f)))
         if name == 'brainstorm':
             if '--accept-brainstorm-license' in sys.argv:
                 answer = 'y'
@@ -323,92 +361,103 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             if answer.lower() != 'y':
                 raise RuntimeError('You must agree to the license to use this '
                                    'dataset')
-        logger.info('Downloading or reinstalling '
-                    'data archive %s at location %s' % (archive_name, path))
+        assert len(url) == len(hash_)
+        assert len(url) == len(archive_name)
+        assert len(url) == len(folder_orig)
+        assert len(url) == len(folder_path)
+        for u, fp, an, h, fo in zip(url, folder_path, archive_name, hash_,
+                                    folder_orig):
+            _download_and_extract(path, name, u, fp, an, h, fo)
 
-        if op.exists(martinos_path):
-            archive_name = martinos_path
-        elif op.exists(neurospin_path):
-            archive_name = neurospin_path
-        else:
-            archive_name = op.join(path, archive_name)
-            rm_archive = True
-            fetch_archive = True
-            if op.exists(archive_name):
-                msg = ('Archive already exists. Overwrite it (y/[n])? ')
-                answer = input(msg)
-                if answer.lower() == 'y':
-                    os.remove(archive_name)
-                else:
-                    fetch_archive = False
-
-            if fetch_archive:
-                _fetch_file(url, archive_name, print_destination=False,
-                            hash_=hash_)
-
-        if op.exists(folder_path):
-            def onerror(func, path, exc_info):
-                """Deal with access errors (e.g. testing dataset read-only)."""
-                # Is the error an access error ?
-                do = False
-                if not os.access(path, os.W_OK):
-                    perm = os.stat(path).st_mode | stat.S_IWUSR
-                    os.chmod(path, perm)
-                    do = True
-                if not os.access(op.dirname(path), os.W_OK):
-                    dir_perm = (os.stat(op.dirname(path)).st_mode |
-                                stat.S_IWUSR)
-                    os.chmod(op.dirname(path), dir_perm)
-                    do = True
-                if do:
-                    func(path)
-                else:
-                    raise
-            shutil.rmtree(folder_path, onerror=onerror)
-
-        logger.info('Decompressing the archive: %s' % archive_name)
-        logger.info('(please be patient, this can take some time)')
-        if name != 'brainstorm':
-            extract_path = path
-        if name == 'fieldtrip_cmc':
-            extract_path = folder_path
-        if archive_name.endswith('.zip'):
-            with zipfile.ZipFile(archive_name, 'r') as ff:
-                ff.extractall(extract_path)
-        else:
-            for ext in ['gz', 'bz2']:  # informed guess
-                try:
-                    tf = tarfile.open(archive_name, 'r:%s' % ext)
-                    tf.extractall(path=extract_path)
-                    tf.close()
-                    break
-                except tarfile.ReadError as err:
-                    logger.info('%s is %s trying "bz2"' % (archive_name, err))
-        if folder_orig is not None:
-            shutil.move(op.join(path, folder_orig), folder_path)
-
-        if rm_archive:
-            os.remove(archive_name)
-
-    path = _do_path_update(path, update_path, key, name)
-    path = op.join(path, folder_name)
+    _do_path_update(path, update_path, key, name)
+    path = folder_path[0]
 
     # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
-    try:
-        from distutils.version import LooseVersion as LV
-    except:
-        warn('Could not determine %s dataset version; dataset could '
-             'be out of date. Please install the "distutils" package.'
-             % name)
-    else:  # 0.7 < 0.7.git shoud be False, therefore strip
-        if check_version and LV(data_version) < LV(mne_version.strip('.git')):
-            warn('The {name} dataset (version {current}) is older than '
-                 'mne-python (version {newest}). If the examples fail, '
-                 'you may need to update the {name} dataset by using '
-                 'mne.datasets.{name}.data_path(force_update=True)'.format(
-                     name=name, current=data_version, newest=mne_version))
+    # 0.7 < 0.7.git shoud be False, therefore strip
+    if check_version and (LooseVersion(data_version) <
+                          LooseVersion(mne_version.strip('.git'))):
+        warn('The {name} dataset (version {current}) is older than '
+             'mne-python (version {newest}). If the examples fail, '
+             'you may need to update the {name} dataset by using '
+             'mne.datasets.{name}.data_path(force_update=True)'.format(
+                 name=name, current=data_version, newest=mne_version))
     return (path, data_version) if return_version else path
+
+
+def _download_and_extract(path, name, url, folder_path, archive_name, hash_,
+                          folder_orig):
+    """Download and extract an archive."""
+    logger.info('Downloading or reinstalling '
+                'data archive %s at location %s' % (archive_name, path))
+    rm_archive = False
+    martinos_path = '/cluster/fusion/sample_data/' + archive_name
+    neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
+    if op.exists(martinos_path):
+        archive_name = martinos_path
+    elif op.exists(neurospin_path):
+        archive_name = neurospin_path
+    else:
+        archive_name = op.join(path, archive_name)
+        rm_archive = False  # XXX put back
+        fetch_archive = True
+        if op.exists(archive_name):
+            msg = ('Archive already exists. Overwrite it (y/[n])? ')
+            answer = input(msg)
+            if answer.lower() == 'y':
+                os.remove(archive_name)
+            else:
+                fetch_archive = False
+
+        if fetch_archive:
+            _fetch_file(url, archive_name, print_destination=False,
+                        hash_=hash_)
+
+    if op.exists(folder_path):
+        def onerror(func, path, exc_info):
+            """Deal with access errors (e.g. testing dataset read-only)."""
+            # Is the error an access error ?
+            do = False
+            if not os.access(path, os.W_OK):
+                perm = os.stat(path).st_mode | stat.S_IWUSR
+                os.chmod(path, perm)
+                do = True
+            if not os.access(op.dirname(path), os.W_OK):
+                dir_perm = (os.stat(op.dirname(path)).st_mode |
+                            stat.S_IWUSR)
+                os.chmod(op.dirname(path), dir_perm)
+                do = True
+            if do:
+                func(path)
+            else:
+                raise
+        shutil.rmtree(folder_path, onerror=onerror)
+
+    logger.info('Decompressing the archive: %s' % archive_name)
+    logger.info('(please be patient, this can take some time)')
+    if name == 'fieldtrip_cmc':
+        extract_path = folder_path
+    elif name == 'brainstorm':
+        extract_path = op.join(*op.split(folder_path)[:-1])
+    else:
+        extract_path = path
+    if archive_name.endswith('.zip'):
+        with zipfile.ZipFile(archive_name, 'r') as ff:
+            ff.extractall(extract_path)
+    else:
+        if archive_name.endswith('.bz2'):
+            ext = 'bz2'
+        else:
+            ext = 'gz'
+        with tarfile.open(archive_name, 'r:%s' % ext) as tf:
+            tf.extractall(path=extract_path)
+
+    if folder_orig is not None:
+        shutil.move(op.join(path, folder_orig), folder_path)
+
+    if rm_archive:
+        os.remove(archive_name)
+    logger.info('Successfully extracted to: %s' % folder_path)
 
 
 def _get_version(name):

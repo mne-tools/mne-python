@@ -1706,6 +1706,8 @@ class ProgressBar(object):
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
         self._do_print = verbose_bool
+        self.cur_time = time.time()
+        self.cur_rate = 0
 
     def update(self, cur_value, mesg=None):
         """Update progressbar with current value of process.
@@ -1721,9 +1723,15 @@ class ProgressBar(object):
             last message provided will be used.  To clear the current message,
             pass a null string, ''.
         """
+        cur_time = time.time()
+        cur_rate = ((cur_value - self.cur_value) /
+                    max(float(cur_time - self.cur_time), 1e-6))
+        # cur_rate += 0.9 * self.cur_rate
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
+        self.cur_time = cur_time
         self.cur_value = cur_value
+        self.cur_rate = cur_rate
         progress = min(float(self.cur_value) / self.max_value, 1.)
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
@@ -1731,8 +1739,10 @@ class ProgressBar(object):
         # Update the message
         if mesg is not None:
             if mesg == 'file_sizes':
-                mesg = '(%s / %s)' % (sizeof_fmt(self.cur_value),
-                                      sizeof_fmt(self.max_value))
+                mesg = '(%s / %s, %s/s)' % (
+                    sizeof_fmt(self.cur_value).rjust(8),
+                    sizeof_fmt(self.max_value).rjust(8),
+                    sizeof_fmt(cur_rate).rjust(8))
             self.mesg = mesg
 
         # The \r tells the cursor to return to the beginning of the line rather
@@ -1766,8 +1776,7 @@ class ProgressBar(object):
             last message provided will be used.  To clear the current message,
             pass a null string, ''.
         """
-        self.cur_value += increment_value
-        self.update(self.cur_value, mesg)
+        self.update(self.cur_value + increment_value, mesg)
 
     def __iter__(self):
         """Iterate to auto-increment the pbar with 1."""
@@ -1841,7 +1850,9 @@ def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
         initial_size = 0
     total_size += initial_size
     if total_size != file_size:
-        raise RuntimeError('URL could not be parsed properly')
+        raise RuntimeError('URL could not be parsed properly '
+                           '(total size %s != file size %s)'
+                           % (total_size, file_size))
     mode = 'ab' if initial_size > 0 else 'wb'
     progress = ProgressBar(total_size, initial_value=initial_size,
                            max_chars=40, spinner=True, mesg='file_sizes',
@@ -1936,10 +1947,16 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                                'file (%s), cannot resume download'
                                % (sizeof_fmt(initial_size),
                                   sizeof_fmt(file_size)))
-
-        scheme = urllib.parse.urlparse(url).scheme
-        fun = _get_http if scheme in ('http', 'https') else _get_ftp
-        fun(url, temp_file_name, initial_size, file_size, verbose_bool)
+        elif initial_size == file_size:
+            # This should really only happen when a hash is wrong
+            # during dev updating
+            warn('Local file appears to be complete (file_size == '
+                 'initial_size == %s)' % (file_size,))
+        else:
+            # Need to resume or start over
+            scheme = urllib.parse.urlparse(url).scheme
+            fun = _get_http if scheme in ('http', 'https') else _get_ftp
+            fun(url, temp_file_name, initial_size, file_size, verbose_bool)
 
         # check md5sum
         if hash_ is not None:

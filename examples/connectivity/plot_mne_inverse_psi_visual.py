@@ -64,19 +64,22 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 snr = 1.0  # use lower SNR for single epochs
 lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
-                            pick_ori="normal", return_generator=False)
+                            pick_ori="normal", return_generator=True)
 
 # Now, we generate seed time series by averaging the activity in the left
 # visual corex
 label = mne.read_label(fname_label)
 src = inverse_operator['src']  # the source space used
-seed_ts = mne.extract_label_time_course(stcs, label, src, mode='mean_flip')
+seed_ts = mne.extract_label_time_course(stcs, label, src, mode='mean_flip',
+                                        verbose='error')
 
 # Combine the seed time course with the source estimates. There will be a total
 # of 7500 signals:
 # index 0: time course extracted from label
 # index 1..7499: dSPM source space time courses
-comb_ts = zip(seed_ts, stcs)
+stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
+                            pick_ori="normal", return_generator=True)
+comb_ts = list(zip(seed_ts, stcs))
 
 # Construct indices to estimate connectivity between the label time course
 # and all source space time courses

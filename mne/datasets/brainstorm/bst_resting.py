@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 from functools import partial
-import os.path as op
 
 from ...utils import verbose
 from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
@@ -22,14 +21,10 @@ URL: http://neuroimage.usc.edu/brainstorm/DatasetResting
 @verbose
 def data_path(path=None, force_update=False, update_path=True, download=True,
               verbose=None):  # noqa: D103
-    archive_name = dict(brainstorm='bst_resting.tar.gz')
-    data_path = _data_path(path=path, force_update=force_update,
-                           update_path=update_path, name='brainstorm',
-                           download=download, archive_name=archive_name)
-    if data_path != '':
-        return op.join(data_path, 'bst_resting')
-    else:
-        return data_path
+    return _data_path(path=path, force_update=force_update,
+                      update_path=update_path, name='brainstorm',
+                      download=download, archive_name='bst_resting.tar.gz')
+
 
 _data_path_doc = _data_path_doc.format(name='brainstorm',
                                        conf='MNE_DATASETS_BRAINSTORM_DATA'
@@ -41,6 +36,7 @@ data_path.__doc__ = _data_path_doc
 
 def get_version():  # noqa: D103
     return _get_version('brainstorm')
+
 
 get_version.__doc__ = _version_doc.format(name='brainstorm')
 
