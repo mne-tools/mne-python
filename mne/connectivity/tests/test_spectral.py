@@ -79,7 +79,7 @@ def test_spectral_connectivity():
     modes = ['multitaper', 'fourier', 'cwt_morlet']
 
     # define some frequencies for cwt
-    cwt_frequencies = np.arange(3, 24.5, 1)
+    cwt_freqs = np.arange(3, 24.5, 1)
 
     for mode in modes:
         for method in methods:
@@ -91,7 +91,7 @@ def test_spectral_connectivity():
 
             if method == 'coh' and mode == 'cwt_morlet':
                 # so we also test using an array for num cycles
-                cwt_n_cycles = 7. * np.ones(len(cwt_frequencies))
+                cwt_n_cycles = 7. * np.ones(len(cwt_freqs))
             else:
                 cwt_n_cycles = 7.
 
@@ -105,7 +105,7 @@ def test_spectral_connectivity():
                 con, freqs, times, n, _ = spectral_connectivity(
                     data, method=method, mode=mode, indices=None, sfreq=sfreq,
                     mt_adaptive=adaptive, mt_low_bias=True,
-                    mt_bandwidth=mt_bandwidth, cwt_frequencies=cwt_frequencies,
+                    mt_bandwidth=mt_bandwidth, cwt_freqs=cwt_freqs,
                     cwt_n_cycles=cwt_n_cycles)
 
                 assert_true(n == n_epochs)
@@ -162,7 +162,7 @@ def test_spectral_connectivity():
                     stc_data, method=test_methods, mode=mode, indices=indices,
                     sfreq=sfreq, mt_adaptive=adaptive, mt_low_bias=True,
                     mt_bandwidth=mt_bandwidth, tmin=tmin, tmax=tmax,
-                    cwt_frequencies=cwt_frequencies,
+                    cwt_freqs=cwt_freqs,
                     cwt_n_cycles=cwt_n_cycles, n_jobs=2)
 
                 assert_true(isinstance(con2, list))
@@ -195,7 +195,7 @@ def test_spectral_connectivity():
                     data, method=method, mode=mode, indices=indices,
                     sfreq=sfreq, fmin=fmin, fmax=fmax, fskip=1, faverage=True,
                     mt_adaptive=adaptive, mt_low_bias=True,
-                    mt_bandwidth=mt_bandwidth, cwt_frequencies=cwt_frequencies,
+                    mt_bandwidth=mt_bandwidth, cwt_freqs=cwt_freqs,
                     cwt_n_cycles=cwt_n_cycles)
 
                 assert_true(isinstance(freqs3, list))

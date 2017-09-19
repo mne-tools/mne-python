@@ -55,9 +55,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # Compute a source estimate per frequency band including and excluding the
 # evoked response
-frequencies = np.arange(7, 30, 2)  # define frequencies of interest
+freqs = np.arange(7, 30, 2)  # define frequencies of interest
 label = mne.read_label(fname_label)
-n_cycles = frequencies / 3.  # different number of cycle per frequency
+n_cycles = freqs / 3.  # different number of cycle per frequency
 
 # subtract the evoked response in order to exclude evoked activity
 epochs_induced = epochs.copy().subtract_evoked()
@@ -69,7 +69,7 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
                                                'induced only'])):
     # compute the source space power and the inter-trial coherence
     power, itc = source_induced_power(
-        this_epochs, inverse_operator, frequencies, label, baseline=(-0.1, 0),
+        this_epochs, inverse_operator, freqs, label, baseline=(-0.1, 0),
         baseline_mode='percent', n_cycles=n_cycles, n_jobs=1)
 
     power = np.mean(power, axis=0)  # average over sources
@@ -81,7 +81,7 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
     plt.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.43)
     plt.subplot(2, 2, 2 * ii + 1)
     plt.imshow(20 * power,
-               extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+               extent=[times[0], times[-1], freqs[0], freqs[-1]],
                aspect='auto', origin='lower', vmin=0., vmax=30., cmap='RdBu_r')
     plt.xlabel('Time (s)')
     plt.ylabel('Frequency (Hz)')
@@ -90,7 +90,7 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
 
     plt.subplot(2, 2, 2 * ii + 2)
     plt.imshow(itc,
-               extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+               extent=[times[0], times[-1], freqs[0], freqs[-1]],
                aspect='auto', origin='lower', vmin=0, vmax=0.7,
                cmap='RdBu_r')
     plt.xlabel('Time (s)')

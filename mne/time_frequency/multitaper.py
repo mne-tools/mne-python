@@ -4,7 +4,7 @@
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
 import numpy as np
-from scipy import fftpack, linalg
+from scipy import linalg
 
 from ..parallel import parallel_func
 from ..utils import sum_squared, warn, verbose
@@ -143,6 +143,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     Volume 57 (1978), 1371430
     """
     from scipy import interpolate
+    from ..filter import next_fast_len
     Kmax = int(Kmax)
     W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
@@ -226,9 +227,9 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
-    n_fft = 2 ** int(np.ceil(np.log2(rxx_size)))
-    dpss_fft = fftpack.fft(dpss, n_fft)
-    dpss_rxx = np.real(fftpack.ifft(dpss_fft * dpss_fft.conj()))
+    n_fft = next_fast_len(rxx_size)
+    dpss_fft = np.fft.rfft(dpss, n_fft)
+    dpss_rxx = np.fft.irfft(dpss_fft * dpss_fft.conj(), n_fft)
     dpss_rxx = dpss_rxx[:, :N]
 
     r = 4 * W * np.sinc(2 * W * nidx)
@@ -432,17 +433,18 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     x = x - np.mean(x, axis=-1)[:, np.newaxis]
 
     # only keep positive frequencies
-    freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
-    freq_mask = (freqs >= 0)
-    freqs = freqs[freq_mask]
+    freqs = np.fft.rfftfreq(n_fft, 1. / sfreq)
 
     # The following is equivalent to this, but uses less memory:
     # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
     n_tapers = dpss.shape[0] if dpss.ndim > 1 else 1
-    x_mt = np.zeros((len(x), n_tapers, freq_mask.sum()), dtype=np.complex128)
+    x_mt = np.zeros((len(x), n_tapers, len(freqs)), dtype=np.complex128)
     for idx, sig in enumerate(x):
-        x_mt[idx] = fftpack.fft(sig[np.newaxis, :] * dpss,
-                                n=n_fft)[:, freq_mask]
+        x_mt[idx] = np.fft.rfft(sig[np.newaxis, :] * dpss, n=n_fft)
+    # Adjust DC and maybe Nyquist, depending on one-sided transform
+    x_mt[:, :, 0] /= np.sqrt(2.)
+    if x.shape[1] % 2 == 0:
+        x_mt[:, :, -1] /= np.sqrt(2.)
     return x_mt, freqs
 
 
@@ -518,9 +520,8 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
                                  low_bias=low_bias)
 
-    # descide which frequencies to keep
-    freqs = fftpack.fftfreq(x.shape[1], 1. / sfreq)
-    freqs = freqs[(freqs >= 0)]  # what we get from _mt_spectra
+    # decide which frequencies to keep
+    freqs = np.fft.rfftfreq(x.shape[1], 1. / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
 
@@ -558,9 +559,10 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
 
 @verbose
-def tfr_array_multitaper(epoch_data, sfreq, frequencies, n_cycles=7.0,
+def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
                          zero_mean=True, time_bandwidth=None, use_fft=True,
-                         decim=1, output='complex', n_jobs=1, verbose=None):
+                         decim=1, output='complex', n_jobs=1,
+                         frequencies=None, verbose=None):
     """Compute time-frequency transforms using wavelets and multitaper windows.
 
     Uses Morlet wavelets windowed with multiple DPSS tapers.
@@ -571,7 +573,7 @@ def tfr_array_multitaper(epoch_data, sfreq, frequencies, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    frequencies : array-like of floats, shape (n_freqs)
+    freqs : array-like of floats, shape (n_freqs)
         The frequencies.
     n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number or one per
@@ -633,8 +635,9 @@ def tfr_array_multitaper(epoch_data, sfreq, frequencies, n_cycles=7.0,
     .. versionadded:: 0.14.0
     """
     from .tfr import _compute_tfr
-    return _compute_tfr(epoch_data, frequencies, sfreq=sfreq,
+    return _compute_tfr(epoch_data, freqs, sfreq=sfreq,
                         method='multitaper', n_cycles=n_cycles,
                         zero_mean=zero_mean, time_bandwidth=time_bandwidth,
                         use_fft=use_fft, decim=decim, output=output,
-                        n_jobs=n_jobs, verbose=verbose)
+                        n_jobs=n_jobs, frequencies=frequencies,
+                        verbose=verbose)
