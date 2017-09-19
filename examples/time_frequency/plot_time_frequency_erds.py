@@ -44,6 +44,7 @@ References
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.gridspec as gridspec
 import mne
 from mne.datasets import eegbci
 from mne.io import concatenate_raws, read_raw_edf
@@ -103,7 +104,8 @@ for event in event_ids:
                            use_fft=True, return_itc=False, decim=2)
     power.crop(tmin, tmax)
 
-    fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+    fig, ax = plt.subplots(1, 4, figsize=(12, 4),
+                           gridspec_kw={"width_ratios": [10, 10, 10, 1]})
     for i in range(3):
         power.plot([i], baseline=[-1, 0], mode="percent", vmin=vmin, vmax=vmax,
                    cmap=(cmap, False), axes=ax[i], colorbar=False, show=False)
@@ -115,6 +117,6 @@ for event in event_ids:
             ax[i].set_yticklabels("")
         else:
             ax[i].set_ylabel("f (Hz)")
-
+    fig.colorbar(ax[0].collections[0], cax=ax[-1])
     fig.suptitle("ERDS ({})".format(event))
     fig.show()
