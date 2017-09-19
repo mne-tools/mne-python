@@ -18,7 +18,7 @@ goal is to generate ERDS maps for each of the two tasks.
 
 First, we load the data and create epochs of 5s length. The data sets contain
 multiple channels, but we will only consider the three channels C3, Cz, and C4.
-We compute maps containing frequencies ranging from 2 to 30Hz. We map ERD to
+We compute maps containing frequencies ranging from 2 to 35Hz. We map ERD to
 red color and ERS to blue color, which is the convention in many ERDS
 publications. Note that we do not perform any significance tests on the map
 values, but instead we display the whole time/frequency maps.
@@ -93,7 +93,7 @@ epochs = mne.Epochs(raw, events, event_ids, tmin - 0.5, tmax + 0.5,
                     picks=picks, baseline=None, preload=True)
 
 # compute ERDS maps ###########################################################
-freqs = np.arange(2, 36, 1)  # frequencies from 2-30Hz
+freqs = np.arange(2, 36, 1)  # frequencies from 2-35Hz
 n_cycles = freqs  # use constant t/f resolution
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
 cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # zero maps to white
