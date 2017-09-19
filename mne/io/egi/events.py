@@ -49,7 +49,8 @@ def _read_mff_events(filename, sfreq):
         orig[xml_type] = _parse_xml(xml_file)
     xml_files = orig.keys()
     xml_events = [x for x in xml_files if x[:7] == 'Events_']
-    start_time = _ns2py_time(orig['info'][1]['recordTime'])
+    idx = [i for i, x in enumerate(orig['info']) if 'recordTime' in x][0]
+    start_time = _ns2py_time(orig['info'][idx]['recordTime'])
     markers = []
     code = []
     for xml in xml_events:

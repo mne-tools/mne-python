@@ -71,6 +71,8 @@ def _read_mff_header(filepath):
     info_filepath = filepath + "/" + "info.xml"  # add with filepath
     tags = ['mffVersion', 'recordTime']
     version_and_date = _extract(tags, filepath=info_filepath)
+    if len(version_and_date['mffVersion']) == 0:
+        version_and_date['mffVersion'] = [1]
     summaryinfo.update(version=version_and_date['mffVersion'][0],
                        date=version_and_date['recordTime'][0],
                        n_samples=n_samples, n_trials=n_trials,
