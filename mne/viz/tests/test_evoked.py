@@ -148,7 +148,7 @@ def test_plot_evoked():
                              picks=[0, 2], vlines=[.01, -.04], invert_y=True,
                              truncate_yaxis=False, ylim=dict(mag=(-10, 10)),
                              styles={"red/stim": {"linewidth": 1}},
-                             show_sensors=(1, .1))
+                             show_sensors=True)
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, picks='str')  # bad picks: not int
         assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,

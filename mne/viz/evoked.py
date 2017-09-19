@@ -1496,16 +1496,13 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     invert_y : bool
         If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
-    show_sensors: None|  bool | int | float | tuple
+    show_sensors: bool | int | None
         If not False, channel locations are plotted on a small head circle.
-        If an int > 1, the position of the axes (forwarded to
+        If an int, the position of the axes (forwarded to
         ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
-        If a float, the size of the legend relative to the axes.
-        If a tuple, must be one integer and one float, and will be interpreted
-        as (loc, size).
         If None, defaults to True if ``gfp`` is False, else to False.
     show_legend : bool | int
-        If not False, show a legend If an int > 1, the position of the axes
+        If not False, show a legend. If int, the position of the axes
         (forwarded to ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
     axes : None | `matplotlib.axes.Axes` instance | list of `axes`
         What axes to plot to. If None, a new axes is created.
@@ -1789,20 +1786,19 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             pos, outlines = _check_outlines(
                     pos, np.array([1, 1]), {'center': (0, 0),
                                  'scale': (0.5, 0.5)})
-            try:
-                loc, size = show_sensors
-            except (ValueError, TypeError):  # duck type iterable of len 2
-                if not isinstance(show_sensors, (np.int, np.float)):
-                    raise TypeError("`show_sensors` must be numeric or of ",
-                                     "length 2, not" + str(type(show_sensors)))
-                loc = show_sensors if int(show_sensors) > 1 else 2
-                size = .2 if isinstance(show_sensors, int) else show_sensors
-            _plot_legend(pos, ["k" for _ in picks], axes, [], outlines, loc,
-                         size=size * 100)
+            if not isinstance(show_sensors, (np.int, bool)):
+                raise TypeError("`show_sensors` must be numeric or of ",
+                                 "length 2, not" + str(type(show_sensors)))
+            if show_sensors is True:
+                show_sensors = 2
+            _plot_legend(pos, ["k" for _ in picks], axes, list(), outlines,
+                         show_sensors, size=20)
 
     if show_legend and len(conditions) > 1:
-        loc = show_legend if int(show_legend) > 1 else 1
-        axes.legend(loc='best', ncol=1 + (len(conditions) // 5), frameon=True)
+        if show_legend is True:
+            show_legend = 'best'
+        axes.legend(loc=show_legend, ncol=1 + (len(conditions) // 5),
+                    frameon=True)
 
     plt_show(show)
     return fig
