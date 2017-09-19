@@ -144,7 +144,10 @@ def _block_r(fid):
     nsamples = int(hl / nc)
     np.fromfile(fid, dtype=np.dtype('i4'), count=nc)  # sigoffset
     sigfreq = np.fromfile(fid, dtype=np.dtype('i4'), count=nc)
-    sfreq = (sigfreq[0] - 32) / ((nc - 1) * 2)
+    depth = sigfreq[0] & 0xFF
+    if depth != 32:
+        raise ValueError('I do not know how to read this MFF (depth != 32)')
+    sfreq = sigfreq[0] >> 8
     count = int(header_size / 4 - (4 + 2 * nc))
     np.fromfile(fid, dtype=np.dtype('i4'), count=count)  # sigoffset
     block = dict(nc=nc,
