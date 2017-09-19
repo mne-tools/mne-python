@@ -118,7 +118,8 @@ def _get_blocks(filepath):
 def _get_signalfname(filepath, infontype):
     """Get filenames."""
     listfiles = os.listdir(filepath)
-    binfiles = list(f for f in listfiles if 'signal' in f and f[-4:] == '.bin')
+    binfiles = list(f for f in listfiles if 'signal' in f and
+                    f[-4:] == '.bin' and f[0] != '.')
     signalfile = []
     infofiles = []
     for binfile in binfiles:
