@@ -524,11 +524,11 @@ def test_compute_tfr():
         # Check exception
         if (func == tfr_array_multitaper) and (output == 'phase'):
             assert_raises(NotImplementedError, func, data, sfreq=sfreq,
-                          frequencies=freqs, output=output)
+                          freqs=freqs, output=output)
             continue
 
         # Check runs
-        out = func(data, sfreq=sfreq, frequencies=freqs, use_fft=use_fft,
+        out = func(data, sfreq=sfreq, freqs=freqs, use_fft=use_fft,
                    zero_mean=zero_mean, n_cycles=2., output=output)
         # Check shapes
         shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]

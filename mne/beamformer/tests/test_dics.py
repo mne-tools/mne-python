@@ -209,8 +209,8 @@ def test_dics_source_power():
                   [noise_csd] * 2, [data_csd] * 3)
 
     # Test detection of different frequencies in noise and data CSD objects
-    noise_csd.frequencies = [1, 2]
-    data_csd.frequencies = [1, 2, 3]
+    noise_csd.freqs = [1, 2]
+    data_csd.freqs = [1, 2, 3]
     assert_raises(ValueError, dics_source_power, epochs.info, forward,
                   noise_csd, data_csd)
 
@@ -218,7 +218,7 @@ def test_dics_source_power():
     data_csds = [cp.deepcopy(data_csd) for i in range(3)]
     frequencies = [1, 3, 4]
     for freq, data_csd in zip(frequencies, data_csds):
-        data_csd.frequencies = [freq]
+        data_csd.freqs = [freq]
     noise_csds = data_csds
     with warnings.catch_warnings(record=True) as w:
         dics_source_power(epochs.info, forward, noise_csds, data_csds)
