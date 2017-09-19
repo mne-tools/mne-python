@@ -9,9 +9,9 @@ For related uses of :class:`mne.Epochs`, see the starting tutorial
 Sometimes you've got a more complex trials structure that cannot be easily
 summarized as a set of unique integers. In this case, it may be useful to use
 the ``metadata`` attribute of :class:`mne.Epochs` objects. This must be a
-:class:`pandas.DataFrame` where each row is an epoch, and each column
-corresponds to a metadata attribute of each epoch. Columns must be either
-strings, ints, or floats.
+:class:`pandas.DataFrame` where each row corresponds to an epoch, and each
+column corresponds to a metadata attribute of each epoch. Columns must
+contain either strings, ints, or floats.
 
 In this dataset, subjects were presented with individual words
 on a screen, and the EEG activity in response to each word was recorded.
