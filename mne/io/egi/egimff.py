@@ -390,11 +390,12 @@ class RawMff(BaseRaw):
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
+        if 'pns_names' in egi_info:
+            egi_info['pns_filepath'] = op.join(
+                input_fname, egi_info['pns_fname'])
+
         self._filenames = [file_bin]
         self._raw_extras = [egi_info]
-
-        if 'pns_names' in egi_info:
-            self._pns_filenames = [op.join(input_fname, egi_info['pns_fname'])]
 
         super(RawMff, self).__init__(
             info, preload=preload, orig_format='float', filenames=[file_bin],
@@ -462,6 +463,7 @@ class RawMff(BaseRaw):
                               mult)
         if 'pns_names' in egi_info:
             # PNS Data is present
+            pns_filepath = egi_info['pns_filepath']
             offset = egi_info['header_sizes'][0] - n_bytes
             n_pns_channels = egi_info['n_pns_channels']
             n_samples = egi_info['samples_block'][0]
@@ -472,7 +474,7 @@ class RawMff(BaseRaw):
             extra_samps = (start // n_samples)
             beginning = extra_samps * block_size
             data_left += (data_offset - offset) // n_bytes - beginning
-            with open(self._pns_filenames[fi], 'rb', buffering=0) as fid:
+            with open(pns_filepath, 'rb', buffering=0) as fid:
                 fid.seek(int(beginning * n_bytes + offset +
                              extra_samps * n_bytes))
                 sample_start = 0
