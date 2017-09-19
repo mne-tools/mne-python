@@ -115,22 +115,25 @@ def _get_blocks(filepath):
     return signal_blocks
 
 
-def _get_signalfname(filepath, infontype):
+def _get_signalfname(filepath):
     """Get filenames."""
     listfiles = os.listdir(filepath)
     binfiles = list(f for f in listfiles if 'signal' in f and
                     f[-4:] == '.bin' and f[0] != '.')
-    signalfile = []
-    infofiles = []
+    all_files = {}
     for binfile in binfiles:
         bin_num_str = re.search(r'\d+', binfile).group()
         infofile = 'info' + bin_num_str + '.xml'
         infobjfile = os.path.join(filepath, infofile)
         infobj = parse(infobjfile)
-        if infobj.getElementsByTagName(infontype) is not None:
-            signalfile.append('signal' + bin_num_str + '.bin')
-            infofiles.append(infofile)
-    return signalfile, infofiles
+        if len(infobj.getElementsByTagName('EEG')):
+            signal_type = 'EEG'
+        elif len(infobj.getElementsByTagName('PNSData')):
+            signal_type = 'PNS'
+        all_files[signal_type] = {
+            'signal': 'signal{}.bin'.format(bin_num_str),
+            'info': infofile}
+    return all_files
 
 
 def _block_r(fid):
