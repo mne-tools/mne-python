@@ -286,6 +286,7 @@ intersphinx_mapping = {
     'nibabel': ('http://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
 }
 
 examples_dirs = ['../examples', '../tutorials']

@@ -3,13 +3,15 @@ Pandas querying and metadata with Epochs objects
 ------------------------------------------------
 
 Demonstrating pandas-style string querying with Epochs metadata.
+For related uses of :class:`mne.Epochs`, see the starting tutorial
+:ref:`sphx_glr_auto_tutorials_plot_object_epochs.py`.
 
 Sometimes you've got a more complex trials structure that cannot be easily
 summarized as a set of unique integers. In this case, it may be useful to use
-the ``metadata`` attribute of ``Epochs`` objects. This must be a pandas
-``DataFrame`` where each row is an epoch, and each column corresponds to a
-metadata attribute of each epoch. Columns must be either strings, ints, or
-floats.
+the ``metadata`` attribute of :class:`mne.Epochs` objects. This must be a
+:class:`pandas.DataFrame` where each row is an epoch, and each column
+corresponds to a metadata attribute of each epoch. Columns must be either
+strings, ints, or floats.
 
 In this dataset, subjects were presented with individual words
 on a screen, and the EEG activity in response to each word was recorded.
@@ -18,13 +20,12 @@ extra information about the word (e.g., word frequency).
 
 Loading the data
 ================
-First we'll load the data. If metadata exists for an ``Epochs`` fif file,
-it will automatically be loaded in the ``.metadata`` attribute.
+First we'll load the data. If metadata exists for an :class:`mne.Epochs`
+fif file, it will automatically be loaded in the ``metadata`` attribute.
 """
 
 import mne
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the data from the internet
@@ -32,12 +33,13 @@ path = mne.datasets.kiloword.data_path() + '/kword_metadata-epo.fif'
 epochs = mne.read_epochs(path)
 
 # The metadata exists as a Pandas DataFrame
-epochs.metadata.head(10)
+print(epochs.metadata.head(10))
 
 ###############################################################################
 # We can use this metadata attribute to select subsets of Epochs. This
-# uses the Pandas ``query`` method under the hood. Any valid query string will
-# work. Below we'll make two plots to compare between them:
+# uses the Pandas :meth:`pandas.DataFrame.query` method under the hood.
+# Any valid query string will work. Below we'll make two plots to compare
+# between them:
 
 av1 = epochs['Concreteness < 5 and WordFrequency < 2'].average()
 av2 = epochs['Concreteness > 5 and WordFrequency > 2'].average()
@@ -87,14 +89,14 @@ fig, ax = plt.subplots(figsize=(6, 3))
 fig = mne.viz.evoked.plot_compare_evokeds(
     avs, picks=ix_plot, show=False, axes=ax, **style_plot)
 ax.legend(loc=[1.05, .1])
+plt.show()
 
 ###############################################################################
 # .. note::
 #
-#    Creating an ``Epochs`` object with metadata is done by passing a Pandas
-#    dataframe to the ``metadata`` kwarg as follows:
+#    Creating an :class:`mne.Epochs` object with metadata is done by passing
+#    a :class:`pandas.DataFrame` to the ``metadata`` kwarg as follows:
 
 data = epochs.get_data()
 metadata = epochs.metadata.copy()
 epochs_new = mne.EpochsArray(data, epochs.info, metadata=metadata)
-plt.show()
