@@ -164,7 +164,7 @@ def test_plot_evoked():
         assert_raises(TypeError, plot_compare_evokeds, evoked, picks=3,
                       ci='fake')  # ci must be float or None
         assert_raises(TypeError, plot_compare_evokeds, evoked, picks=3,
-                      show_sensors='a')  # ci must be float or None
+                      show_sensors='a')  # show_sensors must be int or bool
         contrast["red/stim"] = red
         contrast["blue/stim"] = blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],

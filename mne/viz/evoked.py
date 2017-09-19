@@ -166,13 +166,8 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
-#    if not show_bads:
-#            not_in_bads = [x for x in range(len(pos)) if x not in bads]
-#            colors = np.array(colors[not_in_bads])
-#            pos = pos[not_in_bads]
     pos_x, pos_y = _prepare_topomap(pos, ax)
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
-#    if bads and show_bads:
     if bads:
         bads = np.array(bads)
         ax.scatter(pos_x[bads], pos_y[bads], s=size / 6, marker='.', color='w',
