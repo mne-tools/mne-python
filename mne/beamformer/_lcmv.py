@@ -50,14 +50,14 @@ def _reg_pinv(x, reg):
     return linalg.pinv(x), d
 
 
-def _eig_inv(x, signalspace):
+def _eig_inv(x, rank):
     """Compute a pseudoinverse with smallest component set to zero."""
     U, s, V = linalg.svd(x)
 
     # pseudoinverse is computed by setting eigenvalues not included in
     # signalspace to zero
     s_inv = np.zeros(s.shape)
-    s_inv[signalspace] = 1 / s[signalspace]
+    s_inv[:rank] = 1 / s[:rank]
 
     x_inv = np.dot(V.T, np.dot(np.diag(s_inv), U.T))
     return x_inv
@@ -256,9 +256,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     # leadfield rank and optional rank reduction
     if reduce_rank is not False:
         if not pick_ori == 'max-power':
-            raise NotImplementedError('Leadfield rank reduction is not yet '
+            raise NotImplementedError('The computation of a rank reduced'
+                                      'leadfield with reduce_rank is not yet '
                                       'implemented with free or fixed '
-                                      'orientation.')
+                                      'orientation of the forward solution.')
         if isinstance(reduce_rank, bool):
             rank_G = estimate_rank(G[:, 0:3], tol='auto') - 1
         else:
@@ -291,19 +292,20 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
                 if rank_G == 3:
                     # use straight inverse with full rank leadfield
-                    eig_vals, eig_vecs = linalg.eig(np.dot(linalg.inv(tmp),
-                                                    np.dot(Wk, Gk)))
+                    tmp_inv = linalg.inv(tmp)
                 else:
                     # use pseudo inverse computation setting smallest component
                     # to zero if the leadfield is not full rank
-                    eig_vals, eig_vecs = linalg.eig(np.dot(
-                                                    _eig_inv(tmp,
-                                                             range(rank_G)),
-                                                    np.dot(Wk, Gk)))
+                    tmp_inv = _eig_inv(tmp, rank_G)
+
+                eig_vals, eig_vecs = linalg.eig(np.dot(tmp_inv,
+                                                       np.dot(Wk, Gk)))
 
                 if np.iscomplex(eig_vecs).any():
                     raise ValueError('The eigenspectrum of the leadfield at '
-                                     'this voxel is complex.')
+                                     'this voxel is complex. Consider '
+                                     'reducing the rank of the leadfield by '
+                                     'using reduce_rank=True.')
 
                 idx_max = eig_vals.argmax()
                 max_ori = eig_vecs[:, idx_max]
