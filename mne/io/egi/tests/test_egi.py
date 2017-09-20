@@ -10,6 +10,8 @@ import inspect
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from nose.tools import assert_true, assert_raises, assert_equal
+from scipy import io as sio
+
 
 from mne import find_events, pick_types
 from mne.io import read_raw_egi
@@ -112,5 +114,46 @@ def test_io_egi():
     for ii, k in enumerate(include, 1):
         assert_true(k in raw.event_id)
         assert_true(raw.event_id[k] == ii)
+
+
+@requires_testing_data
+def test_io_egi_pns_mff():
+    """Test importing EGI MFF with PNS data"""
+    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns.mff')
+    raw = read_raw_egi(egi_fname_mff, include=None, preload=True)
+    assert_true('RawMff' in repr(raw))
+    pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
+    assert_equal(len(pns_chans), 7)
+    names = [raw.ch_names[x] for x in pns_chans]
+    pns_names = ['Resp. Temperature',
+                 'Resp. Pressure',
+                 'ECG',
+                 'Body Position',
+                 'Resp. Effort Chest',
+                 'Resp. Effort Abdomen',
+                 'EMG-Leg']
+    raw2 = _test_raw_reader(read_raw_egi, input_fname=egi_fname_mff,
+                            channel_naming='EEG %03d')
+    assert_equal(names, pns_names)
+    mat_names = [
+        'Resp_Temperature',
+        'Resp_Pressure',
+        'ECG',
+        'Body_Position',
+        'Resp_Effort_Chest',
+        'Resp_Effort_Abdomen',
+        'EMGLeg'
+
+    ]
+    egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
+    mc = sio.loadmat(egi_fname_mat)
+    for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
+        print('Testing {}'.format(ch_name))
+        mc_key = [x for x in mc.keys() if mat_name in x][0]
+        cal = raw.info['chs'][ch_idx]['cal']
+        mat_data = np.squeeze(mc[mc_key]) * cal
+        raw_data = np.squeeze(raw._data[ch_idx, :])
+        assert_array_equal(mat_data, raw_data)
+
 
 run_tests_if_main()
