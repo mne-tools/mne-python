@@ -1782,8 +1782,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                     pos, np.array([1, 1]), {'center': (0, 0),
                                  'scale': (0.5, 0.5)})
             if not isinstance(show_sensors, (np.int, bool)):
-                raise TypeError("`show_sensors` must be numeric or of ",
-                                 "length 2, not" + str(type(show_sensors)))
+                raise TypeError("`show_sensors` must be numeric or bool, not" +
+                                str(type(show_sensors)))
             if show_sensors is True:
                 show_sensors = 2
             _plot_legend(pos, ["k" for _ in picks], axes, list(), outlines,

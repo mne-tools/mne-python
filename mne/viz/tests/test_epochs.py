@@ -154,7 +154,7 @@ def test_plot_epochs_image():
         epochs.plot_image(overlay_times=[1.1], combine="gfp")
         assert_raises(ValueError, epochs.plot_image, combine='error')
         warnings.simplefilter('always')
-    assert_equal(len(w), 4)
+    assert_equal(len(w), 5)
 
     plt.close('all')
 
