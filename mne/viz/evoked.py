@@ -1384,7 +1384,8 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
             ymax_ = ymax
         yticks = (ymin_ if any_negative else 0, ymax_ if any_positive else 0)
         axes.set_yticks(yticks)
-        ymin_bound, ymax_bound = (-(abs_lims // fraction), abs_lims // fraction)
+        ymin_bound, ymax_bound = (-(abs_lims // fraction),
+                                  abs_lims // fraction)
         # user supplied ymin and ymax still overwrite everything
         if ymin is not None and ymin > ymin_bound:
             ymin_bound = ymin
@@ -1778,15 +1779,14 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             warn("Cannot find channel coordinates in the supplied Evokeds. "
                  "Not showing channel locations.")
         else:
-            pos, outlines = _check_outlines(
-                    pos, np.array([1, 1]), {'center': (0, 0),
-                                 'scale': (0.5, 0.5)})
+            head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
+            pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
             if not isinstance(show_sensors, (np.int, bool)):
                 raise TypeError("`show_sensors` must be numeric or bool, not" +
                                 str(type(show_sensors)))
             if show_sensors is True:
                 show_sensors = 2
-            _plot_legend(pos, ["k" for _ in picks], axes, list(), outlines,
+            _plot_legend(pos, ["k" for pick in picks], axes, list(), outlines,
                          show_sensors, size=20)
 
     if show_legend and len(conditions) > 1:
