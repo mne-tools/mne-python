@@ -100,6 +100,8 @@ Changelog
     - Add example on how to plot ERDS maps (also known as ERSP) by `Clemens Brunner`_
 
     - Add support for volume source spaces to :func:`spatial_src_connectivity` and :func:`spatio_temporal_src_connectivity` by `Alex Gramfort`_
+    
+    - Plotting raw data (:func:`mne.viz.plot_raw` or :meth:`mne.io.Raw.plot`) with events now includes event numbers (if there are not more than 50 events on a page) by `Clemens Brunner`_
 
 BUG
 ~~~
