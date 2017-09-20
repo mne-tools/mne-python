@@ -1151,7 +1151,7 @@ class AverageTFR(_BaseTFR):
                                         mode=mode, layout=layout)
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
-                        x_label='t (s)', y_label='f (Hz)',
+                        x_label='Time (s)', y_label='Frequency (Hz)',
                         colorbar=colorbar, cmap=cmap, yscale=yscale)
             if title:
                 fig.suptitle(title)
@@ -1318,7 +1318,7 @@ class AverageTFR(_BaseTFR):
                          click_func=click_fun, layout=layout,
                          colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                          layout_scale=layout_scale, title=title, border=border,
-                         x_label='t (s)', y_label='f (Hz)',
+                         x_label='Time (s)', y_label='Frequency (Hz)',
                          fig_facecolor=fig_facecolor, font_color=font_color,
                          unified=True, img=True)
 
