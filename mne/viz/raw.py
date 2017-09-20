@@ -786,9 +786,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
         size = tuple([float(s) for s in size])
 
     fig = figure_nobar(facecolor=bgcolor, figsize=size)
-    fig.canvas.set_window_title('mne_browse_raw')
+    fig.canvas.set_window_title(title)
     ax = plt.subplot2grid((10, 10), (0, 1), colspan=8, rowspan=9)
-    ax.set_title(title, fontsize=12)
     ax_hscroll = plt.subplot2grid((10, 10), (9, 1), colspan=8)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Time (s)')
@@ -973,6 +972,12 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             else:
                 line.set_xdata([])
                 line.set_ydata([])
+        if len(event_times) <= 50:
+            params['ax'].texts = []
+            for ev_time, ev_num in zip(event_times, event_nums):
+                if -1 in event_color or ev_num in event_color:
+                    params['ax'].text(ev_time, -0.05, ev_num, fontsize=8,
+                                      ha='center')
 
     if 'segments' in params:
         while len(params['ax'].collections) > 0:

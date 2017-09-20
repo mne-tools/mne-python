@@ -324,16 +324,16 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
     frequencies = []
     for data_csd, noise_csd in zip(data_csds, noise_csds):
-        if not np.allclose(data_csd.frequencies, noise_csd.frequencies):
+        if not np.allclose(data_csd.freqs, noise_csd.freqs):
             raise ValueError('Data and noise CSDs should be calculated at '
                              'identical frequencies')
 
         # If CSD is summed over multiple frequencies, take the average
         # frequency
-        if(len(data_csd.frequencies) > 1):
-            frequencies.append(np.mean(data_csd.frequencies))
+        if(len(data_csd.freqs) > 1):
+            frequencies.append(np.mean(data_csd.freqs))
         else:
-            frequencies.append(data_csd.frequencies[0])
+            frequencies.append(data_csd.freqs[0])
     fmin = frequencies[0]
 
     if len(frequencies) > 2:

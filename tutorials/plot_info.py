@@ -59,6 +59,28 @@ channel_indices = mne.pick_channels(info['ch_names'], ['MEG 0312', 'EEG 005'])
 channel_indices = mne.pick_channels_regexp(info['ch_names'], 'MEG *')
 
 ###############################################################################
+# Channel types
+# -------------
+#
+# MNE supports different channel types:
+#
+# - eeg : For EEG channels with data stored in Volts (V)
+# - meg (mag) : For MEG magnetometers channels stored in Tesla (T)
+# - meg (grad) : For MEG gradiometers channels stored in Tesla/Meter (T/m)
+# - ecg : For ECG channels stored in Volts (V)
+# - seeg : For Stereotactic EEG channels in Volts (V).
+# - ecog : For Electrocorticography (ECoG) channels in Volts (V).
+# - fnirs (HBO) : Functional near-infrared spectroscopy oxyhemoglobin data.
+# - fnirs (HBR) : Functional near-infrared spectroscopy deoxyhemoglobin data.
+# - emg : For EMG channels stored in Volts (V)
+# - bio : For biological channels (AU).
+# - stim : For the stimulus (a.k.a. trigger) channels (AU)
+# - resp : For the response-trigger channel (AU)
+# - chpi : For HPI coil channels (T).
+# - exci : Flux excitation channel used to be a stimulus channel.
+# - ias : For Internal Active Shielding data (maybe on Triux only).
+# - syst : System status channel information (on Triux systems only).
+#
 # Get channel indices by type
 channel_indices = mne.pick_types(info, meg=True)  # MEG only
 channel_indices = mne.pick_types(info, eeg=True)  # EEG only

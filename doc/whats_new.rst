@@ -97,6 +97,12 @@ Changelog
 
     - Add bootstrapped confidence intervals to :func:`mne.viz.plot_compare_evokeds` (that can for now also be accessed as :func:`mne.stats._boostrap_ci`) by `Jona Sassenhagen`_ and `Denis Engemann`_
 
+    - Add example on how to plot ERDS maps (also known as ERSP) by `Clemens Brunner`_
+
+    - Add support for volume source spaces to :func:`spatial_src_connectivity` and :func:`spatio_temporal_src_connectivity` by `Alex Gramfort`_
+    
+    - Plotting raw data (:func:`mne.viz.plot_raw` or :meth:`mne.io.Raw.plot`) with events now includes event numbers (if there are not more than 50 events on a page) by `Clemens Brunner`_
+
 BUG
 ~~~
 
@@ -172,6 +178,9 @@ BUG
 
     - Fix :class:`mne.preprocessing.Xdawn` to give verbose error messages about rank deficiency and handle transforming :class:`mne.Evoked`, by `Eric Larson`_
 
+    - Fix bug in DC and Nyquist frequency multitaper PSD computations, e.g. in :func:`mne.time_frequency.psd_multitaper`, by `Eric Larson`_
+
+
 API
 ~~~
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
@@ -215,6 +224,8 @@ API
     - :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` now use a Hamming window (instead of a Hann window) by `Clemens Brunner`_
 
     - ``picks`` parameter in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, :func:`mne.beamformer.lcmv_raw`, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
+
+    - The keyword argument ``frequencies`` has been deprecated in favor of ``freqs`` in various time-frequency functions, e.g. :func:`mne.time_frequency.tfr.tfr_array_morlet`, by `Eric Larson`_
 
 .. _changes_0_14:
 

@@ -59,7 +59,15 @@ def get_name(func):
 _docstring_ignores = [
     'mne.io.Info',  # Parameters
     'mne.io.write',  # always ignore these
-    'mne.decoding.base.cross_val_multiscore',
+    'mne.connectivity.effective.phase_slope_index',
+    'mne.connectivity.effective.phase_slope_index',
+    'mne.connectivity.spectral.spectral_connectivity',
+    'mne.decoding.time_frequency.TimeFrequency.__init__',
+    'mne.minimum_norm.time_frequency.source_induced_power',
+    'mne.time_frequency.csd.CrossSpectralDensity.__init__',
+    'mne.time_frequency.multitaper.tfr_array_multitaper',
+    'mne.time_frequency.tfr.tfr_array_morlet',
+    'mne.time_frequency.tfr.tfr_morlet',
 ]
 
 _tab_ignores = [

@@ -17,14 +17,15 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  read_source_estimate, morph_data, extract_label_time_course,
                  spatio_temporal_tris_connectivity,
                  spatio_temporal_src_connectivity,
-                 spatial_inter_hemi_connectivity)
+                 spatial_inter_hemi_connectivity,
+                 spatial_src_connectivity)
 from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
-                                 grade_to_tris)
+                                 grade_to_tris, _get_vol_mask)
 
 from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_h5py, run_tests_if_main)
+                       requires_h5py, run_tests_if_main, requires_nibabel)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -760,6 +761,8 @@ def test_spatio_temporal_src_connectivity():
     src[1]['use_tris'] = np.array([[0, 1, 2]])
     src[0]['vertno'] = np.array([0, 1, 2])
     src[1]['vertno'] = np.array([0, 1, 2])
+    src[0]['type'] = 'surf'
+    src[1]['type'] = 'surf'
     connectivity2 = spatio_temporal_src_connectivity(src, 2)
     assert_array_equal(connectivity.todense(), connectivity2.todense())
     # add test for dist connectivity
@@ -767,6 +770,8 @@ def test_spatio_temporal_src_connectivity():
     src[1]['dist'] = np.ones((3, 3)) - np.eye(3)
     src[0]['vertno'] = [0, 1, 2]
     src[1]['vertno'] = [0, 1, 2]
+    src[0]['type'] = 'surf'
+    src[1]['type'] = 'surf'
     connectivity3 = spatio_temporal_src_connectivity(src, 2, dist=2)
     assert_array_equal(connectivity.todense(), connectivity3.todense())
     # add test for source space connectivity with omitted vertices
@@ -879,6 +884,47 @@ def test_vec_stc():
     # Vector components projected onto the vertex normals
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
+
+
+@requires_sklearn
+@testing.requires_testing_data
+def test_vol_connectivity():
+    """Test volume connectivity."""
+    from scipy import sparse
+    vol = read_source_spaces(fname_vsrc)
+
+    assert_raises(ValueError, spatial_src_connectivity, vol, dist=1.)
+
+    connectivity = spatial_src_connectivity(vol)
+    n_vertices = vol[0]['inuse'].sum()
+    assert_equal(connectivity.shape, (n_vertices, n_vertices))
+    assert_true(np.all(connectivity.data == 1))
+    assert_true(isinstance(connectivity, sparse.coo_matrix))
+
+    connectivity2 = spatio_temporal_src_connectivity(vol, n_times=2)
+    assert_equal(connectivity2.shape, (2 * n_vertices, 2 * n_vertices))
+    assert_true(np.all(connectivity2.data == 1))
+
+
+@requires_sklearn
+@requires_nibabel()
+@testing.requires_testing_data
+def test_vol_mask():
+    """Test extraction of volume mask."""
+    src = read_source_spaces(fname_vsrc)
+    mask = _get_vol_mask(src)
+    # Let's use an alternative way that should be equivalent
+    vertices = src[0]['vertno']
+    n_vertices = len(vertices)
+    data = (1 + np.arange(n_vertices))[:, np.newaxis]
+    stc_tmp = VolSourceEstimate(data, vertices, tmin=0., tstep=1.)
+    img = stc_tmp.as_volume(src, mri_resolution=False)
+    img_data = img.get_data()[:, :, :, 0].T
+    mask_nib = (img_data != 0)
+    assert_array_equal(img_data[mask_nib], data[:, 0])
+    assert_array_equal(np.where(mask_nib.ravel())[0], src[0]['vertno'])
+    assert_array_equal(mask, mask_nib)
+    assert_array_equal(img_data.shape, mask.shape)
 
 
 run_tests_if_main()

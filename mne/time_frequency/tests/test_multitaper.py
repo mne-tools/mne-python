@@ -12,7 +12,7 @@ from mne import create_info
 
 @requires_nitime
 def test_dpss_windows():
-    """ Test computation of DPSS windows """
+    """Test computation of DPSS windows."""
 
     import nitime as ni
     N = 1000
@@ -36,27 +36,26 @@ def test_dpss_windows():
 
 @requires_nitime
 def test_multitaper_psd():
-    """ Test multi-taper PSD computation """
-
+    """Test multi-taper PSD computation."""
     import nitime as ni
-    n_times = 1000
-    n_channels = 5
-    data = np.random.RandomState(0).randn(n_channels, n_times)
-    sfreq = 500
-    info = create_info(n_channels, sfreq, 'eeg')
-    raw = RawArray(data, info)
-    assert_raises(ValueError, psd_multitaper, raw, sfreq, normalization='foo')
-    ni_5 = (LooseVersion(ni.__version__) >= LooseVersion('0.5'))
-    norm = 'full' if ni_5 else 'length'
-
-    for adaptive, n_jobs in zip((False, True, True), (1, 1, 2)):
-        psd, freqs = psd_multitaper(raw, adaptive=adaptive,
-                                    n_jobs=n_jobs,
-                                    normalization=norm)
-        freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(
-            data, sfreq, adaptive=adaptive, jackknife=False)
-
-        # for some reason nitime returns n_times + 1 frequency points
-        # causing the value at 0 to be different
-        assert_array_almost_equal(psd[:, 1:], psd_ni[:, 1:-1], decimal=3)
-        assert_array_almost_equal(freqs, freqs_ni[:-1])
+    for n_times in (100, 101):
+        n_channels = 5
+        data = np.random.RandomState(0).randn(n_channels, n_times)
+        sfreq = 500
+        info = create_info(n_channels, sfreq, 'eeg')
+        raw = RawArray(data, info)
+        assert_raises(ValueError, psd_multitaper, raw, sfreq,
+                      normalization='foo')
+        ni_5 = (LooseVersion(ni.__version__) >= LooseVersion('0.5'))
+        norm = 'full' if ni_5 else 'length'
+        for adaptive, n_jobs in zip((False, True, True), (1, 1, 2)):
+            psd, freqs = psd_multitaper(raw, adaptive=adaptive,
+                                        n_jobs=n_jobs,
+                                        normalization=norm)
+            freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(
+                data, sfreq, adaptive=adaptive, jackknife=False)
+            assert_array_almost_equal(psd, psd_ni, decimal=4)
+            if n_times % 2 == 0:
+                # nitime's frequency definitions must be incorrect,
+                # they give the same values for 100 and 101 samples
+                assert_array_almost_equal(freqs, freqs_ni)

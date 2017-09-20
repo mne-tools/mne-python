@@ -2639,6 +2639,58 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     return stc_to
 
 
+def _get_vol_mask(src):
+    """Get the volume source space mask."""
+    assert len(src) == 1  # not a mixed source space
+    shape = src[0]['shape'][::-1]
+    mask = np.zeros(shape, bool)
+    mask.flat[src[0]['vertno']] = True
+    return mask
+
+
+def _spatio_temporal_src_connectivity_vol(src, n_times):
+    from sklearn.feature_extraction import grid_to_graph
+    mask = _get_vol_mask(src)
+    edges = grid_to_graph(*mask.shape, mask=mask)
+    connectivity = _get_connectivity_from_edges(edges, n_times)
+    return connectivity
+
+
+def _spatio_temporal_src_connectivity_ico(src, n_times):
+    if src[0]['use_tris'] is None:
+        # XXX It would be nice to support non oct source spaces too...
+        raise RuntimeError("The source space does not appear to be an ico "
+                           "surface. Connectivity cannot be extracted from"
+                           " non-ico source spaces.")
+    used_verts = [np.unique(s['use_tris']) for s in src]
+    lh_tris = np.searchsorted(used_verts[0], src[0]['use_tris'])
+    rh_tris = np.searchsorted(used_verts[1], src[1]['use_tris'])
+    tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
+    connectivity = spatio_temporal_tris_connectivity(tris, n_times)
+
+    # deal with source space only using a subset of vertices
+    masks = [np.in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
+    if sum(u.size for u in used_verts) != connectivity.shape[0] / n_times:
+        raise ValueError('Used vertices do not match connectivity shape')
+    if [np.sum(m) for m in masks] != [len(s['vertno']) for s in src]:
+        raise ValueError('Vertex mask does not match number of vertices')
+    masks = np.concatenate(masks)
+    missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
+    if missing:
+        warn_('%0.1f%% of original source space vertices have been'
+              ' omitted, tri-based connectivity will have holes.\n'
+              'Consider using distance-based connectivity or '
+              'morphing data to all source space vertices.' % missing)
+        masks = np.tile(masks, n_times)
+        masks = np.where(masks)[0]
+        connectivity = connectivity.tocsr()
+        connectivity = connectivity[masks]
+        connectivity = connectivity[:, masks]
+        # return to original format
+        connectivity = connectivity.tocoo()
+    return connectivity
+
+
 @verbose
 def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
     """Compute connectivity for a source space activation over time.
@@ -2646,7 +2698,8 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
     Parameters
     ----------
     src : instance of SourceSpaces
-        The source space.
+        The source space. It can be a surface source space or a
+        volume source space.
     n_times : int
         Number of time instants.
     dist : float, or None
@@ -2666,41 +2719,20 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
-    if dist is None:
-        if src[0]['use_tris'] is None:
-            raise RuntimeError("The source space does not appear to be an ico "
-                               "surface. Connectivity cannot be extracted from"
-                               " non-ico source spaces.")
-        used_verts = [np.unique(s['use_tris']) for s in src]
-        lh_tris = np.searchsorted(used_verts[0], src[0]['use_tris'])
-        rh_tris = np.searchsorted(used_verts[1], src[1]['use_tris'])
-        tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
-        connectivity = spatio_temporal_tris_connectivity(tris, n_times)
+    # XXX we should compute connectivity for each source space and then
+    # use scipy.sparse.block_diag to concatenate them
+    if src[0]['type'] == 'vol':
+        if dist is not None:
+            raise ValueError('dist must be None for a volume '
+                             'source space. Got %s.' % dist)
 
-        # deal with source space only using a subset of vertices
-        masks = [np.in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
-        if sum(u.size for u in used_verts) != connectivity.shape[0] / n_times:
-            raise ValueError('Used vertices do not match connectivity shape')
-        if [np.sum(m) for m in masks] != [len(s['vertno']) for s in src]:
-            raise ValueError('Vertex mask does not match number of vertices')
-        masks = np.concatenate(masks)
-        missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
-        if missing:
-            warn_('%0.1f%% of original source space vertices have been'
-                  ' omitted, tri-based connectivity will have holes.\n'
-                  'Consider using distance-based connectivity or '
-                  'morphing data to all source space vertices.' % missing)
-            masks = np.tile(masks, n_times)
-            masks = np.where(masks)[0]
-            connectivity = connectivity.tocsr()
-            connectivity = connectivity[masks]
-            connectivity = connectivity[:, masks]
-            # return to original format
-            connectivity = connectivity.tocoo()
-
-        return connectivity
-    else:  # use distances computed and saved in the source space file
-        return spatio_temporal_dist_connectivity(src, n_times, dist)
+        connectivity = _spatio_temporal_src_connectivity_vol(src, n_times)
+    elif dist is not None:
+        # use distances computed and saved in the source space file
+        connectivity = spatio_temporal_dist_connectivity(src, n_times, dist)
+    else:
+        connectivity = _spatio_temporal_src_connectivity_ico(src, n_times)
+    return connectivity
 
 
 @verbose
@@ -2809,7 +2841,8 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
     Parameters
     ----------
     src : instance of SourceSpaces
-        The source space.
+        The source space. It can be a surface source space or a
+        volume source space.
     dist : float, or None
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors. If None, immediate neighbors

@@ -118,15 +118,30 @@ class RawEDF(BaseRaw):
     To retrieve correct event values (bits 1-16), one could do:
 
         >>> events = mne.find_events(...)  # doctest:+SKIP
-        >>> events[:, 2] >>= 8  # doctest:+SKIP
+        >>> events[:, 2] &= (2**16 - 1)  # doctest:+SKIP
+
+    The above operation can be carried out directly in :func:`mne.find_events`
+    using the ``mask`` and ``mask_type`` parameters
+    (see :func:`mne.find_events` for more details).
 
     It is also possible to retrieve system codes, but no particular effort has
-    been made to decode these in MNE.
+    been made to decode these in MNE. In case it is necessary, for instance to
+    check the CMS bit, the following operation can be carried out:
 
-    For GDF files, the stimulus channel is constructed from the events in the
-    header. The id numbers of overlapping events are simply combined through
-    addition. To get the original events from the header, use function
-    :func:`mne.io.get_edf_events`.
+        >>> cms_bit = 20  # doctest:+SKIP
+        >>> cms_high = (events[:, 2] & (1 << cms_bit)) != 0  # doctest:+SKIP
+
+    It is worth noting that in some special cases, it may be necessary to
+    shift the event values in order to retrieve correct event triggers. This
+    depends on the triggering device used to perform the synchronization.
+    For instance, some GDF files need a 8 bits shift:
+
+        >>> events[:, 2] >>= 8  # doctest:+SKIP
+
+    In addition, for GDF files, the stimulus channel is constructed from the
+    events in the header. The id numbers of overlapping events are simply
+    combined through addition. To get the original events from the header,
+    use function :func:`mne.io.get_edf_events`.
 
     See Also
     --------
