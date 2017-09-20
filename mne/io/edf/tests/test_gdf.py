@@ -51,7 +51,7 @@ def test_gdf_data():
 
     # Test events are encoded to stim channel.
     events = find_events(raw)
-    evs = raw.get_edf_events()
+    evs = raw.find_edf_events()
     assert_true(all([event in evs[1] for event in events[:, 0]]))
 
 

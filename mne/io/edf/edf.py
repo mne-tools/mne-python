@@ -23,7 +23,7 @@ from ...externals.six.moves import zip
 from ...utils import copy_function_doc_to_method_doc
 
 
-def get_edf_events(raw):
+def find_edf_events(raw):
     """Get original EDF events as read from the header.
 
     For GDF, the values are returned in form
@@ -62,7 +62,7 @@ def get_edf_events(raw):
     events : ndarray
         The events as they are in the file header.
     """
-    return raw.get_edf_events()
+    return raw.find_edf_events()
 
 
 class RawEDF(BaseRaw):
@@ -333,8 +333,8 @@ class RawEDF(BaseRaw):
                                       2**17 - 1)
                 data[stim_channel_idx, :] = stim
 
-    @copy_function_doc_to_method_doc(get_edf_events)
-    def get_edf_events(self):
+    @copy_function_doc_to_method_doc(find_edf_events)
+    def find_edf_events(self):
         return self._raw_extras[0]['events']
 
 
