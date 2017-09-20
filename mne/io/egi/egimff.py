@@ -88,9 +88,7 @@ def _read_mff_header(filepath):
             unit = ''
             if unit_elem is not None:
                 unit = unit_elem.data
-            # sn = sn.encode()
-            # numbers.append(sn)
-            # ch_type = 'bio'
+
             if name == 'ECG':
                 ch_type = 'ecg'
             elif 'EMG' in name:
