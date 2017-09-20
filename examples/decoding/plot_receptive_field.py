@@ -86,7 +86,7 @@ mne.viz.tight_layout()
 # --------------------------------------
 #
 # We will construct an encoding model to find the linear relationship between
-# the EEG signal and a time-delayed version of the speech envelope. This allows
+# a time-delayed version of the speech envelope and the EEG signal. This allows
 # us to make predictions about the response to new stimuli.
 
 # Define the delays that we will use in the receptive field
@@ -163,22 +163,23 @@ mne.viz.tight_layout()
 # Create and fit a stimulus reconstruction model
 # ----------------------------------------------
 #
-# We will now demonstrate another use case for the ReceptiveField module as we
-# try to predict the stimulus activity from the EEG data. This is known in the
-# literature as a decoding, or stimulus reconstruction model [1]_. A decoding
-# model aims to find the linear relationship between the speech signal and a
-# time-delayed version of the EEG. This can be useful as we exploit all of the
-# available neural data in a multivariate context, compared to the encoding
-# case which treats each M/EEG channel as an independent feature. Therefore,
-# decoding models might provide a better quality of fit, especially for low SNR
-# stimuli such as speech.
+# We will now demonstrate another use case for the for the
+# :class:`mne.decoding.ReceptiveField` class as we try to predict the stimulus
+# activity from the EEG data. This is known in the literature as a decoding, or
+# stimulus reconstruction model [1]_. A decoding model aims to find the
+# relationship between the speech signal and a time-delayed version of the EEG.
+# This can be useful as we exploit all of the available neural data in a
+# multivariate context, compared to the encoding case which treats each M/EEG
+# channel as an independent feature. Therefore, decoding models might provide a
+# better quality of fit (at the expense of not controlling for stimulus
+# covariance), especially for low SNR stimuli such as speech.
 
 # We use the same lags as in [1]
 tmin, tmax = -.2, 0.
 
 # Initialize the model. Here the features are the EEG data. We also specify
 # ``patterns=True`` to compute inverse-transformed coefficients during model
-# fitting (cf. next section). We'll use a ridge regression estimator with a
+# fitting (cf. next section). We'll use a ridge regression estimator with an
 # alpha value similar to [1].
 sr = ReceptiveField(tmin, tmax, sfreq, feature_names=raw.ch_names,
                     estimator=1e4, scoring='corrcoef', patterns=True)
@@ -233,7 +234,7 @@ mne.viz.tight_layout()
 #
 # Finally, we will look at how the decoding model coefficients are distributed
 # across the scalp. We will attempt to recreate `figure 5`_ from [1]_. The
-# backward model weights reflect the channels that contribute most toward
+# decoding model weights reflect the channels that contribute most toward
 # reconstructing the stimulus signal, but are not directly interpretable in a
 # neurophysiological sense. Here we also look at the coefficients obtained
 # via an inversion procedure [2]_, which have a more straightforward
