@@ -53,7 +53,7 @@ Changelog
 
     - Add ``background_color`` parameter to :meth:`mne.Evoked.plot_topo` and :func:`mne.viz.plot_evoked_topo` and improve axes rendering as done in :func:`mne.viz.plot_compare_evokeds` by `Alex Gramfort`_
 
-    - Add :func:`mne.io.get_edf_events` for getting the events as they are in the EDF/GDF header by `Jaakko Leppakangas`_
+    - Add :func:`mne.io.find_edf_events` for getting the events as they are in the EDF/GDF header by `Jaakko Leppakangas`_
 
     - Speed up :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_ and `Jaakko Leppakangas`_
 
@@ -100,7 +100,7 @@ Changelog
     - Add example on how to plot ERDS maps (also known as ERSP) by `Clemens Brunner`_
 
     - Add support for volume source spaces to :func:`spatial_src_connectivity` and :func:`spatio_temporal_src_connectivity` by `Alex Gramfort`_
-    
+
     - Plotting raw data (:func:`mne.viz.plot_raw` or :meth:`mne.io.Raw.plot`) with events now includes event numbers (if there are not more than 50 events on a page) by `Clemens Brunner`_
 
 BUG
