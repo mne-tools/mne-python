@@ -1151,7 +1151,7 @@ class AverageTFR(_BaseTFR):
                                         mode=mode, layout=layout)
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
-                        x_label='Time (ms)', y_label='Frequency (Hz)',
+                        x_label='Time (s)', y_label='Frequency (Hz)',
                         colorbar=colorbar, cmap=cmap, yscale=yscale)
             if title:
                 fig.suptitle(title)
@@ -1164,8 +1164,8 @@ class AverageTFR(_BaseTFR):
         from ..viz import plot_tfr_topomap
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
             return
-        tmin = round(min(eclick.xdata, erelease.xdata) / 1000., 5)  # ms to s
-        tmax = round(max(eclick.xdata, erelease.xdata) / 1000., 5)
+        tmin = round(min(eclick.xdata, erelease.xdata), 5)  # s
+        tmax = round(max(eclick.xdata, erelease.xdata), 5)
         fmin = round(min(eclick.ydata, erelease.ydata), 5)  # Hz
         fmax = round(max(eclick.ydata, erelease.ydata), 5)
         tmin = min(self.times, key=lambda x: abs(x - tmin))  # find closest
@@ -1318,7 +1318,7 @@ class AverageTFR(_BaseTFR):
                          click_func=click_fun, layout=layout,
                          colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                          layout_scale=layout_scale, title=title, border=border,
-                         x_label='Time (ms)', y_label='Frequency (Hz)',
+                         x_label='Time (s)', y_label='Frequency (Hz)',
                          fig_facecolor=fig_facecolor, font_color=font_color,
                          unified=True, img=True)
 
@@ -1739,7 +1739,6 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     # crop data
     data = data[:, ifmin:ifmax, itmin:itmax]
 
-    times *= 1e3
     if dB:
         data = 10 * np.log10((data * data.conj()).real)
 

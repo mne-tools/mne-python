@@ -109,13 +109,10 @@ for event in event_ids:
         power.plot([i], baseline=[-1, 0], mode="percent", vmin=vmin, vmax=vmax,
                    cmap=(cmap, False), axes=ax[i], colorbar=False, show=False)
         ax[i].set_title(epochs.ch_names[i], fontsize=10)
-        ax[i].set_xlabel("t (ms)")
         ax[i].axvline(0, linewidth=1, color="black", linestyle=":")  # event
         if i > 0:
             ax[i].set_ylabel("")
             ax[i].set_yticklabels("")
-        else:
-            ax[i].set_ylabel("f (Hz)")
     fig.colorbar(ax[0].collections[0], cax=ax[-1])
     fig.suptitle("ERDS ({})".format(event))
     fig.show()
