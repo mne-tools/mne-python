@@ -79,7 +79,7 @@ raw.plot(events=events)
 tmin, tmax = -0.1, 0.1
 event_id = list(range(1, 33))
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, -0.01),
-                    decim=5, preload=True)
+                    decim=3, preload=True)
 epochs['1'].average().plot()
 
 ###############################################################################
@@ -94,13 +94,16 @@ mne.viz.plot_alignment(raw.info, subject='sample',
 
 ###############################################################################
 # Let's do some dipole fits. We first compute the noise covariance,
-# then do the fits for each event_id.
+# then do the fits for each event_id taking the time instant that maximizes
+# the global field power.
 
-t_peak = 60e-3  # ~60 MS at largest peak
 cov = mne.compute_covariance(epochs, tmax=0)
 data = []
 for ii in event_id:
-    evoked = epochs[str(ii)].average().crop(t_peak, t_peak)
+    evoked = epochs[str(ii)].average()
+    idx_peak = np.argmax(evoked.copy().pick_types(meg='grad').data.std(axis=0))
+    t_peak = evoked.times[idx_peak]
+    evoked.crop(t_peak, t_peak)
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
 del epochs, raw
@@ -110,8 +113,10 @@ dip = fit_dipole(evoked, cov, sphere, n_jobs=1)[0]
 # Now we can compare to the actual locations, taking the difference in mm:
 
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
+actual_amp = 100.  # nAm
 
-fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
+fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6.4, 12))
+
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
 print('mean(position error) = %s' % (np.mean(diffs),))
 ax1.bar(event_id, diffs)
@@ -123,4 +128,12 @@ print('mean(angle error) = %s' % (np.mean(angles),))
 ax2.bar(event_id, angles)
 ax2.set_xlabel('Dipole index')
 ax2.set_ylabel('Angle error (rad)')
+
+amps = actual_amp - dip.amplitude / 1e-9
+print('mean(abs amplitude error) = %s' % (np.mean(np.abs(amps)),))
+ax3.bar(event_id, amps)
+ax3.set_xlabel('Dipole index')
+ax3.set_ylabel('Amplitude error (nAm)')
+
+fig.tight_layout()
 plt.show()
