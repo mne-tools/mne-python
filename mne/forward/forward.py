@@ -859,10 +859,10 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
             warn('This forward solution is based on a forward solution with '
                  'free orientation. The original forward solution is stored '
                  'on disk in X/Y/Z RAS coordinates. Any transformation '
-                 '(surface orientation or fixed orientation) will be reverted. '
-                 'To reapply any transformation to the forward operator '
-                 'please apply convert_forward_solution after reading the '
-                 'forward solution with read_forward_solution.',
+                 '(surface orientation or fixed orientation) will be '
+                 'reverted. To reapply any transformation to the forward '
+                 'operator please apply convert_forward_solution after '
+                 'reading the forward solution with read_forward_solution.',
                  RuntimeWarning)
 
     #
