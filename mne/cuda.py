@@ -296,8 +296,8 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
     return n_jobs, cuda_dict, W
 
 
-def fft_resample(x, W, new_len, npads, to_removes,
-                 cuda_dict=dict(use_cuda=False)):
+def fft_resample(x, W, new_len, npads, to_removes, cuda_dict=None,
+                 pad='reflect_limited'):
     """Do FFT resampling with a filter function (possibly using CUDA).
 
     Parameters
@@ -315,16 +315,24 @@ def fft_resample(x, W, new_len, npads, to_removes,
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
+    pad : str
+        The type of padding to use. Supports all :func:`np.pad` ``mode``
+        options. Can also be "reflect_limited" (default), which pads with a
+        reflected version of each vector mirrored on the first and last values
+        of the vector, followed by zeros.
+
+        .. versionadded:: 0.15
 
     Returns
     -------
     x : 1-d array
         Filtered version of x.
     """
+    cuda_dict = dict(use_cuda=False) if cuda_dict is None else cuda_dict
     # add some padding at beginning and end to make this work a little cleaner
     if x.dtype != np.float64:
         x = x.astype(np.float64)
-    x = _smart_pad(x, npads)
+    x = _smart_pad(x, npads, pad)
     old_len = len(x)
     shorter = new_len < old_len
     if not cuda_dict['use_cuda']:
@@ -381,14 +389,19 @@ def fft_resample(x, W, new_len, npads, to_removes,
 # Misc
 
 # this has to go in mne.cuda instead of mne.filter to avoid import errors
-def _smart_pad(x, n_pad):
+def _smart_pad(x, n_pad, pad='reflect_limited'):
     """Pad vector x."""
+    n_pad = np.asarray(n_pad)
+    assert n_pad.shape == (2,)
     if (n_pad == 0).all():
         return x
     elif (n_pad < 0).any():
         raise RuntimeError('n_pad must be non-negative')
-    # need to pad with zeros if len(x) <= npad
-    l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
-    r_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
-    return np.concatenate([l_z_pad, 2 * x[0] - x[n_pad[0]:0:-1], x,
-                           2 * x[-1] - x[-2:-n_pad[1] - 2:-1], r_z_pad])
+    if pad == 'reflect_limited':
+        # need to pad with zeros if len(x) <= npad
+        l_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
+        r_z_pad = np.zeros(max(n_pad[0] - len(x) + 1, 0), dtype=x.dtype)
+        return np.concatenate([l_z_pad, 2 * x[0] - x[n_pad[0]:0:-1], x,
+                               2 * x[-1] - x[-2:-n_pad[1] - 2:-1], r_z_pad])
+    else:
+        return np.pad(x, (tuple(n_pad),), pad)
