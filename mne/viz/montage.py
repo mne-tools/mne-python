@@ -54,7 +54,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
             n_chans = montage.pos.shape[0]
             n_dupes = dupes.shape[0]
             idx = np.setdiff1d(montage.selection, dupes[:, 1]).tolist()
-            logger.info("{} duplicate electrode labels found: ".format(n_dupes))
+            logger.info("{} duplicate electrode labels found:".format(n_dupes))
             logger.info(", ".join([ch_names[d[0]] + "/" + ch_names[d[1]]
                                    for d in dupes]))
             logger.info("Plotting {} unique labels.".format(n_chans - n_dupes))
