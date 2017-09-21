@@ -182,6 +182,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     reduce_rank : bool | int
         If specified, the rank of the leadfield will be reduced. True will
         reduce the rank by 1. The rank can also be specified as integer.
+        Setting reduce_rank to True is typically necessary if you use a single
+        sphere model for MEG.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -256,7 +258,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     # leadfield rank and optional rank reduction
     if reduce_rank is not False:
         if not pick_ori == 'max-power':
-            raise NotImplementedError('The computation of a rank reduced'
+            raise NotImplementedError('The computation of a rank reduced '
                                       'leadfield with reduce_rank is not yet '
                                       'implemented with free or fixed '
                                       'orientation of the forward solution.')
@@ -715,6 +717,8 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     reduce_rank : bool | int
         If specified, the rank of the leadfield will be reduced. True will
         reduce the rank by 1. The rank can also be specified as integer.
+        Setting reduce_rank to True is typically necessary if you use a single
+        sphere model for MEG.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -821,6 +825,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     reduce_rank : bool | int
         If specified, the rank of the leadfield will be reduced. True will
         reduce the rank by 1. The rank can also be specified as integer.
+        Setting reduce_rank to True is typically necessary if you use a single
+        sphere model for MEG.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -932,6 +938,8 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     reduce_rank : bool | int
         If specified, the rank of the leadfield will be reduced. True will
         reduce the rank by 1. The rank can also be specified as integer.
+        Setting reduce_rank to True is typically necessary if you use a single
+        sphere model for MEG.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
