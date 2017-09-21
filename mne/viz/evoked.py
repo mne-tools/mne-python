@@ -1401,6 +1401,8 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
         ymin_bound, ymax_bound = ticks[[1, -2]]
         if ymin_bound > 0:
             ymin_bound = 0
+        ymin_bound = ymin if ymin is not None else ymin_bound
+        ymax_bound = ymax if ymax is not None else ymax_bound
     axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
     return ymin_bound, ymax_bound
 
