@@ -174,7 +174,11 @@ mne.viz.tight_layout()
 # better quality of fit (at the expense of not controlling for stimulus
 # covariance), especially for low SNR stimuli such as speech.
 
-# We use the same lags as in [1]
+# We use the same lags as in [1]. Negative lags now index the relationship
+# between the neural response and the speech envelope earlier in time, whereas
+# positive lags would index how a unit change in the amplitude of the EEG would
+# affect later stimulus activity (obviously this should have an amplitude of
+# zero).
 tmin, tmax = -.2, 0.
 
 # Initialize the model. Here the features are the EEG data. We also specify
