@@ -132,8 +132,8 @@ def test_io_egi_pns_mff():
                  'Resp. Effort Chest',
                  'Resp. Effort Abdomen',
                  'EMG-Leg']
-    raw2 = _test_raw_reader(read_raw_egi, input_fname=egi_fname_mff,
-                            channel_naming='EEG %03d')
+    _test_raw_reader(read_raw_egi, input_fname=egi_fname_mff,
+                     channel_naming='EEG %03d')
     assert_equal(names, pns_names)
     mat_names = [
         'Resp_Temperature',
