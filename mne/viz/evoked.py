@@ -1480,9 +1480,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         it must take as its single argument an array (observations x times) and
         return the upper and lower confidence bands.
         If None, no confidence band is plotted.
-    truncate_yaxis : bool
-        If True, the left y axis is truncated to half the max absolute value
-        and rounded to .25 to reduce visual clutter. Defaults to False.
+    truncate_yaxis : bool | str
+        If True, the left y axis spine is truncated to reduce visual clutter.
+        If 'max_ticks', the spine is truncated at the minimum and maximum
+        ticks. Else, it is truncated to half the max absolute value, rounded to
+        .25. Defaults to False.
     truncate_xaxis : bool
         If True, the x axis is truncated to span from the first to the last.
         xtick. Defaults to True.
