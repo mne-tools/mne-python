@@ -80,7 +80,7 @@ def test_rank_deficiency():
     y += rng.randn(*y.shape) * 100
 
     for est in (Ridge(reg), reg):
-        rf = ReceptiveField(tmin, tmax, fs, estimator=est)
+        rf = ReceptiveField(tmin, tmax, fs, estimator=est, patterns=True)
         rf.fit(eeg, y)
         pred = rf.predict(eeg)
         assert_equal(y.shape, pred.shape)
@@ -171,7 +171,8 @@ def test_receptive_field():
 
     # Fit the model and test values
     feature_names = ['feature_%i' % ii for ii in [0, 1, 2]]
-    rf = ReceptiveField(tmin, tmax, 1, feature_names, estimator=mod)
+    rf = ReceptiveField(tmin, tmax, 1, feature_names, estimator=mod,
+                        patterns=True)
     rf.fit(X, y)
     assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
 
@@ -197,26 +198,26 @@ def test_receptive_field():
     assert_raises(ValueError, rf.fit, X, y[:-2])
     # Float becomes ridge
     rf = ReceptiveField(tmin, tmax, 1, ['one', 'two', 'three'],
-                        estimator=0)
+                        estimator=0, patterns=True)
     str(rf)  # repr works before fit
     rf.fit(X, y)
     assert_true(isinstance(rf.estimator_, TimeDelayingRidge))
     str(rf)  # repr works after fit
-    rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator=0)
+    rf = ReceptiveField(tmin, tmax, 1, ['one'], estimator=0, patterns=True)
     rf.fit(X[:, [0]], y)
     str(rf)  # repr with one feature
     # Should only accept estimators or floats
-    rf = ReceptiveField(tmin, tmax, 1, estimator='foo')
+    rf = ReceptiveField(tmin, tmax, 1, estimator='foo', patterns=True)
     assert_raises(ValueError, rf.fit, X, y)
     rf = ReceptiveField(tmin, tmax, 1, estimator=np.array([1, 2, 3]))
     assert_raises(ValueError, rf.fit, X, y)
     # tmin must be <= tmax
-    rf = ReceptiveField(5, 4, 1)
+    rf = ReceptiveField(5, 4, 1, patterns=True)
     assert_raises(ValueError, rf.fit, X, y)
     # scorers
     for key, val in _SCORERS.items():
         rf = ReceptiveField(tmin, tmax, 1, ['one'],
-                            estimator=0, scoring=key)
+                            estimator=0, scoring=key, patterns=True)
         rf.fit(X[:, [0]], y)
         y_pred = rf.predict(X[:, [0]]).T.ravel()[:, np.newaxis]
         assert_allclose(val(y[:, np.newaxis], y_pred),
@@ -467,6 +468,57 @@ def test_receptive_field_nd():
         assert_allclose(model.estimator_.intercept_, 0., atol=1e-7)
         score = model.score(x_off, y)
         assert_true(score > 0.6, msg=score)
+
+
+@requires_version('sklearn', '0.17')
+def test_inverse_coef():
+    """Test inverse coefficients computation."""
+    from sklearn.linear_model import Ridge
+
+    rng = np.random.RandomState(0)
+    tmin, tmax = 0., 10.
+    n_feats, n_targets, n_samples = 64, 2, 10000
+    n_delays = int((tmax - tmin) + 1)
+
+    def make_data(n_feats, n_targets, n_samples, tmin, tmax):
+        X = rng.randn(n_samples, n_feats)
+        w = rng.randn(int((tmax - tmin) + 1) * n_feats, n_targets)
+        # Delay inputs
+        X_del = np.concatenate(
+            _delay_time_series(X, tmin, tmax, 1.).transpose(2, 0, 1), axis=1)
+        y = np.dot(X_del, w)
+        return X, y
+
+    # Check coefficient dims, for all estimator types
+    X, y = make_data(n_feats, n_targets, n_samples, tmin, tmax)
+    tdr = TimeDelayingRidge(tmin, tmax, 1., 0.1, 'laplacian')
+    for estimator in (0., 0.01, Ridge(alpha=0.), tdr):
+        rf = ReceptiveField(tmin, tmax, 1., estimator=estimator,
+                            patterns=True)
+        rf.fit(X, y)
+        inv_rf = ReceptiveField(tmin, tmax, 1., estimator=estimator,
+                                patterns=True)
+        inv_rf.fit(y, X)
+
+        assert_array_equal(rf.coef_.shape, rf.patterns_.shape,
+                           (n_targets, n_feats, n_delays))
+        assert_array_equal(inv_rf.coef_.shape, inv_rf.patterns_.shape,
+                           (n_feats, n_targets, n_delays))
+
+        # we should have np.dot(patterns.T,coef) ~ np.eye(n)
+        c0 = rf.coef_.reshape(n_targets, n_feats * n_delays)
+        c1 = rf.patterns_.reshape(n_targets, n_feats * n_delays)
+        assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.1)
+
+    # Check that warnings are issued when no regularization is applied
+    n_feats, n_targets, n_samples = 5, 60, 50
+    X, y = make_data(n_feats, n_targets, n_samples, tmin, tmax)
+    for estimator in (0., Ridge(alpha=0.)):
+        rf = ReceptiveField(tmin, tmax, 1., estimator=estimator, patterns=True)
+        with warnings.catch_warnings(record=True) as w:
+            rf.fit(y, X)
+            assert_equal(len(w), 1)
+            assert_true(str(w[0].message).startswith('scipy.linalg.solve'))
 
 
 run_tests_if_main()

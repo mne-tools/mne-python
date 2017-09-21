@@ -7,6 +7,7 @@
 import numbers
 
 import numpy as np
+from scipy import linalg
 
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
@@ -17,9 +18,9 @@ from ..externals.six import string_types
 class ReceptiveField(BaseEstimator):
     """Fit a receptive field model.
 
-    This allows you to fit an encoding model (stimulus to brain) using
-    time-lagged input features. For example, a spectro- or spatio-temporal
-    receptive field (STRF).
+    This allows you to fit an encoding model (stimulus to brain) or a decoding
+    model (brain to stimulus) using time-lagged input features (for example, a
+    spectro- or spatio-temporal receptive field, or STRF).
 
     Parameters
     ----------
@@ -47,6 +48,10 @@ class ReceptiveField(BaseEstimator):
         Defines how predictions will be scored. Currently must be one of
         'r2' (coefficient of determination) or 'corrcoef' (the correlation
         coefficient).
+    patterns : bool
+        If True, inverse coefficients will be computed upon fitting using the
+        covariance matrix of the inputs, and the cross-covariance of the
+        inputs/outputs, according to [5]_. Defaults to False.
 
     Attributes
     ----------
@@ -54,6 +59,8 @@ class ReceptiveField(BaseEstimator):
         The coefficients from the model fit, reshaped for easy visualization.
         During :meth:`mne.decoding.ReceptiveField.fit`, if ``y`` has one
         dimension (time), the ``n_outputs`` dimension here is omitted.
+    ``patterns_`` : array, shape ([n_outputs, ]n_features, n_delays)
+        If fit, the inverted coefficients from the model.
     ``delays_``: array, shape (n_delays,), dtype int
         The delays used to fit the model, in indices. To return the delays
         in seconds, use ``self.delays_ / self.sfreq``
@@ -94,10 +101,16 @@ class ReceptiveField(BaseEstimator):
     .. [4] Holdgraf, C. R. et al. Rapid tuning shifts in human auditory cortex
            enhance speech intelligibility. Nature Communications,
            7, 13654 (2016). doi:10.1038/ncomms13654
+
+    .. [5] Haufe, S., Meinecke, F., Goergen, K., Daehne, S., Haynes, J.-D.,
+           Blankertz, B., & Biessmann, F. (2014). On the interpretation of
+           weight vectors of linear models in multivariate neuroimaging.
+           NeuroImage, 87, 96-110. doi:10.1016/j.neuroimage.2013.10.067
     """
 
     def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
-                 fit_intercept=None, scoring='r2'):  # noqa: D102
+                 fit_intercept=None, scoring='r2',
+                 patterns=False):  # noqa: D102
         self.feature_names = feature_names
         self.sfreq = float(sfreq)
         self.tmin = tmin
@@ -105,6 +118,7 @@ class ReceptiveField(BaseEstimator):
         self.estimator = 0. if estimator is None else estimator
         self.fit_intercept = fit_intercept
         self.scoring = scoring
+        self.patterns = patterns
 
     def __repr__(self):  # noqa: D105
         s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
@@ -193,6 +207,8 @@ class ReceptiveField(BaseEstimator):
 
         # Create input features
         n_times, n_epochs, n_feats = X.shape
+        n_outputs = y.shape[-1]
+        n_delays = len(self.delays_)
 
         # Update feature names if we have none
         if self.feature_names is None:
@@ -203,13 +219,38 @@ class ReceptiveField(BaseEstimator):
 
         # Create input features
         X, y = self._delay_and_reshape(X, y)
+
         self.estimator_.fit(X, y)
-        del X, y
         coef = get_coef(self.estimator_, 'coef_')  # (n_targets, n_features)
-        shape = [n_feats, len(self.delays_)]
+        shape = [n_feats, n_delays]
         if self._y_dim > 1:
             shape.insert(0, -1)
         self.coef_ = coef.reshape(shape)
+
+        # Inverse-transform model weights
+        if self.patterns:
+            if isinstance(self.estimator_, TimeDelayingRidge):
+                cov_ = self.estimator_.cov_ / float(n_times * n_epochs - 1)
+                y = y.reshape(-1, y.shape[-1], order='F')
+            else:
+                X = X - X.mean(0, keepdims=True)
+                cov_ = np.cov(X.T)
+            del X
+
+            # Inverse output covariance
+            if y.ndim == 2 and y.shape[1] != 1:
+                y = y - y.mean(0, keepdims=True)
+                inv_Y = linalg.pinv(np.cov(y.T))
+            else:
+                inv_Y = 1. / float(n_times * n_epochs - 1)
+            del y
+
+            # Inverse coef according to Haufe's method
+            # patterns has shape (n_feats * n_delays, n_outputs)
+            coef = np.reshape(self.coef_, (n_feats * n_delays, n_outputs))
+            patterns = cov_.dot(coef.dot(inv_Y))
+            self.patterns_ = patterns.reshape(shape)
+
         return self
 
     def predict(self, X):
