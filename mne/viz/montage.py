@@ -1,7 +1,4 @@
 """Functions to plot EEG sensor montages or digitizer montages."""
-import numpy as np
-from scipy.spatial.distance import cdist
-
 from ..utils import check_version, logger
 from . import plot_sensors
 
@@ -28,8 +25,12 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     fig : Instance of matplotlib.figure.Figure
         The figure object.
     """
+    from copy import deepcopy
+    import numpy as np
+    from scipy.spatial.distance import cdist
     from ..channels import Montage, DigMontage
     from .. import create_info
+
     if isinstance(montage, Montage):
         ch_names = montage.ch_names
         title = montage.kind
@@ -48,19 +49,22 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     dists[np.tril_indices(dists.shape[0])] = np.nan
     dupes = np.argwhere(np.isclose(dists, 0))
     if dupes.any():
-        n_chans = montage.pos.shape[0]
+        m = deepcopy(montage)
+        n_chans = m.pos.shape[0]
         n_dupes = dupes.shape[0]
-        idx = np.setdiff1d(montage.selection, dupes[:, 1]).tolist()
+        idx = np.setdiff1d(m.selection, dupes[:, 1]).tolist()
         logger.info("{} duplicate electrode labels found: ".format(n_dupes))
         logger.info(", ".join([ch_names[d[0]] + "/" + ch_names[d[1]]
                                for d in dupes]))
         logger.info("Plotting {} unique labels.".format(n_chans - n_dupes))
-        montage.ch_names = [montage.ch_names[i] for i in idx]
-        ch_names = montage.ch_names
-        montage.pos = montage.pos[idx, :]
-        montage.selection = np.arange(n_chans - n_dupes)
+        m.ch_names = [m.ch_names[i] for i in idx]
+        ch_names = m.ch_names
+        m.pos = m.pos[idx, :]
+        m.selection = np.arange(n_chans - n_dupes)
+    else:
+        m = montage
 
-    info = create_info(ch_names, sfreq=256, ch_types="eeg", montage=montage)
+    info = create_info(ch_names, sfreq=256, ch_types="eeg", montage=m)
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
                        title=title)
     collection = fig.axes[0].collections[0]
