@@ -499,6 +499,9 @@ def _pval_from_histogram(T, H0, tail):
 
 
 def _setup_connectivity(connectivity, n_vertices, n_times):
+    if not sparse.issparse(connectivity):
+        raise ValueError("If connectivity matrix is given, it must be a"
+                         "scipy sparse matrix.")
     if connectivity.shape[0] == n_vertices:  # use global algorithm
         connectivity = connectivity.tocoo()
         n_times = None
