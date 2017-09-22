@@ -4,17 +4,23 @@
 # License: BSD Style.
 
 import tarfile
-from ...utils import _fetch_file, _url_to_local_path, verbose
+import os.path as op
+import os
+from ...utils import _fetch_file
+from ..utils import _get_path
 
 
 def data_path(set='evoked', path=None, force_update=False, update_path=None,
               verbose=None):
 
-    key = MNE_DATASETS_HF_SEF_PATH
-    name = HF_SEF
+    key = 'MNE_DATASETS_HF_SEF_PATH'
+    name = 'HF_SEF'
     path = _get_path(path, key, name)
-    
-    
+    destdir = op.join(path, 'HF_SEF')
+
+    if not op.isdir(destdir):
+        os.mkdir(destdir)
+
     urls = {'evoked':
             'https://zenodo.org/record/889235/files/hf_sef_evoked.tar.gz',
             'raw':
@@ -24,12 +30,10 @@ def data_path(set='evoked', path=None, force_update=False, update_path=None,
         raise ValueError('Invalid set specified')
 
     url = urls[set]
-    _fetch_file(url)
+    filename = url.split('/')[-1]  # probably politically incorrect
+    destination = op.join(destdir, filename)
 
-    with tarfile.open(fn) as tar:
-        tar.extractall('/tmp')
+    _fetch_file(url, destination)
 
-        
-
-
-   
+    with tarfile.open(destination) as tar:
+        tar.extractall(destdir)
