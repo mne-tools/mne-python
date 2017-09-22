@@ -296,6 +296,7 @@ class DigSource(HasPrivateTraits):
                       "digitizer information. Please select a different "
                       "file.", "Error Reading FIFF File")
                 self.reset_traits(['file'])
+                return
             elif isinstance(info, DigMontage):
                 info.transform_to_head()
                 digs = list()
@@ -319,6 +320,20 @@ class DigSource(HasPrivateTraits):
                     digs.append(dig)
                 info = _empty_info(1)
                 info['dig'] = digs
+            else:
+                # check that all fiducial points are present
+                has_point = {FIFF.FIFFV_POINT_LPA: False,
+                             FIFF.FIFFV_POINT_NASION: False,
+                             FIFF.FIFFV_POINT_RPA: False}
+                for d in info['dig']:
+                    if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+                        has_point[d['ident']] = True
+                if not all(has_point.values()):
+                    error(None, "The selected FIFF file does not contain "
+                          "cardinal points. Please select a different file.",
+                          "Error Reading FIFF File")
+                    self.reset_traits(['file'])
+                    return
 
             return info
 
