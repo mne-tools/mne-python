@@ -60,7 +60,7 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     return vmin, vmax
 
 
-def plt_show(show=True, **kwargs):
+def plt_show(show=True, fig=None, **kwargs):
     """Show a figure while suppressing warnings.
 
     Parameters
@@ -73,7 +73,7 @@ def plt_show(show=True, **kwargs):
     import matplotlib
     import matplotlib.pyplot as plt
     if show and matplotlib.get_backend() != 'agg':
-        plt.show(**kwargs)
+        (fig or plt).show(**kwargs)
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
@@ -427,7 +427,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     # this should work for non-test cases
     try:
         fig_proj.canvas.draw()
-        fig_proj.show(warn=False)
+        plt_show(fig=fig_proj, warn=False)
     except Exception:
         pass
 
@@ -831,7 +831,7 @@ def _setup_annotation_fig(params):
     fig.button = Button(button_ax, 'Add label')
     fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center')
     fig.button.on_clicked(partial(_onclick_new_label, params=params))
-    fig.show()
+    plt_show(fig=fig)
     params['fig_annotation'] = fig
 
     ax = params['ax']
@@ -1027,7 +1027,7 @@ def _onclick_help(event, params):
     # this should work for non-test cases
     try:
         fig_help.canvas.draw()
-        fig_help.show(warn=False)
+        plt_show(fig=fig_help, warn=False)
     except Exception:
         pass
 

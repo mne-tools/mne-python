@@ -2647,6 +2647,14 @@ def open_docs(kind=None, version=None):
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
 
 
+def _scale_dep(want, got, name_want, name_got):
+    if got is not None:
+        warn('%s is deprecated and will be removed in 0.16, use %s instead'
+             % (name_got, name_want), DeprecationWarning)
+        want = got
+    return want
+
+
 def _freqs_dep(freqs, frequencies, prefix=''):
     if frequencies is not None:
         freqs = frequencies

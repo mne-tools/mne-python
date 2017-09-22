@@ -21,7 +21,7 @@ from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels)
-from ..utils import _clean_names, _time_mask, verbose, logger, warn
+from ..utils import _clean_names, _time_mask, verbose, logger, warn, _scale_dep
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -286,9 +286,9 @@ def _check_outlines(pos, outlines, head_pos=None):
 
     if isinstance(outlines, np.ndarray) or outlines in ('head', 'skirt', None):
         radius = 0.5
-        l = np.linspace(0, 2 * np.pi, 101)
-        head_x = np.cos(l) * radius
-        head_y = np.sin(l) * radius
+        ll = np.linspace(0, 2 * np.pi, 101)
+        head_x = np.cos(ll) * radius
+        head_y = np.sin(ll) * radius
         nose_x = np.array([0.18, 0, -0.18]) * radius
         nose_y = np.array([radius - .004, radius * 1.15, radius - .004])
         ear_x = np.array([.497, .510, .518, .5299, .5419, .54, .547,
@@ -1200,13 +1200,13 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         vmin=None, vmax=None, cmap=None, sensors=True,
-                        colorbar=None, scale=None, scale_time=1e3, unit=None,
-                        res=64, size=1, cbar_fmt='%3.1f',
+                        colorbar=None, scalings=None, scaling_time=1e3,
+                        units=None, res=64, size=1, cbar_fmt='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
-                        axes=None):
+                        axes=None, scale=None, scale_time=None, unit=None):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1263,12 +1263,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         None (default) is the same as True, but emits a warning if custom
         ``axes`` are provided to remind the user that the colorbar will
         occupy the last :class:`matplotlib.axes.Axes` instance.
-    scale : dict | float | None
-        Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-        for grad and 1e15 for mag.
-    scale_time : float | None
+    scalings : dict | float | None
+        The scalings of the channel types to be applied for plotting.
+        If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
+    scaling_time : float | None
         Scale the time labels. Defaults to 1e3 (ms).
-    unit : dict | str | None
+    units : dict | str | None
         The unit of the channel type used for colorbar label. If
         scale is None the unit is automatically determined.
     res : int
@@ -1353,6 +1353,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     from matplotlib import gridspec
     from matplotlib.widgets import Slider
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
+    scalings = _scale_dep(scalings, scale, 'scalings', 'scale')
+    scaling_time = _scale_dep(scaling_time, scale_time,
+                              'scaling_time', 'scale_time')
+    units = _scale_dep(units, unit, 'units', 'unit')
+    del scale, scale_time, unit
 
     if colorbar is None:
         colorbar = True
@@ -1422,8 +1427,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         key = ch_type
 
-    scale = _handle_default('scalings', scale)[key]
-    unit = _handle_default('units', unit)[key]
+    scaling = _handle_default('scalings', scalings)[key]
+    unit = _handle_default('units', units)[key]
 
     if not show_names:
         names = None
@@ -1457,7 +1462,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         raise ValueError('The average parameter must be None or a float.'
                          'Check your input.')
 
-    data *= scale
+    data *= scaling
     if merge_grads:
         data = _merge_grad_data(data)
 
@@ -1498,7 +1503,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         if cn is not None:
             contours_.append(cn)
         if time_format is not None:
-            axes[idx].set_title(time_format % (time * scale_time))
+            axes[idx].set_title(time_format % (time * scaling_time))
 
     if interactive:
         axes.append(plt.subplot(gs[2]))
@@ -1508,9 +1513,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         func = _merge_grad_data if merge_grads else lambda x: x
         changed_callback = partial(_slider_changed, ax=axes[0],
                                    data=evoked.data, times=evoked.times,
-                                   pos=pos, scale=scale, func=func,
+                                   pos=pos, scaling=scaling, func=func,
                                    time_format=time_format,
-                                   scale_time=scale_time, kwargs=kwargs)
+                                   scaling_time=scaling_time, kwargs=kwargs)
         slider.on_changed(changed_callback)
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color='k')
@@ -1537,7 +1542,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
                       picks=picks, images=images, contours=contours_,
-                      time_idx=time_idx, scale=scale, merge_grads=merge_grads,
+                      time_idx=time_idx, merge_grads=merge_grads,
                       res=res, pos=pos, image_mask=image_mask,
                       plot_update_proj_callback=_plot_update_evoked_topomap)
         _draw_proj_checkbox(None, params)
@@ -1557,18 +1562,18 @@ def _resize_cbar(cax, n_fig_axes, size=1):
     cax.set_position(cpos)
 
 
-def _slider_changed(val, ax, data, times, pos, scale, func, time_format,
-                    scale_time, kwargs):
+def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
+                    scaling_time, kwargs):
     """Handle selection in interactive topomap."""
     idx = np.argmin(np.abs(times - val))
-    data = func(data[:, idx]).ravel() * scale
+    data = func(data[:, idx]).ravel() * scaling
     ax.clear()
     im, _ = plot_topomap(data, pos, axes=ax, **kwargs)
     if hasattr(ax, 'CB'):
         ax.CB.mappable = im
         _resize_cbar(ax.CB.cbar.ax, 2)
     if time_format is not None:
-        ax.set_title(time_format % (val * scale_time))
+        ax.set_title(time_format % (val * scaling_time))
 
 
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,

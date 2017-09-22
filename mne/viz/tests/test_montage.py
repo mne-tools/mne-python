@@ -22,15 +22,23 @@ point_names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
 
 
 def test_plot_montage():
-    """Test plotting montages
-    """
+    """Test plotting montages."""
+    import matplotlib.pyplot as plt
     m = read_montage('easycap-M1')
     m.plot()
+    plt.close('all')
     m.plot(kind='3d')
+    plt.close('all')
     m.plot(kind='3d', show_names=True)
+    plt.close('all')
     m.plot(kind='topomap')
+    plt.close('all')
     m.plot(kind='topomap', show_names=True)
+    plt.close('all')
     d = read_dig_montage(hsp, hpi, elp, point_names)
     d.plot()
+    plt.close('all')
     d.plot(kind='3d')
+    plt.close('all')
     d.plot(kind='3d', show_names=True)
+    plt.close('all')

@@ -334,24 +334,21 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
                      vmax=None, cmap=None, sensors=True, colorbar=True,
-                     scale=None, scale_time=1e3, unit=None, res=64, size=1,
-                     cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
-                     show=True, show_names=False, title=None, mask=None,
-                     mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None,
-                     axes=None):
-        return plot_evoked_topomap(self, times=times, ch_type=ch_type,
-                                   layout=layout, vmin=vmin, vmax=vmax,
-                                   cmap=cmap, sensors=sensors,
-                                   colorbar=colorbar, scale=scale,
-                                   scale_time=scale_time, unit=unit, res=res,
-                                   proj=proj, size=size, cbar_fmt=cbar_fmt,
-                                   time_format=time_format, show=show,
-                                   show_names=show_names, title=title,
-                                   mask=mask, mask_params=mask_params,
-                                   outlines=outlines, contours=contours,
-                                   image_interp=image_interp, average=average,
-                                   head_pos=head_pos, axes=axes)
+                     scalings=None, scaling_time=1e3, unit=None, res=64,
+                     size=1, cbar_fmt="%3.1f", time_format='%01d ms',
+                     proj=False, show=True, show_names=False, title=None,
+                     mask=None, mask_params=None, outlines='head',
+                     contours=6, image_interp='bilinear', average=None,
+                     head_pos=None, axes=None, scale=None, scale_time=None):
+        return plot_evoked_topomap(
+            self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
+            vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
+            scalings=scalings, scaling_time=scaling_time, unit=unit, res=res,
+            size=size, cbar_fmt=cbar_fmt, time_format=time_format,
+            proj=proj, show=show, show_names=show_names, title=title,
+            mask=mask, mask_params=mask_params, outlines=outlines,
+            contours=contours, image_interp=image_interp, average=average,
+            head_pos=head_pos, axes=axes, scale=scale, scale_time=scale_time)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',

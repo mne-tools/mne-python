@@ -234,6 +234,8 @@ API
 
     - Add ``patterns=False`` parameter in :class:`mne.decoding.ReceptiveField`. Turn on to compute inverse model coefficients, by `Nicolas Barascud`_
 
+    - The ``scale``, ``scale_time``, and ``unit`` parameters have been deprecated in favor of ``scalings``, ``scalings_time``, and ``units`` in :func:`mne.viz.plot_evoked_topomap` and related functions, by `Eric Larson`_
+
 .. _changes_0_14:
 
 Version 0.14

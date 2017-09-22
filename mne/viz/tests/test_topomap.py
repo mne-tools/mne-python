@@ -79,10 +79,10 @@ def test_plot_topomap():
     assert_raises(ValueError, plt_topomap, times=[-100])  # bad time
     assert_raises(ValueError, plt_topomap, times=[[0]])  # bad time
 
-    evoked.plot_topomap([0.1], ch_type='eeg', scale=1, res=res,
+    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100])
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
-    plt_topomap(0.1, layout=layout, scale=dict(mag=0.1))
+    plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
     plt.close('all')
     axes = [plt.subplot(221), plt.subplot(222)]
     plt_topomap(axes=axes, colorbar=False)
