@@ -14,7 +14,6 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 import numpy as np
 import copy as cp
 import warnings
-from scipy import fftpack
 import matplotlib
 
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
@@ -67,6 +66,7 @@ def _get_data(preload=False):
                        ecg=True, eog=True, include=['STI 014'],
                        exclude='bads')
     return raw, events, picks
+
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
@@ -426,24 +426,50 @@ def test_base_epochs():
 @requires_version('scipy', '0.14')
 def test_savgol_filter():
     """Test savgol filtering."""
-    h_freq = 10.
+    h_freq = 20.
     raw, events = _get_data()[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax)
     assert_raises(RuntimeError, epochs.savgol_filter, 10.)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
-    freqs = fftpack.fftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
-    data = np.abs(fftpack.fft(epochs.get_data()))
-    match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
-    mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
+    epochs.pick_types(meg='grad')
+    freqs = np.fft.rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data = np.abs(np.fft.rfft(epochs.get_data()))
+    pass_mask = (freqs <= h_freq / 2. - 5.)
+    stop_mask = (freqs >= h_freq * 2 + 5.)
     epochs.savgol_filter(h_freq)
-    data_filt = np.abs(fftpack.fft(epochs.get_data()))
+    data_filt = np.abs(np.fft.rfft(epochs.get_data()))
     # decent in pass-band
-    assert_allclose(np.mean(data[:, :, match_mask], 0),
-                    np.mean(data_filt[:, :, match_mask], 0),
-                    rtol=1e-4, atol=1e-2)
+    assert_allclose(np.mean(data[:, :, pass_mask], 0),
+                    np.mean(data_filt[:, :, pass_mask], 0),
+                    rtol=1e-2, atol=1e-18)
     # suppression in stop-band
-    assert_true(np.mean(data[:, :, mismatch_mask]) >
-                np.mean(data_filt[:, :, mismatch_mask]) * 5)
+    assert_true(np.mean(data[:, :, stop_mask]) >
+                np.mean(data_filt[:, :, stop_mask]) * 5)
+
+
+def test_filter():
+    """Test filtering."""
+    h_freq = 40.
+    raw, events = _get_data()[:2]
+    epochs = Epochs(raw, events, event_id, tmin, tmax)
+    assert round(epochs.info['lowpass']) == 172
+    assert_raises(RuntimeError, epochs.savgol_filter, 10.)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
+    epochs.pick_types(meg='grad')
+    freqs = np.fft.rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data = np.abs(np.fft.rfft(epochs.get_data()))
+    pass_mask = (freqs <= h_freq / 2. - 5.)
+    stop_mask = (freqs >= h_freq * 2 + 5.)
+    epochs.filter(None, h_freq, fir_design='firwin')
+    assert epochs.info['lowpass'] == h_freq
+    data_filt = np.abs(np.fft.rfft(epochs.get_data()))
+    # decent in pass-band
+    assert_allclose(np.mean(data_filt[:, :, pass_mask], 0),
+                    np.mean(data[:, :, pass_mask], 0),
+                    rtol=5e-2, atol=1e-16)
+    # suppression in stop-band
+    assert_true(np.mean(data[:, :, stop_mask]) >
+                np.mean(data_filt[:, :, stop_mask]) * 10)
 
 
 def test_epochs_hash():
@@ -1318,7 +1344,7 @@ def test_epoch_eq():
     assert_true(len([l for l in epochs_1.drop_log if not l]) ==
                 len(epochs_1.events))
     drop_log1 = epochs_1.drop_log = [[] for _ in range(len(epochs_1.events))]
-    drop_log2 = [[] if l == ['EQUALIZED_COUNT'] else l for l in
+    drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
                  epochs_1.drop_log]
     assert_true(drop_log1 == drop_log2)
     assert_true(len([l for l in epochs_1.drop_log if not l]) ==
@@ -1342,7 +1368,7 @@ def test_epoch_eq():
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'])
     # undo the eq logging
-    drop_log2 = [[] if l == ['EQUALIZED_COUNT'] else l for l in
+    drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
                  epochs.drop_log]
     assert_true(drop_log1 == drop_log2)
 

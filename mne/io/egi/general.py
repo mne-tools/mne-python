@@ -115,21 +115,25 @@ def _get_blocks(filepath):
     return signal_blocks
 
 
-def _get_signalfname(filepath, infontype):
+def _get_signalfname(filepath):
     """Get filenames."""
     listfiles = os.listdir(filepath)
-    binfiles = list(f for f in listfiles if 'signal' in f and f[-4:] == '.bin')
-    signalfile = []
-    infofiles = []
+    binfiles = list(f for f in listfiles if 'signal' in f and
+                    f[-4:] == '.bin' and f[0] != '.')
+    all_files = {}
     for binfile in binfiles:
         bin_num_str = re.search(r'\d+', binfile).group()
         infofile = 'info' + bin_num_str + '.xml'
         infobjfile = os.path.join(filepath, infofile)
         infobj = parse(infobjfile)
-        if infobj.getElementsByTagName(infontype) is not None:
-            signalfile.append('signal' + bin_num_str + '.bin')
-            infofiles.append(infofile)
-    return signalfile, infofiles
+        if len(infobj.getElementsByTagName('EEG')):
+            signal_type = 'EEG'
+        elif len(infobj.getElementsByTagName('PNSData')):
+            signal_type = 'PNS'
+        all_files[signal_type] = {
+            'signal': 'signal{}.bin'.format(bin_num_str),
+            'info': infofile}
+    return all_files
 
 
 def _block_r(fid):
@@ -143,7 +147,10 @@ def _block_r(fid):
     nsamples = int(hl / nc)
     np.fromfile(fid, dtype=np.dtype('i4'), count=nc)  # sigoffset
     sigfreq = np.fromfile(fid, dtype=np.dtype('i4'), count=nc)
-    sfreq = (sigfreq[0] - 32) / ((nc - 1) * 2)
+    depth = sigfreq[0] & 0xFF
+    if depth != 32:
+        raise ValueError('I do not know how to read this MFF (depth != 32)')
+    sfreq = sigfreq[0] >> 8
     count = int(header_size / 4 - (4 + 2 * nc))
     np.fromfile(fid, dtype=np.dtype('i4'), count=count)  # sigoffset
     block = dict(nc=nc,

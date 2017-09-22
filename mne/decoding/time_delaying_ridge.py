@@ -299,8 +299,8 @@ class TimeDelayingRidge(BaseEstimator):
             y = y - y_offset
         else:
             X_offset = y_offset = 0.
-        x_xt, x_y, n_ch_x = _compute_corrs(X, y, self._smin, self._smax)
-        self.coef_ = _fit_corrs(x_xt, x_y, n_ch_x,
+        self.cov_, x_y_, n_ch_x = _compute_corrs(X, y, self._smin, self._smax)
+        self.coef_ = _fit_corrs(self.cov_, x_y_, n_ch_x,
                                 self.reg_type, self.alpha, n_ch_x)
         # This is the sklearn formula from LinearModel (will be 0. for no fit)
         if self.fit_intercept:

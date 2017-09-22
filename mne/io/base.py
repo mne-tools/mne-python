@@ -30,7 +30,8 @@ from .write import (start_file, end_file, start_block, end_block,
 
 from ..annotations import _annotations_starts_stops
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
-                      _resample_stim_channels)
+                      _resample_stim_channels, _filt_check_picks,
+                      _filt_update_info)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments,
@@ -1092,7 +1093,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design=None,
-               skip_by_annotation=None, verbose=None):
+               skip_by_annotation=None, pad='reflect_limited', verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -1201,6 +1202,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             or :meth:`mne.io.Raw.append`. To disable, provide an empty list.
 
             .. versionadded:: 0.16.
+        pad : str
+            The type of padding to use. Supports all :func:`np.pad` ``mode``
+            options. Can also be "reflect_limited" (default), which pads with a
+            reflected version of each vector mirrored on the first and last
+            values of the vector, followed by zeros.
+            Only used for ``method='fir'``.
+
+            .. versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1225,23 +1234,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         and :ref:`tut_artifacts_filter`.
         """
         _check_preload(self, 'raw.filter')
-        data_picks = _pick_data_or_ica(self.info)
-        update_info = False
-        if picks is None:
-            picks = data_picks
-            update_info = True
-            # let's be safe.
-            if len(picks) == 0:
-                raise RuntimeError('Could not find any valid channels for '
-                                   'your Raw object. Please contact the '
-                                   'MNE-Python developers.')
-        elif h_freq is not None or l_freq is not None:
-            if np.in1d(data_picks, picks).all():
-                update_info = True
-            else:
-                logger.info('Filtering a subset of channels. The highpass and '
-                            'lowpass values in the measurement info will not '
-                            'be updated.')
+        update_info, picks = _filt_check_picks(self.info, picks,
+                                               l_freq, h_freq)
         # Deal with annotations
         if skip_by_annotation is None:
             if self.annotations is not None and any(
@@ -1264,18 +1258,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
                 picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
                 n_jobs, method, iir_params, copy=False, phase=phase,
-                fir_window=fir_window, fir_design=fir_design)
+                fir_window=fir_window, fir_design=fir_design, pad=pad)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
-        if update_info:
-            if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
-                    (self.info["lowpass"] is None or
-                     h_freq < self.info['lowpass']):
-                self.info['lowpass'] = float(h_freq)
-            if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
-                    (self.info["highpass"] is None or
-                     l_freq > self.info['highpass']):
-                self.info['highpass'] = float(l_freq)
+        _filt_update_info(self.info, update_info, l_freq, h_freq)
         return self
 
     @verbose
@@ -1283,7 +1269,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
-                     fir_design=None, verbose=None):
+                     fir_design=None, pad='reflect_limited', verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -1367,6 +1353,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             attenuation using fewer samples than "firwin2".
 
             ..versionadded:: 0.15
+        pad : str
+            The type of padding to use. Supports all :func:`np.pad` ``mode``
+            options. Can also be "reflect_limited" (default), which pads with a
+            reflected version of each vector mirrored on the first and last
+            values of the vector, followed by zeros.
+            Only used for ``method='fir'``.
+
+            .. versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1399,12 +1393,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
             method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
             p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
-            phase=phase, fir_window=fir_window, fir_design=fir_design)
+            phase=phase, fir_window=fir_window, fir_design=fir_design,
+            pad=pad)
         return self
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, verbose=None):
+                 n_jobs=1, events=None, pad='reflect_limited', verbose=None):
         """Resample all channels.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
@@ -1448,6 +1443,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data.
+        pad : str
+            The type of padding to use. Supports all :func:`np.pad` ``mode``
+            options. Can also be "reflect_limited" (default), which pads with a
+            reflected version of each vector mirrored on the first and last
+            values of the vector, followed by zeros.
+
+            .. versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1498,7 +1500,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         for ri in range(len(self._raw_lengths)):
             data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
             new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
-                                     window=window, n_jobs=n_jobs))
+                                     window=window, n_jobs=n_jobs, pad=pad))
             new_ntimes = new_data[ri].shape[1]
 
             # In empirical testing, it was faster to resample all channels

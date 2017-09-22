@@ -104,10 +104,13 @@ def test_xdawn_apply_transform():
     # Apply on other thing should raise an error
     assert_raises(ValueError, xd.apply, 42)
 
-    # Transform on epochs
+    # Transform on Epochs
     xd.transform(epochs)
+    # Transform on Evoked
+    xd.transform(epochs.average())
     # Transform on ndarray
     xd.transform(epochs._data)
+    xd.transform(epochs._data[0])
     # Transform on someting else
     assert_raises(ValueError, xd.transform, 42)
 
@@ -152,6 +155,12 @@ def test_xdawn_regularization():
     xd = Xdawn(n_components=2, correct_overlap=False,
                signal_cov=np.eye(len(picks)), reg=2)
     assert_raises(ValueError, xd.fit, epochs)
+    # With rank-deficient input
+    epochs.set_eeg_reference(['EEG 001'])
+    xd = Xdawn(correct_overlap=False, reg=None)
+    assert_raises(ValueError, xd.fit, epochs)
+    xd = Xdawn(correct_overlap=False, reg=0.5)
+    xd.fit(epochs)
 
 
 @requires_sklearn

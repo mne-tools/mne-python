@@ -226,7 +226,7 @@ def test_shift_time_evoked():
 
 
 def test_evoked_resample():
-    """Test for resampling of evoked data."""
+    """Test resampling evoked data."""
     tempdir = _TempDir()
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
@@ -254,6 +254,17 @@ def test_evoked_resample():
     # we'll add a couple extra checks anyway
     assert_true(len(ave_up.times) == 2 * len(ave_normal.times))
     assert_true(ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
+
+
+def test_evoked_filter():
+    """Test filtering evoked data."""
+    # this is mostly a smoke test as the Epochs and raw tests are more complete
+    ave = read_evokeds(fname, 0).pick_types('grad')
+    ave.data[:] = 1.
+    assert round(ave.info['lowpass']) == 172
+    ave_filt = ave.copy().filter(None, 40.)
+    assert ave_filt.info['lowpass'] == 40.
+    assert_allclose(ave.data, 1., atol=1e-6)
 
 
 def test_evoked_detrend():

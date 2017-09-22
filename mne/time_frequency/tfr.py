@@ -20,7 +20,8 @@ from scipy.fftpack import fft, ifft
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
+from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
+                     _freqs_dep)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import pick_info, pick_types
@@ -256,17 +257,17 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 # Loop of convolution: single trial
 
 
-def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
+def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
                  n_cycles=7.0, zero_mean=None, time_bandwidth=None,
                  use_fft=True, decim=1, output='complex', n_jobs=1,
-                 verbose=None):
+                 frequencies=None, verbose=None):
     """Compute time-frequency transforms.
 
     Parameters
     ----------
     epoch_data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
-    frequencies : array-like of floats, shape (n_freqs)
+    freqs : array-like of floats, shape (n_freqs)
         The frequencies.
     sfreq : float | int, defaults to 1.0
         Sampling frequency of the data.
@@ -310,6 +311,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     n_jobs : int, defaults to 1
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
+    frequencies : None
+        Deprecated.
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -330,17 +333,17 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
                          '(n_epochs, n_chans, n_times)')
 
     # Check params
-    frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
-        _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
-                         time_bandwidth, use_fft, decim, output)
+    freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
+        _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
+                         time_bandwidth, use_fft, decim, output, frequencies)
 
     # Setup wavelet
     if method == 'morlet':
-        W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
+        W = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
 
     elif method == 'multitaper':
-        Ws = _make_dpss(sfreq, frequencies, n_cycles=n_cycles,
+        Ws = _make_dpss(sfreq, freqs, n_cycles=n_cycles,
                         time_bandwidth=time_bandwidth, zero_mean=zero_mean)
 
     # Check wavelets
@@ -350,7 +353,7 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
     # Initialize output
     decim = _check_decim(decim)
-    n_freqs = len(frequencies)
+    n_freqs = len(freqs)
     n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
     if output in ('power', 'phase', 'avg_power', 'itc'):
         dtype = np.float
@@ -382,17 +385,18 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     return out
 
 
-def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
-                     time_bandwidth, use_fft, decim, output):
+def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
+                     time_bandwidth, use_fft, decim, output, frequencies):
     """Aux. function to _compute_tfr to check the params validity."""
-    # Check frequencies
-    if not isinstance(frequencies, (list, np.ndarray)):
-        raise ValueError('frequencies must be an array-like, got %s '
-                         'instead.' % type(frequencies))
-    frequencies = np.asarray(frequencies, dtype=float)
-    if frequencies.ndim != 1:
-        raise ValueError('frequencies must be of shape (n_freqs,), got %s '
-                         'instead.' % np.array(frequencies.shape))
+    freqs = _freqs_dep(freqs, frequencies)
+    # Check freqs
+    if not isinstance(freqs, (list, np.ndarray)):
+        raise ValueError('freqs must be an array-like, got %s '
+                         'instead.' % type(freqs))
+    freqs = np.asarray(freqs, dtype=float)
+    if freqs.ndim != 1:
+        raise ValueError('freqs must be of shape (n_freqs,), got %s '
+                         'instead.' % np.array(freqs.shape))
 
     # Check sfreq
     if not isinstance(sfreq, (float, int)):
@@ -405,7 +409,7 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
     if not isinstance(zero_mean, bool):
         raise ValueError('zero_mean should be of type bool, got %s. instead'
                          % type(zero_mean))
-    frequencies = np.asarray(frequencies)
+    freqs = np.asarray(freqs)
 
     if (method == 'multitaper') and (output == 'phase'):
         raise NotImplementedError(
@@ -417,10 +421,10 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
         n_cycles = float(n_cycles)
     elif isinstance(n_cycles, (list, np.ndarray)):
         n_cycles = np.array(n_cycles)
-        if len(n_cycles) != len(frequencies):
+        if len(n_cycles) != len(freqs):
             raise ValueError('n_cycles must be a float or an array of length '
                              '%i frequencies, got %i cycles instead.' %
-                             (len(frequencies), len(n_cycles)))
+                             (len(freqs), len(n_cycles)))
     else:
         raise ValueError('n_cycles must be a float or an array, got %s '
                          'instead.' % type(n_cycles))
@@ -454,7 +458,7 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
         raise ValueError('method must be "morlet" or "multitaper", got %s '
                          'instead.' % type(method))
 
-    return frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim
+    return freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
@@ -569,7 +573,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
     Returns
     -------
-    tfr : array, shape (n_signals, n_frequencies, n_times)
+    tfr : array, shape (n_signals, n_freqs, n_times)
         The time-frequency decompositions.
 
     See Also
@@ -637,7 +641,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                n_jobs=1, picks=None, zero_mean=True, average=True,
-               output='power', verbose=None):
+               output='power', frequencies=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Parameters
@@ -700,15 +704,16 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     mne.time_frequency.tfr_array_stockwell
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
-                      zero_mean=zero_mean, output=output)
+                      zero_mean=zero_mean, output=output,
+                      frequencies=frequencies)
     return _tfr_aux('morlet', inst, freqs, decim, return_itc, picks,
                     average, **tfr_params)
 
 
 @verbose
-def tfr_array_morlet(epoch_data, sfreq, frequencies, n_cycles=7.0,
+def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
-                     n_jobs=1, verbose=None):
+                     n_jobs=1, frequencies=None, verbose=None):
     """Compute time-frequency transform using Morlet wavelets.
 
     Convolves epoch data with selected Morlet wavelets.
@@ -719,7 +724,7 @@ def tfr_array_morlet(epoch_data, sfreq, frequencies, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    frequencies : array-like of floats, shape (n_freqs)
+    freqs : array-like of floats, shape (n_freqs)
         The frequencies.
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles in the Morlet wavelet. Fixed number or one per
@@ -776,11 +781,12 @@ def tfr_array_morlet(epoch_data, sfreq, frequencies, n_cycles=7.0,
     -----
     .. versionadded:: 0.14.0
     """
-    return _compute_tfr(epoch_data=epoch_data, frequencies=frequencies,
+    return _compute_tfr(epoch_data=epoch_data, freqs=freqs,
                         sfreq=sfreq, method='morlet', n_cycles=n_cycles,
                         zero_mean=zero_mean, time_bandwidth=None,
                         use_fft=use_fft, decim=decim, output=output,
-                        n_jobs=n_jobs, verbose=verbose)
+                        n_jobs=n_jobs, frequencies=frequencies,
+                        verbose=verbose)
 
 
 @verbose
@@ -1145,7 +1151,7 @@ class AverageTFR(_BaseTFR):
                                         mode=mode, layout=layout)
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
-                        x_label='Time (ms)', y_label='Frequency (Hz)',
+                        x_label='Time (s)', y_label='Frequency (Hz)',
                         colorbar=colorbar, cmap=cmap, yscale=yscale)
             if title:
                 fig.suptitle(title)
@@ -1158,8 +1164,8 @@ class AverageTFR(_BaseTFR):
         from ..viz import plot_tfr_topomap
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
             return
-        tmin = round(min(eclick.xdata, erelease.xdata) / 1000., 5)  # ms to s
-        tmax = round(max(eclick.xdata, erelease.xdata) / 1000., 5)
+        tmin = round(min(eclick.xdata, erelease.xdata), 5)  # s
+        tmax = round(max(eclick.xdata, erelease.xdata), 5)
         fmin = round(min(eclick.ydata, erelease.ydata), 5)  # Hz
         fmax = round(max(eclick.ydata, erelease.ydata), 5)
         tmin = min(self.times, key=lambda x: abs(x - tmin))  # find closest
@@ -1312,7 +1318,7 @@ class AverageTFR(_BaseTFR):
                          click_func=click_fun, layout=layout,
                          colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                          layout_scale=layout_scale, title=title, border=border,
-                         x_label='Time (ms)', y_label='Frequency (Hz)',
+                         x_label='Time (s)', y_label='Frequency (Hz)',
                          fig_facecolor=fig_facecolor, font_color=font_color,
                          unified=True, img=True)
 
@@ -1733,7 +1739,6 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     # crop data
     data = data[:, ifmin:ifmax, itmin:itmax]
 
-    times *= 1e3
     if dB:
         data = 10 * np.log10((data * data.conj()).real)
 

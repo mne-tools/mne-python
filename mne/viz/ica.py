@@ -212,7 +212,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     psd_args = dict() if psd_args is None else psd_args
     topomap_args = dict() if topomap_args is None else topomap_args
     image_args = dict() if image_args is None else image_args
-    image_args["ts_args"] = dict(truncate_xaxis=False)
+    image_args["ts_args"] = dict(truncate_xaxis=False, show_sensors=False)
     for d in (psd_args, topomap_args, image_args):
         if not isinstance(d, dict):
             raise ValueError('topomap_args, image_args and psd_args have to be'

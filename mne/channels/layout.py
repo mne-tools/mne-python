@@ -699,7 +699,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
 
     # Duplicate points cause all kinds of trouble during visualization
     dist = pdist(locs3d)
-    if np.min(dist) < 1e-10 and not ignore_overlap:
+    if len(locs3d) > 1 and np.min(dist) < 1e-10 and not ignore_overlap:
         problematic_electrodes = [
             chs[elec_i]['ch_name']
             for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]

@@ -24,7 +24,7 @@ from mne.externals.six import iterbytes
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.edf.edf import _parse_tal_channel, get_edf_events
+from mne.io.edf.edf import _parse_tal_channel, find_edf_events
 from mne.event import find_events
 
 warnings.simplefilter('always')
@@ -159,7 +159,7 @@ def test_stim_channel():
     data_eeglab = raw_eeglab[picks]
 
     assert_array_almost_equal(data_py, data_eeglab, 10)
-    events = get_edf_events(raw_py)
+    events = find_edf_events(raw_py)
     assert_true(len(events) - 1 == len(find_events(raw_py)))  # start not found
 
     # Test uneven sampling
@@ -188,7 +188,7 @@ def test_stim_channel():
         raw[:]
     assert_equal(len(w), 0)
 
-    events = raw_py.get_edf_events()
+    events = raw_py.find_edf_events()
     assert_true(len(events) == 0)
 
 
