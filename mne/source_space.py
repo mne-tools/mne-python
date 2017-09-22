@@ -2518,8 +2518,12 @@ def _get_vertex_map_nn(fro_src, subject_from, subject_to, hemi, subjects_dir,
     regs = [op.join(subjects_dir, s, 'surf', '%s.sphere.reg' % hemi)
             for s in (subject_from, subject_to)]
     reg_fro, reg_to = [read_surface(r, return_dict=True)[-1] for r in regs]
-    if to_neighbor_tri is None:
-        to_neighbor_tri = _triangle_neighbors(reg_to['tris'], reg_to['np'])
+    if to_neighbor_tri is not None:
+        reg_to['neighbor_tri'] = to_neighbor_tri
+    if 'neighbor_tri' not in reg_to:
+        reg_to['neighbor_tri'] = _triangle_neighbors(reg_to['tris'],
+                                                     reg_to['np'])
+
     morph_inuse = np.zeros(len(reg_to['rr']), bool)
     best = np.zeros(fro_src['np'], int)
     ones = _compute_nearest(reg_to['rr'], reg_fro['rr'][fro_src['vertno']])
@@ -2564,9 +2568,9 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
     subject_from : str | None
         The "from" subject. For most source spaces this shouldn't need
         to be provided, since it is stored in the source space itself.
-    subjects_dir : string, or None
+    subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
+    verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 

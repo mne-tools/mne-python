@@ -1,7 +1,7 @@
 from copy import deepcopy
 import os.path as op
 
-
+import pytest
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -15,7 +15,7 @@ from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_raw, lcmv,
                             lcmv_epochs, lcmv_raw, tf_lcmv)
 from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv
 from mne.externals.six import advance_iterator
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 
 
 data_path = testing.data_path(download=False)
@@ -97,7 +97,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori, forward_fixed, forward_vol
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_lcmv():
     """Test LCMV with evoked data and single trials."""

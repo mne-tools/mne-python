@@ -5,6 +5,7 @@
 import os.path as op
 
 from nose.tools import assert_true
+import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_allclose)
@@ -15,7 +16,7 @@ from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne import pick_types_forward
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
@@ -48,7 +49,7 @@ def _check_stcs(stc1, stc2):
     assert_allclose(stc1.tstep, stc2.tstep)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_gamma_map():
     """Test Gamma MAP inverse"""
@@ -84,5 +85,6 @@ def test_gamma_map():
                     xyz_same_gamma=False, update_mode=2,
                     loose=None, return_residual=False)
     _check_stc(stc, evoked, 85739, 20)
+
 
 run_tests_if_main()

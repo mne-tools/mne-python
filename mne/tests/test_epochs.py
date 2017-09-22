@@ -8,7 +8,7 @@ from copy import deepcopy
 
 from nose.tools import (assert_true, assert_equal, assert_raises,
                         assert_not_equal)
-
+import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
 import numpy as np
@@ -26,7 +26,7 @@ from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
-from mne.utils import (_TempDir, requires_pandas, slow_test,
+from mne.utils import (_TempDir, requires_pandas,
                        run_tests_if_main, requires_version)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
@@ -94,7 +94,7 @@ def test_hierarchical():
     assert_array_equal(epochs.get_data(), epochs_all.get_data())
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_average_movements():
     """Test movement averaging algorithm."""
@@ -560,7 +560,7 @@ def test_read_epochs_bad_events():
     warnings.resetwarnings()
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_read_write_epochs():
     """Test epochs from raw files with IO as fif file."""
     raw, events, picks = _get_data(preload=True)

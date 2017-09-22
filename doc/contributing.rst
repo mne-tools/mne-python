@@ -55,7 +55,7 @@ Code guidelines
 
   .. code-block:: bash
 
-     $ nosetests mne/tests/test_evoked.py:test_io_evoked -x --verbose
+     $ pytest mne/tests/test_evoked.py:test_io_evoked -x --verbose
 
   Make sure you have the testing dataset, which you can get by doing::
 
@@ -70,7 +70,7 @@ Pull requests
 ^^^^^^^^^^^^^
 * Address one issue per pull request (PR).
 * Avoid unnecessary cosmetic changes in PRs.
-* Minimize test timing while maximizing coverage. Use ``nosetests --with-timer`` on modified tests.
+* Minimize test timing while maximizing coverage. Use ``pytest --durations=20`` on modified tests.
 * Update the ``doc/whats_new.rst`` file last, just before merge to avoid merge conflicts.
 
 Naming

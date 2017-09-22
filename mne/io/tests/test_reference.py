@@ -466,4 +466,5 @@ def test_add_reference():
     assert_raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
     assert_raises(ValueError, add_reference_channels, raw, 1)
 
+
 run_tests_if_main()

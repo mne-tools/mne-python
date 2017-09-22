@@ -590,7 +590,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
-             **tfr_params):
+             output=None, **tfr_params):
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
@@ -600,12 +600,14 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     data = data[:, picks, :]
 
     if average:
+        if output == 'complex':
+            raise ValueError('output must be "power" if average=True')
         if return_itc:
             output = 'avg_power_itc'
         else:
             output = 'avg_power'
     else:
-        output = 'power'
+        output = 'power' if output is None else output
         if return_itc:
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
@@ -635,7 +637,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                n_jobs=1, picks=None, zero_mean=True, average=True,
-               verbose=None):
+               output='power', verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Parameters
@@ -672,6 +674,11 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         If True average across Epochs.
 
         .. versionadded:: 0.13.0
+    output : str
+        Can be "power" (default) or "complex". If "complex", then
+        average must be False.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -693,7 +700,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     mne.time_frequency.tfr_array_stockwell
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
-                      zero_mean=zero_mean)
+                      zero_mean=zero_mean, output=output)
     return _tfr_aux('morlet', inst, freqs, decim, return_itc, picks,
                     average, **tfr_params)
 
@@ -906,24 +913,30 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see :func:`mne.verbose`).
+            If not None, override default verbose level (see
+            :func:`mne.verbose`).
 
         Returns
         -------
         inst : instance of AverageTFR
             The modified instance.
-
         """  # noqa: E501
         self.data = rescale(self.data, self.times, baseline, mode,
                             copy=False)
@@ -1015,17 +1028,23 @@ class AverageTFR(_BaseTFR):
             the interval is between "a (s)" and "b (s)".
             If a is None the beginning of the data is used
             and if b is None then b is set to the end of the interval.
-            If baseline is equal ot (None, None) all the time
+            If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -1084,7 +1103,8 @@ class AverageTFR(_BaseTFR):
             .. versionadded:: 0.14.0
 
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see :func:`mne.verbose`).
+            If not None, override default verbose level (see
+            :func:`mne.verbose`).
 
         Returns
         -------
@@ -1192,17 +1212,23 @@ class AverageTFR(_BaseTFR):
             the interval is between "a (s)" and "b (s)".
             If a is None the beginning of the data is used
             and if b is None then b is set to the end of the interval.
-            If baseline is equal ot (None, None) all the time
+            If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -1330,15 +1356,21 @@ class AverageTFR(_BaseTFR):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
@@ -1534,6 +1566,24 @@ class EpochsTFR(_BaseTFR):
         s += ', ~%s' % (sizeof_fmt(self._size),)
         return "<EpochsTFR  |  %s>" % s
 
+    def __abs__(self):
+        """Take the absolute value."""
+        return EpochsTFR(info=self.info.copy(), data=np.abs(self.data),
+                         times=self.times.copy(), freqs=self.freqs.copy(),
+                         method=self.method, comment=self.comment)
+
+    def copy(self):
+        """Give a copy of the EpochsTFR.
+
+        Returns
+        -------
+        tfr : instance of EpochsTFR
+            The copy.
+        """
+        return EpochsTFR(info=self.info.copy(), data=self.data.copy(),
+                         times=self.times.copy(), freqs=self.freqs.copy(),
+                         method=self.method, comment=self.comment)
+
     def average(self):
         """Average the data across epochs.
 
@@ -1545,8 +1595,8 @@ class EpochsTFR(_BaseTFR):
         data = np.mean(self.data, axis=0)
         return AverageTFR(info=self.info.copy(), data=data,
                           times=self.times.copy(), freqs=self.freqs.copy(),
-                          nave=self.data.shape[0],
-                          method=self.method)
+                          nave=self.data.shape[0], method=self.method,
+                          comment=self.comment)
 
 
 def combine_tfr(all_tfr, weights='nave'):

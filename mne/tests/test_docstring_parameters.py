@@ -3,10 +3,8 @@ from __future__ import print_function
 import inspect
 import os.path as op
 import sys
+from unittest import SkipTest
 import warnings
-
-from nose.tools import assert_true
-from nose.plugins.skip import SkipTest
 
 from pkgutil import walk_packages
 from inspect import getsource
@@ -179,9 +177,9 @@ def test_tabs():
                 source = getsource(mod)
             except IOError:  # user probably should have run "make clean"
                 continue
-            assert_true('\t' not in source,
-                        '"%s" has tabs, please remove them or add it to the'
-                        'ignore list' % modname)
+            assert '\t' not in source, ('"%s" has tabs, please remove them '
+                                        'or add it to the ignore list'
+                                        % modname)
 
 
 documented_ignored_mods = (

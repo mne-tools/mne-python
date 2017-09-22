@@ -152,15 +152,20 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has
+        free orientation, a vector beamformer is computed, combining the output
+        for all source orientations.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    weight_norm: 'unit-noise-gain'| 'nai' | None
+    weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed.
+        if 'nai', the Neural Activity Index [1]_ will be computed,
+        if None, the unit-gain LCMV beamformer [2]_ will be computed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -632,6 +637,10 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has
+        free orientation, a vector beamformer is computed, combining the output
+        for all source orientations.
     picks : array-like of int
         Channel indices to use for beamforming (if None all channels
         are used except bad channels).
@@ -642,10 +651,11 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    weight_norm: 'unit-noise-gain'| 'nai' | None
+    weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed.
+        if 'nai', the Neural Activity Index [1]_ will be computed,
+        if None, the unit-gain LCMV beamformer [2]_ will be computed.
     max_ori_out: 'abs' | 'signed'
         Specify in case of pick_ori='max-power'.
         If 'abs', the absolute value of the source space time series will be
@@ -726,6 +736,10 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has
+        free orientation, a vector beamformer is computed, combining the output
+        for all source orientations.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -739,10 +753,11 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    weight_norm: 'unit-noise-gain'| 'nai' | None
+    weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed.
+        if 'nai', the Neural Activity Index [1]_ will be computed,
+        if None, the unit-gain LCMV beamformer [2]_ will be computed.
     max_ori_out: 'abs' | 'signed'
         Specify in case of pick_ori='max-power'.
         If 'abs', the absolute value of the source space time series will be
@@ -835,15 +850,20 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has
+        free orientation, a vector beamformer is computed, combining the output
+        for all source orientations.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    weight_norm: 'unit-noise-gain'| 'nai' | None
+    weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed.
+        if 'nai', the Neural Activity Index [1]_ will be computed,
+        if None, the unit-gain LCMV beamformer [2]_ will be computed.
     max_ori_out: 'abs' | 'signed'
         Specify in case of pick_ori='max-power'.
         If 'abs', the absolute value of the source space time series will be
@@ -1029,6 +1049,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
+        If None, the solution depends on the forward model: if the orientation
+        is fixed, a scalar beamformer is computed. If the forward model has
+        free orientation, a vector beamformer is computed, combining the output
+        for all source orientations.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
@@ -1042,9 +1066,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    weight_norm: 'unit-noise-gain'| None
+    weight_norm : 'unit-noise-gain' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer) [2]_.
+        will be computed (Borgiotti-Kaplan beamformer) [2]_,
+        if None, the unit-gain LCMV beamformer [2]_ will be computed.
     raw : instance of Raw | None
         The raw instance used to construct the epochs.
         Must be provided unless epochs are constructed with

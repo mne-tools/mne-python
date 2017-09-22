@@ -994,44 +994,49 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     Parameters
     ----------
-    tfr : AvereageTFR
-        The AvereageTFR object.
+    tfr : AverageTFR
+        The AverageTFR object.
     tmin : None | float
         The first time instant to display. If None the first time point
         available is used.
     tmax : None | float
-        The last time instant to display. If None the last time point
-        available is used.
+        The last time instant to display. If None the last time point available
+        is used.
     fmin : None | float
-        The first frequency to display. If None the first frequency
-        available is used.
+        The first frequency to display. If None the first frequency available
+        is used.
     fmax : None | float
-        The last frequency to display. If None the last frequency
-        available is used.
+        The last frequency to display. If None the last frequency available is
+        used.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-        The channel type to plot. For 'grad', the gradiometers are
-        collected in pairs and the RMS for each pair is plotted.
-        If None, then channels are chosen in the order given above.
+        The channel type to plot. For 'grad', the gradiometers are collected in
+        pairs and the RMS for each pair is plotted. If None, then channels are
+        chosen in the order given above.
     baseline : tuple or list of length 2
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or z-score (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline))
-        If None, baseline no correction will be performed.
+        The time interval to apply rescaling / baseline correction. If None do
+        not apply it. If baseline is (a, b) the interval is between "a (s)" and
+        "b (s)". If a is None the beginning of the data is used and if b is
+        None then b is set to the end of the interval. If baseline is equal to
+        (None, None) the whole time interval is used.
+    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+        Perform baseline correction by
+
+          - subtracting the mean baseline power ('mean')
+          - dividing by the mean baseline power ('ratio')
+          - dividing by the mean baseline power and taking the log ('logratio')
+          - subtracting the mean baseline power followed by dividing by the
+            mean baseline power ('percent')
+          - subtracting the mean baseline power and dividing by the standard
+            deviation of the baseline power ('zscore')
+          - dividing by the mean baseline power, taking the log, and dividing
+            by the standard deviation of the baseline power ('zlogratio')
+
+        If None no baseline correction is applied.
     layout : None | Layout
-        Layout instance specifying sensor positions (does not need to
-        be specified for Neuromag data). If possible, the correct layout
-        file is inferred from the data; if no appropriate layout file
-        was found, the layout is automatically generated from the sensor
-        locations.
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). If possible, the correct layout file is
+        inferred from the data; if no appropriate layout file was found, the
+        layout is automatically generated from the sensor locations.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data) or in case
@@ -1052,9 +1057,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         otherwise defaults to 'RdBu_r'. If 'interactive', translates to
         (None, True).
     sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses). If True (default),
-        circles will be used.
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+'). If True (default), circles will be used.
     colorbar : bool
         Plot a colorbar.
     unit : str | None
@@ -1067,13 +1071,13 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     cbar_fmt : str
         String format for colorbar values.
     show_names : bool | callable
-        If True, show channel names on top of the map. If a callable is
-        passed, channel names will be formatted using the callable; e.g., to
-        delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', ''). If `mask` is not None, only
+        If True, show channel names on top of the map. If a callable is passed,
+        channel names will be formatted using the callable; e.g., to delete the
+        prefix 'MEG ' from all channel names, pass the function
+        ``lambda x: x.replace('MEG ', '')``. If `mask` is not None, only
         significant sensors will be shown.
     title : str | None
-        Title. If None (default), no title is displayed.
+        Plot title. If None (default), no title is displayed.
     axes : instance of Axis | None
         The axes to plot to. If None the axes is defined automatically.
     show : bool
@@ -1090,10 +1094,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
     head_pos : dict | None
-        If None (default), the sensors are positioned such that they span
-        the head circle. If dict, can have entries 'center' (tuple) and
-        'scale' (tuple) for what the center and scale of the head should be
-        relative to the electrode locations.
+        If None (default), the sensors are positioned such that they span the
+        head circle. If dict, can have entries 'center' (tuple) and 'scale'
+        (tuple) for what the center and scale of the head should be relative to
+        the electrode locations.
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         When an integer, matplotlib ticker locator is used to find suitable
@@ -1106,7 +1110,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     -------
     fig : matplotlib.figure.Figure
         The figure containing the topography.
-    """
+    """  # noqa: E501
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(tfr, ch_type)
     import matplotlib.pyplot as plt

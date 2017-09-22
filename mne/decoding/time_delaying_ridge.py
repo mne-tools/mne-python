@@ -105,6 +105,7 @@ def _compute_corrs(X, y, smin, smax):
                     x_xt_temp[ii, ii:] -= row_adjust[:-ii]
                     x_xt_temp[ii + 1:, ii] -= col_adjust[1:-ii]
 
+            x_xt_temp = x_xt_temp[::-1][:, ::-1]
             for oi in range(n_other):
                 ch1 = oi + ch0
                 # Store the result
@@ -119,10 +120,10 @@ def _compute_corrs(X, y, smin, smax):
             cc_temp = np.fft.irfft(
                 y_fft * X_fft[:, ch0][:, np.newaxis].conj(), n_fft, axis=0)
             if smin < 0 and smax >= 0:
-                x_y[:smax, ch0] += cc_temp[:smax][::-1]
-                x_y[smax:, ch0] += cc_temp[smin:][::-1]
+                x_y[:-smin, ch0] += cc_temp[smin:]
+                x_y[len_trf - smax:, ch0] += cc_temp[:smax]
             else:
-                x_y[:, ch0] += cc_temp[smin:smax][::-1]
+                x_y[:, ch0] += cc_temp[smin:smax]
 
     x_y = np.reshape(x_y, (n_ch_x * len_trf, n_ch_y), order='F')
     return x_xt, x_y, n_ch_x
@@ -256,11 +257,11 @@ class TimeDelayingRidge(BaseEstimator):
 
     @property
     def _smin(self):
-        return int(round(-self.tmax * self.sfreq))
+        return int(round(self.tmin * self.sfreq))
 
     @property
     def _smax(self):
-        return int(round(-self.tmin * self.sfreq)) + 1
+        return int(round(self.tmax * self.sfreq)) + 1
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
@@ -332,7 +333,7 @@ class TimeDelayingRidge(BaseEstimator):
         for ei in range(X.shape[1]):
             for oi in range(self.coef_.shape[0]):
                 for fi in range(self.coef_.shape[1]):
-                    temp = np.convolve(X[:, ei, fi], self.coef_[oi, fi][::-1])
+                    temp = np.convolve(X[:, ei, fi], self.coef_[oi, fi])
                     temp = temp[max(-smin, 0):][:len(out) - offset]
                     out[offset:len(temp) + offset, ei, oi] += temp
         out += self.intercept_

@@ -12,7 +12,8 @@ from .base import _set_cv
 from ..io.pick import _pick_data_channels
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import warn, check_version, deprecated
+from ..utils import warn, deprecated
+from ..fixes import is_classifier, is_regressor
 
 
 class _DecodingTime(dict):
@@ -355,13 +356,7 @@ class _GeneralizationAcrossTime(object):
             n_test_time, n_folds).
         """
         import sklearn.metrics
-        from sklearn.base import is_classifier
         from sklearn.metrics import accuracy_score, mean_squared_error
-        if check_version('sklearn', '0.17'):
-            from sklearn.base import is_regressor
-        else:
-            def is_regressor(clf):
-                return False
 
         # Run predictions if not already done
         if epochs is not None:
@@ -829,7 +824,6 @@ def _predict(X, estimators, vectorize_times, predict_method):
         Classifier's prediction for each trial.
     """
     from scipy import stats
-    from sklearn.base import is_classifier
     # Initialize results:
 
     orig_shape = X.shape

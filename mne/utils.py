@@ -7,6 +7,7 @@ from __future__ import print_function
 # License: BSD (3-clause)
 
 import atexit
+from collections import Iterable
 from distutils.version import LooseVersion
 from functools import wraps
 import ftplib
@@ -29,6 +30,7 @@ import sys
 import tempfile
 import time
 import traceback
+from unittest import SkipTest
 import warnings
 import webbrowser
 
@@ -745,21 +747,6 @@ class use_log_level(object):
         set_log_level(self.old_level)
 
 
-@nottest
-def slow_test(f):
-    """Mark slow tests (decorator)."""
-    f.slow_test = True
-    return f
-
-
-@nottest
-def ultra_slow_test(f):
-    """Mark ultra slow tests (decorator)."""
-    f.ultra_slow_test = True
-    f.slow_test = True
-    return f
-
-
 def has_nibabel(vox2ras_tkr=False):
     """Determine if nibabel is installed.
 
@@ -797,9 +784,10 @@ def has_freesurfer():
 
 def requires_nibabel(vox2ras_tkr=False):
     """Check for nibabel."""
+    import pytest
     extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
-    return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
-                                 'Requires nibabel%s' % extra)
+    return pytest.mark.skipif(not has_nibabel(vox2ras_tkr),
+                              reason='Requires nibabel%s' % extra)
 
 
 def buggy_mkl_svd(function):
@@ -810,7 +798,6 @@ def buggy_mkl_svd(function):
             return function(*args, **kwargs)
         except np.linalg.LinAlgError as exp:
             if 'SVD did not converge' in str(exp):
-                from nose.plugins.skip import SkipTest
                 msg = 'Intel MKL SVD convergence error detected, skipping test'
                 warn(msg)
                 raise SkipTest(msg)
@@ -820,26 +807,25 @@ def buggy_mkl_svd(function):
 
 def requires_version(library, min_version):
     """Check for a library version."""
-    return np.testing.dec.skipif(not check_version(library, min_version),
-                                 'Requires %s version >= %s'
-                                 % (library, min_version))
+    import pytest
+    return pytest.mark.skipif(not check_version(library, min_version),
+                              reason=('Requires %s version >= %s'
+                                      % (library, min_version)))
 
 
 def requires_module(function, name, call=None):
     """Skip a test if package is not available (decorator)."""
     call = ('import %s' % name) if call is None else call
-    try:
-        from nose.plugins.skip import SkipTest
-    except ImportError:
-        SkipTest = AssertionError
 
     @wraps(function)
     def dec(*args, **kwargs):  # noqa: D102
         try:
             exec(call) in globals(), locals()
         except Exception as exc:
-            raise SkipTest('Test %s skipped, requires %s. Got exception (%s)'
-                           % (function.__name__, name, exc))
+            msg = 'Test %s skipped, requires %s.' % (function.__name__, name)
+            if len(str(exc)) > 0:
+                msg += ' Got exception (%s)' % (exc,)
+            raise SkipTest(msg)
         return function(*args, **kwargs)
     return dec
 
@@ -1030,14 +1016,6 @@ if version < required_version:
     raise ImportError
 """
 
-_sklearn_0_15_call = """
-required_version = '0.15'
-import sklearn
-version = LooseVersion(sklearn.__version__)
-if version < required_version:
-    raise ImportError
-"""
-
 _mayavi_call = """
 with warnings.catch_warnings(record=True):  # traits
     from mayavi import mlab
@@ -1066,8 +1044,6 @@ if not has_nibabel() and not has_freesurfer():
 
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
-requires_sklearn_0_15 = partial(requires_module, name='sklearn',
-                                call=_sklearn_0_15_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
 requires_freesurfer = partial(requires_module, name='Freesurfer',
@@ -1079,7 +1055,6 @@ requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
 
 requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
-requires_statsmodels = partial(requires_module, name='statsmodels')
 requires_pysurfer = partial(requires_module, name='PySurfer',
                             call="""import warnings
 with warnings.catch_warnings(record=True):
@@ -1718,13 +1693,12 @@ class ProgressBar(object):
                  progress_character='.', spinner=False,
                  verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
-        if isinstance(max_value, (float, int)):
-            self.max_value = max_value
-            self.iterable = None
-        else:
-            # input is an iterable
+        if isinstance(max_value, Iterable):
             self.max_value = len(max_value)
             self.iterable = max_value
+        else:
+            self.max_value = float(max_value)
+            self.iterable = None
         self.mesg = mesg
         self.max_chars = max_chars
         self.progress_character = progress_character
