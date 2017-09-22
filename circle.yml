@@ -27,7 +27,6 @@ dependencies:
     - "~/mne_data/MNE-spm-face"
     - "~/mne_data/MNE-somato-data"
     - "~/mne_data/MNE-brainstorm-data"
-    - "~/mne_data/MNE-visual_92_categories-data"
     - "~/mne_data/MNE-kiloword-data"
     - "~/mne_data/MEGSIM"
     - "~/mne_data/MNE-eegbci-data"
@@ -138,9 +137,6 @@ dependencies:
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*kiloword.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.kiloword.data_path(update_path=True))";
-            fi;
-            if [[ $(cat $FNAME | grep -x ".*datasets.*visual_92_categories.*" | wc -l) -gt 0 ]]; then
-              python -c "import mne; print(mne.datasets.visual_92_categories.data_path(update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*mtrf.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.mtrf.data_path(update_path=True))";

@@ -1,6 +1,7 @@
 """
+==================================
 Querying epochs with rich metadata
-----------------------------------
+==================================
 
 Selecting a subset of epochs based on rich metadata.
 
@@ -13,6 +14,13 @@ If an :class:`mne.Epochs` object has a metadata attribute, you can select
 subsets of epochs by using pandas query syntax directly. Here we'll show
 a few examples of how this looks.
 """
+
+# Authors: Chris Holdgraf <choldgraf@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
+
+# License: BSD (3-clause)
+
 import os
 import pandas as pd
 import matplotlib.pyplot as plt

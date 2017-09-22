@@ -1,6 +1,7 @@
 """
+================================================
 Pandas querying and metadata with Epochs objects
-------------------------------------------------
+================================================
 
 Demonstrating pandas-style string querying with Epochs metadata.
 For related uses of :class:`mne.Epochs`, see the starting tutorial
@@ -19,10 +20,16 @@ We know which word was displayed in each epoch, as well as
 extra information about the word (e.g., word frequency).
 
 Loading the data
-================
+----------------
 First we'll load the data. If metadata exists for an :class:`mne.Epochs`
 fif file, it will automatically be loaded in the ``metadata`` attribute.
 """
+
+# Authors: Chris Holdgraf <choldgraf@gmail.com>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
+
+# License: BSD (3-clause)
 
 import mne
 import numpy as np
