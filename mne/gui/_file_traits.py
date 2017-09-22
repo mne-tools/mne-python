@@ -248,17 +248,16 @@ class DigSource(HasPrivateTraits):
     inst_dir = Property(depends_on='file')
     _info = Property(depends_on='file')
 
-    points_filter = Any(
-        desc="Index to select a subset of the head shape points")
+    points_filter = Any(desc="Index to select a subset of the head shape "
+                             "points")
     n_omitted = Property(Int, depends_on=['points_filter'])
 
     # head shape
-    _hsp_points = Property(
-        depends_on='_info',
-        desc="Head shape points in the file (n x 3 array)")
-    points = Property(
-        depends_on=['_hsp_points', 'points_filter'],
-        desc="Head shape points selected by the filter (n x 3 array)")
+    _hsp_points = Property(depends_on='_info',
+                           desc="Head shape points in the file (n x 3 array)")
+    points = Property(depends_on=['_hsp_points', 'points_filter'],
+                      desc="Head shape points selected by the filter (n x 3 "
+                           "array)")
 
     # fiducials
     lpa = Property(depends_on='_info',
@@ -269,9 +268,8 @@ class DigSource(HasPrivateTraits):
                    desc="RPA coordinates (1 x 3 array)")
 
     # EEG
-    eeg_dig = Property(depends_on='_info', desc="EEG points (list of dict)")
-    eeg_points = Property(depends_on='eeg_dig', desc="EEG coordinates (N x 3 "
-                          "array)")
+    eeg_points = Property(depends_on='_info',
+                          desc="EEG sensor coordinates (N x 3 array)")
 
     view = View(VGroup(Item('file'),
                        Item('inst_fname', show_label=False, style='readonly')))
@@ -351,15 +349,6 @@ class DigSource(HasPrivateTraits):
         else:
             return self._hsp_points[self.points_filter]
 
-    @cached_property
-    def _get_eeg_dig(self):
-        """Get EEG from info['dig']."""
-        if not self._info:
-            return []
-        dig = [d for d in self._info['dig']
-               if d['kind'] == FIFF.FIFFV_POINT_EEG]
-        return dig
-
     def _cardinal_point(self, ident):
         """Coordinates for a cardinal point"""
         if self._info:
@@ -383,10 +372,11 @@ class DigSource(HasPrivateTraits):
 
     @cached_property
     def _get_eeg_points(self):
-        if not self._info or not self.eeg_dig:
+        if self._info:
+            return np.array([d['r'] for d in self._info['dig'] if
+                             d['kind'] == FIFF.FIFFV_POINT_EEG])
+        else:
             return np.empty((0, 3))
-        dig = np.array([d['r'] for d in self.eeg_dig])
-        return dig
 
     def _file_changed(self):
         self.reset_traits(('points_filter',))
