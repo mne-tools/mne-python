@@ -365,7 +365,7 @@ class DigSource(HasPrivateTraits):
             return self._hsp_points[self.points_filter]
 
     def _cardinal_point(self, ident):
-        """Coordinates for a cardinal point"""
+        """Coordinates for a cardinal point."""
         if self._info:
             for d in self._info['dig']:
                 if (d['kind'] == FIFF.FIFFV_POINT_CARDINAL and
