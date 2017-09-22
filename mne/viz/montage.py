@@ -1,4 +1,6 @@
 """Functions to plot EEG sensor montages or digitizer montages."""
+from copy import deepcopy
+import numpy as np
 from ..utils import check_version, logger
 from . import plot_sensors
 
@@ -25,8 +27,6 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     fig : Instance of matplotlib.figure.Figure
         The figure object.
     """
-    from copy import deepcopy
-    import numpy as np
     from scipy.spatial.distance import cdist
     from ..channels import Montage, DigMontage
     from .. import create_info
