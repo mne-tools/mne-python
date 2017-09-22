@@ -47,10 +47,6 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
                       download=download)
 
 
-data_path.__doc__ = _data_path_doc.format(
-    name='kiloword', conf='MNE_DATASETS_KILOWORD_PATH')
-
-
 def get_version():
     """Get dataset version."""
     return _get_version('kiloword')

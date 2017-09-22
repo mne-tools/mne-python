@@ -270,6 +270,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
     archive_names = dict(
+        kiloword='MNE-kiloword-data.tar.gz',
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         multimodal='MNE-multimodal-data.tar.gz',
         sample='MNE-sample-data-processed.tar.gz',

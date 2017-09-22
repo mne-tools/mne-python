@@ -211,8 +211,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ignored.
     filename : str | None
         The filename (if the epochs are read from disk).
-    metadata : DataFrame | None.
-        See `Epochs` docstring.
+    metadata : instance of pandas.DataFrame | None
+        See :class:`mne.Epochs` docstring.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -1867,7 +1869,7 @@ class Epochs(BaseEpochs):
         Whether to reject based on annotations. If True (default), epochs
         overlapping with segments whose description begins with ``'bad'`` are
         rejected. If False, no rejection based on annotations is performed.
-    metadata : None | instance of pandas.DataFrame
+    metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` specifying more complex metadata about
         events. If given, ``len(metadata)`` must equal ``len(events)``.
         The DataFrame may have values of type (str | int | float).
@@ -2042,7 +2044,7 @@ class EpochsArray(BaseEpochs):
         Apply SSP projection vectors. See :class:`mne.Epochs` for details.
     on_missing : str
         See :class:`mne.Epochs` docstring for details.
-    metadata : None | instance of pandas.DataFrame
+    metadata : instance of pandas.DataFrame | None
         See :class:`mne.Epochs` docstring for details.
 
         .. versionadded:: 0.16
