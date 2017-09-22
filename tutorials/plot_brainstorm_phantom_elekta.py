@@ -115,7 +115,7 @@ dip = fit_dipole(evoked, cov, sphere, n_jobs=1)[0]
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.  # nAm
 
-fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6.4, 12))
+fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6, 7))
 
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
 print('mean(position error) = %s' % (np.mean(diffs),))
