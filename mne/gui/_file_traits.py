@@ -329,8 +329,16 @@ class DigSource(HasPrivateTraits):
                     if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
                         has_point[d['ident']] = True
                 if not all(has_point.values()):
+                    missing = []
+                    if not has_point[FIFF.FIFFV_POINT_LPA]:
+                        missing.append('LPA')
+                    if not has_point[FIFF.FIFFV_POINT_NASION]:
+                        missing.append('Nasion')
+                    if not has_point[FIFF.FIFFV_POINT_RPA]:
+                        missing.append('RPA')
                     error(None, "The selected FIFF file does not contain "
-                          "cardinal points. Please select a different file.",
+                          "all cardinal points (missing: %s). Please select a "
+                          "different file." % ', '.join(missing),
                           "Error Reading FIFF File")
                     self.reset_traits(['file'])
                     return
