@@ -1424,9 +1424,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                'audio/left', 'audio/right'), and 'name' is not in itself an
                event key, this selects every event whose condition contains
                the 'name' tag (e.g., 'left' matches 'audio/left' and
-               'visual/left'; but not 'audio_left'). Note that tags like
-               'auditory/left' and 'left/auditory' will be treated the
-               same way when accessed using tags.
+               'visual/left'; but not 'audio_left'). Note that tags selection
+               is insensitive to order: tags like 'auditory/left' and
+               'left/auditory' will be treated the same way when accessed.
 
             3. ``epochs[['name_1', 'name_2', ... ]]``: Return ``Epochs`` object
                with a copy of the subset of epochs corresponding to multiple
@@ -1438,8 +1438,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                'audio/left' and 'audio/center/left', but not 'audio/right').
 
             4. ``epochs['pandas query']``: Return ``Epochs`` object with a
-               copy of the subset of epochs that match ``pandas query`` called
-               with ``self.metadata.eval``, e.g.::
+               copy of the subset of epochs (and matching metadata) that match
+               ``pandas query`` called with ``self.metadata.eval``, e.g.::
 
                    epochs["col_a > 2 and col_b == 'foo'"]
 
@@ -1873,6 +1873,10 @@ class Epochs(BaseEpochs):
         The DataFrame may have values of type (str | int | float).
         If metadata is given, then pandas-style queries may be used to select
         subsets of data, see :meth:`mne.Epochs.__getitem__`.
+        When a subset of the epochs is created in this (or any other
+        supported) manner, the metadata object is subsetted in the same manner.
+        MNE does not guarantee that the Dataframe Index is consistent, so do
+        not rely on it, but only on the columns.
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None

@@ -63,8 +63,8 @@ def plot_query_results(query):
 # First we'll create our metadata object. This should be a
 # :class:`pandas.DataFrame` with each row corresponding to an event.
 #
-# .. warning:: The row labeling can change during MNE I/O operations, so
-#              do not rely on it to index your metadata.
+# .. warning:: The Dataframe Index can change during MNE I/O operations, so
+#              do not rely on it to query your metadata.
 
 metadata = {'event_time': events[:, 0] / raw.info['sfreq'],
             'trial_number': range(len(events)),
