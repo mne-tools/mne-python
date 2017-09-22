@@ -147,7 +147,8 @@ def test_plot_evoked():
         plot_compare_evokeds(contrast, colors=colors, linestyles=linestyles,
                              picks=[0, 2], vlines=[.01, -.04], invert_y=True,
                              truncate_yaxis=False, ylim=dict(mag=(-10, 10)),
-                             styles={"red/stim": {"linewidth": 1}})
+                             styles={"red/stim": {"linewidth": 1}},
+                             show_sensors=True)
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, picks='str')  # bad picks: not int
         assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,
@@ -162,10 +163,13 @@ def test_plot_evoked():
                       gfp=True)  # no single-channel GFP
         assert_raises(TypeError, plot_compare_evokeds, evoked, picks=3,
                       ci='fake')  # ci must be float or None
+        assert_raises(TypeError, plot_compare_evokeds, evoked, picks=3,
+                      show_sensors='a')  # show_sensors must be int or bool
         contrast["red/stim"] = red
         contrast["blue/stim"] = blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
-                             ylim=dict(mag=(1, 10)), ci=_parametric_ci)
+                             ylim=dict(mag=(1, 10)), ci=_parametric_ci,
+                             truncate_yaxis='max_ticks')
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()

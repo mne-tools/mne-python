@@ -150,9 +150,11 @@ def test_plot_epochs_image():
     epochs.plot_image(group_by={"1": [1, 2], "2": [1, 2]}, combine='mean')
     epochs.plot_image(vmin=lambda x: x.min())
     assert_raises(ValueError, epochs.plot_image, axes=1, fig=2)
+    ts_args = dict(show_sensors=False)
     with warnings.catch_warnings(record=True) as w:
-        epochs.plot_image(overlay_times=[1.1], combine="gfp")
-        assert_raises(ValueError, epochs.plot_image, combine='error')
+        epochs.plot_image(overlay_times=[1.1], combine="gfp", ts_args=ts_args)
+        assert_raises(ValueError, epochs.plot_image, combine='error',
+                      ts_args=ts_args)
         warnings.simplefilter('always')
     assert_equal(len(w), 4)
 
