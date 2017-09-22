@@ -86,6 +86,15 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=tmin, tmax=tmax,
 evoked = epochs.average()
 evoked.plot()
 evoked.crop(0., 0.)
+
+###############################################################################
+# Let's use a sphere head geometry model and let's see the coordinate
+# alignement and the sphere location.
+sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
+
+mne.viz.plot_alignment(raw.info, subject='sample',
+                       meg='helmet', bem=sphere, dig=True,
+                       surfaces=['brain'])
 del raw, epochs
 
 ###############################################################################
@@ -97,8 +106,8 @@ raw_erm = mne.preprocessing.maxwell_filter(raw_erm, coord_frame='meg',
                                            **mf_kwargs)
 cov = mne.compute_raw_covariance(raw_erm)
 del raw_erm
-sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
-dip = fit_dipole(evoked, cov, sphere)[0]
+
+dip, residual = fit_dipole(evoked, cov, sphere)
 
 ###############################################################################
 # Compare the actual position with the estimated one.
