@@ -67,6 +67,8 @@ def plt_show(show=True, fig=None, **kwargs):
     ----------
     show : bool
         Show the figure.
+    fig : instance of Figure | None
+        If non-None, use fig.show().
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
