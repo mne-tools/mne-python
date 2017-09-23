@@ -112,14 +112,6 @@ def test_mxne_inverse():
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
-    # Spherical leadfield can be zero at the center
-    fwd = forward.copy()
-    fwd['sol']['data'][:, 42] = 0.
-    stc, _ = mixed_norm(evoked_l21, fwd, cov, alpha, loose=None,
-                        depth=depth, maxit=3, tol=np.inf,
-                        active_set_size=10, return_residual=True)
-    assert_array_almost_equal(stc.times, evoked_l21.times, 5)
-
     # irMxNE tests
     stc = mixed_norm(evoked_l21, forward, cov, alpha,
                      n_mxne_iter=5, loose=loose, depth=depth,
@@ -144,7 +136,7 @@ def test_mxne_inverse():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mxne_vol_sphere():
-    """Gamma MAP with a sphere forward and volumic source space"""
+    """(TF-)MxNE with a sphere forward and volumic source space"""
     evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(tmin=-0.05, tmax=0.2)
     cov = read_cov(fname_cov)
