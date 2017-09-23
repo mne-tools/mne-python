@@ -180,7 +180,6 @@ BUG
 
     - Fix bug in :meth:`mne.SourceEstimate.to_original_src` where morphing failed if two vertices map to the same target vertex, by `Marijn van Vliet`_
 
-<<<<<<< HEAD
     - Fix :class:`mne.preprocessing.Xdawn` to give verbose error messages about rank deficiency and handle transforming :class:`mne.Evoked`, by `Eric Larson`_
 
     - Fix bug in DC and Nyquist frequency multitaper PSD computations, e.g. in :func:`mne.time_frequency.psd_multitaper`, by `Eric Larson`_
@@ -240,7 +239,7 @@ API
 
     - The ``scale``, ``scale_time``, and ``unit`` parameters have been deprecated in favor of ``scalings``, ``scalings_time``, and ``units`` in :func:`mne.viz.plot_evoked_topomap` and related functions, by `Eric Larson`_
 
-    - `loose`` parameter in inverse solvers has now a default value ``'auto'`` depending if the source space is a surface or a grid or discrete by `Alex Gramfort`_ and `Yousra Bekhti`_
+    - ``loose`` parameter in inverse solvers has now a default value ``'auto'`` depending if the source space is a surface or a grid or discrete by `Alex Gramfort`_ and `Yousra Bekhti`_
 
 
 .. _changes_0_14:
