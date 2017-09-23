@@ -2622,8 +2622,9 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     ax.contourf(gridx, zslice, gridy, offset=offset,
                 zdir='y', cmap='gray', zorder=0, alpha=.5)
 
-    plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
-        idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
+    plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n' % (
+        idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
+        dipole.amplitude[idx] * 1e9) +
         '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
     ax.set_xlabel('x')
     ax.set_ylabel('y')

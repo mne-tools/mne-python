@@ -3,7 +3,7 @@
 Compute sparse inverse solution with mixed norm: MxNE and irMxNE
 ================================================================
 
-Runs (ir)MxNE (L1/L2 [1]_ or L0.5/L2 [2]_ mixed norm) inverse solver.
+Runs an (ir)MxNE (L1/L2 [1]_ or L0.5/L2 [2]_ mixed norm) inverse solver.
 L0.5/L2 is done with irMxNE which allows for sparser
 source estimates with less amplitude bias due to the non-convexity
 of the L0.5/L2 mixed norm penalty.
