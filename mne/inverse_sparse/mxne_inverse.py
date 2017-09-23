@@ -3,14 +3,14 @@
 #
 # License: Simplified BSD
 
-from copy import deepcopy
 import numpy as np
 from scipy import linalg, signal
 
-from ..source_estimate import SourceEstimate
+from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..minimum_norm.inverse import _check_reference
-from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
+from ..minimum_norm.inverse import _check_loose_forward
+from ..forward import compute_orient_prior, is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import logger, verbose
@@ -70,7 +70,8 @@ def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
     else:
         source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
 
-    if loose is not None and loose != 1.0:
+    assert (is_fixed_orient(forward) or (0 <= loose <= 1))
+    if loose is not None and loose < 1.:
         source_weighting *= np.sqrt(compute_orient_prior(forward, loose))
 
     gain *= source_weighting[None, :]
@@ -154,12 +155,23 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
     src = forward['src']
 
-    n_lh_points = len(src[0]['vertno'])
-    lh_vertno = src[0]['vertno'][active_idx[active_idx < n_lh_points]]
-    rh_vertno = src[1]['vertno'][active_idx[active_idx >= n_lh_points] -
-                                 n_lh_points]
-    vertices = [lh_vertno, rh_vertno]
-    stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+    if src.kind != 'surface':
+        vertices = src[0]['vertno'][active_idx]
+        stc = VolSourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+    else:
+        vertices = []
+        n_points_so_far = 0
+        for this_src in src:
+            this_n_points_so_far = n_points_so_far + len(this_src['vertno'])
+            this_active_idx = active_idx[(n_points_so_far <= active_idx) &
+                                         (active_idx < this_n_points_so_far)]
+            this_active_idx -= n_points_so_far
+            this_vertno = this_src['vertno'][this_active_idx]
+            n_points_so_far = this_n_points_so_far
+            vertices.append(this_vertno)
+
+        stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+
     return stc
 
 
@@ -279,13 +291,13 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         Noise covariance to compute whitener.
     alpha : float
         Regularization parameter.
-    loose : float in [0, 1]
+    loose : float in [0, 1] | 'auto'
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
         is 0 or None then the solution is computed with fixed orientation.
         If loose is 1, it corresponds to free orientations.
-        Default value set to 0.2 for surface-oriented source space and
-        set to 1.0 for volumic or discrete source space.
+        If 'auto' then it defaults to 0.2 for surface-oriented source space
+        and to 1.0 for volumic or discrete source space.
     depth: None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     maxit : int
@@ -356,19 +368,12 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         evoked = [evoked]
 
     _check_reference(evoked[0])
-
     all_ch_names = evoked[0].ch_names
     if not all(all_ch_names == evoked[i].ch_names
                for i in range(1, len(evoked))):
         raise Exception('All the datasets must have the same good channels.')
 
-    if loose == 'auto':
-        loose = 0.2 if forward['src'].kind == 'surface' else 1.
-
-    # put the forward solution in fixed orientation if it's not already
-    if loose is None and not is_fixed_orient(forward):
-        forward = deepcopy(forward)
-        _to_fixed_ori(forward)
+    loose, forward = _check_loose_forward(loose, forward)
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked[0].info, noise_cov, pca, depth, loose, weights,
@@ -589,13 +594,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         raise Exception('alpha_time must be in range [0, 100].'
                         ' Got alpha_time = %f' % alpha_time)
 
-    if loose == 'auto':
-        loose = 0.2 if forward['src'].kind == 'surface' else 1.
-
-    # put the forward solution in fixed orientation if it's not already
-    if loose is None and not is_fixed_orient(forward):
-        forward = deepcopy(forward)
-        _to_fixed_ori(forward)
+    loose, forward = _check_loose_forward(loose, forward)
 
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
 

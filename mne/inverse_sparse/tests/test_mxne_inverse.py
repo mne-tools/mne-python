@@ -6,9 +6,10 @@
 import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_equal, assert_raises
 import pytest
 
+import mne
 from mne.datasets import testing
 from mne.label import read_label
 from mne import read_cov, read_forward_solution, read_evokeds
@@ -17,6 +18,7 @@ from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.utils import run_tests_if_main
 from mne.dipole import Dipole
+from mne.source_estimate import VolSourceEstimate
 
 
 data_path = testing.data_path(download=False)
@@ -137,5 +139,53 @@ def test_mxne_inverse():
                            weights_min=weights_min, return_residual=True)
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_mxne_vol_sphere():
+    """Gamma MAP with a sphere forward and volumic source space"""
+    evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
+    evoked.crop(tmin=-0.05, tmax=0.2)
+    cov = read_cov(fname_cov)
+
+    evoked_l21 = evoked.copy()
+    evoked_l21.crop(tmin=0.081, tmax=0.1)
+
+    info = evoked.info
+    sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
+    src = mne.setup_volume_source_space(subject=None, pos=15., mri=None,
+                                        sphere=(0.0, 0.0, 0.0, 80.0),
+                                        bem=None, mindist=5.0,
+                                        exclude=2.0)
+    fwd = mne.make_forward_solution(info, trans=None, src=src,
+                                    bem=sphere, eeg=False, meg=True)
+
+    alpha = 80.
+    assert_raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
+                  loose=None, return_residual=False,
+                  maxit=3, tol=1e-8, active_set_size=10)
+
+    assert_raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
+                  loose=0.2, return_residual=False,
+                  maxit=3, tol=1e-8, active_set_size=10)
+
+    # irMxNE tests
+    stc = mixed_norm(evoked_l21, fwd, cov, alpha,
+                     n_mxne_iter=1, maxit=30, tol=1e-8,
+                     active_set_size=10)
+    assert_true(isinstance(stc, VolSourceEstimate))
+    assert_array_almost_equal(stc.times, evoked_l21.times, 5)
+
+    # Do with TF-MxNE for test memory savings
+    alpha_space = 60.  # spatial regularization parameter
+    alpha_time = 1.  # temporal regularization parameter
+
+    stc, _ = tf_mixed_norm(evoked, fwd, cov, alpha_space, alpha_time,
+                           maxit=3, tol=1e-4,
+                           tstep=16, wsize=32, window=0.1,
+                           return_residual=True)
+    assert_true(isinstance(stc, VolSourceEstimate))
+    assert_array_almost_equal(stc.times, evoked.times, 5)
 
 run_tests_if_main()

@@ -25,7 +25,8 @@ from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import prepare_noise_cov, _read_cov, _write_cov, Covariance
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
-                       compute_orient_prior, convert_forward_solution)
+                       compute_orient_prior, convert_forward_solution,
+                       _to_fixed_ori)
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
@@ -744,6 +745,37 @@ def _check_ori(pick_ori, source_ori):
     if pick_ori == 'vector' and source_ori != FIFF.FIFFV_MNE_FREE_ORI:
         raise RuntimeError('pick_ori="vector" cannot be combined with an '
                            'inverse operator with fixed orientations.')
+
+
+def _check_loose_forward(loose, forward):
+    # put the forward solution in fixed orientation if it's not already
+    if forward['src'].kind != 'surface':
+        if loose == 'auto':
+            loose = 1.
+
+        if (loose is None) or (0 <= loose < 1):
+            raise ValueError('Loose parameter has to be 1. for non-surfacic'
+                             ' source space (Got loose=%s).' % loose)
+
+        return loose, forward
+
+    # Now we are guaranteed to be surface oriented
+    if loose in [0., None] and not is_fixed_orient(forward):
+        forward = deepcopy(forward)
+        _to_fixed_ori(forward)
+
+    if is_fixed_orient(forward):
+        if not (loose == 'auto' or (loose in [0., None])):
+            warn('Ignoring loose parameter with forward operator '
+                 'with fixed orientation.')
+        loose = None
+    else:
+        if loose == 'auto':
+            loose = 0.2
+
+    assert (loose is None) or (0 <= loose <= 1)
+
+    return loose, forward
 
 
 def _check_reference(inst):

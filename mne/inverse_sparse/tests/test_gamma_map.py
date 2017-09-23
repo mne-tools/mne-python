@@ -4,12 +4,13 @@
 
 import os.path as op
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_allclose)
 
+import mne
 from mne.datasets import testing
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.cov import regularize
@@ -86,5 +87,39 @@ def test_gamma_map():
                     loose=None, return_residual=False)
     _check_stc(stc, evoked, 85739, 20)
 
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_gamma_map_vol_sphere():
+    """Gamma MAP with a sphere forward and volumic source space"""
+    evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
+                          proj=False)
+    evoked.resample(50, npad=100)
+    evoked.crop(tmin=0.1, tmax=0.16)  # crop to nice window near samp border
+
+    cov = read_cov(fname_cov)
+    cov = regularize(cov, evoked.info)
+
+    info = evoked.info
+    sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
+    src = mne.setup_volume_source_space(subject=None, pos=15., mri=None,
+                                        sphere=(0.0, 0.0, 0.0, 80.0),
+                                        bem=None, mindist=5.0,
+                                        exclude=2.0)
+    fwd = mne.make_forward_solution(info, trans=None, src=src, bem=sphere,
+                                    eeg=False, meg=True)
+
+    alpha = 0.5
+    assert_raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
+                  loose=None, return_residual=False)
+
+    assert_raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
+                  loose=0.2, return_residual=False)
+
+    stc = gamma_map(evoked, fwd, cov, alpha, tol=1e-4,
+                    xyz_same_gamma=False, update_mode=2,
+                    return_residual=False)
+
+    assert_array_almost_equal(stc.times, evoked.times, 5)
 
 run_tests_if_main()
