@@ -325,6 +325,10 @@ def test_cluster_permutation_with_connectivity():
         assert_raises(ValueError, spatio_temporal_func, X1d_3,
                       connectivity=connectivity, tail=-1,
                       threshold=dict(start=-1, step=1))
+        # Make sure connectivity has to be sparse
+        assert_raises(ValueError, spatio_temporal_func, X1d_3,
+                      n_permutations=50, connectivity=connectivity.todense(),
+                      max_step=1, threshold=1.67)
 
         # wrong type for threshold
         assert_raises(TypeError, spatio_temporal_func, X1d_3,
