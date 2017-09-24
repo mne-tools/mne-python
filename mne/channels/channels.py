@@ -871,7 +871,7 @@ class InterpolationMixin(object):
 def rename_channels(info, mapping):
     """Rename channels.
 
-    .. warning::  The channel names must have less than 15 characters
+    .. warning::  The channel names must have at most 15 characters
 
     Parameters
     ----------
