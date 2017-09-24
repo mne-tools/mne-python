@@ -19,7 +19,6 @@ from mne.channels import (rename_channels, read_ch_connectivity,
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
 from mne.io import read_info, read_raw_fif, read_raw_ctf, read_raw_bti
-from mne.io import write_info
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, pick_channels
@@ -46,16 +45,11 @@ def test_rename_channels():
     assert_raises(ValueError, rename_channels, info, mapping)
     # Test bad input
     assert_raises(ValueError, rename_channels, info, 1.)
-    # Test name too long on save (channel names must be less than 15 char)
-    A15 = 'A' * 15
+    assert_raises(ValueError, rename_channels, info, 1.)
+    # Test name too long (channel names must be less than 15 characters)
     A16 = 'A' * 16
     mapping = {'MEG 2641': A16}
-    rename_channels(info, mapping)
-    assert_equal(info['chs'][305]['ch_name'], A16)
-    tempdir = _TempDir()
-    write_info(op.join(tempdir, 'tmp-info.fif'), info)
-    info2 = read_info(op.join(tempdir, 'tmp-info.fif'))
-    assert_equal(info2['chs'][305]['ch_name'], A15)
+    assert_raises(ValueError, rename_channels, info, mapping)
 
     # Test successful changes
     # Test ch_name and ch_names are changed

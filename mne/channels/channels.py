@@ -871,6 +871,8 @@ class InterpolationMixin(object):
 def rename_channels(info, mapping):
     """Rename channels.
 
+    .. warning::  The channel names must have less than 15 characters
+
     Parameters
     ----------
     info : dict
@@ -904,6 +906,12 @@ def rename_channels(info, mapping):
     if any(not isinstance(new_name[1], string_types)
            for new_name in new_names):
         raise ValueError('New channel mapping must only be to strings')
+
+    bad_new_names = [name for _, name in new_names if len(name) > 15]
+    if len(bad_new_names):
+        raise ValueError('Channel names cannot be longer than 15 '
+                         'characters. These channel names are not '
+                         'valid : %s' % new_names)
 
     # do the remapping locally
     for c_ind, new_name in new_names:
