@@ -43,10 +43,11 @@ from .io.pick import pick_types, pick_channels
 from .io.constants import FIFF
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils, _read_coil_defs)
-from .cov import make_ad_hoc_cov, _get_whitener_data
+from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import verbose, logger, use_log_level, _check_fname, warn
+from .defaults import _handle_default
 
 # Eventually we should add:
 #   hpicons
@@ -183,7 +184,7 @@ def _get_hpi_info(info, verbose=None):
     hpi_on = hpi_on[hpi_mask]
     hpi_freqs = hpi_freqs[hpi_mask]
 
-    return hpi_freqs,  hpi_pick, hpi_on
+    return hpi_freqs, hpi_pick, hpi_on
 
 
 @verbose
@@ -402,7 +403,11 @@ def _setup_hpi_struct(info, model_n_window,
     else:  # == 'multipole'
         coils = _prep_mf_coils(info)
     scale = make_ad_hoc_cov(info, verbose=False)
-    scale = _get_whitener_data(info, scale, meg_picks, verbose=False)[0]
+
+    scalings = _handle_default('scalings', None)
+    # WTF is the whitener called scale ! cc @larsoner...
+    scale, _ = compute_whitener(scale, info, picks=meg_picks,
+                                scalings=scalings, verbose=False)
 
     hpi = dict(meg_picks=meg_picks, hpi_pick=hpi_pick,
                model=model, inv_model=inv_model,

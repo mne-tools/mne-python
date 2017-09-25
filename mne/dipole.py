@@ -13,7 +13,7 @@ import re
 import numpy as np
 from scipy import linalg
 
-from .cov import read_cov, _get_whitener_data
+from .cov import read_cov, compute_whitener
 from .io.constants import FIFF
 from .io.pick import pick_types, channel_type
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
@@ -35,6 +35,7 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl)
+from .defaults import _handle_default
 
 
 class Dipole(object):
@@ -1207,7 +1208,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
     # whitener = np.dot(whitener, cov['eigvec'])
 
-    whitener, rank = _get_whitener_data(info, cov, picks, verbose=False)
+    scalings = _handle_default('scalings', None)
+    whitener, rank = compute_whitener(cov, info, picks=picks,
+                                      scalings=scalings)
 
     # Proceed to computing the fits (make_guess_data)
     if fixed_position:

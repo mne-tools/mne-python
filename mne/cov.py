@@ -1235,7 +1235,7 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     return eig, eigvec
 
 
-def _get_whitener(noise_cov, info, ch_names, rank, pca):
+def _get_whitener(noise_cov, info, ch_names, rank, pca, scalings=None):
     #
     #   Handle noise cov
     #
@@ -1259,7 +1259,7 @@ def _get_whitener(noise_cov, info, ch_names, rank, pca):
 
     logger.info('Total rank is %d' % n_nzero)
 
-    return whitener, n_nzero
+    return whitener, noise_cov, n_nzero
 
 
 @verbose
@@ -1578,7 +1578,8 @@ def _regularized_covariance(data, reg=None):
 
 @verbose
 def compute_whitener(noise_cov, info, picks=None, rank=None,
-                     scalings=None, return_rank=False, verbose=None):
+                     scalings=None, return_rank=False,
+                     diag=False, verbose=None):
     """Compute whitening matrix.
 
     Parameters
@@ -1602,6 +1603,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         If True, return the rank used to compute the whitener.
 
         .. versionadded:: 0.15
+    diag : bool
+        Use a diagonal approximation of the noise covariance.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1617,9 +1620,23 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
-    ch_names = [info['chs'][k]['ch_name'] for k in picks]
+    ch_names = [info['ch_names'][k] for k in picks]
 
-    W, n_nzero = _get_whitener(noise_cov, info, ch_names, rank, pca=False)
+    # XXX this relies on pick_channels, which does not respect order,
+    # so this could create problems if users have reordered their data
+    noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
+    if len(noise_cov['data']) != len(ch_names):
+        missing = list(set(ch_names) - set(noise_cov['names']))
+        raise RuntimeError('Not all channels present in noise covariance:\n%s'
+                           % missing)
+
+    if diag:
+        noise_cov = noise_cov.copy()
+        noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
+
+    scalings = _handle_default('scalings_cov_rank', scalings)
+    W, noise_cov, n_nzero = _get_whitener(noise_cov, info, ch_names, rank,
+                                          pca=False, scalings=scalings)
 
     # Do the back projection
     W = np.dot(noise_cov['eigvec'].T, W)
@@ -1670,32 +1687,35 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
     evoked = evoked.copy()
     if picks is None:
         picks = pick_types(evoked.info, meg=True, eeg=True)
-    W = _get_whitener_data(evoked.info, noise_cov, picks,
-                           diag=diag, rank=rank, scalings=scalings)[0]
+
+    scalings = _handle_default('scalings', None)
+    W, rank = compute_whitener(noise_cov, evoked.info, picks=picks,
+                               diag=diag, rank=rank, scalings=scalings)
+
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
 
 
-@verbose
-def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
-                       scalings=None, verbose=None):
-    """Get whitening matrix for a set of data."""
-    ch_names = [info['ch_names'][k] for k in picks]
-    # XXX this relies on pick_channels, which does not respect order,
-    # so this could create problems if users have reordered their data
-    noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
-    if len(noise_cov['data']) != len(ch_names):
-        missing = list(set(ch_names) - set(noise_cov['names']))
-        raise RuntimeError('Not all channels present in noise covariance:\n%s'
-                           % missing)
-    if diag:
-        noise_cov = noise_cov.copy()
-        noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
+# @verbose
+# def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
+#                        scalings=None, verbose=None):
+#     """Get whitening matrix for a set of data."""
+#     ch_names = [info['ch_names'][k] for k in picks]
+#     # XXX this relies on pick_channels, which does not respect order,
+#     # so this could create problems if users have reordered their data
+#     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
+#     if len(noise_cov['data']) != len(ch_names):
+#         missing = list(set(ch_names) - set(noise_cov['names']))
+#         raise RuntimeError('Not all channels present in noise covariance:\n%s'
+#                            % missing)
+#     if diag:
+#         noise_cov = noise_cov.copy()
+#         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
-    scalings = _handle_default('scalings_cov_rank', scalings)
-    W, _, rank = compute_whitener(noise_cov, info, picks=picks, rank=rank,
-                                  scalings=scalings, return_rank=True)
-    return W, rank
+#     scalings = _handle_default('scalings_cov_rank', scalings)
+#     W, _, rank = compute_whitener(noise_cov, info, picks=picks, rank=rank,
+#                                   scalings=scalings, return_rank=True)
+#     return W, rank
 
 
 @verbose

@@ -1221,7 +1221,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
 
-    whitener, n_nzero = _get_whitener(noise_cov, info, ch_names, rank, pca)
+    whitener, noise_cov, n_nzero = _get_whitener(noise_cov, info, ch_names,
+                                                 rank, pca)
 
     gain = forward['sol']['data']
 
