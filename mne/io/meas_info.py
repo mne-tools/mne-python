@@ -468,7 +468,6 @@ class Info(dict):
                 overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
                 n_keep = min(len(ch_stem),
                              14 - int(np.ceil(np.log10(len(overlaps)))))
-                print(len(overlaps), n_keep)
                 ch_stem = ch_stem[:n_keep]
                 for idx, ch_idx in enumerate(overlaps):
                     ch_name = ch_stem + '-%s' % idx
