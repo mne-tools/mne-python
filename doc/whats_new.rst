@@ -239,7 +239,7 @@ API
 
     - The ``scale``, ``scale_time``, and ``unit`` parameters have been deprecated in favor of ``scalings``, ``scalings_time``, and ``units`` in :func:`mne.viz.plot_evoked_topomap` and related functions, by `Eric Larson`_
 
-    - ``loose`` parameter in inverse solvers has now a default value ``'auto'`` depending if the source space is a surface or a grid or discrete by `Alex Gramfort`_ and `Yousra Bekhti`_
+    - ``loose`` parameter in inverse solvers has now a default value ``'auto'`` depending if the source space is a surface, volume, or discrete type by `Alex Gramfort`_ and `Yousra Bekhti`_
 
 
 .. _changes_0_14:

@@ -78,8 +78,8 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
         that are parallel (tangential) to the cortical surface. If loose
         is 0 or None then the solution is computed with fixed orientation.
         If loose is 1, it corresponds to free orientations.
-        Default value set to 0.2 for surface-oriented source space and
-        set to 1.0 for volumic or discrete source space.
+        The default value ('auto') is set to 0.2 for surface-oriented source
+        space and set to 1.0 for volumic or discrete source space.
     depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
 

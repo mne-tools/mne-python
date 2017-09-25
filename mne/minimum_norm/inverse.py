@@ -1277,8 +1277,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         is 0 then the solution is computed with fixed orientation.
         This is equivalent to setting fixed=True.
         If loose is 1 or None, it corresponds to free orientations.
-        If 'auto' then it defaults to 0.2 for surface-oriented source space
-        and to 1.0 for volumic or discrete source space.
+        The default value ('auto') is set to 0.2 for surface-oriented source
+        space and set to 1.0 for volumic or discrete source space.
     depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     fixed : bool

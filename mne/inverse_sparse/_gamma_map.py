@@ -1,12 +1,10 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 # License: Simplified BSD
-from copy import deepcopy
-
 import numpy as np
 from scipy import linalg
 
-from ..forward import is_fixed_orient, _to_fixed_ori
+from ..forward import is_fixed_orient
 
 from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose, warn
@@ -190,13 +188,13 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         Noise covariance to compute whitener.
     alpha : float
         Regularization parameter (noise variance).
-    loose : float in [0, 1] | 'auto'
+    loose : float in [0, 1] | 'auto' | None
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
         is 0 or None then the solution is computed with fixed orientation.
         If loose is 1, it corresponds to free orientations.
-        If 'auto' then it defaults to 0.2 for surface-oriented source space
-        and to 1.0 for volumic or discrete source space.
+        The default value ('auto') is set to 0.2 for surface-oriented source
+        space and set to 1.0 for volumic or discrete source space.
     depth: None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     xyz_same_gamma : bool
