@@ -49,7 +49,8 @@ condition = 'Left Auditory'
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked.crop(tmin=0, tmax=0.3)
 # Handling forward solution
-forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
+forward = mne.read_forward_solution(fwd_fname)
+forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 ###############################################################################
 # Run solver

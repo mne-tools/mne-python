@@ -40,12 +40,12 @@ evoked.crop(tmin=0.04, tmax=0.18)
 
 evoked = evoked.pick_types(eeg=False, meg=True)
 # Handling forward solution
-forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
+forward = mne.read_forward_solution(fwd_fname)
+forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 
 ###############################################################################
 # Auxiliary function to run the solver
-
 def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     """Function to call a custom solver on evoked data
 
@@ -87,14 +87,14 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     """
     # Import the necessary private functions
     from mne.inverse_sparse.mxne_inverse import \
-        (_prepare_gain, _to_fixed_ori, is_fixed_orient,
+        (_prepare_gain, is_fixed_orient,
          _reapply_source_weighting, _make_sparse_stc)
 
     all_ch_names = evoked.ch_names
     # put the forward solution in fixed orientation if it's not already
     if loose is None and not is_fixed_orient(forward):
-        forward = forward.copy()
-        _to_fixed_ori(forward)
+        forward = mne.convert_forward_solution(
+            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
 
     # Handle depth weighting and whitening (here is no weights)
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(

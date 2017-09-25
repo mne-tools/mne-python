@@ -234,6 +234,13 @@ API
 
     - Add ``patterns=False`` parameter in :class:`mne.decoding.ReceptiveField`. Turn on to compute inverse model coefficients, by `Nicolas Barascud`_
 
+    - Deprecate force_fixed and surf_ori in :func:`mne.forward.read_forward_solution` by `Daniel Strohmeier`_
+
+    - :func:`mne.forward.convert_forward_solution` has a new argument ``use_cps``, which controls wether information on cortical patch statistics is applied while generating surface-oriented forward solutions with free and fixed orientation by `Daniel Strohmeier`_
+
+    - :func:`mne.forward.write_forward_solution` writes a forward solution as a forward solution with free orientation in X/Y/Z RAS coordinates if it is derived from a forward solution with free orientation and as a forward solution with fixed orientation in surface-based local coordinates otherwise by `Daniel Strohmeier`_
+
+
 .. _changes_0_14:
 
 Version 0.14

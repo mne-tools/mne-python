@@ -11,7 +11,8 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_allclose)
 
 from mne.datasets import testing
-from mne import read_cov, read_forward_solution, read_evokeds
+from mne import (read_cov, read_forward_solution, read_evokeds,
+                 convert_forward_solution)
 from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
@@ -53,8 +54,9 @@ def _check_stcs(stc1, stc2):
 @testing.requires_testing_data
 def test_gamma_map():
     """Test Gamma MAP inverse"""
-    forward = read_forward_solution(fname_fwd, force_fixed=False,
-                                    surf_ori=True)
+    forward = read_forward_solution(fname_fwd)
+    forward = convert_forward_solution(forward, surf_ori=True)
+
     forward = pick_types_forward(forward, meg=False, eeg=True)
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
                           proj=False)

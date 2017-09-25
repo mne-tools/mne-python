@@ -44,7 +44,7 @@ def test_psf_ctf():
             stc_psf, psf_ev = point_spread_function(
                 inverse_operator, forward, method=method, labels=labels,
                 lambda2=lambda2, pick_ori='normal', mode=mode,
-                n_svd_comp=n_svd_comp)
+                n_svd_comp=n_svd_comp, use_cps=True)
 
             n_vert, n_samples = stc_psf.shape
             should_n_vert = (inverse_operator['src'][1]['vertno'].shape[0] +
@@ -65,7 +65,7 @@ def test_psf_ctf():
             stc_ctf = cross_talk_function(
                 inverse_operator, forward, labels, method=method,
                 lambda2=lambda2, signed=False, mode=mode,
-                n_svd_comp=n_svd_comp)
+                n_svd_comp=n_svd_comp, use_cps=True)
 
             n_vert, n_samples = stc_ctf.shape
             should_n_vert = (inverse_operator['src'][1]['vertno'].shape[0] +

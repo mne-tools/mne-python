@@ -333,7 +333,7 @@ def test_simulate_calculate_chpi_positions():
     raw = simulate_raw(raw, stc, None, fwd['src'], sphere, cov=None,
                        blink=False, ecg=False, chpi=True,
                        head_pos=dev_head_pos, mindist=1.0, interp='zero',
-                       verbose=None)
+                       verbose=None, use_cps=True)
 
     quats = _calculate_chpi_positions(
         raw, t_step_min=raw.info['sfreq'] * head_pos_sfreq_quotient,

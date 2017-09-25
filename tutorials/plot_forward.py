@@ -168,8 +168,8 @@ print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 # the source space `fwd['src']` with cortical orientation constraint
 # we can use the following:
 
-fwd_fixed = mne.convert_forward_solution(fwd, surf_ori=True,
-                                         force_fixed=True)
+fwd_fixed = mne.convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                         use_cps=True)
 leadfield = fwd_fixed['sol']['data']
 print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 
