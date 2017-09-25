@@ -22,7 +22,7 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         write_coord_trans, write_string)
 
 from ..io.pick import channel_type, pick_info, pick_types
-from ..cov import prepare_noise_cov, _read_cov, _write_cov, Covariance
+from ..cov import _get_whitener, _read_cov, _write_cov, Covariance
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
                        compute_orient_prior, convert_forward_solution,
@@ -1221,25 +1221,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
 
-    #
-    #   Handle noise cov
-    #
-    noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank)
-
-    #   Omit the zeroes due to projection
-    eig = noise_cov['eig']
-    nzero = (eig > 0)
-    n_nzero = sum(nzero)
-
-    if pca:
-        #   Rows of eigvec are the eigenvectors
-        whitener = noise_cov['eigvec'][nzero] / np.sqrt(eig[nzero])[:, None]
-        logger.info('Reducing data rank to %d' % n_nzero)
-    else:
-        whitener = np.zeros((n_chan, n_chan), dtype=np.float)
-        whitener[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-        #   Rows of eigvec are the eigenvectors
-        whitener = np.dot(whitener, noise_cov['eigvec'])
+    whitener, n_nzero = _get_whitener(noise_cov, info, ch_names, rank, pca)
 
     gain = forward['sol']['data']
 
@@ -1251,8 +1233,6 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
 
     info_idx = [info['ch_names'].index(name) for name in ch_names]
     fwd_info = pick_info(info, info_idx)
-
-    logger.info('Total rank is %d' % n_nzero)
 
     return fwd_info, gain, noise_cov, whitener, n_nzero
 

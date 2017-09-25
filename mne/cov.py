@@ -1235,6 +1235,33 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     return eig, eigvec
 
 
+def _get_whitener(noise_cov, info, ch_names, rank, pca):
+    #
+    #   Handle noise cov
+    #
+    noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank)
+    n_chan = len(ch_names)
+
+    #   Omit the zeroes due to projection
+    eig = noise_cov['eig']
+    nzero = (eig > 0)
+    n_nzero = sum(nzero)
+
+    if pca:
+        #   Rows of eigvec are the eigenvectors
+        whitener = noise_cov['eigvec'][nzero] / np.sqrt(eig[nzero])[:, None]
+        logger.info('Reducing data rank to %d' % n_nzero)
+    else:
+        whitener = np.zeros((n_chan, n_chan), dtype=np.float)
+        whitener[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
+        #   Rows of eigvec are the eigenvectors
+        whitener = np.dot(whitener, noise_cov['eigvec'])
+
+    logger.info('Total rank is %d' % n_nzero)
+
+    return whitener, n_nzero
+
+
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
                       scalings=None, verbose=None):
@@ -1592,26 +1619,13 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 
-    # This function does not modify inplace
-    noise_cov = prepare_noise_cov(noise_cov, info, ch_names,
-                                  rank=rank, scalings=scalings)
-    n_chan = len(ch_names)
+    W, n_nzero = _get_whitener(noise_cov, info, ch_names, rank, pca=False)
 
-    W = np.zeros((n_chan, n_chan), dtype=np.float)
-    #
-    #   Omit the zeroes due to projection
-    #
-    eig = noise_cov['eig']
-    nzero = (eig > 0)
-    W[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-    #
-    #   Rows of eigvec are the eigenvectors
-    #
-    W = np.dot(W, noise_cov['eigvec'])
+    # Do the back projection
     W = np.dot(noise_cov['eigvec'].T, W)
     out = W, ch_names
     if return_rank:
-        out += (nzero.sum(),)
+        out += (n_nzero,)
     return out
 
 
