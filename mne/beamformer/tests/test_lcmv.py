@@ -13,7 +13,7 @@ from mne import compute_covariance
 from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_raw, lcmv,
                             lcmv_epochs, lcmv_raw, tf_lcmv)
-from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv
+from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv, _eig_inv
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main
 
@@ -174,6 +174,29 @@ def test_lcmv():
                                   np.concatenate(stc_max_power.data))
         assert_almost_equal(pearsoncorr[0, 1], 1.)
 
+    # Test sphere head model with unit-noise gain beamformer and orientation
+    # selection and rank reduction of the leadfield
+    sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
+    src = mne.setup_volume_source_space(subject=None, pos=15., mri=None,
+                                        sphere=(0.0, 0.0, 0.0, 80.0),
+                                        bem=None, mindist=5.0, exclude=2.0)
+
+    fwd_sphere = mne.make_forward_solution(evoked.info, trans=None, src=src,
+                                           bem=sphere, eeg=False, meg=True)
+
+    stc_sphere = lcmv(evoked, fwd_sphere, noise_cov, data_cov, reg=0.1,
+                      weight_norm='unit-noise-gain', pick_ori="max-power",
+                      reduce_rank=2)
+    stc_sphere.crop(0.02, None)
+
+    stc_pow = np.sum(np.abs(stc_sphere.data), axis=1)
+    idx = np.argmax(stc_pow)
+    max_stc = stc_sphere.data[idx]
+    tmax = stc_sphere.times[np.argmax(max_stc)]
+
+    assert_true(0.08 < tmax < 0.11, tmax)
+    assert_true(0.4 < np.max(max_stc) < 2., np.max(max_stc))
+
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
     assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
@@ -229,6 +252,15 @@ def test_lcmv():
     raw_proj.del_proj()
     assert_raises(ValueError, apply_lcmv_raw, raw_proj, filters,
                   max_ori_out='signed')
+
+    # Test if setting reduce_rank to True returns an error with not-yet-
+    # implemented orientation selections
+    assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
+                  data_cov, pick_ori=None, weight_norm='nai', reduce_rank=True,
+                  max_ori_out='signed')
+    assert_raises(NotImplementedError, lcmv, evoked, forward_surf_ori,
+                  noise_cov, data_cov, pick_ori='normal', weight_norm='nai',
+                  reduce_rank=True, max_ori_out='signed')
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
@@ -466,6 +498,18 @@ def test_reg_pinv():
     with warnings.catch_warnings(record=True) as w:
         _reg_pinv(a, reg=0.)
     assert_true(any('deficient' in str(ww.message) for ww in w))
+
+
+def test_eig_inv():
+    """Test matrix pseudoinversion with setting smallest eigenvalue to zero."""
+    # create rank-deficient array
+    a = np.array([[1., 0., 1.], [0., 1., 0.], [1., 0., 1.]])
+
+    # test inversion
+    a_inv = np.linalg.pinv(a)
+    a_inv_eig = _eig_inv(a, 2)
+
+    assert_almost_equal(a_inv, a_inv_eig)
 
 
 run_tests_if_main()
