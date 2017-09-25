@@ -1,7 +1,7 @@
 # License: BSD Style.
 
 from ...utils import verbose
-from ..utils import _data_path, _data_path_doc, _get_version, _version_doc
+from ..utils import _data_path, _get_version, _version_doc
 
 
 @verbose
