@@ -291,13 +291,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
-             spatial_colors=False, zorder='unsorted', selectable=True):
+             spatial_colors=False, zorder='unsorted', selectable=True,
+             verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
-            zorder=zorder, selectable=selectable)
+            zorder=zorder, selectable=selectable, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,

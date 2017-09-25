@@ -12,14 +12,14 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises
 from nose.tools import assert_true
 import pytest
 
 from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, catch_logging
 from mne.viz.evoked import _line_plot_onselect, plot_compare_evokeds
 from mne.viz.utils import _fake_click
 from mne.stats import _parametric_ci
@@ -188,9 +188,9 @@ def test_plot_evoked():
     plt.close('all')
 
     evoked.pick_channels(evoked.ch_names[:4])
-    with warnings.catch_warnings(record=True) as ws:
-        evoked.plot()
-    assert_equal(len(ws), 2)
-    assert_true(all('Need more than one' in str(w.message) for w in ws))
+    with catch_logging() as log_file:
+        evoked.plot(verbose=True)
+    assert_true('Need more than one' in log_file.getvalue())
+
 
 run_tests_if_main()

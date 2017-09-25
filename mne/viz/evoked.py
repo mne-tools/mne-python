@@ -24,7 +24,7 @@ from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax, _grad_pair_pick_and_name)
-from ..utils import logger, _clean_names, warn, _pl
+from ..utils import logger, _clean_names, warn, _pl, verbose
 from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines
@@ -492,11 +492,12 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     ax.set_xlabel('time (ms)')
 
 
+@verbose
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False, zorder='unsorted',
-                selectable=True):
+                selectable=True, verbose=None):
     """Plot evoked data using butteryfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -574,6 +575,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         and is useful when using ``axes`` parameter to draw multiaxes figures.
 
         .. versionadded:: 0.13.0
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

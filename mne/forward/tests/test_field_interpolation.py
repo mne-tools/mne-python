@@ -218,7 +218,7 @@ def test_as_meg_type_evoked():
     virt_evoked = evoked.copy().pick_channels(ch_names=ch_names[:10:1])
     virt_evoked.info.normalize_proj()
     virt_evoked = virt_evoked.as_type('mag')
-    assert_true(all('_virtual' in ch for ch in virt_evoked.info['ch_names']))
+    assert_true(all('_virt' in ch for ch in virt_evoked.info['ch_names']))
 
     # pick from and to channels
     evoked_from = evoked.copy().pick_channels(ch_names=ch_names[2:10:3])
@@ -242,5 +242,6 @@ def test_as_meg_type_evoked():
     data1 = evoked.pick_types(meg='grad').data.ravel()
     data2 = evoked.as_type('grad').data.ravel()
     assert_true(np.corrcoef(data1, data2)[0, 1] > 0.95)
+
 
 run_tests_if_main()
