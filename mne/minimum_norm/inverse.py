@@ -748,7 +748,8 @@ def _check_ori(pick_ori, source_ori):
 
 
 def _check_loose_forward(loose, forward, loose_as_fixed=(0., None)):
-    """
+    """Check the compatibility between loose and forward.
+
     XXX there an API glitch with loose that means fixed inverse between
     sparse solvers and MNE. For sparse solvers loose=None means fixed
     and for MNE loose = None means free orientation...
