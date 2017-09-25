@@ -44,11 +44,11 @@ raw.crop(50., 250.).load_data()  # crop for memory purposes
 
 # Filter muscular activity to only keep high frequencies
 emg = raw.copy().pick_channels(['EMGlft'])
-emg.filter(20., None)
+emg.filter(20., None, fir_design='firwin')
 
 # Filter MEG data to focus on alpha band
 raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False)
-raw.filter(15., 30., method='iir')
+raw.filter(15., 30., fir_design='firwin')
 
 # Build epochs as sliding windows over the continuous raw file
 events = mne.make_fixed_length_events(raw, id=1, duration=.250)

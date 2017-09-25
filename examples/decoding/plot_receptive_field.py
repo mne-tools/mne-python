@@ -51,7 +51,7 @@ from sklearn.preprocessing import scale
 # ----------------------------------
 #
 # First we will load the data collected in [1]_. In this experiment subjects
-# listened to natural speech. Raw EEG and the speech stimulus was collected.
+# listened to natural speech. Raw EEG and the speech stimulus are provided.
 # We will load these below, downsampling the data in order to speed up
 # computation since we know that our features are primarily low-frequency in
 # nature. Then we'll visualize both the EEG and speech envelope.

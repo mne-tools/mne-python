@@ -48,8 +48,7 @@ event_ids = {'AudL': 1, 'VisL': 3}
 
 # Read data and create epochs
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(0.5, 45, l_trans_bandwidth='auto', h_trans_bandwidth='auto',
-           filter_length='auto', phase='zero')
+raw.filter(0.5, 45, fir_design='firwin')
 events = mne.read_events(event_fname)
 
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,

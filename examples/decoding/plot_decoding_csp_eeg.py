@@ -61,7 +61,7 @@ raw = concatenate_raws(raw_files)
 raw.rename_channels(lambda x: x.strip('.'))
 
 # Apply band-pass filter
-raw.filter(7., 30., fir_design='firwin')
+raw.filter(7., 30., fir_design='firwin', skip_by_annotation='edge')
 
 events = find_events(raw, shortest_event=0, stim_channel='STI 014')
 

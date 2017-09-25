@@ -9,6 +9,7 @@ machine:
 # https://gist.github.com/amacneil/f14db753919e0af2d7d2f5a8da7fce65
 checkout:
   post:
+    - echo $(git log -1 --pretty=%B) > gitlog.txt
     - echo ${CI_PULL_REQUEST//*pull\//} > merge.txt
     - if [[ $(cat merge.txt) != "" ]]; then
         echo "Merging $(cat merge.txt)";
@@ -74,12 +75,12 @@ dependencies:
     - git fetch upstream;
     - git branch -a;
     - mkdir -p ~/mne_data;
-    - if [[ `git log -1 --pretty=%B` == *"[circle front]"* ]]; then
+    - if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
         PATTERN="plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\|plot_visualize_evoked.py\|";
       else
         PATTERN="";
       fi;
-      if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
+      if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
       elif [ "$CIRCLE_BRANCH" == "maint/0.14" ]; then
         echo html_stable > build.txt;
@@ -92,6 +93,9 @@ dependencies:
             PATTERN=`basename $FNAME`"\\|"$PATTERN;
             if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*spm_face.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.spm_face.data_path(update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*somato.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.somato.data_path(update_path=True))";
