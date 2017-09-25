@@ -325,7 +325,7 @@ def test_brainvision_data():
 
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True,
-                         response_trig_shift=1000)
+                         response_trig_shift=1000, verbose='error')
 
 
 def test_brainvision_vectorized_data():
@@ -493,7 +493,7 @@ def test_brainvision_with_montage():
         assert_equal(d['kind'], FIFF.FIFFV_POINT_EEG)
         assert_equal(len(d['r']), 3)
 
-    raw_none = read_raw_brainvision(vhdr_v2_path)
+    raw_none = read_raw_brainvision(vhdr_v2_path, verbose='error')
     for r, n in zip(raw.info['chs'], raw_none.info['chs']):
         if r['kind'] != n['kind']:
             assert_array_equal(r['loc'], n['loc'])

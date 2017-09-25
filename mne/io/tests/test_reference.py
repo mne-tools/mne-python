@@ -283,9 +283,10 @@ def test_set_bipolar_reference():
     # Test creating a bipolar reference that doesn't involve EEG channels:
     # it should not set the custom_ref_applied flag
     reref = set_bipolar_reference(raw, 'MEG 0111', 'MEG 0112',
-                                  ch_info={'kind': FIFF.FIFFV_MEG_CH})
+                                  ch_info={'kind': FIFF.FIFFV_MEG_CH},
+                                  verbose='error')
     assert_true(not reref.info['custom_ref_applied'])
-    assert_true('MEG 0111-MEG 0112' in reref.ch_names)
+    assert_true('MEG 0111-MEG 0112'[:15] in reref.ch_names)
 
     # Test a battery of invalid inputs
     assert_raises(ValueError, set_bipolar_reference, raw,

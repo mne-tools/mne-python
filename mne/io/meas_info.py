@@ -454,6 +454,9 @@ class Info(dict):
             if self.get(key) is not None:
                 self[key] = float(self[key])
 
+        # make sure channel names are not too long
+        self._check_ch_name_length()
+
         # make sure channel names are unique
         unique_ids = np.unique(self['ch_names'], return_index=True)[1]
         if len(unique_ids) != self['nchan']:
@@ -463,6 +466,9 @@ class Info(dict):
                  '%s. Applying running numbers for duplicates.' % dups)
             for ch_stem in dups:
                 overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
+                n_keep = min(len(ch_stem),
+                             14 - int(np.ceil(np.log10(len(overlaps)))))
+                ch_stem = ch_stem[:n_keep]
                 for idx, ch_idx in enumerate(overlaps):
                     ch_name = ch_stem + '-%s' % idx
                     assert ch_name not in self['ch_names']
@@ -472,6 +478,18 @@ class Info(dict):
         if 'filename' in self:
             warn('the "filename" key is misleading\
                  and info should not have it')
+
+    def _check_ch_name_length(self):
+        """Check that channel names are sufficiently short."""
+        bad_names = list()
+        for ch in self['chs']:
+            if len(ch['ch_name']) > 15:
+                bad_names.append(ch['ch_name'])
+                ch['ch_name'] = ch['ch_name'][:15]
+        if len(bad_names) > 0:
+            warn('%d channel names are too long, have been truncated to 15 '
+                 'characters:\n%s' % (len(bad_names), bad_names))
+            self._update_redundant()
 
     def _update_redundant(self):
         """Update the redundant entries."""
@@ -1632,7 +1650,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     return info
 
 
-def create_info(ch_names, sfreq, ch_types=None, montage=None):
+@verbose
+def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     """Create a basic Info instance suitable for use with create_raw.
 
     Parameters
@@ -1654,6 +1673,9 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         digitizer information will be updated. A list of unique montages,
         can be specifed and applied to the info. See also the documentation of
         :func:`mne.channels.read_montage` for more information.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
