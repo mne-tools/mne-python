@@ -38,7 +38,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      check_fname, _get_stim_channel,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
-                     _check_preload)
+                     _check_preload, _scale_dep)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -59,8 +59,9 @@ class ToDataFrameMixin(object):
                                  'in this object instance.')
         return picks
 
-    def to_data_frame(self, picks=None, index=None, scale_time=1e3,
-                      scalings=None, copy=True, start=None, stop=None):
+    def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
+                      scalings=None, copy=True, start=None, stop=None,
+                      scale_time=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Columns and indices will depend on the object being converted.
@@ -78,7 +79,7 @@ class ToDataFrameMixin(object):
             Column to be used as index for the data. Valid string options
             are 'epoch', 'time' and 'condition'. If None, all three info
             columns will be included in the table as categorial data.
-        scale_time : float
+        scaling_time : float
             Scaling to be applied to time units.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
@@ -105,6 +106,9 @@ class ToDataFrameMixin(object):
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
         from ..source_estimate import _BaseSourceEstimate
+        scaling_time = _scale_dep(scaling_time, scale_time,
+                                  'scaling_time', 'scale_time')
+        del scale_time
 
         pd = _check_pandas_installed()
         mindex = list()
@@ -178,7 +182,7 @@ class ToDataFrameMixin(object):
                             'SourceEstimate. This is {0}'.format(type(self)))
 
         # Make sure that the time index is scaled correctly
-        times = np.round(times * scale_time)
+        times = np.round(times * scaling_time)
         mindex.append(('time', times))
 
         if index is not None:

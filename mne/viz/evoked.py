@@ -155,7 +155,7 @@ def _rgb(x, y, z):
     """Transform x, y, z values into RGB colors."""
     rgb = np.array([x, y, z]).T
     rgb -= rgb.min(0)
-    rgb /= rgb.max(0)
+    rgb /= np.maximum(rgb.max(0), 1e-16)  # avoid div by zero
     return rgb
 
 
@@ -533,8 +533,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The units of the channel types used for axes lables. If None,
         defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
     scalings : dict | None
-        The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        The scalings of the channel types to be applied for plotting. If None,
+        defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.

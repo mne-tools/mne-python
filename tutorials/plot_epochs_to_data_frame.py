@@ -132,10 +132,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 # factors in a long table style commonly used for analyzing repeated measure
 # designs.
 
-index, scale_time, scalings = ['epoch', 'time'], 1e3, dict(grad=1e13)
+index, scaling_time, scalings = ['epoch', 'time'], 1e3, dict(grad=1e13)
 
-df = epochs.to_data_frame(picks=None, scalings=scalings, scale_time=scale_time,
-                          index=index)
+df = epochs.to_data_frame(picks=None, scalings=scalings,
+                          scaling_time=scaling_time, index=index)
 
 # Create MEG channel selector and drop EOG channel.
 meg_chs = [c for c in df.columns if 'MEG' in c]

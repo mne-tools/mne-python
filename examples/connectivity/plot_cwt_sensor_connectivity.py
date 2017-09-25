@@ -1,6 +1,6 @@
 """
 ==============================================================
-Compute seed based time-frequency connectivity in sensor space
+Compute seed-based time-frequency connectivity in sensor space
 ==============================================================
 
 Computes the connectivity between a seed-gradiometer close to the visual cortex

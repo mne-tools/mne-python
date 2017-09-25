@@ -290,11 +290,12 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def plot_patterns(self, info, components=None, ch_type=None, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                      colorbar=True, scale=None, unit='a.u.', res=64, size=1,
-                      cbar_fmt='%3.1f', name_format='CSP%01d', show=True,
-                      show_names=False, title=None, mask=None,
+                      colorbar=True, scalings=None, unit='a.u.', res=64,
+                      size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
+                      show=True, show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
-                      image_interp='bilinear', average=None, head_pos=None):
+                      image_interp='bilinear', average=None, head_pos=None,
+                      scale=None):
         """Plot topographic patterns of components.
 
         The patterns explain how the measured data was generated from the
@@ -346,9 +347,9 @@ class CSP(TransformerMixin, BaseEstimator):
             a circle will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
-        scale : dict | float | None
-            Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-            for grad and 1e15 for mag.
+        scalings : dict | float | None
+            The scalings of the channel types to be applied for plotting.
+            If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
         unit : dict | str | None
             The unit of the channel type used for colorbar label. If
             scale is None the unit is automatically determined.
@@ -426,25 +427,23 @@ class CSP(TransformerMixin, BaseEstimator):
         # create an evoked
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
         # the call plot_topomap
-        return patterns.plot_topomap(times=components, ch_type=ch_type,
-                                     layout=layout, vmin=vmin, vmax=vmax,
-                                     cmap=cmap, colorbar=colorbar, res=res,
-                                     cbar_fmt=cbar_fmt, sensors=sensors,
-                                     scale=scale, unit=unit, scale_time=1,
-                                     time_format=name_format, size=size,
-                                     show_names=show_names, title=title,
-                                     mask_params=mask_params, mask=mask,
-                                     outlines=outlines, contours=contours,
-                                     image_interp=image_interp, show=show,
-                                     average=average, head_pos=head_pos)
+        return patterns.plot_topomap(
+            times=components, ch_type=ch_type, layout=layout,
+            vmin=vmin, vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
+            cbar_fmt=cbar_fmt, sensors=sensors,
+            scalings=scalings, unit=unit, scaling_time=1,
+            time_format=name_format, size=size, show_names=show_names,
+            title=title, mask_params=mask_params, mask=mask, outlines=outlines,
+            contours=contours, image_interp=image_interp, show=show,
+            average=average, head_pos=head_pos, scale=scale)
 
     def plot_filters(self, info, components=None, ch_type=None, layout=None,
                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                     colorbar=True, scale=None, unit='a.u.', res=64, size=1,
+                     colorbar=True, scalings=None, unit='a.u.', res=64, size=1,
                      cbar_fmt='%3.1f', name_format='CSP%01d', show=True,
                      show_names=False, title=None, mask=None, mask_params=None,
                      outlines='head', contours=6, image_interp='bilinear',
-                     average=None, head_pos=None):
+                     average=None, head_pos=None, scale=None):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -496,9 +495,9 @@ class CSP(TransformerMixin, BaseEstimator):
             a circle will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
-        scale : dict | float | None
-            Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-            for grad and 1e15 for mag.
+        scalings : dict | float | None
+            The scalings of the channel types to be applied for plotting.
+            If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
         unit : dict | str | None
             The unit of the channel type used for colorbar label. If
             scale is None the unit is automatically determined.
@@ -576,17 +575,15 @@ class CSP(TransformerMixin, BaseEstimator):
         # create an evoked
         filters = EvokedArray(self.filters_, info, tmin=0)
         # the call plot_topomap
-        return filters.plot_topomap(times=components, ch_type=ch_type,
-                                    layout=layout, vmin=vmin, vmax=vmax,
-                                    cmap=cmap, colorbar=colorbar, res=res,
-                                    cbar_fmt=cbar_fmt, sensors=sensors,
-                                    scale=scale, unit=unit, scale_time=1,
-                                    time_format=name_format, size=size,
-                                    show_names=show_names, title=title,
-                                    mask_params=mask_params, mask=mask,
-                                    outlines=outlines, contours=contours,
-                                    image_interp=image_interp, show=show,
-                                    average=average, head_pos=head_pos)
+        return filters.plot_topomap(
+            times=components, ch_type=ch_type, layout=layout, vmin=vmin,
+            vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
+            cbar_fmt=cbar_fmt, sensors=sensors, scalings=scalings, unit=unit,
+            scaling_time=1, time_format=name_format, size=size,
+            show_names=show_names, title=title, mask_params=mask_params,
+            mask=mask, outlines=outlines, contours=contours,
+            image_interp=image_interp, show=show, average=average,
+            head_pos=head_pos, scale=scale)
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):

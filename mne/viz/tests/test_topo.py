@@ -138,10 +138,13 @@ def test_plot_topo_image_epochs():
     epochs.load_data()
     cmap = mne_analyze_colormap(format='matplotlib')
     data_min = epochs._data.min()
+    plt.close('all')
     fig = plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
                                  colorbar=True, title=title, cmap=cmap)
     assert_equal(epochs._data.min(), data_min)
-    _fake_click(fig, fig.axes[2], (0.08, 0.64))
+    num_figures_before = len(plt.get_fignums())
+    _fake_click(fig, fig.axes[0], (0.08, 0.64))
+    assert_equal(num_figures_before + 1, len(plt.get_fignums()))
     plt.close('all')
 
 
@@ -155,13 +158,14 @@ def test_plot_tfr_topo():
     data = np.random.RandomState(0).randn(len(epochs.ch_names),
                                           n_freqs, len(epochs.times))
     tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
+    plt.close('all')
     fig = tfr.plot_topo(baseline=(None, 0), mode='ratio',
                         title='Average power', vmin=0., vmax=14.)
 
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
     # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
-    _fake_click(fig, fig.axes[-1], (0.08, 0.65))
+    _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert_equal(num_figures_before + 1, len(plt.get_fignums()))
     plt.close('all')
 
@@ -197,5 +201,6 @@ def test_plot_tfr_topo():
                   None, tfr=data[:, :3, :], freq=these_freqs, x_label=None,
                   y_label=None, colorbar=False, cmap=('RdBu_r', True),
                   yscale='log')
+
 
 run_tests_if_main()

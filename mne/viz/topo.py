@@ -170,17 +170,18 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
 
     if axes is None:
         fig = plt.figure()
+        axes = plt.axes([0.015, 0.025, 0.97, 0.95])
+        _set_ax_facecolor(axes, fig_facecolor)
     else:
         fig = axes.figure
     if colorbar:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        ax = plt.axes([0.015, 0.025, 1.05, .8])
-        _set_ax_facecolor(ax, fig_facecolor)
-        cb = fig.colorbar(sm, ax=ax)
+        cb = fig.colorbar(sm, ax=axes, pad=0.025, fraction=0.075, shrink=0.5,
+                          anchor=(-1, 0.5))
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
         plt.setp(cb_yticks, color=font_color)
-        ax.axis('off')
+    axes.axis('off')
 
     my_topo_plot = _iter_topography(info, layout=layout, on_pick=on_pick,
                                     fig=fig, layout_scale=layout_scale,
@@ -209,10 +210,6 @@ def _plot_topo_onpick(event, show_func):
     """Onpick callback that shows a single channel in a new figure."""
     # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
-    if event.inaxes is None or (not hasattr(orig_ax, '_mne_ch_idx') and
-                                not hasattr(orig_ax, '_mne_axs')):
-        return
-
     import matplotlib.pyplot as plt
     try:
         if hasattr(orig_ax, '_mne_axs'):  # in unified, single-axes mode
@@ -224,7 +221,11 @@ def _plot_topo_onpick(event, show_func):
                     orig_ax = ax
                     break
             else:
+                # no axis found
                 return
+        elif not hasattr(orig_ax, '_mne_ch_idx'):
+            # neither old nor new mode
+            return
         ch_idx = orig_ax._mne_ch_idx
         face_color = orig_ax._mne_ax_face_color
         fig, ax = plt.subplots(1)

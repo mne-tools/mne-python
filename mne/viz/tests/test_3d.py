@@ -309,10 +309,10 @@ def test_stc_mpl():
         fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
                        hemi='lh', smoothing_steps=2, subject='sample',
                        backend='matplotlib', spacing='ico2', time_viewer=True)
-    time_viewer = fig.time_viewer
-    _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change time
-    time_viewer.canvas.key_press_event('ctrl+right')
-    time_viewer.canvas.key_press_event('left')
+        time_viewer = fig.time_viewer
+        _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
+        time_viewer.canvas.key_press_event('ctrl+right')
+        time_viewer.canvas.key_press_event('left')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   hemi='both', subject='sample', backend='matplotlib')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,

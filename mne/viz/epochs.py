@@ -315,7 +315,7 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
             names.append(name)
     else:
         raise ValueError("If ``group_by`` is not None, it must be a dict "
-                         "or 'type', got " + type(group_by))
+                         "or 'type', got " + str(type(group_by)))
     return all_picks, all_ch_types, names  # all_picks is a list of lists
 
 
