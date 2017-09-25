@@ -98,6 +98,7 @@ del fwd, epochs  # to save memory
 # -------------
 # View activation time-series
 
+plt.figure()
 plt.plot(1e3 * stc.times, stc.data[::100, :].T)
 plt.xlabel('time (ms)')
 plt.ylabel('%s value' % method)
