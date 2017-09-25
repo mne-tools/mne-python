@@ -518,7 +518,9 @@ def test_inverse_coef():
         with warnings.catch_warnings(record=True) as w:
             rf.fit(y, X)
             assert_equal(len(w), 1)
-            assert_true(str(w[0].message).startswith('scipy.linalg.solve'))
+            assert_true(any(x in str(w[0].message).lower()
+                            for x in ('singular', 'scipy.linalg.solve')),
+                        msg=str(w[0].message))
 
 
 run_tests_if_main()
