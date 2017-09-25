@@ -26,6 +26,18 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
 
 
+def test_long_names():
+    """Test long name support."""
+    info = create_info(['a' * 15 + 'b', 'a' * 16], 1000., verbose='error')
+    data = np.empty((2, 1000))
+    raw = RawArray(data, info)
+    assert raw.ch_names == ['a' * 13 + '-0', 'a' * 13 + '-1']
+    info = create_info(['a' * 16] * 11, 1000., verbose='error')
+    data = np.empty((11, 1000))
+    raw = RawArray(data, info)
+    assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
+
+
 @pytest.mark.slowtest
 @requires_version('scipy', '0.12')
 def test_array_raw():
@@ -124,5 +136,6 @@ def test_array_raw():
     raw = RawArray(electrode, info)
     raw.plot_psd(average=False)  # looking for inexistent layout
     raw.plot_psd_topo()
+
 
 run_tests_if_main()

@@ -308,8 +308,9 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if len(idx) < 2 or (this_type == 'grad' and len(idx) < 4):
                 # prevent unnecessary warnings for e.g. EOG
                 if this_type in _DATA_CH_TYPES_SPLIT:
-                    warn('Need more than one channel to make topography for '
-                         '%s. Disabling interactivity.' % this_type)
+                    logger.info('Need more than one channel to make '
+                                'topography for %s. Disabling interactivity.'
+                                % (this_type,))
                 selectables[type_idx] = False
 
     if selectable:
