@@ -24,8 +24,11 @@ from mne.coreg import fit_matched_points
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne.io.meas_info import _read_dig_points
+from mne.viz._3d import _fiducial_coords
+
 from mne.io.kit import read_mrk
-from mne.io import read_raw_brainvision, read_raw_egi, read_raw_fif
+from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
+                    read_fiducials)
 
 from mne.datasets import testing
 
@@ -44,6 +47,25 @@ hsp = op.join(kit_dir, 'test_hsp.txt')
 hpi = op.join(kit_dir, 'test_mrk.sqd')
 bv_fname = op.join(io_dir, 'brainvision', 'tests', 'data', 'test.vhdr')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
+ctf_fif_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+
+
+def test_fiducials():
+    """Test handling of fiducials."""
+    # Eventually the code used here should be unified with montage.py, but for
+    # now it uses code in odd places
+    for fname in (fif_fname, ctf_fif_fname):
+        fids, coord_frame = read_fiducials(fname)
+        points = _fiducial_coords(fids, coord_frame)
+        assert points.shape == (3, 3)
+        # Fids
+        assert_allclose(points[:, 2], 0., atol=1e-6)
+        assert_allclose(points[::2, 1], 0., atol=1e-6)
+        assert points[2, 0] > 0  # RPA
+        assert points[0, 0] < 0  # LPA
+        # Nasion
+        assert_allclose(points[1, 0], 0., atol=1e-6)
+        assert points[1, 1] > 0
 
 
 def test_documented():

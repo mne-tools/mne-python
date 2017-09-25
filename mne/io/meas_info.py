@@ -528,7 +528,7 @@ def read_fiducials(fname):
         isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
         isotrak = isotrak[0]
         pts = []
-        coord_frame = FIFF.FIFFV_COORD_UNKNOWN
+        coord_frame = FIFF.FIFFV_COORD_HEAD
         for k in range(isotrak['nent']):
             kind = isotrak['directory'][k].kind
             pos = isotrak['directory'][k].pos
@@ -538,11 +538,6 @@ def read_fiducials(fname):
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
                 coord_frame = tag.data[0]
-
-    if coord_frame == FIFF.FIFFV_COORD_UNKNOWN:
-        err = ("No coordinate frame was found in the file %r, it is probably "
-               "not a valid fiducials file." % fname)
-        raise ValueError(err)
 
     # coord_frame is not stored in the tag
     for pt in pts:

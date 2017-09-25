@@ -192,6 +192,8 @@ BUG
 
     - Fix :meth:`mne.Evoked.as_type` channel renaming to append ``'_v'`` instead of ``'_virtual'`` to channel names to comply with shorter naming (15 char) requirements, by `Eric Larson`_
 
+    - Fix treatment of CTF HPI coils as fiducial points in :func:`mne.gui.coregistration` by `Eric Larson`_
+
 API
 ~~~
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
