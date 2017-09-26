@@ -42,7 +42,6 @@ from mne import combine_evoked
 from mne.minimum_norm import apply_inverse
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-from mne.filter import notch_filter, filter_data
 
 print(__doc__)
 
