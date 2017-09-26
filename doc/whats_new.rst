@@ -97,7 +97,7 @@ Changelog
 
     - Extend :func:`mne.viz.plot_epochs_image`/:meth:`mne.Epochs.plot_image` with regards to grouping by or aggregating over channels. See the new example at `examples/visualization/plot_roi_erpimage_by_rt.py` by `Jona Sassenhagen`_
 
-    - Add bootstrapped confidence intervals to :func:`mne.viz.plot_compare_evokeds` (that can for now also be accessed as :func:`mne.stats._boostrap_ci`) by `Jona Sassenhagen`_ and `Denis Engemann`_
+    - Add bootstrapped confidence intervals to :func:`mne.viz.plot_compare_evokeds` by `Jona Sassenhagen`_ and `Denis Engemann`_
 
     - Add example on how to plot ERDS maps (also known as ERSP) by `Clemens Brunner`_
 
@@ -105,7 +105,7 @@ Changelog
 
     - Plotting raw data (:func:`mne.viz.plot_raw` or :meth:`mne.io.Raw.plot`) with events now includes event numbers (if there are not more than 50 events on a page) by `Clemens Brunner`_
 
-    - Add filtering functions :meth:`mne.Epochs.filter` and :meth:`mne.Evoked.filter`, as well as ``pad`` argument to :meth:`mne.io.Raw.filter`` by `Eric Larson`_
+    - Add filtering functions :meth:`mne.Epochs.filter` and :meth:`mne.Evoked.filter`, as well as ``pad`` argument to :meth:`mne.io.Raw.filter` by `Eric Larson`_
 
 BUG
 ~~~
@@ -186,8 +186,9 @@ BUG
 
     - Fix default padding type for :meth:`mne.Epochs.resample` and :meth:`mne.Evoked.resample` to be ``'edge'`` by default, by `Eric Larson`_
 
-    - Fix :func:`mne.sparse_inverse.mxne_inverse`, :func:`mne.sparse_inverse.tf_mxne_inverse` and :func:`mne.sparse_inverse.gamma_map` to work with volume source space and sphere head models in MEG by `Alex Gramfort`_ and `Yousra Bekhti`_
+    - Fix :func:`mne.inverse_sparse.mixed_norm`, :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.gamma_map` to work with volume source space and sphere head models in MEG by `Alex Gramfort`_ and `Yousra Bekhti`_
 
+    - Fix :meth:`mne.Evoked.as_type` channel renaming to append ``'_v'`` instead of ``'_virtual'`` to channel names to comply with shorter naming (15 char) requirements, by `Eric Larson`_
 
 API
 ~~~
@@ -233,7 +234,7 @@ API
 
     - ``picks`` parameter in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, :func:`mne.beamformer.lcmv_raw`, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
-    - The keyword argument ``frequencies`` has been deprecated in favor of ``freqs`` in various time-frequency functions, e.g. :func:`mne.time_frequency.tfr.tfr_array_morlet`, by `Eric Larson`_
+    - The keyword argument ``frequencies`` has been deprecated in favor of ``freqs`` in various time-frequency functions, e.g. :func:`mne.time_frequency.tfr_array_morlet`, by `Eric Larson`_
 
     - Add ``patterns=False`` parameter in :class:`mne.decoding.ReceptiveField`. Turn on to compute inverse model coefficients, by `Nicolas Barascud`_
 

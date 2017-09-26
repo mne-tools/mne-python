@@ -1207,7 +1207,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.16.
         pad : str
-            The type of padding to use. Supports all :func:`np.pad` ``mode``
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
             options. Can also be "reflect_limited" (default), which pads with a
             reflected version of each vector mirrored on the first and last
             values of the vector, followed by zeros.
@@ -1358,7 +1358,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             ..versionadded:: 0.15
         pad : str
-            The type of padding to use. Supports all :func:`np.pad` ``mode``
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
             options. Can also be "reflect_limited" (default), which pads with a
             reflected version of each vector mirrored on the first and last
             values of the vector, followed by zeros.
@@ -1448,7 +1448,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data.
         pad : str
-            The type of padding to use. Supports all :func:`np.pad` ``mode``
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
             options. Can also be "reflect_limited" (default), which pads with a
             reflected version of each vector mirrored on the first and last
             values of the vector, followed by zeros.

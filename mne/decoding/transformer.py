@@ -471,6 +471,14 @@ class FilterEstimator(TransformerMixin):
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
+    fir_design : str
+        Can be "firwin" (default in 0.16) to use
+        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+        time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
+
+        ..versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -483,7 +491,8 @@ class FilterEstimator(TransformerMixin):
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
                  l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                 method='fft', iir_params=None, verbose=None):  # noqa: D102
+                 method='fft', iir_params=None, fir_design=None,
+                 verbose=None):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -494,6 +503,7 @@ class FilterEstimator(TransformerMixin):
         self.n_jobs = n_jobs
         self.method = method
         self.iir_params = iir_params
+        self.fir_design = fir_design
 
     def fit(self, epochs_data, y):
         """Filter data.
@@ -568,7 +578,7 @@ class FilterEstimator(TransformerMixin):
             self.picks, self.filter_length, self.l_trans_bandwidth,
             self.h_trans_bandwidth, method=self.method,
             iir_params=self.iir_params, n_jobs=self.n_jobs, copy=False,
-            verbose=False)
+            fir_design=self.fir_design, verbose=False)
 
 
 class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):

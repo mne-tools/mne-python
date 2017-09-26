@@ -101,7 +101,7 @@ for condition in [epochs[k] for k in event_id]:
 # factor levels for each factor.
 
 n_conditions = len(epochs.event_id)
-n_replications = epochs.events.shape[0] / n_conditions
+n_replications = epochs.events.shape[0] // n_conditions
 
 factor_levels = [2, 2]  # number of levels in each factor
 effects = 'A*B'  # this is the default signature for computing all effects

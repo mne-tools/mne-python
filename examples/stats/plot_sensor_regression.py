@@ -64,13 +64,14 @@ design_matrix = np.column_stack([intercept,  # intercept
 lm = linear_regression(epochs, design_matrix, names)
 
 
-def plot_topomap(x, unit):
-    x.plot_topomap(ch_type='mag', scale=1, size=1.5, vmax=np.max,
-                   unit=unit, times=np.linspace(0.1, 0.2, 5))
+def plot_topomap(x, units):
+    x.plot_topomap(ch_type='mag', scalings=1., size=1.5, vmax=np.max,
+                   units=units, times=np.linspace(0.1, 0.2, 5))
+
 
 trial_count = lm['trial-count']
 
-plot_topomap(trial_count.beta, unit='z (beta)')
-plot_topomap(trial_count.t_val, unit='t')
-plot_topomap(trial_count.mlog10_p_val, unit='-log10 p')
-plot_topomap(trial_count.stderr, unit='z (error)')
+plot_topomap(trial_count.beta, units='z (beta)')
+plot_topomap(trial_count.t_val, units='t')
+plot_topomap(trial_count.mlog10_p_val, units='-log10 p')
+plot_topomap(trial_count.stderr, units='z (error)')
