@@ -30,7 +30,7 @@ evoked_hp = evoked.copy()
 evoked_hp.filter(l_freq=300, h_freq=None)
 
 ###############################################################################
-# Compare high-pass and unfiltered data on a single channel
+# Compare high-pass filtered and unfiltered data on a single channel
 ch = 'MEG0443'
 pick = evoked.ch_names.index(ch)
 edi = {'HF': evoked_hp, 'Regular': evoked}
