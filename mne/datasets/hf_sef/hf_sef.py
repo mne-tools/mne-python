@@ -14,7 +14,44 @@ from ..utils import _get_path, logger, _do_path_update
 @verbose
 def data_path(set='evoked', path=None, force_update=False, update_path=None,
               verbose=None):
+    """Get path to local copy of the high frequency SEF dataset.
 
+    Gets a local copy of the high frequency SEF MEG dataset described at [1]_.
+    https://doi.org/10.5281/zenodo.889234
+
+    Parameters
+    ----------
+    set : 'evoked' | 'raw'
+        Whether to get the main dataset (evoked, structural and the rest) or
+        the separate set containing raw MEG data only.
+    path : None | str
+        Where to look for the HF-SEF data storing location.
+        If None, the environment variable or config parameter
+        ``MNE_DATASETS_HF_SEF_PATH`` is used. If it doesn't exist, the
+        "~/mne_data" directory is used. If the HF-SEF dataset
+        is not found under the given path, the data
+        will be automatically downloaded to the specified folder.
+    force_update : bool
+        Force update of the dataset even if a local copy exists.
+    update_path : bool | None
+        If True, set the MNE_DATASETS_HF_SEF_PATH in mne-python
+        config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`).
+
+    Returns
+    -------
+    path : str
+        Local path to the directory where the HF-SEF data is stored.
+
+    References
+    ----------
+    .. [1] High frequency somatosensory MEG dataset.
+    https://doi.org/10.5281/zenodo.889234
+
+    """        
+   
+    
     key = 'MNE_DATASETS_HF_SEF_PATH'
     name = 'HF_SEF'
     path = _get_path(path, key, name)
