@@ -26,7 +26,7 @@ References
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.cross_validation import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
@@ -72,11 +72,11 @@ clf = make_pipeline(Xdawn(n_components=3),
 labels = epochs.events[:, -1]
 
 # Cross validator
-cv = StratifiedKFold(y=labels, n_folds=10, shuffle=True, random_state=42)
+cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
 
 # Do cross-validation
 preds = np.empty(len(labels))
-for train, test in cv:
+for train, test in cv.split(epochs, labels):
     clf.fit(epochs[train], labels[train])
     preds[test] = clf.predict(epochs[test])
 
