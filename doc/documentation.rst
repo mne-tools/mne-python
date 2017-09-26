@@ -607,7 +607,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     :maxdepth: 1
 
     auto_examples/connectivity/plot_cwt_sensor_connectivity.rst
-    auto_examples/connectivity/plot_mixed_source_space_connectity.rst
+    auto_examples/connectivity/plot_mixed_source_space_connectivity.rst
     auto_examples/connectivity/plot_mne_inverse_coherence_epochs.rst
     auto_examples/connectivity/plot_mne_inverse_connectivity_spectrum.rst
     auto_examples/connectivity/plot_mne_inverse_label_connectivity.rst
