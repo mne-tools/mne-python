@@ -218,7 +218,7 @@ def test_as_meg_type_evoked():
     virt_evoked = evoked.copy().pick_channels(ch_names=ch_names[:10:1])
     virt_evoked.info.normalize_proj()
     virt_evoked = virt_evoked.as_type('mag')
-    assert_true(all('_virt' in ch for ch in virt_evoked.info['ch_names']))
+    assert_true(all(ch.endswith('_v') for ch in virt_evoked.info['ch_names']))
 
     # pick from and to channels
     evoked_from = evoked.copy().pick_channels(ch_names=ch_names[2:10:3])

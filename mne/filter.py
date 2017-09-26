@@ -825,7 +825,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
         ..versionadded:: 0.15
     pad : str
-        The type of padding to use. Supports all :func:`np.pad` ``mode``
+        The type of padding to use. Supports all :func:`numpy.pad` ``mode``
         options. Can also be "reflect_limited" (default), which pads with a
         reflected version of each vector mirrored on the first and last
         values of the vector, followed by zeros.
@@ -1255,7 +1255,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
 
         ..versionadded:: 0.15
     pad : str
-        The type of padding to use. Supports all :func:`np.pad` ``mode``
+        The type of padding to use. Supports all :func:`numpy.pad` ``mode``
         options. Can also be "reflect_limited" (default), which pads with a
         reflected version of each vector mirrored on the first and last
         values of the vector, followed by zeros.
@@ -1502,7 +1502,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
     pad : str
-        The type of padding to use. Supports all :func:`np.pad` ``mode``
+        The type of padding to use. Supports all :func:`numpy.pad` ``mode``
         options. Can also be "reflect_limited" (default), which pads with a
         reflected version of each vector mirrored on the first and last
         values of the vector, followed by zeros.
@@ -2030,7 +2030,7 @@ class FilterMixin(object):
             time-domain design technique that generally gives improved
             attenuation using fewer samples than "firwin2".
         pad : str
-            The type of padding to use. Supports all :func:`np.pad` ``mode``
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
             options. Can also be "reflect_limited", which pads with a
             reflected version of each vector mirrored on the first and last
             values of the vector, followed by zeros. The default is "edge",
@@ -2082,7 +2082,7 @@ class FilterMixin(object):
         n_jobs : int
             Number of jobs to run in parallel.
         pad : str
-            The type of padding to use. Supports all :func:`np.pad` ``mode``
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
             options. Can also be "reflect_limited", which pads with a
             reflected version of each vector mirrored on the first and last
             values of the vector, followed by zeros. The default is "edge",

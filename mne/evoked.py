@@ -457,7 +457,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Compute virtual evoked using interpolated fields.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
-            unexpected results. The virtual channels have `'_virtual'` appended
+            unexpected results. The virtual channels have `'_v'` appended
             at the end of the names to emphasize that the data contained in
             them are interpolated.
 

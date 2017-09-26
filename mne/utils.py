@@ -2197,8 +2197,8 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
             name = name.replace(' ', '')
         if '-' in name and before_dash:
             name = name.split('-')[0]
-        if name.endswith('_virtual'):
-            name = name[:-8]
+        if name.endswith('_v'):
+            name = name[:-2]
         cleaned.append(name)
 
     return cleaned
