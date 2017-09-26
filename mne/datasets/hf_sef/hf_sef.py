@@ -67,9 +67,15 @@ def data_path(set='evoked', path=None, force_update=False, update_path=None,
     fn = url.split('/')[-1]  # pick the filename from the url
     archive = op.join(destdir, fn)
 
-    if not op.isdir(destdir) or force_update:
-        if op.isfile(archive):
-            os.remove(archive)
+    # check for existence of evoked and raw sets
+    has = dict()
+    subjdir = op.join(destdir, 'subjects')
+    megdir_a = op.join(destdir, 'MEG', 'subject_a')
+    has['evoked'] = op.isdir(destdir) and op.isdir(subjdir)
+    has['raw'] = op.isdir(destdir) and any(['raw' in fn_ for fn_ in
+                                            os.listdir(megdir_a)])
+
+    if not has[set] or force_update:
         if not op.isdir(destdir):
             os.mkdir(destdir)
         _fetch_file(url, archive)
