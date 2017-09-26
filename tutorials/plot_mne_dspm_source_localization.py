@@ -4,7 +4,7 @@
 Source localization with MNE/dSPM/sLORETA
 =========================================
 
-The aim of this tutorials is to teach you how to compute and apply a linear
+The aim of this tutorial is to teach you how to compute and apply a linear
 inverse method such as MNE/dSPM/sLORETA on evoked/raw/epochs data.
 
 """

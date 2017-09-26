@@ -66,7 +66,7 @@ dependencies:
     - pip install --upgrade pyface;
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
     - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
-    - pip install sphinx_bootstrap_theme git+git://github.com/nipy/PySurfer.git nilearn neo numpydoc;
+    - pip install sphinx_bootstrap_theme pysurfer nilearn neo numpydoc;
 
   override:
     # Figure out if we should run a full, pattern, or noplot version

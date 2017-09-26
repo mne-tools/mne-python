@@ -1672,17 +1672,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           time_unit='s', backend='auto', spacing='oct6'):
     """Plot SourceEstimates with PySurfer.
 
-    Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
-    which will automatically be set by this function. Plotting multiple
-    SourceEstimates with different values for subjects_dir will cause
-    PySurfer to use the wrong FreeSurfer surfaces when using methods of
-    the returned Brain object. It is therefore recommended to set the
-    SUBJECTS_DIR environment variable or always use the same value for
-    subjects_dir (within the same Python session).
-
-    By default this function uses Mayavi to plot the source estimates. If
-    Mayavi is not installed, the plotting is done with matplotlib (much slower,
-    decimated source space by default).
+    By default this function uses :mod:`mayavi.mlab` to plot the source
+    estimates. If Mayavi is not installed, the plotting is done with
+    :mod:`matplotlib.pyplot` (much slower, decimated source space by default).
 
     Parameters
     ----------
@@ -1785,7 +1777,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     Returns
     -------
     figure : surfer.viz.Brain | matplotlib.figure.Figure
-        An instance of surfer.viz.Brain from PySurfer or matplotlib figure.
+        An instance of :class:`surfer.Brain` from PySurfer or
+        matplotlib figure.
     """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
@@ -1816,21 +1809,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              figure=figure, initial_time=initial_time,
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer)
-    import surfer
     from surfer import Brain, TimeViewer
-    surfer_version = LooseVersion(surfer.__version__)
-    v06 = LooseVersion('0.6')
-    if surfer_version < v06:
-        raise ImportError("This function requires PySurfer 0.6 (you are "
-                          "running version %s). You can update PySurfer "
-                          "using:\n\n    $ pip install -U pysurfer" %
-                          surfer.__version__)
-
-    if initial_time is not None and surfer_version > v06:
-        kwargs = {'initial_time': initial_time}
-        initial_time = None  # don't set it twice
-    else:
-        kwargs = {}
+    initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time)
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
@@ -1886,17 +1866,39 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 brain.add_data(data, colormap=colormap, vertices=vertices,
                                smoothing_steps=smoothing_steps, time=times,
                                time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar, **kwargs)
+                               colorbar=colorbar, **ad_kwargs)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], transparent=transparent)
+                                  fmax=scale_pts[2], transparent=transparent,
+                                  **sd_kwargs)
 
     if initial_time is not None:
         brain.set_time(initial_time)
     if time_viewer:
         TimeViewer(brain)
     return brain
+
+
+def _get_ps_kwargs(initial_time, require='0.6'):
+    """Triage arguments based on PySurfer version."""
+    import surfer
+    surfer_version = LooseVersion(surfer.__version__)
+    if surfer_version < LooseVersion(require):
+        raise ImportError("This function requires PySurfer %s (you are "
+                          "running version %s). You can update PySurfer "
+                          "using:\n\n    $ pip install -U pysurfer" %
+                          require, surfer.__version__)
+
+    ad_kwargs = dict()
+    sd_kwargs = dict()
+    if initial_time is not None and surfer_version >= LooseVersion('0.7'):
+        ad_kwargs['initial_time'] = initial_time
+        initial_time = None  # don't set it twice
+    if surfer_version >= LooseVersion('0.8'):
+        ad_kwargs['verbose'] = False
+        sd_kwargs['verbose'] = False
+    return initial_time, ad_kwargs, sd_kwargs
 
 
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
@@ -2001,7 +2003,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     Returns
     -------
     brain : Brain
-        A instance of surfer.viz.Brain from PySurfer.
+        A instance of :class:`surfer.Brain` from PySurfer.
 
     Notes
     -----
@@ -2011,7 +2013,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     and ``smoothing_steps=1``.
     """
     # Import here to avoid circular imports
-    import surfer
     from surfer import Brain, TimeViewer
     from ..source_estimate import VectorSourceEstimate
 
@@ -2021,13 +2022,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-    surfer_version = LooseVersion(surfer.__version__)
-    v08 = LooseVersion('0.8')
-    if surfer_version < v08:
-        raise ImportError("This function requires PySurfer 0.8 (you are "
-                          "running version %s). You can update PySurfer "
-                          "using:\n\n    $ pip install -U pysurfer" %
-                          surfer.__version__)
+    initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time, '0.8')
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
@@ -2071,12 +2066,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                time_label=time_label, alpha=overlay_alpha,
                                hemi=hemi, colorbar=colorbar,
                                vector_alpha=vector_alpha,
-                               scale_factor=scale_factor,
-                               initial_time=initial_time)
+                               scale_factor=scale_factor, **ad_kwargs)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], transparent=transparent)
+                                  fmax=scale_pts[2], transparent=transparent,
+                                  **sd_kwargs)
 
     if time_viewer:
         TimeViewer(brain)
