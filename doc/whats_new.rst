@@ -186,6 +186,9 @@ BUG
 
     - Fix default padding type for :meth:`mne.Epochs.resample` and :meth:`mne.Evoked.resample` to be ``'edge'`` by default, by `Eric Larson`_
 
+    - Fix :func:`mne.sparse_inverse.mxne_inverse`, :func:`mne.sparse_inverse.tf_mxne_inverse` and :func:`mne.sparse_inverse.gamma_map` to work with volume source space and sphere head models in MEG by `Alex Gramfort`_ and `Yousra Bekhti`_
+
+
 API
 ~~~
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
@@ -235,6 +238,9 @@ API
     - Add ``patterns=False`` parameter in :class:`mne.decoding.ReceptiveField`. Turn on to compute inverse model coefficients, by `Nicolas Barascud`_
 
     - The ``scale``, ``scale_time``, and ``unit`` parameters have been deprecated in favor of ``scalings``, ``scalings_time``, and ``units`` in :func:`mne.viz.plot_evoked_topomap` and related functions, by `Eric Larson`_
+
+    - ``loose`` parameter in inverse solvers has now a default value ``'auto'`` depending if the source space is a surface, volume, or discrete type by `Alex Gramfort`_ and `Yousra Bekhti`_
+
 
 .. _changes_0_14:
 

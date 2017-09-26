@@ -73,10 +73,13 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
         The forward solution.
     noise_cov : instance of Covariance
         The noise covariance.
-    loose : None | float in [0, 1]
+    loose : float in [0, 1] | 'auto' | None
         Value that weights the source variances of the dipole components
-        defining the tangent space of the cortical surfaces. Requires surface-
-        based, free orientation forward solutions.
+        that are parallel (tangential) to the cortical surface. If loose
+        is 0 or None then the solution is computed with fixed orientation.
+        If loose is 1, it corresponds to free orientations.
+        The default value ('auto') is set to 0.2 for surface-oriented source
+        space and set to 1.0 for volumic or discrete source space.
     depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
 
@@ -87,14 +90,12 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     """
     # Import the necessary private functions
     from mne.inverse_sparse.mxne_inverse import \
-        (_prepare_gain, _to_fixed_ori, is_fixed_orient,
+        (_prepare_gain, _check_loose_forward, is_fixed_orient,
          _reapply_source_weighting, _make_sparse_stc)
 
     all_ch_names = evoked.ch_names
-    # put the forward solution in fixed orientation if it's not already
-    if loose is None and not is_fixed_orient(forward):
-        forward = forward.copy()
-        _to_fixed_ori(forward)
+
+    loose, forward = _check_loose_forward(loose, forward)
 
     # Handle depth weighting and whitening (here is no weights)
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
