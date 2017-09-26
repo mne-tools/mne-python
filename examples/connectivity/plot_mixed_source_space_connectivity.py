@@ -99,8 +99,7 @@ lambda2 = 1.0 / snr ** 2
 
 # Compute inverse operator
 inverse_operator = make_inverse_operator(raw.info, fwd, noise_cov,
-                                         loose=None, depth=None,
-                                         fixed=False)
+                                         depth=None, fixed=False)
 
 
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, inv_method,
