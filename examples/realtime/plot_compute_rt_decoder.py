@@ -63,7 +63,7 @@ scores_x, scores, std_scores = [], [], []
 
 # don't highpass filter because it's epoched data and the signal length
 # is small
-filt = FilterEstimator(rt_epochs.info, None, 40)
+filt = FilterEstimator(rt_epochs.info, None, 40, fir_design='firwin')
 scaler = preprocessing.StandardScaler()
 vectorizer = Vectorizer()
 clf = SVC(C=1, kernel='linear')

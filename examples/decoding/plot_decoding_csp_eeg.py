@@ -103,8 +103,8 @@ print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
 csp.fit_transform(epochs_data, labels)
 
 layout = read_layout('EEG1005')
-csp.plot_patterns(epochs.info, layout=layout, ch_type='eeg', scale=10,
-                  unit='Patterns (AU)', size=1.5)
+csp.plot_patterns(epochs.info, layout=layout, ch_type='eeg',
+                  units='Patterns (AU)', size=1.5)
 
 ###############################################################################
 # Look at performance over time
