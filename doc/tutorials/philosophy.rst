@@ -103,11 +103,11 @@ processing contexts. Looking for I/O operations for raw data?::
 
     >>> from mne import io
 
-Wanna do preprocessing?::
+Want to do preprocessing?::
 
     >>> from mne import preprocessing
 
-Wanna do visualization?::
+Want to do visualization?::
 
     >>> from mne import viz
 
