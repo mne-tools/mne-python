@@ -109,7 +109,6 @@ install:
     # files to act as a FREESURFER_HOME for the coreg tests
     - if [ "${DEPS}" != "nodata" ]; then
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
-        ls -al /home/travis/;
         ls -al /home/travis/mne_data/;
         ls -al /home/travis/mne_data/MNE-testing-data/;
         ls -al /home/travis/mne_data/MNE-testing-data/MEG/;
@@ -152,7 +151,7 @@ script:
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         CONDITION='not slow_test';
       else
-        CONDITION='not ultra_slow_test';
+        CONDITION='not ultraslowtest';
       fi;
     - python -c "import mne; print(mne.sys_info())"
     # Determine directories to test
