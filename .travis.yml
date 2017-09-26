@@ -114,7 +114,7 @@ install:
         ls -al /home/travis/mne_data/MNE-testing-data/;
         ls -al /home/travis/mne_data/MNE-testing-data/MEG/;
         ls -al /home/travis/mne_data/MNE-testing-data/MEG/sample/;
-        if [ "${DEPS}" == "" && "${TRAVIS_OS_NAME}" == "linux" ]; then
+        if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
           export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
           export MNE_SKIP_FS_FLASH_CALL=1;
         fi;
