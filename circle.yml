@@ -20,6 +20,7 @@ dependencies:
   cache_directories:
     - "~/miniconda"
     - "~/.mne"
+    - "~/mne_data/HF_SEF"
     - "~/mne_data/MNE-sample-data"
     - "~/mne_data/MNE-testing-data"
     - "~/mne_data/MNE-misc-data"

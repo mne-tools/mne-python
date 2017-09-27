@@ -19,8 +19,6 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Add high frequency somatosensory MEG dataset by `Jussi Nurminen`_
-
     - :meth:`mne.channels.Layout.plot` and :func:`mne.viz.plot_layout` now allows plotting a subset of channels with ``picks`` argument by `Jaakko Leppakangas`_
 
     - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
@@ -108,6 +106,8 @@ Changelog
     - Plotting raw data (:func:`mne.viz.plot_raw` or :meth:`mne.io.Raw.plot`) with events now includes event numbers (if there are not more than 50 events on a page) by `Clemens Brunner`_
 
     - Add filtering functions :meth:`mne.Epochs.filter` and :meth:`mne.Evoked.filter`, as well as ``pad`` argument to :meth:`mne.io.Raw.filter` by `Eric Larson`_
+
+    - Add high frequency somatosensory MEG dataset by `Jussi Nurminen`_
 
 BUG
 ~~~
