@@ -50,7 +50,7 @@ def test_mxne_inverse():
     cov = read_cov(fname_cov)
 
     # Handling average file
-    loose = None
+    loose = 0.0
     depth = 0.9
 
     evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
@@ -156,7 +156,7 @@ def test_mxne_vol_sphere():
 
     alpha = 80.
     assert_raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
-                  loose=None, return_residual=False,
+                  loose=0.0, return_residual=False,
                   maxit=3, tol=1e-8, active_set_size=10)
 
     assert_raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,

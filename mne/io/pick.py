@@ -395,17 +395,18 @@ def pick_info(info, sel=(), copy=True):
     info._update_redundant()
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
 
-    comps = deepcopy(info['comps'])
-    for c in comps:
-        row_idx = [k for k, n in enumerate(c['data']['row_names'])
-                   if n in info['ch_names']]
-        row_names = [c['data']['row_names'][i] for i in row_idx]
-        rowcals = c['rowcals'][row_idx]
-        c['rowcals'] = rowcals
-        c['data']['nrow'] = len(row_names)
-        c['data']['row_names'] = row_names
-        c['data']['data'] = c['data']['data'][row_idx]
-    info['comps'] = comps
+    if 'comps' in info:
+        comps = deepcopy(info['comps'])
+        for c in comps:
+            row_idx = [k for k, n in enumerate(c['data']['row_names'])
+                       if n in info['ch_names']]
+            row_names = [c['data']['row_names'][i] for i in row_idx]
+            rowcals = c['rowcals'][row_idx]
+            c['rowcals'] = rowcals
+            c['data']['nrow'] = len(row_names)
+            c['data']['row_names'] = row_names
+            c['data']['data'] = c['data']['data'][row_idx]
+        info['comps'] = comps
     info._check_consistency()
     return info
 

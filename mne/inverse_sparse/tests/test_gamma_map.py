@@ -86,7 +86,7 @@ def test_gamma_map():
     # force fixed orientation
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=2,
-                    loose=None, return_residual=False)
+                    loose=0, return_residual=False)
     _check_stc(stc, evoked, 85739, 20)
 
 
@@ -113,7 +113,7 @@ def test_gamma_map_vol_sphere():
 
     alpha = 0.5
     assert_raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
-                  loose=None, return_residual=False)
+                  loose=0, return_residual=False)
 
     assert_raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
                   loose=0.2, return_residual=False)
@@ -123,5 +123,6 @@ def test_gamma_map_vol_sphere():
                     return_residual=False)
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
+
 
 run_tests_if_main()

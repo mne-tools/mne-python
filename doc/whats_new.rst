@@ -252,6 +252,7 @@ API
 
     - :func:`mne.forward.write_forward_solution` writes a forward solution as a forward solution with free orientation in X/Y/Z RAS coordinates if it is derived from a forward solution with free orientation and as a forward solution with fixed orientation in surface-based local coordinates otherwise by `Daniel Strohmeier`_
 
+    - ``loose=None`` in inverse solvers is deprecated, use explicitly ``loose=0`` for fixed constraint and ``loose=1.0`` for free orientations by `Eric Larson`_
 
 .. _changes_0_14:
 

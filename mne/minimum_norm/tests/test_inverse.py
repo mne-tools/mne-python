@@ -15,7 +15,7 @@ from mne.event import read_events
 from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
-                 pick_types_forward, make_forward_solution,
+                 pick_types_forward, make_forward_solution, EvokedArray,
                  convert_forward_solution, Covariance, combine_evoked)
 from mne.io import read_raw_fif, Info
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
@@ -37,6 +37,9 @@ fname_inv = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
 fname_inv_fixed_nodepth = op.join(s_path,
                                   'sample_audvis_trunc-meg-eeg-oct-4-meg'
                                   '-nodepth-fixed-inv.fif')
+fname_inv_fixed_depth = op.join(s_path,
+                                'sample_audvis_trunc-meg-eeg-oct-4-meg'
+                                '-fixed-inv.fif')
 fname_inv_meeg_diag = op.join(s_path,
                               'sample_audvis_trunc-'
                               'meg-eeg-oct-4-meg-eeg-diagnoise-inv.fif')
@@ -60,18 +63,18 @@ lambda2 = 1.0 / snr ** 2
 last_keys = [None] * 10
 
 
-def read_forward_solution_meg(*args, **kwargs):
+def read_forward_solution_meg(fname, **kwargs):
     """Read MEG forward."""
-    fwd = read_forward_solution(*args)
-    fwd = convert_forward_solution(fwd, **kwargs)
+    fwd = convert_forward_solution(read_forward_solution(fname), copy=False,
+                                   **kwargs)
     fwd = pick_types_forward(fwd, meg=True, eeg=False)
     return fwd
 
 
-def read_forward_solution_eeg(*args, **kwargs):
+def read_forward_solution_eeg(fname, **kwargs):
     """Read EEG forward."""
-    fwd = read_forward_solution(*args)
-    fwd = convert_forward_solution(fwd, **kwargs)
+    fwd = convert_forward_solution(read_forward_solution(fname), copy=False,
+                                   **kwargs)
     fwd = pick_types_forward(fwd, meg=False, eeg=True)
     return fwd
 
@@ -114,45 +117,68 @@ def _compare(a, b):
         elif isinstance(a, np.ndarray):
             assert_array_almost_equal(a, b)
         else:
-            assert_true(a == b)
+            assert_equal(a, b)
     except Exception:
         print(last_keys)
         raise
 
 
 def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,
-                             check_depth=True):
+                             depth_atol=1e-6, ctol=0.999999,
+                             check_nn=True, check_K=True):
     """Compare inverses."""
     # depth prior
-    if check_depth:
-        if inv_1['depth_prior'] is not None:
-            assert_array_almost_equal(inv_1['depth_prior']['data'],
-                                      inv_2['depth_prior']['data'], 5)
-        else:
-            assert_true(inv_2['depth_prior'] is None)
+    if inv_1['depth_prior'] is not None:
+        assert_allclose(inv_1['depth_prior']['data'],
+                        inv_2['depth_prior']['data'], atol=depth_atol)
+    else:
+        assert_true(inv_2['depth_prior'] is None)
     # orient prior
     if inv_1['orient_prior'] is not None:
-        assert_array_almost_equal(inv_1['orient_prior']['data'],
-                                  inv_2['orient_prior']['data'])
+        assert_allclose(inv_1['orient_prior']['data'],
+                        inv_2['orient_prior']['data'], atol=1e-7)
     else:
         assert_true(inv_2['orient_prior'] is None)
     # source cov
-    assert_array_almost_equal(inv_1['source_cov']['data'],
-                              inv_2['source_cov']['data'])
+    assert_allclose(inv_1['source_cov']['data'], inv_2['source_cov']['data'],
+                    atol=1e-7)
+    for key in ('units', 'eigen_leads_weighted', 'nsource', 'coord_frame'):
+        assert_equal(inv_1[key], inv_2[key], err_msg=key)
+    assert_equal(inv_1['eigen_leads']['ncol'], inv_2['eigen_leads']['ncol'])
+    K_1 = np.dot(inv_1['eigen_leads']['data'] * inv_1['sing'].astype(float),
+                 inv_1['eigen_fields']['data'])
+    K_2 = np.dot(inv_2['eigen_leads']['data'] * inv_2['sing'].astype(float),
+                 inv_2['eigen_fields']['data'])
+    # for free + surf ori, we only care about the ::2
+    # (the other two dimensions have arbitrary direction)
+    if inv_1['nsource'] * 3 == inv_1['source_nn'].shape[0]:
+        # Technically this undersamples the free-orientation, non-surf-ori
+        # inverse, but it's probably okay
+        sl = slice(2, None, 3)
+    else:
+        sl = slice(None)
+    if check_nn:
+        assert_allclose(inv_1['source_nn'][sl], inv_2['source_nn'][sl],
+                        atol=1e-4)
+    if check_K:
+        assert_allclose(np.abs(K_1[sl]), np.abs(K_2[sl]), rtol=rtol, atol=atol)
 
-    # These are not as close as we'd like XXX
-    assert_array_almost_equal(np.abs(inv_1['eigen_fields']['data']),
-                              np.abs(inv_2['eigen_fields']['data']), 0)
-    assert_array_almost_equal(np.abs(inv_1['eigen_leads']['data']),
-                              np.abs(inv_2['eigen_leads']['data']), 0)
-
-    stc_1 = apply_inverse(evoked, inv_1, lambda2, "dSPM")
-    stc_2 = apply_inverse(evoked, inv_2, lambda2, "dSPM")
-
-    assert_true(stc_1.subject == stc_2.subject)
-    assert_equal(stc_1.times, stc_2.times)
-    assert_allclose(stc_1.data, stc_2.data, rtol=rtol, atol=atol)
-    assert_true(inv_1['units'] == inv_2['units'])
+    # Now let's do some practical tests, too
+    evoked = EvokedArray(np.eye(len(evoked.ch_names)), evoked.info)
+    for method in ('MNE', 'dSPM'):
+        stc_1 = apply_inverse(evoked, inv_1, lambda2, method)
+        stc_2 = apply_inverse(evoked, inv_2, lambda2, method)
+        assert_equal(stc_1.subject, stc_2.subject)
+        assert_equal(stc_1.times, stc_2.times)
+        stc_1 = stc_1.data
+        stc_2 = stc_2.data
+        norms = np.max(stc_1, axis=-1, keepdims=True)
+        stc_1 /= norms
+        stc_2 /= norms
+        corr = np.corrcoef(stc_1.ravel(), stc_2.ravel())[0, 1]
+        assert_true(corr > ctol, msg='%s < %s' % (corr, ctol))
+        assert_allclose(stc_1, stc_2, rtol=rtol, atol=atol,
+                        err_msg='%s: %s' % (method, corr))
 
 
 def _compare_io(inv_op, out_file_ext='.fif'):
@@ -177,8 +203,8 @@ def test_warn_inverse_operator():
     """Test MNE inverse warning without average EEG projection."""
     bad_info = copy.deepcopy(_get_evoked().info)
     bad_info['projs'] = list()
-    fwd_op = read_forward_solution(fname_fwd)
-    fwd_op = convert_forward_solution(fwd_op, surf_ori=True)
+    fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
+                                      surf_ori=True, copy=False)
     noise_cov = read_cov(fname_cov)
     noise_cov['projs'].pop(-1)  # get rid of avg EEG ref proj
     with warnings.catch_warnings(record=True) as w:
@@ -194,19 +220,21 @@ def test_make_inverse_operator():
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
     inverse_operator = read_inverse_operator(fname_inv)
-    fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
+    fwd_op = convert_forward_solution(read_forward_solution_meg(fname_fwd),
+                                      surf_ori=True, copy=False)
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8,
                                       limit_depth_chs=False)
     _compare_io(my_inv_op)
-    assert_true(inverse_operator['units'] == 'Am')
-    _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 1e-2, 1e-2,
-                             check_depth=False)
+    assert_equal(inverse_operator['units'], 'Am')
+    _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
+                             rtol=1e-2, atol=1e-5, depth_atol=1e-3)
     # Test MNE inverse computation starting from forward operator
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8)
     _compare_io(my_inv_op)
-    _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 1e-2, 1e-2)
+    _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
+                             rtol=1e-3, atol=1e-5)
     assert_true('dev_head_t' in my_inv_op['info'])
     assert_true('mri_head_t' in my_inv_op)
 
@@ -329,37 +357,52 @@ def test_make_inverse_operator_fixed():
     """Test MNE inverse computation (fixed orientation)."""
     fwd_1 = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                       force_fixed=False)
-    fwd_2 = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                      force_fixed=True, use_cps=False)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 
     # can't make depth-weighted fixed inv without surf ori fwd
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_1,
-                  noise_cov, depth=0.8, loose=None, fixed=True)
+                  noise_cov, depth=0.8, fixed=True)
     # can't make fixed inv with depth weighting without free ori fwd
+    fwd_2 = convert_forward_solution(fwd_1, force_fixed=True)
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
-                  noise_cov, depth=0.8, loose=None, fixed=True)
+                  noise_cov, depth=0.8, fixed=True)
 
     # now compare to C solution
     # note that the forward solution must not be surface-oriented
-    # to get equivalency (surf_ori=True changes the normals if use_cps=True)
+    # to get equivalency (surf_ori=True changes the normals)
     inv_op = make_inverse_operator(evoked.info, fwd_2, noise_cov, depth=None,
-                                   loose=None, fixed=True)
+                                   fixed=True)
+    assert 'EEG channels: 0' in repr(inv_op)
+    assert 'MEG channels: 305' in repr(inv_op)
+    del fwd_2
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
-    _compare_inverses_approx(inverse_operator_nodepth, inv_op, evoked, 0, 1e-2)
+    # XXX We should have this but we don't (MNE-C doesn't restrict info):
+    # assert 'EEG channels: 0' in repr(inverse_operator_nodepth)
+    assert 'MEG channels: 305' in repr(inverse_operator_nodepth)
+    _compare_inverses_approx(inverse_operator_nodepth, inv_op, evoked,
+                             rtol=1e-5, atol=1e-4)
     # Inverse has 306 channels - 6 proj = 302
     assert_true(compute_rank_inverse(inverse_operator_nodepth) == 302)
+    # Now with depth
+    fwd_3 = convert_forward_solution(fwd_1, surf_ori=True)  # not fixed
+    inv_op_depth = make_inverse_operator(
+        evoked.info, fwd_3, noise_cov, depth=0.8, fixed=True, use_cps=True)
+    inverse_operator_depth = read_inverse_operator(fname_inv_fixed_depth)
+    # Normals should be the adjusted ones
+    assert_allclose(inverse_operator_depth['source_nn'],
+                    fwd_3['source_nn'][2::3], atol=1e-5)
+    _compare_inverses_approx(inverse_operator_depth, inv_op_depth, evoked,
+                             rtol=1e-3, atol=1e-4)
 
 
 @testing.requires_testing_data
 def test_make_inverse_operator_free():
     """Test MNE inverse computation (free orientation)."""
-    fwd_surf = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    fwd_loose = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                          force_fixed=False)
-    fwd_fixed = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                          force_fixed=True, use_cps=True)
+    fwd = read_forward_solution_meg(fname_fwd)
+    fwd_surf = convert_forward_solution(fwd, surf_ori=True)
+    fwd_fixed = convert_forward_solution(fwd, force_fixed=True,
+                                         use_cps=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 
@@ -367,17 +410,13 @@ def test_make_inverse_operator_free():
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
                   noise_cov, depth=None)
 
-    # for free ori inv, loose=None and loose=1 should be equivalent
-    inv_1 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, loose=None)
-    inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, loose=1)
-    _compare_inverses_approx(inv_1, inv_2, evoked, 0, 1e-2)
-
     # for depth=None, surf_ori of the fwd should not matter
     inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None,
-                                  loose=None)
-    inv_4 = make_inverse_operator(evoked.info, fwd_loose, noise_cov,
-                                  depth=None, loose=None)
-    _compare_inverses_approx(inv_3, inv_4, evoked, 0, 1e-2)
+                                  loose=1.)
+    inv_4 = make_inverse_operator(evoked.info, fwd, noise_cov,
+                                  depth=None, loose=1.)
+    _compare_inverses_approx(inv_3, inv_4, evoked, rtol=1e-5, atol=1e-8,
+                             check_nn=False, check_K=False)
 
 
 @testing.requires_testing_data
@@ -391,8 +430,7 @@ def test_make_inverse_operator_vector():
     # Make different version of the inverse operator
     inv_1 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov, loose=1)
     inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None)
-    inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True,
-                                  loose=None)
+    inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True)
     inv_4 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov,
                                   loose=.2, depth=None)
 
@@ -427,18 +465,18 @@ def test_make_inverse_operator_vector():
 
 @testing.requires_testing_data
 def test_make_inverse_operator_diag():
-    """Test MNE inverse computation with diagonal noise cov
-    """
+    """Test MNE inverse computation with diagonal noise cov."""
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov).as_diag()
-    fwd_op = read_forward_solution(fname_fwd)
-    fwd_op = convert_forward_solution(fwd_op, surf_ori=True)
+    fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
+                                      surf_ori=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                    loose=0.2, depth=0.8)
     _compare_io(inv_op)
     inverse_operator_diag = read_inverse_operator(fname_inv_meeg_diag)
-    # This one's only good to zero decimal places, roundoff error (?)
-    _compare_inverses_approx(inverse_operator_diag, inv_op, evoked, 0, 1e0)
+    # This one is pretty bad
+    _compare_inverses_approx(inverse_operator_diag, inv_op, evoked,
+                             rtol=1e-1, atol=1e-1, ctol=0.99, check_K=False)
     # Inverse has 366 channels - 6 proj = 360
     assert_true(compute_rank_inverse(inverse_operator_diag) == 360)
 
@@ -560,7 +598,7 @@ def test_apply_mne_inverse_fixed_raw():
                                     surf_ori=True)
     noise_cov = read_cov(fname_cov)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
-                                   loose=None, depth=0.8, fixed=True,
+                                   loose=1., depth=0.8, fixed=True,
                                    use_cps=True)
 
     inv_op2 = prepare_inverse_operator(inv_op, nave=1,
@@ -667,7 +705,7 @@ def test_make_inverse_operator_bads():
 
     # test bads
     bad = evoked.info['bads'].pop()
-    inv_ = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=None)
+    inv_ = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=1.)
     union_good = set(noise_cov['names']) & set(evoked.ch_names)
     union_bads = set(noise_cov['bads']) & set(evoked.info['bads'])
     evoked.info['bads'].append(bad)

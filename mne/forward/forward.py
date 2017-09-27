@@ -987,7 +987,7 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     ----------
     forward : dict
         Forward operator.
-    loose : float in [0, 1] or None
+    loose : float in [0, 1]
         The loose orientation parameter.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
@@ -1000,23 +1000,26 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     """
     is_fixed_ori = is_fixed_orient(forward)
     n_sources = forward['sol']['data'].shape[1]
+    if loose is None:
+        warn('loose=None is deprecated and will be removed in 0.16, use '
+             'loose=0. for fixed constraint and loose=1. for free '
+             'orientations', DeprecationWarning)
+        loose = 0. if is_fixed_ori else 1.
 
-    if loose is not None:
-        if not (0 <= loose <= 1):
-            raise ValueError('loose value should be smaller than 1 and bigger '
-                             'than 0, or None for not loose orientations.')
-
-        if loose < 1 and not forward['surf_ori']:
-            raise ValueError('Forward operator is not oriented in surface '
-                             'coordinates. loose parameter should be None '
-                             'not %s.' % loose)
-
-        if is_fixed_ori:
-            warn('Ignoring loose parameter with forward operator '
-                 'with fixed orientation.')
+    loose = float(loose)
+    if not (0 <= loose <= 1):
+        raise ValueError('loose value should be smaller than 1 and bigger '
+                         'than 0, got %s.' % (loose,))
+    if loose < 1 and not forward['surf_ori']:
+        raise ValueError('Forward operator is not oriented in surface '
+                         'coordinates. loose parameter should be 1 '
+                         'not %s.' % loose)
+    if is_fixed_ori and loose != 0:
+        raise ValueError('loose must be 0. with forward operator '
+                         'with fixed orientation.')
 
     orient_prior = np.ones(n_sources, dtype=np.float)
-    if (not is_fixed_ori) and (loose is not None) and (loose < 1):
+    if not is_fixed_ori and loose < 1:
         logger.info('Applying loose dipole orientations. Loose value '
                     'of %s.' % loose)
         orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose

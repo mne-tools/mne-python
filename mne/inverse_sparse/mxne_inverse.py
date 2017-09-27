@@ -291,10 +291,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         Noise covariance to compute whitener.
     alpha : float
         Regularization parameter.
-    loose : float in [0, 1] | 'auto' | None
+    loose : float in [0, 1] | 'auto'
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
-        is 0 or None then the solution is computed with fixed orientation.
+        is 0 then the solution is computed with fixed orientation.
         If loose is 1, it corresponds to free orientations.
         The default value ('auto') is set to 0.2 for surface-oriented source
         space and set to 1.0 for volumic or discrete source space.
@@ -519,10 +519,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         Regularization parameter for temporal sparsity. It set to 0,
         no temporal regularization is applied. It this case, TF-MxNE is
         equivalent to MxNE with L21 norm.
-    loose : float in [0, 1] | 'auto' | None
+    loose : float in [0, 1] | 'auto'
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
-        is 0 or None then the solution is computed with fixed orientation.
+        is 0 then the solution is computed with fixed orientation.
         If loose is 1, it corresponds to free orientations.
         The default value ('auto') is set to 0.2 for surface-oriented source
         space and set to 1.0 for volumic or discrete source space.
