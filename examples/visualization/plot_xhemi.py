@@ -16,20 +16,20 @@ information see :func:`mne.compute_morph_matrix`.
 import mne
 
 
-subjects_dir = mne.datasets.testing.data_path() + '/subjects'
 data_dir = mne.datasets.sample.data_path()
+subjects_dir = data_dir + '/subjects'
 stc_path = data_dir + '/MEG/sample/sample_audvis-meg-eeg'
 
 stc = mne.read_source_estimate(stc_path, 'sample')
 
-# First, morph the data to fsaverage because we have left-righ registrations
-# for fsaverage:
-stc = stc.morph('fsaverage', subjects_dir=subjects_dir)
+# First, morph the data to fsaverage_sym, for which we have left_right
+# registrations:
+stc = stc.morph('fsaverage_sym', subjects_dir=subjects_dir)
 
 # Compute a morph-matrix mapping the right to the left hemisphere. Use the
 # vertices parameters to determine source and target hemisphere:
 mm = mne.compute_morph_matrix(
-    'fsaverage', 'fsaverage', xhemi=True,  # cross-hemisphere morphing
+    'fsaverage_sym', 'fsaverage_sym', xhemi=True,  # cross-hemisphere morphing
     vertices_from=[[], stc.vertices[1]],  # from the right hemisphere
     vertices_to=[stc.vertices[0], []],  # to the left hemisphere
     subjects_dir=subjects_dir)
