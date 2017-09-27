@@ -477,6 +477,7 @@ def has_dataset(name):
         'sample': 'MNE-sample-data',
         'somato': 'MNE-somato-data',
         'spm': 'MNE-spm-face',
+        'multimodal': 'MNE-multimodal-data',
         'testing': 'MNE-testing-data',
         'visual_92_categories': 'visual_92_categories-data',
     }[name]
@@ -495,12 +496,13 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal, mtrf, fieldtrip_cmc)
+                   eegbci, multimodal, hf_sef, mtrf, fieldtrip_cmc)
     sample.data_path()
     testing.data_path()
     misc.data_path()
     spm_face.data_path()
     somato.data_path()
+    hf_sef.data_path()
     multimodal.data_path()
     mtrf.data_path()
     fieldtrip_cmc.data_path()

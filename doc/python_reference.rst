@@ -201,6 +201,7 @@ Datasets
    somato.data_path
    spm_face.data_path
    visual_92_categories.data_path
+   hf_sef.data_path
 
 
 Visualization

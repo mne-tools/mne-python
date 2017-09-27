@@ -23,6 +23,7 @@ public_modules = [
     'mne.connectivity',
     'mne.datasets',
     'mne.datasets.brainstorm',
+    'mne.datasets.hf_sef',
     'mne.datasets.megsim',
     'mne.datasets.sample',
     'mne.decoding',
