@@ -378,6 +378,18 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.set_ylabel(y_label)
 
+    def _format_coord(x, y):
+        idx = np.abs(times - x).argmin()
+        ylabel = ax.get_ylabel()
+        unit = (ylabel[ylabel.find('(')+1:ylabel.find(')')]
+                if '(' in ylabel and ')' in ylabel else '')
+        s = '%.3f s: ' % times[idx]
+        for data_ in data:
+            s += '%.2f %s ' % (data_[ch_idx, idx], unit)
+        return s
+
+    ax.format_coord = _format_coord
+
     _setup_ax_spines(ax, vline, tmin, tmax)
     ax.figure.set_facecolor('k' if hvline_color is 'w' else 'w')
     ax.spines['bottom'].set_color(hvline_color)
