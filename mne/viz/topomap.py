@@ -93,6 +93,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
 
 def _plot_update_evoked_topomap(params, bools):
     """Update topomaps."""
+    from ..channels.layout import _merge_grad_data
     projs = [proj for ii, proj in enumerate(params['projs'])
              if ii in np.where(bools)[0]]
 
@@ -104,7 +105,6 @@ def _plot_update_evoked_topomap(params, bools):
 
     data = new_evoked.data[:, params['time_idx']] * params['scale']
     if params['merge_grads']:
-        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
     image_off = ~params['image_mask']
 
@@ -231,7 +231,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         raise RuntimeError('There must be an axes for each picked projector.')
     for proj_idx, proj in enumerate(projs):
         title = proj['desc']
-        title = '\n'.join(title[ii:ii+20] for ii in range(0, len(title), 20))
+        title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
         axes[proj_idx].set_title(title, fontsize=10)
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
@@ -666,7 +666,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     else:
         cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
                           linewidths=linewidth)
-    if no_contours:
+    if no_contours and cont is not None:
         for col in cont.collections:
             col.set_visible(False)
 

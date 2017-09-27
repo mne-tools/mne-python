@@ -339,6 +339,8 @@ Changelog
 
     - Concatenating raws with :func:`mne.concatenate_raws` now creates boundary annotations automatically by `Jaakko Leppakangas`_
 
+    - :func:`mne.viz.plot_projs_topomap` now supports plotting EEG topomaps by passing in :class:`mne.Info` by `Eric Larson`_
+
 BUG
 ~~~
 

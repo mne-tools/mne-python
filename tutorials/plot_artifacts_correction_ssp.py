@@ -84,7 +84,7 @@ evoked = mne.Epochs(raw, events, event_id, tmin=-0.2, tmax=0.5,
 # set time instants in seconds (from 50 to 150ms in a step of 10ms)
 times = np.arange(0.05, 0.15, 0.01)
 
-evoked.plot_topomap(times, proj='interactive')
+fig = evoked.plot_topomap(times, proj='interactive')
 
 ##############################################################################
 # now you should see checkboxes. Remove a few SSP and see how the auditory

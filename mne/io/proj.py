@@ -34,6 +34,7 @@ class Projection(dict):
         s += ", n_channels : %s" % self['data']['ncol']
         return "<Projection  |  %s>" % s
 
+    # Can't use copy_ function here b/c of circular import
     def plot_topomap(self, layout=None, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
@@ -42,8 +43,6 @@ class Projection(dict):
 
         Parameters
         ----------
-        projs : list of Projection
-            The projections
         layout : None | Layout | list of Layout
             Layout instance specifying sensor positions (does not need to be
             specified for Neuromag data). Or a list of Layout if projections

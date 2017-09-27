@@ -16,6 +16,7 @@ from nose.tools import assert_true, assert_equal
 import pytest
 
 from mne import read_evokeds, read_proj
+from mne.io.proj import make_eeg_average_ref_proj
 from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
@@ -60,11 +61,16 @@ def test_plot_projs_topomap():
     plot_projs_topomap(projs, info, colorbar=True, **fast_test)
     plt.close('all')
     ax = plt.subplot(111)
+    projs[3].plot_topomap()
     plot_projs_topomap(projs[:1], axes=ax, **fast_test)  # test axes param
     plt.close('all')
-    plot_projs_topomap(read_info(triux_fname)['projs'][-1:])  # grads
+    plot_projs_topomap(read_info(triux_fname)['projs'][-1:], **fast_test)
     plt.close('all')
-    plot_projs_topomap(read_info(triux_fname)['projs'][:1])  # mags
+    plot_projs_topomap(read_info(triux_fname)['projs'][:1], ** fast_test)
+    plt.close('all')
+    eeg_avg = make_eeg_average_ref_proj(info)
+    assert_raises(RuntimeError, eeg_avg.plot_topomap)  # no layout
+    eeg_avg.plot_topomap(info, **fast_test)
     plt.close('all')
 
 
