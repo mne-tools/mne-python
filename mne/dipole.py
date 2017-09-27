@@ -35,7 +35,6 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl)
-from .defaults import _handle_default
 
 
 class Dipole(object):
@@ -1208,9 +1207,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
     # whitener = np.dot(whitener, cov['eigvec'])
 
-    scalings = _handle_default('scalings', None)
     whitener, _, rank = compute_whitener(cov, info, picks=picks,
-                                         scalings=scalings, return_rank=True)
+                                         return_rank=True)
 
     # Proceed to computing the fits (make_guess_data)
     if fixed_position:
