@@ -15,7 +15,6 @@ from copy import deepcopy
 from numbers import Integral
 
 import numpy as np
-from matplotlib.colors import colorConverter
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
                        _pick_data_channels, _VALID_CHANNEL_TYPES)
@@ -686,6 +685,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    from matplotlib.colors import colorConverter
+
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
