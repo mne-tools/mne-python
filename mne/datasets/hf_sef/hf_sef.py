@@ -83,7 +83,16 @@ def data_path(dataset='evoked', path=None, force_update=False,
                 # strip the leading dirname 'hf_sef/' from the archive paths
                 # this should be fixed when making next version of archives
                 member.name = member.name[7:]
-                tar.extract(member, destdir)
+                try:
+                    tar.extract(member, destdir)
+                except IOError:
+                    # check whether file exists but could not be overwritten
+                    fn_full = op.join(destdir, member.name)
+                    if op.isfile(fn_full):
+                        os.remove(fn_full)
+                        tar.extract(member, destdir)
+                    else:  # some more sinister cause for IOError
+                        raise
 
         os.remove(archive)
 
