@@ -399,7 +399,7 @@ def _download_and_extract(path, name, url, folder_path, archive_name, hash_,
         archive_name = neurospin_path
     else:
         archive_name = op.join(path, archive_name)
-        rm_archive = False  # XXX put back
+        rm_archive = True
         fetch_archive = True
         if op.exists(archive_name):
             msg = ('Archive already exists. Overwrite it (y/[n])? ')
