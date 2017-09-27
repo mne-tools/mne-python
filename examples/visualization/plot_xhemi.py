@@ -24,7 +24,7 @@ stc = mne.read_source_estimate(stc_path, 'sample')
 
 # First, morph the data to fsaverage_sym, for which we have left_right
 # registrations:
-stc = stc.morph('fsaverage_sym', subjects_dir=subjects_dir)
+stc = stc.morph('fsaverage_sym', subjects_dir=subjects_dir, smooth=5)
 
 # Compute a morph-matrix mapping the right to the left hemisphere. Use the
 # vertices parameters to determine source and target hemisphere:
