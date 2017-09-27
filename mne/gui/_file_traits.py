@@ -300,18 +300,7 @@ class DigSource(HasPrivateTraits):
             elif isinstance(info, DigMontage):
                 info.transform_to_head()
                 digs = list()
-                digs.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                             'ident': FIFF.FIFFV_POINT_LPA,
-                             'kind': FIFF.FIFFV_POINT_CARDINAL,
-                             'r': info.lpa})
-                digs.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                             'ident': FIFF.FIFFV_POINT_NASION,
-                             'kind': FIFF.FIFFV_POINT_CARDINAL,
-                             'r': info.nasion})
-                digs.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                             'ident': FIFF.FIFFV_POINT_RPA,
-                             'kind': FIFF.FIFFV_POINT_CARDINAL,
-                             'r': info.rpa})
+                _append_fiducials(digs, info.lpa, info.nasion, info.rpa)
                 for idx, pos in enumerate(info.hsp):
                     dig = {'coord_frame': FIFF.FIFFV_COORD_HEAD,
                            'ident': idx,
@@ -329,19 +318,23 @@ class DigSource(HasPrivateTraits):
                     if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
                         has_point[d['ident']] = True
                 if not all(has_point.values()):
-                    missing = []
-                    if not has_point[FIFF.FIFFV_POINT_LPA]:
-                        missing.append('LPA')
-                    if not has_point[FIFF.FIFFV_POINT_NASION]:
-                        missing.append('Nasion')
-                    if not has_point[FIFF.FIFFV_POINT_RPA]:
-                        missing.append('RPA')
-                    error(None, "The selected FIFF file does not contain "
-                          "all cardinal points (missing: %s). Please select a "
-                          "different file." % ', '.join(missing),
-                          "Error Reading FIFF File")
-                    self.reset_traits(['file'])
-                    return
+                    points = _fiducial_coords(info['dig'])
+                    if len(points) == 3:
+                        _append_fiducials(info['dig'], *points.T)
+                    else:
+                        missing = []
+                        if not has_point[FIFF.FIFFV_POINT_LPA]:
+                            missing.append('LPA')
+                        if not has_point[FIFF.FIFFV_POINT_NASION]:
+                            missing.append('Nasion')
+                        if not has_point[FIFF.FIFFV_POINT_RPA]:
+                            missing.append('RPA')
+                        error(None, "The selected FIFF file does not contain "
+                              "all cardinal points (missing: %s). Please "
+                              "select a different file." % ', '.join(missing),
+                              "Error Reading FIFF File")
+                        self.reset_traits(['file'])
+                        return
 
             return info
 
@@ -359,10 +352,11 @@ class DigSource(HasPrivateTraits):
     @cached_property
     def _get__hsp_points(self):
         if not self._info:
-            return np.zeros((1, 3))
+            return np.zeros((0, 3))
 
         points = np.array([d['r'] for d in self._info['dig']
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
+        points = np.empty((0, 3)) if len(points) == 0 else points
         return points
 
     @cached_property
@@ -403,6 +397,21 @@ class DigSource(HasPrivateTraits):
 
     def _file_changed(self):
         self.reset_traits(('points_filter',))
+
+
+def _append_fiducials(dig, lpa, nasion, rpa):
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_LPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': lpa})
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_NASION,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': nasion})
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_RPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': rpa})
 
 
 class MRISubjectSource(HasPrivateTraits):
