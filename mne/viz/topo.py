@@ -393,6 +393,18 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
     ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels)
 
+    def _cursor_vline(event):
+        if not event.inaxes:
+            return
+        if event.inaxes._cursorline:
+            event.inaxes._cursorline.remove()
+        event.inaxes._cursorline = event.inaxes.axvline(event.xdata,
+                                                        color='w')
+        event.inaxes.figure.canvas.draw()
+
+    ax._cursorline = None
+    plt.connect('motion_notify_event', _cursor_vline)
+
     _setup_ax_spines(ax, vline, tmin, tmax)
     ax.figure.set_facecolor('k' if hvline_color is 'w' else 'w')
     ax.spines['bottom'].set_color(hvline_color)
