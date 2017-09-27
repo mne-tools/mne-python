@@ -534,6 +534,7 @@ Covariance computation
    compute_covariance
    compute_raw_covariance
    cov.regularize
+   cov.compute_whitener
    make_ad_hoc_cov
    read_cov
    write_cov
