@@ -20,7 +20,7 @@ import numpy as np
 from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
-                       _pick_data_channels)
+                       _pick_data_channels, pick_channels)
 from ..utils import _clean_names, _time_mask, verbose, logger, warn, _scale_dep
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
@@ -198,12 +198,21 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     """
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
+    from ..channels.layout import (_pair_grad_sensors_from_ch_names, Layout,
+                                   _merge_grad_data)
+    from ..channels import _get_ch_type
     if layout is None:
         from ..channels import read_layout
         layout = read_layout('Vectorview-all')
-
-    if not isinstance(layout, list):
+    if isinstance(layout, Layout):
         layout = [layout]
+    if not isinstance(layout, Info):
+        if not isinstance(layout, list):
+            raise TypeError('layout must be an instance of Layout, list, '
+                            'Info, or None, got %s' % (type(layout),))
+        if not all(isinstance(l, Layout) for l in layout):
+            raise TypeError('All entries in layout list must be of type '
+                            'Layout')
 
     n_projs = len(projs)
     nrows = math.floor(math.sqrt(n_projs))
@@ -221,48 +230,57 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     if len(axes) != len(projs):
         raise RuntimeError('There must be an axes for each picked projector.')
     for proj_idx, proj in enumerate(projs):
-        axes[proj_idx].set_title(proj['desc'][:10] + '...')
+        title = proj['desc']
+        title = '\n'.join(title[ii:ii+20] for ii in range(0, len(title), 20))
+        axes[proj_idx].set_title(title, fontsize=10)
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
         data = proj['data']['data'].ravel()
 
-        idx = []
-        for l in layout:
-            is_vv = l.kind.startswith('Vectorview')
-            if is_vv:
-                from ..channels.layout import _pair_grad_sensors_from_ch_names
-                grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
-                if grad_pairs:
-                    ch_names = [ch_names[i] for i in grad_pairs]
+        if isinstance(layout, Info):
+            info_names = _clean_names(layout['ch_names'],
+                                      remove_whitespace=True)
+            use_info = pick_info(layout, pick_channels(info_names, ch_names))
+            data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
+                use_info, _get_ch_type(use_info, None), None)
+            data = data[data_picks]
+            if merge_grads:
+                data = _merge_grad_data(data).ravel()
+        else:  # list of layouts
+            idx = []
+            for l in layout:
+                is_vv = l.kind.startswith('Vectorview')
+                if is_vv:
+                    grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
+                    if grad_pairs:
+                        ch_names = [ch_names[i] for i in grad_pairs]
 
-            l_names = _clean_names(l.names, remove_whitespace=True)
-            idx = [l_names.index(c) for c in ch_names if c in l_names]
+                l_names = _clean_names(l.names, remove_whitespace=True)
+                idx = [l_names.index(c) for c in ch_names if c in l_names]
+                if len(idx) == 0:
+                    continue
+                pos = l.pos[idx]
+                if is_vv and grad_pairs:
+                    shape = (len(idx) // 2, 2, -1)
+                    pos = pos.reshape(shape).mean(axis=1)
+                    data = _merge_grad_data(data[grad_pairs]).ravel()
+                break
             if len(idx) == 0:
-                continue
+                raise RuntimeError('Cannot find a proper layout for '
+                                   'projection %s, consider explicitly '
+                                   'passing a Layout or Info as the layout '
+                                   'parameter.' % proj['desc'])
 
-            pos = l.pos[idx]
-            if is_vv and grad_pairs:
-                from ..channels.layout import _merge_grad_data
-                shape = (len(idx) // 2, 2, -1)
-                pos = pos.reshape(shape).mean(axis=1)
-                data = _merge_grad_data(data[grad_pairs]).ravel()
-
-            break
-
-        if len(idx):
-            im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap[0],
-                              sensors=sensors, res=res, axes=axes[proj_idx],
-                              outlines=outlines, contours=contours,
-                              image_interp=image_interp, show=False)[0]
-            if colorbar:
-                divider = make_axes_locatable(axes[proj_idx])
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = plt.colorbar(im, cax=cax, cmap=cmap)
-                if cmap[1]:
-                    axes[proj_idx].CB = DraggableColorbar(cbar, im)
-        else:
-            raise RuntimeError('Cannot find a proper layout for projection %s'
-                               % proj['desc'])
+        im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap[0],
+                          sensors=sensors, res=res, axes=axes[proj_idx],
+                          outlines=outlines, contours=contours,
+                          image_interp=image_interp, show=False)[0]
+        if colorbar:
+            divider = make_axes_locatable(axes[proj_idx])
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            cbar = plt.colorbar(im, cax=cax, cmap=cmap)
+            if cmap[1]:
+                axes[proj_idx].CB = DraggableColorbar(cbar, im)
     tight_layout(fig=axes[0].get_figure())
     plt_show(show)
     return axes[0].get_figure()
@@ -643,8 +661,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         pass  # contours precomputed
     elif contours == 0:
         contours, no_contours = 1, True
-    cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
-                      linewidths=linewidth)
+    if (Zi == Zi[0, 0]).all():
+        cont = None  # can't make contours for constant-valued functions
+    else:
+        cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
+                          linewidths=linewidth)
     if no_contours:
         for col in cont.collections:
             col.set_visible(False)
@@ -1544,7 +1565,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                       picks=picks, images=images, contours=contours_,
                       time_idx=time_idx, merge_grads=merge_grads,
                       res=res, pos=pos, image_mask=image_mask,
-                      plot_update_proj_callback=_plot_update_evoked_topomap)
+                      plot_update_proj_callback=_plot_update_evoked_topomap,
+                      scale=scaling)
         _draw_proj_checkbox(None, params)
 
     plt_show(show)
@@ -2194,9 +2216,8 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
     blit = False if plt.get_backend() == 'MacOSX' else blit
-    picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
-                                                             ch_type=ch_type,
-                                                             layout=None)
+    picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(
+        evoked, ch_type=ch_type, layout=None)
     data = evoked.data[picks, :]
     data *= _handle_default('scalings')[ch_type]
 

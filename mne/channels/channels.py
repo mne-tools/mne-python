@@ -17,7 +17,7 @@ from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..utils import _check_preload
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info
+from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _PICK_TYPES_KEYS,
                        channel_indices_by_type)
@@ -94,7 +94,11 @@ def _get_ch_type(inst, ch_type):
     """
     if ch_type is None:
         for type_ in ['mag', 'grad', 'planar1', 'planar2', 'eeg']:
-            if type_ in inst:
+            if isinstance(inst, Info):
+                if _contains_ch_type(inst, type_):
+                    ch_type = type_
+                    break
+            elif type_ in inst:
                 ch_type = type_
                 break
         else:
