@@ -357,7 +357,8 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      times, vline=None, x_label=None, y_label=None,
-                     colorbar=False, hline=None, hvline_color='w'):
+                     colorbar=False, hline=None, hvline_color='w',
+                     labels=None):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
     picker_flag = False
@@ -378,17 +379,19 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.set_ylabel(y_label)
 
-    def _format_coord(x, y):
+    def _format_coord(x, y, labels):
         idx = np.abs(times - x).argmin()
         ylabel = ax.get_ylabel()
         unit = (ylabel[ylabel.find('(')+1:ylabel.find(')')]
                 if '(' in ylabel and ')' in ylabel else '')
         s = '%.3f s: ' % times[idx]
-        for data_ in data:
-            s += '%.2f %s ' % (data_[ch_idx, idx], unit)
+        labels = ['']*len(data) if labels is None else labels
+        for data_, label in zip(data, labels):
+            s += '%.2f %s' % (data_[ch_idx, idx], unit)
+            s += ' [%s] ' % label if label else ' '
         return s
 
-    ax.format_coord = _format_coord
+    ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels)
 
     _setup_ax_spines(ax, vline, tmin, tmax)
     ax.figure.set_facecolor('k' if hvline_color is 'w' else 'w')
@@ -688,11 +691,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         raise TypeError('ylim must be None or a dict. Got %s.' % type(ylim))
 
     data = [e.data for e in evoked]
+    comments = [e.comment for e in evoked]
     show_func = partial(_plot_timeseries_unified, data=data, color=color,
                         times=times, vline=vline, hline=hline,
                         hvline_color=font_color)
     click_func = partial(_plot_timeseries, data=data, color=color, times=times,
-                         vline=vline, hline=hline, hvline_color=font_color)
+                         vline=vline, hline=hline, hvline_color=font_color,
+                         labels=comments)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
                      click_func=click_func, layout=layout, colorbar=False,
