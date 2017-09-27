@@ -14,10 +14,9 @@ from ..utils import _get_path, logger, _do_path_update
 @verbose
 def data_path(dataset='evoked', path=None, force_update=False,
               update_path=None, verbose=None):
-    """Get path to local copy of the high frequency SEF dataset.
+    u"""Get path to local copy of the high frequency SEF dataset.
 
-    Gets a local copy of the high frequency SEF MEG dataset described at [1]_.
-    https://doi.org/10.5281/zenodo.889234
+    Gets a local copy of the high frequency SEF MEG dataset [1]_.
 
     Parameters
     ----------
@@ -46,8 +45,8 @@ def data_path(dataset='evoked', path=None, force_update=False,
 
     References
     ----------
-    .. [1] High frequency somatosensory MEG dataset.
-           https://doi.org/10.5281/zenodo.889234
+    .. [1] Nurminen, J., Paananen, H., Mäkelä, J. (2017): High frequency
+           somatosensory MEG dataset. https://doi.org/10.5281/zenodo.889234
     """
     key = 'MNE_DATASETS_HF_SEF_PATH'
     name = 'HF_SEF'
