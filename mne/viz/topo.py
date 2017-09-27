@@ -380,12 +380,13 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
             ax.set_ylabel(y_label)
 
     def _format_coord(x, y, labels):
+        """Create status string based on cursor coordinates."""
         idx = np.abs(times - x).argmin()
         ylabel = ax.get_ylabel()
-        unit = (ylabel[ylabel.find('(')+1:ylabel.find(')')]
+        unit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
                 if '(' in ylabel and ')' in ylabel else '')
         s = '%.3f s: ' % times[idx]
-        labels = ['']*len(data) if labels is None else labels
+        labels = [''] * len(data) if labels is None else labels
         for data_, label in zip(data, labels):
             s += '%.2f %s' % (data_[ch_idx, idx], unit)
             s += ' [%s] ' % label if label else ' '
@@ -394,15 +395,19 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels)
 
     def _cursor_vline(event):
-        if not event.inaxes:
+        """Draw cursor (vertical line)."""
+        ax = event.inaxes
+        if not ax:
             return
-        if event.inaxes._cursorline:
-            event.inaxes._cursorline.remove()
-        event.inaxes._cursorline = event.inaxes.axvline(event.xdata,
-                                                        color='w')
-        event.inaxes.figure.canvas.draw()
+        if ax._cursorline is not None:
+            ax._cursorline.remove()
+        ax._cursorline = ax.axvline(event.xdata, color=ax._cursorcolor)
+        ax.figure.canvas.draw()
 
     ax._cursorline = None
+    # choose cursor color based on perceived brightness of background
+    bg_br = np.dot(ax.get_facecolor()[:3], [299, 587, 114])
+    ax._cursorcolor = 'white' if bg_br < 150 else 'black'
     plt.connect('motion_notify_event', _cursor_vline)
 
     _setup_ax_spines(ax, vline, tmin, tmax)
