@@ -1209,8 +1209,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # whitener = np.dot(whitener, cov['eigvec'])
 
     scalings = _handle_default('scalings', None)
-    whitener, rank = compute_whitener(cov, info, picks=picks,
-                                      scalings=scalings)
+    whitener, _, rank = compute_whitener(cov, info, picks=picks,
+                                         scalings=scalings, return_rank=True)
 
     # Proceed to computing the fits (make_guess_data)
     if fixed_position:

@@ -1605,6 +1605,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         .. versionadded:: 0.15
     diag : bool
         Use a diagonal approximation of the noise covariance.
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1615,6 +1617,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         The whitening matrix.
     ch_names : list
         The channel names.
+    rank : int
+        Rank reduction of the whitener. Returned only if return_rank is True.
     """
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
@@ -1694,28 +1698,6 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
 
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
-
-
-# @verbose
-# def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
-#                        scalings=None, verbose=None):
-#     """Get whitening matrix for a set of data."""
-#     ch_names = [info['ch_names'][k] for k in picks]
-#     # XXX this relies on pick_channels, which does not respect order,
-#     # so this could create problems if users have reordered their data
-#     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
-#     if len(noise_cov['data']) != len(ch_names):
-#         missing = list(set(ch_names) - set(noise_cov['names']))
-#         raise RuntimeError('Not all channels present in noise covariance:\n%s'
-#                            % missing)
-#     if diag:
-#         noise_cov = noise_cov.copy()
-#         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
-
-#     scalings = _handle_default('scalings_cov_rank', scalings)
-#     W, _, rank = compute_whitener(noise_cov, info, picks=picks, rank=rank,
-#                                   scalings=scalings, return_rank=True)
-#     return W, rank
 
 
 @verbose

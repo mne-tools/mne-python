@@ -47,7 +47,6 @@ from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import verbose, logger, use_log_level, _check_fname, warn
-from .defaults import _handle_default
 
 # Eventually we should add:
 #   hpicons
@@ -402,18 +401,16 @@ def _setup_hpi_struct(info, model_n_window,
         coils = _concatenate_coils(coils)
     else:  # == 'multipole'
         coils = _prep_mf_coils(info)
-    scale = make_ad_hoc_cov(info, verbose=False)
+    diag_cov = make_ad_hoc_cov(info, verbose=False)
 
-    scalings = _handle_default('scalings', None)
-    # WTF is the whitener called scale ! cc @larsoner...
-    scale, _ = compute_whitener(scale, info, picks=meg_picks,
-                                scalings=scalings, verbose=False)
+    diag_whitener, _ = compute_whitener(diag_cov, info, picks=meg_picks,
+                                        verbose=False)
 
     hpi = dict(meg_picks=meg_picks, hpi_pick=hpi_pick,
                model=model, inv_model=inv_model,
                on=hpi_ons, n_window=model_n_window, method=method,
                freqs=hpi_freqs, line_freqs=line_freqs, n_freqs=len(hpi_freqs),
-               scale=scale, coils=coils
+               scale=diag_whitener, coils=coils
                )
 
     return hpi
