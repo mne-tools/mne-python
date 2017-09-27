@@ -12,8 +12,8 @@ from ..utils import _get_path, logger, _do_path_update
 
 
 @verbose
-def data_path(set='evoked', path=None, force_update=False, update_path=None,
-              verbose=None):
+def data_path(dataset='evoked', path=None, force_update=False,
+              update_path=None, verbose=None):
     """Get path to local copy of the high frequency SEF dataset.
 
     Gets a local copy of the high frequency SEF MEG dataset described at [1]_.
@@ -21,9 +21,9 @@ def data_path(set='evoked', path=None, force_update=False, update_path=None,
 
     Parameters
     ----------
-    set : 'evoked' | 'raw'
+    dataset : 'evoked' | 'raw'
         Whether to get the main dataset (evoked, structural and the rest) or
-        the separate set containing raw MEG data only.
+        the separate dataset containing raw MEG data only.
     path : None | str
         Where to look for the HF-SEF data storing location.
         If None, the environment variable or config parameter
@@ -47,11 +47,8 @@ def data_path(set='evoked', path=None, force_update=False, update_path=None,
     References
     ----------
     .. [1] High frequency somatosensory MEG dataset.
-    https://doi.org/10.5281/zenodo.889234
-
-    """        
-   
-    
+           https://doi.org/10.5281/zenodo.889234
+    """
     key = 'MNE_DATASETS_HF_SEF_PATH'
     name = 'HF_SEF'
     path = _get_path(path, key, name)
@@ -61,9 +58,9 @@ def data_path(set='evoked', path=None, force_update=False, update_path=None,
             'https://zenodo.org/record/889235/files/hf_sef_evoked.tar.gz',
             'raw':
             'https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz'}
-    if set not in urls:
-        raise ValueError('Invalid set specified')
-    url = urls[set]
+    if dataset not in urls:
+        raise ValueError('Invalid dataset specified')
+    url = urls[dataset]
     fn = url.split('/')[-1]  # pick the filename from the url
     archive = op.join(destdir, fn)
 
@@ -75,7 +72,7 @@ def data_path(set='evoked', path=None, force_update=False, update_path=None,
     has['raw'] = op.isdir(destdir) and any(['raw' in fn_ for fn_ in
                                             os.listdir(megdir_a)])
 
-    if not has[set] or force_update:
+    if not has[dataset] or force_update:
         if not op.isdir(destdir):
             os.mkdir(destdir)
         _fetch_file(url, archive)
