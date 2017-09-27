@@ -109,10 +109,10 @@ install:
     # files to act as a FREESURFER_HOME for the coreg tests
     - if [ "${DEPS}" != "nodata" ]; then
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
-        ls -al /home/travis/mne_data/;
-        ls -al /home/travis/mne_data/MNE-testing-data/;
-        ls -al /home/travis/mne_data/MNE-testing-data/MEG/;
-        ls -al /home/travis/mne_data/MNE-testing-data/MEG/sample/;
+        ls -al $HOME/mne_data/;
+        ls -al $HOME/mne_data/MNE-testing-data/;
+        ls -al $HOME/mne_data/MNE-testing-data/MEG/;
+        ls -al $HOME/mne_data/MNE-testing-data/MEG/sample/;
         if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
           export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
           export MNE_SKIP_FS_FLASH_CALL=1;
