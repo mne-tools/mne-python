@@ -642,6 +642,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             x = sparse.block_diag([surf_rot] * 3)
             fwd['sol_grad']['data'] = fwd['_orig_sol_grad'] * x  # dot prod
             fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
+            assert fwd['sol_grad']['ncol'] == fwd['sol_grad']['data'].shape[1]
         logger.info('[done]')
         fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
         fwd['surf_ori'] = True
