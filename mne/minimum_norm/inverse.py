@@ -1295,7 +1295,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         to specify the rank for each modality.
     use_cps : None | bool (default None)
         Whether to use cortical patch statistics to define normal
-        orientations. Only used when surf_ori and/or force_fixed are True.
+        orientations. Only used when converting to surface orientation
+        (i.e., for surface source spaces and ``loose < 1``).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`).
 
