@@ -28,7 +28,8 @@ fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 subjects_dir = data_path + '/subjects'
 
 # Read the forward solutions with surface orientation
-fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
+fwd = mne.read_forward_solution(fwd_fname)
+fwd = mne.convert_forward_solution(fwd, surf_ori=True)
 leadfield = fwd['sol']['data']
 print("Leadfield size : %d x %d" % leadfield.shape)
 

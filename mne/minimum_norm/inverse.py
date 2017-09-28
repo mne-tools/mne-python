@@ -25,8 +25,7 @@ from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import prepare_noise_cov, _read_cov, _write_cov, Covariance
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
-                       compute_orient_prior, convert_forward_solution,
-                       _to_fixed_ori)
+                       compute_orient_prior, convert_forward_solution)
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
@@ -767,8 +766,8 @@ def _check_loose_forward(loose, forward, loose_as_fixed=(0., None)):
 
     # Now we are guaranteed to be surface oriented
     if loose in loose_as_fixed and not is_fixed_orient(forward):
-        forward = deepcopy(forward)
-        _to_fixed_ori(forward)
+        forward = convert_forward_solution(forward, force_fixed=True,
+                                           use_cps=True)
 
     if is_fixed_orient(forward):
         if not (loose == 'auto' or (loose in [0., None])):
@@ -1260,7 +1259,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                           fixed=False, limit_depth_chs=True, rank=None,
-                          verbose=None):
+                          use_cps=None, verbose=None):
     """Assemble inverse operator.
 
     Parameters
@@ -1294,6 +1293,10 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
+    use_cps : None | bool (default None)
+        Whether to use cortical patch statistics to define normal
+        orientations. Only used when converting to surface orientation
+        (i.e., for surface source spaces and ``loose < 1``).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`).
 
@@ -1412,7 +1415,8 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
             # Convert to the fixed orientation forward solution now
             depth_prior = depth_prior[2::3]
             forward = convert_forward_solution(
-                forward, surf_ori=forward['surf_ori'], force_fixed=True)
+                forward, surf_ori=forward['surf_ori'], force_fixed=True,
+                use_cps=use_cps)
             is_fixed_ori = is_fixed_orient(forward)
             gain_info, gain, noise_cov, whitener, n_nzero = \
                 _prepare_forward(forward, info, noise_cov, verbose=False)
