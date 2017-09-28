@@ -38,3 +38,10 @@ brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
 brain.add_annotation('HCPMMP1')
 aud_label = [label for label in labels if label.name == 'L_A1_ROI-lh'][0]
 brain.add_label(aud_label, borders=False)
+
+###############################################################################
+# We can also plot a combined set of labels (23 per hemisphere).
+
+brain = Brain('fsaverage', 'lh', 'inflated', subjects_dir=subjects_dir,
+              cortex='low_contrast', background='white', size=(800, 600))
+brain.add_annotation('HCPMMP1_combined')

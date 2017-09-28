@@ -203,7 +203,7 @@ class Label(object):
         # check parameters
         if not isinstance(hemi, string_types):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
-        vertices = np.asarray(vertices)
+        vertices = np.asarray(vertices, int)
         if np.any(np.diff(vertices.astype(int)) <= 0):
             raise ValueError('Vertices must be ordered in increasing order.')
 
@@ -1063,7 +1063,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     labels = []
     for div, name, color in zip(label_divs, names, colors):
         # Get indices of dipoles within this division of the label
-        verts = np.array(sorted(list(div)))
+        verts = np.array(sorted(list(div)), int)
         vert_indices = np.in1d(verts_arr, verts, assume_unique=True)
 
         # Set label attributes
@@ -1436,8 +1436,8 @@ def _verts_within_dist(graph, sources, max_dist):
                         verts_added.append(j)
         verts_added_last = verts_added
 
-    verts = np.sort(np.array(list(dist_map.keys()), dtype=np.int))
-    dist = np.array([dist_map[v] for v in verts])
+    verts = np.sort(np.array(list(dist_map.keys()), int))
+    dist = np.array([dist_map[v] for v in verts], int)
 
     return verts, dist
 
@@ -1796,7 +1796,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     labels : list of Label
         The labels, sorted by label name (ascending).
     """
-    logger.info('Reading labels from parcellation..')
+    logger.info('Reading labels from parcellation...')
 
     subjects_dir = get_subjects_dir(subjects_dir)
 
@@ -1851,7 +1851,6 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
             msg += ' Maybe the regular expression %r did not match?' % regexp
         raise RuntimeError(msg)
 
-    logger.info('[done]')
     return labels
 
 
@@ -1941,7 +1940,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     Vertices that are not covered by any of the labels are assigned to a label
     named "unknown".
     """
-    logger.info('Writing labels to parcellation..')
+    logger.info('Writing labels to parcellation...')
 
     subjects_dir = get_subjects_dir(subjects_dir)
 
@@ -2125,5 +2124,3 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     for fname, annot, ctab, hemi_names in to_save:
         logger.info('   writing %d labels to %s' % (len(hemi_names), fname))
         _write_annot(fname, annot, ctab, hemi_names)
-
-    logger.info('[done]')

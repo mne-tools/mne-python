@@ -109,6 +109,8 @@ Changelog
 
     - Add high frequency somatosensory MEG dataset by `Jussi Nurminen`_
 
+    - Add reduced set of labels for HCPMMP-1.0 parcellation in :func:`mne.datasets.fetch_hcp_mmp_parcellation` by `Eric Larson`_
+
     - Enable morphing between hemispheres with :func:`mne.compute_morph_matrix` by `Christian Brodbeck`_
 
 BUG

@@ -8,8 +8,7 @@ from mne.utils import _TempDir, run_tests_if_main, requires_good_network
 
 
 def test_datasets():
-    """Test simple dataset functions
-    """
+    """Test simple dataset functions."""
     for dname in ('sample', 'somato', 'spm_face', 'testing',
                   'bst_raw', 'bst_auditory', 'bst_resting',
                   'visual_92_categories', 'fieldtrip_cmc'):
@@ -34,8 +33,7 @@ def test_datasets():
 
 @requires_good_network
 def test_megsim():
-    """Test MEGSIM URL handling
-    """
+    """Test MEGSIM URL handling."""
     data_dir = _TempDir()
     paths = datasets.megsim.load_data(
         'index', 'text', 'text', path=data_dir, update_path=False)
@@ -45,8 +43,7 @@ def test_megsim():
 
 @requires_good_network
 def test_downloads():
-    """Test dataset URL handling
-    """
+    """Test dataset URL handling."""
     # Try actually downloading a dataset
     data_dir = _TempDir()
     path = datasets._fake.data_path(path=data_dir, update_path=False)
