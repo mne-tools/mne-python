@@ -38,7 +38,7 @@ projs, events = compute_proj_eog(raw, n_grad=1, n_mag=1, n_eeg=1, average=True)
 print(projs)
 
 eog_projs = projs[-3:]
-mne.viz.plot_projs_topomap(eog_projs, raw.info)
+mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
 
 ##############################################################################
 # Apply SSP projections

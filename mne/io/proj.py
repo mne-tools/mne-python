@@ -38,7 +38,7 @@ class Projection(dict):
     def plot_topomap(self, layout=None, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None):
+                     axes=None, info=None):
         """Plot topographic maps of SSP projections.
 
         Parameters
@@ -94,6 +94,9 @@ class Projection(dict):
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of projectors. If instance of Axes,
             there must be only one projector. Defaults to None.
+        info : instance of Info | None
+            The measurement information to use to determine the layout.
+            If not None, ``layout`` must be None.
 
         Returns
         -------
@@ -107,7 +110,7 @@ class Projection(dict):
         from ..viz.topomap import plot_projs_topomap
         return plot_projs_topomap([self], layout, cmap, sensors, colorbar,
                                   res, size, show, outlines,
-                                  contours, image_interp, axes)
+                                  contours, image_interp, axes, info)
 
 
 class ProjMixin(object):

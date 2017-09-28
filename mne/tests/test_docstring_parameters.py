@@ -64,14 +64,14 @@ _docstring_ignores = [
     # Deprecations
     'mne.connectivity.effective.phase_slope_index',
     'mne.connectivity.spectral.spectral_connectivity',
-    'mne.decoding.time_frequency.TimeFrequency.__init__',
+    'mne.decoding.time_frequency.*__init__',  # TimeFrequency
     'mne.minimum_norm.time_frequency.source_induced_power',
-    'mne.time_frequency.csd.CrossSpectralDensity.__init__',
+    'mne.time_frequency.csd.*__init__',  # CrossSpectralDensity
     'mne.time_frequency.multitaper.tfr_array_multitaper',
     'mne.time_frequency.tfr.tfr_array_morlet',
     'mne.time_frequency.tfr.tfr_morlet',
-    'mne.decoding.csp.CSP.plot_.*',
-    'mne.decoding.csp.SPoC.plot_.*',
+    'mne.decoding.csp.*plot_.*',  # CSP and SPoc but on Py3k unbound methods
+    'mne.decoding.csp.*plot_.*',  # are just functions so our naming is odd
     'mne.*\.plot_topomap',
     'mne.*\.to_data_frame',
     'mne.viz.topomap.plot_evoked_topomap',

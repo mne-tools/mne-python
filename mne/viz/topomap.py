@@ -128,7 +128,7 @@ def _plot_update_evoked_topomap(params, bools):
 def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
-                       axes=None):
+                       axes=None, info=None):
     """Plot topographic maps of SSP projections.
 
     Parameters
@@ -186,6 +186,9 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of projectors. If instance of Axes,
         there must be only one projector. Defaults to None.
+    info : instance of Info | None
+        The measurement information to use to determine the layout.
+        If not None, ``layout`` must be None.
 
     Returns
     -------
@@ -201,15 +204,21 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     from ..channels.layout import (_pair_grad_sensors_from_ch_names, Layout,
                                    _merge_grad_data)
     from ..channels import _get_ch_type
-    if layout is None:
-        from ..channels import read_layout
-        layout = read_layout('Vectorview-all')
-    if isinstance(layout, Layout):
-        layout = [layout]
-    if not isinstance(layout, Info):
-        if not isinstance(layout, list):
+    if info is not None:
+        if not isinstance(info, Info):
+            raise TypeError('info must be an instance of Info, got %s'
+                            % (type(info),))
+        if layout is not None:
+            raise ValueError('layout must be None if info is provided')
+    else:
+        if layout is None:
+            from ..channels import read_layout
+            layout = read_layout('Vectorview-all')
+        if not isinstance(layout, (list, tuple)):
+            layout = [layout]
+        if not isinstance(layout, (list, tuple)):
             raise TypeError('layout must be an instance of Layout, list, '
-                            'Info, or None, got %s' % (type(layout),))
+                            'or None, got %s' % (type(layout),))
         if not all(isinstance(l, Layout) for l in layout):
             raise TypeError('All entries in layout list must be of type '
                             'Layout')
@@ -237,10 +246,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                                 remove_whitespace=True)
         data = proj['data']['data'].ravel()
 
-        if isinstance(layout, Info):
-            info_names = _clean_names(layout['ch_names'],
+        if info is not None:
+            info_names = _clean_names(info['ch_names'],
                                       remove_whitespace=True)
-            use_info = pick_info(layout, pick_channels(info_names, ch_names))
+            use_info = pick_info(info, pick_channels(info_names, ch_names))
             data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
                 use_info, _get_ch_type(use_info, None), None)
             data = data[data_picks]

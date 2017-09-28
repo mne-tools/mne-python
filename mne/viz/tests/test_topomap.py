@@ -50,6 +50,7 @@ event_name = op.join(base_dir, 'test-eve.fif')
 layout = read_layout('Vectorview-all')
 
 
+@testing.requires_testing_data
 def test_plot_projs_topomap():
     """Test plot_projs_topomap."""
     import matplotlib.pyplot as plt
@@ -58,7 +59,7 @@ def test_plot_projs_topomap():
         projs = read_proj(ecg_fname)
     info = read_info(raw_fname)
     fast_test = {"res": 8, "contours": 0, "sensors": False}
-    plot_projs_topomap(projs, info, colorbar=True, **fast_test)
+    plot_projs_topomap(projs, info=info, colorbar=True, **fast_test)
     plt.close('all')
     ax = plt.subplot(111)
     projs[3].plot_topomap()
@@ -70,7 +71,7 @@ def test_plot_projs_topomap():
     plt.close('all')
     eeg_avg = make_eeg_average_ref_proj(info)
     assert_raises(RuntimeError, eeg_avg.plot_topomap)  # no layout
-    eeg_avg.plot_topomap(info, **fast_test)
+    eeg_avg.plot_topomap(info=info, **fast_test)
     plt.close('all')
 
 
