@@ -342,4 +342,5 @@ def test_needs_eeg_average_ref_proj():
     raw.info['custom_ref_applied'] = True
     assert_true(not _needs_eeg_average_ref_proj(raw.info))
 
+
 run_tests_if_main()

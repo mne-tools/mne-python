@@ -16,6 +16,7 @@ from nose.tools import assert_true, assert_equal
 import pytest
 
 from mne import read_evokeds, read_proj
+from mne.io.proj import make_eeg_average_ref_proj
 from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
@@ -47,6 +48,31 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 layout = read_layout('Vectorview-all')
+
+
+@testing.requires_testing_data
+def test_plot_projs_topomap():
+    """Test plot_projs_topomap."""
+    import matplotlib.pyplot as plt
+    with warnings.catch_warnings(record=True):  # file conventions
+        warnings.simplefilter('always')
+        projs = read_proj(ecg_fname)
+    info = read_info(raw_fname)
+    fast_test = {"res": 8, "contours": 0, "sensors": False}
+    plot_projs_topomap(projs, info=info, colorbar=True, **fast_test)
+    plt.close('all')
+    ax = plt.subplot(111)
+    projs[3].plot_topomap()
+    plot_projs_topomap(projs[:1], axes=ax, **fast_test)  # test axes param
+    plt.close('all')
+    plot_projs_topomap(read_info(triux_fname)['projs'][-1:], **fast_test)
+    plt.close('all')
+    plot_projs_topomap(read_info(triux_fname)['projs'][:1], ** fast_test)
+    plt.close('all')
+    eeg_avg = make_eeg_average_ref_proj(info)
+    assert_raises(RuntimeError, eeg_avg.plot_topomap)  # no layout
+    eeg_avg.plot_topomap(info=info, **fast_test)
+    plt.close('all')
 
 
 @pytest.mark.slowtest
@@ -168,21 +194,6 @@ def test_plot_topomap():
                   np.repeat(.1, 50))
     assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
 
-    with warnings.catch_warnings(record=True):  # file conventions
-        warnings.simplefilter('always')
-        projs = read_proj(ecg_fname)
-    projs = [pp for pp in projs if pp['desc'].lower().find('eeg') < 0]
-    plot_projs_topomap(projs, res=res, colorbar=True)
-    plt.close('all')
-    ax = plt.subplot(111)
-    plot_projs_topomap(projs[:1], axes=ax, **fast_test)  # test axes param
-    plt.close('all')
-    plot_projs_topomap(read_info(triux_fname)['projs'][-1:])  # grads
-    plt.close('all')
-    # XXX This one fails due to grads being combined but this proj having
-    # all zeros in the grad values -> matplotlib contour error
-    # plot_projs_topomap(read_info(triux_fname)['projs'][:1])  # mags
-    # plt.close('all')
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
             ch['loc'].fill(0)
