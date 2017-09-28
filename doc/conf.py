@@ -285,6 +285,7 @@ intersphinx_mapping = {
     'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
     'nibabel': ('http://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
+    'surfer': ('https://pysurfer.github.io/', None),
 }
 
 examples_dirs = ['../examples', '../tutorials']
@@ -310,6 +311,7 @@ sphinx_gallery_conf = {
         'mayavi': 'http://docs.enthought.com/mayavi/mayavi',
         'nibabel': 'http://nipy.org/nibabel',
         'nilearn': 'http://nilearn.github.io',
+        'surfer': 'https://pysurfer.github.io',
         },
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,

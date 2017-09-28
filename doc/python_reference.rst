@@ -192,16 +192,17 @@ Datasets
    brainstorm.bst_resting.data_path
    brainstorm.bst_raw.data_path
    eegbci.load_data
+   fetch_hcp_mmp_parcellation
+   hf_sef.data_path
    megsim.data_path
    megsim.load_data
+   misc.data_path
    mtrf.data_path
-   fetch_hcp_mmp_parcellation
    multimodal.data_path
    sample.data_path
    somato.data_path
    spm_face.data_path
    visual_92_categories.data_path
-   hf_sef.data_path
 
 
 Visualization
