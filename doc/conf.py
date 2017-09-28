@@ -322,6 +322,7 @@ sphinx_gallery_conf = {
     'download_section_examples': False,
     'thumbnail_size': (160, 112),
     'min_reported_time': 1.,
+    'abort_on_example_error': False,
 }
 
 numpydoc_class_members_toctree = False
