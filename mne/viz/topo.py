@@ -388,7 +388,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         s = '%.3f s: ' % times[idx]
         labels = [''] * len(data) if labels is None else labels
         for data_, label in zip(data, labels):
-            s += '%.2f %s' % (data_[ch_idx, idx], unit)
+            s += '%7.2f %s' % (data_[ch_idx, idx], unit)
+            label = label if len(label) <= 10 else label[:8]+'..'  # truncate
             s += ' [%s] ' % label if label else ' '
         return s
 
