@@ -4,6 +4,7 @@
 #          Denis Egnemann <denis.engemann@gmail.com>
 # License: BSD Style.
 
+from collections import OrderedDict
 import os
 import os.path as op
 import shutil
@@ -13,7 +14,10 @@ import sys
 import zipfile
 from distutils.version import LooseVersion
 
+import numpy as np
+
 from .. import __version__ as mne_version
+from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
                      verbose, get_subjects_dir)
 from ..externals.six import string_types
@@ -529,7 +533,7 @@ def _download_all_example_data(verbose=True):
 
 
 @verbose
-def fetch_hcp_mmp_parcellation(subjects_dir=None, verbose=None):
+def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     """Fetch the HCP-MMP parcellation.
 
     This will download and install the HCP-MMP parcellation [1]_ files for
@@ -540,6 +544,9 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, verbose=None):
     subjects_dir : str | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
+    combine : bool
+        If True, also produce the combined/reduced set of 23 labels per
+        hemisphere as ``HCPMMP1_combined.annot`` [3]_.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -554,21 +561,116 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, verbose=None):
            cerebral cortex. Nature 536:171-178.
     .. [2] Mills K (2016) HCP-MMP1.0 projected on fsaverage.
            https://figshare.com/articles/HCP-MMP1_0_projected_on_fsaverage/3498446/2
-    """
+    .. [3] Glasser MF et al. (2016) Supplemental information.
+           https://images.nature.com/full/nature-assets/nature/journal/v536/n7615/extref/nature18933-s3.pdf
+    """  # noqa: E501
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
-    fnames = [op.join(destination, 'lh.HCPMMP1.annot'),
-              op.join(destination, 'rh.HCPMMP1.annot')]
-    if all(op.isfile(fname) for fname in fnames):
-        return
-    if '--accept-hcpmmp-license' in sys.argv:
-        answer = 'y'
-    else:
-        answer = input('%s\nAgree (y/[n])? ' % _hcp_mmp_license_text)
-    if answer.lower() != 'y':
-        raise RuntimeError('You must agree to the license to use this '
-                           'dataset')
-    _fetch_file('https://ndownloader.figshare.com/files/5528816',
-                fnames[0], hash_='46a102b59b2fb1bb4bd62d51bf02e975')
-    _fetch_file('https://ndownloader.figshare.com/files/5528819',
-                fnames[1], hash_='75e96b331940227bbcb07c1c791c2463')
+    fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
+              for hemi in ('lh', 'rh')]
+    if not all(op.isfile(fname) for fname in fnames):
+        if '--accept-hcpmmp-license' in sys.argv:
+            answer = 'y'
+        else:
+            answer = input('%s\nAgree (y/[n])? ' % _hcp_mmp_license_text)
+        if answer.lower() != 'y':
+            raise RuntimeError('You must agree to the license to use this '
+                               'dataset')
+        _fetch_file('https://ndownloader.figshare.com/files/5528816',
+                    fnames[0], hash_='46a102b59b2fb1bb4bd62d51bf02e975')
+        _fetch_file('https://ndownloader.figshare.com/files/5528819',
+                    fnames[1], hash_='75e96b331940227bbcb07c1c791c2463')
+    if combine:
+        fnames = [op.join(destination, '%s.HCPMMP1_combined.annot' % hemi)
+                  for hemi in ('lh', 'rh')]
+        if all(op.isfile(fname) for fname in fnames):
+            return
+        # otherwise, let's make them
+        logger.info('Creating combined labels')
+        groups = OrderedDict([
+            ('Primary Visual Cortex (V1)',
+             ('V1',)),
+            ('Early Visual Cortex',
+             ('V2', 'V3', 'V4')),
+            ('Dorsal Stream Visual Cortex',
+             ('V3A', 'V3B', 'V6', 'V6A', 'V7', 'IPS1')),
+            ('Ventral Stream Visual Cortex',
+             ('V8', 'VVC', 'PIT', 'FFC', 'VMV1', 'VMV2', 'VMV3')),
+            ('MT+ Complex and Neighboring Visual Areas',
+             ('V3CD', 'LO1', 'LO2', 'LO3', 'V4t', 'FST', 'MT', 'MST', 'PH')),
+            ('Somatosensory and Motor Cortex',
+             ('4', '3a', '3b', '1', '2')),
+            ('Paracentral Lobular and Mid Cingulate Cortex',
+             ('24dd', '24dv', '6mp', '6ma', 'SCEF', '5m', '5L', '5mv',)),
+            ('Premotor Cortex',
+             ('55b', '6d', '6a', 'FEF', '6v', '6r', 'PEF')),
+            ('Posterior Opercular Cortex',
+             ('43', 'FOP1', 'OP4', 'OP1', 'OP2-3', 'PFcm')),
+            ('Early Auditory Cortex',
+             ('A1', 'LBelt', 'MBelt', 'PBelt', 'RI')),
+            ('Auditory Association Cortex',
+             ('A4', 'A5', 'STSdp', 'STSda', 'STSvp', 'STSva', 'STGa', 'TA2',)),
+            ('Insular and Frontal Opercular Cortex',
+             ('52', 'PI', 'Ig', 'PoI1', 'PoI2', 'FOP2', 'FOP3',
+              'MI', 'AVI', 'AAIC', 'Pir', 'FOP4', 'FOP5')),
+            ('Medial Temporal Cortex',
+             ('H', 'PreS', 'EC', 'PeEc', 'PHA1', 'PHA2', 'PHA3',)),
+            ('Lateral Temporal Cortex',
+             ('PHT', 'TE1p', 'TE1m', 'TE1a', 'TE2p', 'TE2a',
+              'TGv', 'TGd', 'TF',)),
+            ('Temporo-Parieto-Occipital Junction',
+             ('TPOJ1', 'TPOJ2', 'TPOJ3', 'STV', 'PSL',)),
+            ('Superior Parietal Cortex',
+             ('LIPv', 'LIPd', 'VIP', 'AIP', 'MIP',
+              '7PC', '7AL', '7Am', '7PL', '7Pm',)),
+            ('Inferior Parietal Cortex',
+             ('PGp', 'PGs', 'PGi', 'PFm', 'PF', 'PFt', 'PFop',
+              'IP0', 'IP1', 'IP2',)),
+            ('Posterior Cingulate Cortex',
+             ('DVT', 'ProS', 'POS1', 'POS2', 'RSC', 'v23ab', 'd23ab',
+              '31pv', '31pd', '31a', '23d', '23c', 'PCV', '7m',)),
+            ('Anterior Cingulate and Medial Prefrontal Cortex',
+             ('33pr', 'p24pr', 'a24pr', 'p24', 'a24', 'p32pr', 'a32pr', 'd32',
+              'p32', 's32', '8BM', '9m', '10v', '10r', '25',)),
+            ('Orbital and Polar Frontal Cortex',
+             ('47s', '47m', 'a47r', '11l', '13l',
+              'a10p', 'p10p', '10pp', '10d', 'OFC', 'pOFC',)),
+            ('Inferior Frontal Cortex',
+             ('44', '45', 'IFJp', 'IFJa', 'IFSp', 'IFSa', '47l', 'p47r',)),
+            ('DorsoLateral Prefrontal Cortex',
+             ('8C', '8Av', 'i6-8', 's6-8', 'SFL', '8BL', '9p', '9a', '8Ad',
+              'p9-46v', 'a9-46v', '46', '9-46d',)),
+            ('???',
+             ('???',))])
+        assert len(groups) == 23
+        labels_out = list()
+
+        for hemi in ('lh', 'rh'):
+            labels = read_labels_from_annot('fsaverage', 'HCPMMP1', hemi=hemi,
+                                            subjects_dir=subjects_dir)
+            label_names = [
+                '???' if label.name.startswith('???') else
+                label.name.split('_')[1] for label in labels]
+            used = np.zeros(len(labels), bool)
+            for key, want in groups.items():
+                assert '\t' not in key
+                these_labels = [li for li, label_name in enumerate(label_names)
+                                if label_name in want]
+                assert not used[these_labels].any()
+                assert len(these_labels) == len(want)
+                used[these_labels] = True
+                these_labels = [labels[li] for li in these_labels]
+                # take a weighted average to get the color
+                # (here color == task activation)
+                w = np.array([len(label.vertices) for label in these_labels])
+                w = w / float(w.sum())
+                color = np.dot(w, [label.color for label in these_labels])
+                these_labels = sum(these_labels,
+                                   Label([], subject='fsaverage', hemi=hemi))
+                these_labels.name = key
+                these_labels.color = color
+                labels_out.append(these_labels)
+            assert used.all()
+        assert len(labels_out) == 46
+        write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
+                              hemi='both', subjects_dir=subjects_dir)
