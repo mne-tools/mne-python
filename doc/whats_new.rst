@@ -109,6 +109,8 @@ Changelog
 
     - Add high frequency somatosensory MEG dataset by `Jussi Nurminen`_
 
+    - Enable morphing between hemispheres with :func:`mne.compute_morph_matrix` by `Christian Brodbeck`_
+
 BUG
 ~~~
 
