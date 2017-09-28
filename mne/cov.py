@@ -1245,7 +1245,7 @@ def _get_whitener(noise_cov, info, ch_names, rank, pca, scalings=None):
     #   Omit the zeroes due to projection
     eig = noise_cov['eig']
     nzero = (eig > 0)
-    n_nzero = sum(nzero)
+    n_nzero = np.sum(nzero)
 
     if pca:
         #   Rows of eigvec are the eigenvectors
