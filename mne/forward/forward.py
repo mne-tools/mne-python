@@ -388,8 +388,10 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
     fname : string
         The file name, which should end with -fwd.fif or -fwd.fif.gz.
     force_fixed : None | bool, optional (default None)
+        Deprecated. Use :func:`convert_forward_solution`.
         Force fixed source orientation mode?
     surf_ori : None | bool, optional (default None)
+        Deprecated. Use :func:`convert_forward_solution`.
         Use surface-based source coordinate system? Note that force_fixed=True
         implies surf_ori=True.
     include : list, optional

@@ -35,7 +35,7 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 fwd = mne.read_forward_solution(fwd_fname)
 fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True,
-                                   use_cps=False)
+                                   use_cps=True)
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
 cov = mne.read_cov(cov_fname)
 info = mne.io.read_info(ave_fname)
@@ -55,6 +55,7 @@ def data_fun(times):
     """Function to generate random source time courses"""
     return (50e-9 * np.sin(30. * times) *
             np.exp(- (times - 0.15 + 0.05 * rng.randn(1)) ** 2 / 0.01))
+
 
 stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
                           random_state=42, labels=labels, data_fun=data_fun)

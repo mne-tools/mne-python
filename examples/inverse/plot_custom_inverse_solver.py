@@ -41,7 +41,6 @@ evoked.crop(tmin=0.04, tmax=0.18)
 evoked = evoked.pick_types(eeg=False, meg=True)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname)
-forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 
 ###############################################################################
@@ -166,6 +165,7 @@ def solver(M, G, n_orient):
         active_set[idx:idx + n_orient] = True
     X = X[active_set]
     return X, active_set
+
 
 ###############################################################################
 # Apply your custom solver

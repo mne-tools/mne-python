@@ -35,7 +35,6 @@ fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
 
 # read forward solution
 forward = mne.read_forward_solution(fname_fwd)
-forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 # read inverse operators
 inverse_operator_eegmeg = read_inverse_operator(fname_inv_eegmeg)
