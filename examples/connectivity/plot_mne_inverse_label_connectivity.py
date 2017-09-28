@@ -149,7 +149,6 @@ plot_connectivity_circle(con_res['pli'], label_names, n_lines=300,
                          node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition (PLI)')
-plt.savefig('circle.png', facecolor='black')
 
 ###############################################################################
 # Make two connectivity plots in the same figure

@@ -207,6 +207,7 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
 
 def _get_components(x_in, connectivity, return_list=True):
     """Get connected components from a mask and a connectivity matrix."""
+    from scipy.sparse.csgraph import connected_components
     mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
     data = connectivity.data[mask]
     row = connectivity.row[mask]
@@ -217,7 +218,7 @@ def _get_components(x_in, connectivity, return_list=True):
     col = np.concatenate((col, idx))
     data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
     connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
-    _, components = sparse.csgraph.connected_components(connectivity)
+    _, components = connected_components(connectivity)
     if return_list:
         start = np.min(components)
         stop = np.max(components)

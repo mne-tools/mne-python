@@ -9,7 +9,6 @@ Here we compare the average time course in the anatomical label obtained
 by FreeSurfer segmentation and the average time course from the
 functional label. As expected the time course in the functional
 label yields higher values.
-
 """
 # Author: Luke Bloy <luke.bloy@gmail.com>
 #         Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>

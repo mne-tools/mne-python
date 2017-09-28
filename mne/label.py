@@ -1246,8 +1246,14 @@ def label_sign_flip(label, src):
 
     _, _, Vh = linalg.svd(ori, full_matrices=False)
 
+    # The sign of Vh is ambiguous, so we should align to the max-positive
+    # (outward) direction
+    dots = np.dot(ori, Vh[0])
+    if np.mean(dots) < 0:
+        dots *= -1
+
     # Comparing to the direction of the first right singular vector
-    flip = np.sign(np.dot(ori, Vh[0]))
+    flip = np.sign(dots)
     return flip
 
 
