@@ -25,8 +25,7 @@ from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import prepare_noise_cov, _read_cov, _write_cov, Covariance
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
-                       compute_orient_prior, convert_forward_solution,
-                       _to_fixed_ori)
+                       compute_orient_prior, convert_forward_solution)
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
@@ -767,8 +766,8 @@ def _check_loose_forward(loose, forward, loose_as_fixed=(0., None)):
 
     # Now we are guaranteed to be surface oriented
     if loose in loose_as_fixed and not is_fixed_orient(forward):
-        forward = deepcopy(forward)
-        _to_fixed_ori(forward)
+        forward = convert_forward_solution(forward, force_fixed=True,
+                                           use_cps=True)
 
     if is_fixed_orient(forward):
         if not (loose == 'auto' or (loose in [0., None])):
