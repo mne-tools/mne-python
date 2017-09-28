@@ -287,6 +287,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/visualization/plot_ssp_projs_sensitivity_map.rst
     auto_examples/visualization/plot_topo_compare_conditions.rst
     auto_examples/visualization/plot_topo_customized.rst
+    auto_examples/visualization/plot_xhemi.rst
 
 .. raw:: html
 

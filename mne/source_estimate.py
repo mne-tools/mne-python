@@ -461,10 +461,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            if not all(isinstance(v, np.ndarray) for v in vertices):
-                raise ValueError('Vertices, if a list, must contain numpy '
-                                 'arrays')
-
+            vertices = [np.asarray(v) for v in vertices]
             if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
                 raise ValueError('Vertices must be ordered in increasing '
                                  'order.')
@@ -2448,27 +2445,30 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
-                         verbose=None):
+                         xhemi=False, verbose=None):
     """Get a matrix that morphs data from one subject to another.
 
     Parameters
     ----------
     subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR
+        Name of the original subject as named in the SUBJECTS_DIR.
     subject_to : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR
+        Name of the subject on which to morph as named in the SUBJECTS_DIR.
     vertices_from : list of arrays of int
-        Vertices for each hemisphere (LH, RH) for subject_from
+        Vertices for each hemisphere (LH, RH) for subject_from.
     vertices_to : list of arrays of int
-        Vertices for each hemisphere (LH, RH) for subject_to
+        Vertices for each hemisphere (LH, RH) for subject_to.
     smooth : int or None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
     subjects_dir : string
-        Path to SUBJECTS_DIR is not set in the environment
+        Path to SUBJECTS_DIR is not set in the environment.
     warn : bool
         If True, warn if not all vertices were used.
+    xhemi : bool
+        Morph across hemisphere. Currently only implemented for
+        ``subject_to == subject_from``. See notes below.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2476,30 +2476,62 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     Returns
     -------
     morph_matrix : sparse matrix
-        matrix that morphs data from subject_from to subject_to
+        matrix that morphs data from ``subject_from`` to ``subject_to``.
+
+    Notes
+    -----
+    This function can be used to morph data between hemispheres by setting
+    ``xhemi=True``. The full cross-hemisphere morph matrix maps left to right
+    and right to left. A matrix for cross-mapping only one hemisphere can be
+    constructed by specifying the appropriate vertices, for example, to map the
+    right hemisphere to the left:
+    ``vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]``.
+
+    Cross-hemisphere mapping requires appropriate ``sphere.left_right``
+    morph-maps in the subject's directory. These morph maps are included
+    with the ``fsaverage_sym`` FreeSurfer subject, and can be created for other
+    subjects with the ``mris_left_right_register`` FreeSurfer command. The
+    ``fsaverage_sym`` subject is included with FreeSurfer > 5.1 and can be
+    obtained as described `here
+    <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
+    comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
+    model is recommended to minimize bias [1]_.
+
+    References
+    ----------
+    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
+           R., Fischl B., Brysbaert M.
+           A Surface-based Analysis of Language Lateralization and Cortical
+           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
     """
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    tris = _get_subject_sphere_tris(subject_from, subjects_dir)
-    maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
-    morpher = [None] * 2
-    for hemi in [0, 1]:
-        e = mesh_edges(tris[hemi])
+    tris = _get_subject_sphere_tris(subject_from, subjects_dir)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir, xhemi)
+
+    if xhemi:
+        hemi_indexes = [(0, 1), (1, 0)]
+    else:
+        hemi_indexes = [(0, 0), (1, 1)]
+
+    morpher = []
+    for hemi_from, hemi_to in hemi_indexes:
+        idx_use = vertices_from[hemi_from]
+        if len(idx_use) == 0:
+            continue
+        e = mesh_edges(tris[hemi_from])
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = vertices_from[hemi]
-        if len(idx_use) == 0:
-            morpher[hemi] = []
-            continue
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
-        morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                                      vertices_to[hemi], maps[hemi], warn=warn)
-    # be careful about zero-length arrays
-    if isinstance(morpher[0], list):
-        morpher = morpher[1]
-    elif isinstance(morpher[1], list):
+        mm = _morph_buffer(m, idx_use, e, smooth, n_vertices,
+                           vertices_to[hemi_to], maps[hemi_from], warn=warn)
+        morpher.append(mm)
+
+    if len(morpher) == 0:
+        raise ValueError("Empty morph-matrix")
+    elif len(morpher) == 1:
         morpher = morpher[0]
     else:
         morpher = sparse_block_diag(morpher, format='csr')
