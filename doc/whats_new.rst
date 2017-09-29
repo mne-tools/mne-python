@@ -248,6 +248,8 @@ API
 
     - ``loose`` parameter in inverse solvers has now a default value ``'auto'`` depending if the source space is a surface, volume, or discrete type by `Alex Gramfort`_ and `Yousra Bekhti`_
 
+    - The behavior of ``'mean_flip'`` label-flipping in :meth:`stc.extract_label_time_course` and related functions has been changed such that the flip, instead of having arbitrary sign, maximally aligns in the positive direction of the normals of the label, by `Eric Larson`_
+
     - Deprecate force_fixed and surf_ori in :func:`mne.forward.read_forward_solution` by `Daniel Strohmeier`_
 
     - :func:`mne.forward.convert_forward_solution` has a new argument ``use_cps``, which controls wether information on cortical patch statistics is applied while generating surface-oriented forward solutions with free and fixed orientation by `Daniel Strohmeier`_

@@ -5,7 +5,6 @@ Compute MNE-dSPM inverse solution on single epochs
 
 Compute dSPM inverse solution on single trial epochs restricted
 to a brain label.
-
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

@@ -3,7 +3,7 @@
 Compute Phase Slope Index (PSI) in source space for a visual stimulus
 =====================================================================
 
-This example demonstrates how the Phase Slope Index (PSI) [1] can be computed
+This example demonstrates how the Phase Slope Index (PSI) [1]_ can be computed
 in source space based on single trial dSPM source estimates. In addition,
 the example shows advanced usage of the connectivity estimation routines
 by first extracting a label time course for each epoch and then combining
@@ -15,9 +15,9 @@ widespread activity (a postivive PSI means the label time course is leading).
 
 References
 ----------
-[1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
-Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
-pp. 1-4, Jun. 2008.
+.. [1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
+       Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
+       pp. 1-4, Jun. 2008.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #

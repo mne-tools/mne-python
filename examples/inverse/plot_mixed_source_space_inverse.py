@@ -3,8 +3,7 @@
 Compute MNE inverse solution on evoked data in a mixed source space
 =======================================================================
 
-Create a mixed source space and compute MNE inverse solution on evoked dataset
-
+Create a mixed source space and compute MNE inverse solution on evoked dataset.
 """
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
 #
@@ -119,8 +118,7 @@ lambda2 = 1.0 / snr ** 2
 
 # Compute inverse operator
 inverse_operator = make_inverse_operator(evoked.info, fwd, noise_cov,
-                                         loose=None, depth=None,
-                                         fixed=False)
+                                         depth=None, fixed=False)
 
 stcs = apply_inverse(evoked, inverse_operator, lambda2, inv_method,
                      pick_ori=None)

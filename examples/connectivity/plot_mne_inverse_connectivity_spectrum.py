@@ -4,7 +4,7 @@ Compute full spectrum source space connectivity between labels
 ==============================================================
 
 The connectivity is computed between 4 labels across the spectrum
-between 5 and 40 Hz.
+between 7.5 and 40 Hz.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -62,7 +62,7 @@ src = inverse_operator['src']
 label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
                                          return_generator=True)
 
-fmin, fmax = 5., 40.
+fmin, fmax = 7.5, 40.
 sfreq = raw.info['sfreq']  # the sampling frequency
 
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
@@ -71,7 +71,6 @@ con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
 
 n_rows, n_cols = con.shape[:2]
 fig, axes = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
-plt.suptitle('Between labels connectivity')
 for i in range(n_rows):
     for j in range(i + 1):
         if i == j:
@@ -86,11 +85,12 @@ for i in range(n_rows):
             axes[0, i].set_title(names[i])
         if i == (n_rows - 1):
             axes[i, j].set_xlabel(names[j])
-        axes[i, j].set_xlim([fmin, fmax])
-        axes[j, i].set_xlim([fmin, fmax])
+        axes[i, j].set(xlim=[fmin, fmax], ylim=[-0.2, 1])
+        axes[j, i].set(xlim=[fmin, fmax], ylim=[-0.2, 1])
 
         # Show band limits
         for f in [8, 12, 18, 35]:
             axes[i, j].axvline(f, color='k')
             axes[j, i].axvline(f, color='k')
+plt.tight_layout()
 plt.show()
