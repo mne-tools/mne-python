@@ -411,11 +411,20 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         ax._cursorline = ax.axvline(event.xdata, color=ax._cursorcolor)
         ax.figure.canvas.draw()
 
+    def _rm_cursor(event):
+        ax = event.inaxes
+        if ax._cursorline is not None:
+            ax._cursorline.remove()
+            ax._cursorline = None
+        ax.figure.canvas.draw()
+        
     ax._cursorline = None
     # choose cursor color based on perceived brightness of background
     bg_br = np.dot(ax.get_facecolor()[:3], [299, 587, 114])
     ax._cursorcolor = 'white' if bg_br < 150 else 'black'
+
     plt.connect('motion_notify_event', _cursor_vline)
+    plt.connect('axes_leave_event', _rm_cursor)
 
     _setup_ax_spines(ax, vline, tmin, tmax)
     ax.figure.set_facecolor('k' if hvline_color is 'w' else 'w')
