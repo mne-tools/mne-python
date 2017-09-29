@@ -708,16 +708,14 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
         'signed' to remove this warning.
 
-    .. versionadded:: 0.15.0
-
+        .. versionadded:: 0.15.0
     reduce_rank : bool
         If True, the rank of the leadfield will be reduced by 1 for each
         spatial location. Setting reduce_rank to True is typically necessary
         if you use a sphere model for MEG as in this case the actual
         rank is 2 not 3.
 
-    .. versionadded:: 0.15.0
-
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -822,16 +820,14 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
         'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
         'signed' to remove this warning.
 
-    .. versionadded:: 0.15.0
-
+        .. versionadded:: 0.15.0
     reduce_rank : bool
         If True, the rank of the leadfield will be reduced by 1 for each
         spatial location. Setting reduce_rank to True is typically necessary
         if you use a sphere model for MEG as in this case the actual
         rank is 2 not 3.
 
-    .. versionadded:: 0.15.0
-
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
