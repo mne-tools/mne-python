@@ -1579,7 +1579,7 @@ def _regularized_covariance(data, reg=None):
 @verbose
 def compute_whitener(noise_cov, info, picks=None, rank=None,
                      scalings=None, return_rank=False,
-                     diag=False, verbose=None):
+                     verbose=None):
     """Compute whitening matrix.
 
     Parameters
@@ -1601,10 +1601,6 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         ``prepare_noise_cov`` for details.
     return_rank : bool
         If True, return the rank used to compute the whitener.
-
-        .. versionadded:: 0.15
-    diag : bool
-        Use a diagonal approximation of the noise covariance.
 
         .. versionadded:: 0.15
     verbose : bool, str, int, or None
@@ -1634,10 +1630,6 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         raise RuntimeError('Not all channels present in noise covariance:\n%s'
                            % missing)
 
-    if diag:
-        noise_cov = noise_cov.copy()
-        noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
-
     scalings = _handle_default('scalings_cov_rank', scalings)
     W, noise_cov, n_nzero = _get_whitener(noise_cov, info, ch_names, rank,
                                           pca=False, scalings=scalings)
@@ -1651,7 +1643,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
 
 
 @verbose
-def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
+def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
                   scalings=None, verbose=None):
     """Whiten evoked data using given noise covariance.
 
@@ -1692,8 +1684,11 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
     if picks is None:
         picks = pick_types(evoked.info, meg=True, eeg=True)
 
+    if diag:
+        noise_cov = noise_cov.as_diag()
+
     W, rank = compute_whitener(noise_cov, evoked.info, picks=picks,
-                               diag=diag, rank=rank, scalings=scalings)
+                               rank=rank, scalings=scalings)
 
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
