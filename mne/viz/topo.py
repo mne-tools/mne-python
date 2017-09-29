@@ -379,21 +379,27 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.set_ylabel(y_label)
 
-    def _format_coord(x, y, labels):
+    def _format_coord(x, y, labels, ax):
         """Create status string based on cursor coordinates."""
         idx = np.abs(times - x).argmin()
         ylabel = ax.get_ylabel()
         unit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
                 if '(' in ylabel and ')' in ylabel else '')
-        s = '%.3f s: ' % times[idx]
         labels = [''] * len(data) if labels is None else labels
+        # try to estimate whether to truncate condition labels
+        slen = 10 + sum([12 + len(unit) + len(label) for label in labels])
+        bar_width = (ax.figure.get_size_inches() * ax.figure.dpi)[0] / 5.5
+        trunc_labels = bar_width < slen
+        s = '%6.3f s: ' % times[idx]
         for data_, label in zip(data, labels):
             s += '%7.2f %s' % (data_[ch_idx, idx], unit)
-            label = label if len(label) <= 10 else label[:8]+'..'  # truncate
+            if trunc_labels:
+                label = (label if len(label) <= 10 else
+                         '%s..%s' % (label[:7], label[-1]))
             s += ' [%s] ' % label if label else ' '
         return s
 
-    ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels)
+    ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)
 
     def _cursor_vline(event):
         """Draw cursor (vertical line)."""
