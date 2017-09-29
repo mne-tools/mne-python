@@ -11,6 +11,7 @@ dependencies:
 - pillow
 - statsmodels
 - mayavi
+- jupyter
 - nose
 - pytest
 - pytest-cov
@@ -20,6 +21,8 @@ dependencies:
 - joblib
 - psutil
 - numpydoc
+- flake8
+- spyder
 - pip:
   - mne
   - pysurfer

@@ -1,8 +1,8 @@
 environment:
   global:
       PYTHON: "C:\\conda"
-      CONDA_DEPENDENCIES: "setuptools numpy scipy matplotlib scikit-learn mayavi pandas h5py PIL pyside nose pytest pytest-cov"
-      PIP_DEPENDENCIES: "git+git://github.com/nipy/PySurfer.git nibabel nitime codecov"
+      CONDA_ENVIRONMENT: "environment.yml"
+      PIP_DEPENDENCIES: "codecov pytest-faulthandler"
   matrix:
       - PYTHON_VERSION: "2.7"
         PYTHON_ARCH: "64"
@@ -12,6 +12,7 @@ install:
   - "powershell ci-helpers/appveyor/install-miniconda.ps1"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "activate test"
+  - "pip uninstall -yq mne"
   - "python setup.py develop"
   - "python -c \"import mne; print(mne.sys_info())\""
   - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
