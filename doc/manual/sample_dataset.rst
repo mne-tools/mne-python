@@ -65,7 +65,7 @@ Setting up
 
 The sample dataset can be downloaded automatically by doing::
 
-    >>> mne.datasets.sample.data_path(verbose=True)
+    >>> mne.datasets.sample.data_path(verbose=True)  # doctest: +SKIP
 
 Contents of the data set
 ########################

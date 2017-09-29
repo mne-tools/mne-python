@@ -48,14 +48,14 @@ To properly render `trans` and `covariance` files, add the measurement informati
 
 .. code-block:: bash
 
-    $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
+    $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
           --subject sample --subjects-dir MNE-sample-data/subjects --verbose
 
 To render whitened `evoked` files with baseline correction, add the noise covariance file:
-    
+
 .. code-block:: bash
 
-    $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
+    $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
           --cov MNE-sample-data/MEG/sample/sample_audvis-cov.fif --bmax 0 --subject sample \
           --subjects-dir MNE-sample-data/subjects --verbose
 
@@ -63,7 +63,7 @@ To generate the report in parallel:
 
 .. code-block:: bash
 
-    $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
+    $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
           --subject sample --subjects-dir MNE-sample-data/subjects --verbose --jobs 6
 
 The report rendered on sample-data is shown below:
@@ -121,12 +121,12 @@ Save the report as an html, but do not open the html in a browser::
     >>> report.save('report.html', overwrite=True, open_browser=False) # doctest:+SKIP
     Rendering : Table of Contents...
 
-There is greater flexibility compared to the command line interface. 
+There is greater flexibility compared to the command line interface.
 Custom plots can be added to the report. Let us first generate a custom plot::
 
     >>> from mne import read_evokeds
     >>> fname = path + '/MEG/sample/sample_audvis-ave.fif'
-    >>> evoked = read_evokeds(fname, condition='Left Auditory', baseline=(None, 0), verbose=True) # doctest:+ELLIPSIS
+    >>> evoked = read_evokeds(fname, condition='Left Auditory', baseline=(None, 0), verbose=True)  # doctest: +ELLIPSIS
     Reading ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
@@ -138,7 +138,7 @@ Custom plots can be added to the report. Let us first generate a custom plot::
             0 CTF compensation matrices available
             nave = 55 - aspect type = 100
     Projections have already been applied. Setting proj attribute to True.
-    Applying baseline correction ... (mode: mean)
+    Applying baseline correction (mode: mean)
     >>> fig = evoked.plot() # doctest: +SKIP
 
 To add the custom plot to the report, do::
@@ -148,8 +148,8 @@ To add the custom plot to the report, do::
     Rendering : Table of Contents...
 
 The MNE report command internally manages the sections so that plots belonging to the same section
-are rendered consecutively. Within a section, the plots are ordered in the same order that they were 
-added using the `add_figs_to_section` command. Each section is identified by a toggle button in the navigation 
+are rendered consecutively. Within a section, the plots are ordered in the same order that they were
+added using the `add_figs_to_section` command. Each section is identified by a toggle button in the navigation
 bar of the report which can be used to show or hide the contents of the section.
 
 That's it!

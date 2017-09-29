@@ -13,7 +13,7 @@ from ..utils import _get_path, logger, _do_path_update
 
 @verbose
 def data_path(dataset='evoked', path=None, force_update=False,
-              update_path=None, verbose=None):
+              update_path=True, verbose=None):
     u"""Get path to local copy of the high frequency SEF dataset.
 
     Gets a local copy of the high frequency SEF MEG dataset [1]_.
