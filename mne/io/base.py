@@ -1422,7 +1422,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      If resampling the continuous data is desired, it is
                      recommended to construct events using the original data.
                      The event onsets can be jointly resampled with the raw
-                     data using the 'events' parameter.
+                     data using the 'events' parameter (a resampled copy is
+                     returned).
 
         Parameters
         ----------
@@ -1446,7 +1447,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             is installed properly and CUDA is initialized.
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
-            are resampled jointly with the data.
+            are resampled jointly with the data. NB: The input events are not
+            modified, but a new array is returned with the raw instead.
         pad : str
             The type of padding to use. Supports all :func:`numpy.pad` ``mode``
             options. Can also be "reflect_limited" (default), which pads with a
@@ -1463,6 +1465,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -------
         raw : instance of Raw
             The resampled version of the raw object.
+        events : 2D array, shape (n_events, 3) | None
+            If events are jointly resampled, these are returned with the raw.
 
         See Also
         --------
@@ -1542,12 +1546,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             return self
         else:
-            if copy:
-                events = events.copy()
+            # always make a copy of events
+            events = events.copy()
 
             events[:, 0] = np.minimum(
                 np.round(events[:, 0] * ratio).astype(int),
-                self._data.shape[1]
+                self._data.shape[1] + self.first_samp
             )
             return self, events
 
