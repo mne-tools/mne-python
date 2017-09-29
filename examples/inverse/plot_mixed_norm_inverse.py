@@ -50,7 +50,6 @@ evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked.crop(tmin=0, tmax=0.3)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname)
-forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 ###############################################################################
 # Run solver
@@ -61,7 +60,8 @@ n_mxne_iter = 10  # if > 1 use L0.5/L2 reweighted mixed norm solver
 
 # Compute dSPM solution to be used as weights in MxNE
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,
-                                         loose=None, depth=depth, fixed=True)
+                                         depth=depth, fixed=True,
+                                         use_cps=True)
 stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 

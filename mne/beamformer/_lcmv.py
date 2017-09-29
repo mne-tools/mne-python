@@ -405,6 +405,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
                          'when a forward operator with free orientation is '
                          'used.')
     if pick_ori == 'normal' and not forward['surf_ori']:
+        # XXX eventually this could just call convert_forward_solution
         raise ValueError('Normal orientation can only be picked when a '
                          'forward operator oriented in surface coordinates is '
                          'used.')

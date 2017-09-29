@@ -66,7 +66,6 @@ evoked.crop(tmin=-0.1, tmax=0.4)
 
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname)
-forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 ###############################################################################
 # Run solver

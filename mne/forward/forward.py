@@ -987,7 +987,7 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     ----------
     forward : dict
         Forward operator.
-    loose : float in [0, 1] or None
+    loose : float in [0, 1]
         The loose orientation parameter.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
@@ -1000,23 +1000,26 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     """
     is_fixed_ori = is_fixed_orient(forward)
     n_sources = forward['sol']['data'].shape[1]
+    if loose is None:
+        warn('loose=None is deprecated and will be removed in 0.16, use '
+             'loose=0. for fixed constraint and loose=1. for free '
+             'orientations', DeprecationWarning)
+        loose = 0. if is_fixed_ori else 1.
 
-    if loose is not None:
-        if not (0 <= loose <= 1):
-            raise ValueError('loose value should be smaller than 1 and bigger '
-                             'than 0, or None for not loose orientations.')
-
-        if loose < 1 and not forward['surf_ori']:
-            raise ValueError('Forward operator is not oriented in surface '
-                             'coordinates. loose parameter should be None '
-                             'not %s.' % loose)
-
-        if is_fixed_ori:
-            warn('Ignoring loose parameter with forward operator '
-                 'with fixed orientation.')
+    loose = float(loose)
+    if not (0 <= loose <= 1):
+        raise ValueError('loose value should be smaller than 1 and bigger '
+                         'than 0, got %s.' % (loose,))
+    if loose < 1 and not forward['surf_ori']:
+        raise ValueError('Forward operator is not oriented in surface '
+                         'coordinates. loose parameter should be 1 '
+                         'not %s.' % loose)
+    if is_fixed_ori and loose != 0:
+        raise ValueError('loose must be 0. with forward operator '
+                         'with fixed orientation.')
 
     orient_prior = np.ones(n_sources, dtype=np.float)
-    if (not is_fixed_ori) and (loose is not None) and (loose < 1):
+    if not is_fixed_ori and loose < 1:
         logger.info('Applying loose dipole orientations. Loose value '
                     'of %s.' % loose)
         orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose
@@ -1188,7 +1191,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, info, start=None, stop=None,
+def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=None,
                   verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
@@ -1205,7 +1208,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     Parameters
     ----------
     fwd : Forward
-        Forward operator to use. Has to be fixed-orientation.
+        Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
     info : instance of Info
@@ -1214,6 +1217,11 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
+    use_cps : None | bool (default None)
+        Whether to use cortical patch statistics to define normal
+        orientations when converting to fixed orientation (if necessary).
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1234,6 +1242,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
                              'evoked_template.' % ch_name)
 
     # project the source estimate to the sensor space
+    if not is_fixed_orient(fwd):
+        fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=use_cps)
     data, times = _apply_forward(fwd, stc, start, stop)
 
     # fill the measurement info

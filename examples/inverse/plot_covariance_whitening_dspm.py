@@ -73,7 +73,6 @@ src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
                              add_dist=False)
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(raw.info, trans, src, bem)
-forward = mne.convert_forward_solution(forward, surf_ori=True)
 del src
 
 # inverse parameters
