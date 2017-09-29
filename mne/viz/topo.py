@@ -395,7 +395,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
             s += '%7.2f %s' % (data_[ch_idx, idx], unit)
             if trunc_labels:
                 label = (label if len(label) <= 10 else
-                         '%s..%s' % (label[:7], label[-1]))
+                         '%s..%s' % (label[:6], label[-2:]))
             s += ' [%s] ' % label if label else ' '
         return s
 
