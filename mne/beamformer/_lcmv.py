@@ -57,9 +57,9 @@ def _eig_inv(x, rank):
     # pseudoinverse is computed by setting eigenvalues not included in
     # signalspace to zero
     s_inv = np.zeros(s.shape)
-    s_inv[:rank] = 1 / s[:rank]
+    s_inv[:rank] = 1. / s[:rank]
 
-    x_inv = np.dot(V.T, np.dot(np.diag(s_inv), U.T))
+    x_inv = np.dot(V.T, s_inv[:, np.newaxis] * U.T)
     return x_inv
 
 
@@ -179,11 +179,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed,
         if None, the unit-gain LCMV beamformer [2]_ will be computed.
-    reduce_rank : bool | int
-        If specified, the rank of the leadfield will be reduced. True will
-        reduce the rank by 1. The rank can also be specified as integer.
-        Setting reduce_rank to True is typically necessary if you use a single
-        sphere model for MEG.
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a single sphere model for MEG.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -256,21 +255,15 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     del Cm
 
     # leadfield rank and optional rank reduction
-    if reduce_rank is not False:
+    if reduce_rank:
         if not pick_ori == 'max-power':
-            raise NotImplementedError('The computation of a rank reduced '
-                                      'leadfield with reduce_rank is not yet '
-                                      'implemented with free or fixed '
-                                      'orientation of the forward solution.')
-        if isinstance(reduce_rank, bool):
-            rank_G = estimate_rank(G[:, 0:3], tol='auto') - 1
-        else:
-            rank_G = reduce_rank
-
-        if rank_G <= 0:
-            raise ValueError('Cannot reduce rank of leadfield to %i.' % rank_G)
-    else:
-        rank_G = estimate_rank(G[:, 0:3], tol='auto')
+            raise NotImplementedError('The computation of spatial filters '
+                                      'with rank reduction using reduce_rank '
+                                      'parameter is not yet implemented with '
+                                      'pick_ori=="max-power".')
+        if not isinstance(reduce_rank, bool):
+            raise ValueError('reduce_rank has to be True or False '
+                             ' (got %s).' % reduce_rank)
 
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
@@ -292,13 +285,13 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 # based on [2]_, Eq. 4.47
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
 
-                if rank_G == 3:
-                    # use straight inverse with full rank leadfield
-                    tmp_inv = linalg.inv(tmp)
-                else:
+                if reduce_rank:
                     # use pseudo inverse computation setting smallest component
                     # to zero if the leadfield is not full rank
-                    tmp_inv = _eig_inv(tmp, rank_G)
+                    tmp_inv = _eig_inv(tmp, tmp.shape[0] - 1)
+                else:
+                    # use straight inverse with full rank leadfield
+                    tmp_inv = linalg.inv(tmp)
 
                 eig_vals, eig_vecs = linalg.eig(np.dot(tmp_inv,
                                                        np.dot(Wk, Gk)))
@@ -594,7 +587,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
 
     sel = _pick_channels_spatial_filter(epochs.ch_names, filters)
     data = epochs.get_data()[:, sel, :]
-    stcs = _apply_lcmv(data=data,  filters=filters, info=info,
+    stcs = _apply_lcmv(data=data, filters=filters, info=info,
                        tmin=tmin, max_ori_out=max_ori_out)
 
     if not return_generator:
@@ -714,11 +707,11 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         if 'signed', the signed source space time series will be returned.
         'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
         'signed' to remove this warning.
-    reduce_rank : bool | int
-        If specified, the rank of the leadfield will be reduced. True will
-        reduce the rank by 1. The rank can also be specified as integer.
-        Setting reduce_rank to True is typically necessary if you use a single
-        sphere model for MEG.
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a sphere model for MEG as in this case the actual
+        rank is 2 not 3.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -822,11 +815,11 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
         if 'signed', the signed source space time series will be returned.
         'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
         'signed' to remove this warning.
-    reduce_rank : bool | int
-        If specified, the rank of the leadfield will be reduced. True will
-        reduce the rank by 1. The rank can also be specified as integer.
-        Setting reduce_rank to True is typically necessary if you use a single
-        sphere model for MEG.
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a sphere model for MEG as in this case the actual
+        rank is 2 not 3.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -935,11 +928,11 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
         if 'signed', the signed source space time series will be returned.
         'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
         'signed' to remove this warning.
-    reduce_rank : bool | int
-        If specified, the rank of the leadfield will be reduced. True will
-        reduce the rank by 1. The rank can also be specified as integer.
-        Setting reduce_rank to True is typically necessary if you use a single
-        sphere model for MEG.
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a sphere model for MEG as in this case the actual
+        rank is 2 not 3.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).

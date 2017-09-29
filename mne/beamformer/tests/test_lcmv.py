@@ -184,9 +184,15 @@ def test_lcmv():
     fwd_sphere = mne.make_forward_solution(evoked.info, trans=None, src=src,
                                            bem=sphere, eeg=False, meg=True)
 
+    # Test that we get an error is not reducing rank
+    assert_raises(ValueError, lcmv, evoked, fwd_sphere, noise_cov, data_cov,
+                  reg=0.1, weight_norm='unit-noise-gain', pick_ori="max-power",
+                  reduce_rank=False)
+
+    # Now let's reduce it
     stc_sphere = lcmv(evoked, fwd_sphere, noise_cov, data_cov, reg=0.1,
                       weight_norm='unit-noise-gain', pick_ori="max-power",
-                      reduce_rank=2)
+                      reduce_rank=True)
     stc_sphere.crop(0.02, None)
 
     stc_pow = np.sum(np.abs(stc_sphere.data), axis=1)
@@ -253,8 +259,8 @@ def test_lcmv():
     assert_raises(ValueError, apply_lcmv_raw, raw_proj, filters,
                   max_ori_out='signed')
 
-    # Test if setting reduce_rank to True returns an error with not-yet-
-    # implemented orientation selections
+    # Test if setting reduce_rank to True returns a NotImplementedError
+    # when no orientation selection is done or pick_ori='normal'
     assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
                   data_cov, pick_ori=None, weight_norm='nai', reduce_rank=True,
                   max_ori_out='signed')
