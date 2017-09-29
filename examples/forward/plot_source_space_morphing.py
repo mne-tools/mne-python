@@ -44,7 +44,6 @@ src_morph = mne.morph_source_spaces(src_fs, subject_to='sample',
 # Compute the forward with our morphed source space
 fwd = mne.make_forward_solution(info, trans=fname_trans,
                                 src=src_morph, bem=fname_bem)
-# fwd = mne.convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
 mag_map = mne.sensitivity_map(fwd, ch_type='mag')
 
 # Return this SourceEstimate (on sample's surfaces) to fsaverage's surfaces

@@ -355,27 +355,24 @@ def test_apply_inverse_operator():
 @testing.requires_testing_data
 def test_make_inverse_operator_fixed():
     """Test MNE inverse computation (fixed orientation)."""
-    fwd_1 = read_forward_solution_meg(fname_fwd, surf_ori=False,
-                                      force_fixed=False)
+    fwd = read_forward_solution_meg(fname_fwd)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 
-    # can't make depth-weighted fixed inv without surf ori fwd
-    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_1,
-                  noise_cov, depth=0.8, fixed=True)
     # can't make fixed inv with depth weighting without free ori fwd
-    fwd_2 = convert_forward_solution(fwd_1, force_fixed=True)
-    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
+    fwd_fixed = convert_forward_solution(fwd, force_fixed=True,
+                                         use_cps=True)
+    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
                   noise_cov, depth=0.8, fixed=True)
 
     # now compare to C solution
     # note that the forward solution must not be surface-oriented
     # to get equivalency (surf_ori=True changes the normals)
-    inv_op = make_inverse_operator(evoked.info, fwd_2, noise_cov, depth=None,
-                                   fixed=True)
+    inv_op = make_inverse_operator(evoked.info, fwd, noise_cov, depth=None,
+                                   fixed=True, use_cps=False)
     assert 'EEG channels: 0' in repr(inv_op)
     assert 'MEG channels: 305' in repr(inv_op)
-    del fwd_2
+    del fwd_fixed
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
     # XXX We should have this but we don't (MNE-C doesn't restrict info):
     # assert 'EEG channels: 0' in repr(inverse_operator_nodepth)
@@ -385,15 +382,18 @@ def test_make_inverse_operator_fixed():
     # Inverse has 306 channels - 6 proj = 302
     assert_true(compute_rank_inverse(inverse_operator_nodepth) == 302)
     # Now with depth
-    fwd_3 = convert_forward_solution(fwd_1, surf_ori=True)  # not fixed
-    inv_op_depth = make_inverse_operator(
-        evoked.info, fwd_3, noise_cov, depth=0.8, fixed=True, use_cps=True)
-    inverse_operator_depth = read_inverse_operator(fname_inv_fixed_depth)
-    # Normals should be the adjusted ones
-    assert_allclose(inverse_operator_depth['source_nn'],
-                    fwd_3['source_nn'][2::3], atol=1e-5)
-    _compare_inverses_approx(inverse_operator_depth, inv_op_depth, evoked,
-                             rtol=1e-3, atol=1e-4)
+    fwd_surf = convert_forward_solution(fwd, surf_ori=True)  # not fixed
+    for kwargs, use_fwd in zip([dict(fixed=True), dict(loose=0.)],
+                               [fwd, fwd_surf]):  # Should be equiv.
+        inv_op_depth = make_inverse_operator(
+            evoked.info, use_fwd, noise_cov, depth=0.8, use_cps=True,
+            **kwargs)
+        inverse_operator_depth = read_inverse_operator(fname_inv_fixed_depth)
+        # Normals should be the adjusted ones
+        assert_allclose(inverse_operator_depth['source_nn'],
+                        fwd_surf['source_nn'][2::3], atol=1e-5)
+        _compare_inverses_approx(inverse_operator_depth, inv_op_depth, evoked,
+                                 rtol=1e-3, atol=1e-4)
 
 
 @testing.requires_testing_data
@@ -429,8 +429,10 @@ def test_make_inverse_operator_vector():
 
     # Make different version of the inverse operator
     inv_1 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov, loose=1)
-    inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None)
-    inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True)
+    inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None,
+                                  use_cps=True)
+    inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True,
+                                  use_cps=True)
     inv_4 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov,
                                   loose=.2, depth=None)
 
@@ -597,9 +599,10 @@ def test_apply_mne_inverse_fixed_raw():
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=False,
                                     surf_ori=True)
     noise_cov = read_cov(fname_cov)
+    assert_raises(ValueError, make_inverse_operator,
+                  raw.info, fwd, noise_cov, loose=1., fixed=True)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
-                                   loose=1., depth=0.8, fixed=True,
-                                   use_cps=True)
+                                   fixed=True, use_cps=True)
 
     inv_op2 = prepare_inverse_operator(inv_op, nave=1,
                                        lambda2=lambda2, method="dSPM")

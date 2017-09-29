@@ -34,8 +34,6 @@ ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 fwd = mne.read_forward_solution(fwd_fname)
-fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True,
-                                   use_cps=True)
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
 cov = mne.read_cov(cov_fname)
 info = mne.io.read_info(ave_fname)
@@ -65,7 +63,8 @@ stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 iir_filter = fit_iir_model_raw(raw, order=5, picks=picks, tmin=60, tmax=180)[1]
 nave = 100  # simulate average of 100 epochs
-evoked = simulate_evoked(fwd, stc, info, cov, nave=nave, iir_filter=iir_filter)
+evoked = simulate_evoked(fwd, stc, info, cov, nave=nave, use_cps=True,
+                         iir_filter=iir_filter)
 
 ###############################################################################
 # Plot

@@ -16,8 +16,8 @@ from ..utils import check_random_state, verbose, _time_mask, warn, deprecated
 
 @verbose
 def simulate_evoked(fwd, stc, info, cov, nave=30, tmin=None, tmax=None,
-                    iir_filter=None, random_state=None, verbose=None,
-                    snr=None):
+                    iir_filter=None, random_state=None, snr=None, use_cps=None,
+                    verbose=None):
     """Generate noisy evoked data.
 
     .. note:: No projections from ``info`` will be present in the
@@ -50,13 +50,18 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, tmin=None, tmax=None,
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
     snr : float
         signal to noise ratio in dB. It corresponds to
         ``10 * log10( var(signal) / var(noise) )``.
         snr is deprecated and will be removed in 0.16.
+    use_cps : None | bool (default None)
+        Whether to use cortical patch statistics to define normal
+        orientations when converting to fixed orientation (if necessary).
+
+        .. versionadded:: 0.15
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -95,7 +100,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, tmin=None, tmax=None,
              'None to remove this warning.',
              DeprecationWarning)
 
-    evoked = apply_forward(fwd, stc, info)
+    evoked = apply_forward(fwd, stc, info, use_cps=use_cps)
     if nave < np.inf:
         noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
 

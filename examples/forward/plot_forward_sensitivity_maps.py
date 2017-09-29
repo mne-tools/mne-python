@@ -29,7 +29,7 @@ subjects_dir = data_path + '/subjects'
 
 # Read the forward solutions with surface orientation
 fwd = mne.read_forward_solution(fwd_fname)
-fwd = mne.convert_forward_solution(fwd, surf_ori=True)
+mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
 leadfield = fwd['sol']['data']
 print("Leadfield size : %d x %d" % leadfield.shape)
 

@@ -1191,7 +1191,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, info, start=None, stop=None,
+def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=None,
                   verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
@@ -1208,7 +1208,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     Parameters
     ----------
     fwd : Forward
-        Forward operator to use. Has to be fixed-orientation.
+        Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
     info : instance of Info
@@ -1217,6 +1217,11 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
+    use_cps : None | bool (default None)
+        Whether to use cortical patch statistics to define normal
+        orientations when converting to fixed orientation (if necessary).
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1237,6 +1242,8 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
                              'evoked_template.' % ch_name)
 
     # project the source estimate to the sensor space
+    if not is_fixed_orient(fwd):
+        fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=use_cps)
     data, times = _apply_forward(fwd, stc, start, stop)
 
     # fill the measurement info

@@ -106,7 +106,6 @@ evoked[0].plot_field(maps, time=0.170)
 src = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(contrast.info, trans_fname, src, bem)
-forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 ###############################################################################
 # Compute inverse solution
