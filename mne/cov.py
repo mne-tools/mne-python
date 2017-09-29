@@ -1692,7 +1692,6 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
     if picks is None:
         picks = pick_types(evoked.info, meg=True, eeg=True)
 
-    scalings = _handle_default('scalings', None)
     W, rank = compute_whitener(noise_cov, evoked.info, picks=picks,
                                diag=diag, rank=rank, scalings=scalings)
 
