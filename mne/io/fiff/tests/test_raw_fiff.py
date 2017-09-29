@@ -1030,7 +1030,8 @@ def test_resample():
     # test resampling events: this should no longer give a warning
     # we often have first_samp != 0, include it here too
     stim = [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0]
-    o_sfreq, sfreq_ratio = len(stim), 0.5  # halve the sfreq
+    # test is on half the sfreq, but should work with trickier ones too
+    o_sfreq, sfreq_ratio = len(stim), 0.5
     n_sfreq = o_sfreq * sfreq_ratio
     first_samp = len(stim) // 2
     raw = RawArray([stim], create_info(1, o_sfreq, ['stim']),
