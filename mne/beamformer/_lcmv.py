@@ -296,8 +296,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                     except np.linalg.linalg.LinAlgError:
                         raise ValueError('Singular matrix detected when '
                                          'estimating LCMV filters. Consider '
-                                         'reducing the rank of the leadfield by '
-                                         'using reduce_rank=True.')
+                                         'reducing the rank of the leadfield '
+                                         'by using reduce_rank=True.')
 
                 eig_vals, eig_vecs = linalg.eig(np.dot(tmp_inv,
                                                        np.dot(Wk, Gk)))
