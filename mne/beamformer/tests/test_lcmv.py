@@ -122,7 +122,8 @@ def test_lcmv():
         if fwd is forward:
             # Test picking normal orientation (surface source space only)
             stc_normal = lcmv(evoked, forward_surf_ori, noise_cov,
-                              data_cov, reg=0.01, pick_ori="normal")
+                              data_cov, reg=0.01, pick_ori="normal",
+                              max_ori_out='signed')
             stc_normal.crop(0.02, None)
 
             stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
@@ -192,10 +193,11 @@ def test_lcmv():
     # Now let's reduce it
     stc_sphere = lcmv(evoked, fwd_sphere, noise_cov, data_cov, reg=0.1,
                       weight_norm='unit-noise-gain', pick_ori="max-power",
-                      reduce_rank=True)
+                      reduce_rank=True, max_ori_out='signed')
+    stc_sphere = np.abs(stc_sphere)
     stc_sphere.crop(0.02, None)
 
-    stc_pow = np.sum(np.abs(stc_sphere.data), axis=1)
+    stc_pow = np.sum(stc_sphere.data, axis=1)
     idx = np.argmax(stc_pow)
     max_stc = stc_sphere.data[idx]
     tmax = stc_sphere.times[np.argmax(max_stc)]
@@ -271,9 +273,10 @@ def test_lcmv():
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
     stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                       reg=0.01)
+                       reg=0.01, max_ori_out='signed')
     stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                        reg=0.01, return_generator=True)
+                        reg=0.01, return_generator=True,
+                        max_ori_out='signed')
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     epochs.drop_bad()
@@ -286,13 +289,14 @@ def test_lcmv():
     stc_avg /= len(stcs)
 
     # compare it to the solution using evoked with fixed orientation
-    stc_fixed = lcmv(evoked, forward_fixed, noise_cov, data_cov, reg=0.01)
+    stc_fixed = lcmv(evoked, forward_fixed, noise_cov, data_cov, reg=0.01,
+                     max_ori_out='signed')
     assert_array_almost_equal(stc_avg, stc_fixed.data)
 
     # use a label so we have few source vertices and delayed computation is
     # not used
     stcs_label = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                             reg=0.01, label=label)
+                             reg=0.01, label=label, max_ori_out='signed')
 
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
@@ -309,7 +313,8 @@ def test_lcmv_raw():
     # use only the left-temporal MEG channels for LCMV
     data_cov = mne.compute_raw_covariance(raw, tmin=tmin, tmax=tmax)
     stc = lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01,
-                   label=label, start=start, stop=stop)
+                   label=label, start=start, stop=stop,
+                   max_ori_out='signed')
 
     assert_array_almost_equal(np.array([tmin, tmax]),
                               np.array([stc.times[0], stc.times[-1]]),
