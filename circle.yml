@@ -65,6 +65,7 @@ dependencies:
     - which pip;
     - cat /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py | grep "ENABLE_USER_SITE"
     - pip install --upgrade pyface;
+    - pip install --upgrade git+https://github.com/enthought/mayavi.git
     - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
     - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
     - pip install sphinx_bootstrap_theme pysurfer nilearn neo numpydoc;
