@@ -176,7 +176,7 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
 
 @verbose
-def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
+def _make_dipoles_sparse(X, X_ori, active_set, forward, tmin, tstep, M, M_est,
                          active_is_idx=False, verbose=None):
 
     times = tmin + tstep * np.arange(X.shape[1])
@@ -201,6 +201,7 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
         i_pos = forward['source_rr'][i_dip][np.newaxis, :]
         i_pos = i_pos.repeat(len(times), axis=0)
         X_ = X[k * n_dip_per_pos: (k + 1) * n_dip_per_pos]
+        X_ori_ = X_ori[k * n_dip_per_pos: (k + 1) * n_dip_per_pos]
         if n_dip_per_pos == 1:
             amplitude = X_[0]
             i_ori = forward['source_nn'][i_dip][np.newaxis, :]
@@ -209,10 +210,13 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
             if forward['surf_ori']:
                 X_ = np.dot(forward['source_nn'][i_dip *
                             n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
-            amplitude = np.sqrt(np.sum(X_ ** 2, axis=0))
+
+            amplitude = np.sqrt(np.sum(X_ori_ ** 2, axis=0))
             i_ori = np.zeros((len(times), 3))
-            i_ori[amplitude > 0.] = (X_[:, amplitude > 0.] /
+            i_ori[amplitude > 0.] = (X_ori_[:, amplitude > 0.] /
                                      amplitude[amplitude > 0.]).T
+
+            amplitude = np.sqrt(np.sum(X_ ** 2, axis=0))
         dipoles.append(Dipole(times, i_pos, amplitude, i_ori, gof))
 
     return dipoles
@@ -435,8 +439,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         raise Exception("No active dipoles found. alpha is too big.")
 
     # Reapply weights to have correct unit
+    X_ori = X.copy()
     X = _reapply_source_weighting(X, source_weighting,
                                   active_set, n_dip_per_pos)
+    X_ori /= source_weighting[active_set][:, None]
 
     outs = list()
     residual = list()
@@ -445,11 +451,13 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         tmin = e.times[0]
         tstep = 1.0 / e.info['sfreq']
         Xe = X[:, cnt:(cnt + len(e.times))]
+        Xe_ori = X_ori[:, cnt:(cnt + len(e.times))]
         if return_as_dipoles:
             out = _make_dipoles_sparse(
-                Xe, active_set, forward, tmin, tstep,
+                Xe, Xe_ori, active_set, forward, tmin, tstep,
                 M[:, cnt:(cnt + len(e.times))],
-                M_estimated[:, cnt:(cnt + len(e.times))], verbose=None)
+                M_estimated[:, cnt:(cnt + len(e.times))],
+                verbose=None)
         else:
             out = _make_sparse_stc(Xe, active_set, forward, tmin, tstep)
         outs.append(out)
