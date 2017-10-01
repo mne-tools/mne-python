@@ -4,13 +4,14 @@ Compute Rap-Music on evoked data
 ================================
 
 Compute a Recursively Applied and Projected MUltiple Signal Classification
-(RAP-MUSIC) on evoked dataset.
+(RAP-MUSIC) [1]_ on evoked data.
 
-The reference for Rap-Music is:
-J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
-applied and projected (RAP) MUSIC. Trans. Sig. Proc. 47, 2
-(February 1999), 332-340.
-DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
+References
+----------
+.. [1] J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
+       applied and projected (RAP) MUSIC. Trans. Sig. Proc. 47, 2
+       (February 1999), 332-340.
+       DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
 """
 
 # Author: Yousra Bekhti <yousra.bekhti@gmail.com>
