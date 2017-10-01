@@ -13,7 +13,7 @@ from mne import compute_covariance
 from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_raw, lcmv,
                             lcmv_epochs, lcmv_raw, tf_lcmv)
-from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv
+from mne.beamformer._lcmv import _lcmv_source_power, _reg_pinv, _eig_inv
 from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main
 
@@ -122,7 +122,8 @@ def test_lcmv():
         if fwd is forward:
             # Test picking normal orientation (surface source space only)
             stc_normal = lcmv(evoked, forward_surf_ori, noise_cov,
-                              data_cov, reg=0.01, pick_ori="normal")
+                              data_cov, reg=0.01, pick_ori="normal",
+                              max_ori_out='signed')
             stc_normal.crop(0.02, None)
 
             stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
@@ -173,6 +174,36 @@ def test_lcmv():
         pearsoncorr = np.corrcoef(np.concatenate(np.abs(stc_nai.data)),
                                   np.concatenate(stc_max_power.data))
         assert_almost_equal(pearsoncorr[0, 1], 1.)
+
+    # Test sphere head model with unit-noise gain beamformer and orientation
+    # selection and rank reduction of the leadfield
+    sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
+    src = mne.setup_volume_source_space(subject=None, pos=15., mri=None,
+                                        sphere=(0.0, 0.0, 0.0, 80.0),
+                                        bem=None, mindist=5.0, exclude=2.0)
+
+    fwd_sphere = mne.make_forward_solution(evoked.info, trans=None, src=src,
+                                           bem=sphere, eeg=False, meg=True)
+
+    # Test that we get an error is not reducing rank
+    assert_raises(ValueError, lcmv, evoked, fwd_sphere, noise_cov, data_cov,
+                  reg=0.1, weight_norm='unit-noise-gain', pick_ori="max-power",
+                  reduce_rank=False)
+
+    # Now let's reduce it
+    stc_sphere = lcmv(evoked, fwd_sphere, noise_cov, data_cov, reg=0.1,
+                      weight_norm='unit-noise-gain', pick_ori="max-power",
+                      reduce_rank=True, max_ori_out='signed')
+    stc_sphere = np.abs(stc_sphere)
+    stc_sphere.crop(0.02, None)
+
+    stc_pow = np.sum(stc_sphere.data, axis=1)
+    idx = np.argmax(stc_pow)
+    max_stc = stc_sphere.data[idx]
+    tmax = stc_sphere.times[np.argmax(max_stc)]
+
+    assert_true(0.08 < tmax < 0.11, tmax)
+    assert_true(0.4 < np.max(max_stc) < 2., np.max(max_stc))
 
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
@@ -230,12 +261,22 @@ def test_lcmv():
     assert_raises(ValueError, apply_lcmv_raw, raw_proj, filters,
                   max_ori_out='signed')
 
+    # Test if setting reduce_rank to True returns a NotImplementedError
+    # when no orientation selection is done or pick_ori='normal'
+    assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
+                  data_cov, pick_ori=None, weight_norm='nai', reduce_rank=True,
+                  max_ori_out='signed')
+    assert_raises(NotImplementedError, lcmv, evoked, forward_surf_ori,
+                  noise_cov, data_cov, pick_ori='normal', weight_norm='nai',
+                  reduce_rank=True, max_ori_out='signed')
+
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
     stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                       reg=0.01)
+                       reg=0.01, max_ori_out='signed')
     stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                        reg=0.01, return_generator=True)
+                        reg=0.01, return_generator=True,
+                        max_ori_out='signed')
     assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     epochs.drop_bad()
@@ -248,13 +289,14 @@ def test_lcmv():
     stc_avg /= len(stcs)
 
     # compare it to the solution using evoked with fixed orientation
-    stc_fixed = lcmv(evoked, forward_fixed, noise_cov, data_cov, reg=0.01)
+    stc_fixed = lcmv(evoked, forward_fixed, noise_cov, data_cov, reg=0.01,
+                     max_ori_out='signed')
     assert_array_almost_equal(stc_avg, stc_fixed.data)
 
     # use a label so we have few source vertices and delayed computation is
     # not used
     stcs_label = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
-                             reg=0.01, label=label)
+                             reg=0.01, label=label, max_ori_out='signed')
 
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
@@ -271,7 +313,8 @@ def test_lcmv_raw():
     # use only the left-temporal MEG channels for LCMV
     data_cov = mne.compute_raw_covariance(raw, tmin=tmin, tmax=tmax)
     stc = lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01,
-                   label=label, start=start, stop=stop)
+                   label=label, start=start, stop=stop,
+                   max_ori_out='signed')
 
     assert_array_almost_equal(np.array([tmin, tmax]),
                               np.array([stc.times[0], stc.times[-1]]),
@@ -466,6 +509,18 @@ def test_reg_pinv():
     with warnings.catch_warnings(record=True) as w:
         _reg_pinv(a, reg=0.)
     assert_true(any('deficient' in str(ww.message) for ww in w))
+
+
+def test_eig_inv():
+    """Test matrix pseudoinversion with setting smallest eigenvalue to zero."""
+    # create rank-deficient array
+    a = np.array([[1., 0., 1.], [0., 1., 0.], [1., 0., 1.]])
+
+    # test inversion
+    a_inv = np.linalg.pinv(a)
+    a_inv_eig = _eig_inv(a, 2)
+
+    assert_almost_equal(a_inv, a_inv_eig)
 
 
 run_tests_if_main()

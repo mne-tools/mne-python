@@ -50,6 +50,19 @@ def _reg_pinv(x, reg):
     return linalg.pinv(x), d
 
 
+def _eig_inv(x, rank):
+    """Compute a pseudoinverse with smallest component set to zero."""
+    U, s, V = linalg.svd(x)
+
+    # pseudoinverse is computed by setting eigenvalues not included in
+    # signalspace to zero
+    s_inv = np.zeros(s.shape)
+    s_inv[:rank] = 1. / s[:rank]
+
+    x_inv = np.dot(V.T, s_inv[:, np.newaxis] * U.T)
+    return x_inv
+
+
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
     """Return good channels common to forward model and covariance matrices."""
     # get a list of all channel names:
@@ -127,8 +140,8 @@ def _check_cov_matrix(data_cov):
 
 @verbose
 def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
-              pick_ori=None, rank=None,
-              weight_norm='unit-noise-gain', verbose=None):
+              pick_ori=None, rank=None, weight_norm='unit-noise-gain',
+              reduce_rank=False, verbose=None):
     """Compute LCMV spatial filter.
 
     Parameters
@@ -166,6 +179,10 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed,
         if None, the unit-gain LCMV beamformer [2]_ will be computed.
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a single sphere model for MEG.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -237,6 +254,17 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
 
     del Cm
 
+    # leadfield rank and optional rank reduction
+    if reduce_rank:
+        if not pick_ori == 'max-power':
+            raise NotImplementedError('The computation of spatial filters '
+                                      'with rank reduction using reduce_rank '
+                                      'parameter is not yet implemented with '
+                                      'pick_ori=="max-power".')
+        if not isinstance(reduce_rank, bool):
+            raise ValueError('reduce_rank has to be True or False '
+                             ' (got %s).' % reduce_rank)
+
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
     n_orient = 3 if is_free_ori else 1
@@ -256,8 +284,30 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 # finding optimal orientation for NAI and unit-noise-gain
                 # based on [2]_, Eq. 4.47
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-                eig_vals, eig_vecs = linalg.eig(np.dot(linalg.pinv(tmp),
+
+                if reduce_rank:
+                    # use pseudo inverse computation setting smallest component
+                    # to zero if the leadfield is not full rank
+                    tmp_inv = _eig_inv(tmp, tmp.shape[0] - 1)
+                else:
+                    # use straight inverse with full rank leadfield
+                    try:
+                        tmp_inv = linalg.inv(tmp)
+                    except np.linalg.linalg.LinAlgError:
+                        raise ValueError('Singular matrix detected when '
+                                         'estimating LCMV filters. Consider '
+                                         'reducing the rank of the leadfield '
+                                         'by using reduce_rank=True.')
+
+                eig_vals, eig_vecs = linalg.eig(np.dot(tmp_inv,
                                                        np.dot(Wk, Gk)))
+
+                if np.iscomplex(eig_vecs).any():
+                    raise ValueError('The eigenspectrum of the leadfield at '
+                                     'this voxel is complex. Consider '
+                                     'reducing the rank of the leadfield by '
+                                     'using reduce_rank=True.')
+
                 idx_max = eig_vals.argmax()
                 max_ori = eig_vecs[:, idx_max]
                 Wk[:] = np.dot(max_ori, Wk)
@@ -544,7 +594,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
 
     sel = _pick_channels_spatial_filter(epochs.ch_names, filters)
     data = epochs.get_data()[:, sel, :]
-    stcs = _apply_lcmv(data=data,  filters=filters, info=info,
+    stcs = _apply_lcmv(data=data, filters=filters, info=info,
                        tmin=tmin, max_ori_out=max_ori_out)
 
     if not return_generator:
@@ -612,7 +662,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='abs',
 @verbose
 def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
          pick_ori=None, picks=None, rank=None, weight_norm='unit-noise-gain',
-         max_ori_out='abs', verbose=None):
+         max_ori_out='abs', reduce_rank=False, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -664,6 +714,15 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         if 'signed', the signed source space time series will be returned.
         'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
         'signed' to remove this warning.
+
+        .. versionadded:: 0.15.0
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a sphere model for MEG as in this case the actual
+        rank is 2 not 3.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -699,7 +758,8 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     # construct spatial filter
     filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
-                        pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
+                        pick_ori=pick_ori, rank=rank, weight_norm=weight_norm,
+                        reduce_rank=reduce_rank)
 
     # apply spatial filter to evoked data
     stc = apply_lcmv(evoked=evoked, filters=filters, max_ori_out=max_ori_out)
@@ -711,7 +771,7 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
                 pick_ori=None, return_generator=False, picks=None, rank=None,
                 weight_norm='unit-noise-gain', max_ori_out='abs',
-                verbose=None):
+                reduce_rank=False, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -766,6 +826,15 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
         if 'signed', the signed source space time series will be returned.
         'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
         'signed' to remove this warning.
+
+        .. versionadded:: 0.15.0
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a sphere model for MEG as in this case the actual
+        rank is 2 not 3.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -801,7 +870,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     # construct spatial filter
     filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
-                        pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
+                        pick_ori=pick_ori, rank=rank, weight_norm=weight_norm,
+                        reduce_rank=reduce_rank)
 
     # apply spatial filter to epochs
     stcs = apply_lcmv_epochs(epochs=epochs, filters=filters,
@@ -814,7 +884,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 @verbose
 def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
              start=None, stop=None, picks=None, pick_ori=None, rank=None,
-             weight_norm='unit-noise-gain', max_ori_out='abs', verbose=None):
+             weight_norm='unit-noise-gain', max_ori_out='abs',
+             reduce_rank=False, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -872,6 +943,11 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
         if 'signed', the signed source space time series will be returned.
         'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
         'signed' to remove this warning.
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a sphere model for MEG as in this case the actual
+        rank is 2 not 3.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -907,7 +983,8 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     # construct spatial filter
     filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
-                        pick_ori=pick_ori, rank=rank, weight_norm=weight_norm)
+                        pick_ori=pick_ori, rank=rank, weight_norm=weight_norm,
+                        reduce_rank=reduce_rank)
 
     # apply spatial filter to epochs
     stc = apply_lcmv_raw(raw=raw, filters=filters, start=start, stop=stop,
