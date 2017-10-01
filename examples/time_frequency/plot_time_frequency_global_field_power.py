@@ -104,7 +104,7 @@ for band, fmin, fmax in iter_freqs:
 # We see dominant responses in the Alpha and Beta bands.
 
 fig, axes = plt.subplots(4, 1, figsize=(10, 7), sharex=True, sharey=True)
-colors = plt.cm.viridis((0.1, 0.35, 0.75, 0.95))
+colors = plt.get_cmap('winter_r')(np.linspace(0, 1, 4))
 for ((freq_name, fmin, fmax), average), color, ax in zip(
         frequency_map, colors, axes.ravel()[::-1]):
     times = average.times * 1e3
