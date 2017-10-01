@@ -170,7 +170,7 @@ X_plt = scale(np.hstack(X[:2]).T).T
 y_plt = scale(np.hstack(y[:2]))
 time = np.arange(X_plt.shape[-1]) / sfreq
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6), sharex=True)
-ax1.pcolormesh(time, freqs, X_plt, vmin=0, vmax=4, cmap='viridis')
+ax1.pcolormesh(time, freqs, X_plt, vmin=0, vmax=4, cmap='Reds')
 ax1.set_title('Input auditory features')
 ax1.set(ylim=[freqs.min(), freqs.max()], ylabel='Frequency (Hz)')
 ax2.plot(time, y_plt)

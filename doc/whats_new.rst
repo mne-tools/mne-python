@@ -198,7 +198,7 @@ BUG
 
     - Fix treatment of CTF HPI coils as fiducial points in :func:`mne.gui.coregistration` by `Eric Larson`_
 
-    - Fix resampling of events along with raw in :func:`mne.io.base` to now take into consideration the value of ``first_samp`` by `Chris Bailey`_
+    - Fix resampling of events along with raw in :func:`mne.io.Raw` to now take into consideration the value of ``first_samp`` by `Chris Bailey`_
 
 API
 ~~~
@@ -252,13 +252,13 @@ API
 
     - ``loose`` parameter in inverse solvers has now a default value ``'auto'`` depending if the source space is a surface, volume, or discrete type by `Alex Gramfort`_ and `Yousra Bekhti`_
 
-    - The behavior of ``'mean_flip'`` label-flipping in :meth:`stc.extract_label_time_course` and related functions has been changed such that the flip, instead of having arbitrary sign, maximally aligns in the positive direction of the normals of the label, by `Eric Larson`_
+    - The behavior of ``'mean_flip'`` label-flipping in :meth:`mne.extract_label_time_course` and related functions has been changed such that the flip, instead of having arbitrary sign, maximally aligns in the positive direction of the normals of the label, by `Eric Larson`_
 
-    - Deprecate force_fixed and surf_ori in :func:`mne.forward.read_forward_solution` by `Daniel Strohmeier`_
+    - Deprecate force_fixed and surf_ori in :func:`mne.read_forward_solution` by `Daniel Strohmeier`_
 
-    - :func:`mne.forward.convert_forward_solution` has a new argument ``use_cps``, which controls wether information on cortical patch statistics is applied while generating surface-oriented forward solutions with free and fixed orientation by `Daniel Strohmeier`_
+    - :func:`mne.convert_forward_solution` has a new argument ``use_cps``, which controls wether information on cortical patch statistics is applied while generating surface-oriented forward solutions with free and fixed orientation by `Daniel Strohmeier`_
 
-    - :func:`mne.forward.write_forward_solution` writes a forward solution as a forward solution with free orientation in X/Y/Z RAS coordinates if it is derived from a forward solution with free orientation and as a forward solution with fixed orientation in surface-based local coordinates otherwise by `Daniel Strohmeier`_
+    - :func:`mne.write_forward_solution` writes a forward solution as a forward solution with free orientation in X/Y/Z RAS coordinates if it is derived from a forward solution with free orientation and as a forward solution with fixed orientation in surface-based local coordinates otherwise by `Daniel Strohmeier`_
 
     - ``loose=None`` in inverse solvers is deprecated, use explicitly ``loose=0`` for fixed constraint and ``loose=1.0`` for free orientations by `Eric Larson`_
 
