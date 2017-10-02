@@ -24,8 +24,7 @@ from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
 @verbose
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     mask = None
-    if isinstance(weights, SourceEstimate):
-        # weights = np.sqrt(np.sum(weights.data ** 2, axis=1))
+    if isinstance(weights, (SourceEstimate, VolSourceEstimate)):
         weights = np.max(np.abs(weights.data), axis=1)
     weights_max = np.max(weights)
     if weights_min > weights_max:
@@ -176,8 +175,11 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
 
 @verbose
-def _make_dipoles_sparse(X, X_ori, active_set, forward, tmin, tstep, M, M_est,
-                         active_is_idx=False, verbose=None):
+def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
+                         active_is_idx=False, X_ori=None, verbose=None):
+
+    if X_ori is None:
+        X_ori = X
 
     times = tmin + tstep * np.arange(X.shape[1])
 
@@ -454,10 +456,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         Xe_ori = X_ori[:, cnt:(cnt + len(e.times))]
         if return_as_dipoles:
             out = _make_dipoles_sparse(
-                Xe, Xe_ori, active_set, forward, tmin, tstep,
+                Xe, active_set, forward, tmin, tstep,
                 M[:, cnt:(cnt + len(e.times))],
                 M_estimated[:, cnt:(cnt + len(e.times))],
-                verbose=None)
+                X_ori=Xe_ori, verbose=None)
         else:
             out = _make_sparse_stc(Xe, active_set, forward, tmin, tstep)
         outs.append(out)
