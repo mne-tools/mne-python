@@ -548,18 +548,21 @@ def get_kit_info(rawfile, allow_unknown_format):
     """
     sqd = dict()
     sqd['rawfile'] = rawfile
+    unsupported_format = False
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
         fid.seek(16)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(basic_offset)
         # check file format version
         version, revision = unpack('2i', fid.read(2 * KIT.INT))
-        if (version < 2 or (version == 2 and revision < 3) and
-                not allow_unknown_format):
-            raise UnsupportedKITFormat(
-                "SQD file format V%iR%03i is not officially supported. Set "
-                "allow_unknown_format=True to load it anyways." %
-                (version, revision))
+        if version < 2 or (version == 2 and revision < 3):
+            if allow_unknown_format:
+                unsupported_format = True
+            else:
+                raise UnsupportedKITFormat(
+                    "SQD file format V%iR%03i is not officially supported. "
+                    "Set allow_unknown_format=True to load it anyways." %
+                    (version, revision))
 
         sysid = unpack('i', fid.read(KIT.INT))[0]
         # basic info
@@ -705,6 +708,9 @@ def get_kit_info(rawfile, allow_unknown_format):
                           "continuous nor epoched data." % (acq_type,))
 
     # precompute conversion factor for reading data
+    if unsupported_format:
+        adc_range = 5.
+        adc_stored = 11
     is_meg = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
     ad_to_volt = adc_range / (2. ** adc_stored)
     ad_to_tesla = ad_to_volt / amp_gain * channel_gain
