@@ -7,6 +7,7 @@
 from copy import deepcopy
 from distutils.version import LooseVersion
 import itertools as itt
+from collections import OrderedDict
 from math import log
 import os
 
@@ -28,6 +29,8 @@ from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
+from .io.proc_history import _get_rank_sss
+
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
@@ -850,6 +853,65 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         out.sort(key=lambda c: c['loglik'], reverse=True)
     else:
         out = covs[0]
+
+    return out
+
+
+def _merge_picks_list(picks_list):
+    """little helper to move between channel block picks."""
+    keys, picks_ = [list(ee) for ee in zip(*picks_list)]
+    picks_dict = dict(picks_list)
+    if 'mag' in keys and 'grad' in keys:
+        picks_meg = np.concatenate(
+            [picks_dict['mag'], picks_dict['grad']])
+        picks_meg = np.sort(picks_meg)
+        picks_dict['meg'] = picks_meg
+        # now update keys to reflect merge
+        meg_index = min(keys.index('mag'),
+                        keys.index('grad'))
+        keys.insert(meg_index, 'meg')
+        keys.remove('mag')
+        keys.remove('grad')
+
+    return [picks_dict[kk] for kk in keys]
+
+
+def _estimate_rank_by_type(picks_list, data, info, scalings):
+    out = dict()
+    # now go over indices and compute rank
+    picks_list_ = _merge_picks_list(picks_list)
+    for key, this_picks in picks_list_:
+        rank = _estimate_rank_meeg_signals(
+            data,
+            pick_info(info.copy(), this_picks),
+            scalings=scalings, tol='auto', return_singular=True)
+        out[key] = rank
+
+    return out
+
+
+def _match_proj_type(proj, ch_names):
+    """See if proj should be counted."""
+    proj_ch_names = proj['data']['col_names']
+    select = any(kk in ch_names for kk in proj_ch_names)
+    return select
+
+
+def _get_expected_rank_from_info(info, picks_list):
+    """lookup rank from info by type."""
+    out = dict()
+    # now go over indices and look up rank
+    picks_list_ = _merge_picks_list(picks_list)
+    has_sss = (info['proc_history'][0].get('max_info') is not None)
+    for key, this_picks in picks_list_:
+        this_info = pick_info(info.copy(), this_picks)
+        rank = len(this_picks)
+        if 'key' == 'meg' and has_sss:
+            rank = min(rank, _get_rank_sss(info))
+        n_ssp = sum(pp['active'] for pp in info['projs'] if
+                    _match_proj_type(pp, this_info['ch_names']))
+        rank -= n_ssp
+        out['key'] = rank
 
     return out
 
