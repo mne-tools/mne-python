@@ -1079,10 +1079,6 @@ class _RegCovariance(BaseEstimator):
 
     def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
                  store_precision=False, assume_centered=False):
-        from sklearn.covariance import EmpiricalCovariance
-        self.estimator = EmpiricalCovariance(
-            store_precision=store_precision,
-            assume_centered=assume_centered)
         self.info = info
         self.grad = grad
         self.mag = mag
@@ -1092,7 +1088,12 @@ class _RegCovariance(BaseEstimator):
 
     def fit(self, X):
         """Fit covariance model with classical diagonal regularization."""
-        self.covariance_ = self.estimator.fit(X).covariance_
+        from sklearn.covariance import EmpiricalCovariance
+        self.estimator_ = EmpiricalCovariance(
+            store_precision=self.store_precision,
+            assume_centered=self.assume_centered)
+
+        self.covariance_ = self.estimator_.fit(X).covariance_
         self.covariance_ = 0.5 * (self.covariance_ + self.covariance_.T)
         cov_ = Covariance(
             data=self.covariance_, names=self.info['ch_names'],
@@ -1101,16 +1102,16 @@ class _RegCovariance(BaseEstimator):
         cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
                           eeg=self.eeg, proj=False,
                           exclude='bads')  # ~proj == important!!
-        self.estimator.covariance_ = self.covariance_ = cov_.data
+        self.estimator_.covariance_ = self.covariance_ = cov_.data
         return self
 
     def score(self, X_test, y=None):
         """Delegate call to modified EmpiricalCovariance instance."""
-        return self.estimator.score(X_test, y=y)
+        return self.estimator_.score(X_test, y=y)
 
     def get_precision(self):
         """Delegate call to modified EmpiricalCovariance instance."""
-        return self.estimator.get_precision()
+        return self.estimator_.get_precision()
 
 
 class _ShrunkCovariance(BaseEstimator):
@@ -1118,10 +1119,6 @@ class _ShrunkCovariance(BaseEstimator):
 
     def __init__(self, store_precision, assume_centered,
                  shrinkage=0.1):
-        from sklearn.covariance import EmpiricalCovariance
-        self.estimator = EmpiricalCovariance(
-            store_precision=store_precision,
-            assume_centered=assume_centered)
 
         self.store_precision = store_precision
         self.assume_centered = assume_centered
@@ -1130,7 +1127,12 @@ class _ShrunkCovariance(BaseEstimator):
     def fit(self, X):
         """Fit covariance model with oracle shrinkage regularization."""
         from sklearn.covariance import shrunk_covariance
-        cov = self.estimator.fit(X).covariance_
+        from sklearn.covariance import EmpiricalCovariance
+        self.estimator_ = EmpiricalCovariance(
+            store_precision=self.store_precision,
+            assume_centered=self.assume_centered)
+
+        cov = self.estimator_.fit(X).covariance_
 
         if not isinstance(self.shrinkage, (list, tuple)):
             shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
@@ -1165,23 +1167,23 @@ class _ShrunkCovariance(BaseEstimator):
         if np.any(zero_cross_cov):
             cov[zero_cross_cov] = 0.0
 
-        self.estimator.covariance_ = self.covariance_ = cov
+        self.estimator_.covariance_ = self.covariance_ = cov
         return self
 
     def score(self, X_test, y=None):
         """Delegate to modified EmpiricalCovariance instance."""
         from sklearn.covariance import empirical_covariance, log_likelihood
         # compute empirical covariance of the test set
-        test_cov = empirical_covariance(X_test - self.estimator.location_,
+        test_cov = empirical_covariance(X_test - self.estimator_.location_,
                                         assume_centered=True)
         if np.any(self.zero_cross_cov_):
             test_cov[self.zero_cross_cov_] = 0.
-        res = log_likelihood(test_cov, self.estimator.get_precision())
+        res = log_likelihood(test_cov, self.estimator_.get_precision())
         return res
 
     def get_precision(self):
         """Delegate to modified EmpiricalCovariance instance."""
-        return self.estimator.get_precision()
+        return self.estimator_.get_precision()
 
 
 ###############################################################################
