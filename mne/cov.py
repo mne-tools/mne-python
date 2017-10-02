@@ -1061,12 +1061,12 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         # The right part of the cov has to be picked, reprojected if needed
         # and here the clipping has to happen.
         # XXX we need a rank dict here and clip conditional upon
-        # low rank patterns.
+        # low rank config.
         if has_sss:
+            # XXX the logic is broken here for EEG
             logger.info('reprojecting low-rank covariance')
             C_low = c[1]
-            C_full = np.zeros(
-                [sum(len(dd) for _, dd in picks_list)] * 2)
+            C_full = np.zeros([sum(len(dd) for _, dd in picks_list)] * 2)
 
             eeg_full_idx = None
             eeg_low_idx = None
@@ -1087,11 +1087,13 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             C_full[meg_full_idx] = pca_sss.inverse_transform(
                 pca_sss.inverse_transform(C_low[meg_low_idx]).T)
             if eeg_low_idx is not None:
+                #  XXX PCA not needed if it's not done for EEG.
                 C_full[eeg_full_idx] = pca_sss.inverse_transform(
                     pca_sss.inverse_transform(C_low[eeg_low_idx]).T)
-            c[1] = C_full
+            c[1] = C_full  # replace
 
         _undo_scaling_cov(c[1], picks_list, scalings)
+        # XXX clip here
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
