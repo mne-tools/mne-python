@@ -584,23 +584,23 @@ def test_compute_covariance_auto_reg():
                 cov_b['method'] == 'empirical'):
 
             assert_true(not np.any(
-                       cov_a['data'][diag_mask] ==
-                       cov_b['data'][diag_mask]))
+                        cov_a['data'][diag_mask] ==
+                        cov_b['data'][diag_mask]))
 
             # but the rest is the same
             assert_array_equal(
-               cov_a['data'][off_diag_mask],
-               cov_b['data'][off_diag_mask])
+                cov_a['data'][off_diag_mask],
+                cov_b['data'][off_diag_mask])
 
         else:
             # and here we have shrinkage everywhere.
             assert_true(not np.any(
-                       cov_a['data'][diag_mask] ==
-                       cov_b['data'][diag_mask]))
+                        cov_a['data'][diag_mask] ==
+                        cov_b['data'][diag_mask]))
 
             assert_true(not np.any(
-                       cov_a['data'][diag_mask] ==
-                       cov_b['data'][diag_mask]))
+                        cov_a['data'][diag_mask] ==
+                        cov_b['data'][diag_mask]))
 
     logliks = [c['loglik'] for c in covs]
     assert_true(np.diff(logliks).max() <= 0)  # descending order
@@ -622,5 +622,6 @@ def test_compute_covariance_auto_reg():
     # invalid scalings
     assert_raises(ValueError, compute_covariance, epochs, method='shrunk',
                   scalings=dict(misc=123))
+
 
 run_tests_if_main()
