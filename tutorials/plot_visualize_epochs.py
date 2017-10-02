@@ -10,8 +10,9 @@ import os.path as op
 import mne
 
 data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
-raw = mne.io.read_raw_fif(op.join(data_path, 'sample_audvis_raw.fif'
-                                  ), preload=True).load_data().filter(None, 9)
+raw = mne.io.read_raw_fif(
+    op.join(data_path, 'sample_audvis_raw.fif'), preload=True)
+raw.load_data().filter(None, 9, fir_design='firwin')
 raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
@@ -82,7 +83,7 @@ epochs.plot_image(278, cmap='interactive', sigma=1., vmin=-250, vmax=250)
 # ``group_by`` can also be used to group channels into arbitrary groups, e.g.
 # regions of interests, by providing a dictionary containing
 # group name -> channel indices mappings.
-epochs.plot_image(combine='gfp', group_by='type', sigma=2., cmap="inferno")
+epochs.plot_image(combine='gfp', group_by='type', sigma=2., cmap="YlGnBu_r")
 
 ###############################################################################
 # You also have functions for plotting channelwise information arranged into a
