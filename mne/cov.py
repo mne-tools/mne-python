@@ -952,9 +952,13 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     if len(info['proc_history']) > 0:
         has_sss = (info['proc_history'][0].get('max_info') is not
                    None and has_meg)
+
+    # check if SSS was done, in that case use PCA
+    # and create low rank data. Merge with EEG if needed.
+    # update picks and the keys (now "meg" instead of mag/grad)
     if has_sss:
         logger.info('Found SSS. Doing low-rank computation.')
-        rank = _get_rank_sss(info)
+        rank = _get_rank_sss(info)  # XXX or estimate on data.
         picks_list_ = _merge_picks_list(picks_list)
 
         pca_sss = PCA(n_components=rank, whiten=True)
@@ -970,6 +974,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         picks_list_ = picks_list
 
     estimator_cov_info = list()
+
+    # what follows is essentially as before.
 
     msg = 'Estimating covariance using %s'
     for this_method in method:
@@ -1024,7 +1030,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             sc.fit(data_)
             _info = None
             estimator_cov_info.append([sc, sc.covariance_, _info])
-        elif this_method == 'pca':
+        elif this_method == 'pca':  # XXX this is now nonsensical
             mp = method_params[this_method]
             pca, _info = _auto_low_rank_model(data_, this_method,
                                               n_jobs=n_jobs,
@@ -1033,7 +1039,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             pca.fit(data_)
             estimator_cov_info.append([pca, pca.get_covariance(), _info])
 
-        elif this_method == 'factor_analysis':
+        elif this_method == 'factor_analysis':  # XXX SSS case + EEG weird?
             mp = method_params[this_method]
             fa, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
                                              method_params=mp, cv=cv,
@@ -1051,6 +1057,11 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
     # undo scaling
     for c in estimator_cov_info:
+        # this is now a bit convoluted.
+        # The right part of the cov has to be picked, reprojected if needed
+        # and here the clipping has to happen.
+        # XXX we need a rank dict here and clip conditional upon
+        # low rank patterns.
         if has_sss:
             logger.info('reprojecting low-rank covariance')
             C_low = c[1]
