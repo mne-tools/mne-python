@@ -30,6 +30,7 @@ from mne import find_events, fit_dipole
 from mne.datasets.brainstorm import bst_phantom_elekta
 from mne.io import read_raw_fif
 
+from mayavi import mlab
 print(__doc__)
 
 ###############################################################################
@@ -137,3 +138,19 @@ ax3.set_ylabel('Amplitude error (nAm)')
 
 fig.tight_layout()
 plt.show()
+
+
+def plot_pos_ori(pos, ori, color=(0., 0., 0.)):
+    mlab.points3d(pos[0], pos[1], pos[2], scale_factor=0.005,
+                  color=color)
+    mlab.quiver3d(pos[0], pos[1], pos[2],
+                  ori[0], ori[1], ori[2],
+                  scale_factor=0.03,
+                  color=color)
+
+mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[])
+
+# Plot the position and the orientation of the actual dipole
+plot_pos_ori(actual_pos, actual_ori, color=(1., 0., 0.))
+# Plot the position and the orientation of the estimated dipole
+plot_pos_ori(dip.pos[0], dip.ori[0], color=(0., 0., 1.))
