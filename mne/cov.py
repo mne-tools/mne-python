@@ -939,10 +939,38 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         from sklearn.grid_search import GridSearchCV
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
+    from sklearn.decomposition import PCA
+    # remember that `picks_list` is a [(ch_type, picks), ...] list
+    # MEG sensors are not combined
 
     # rescale to improve numerical stability
     _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
+
+    ch_types, _ = zip(*picks_list)
+    has_meg = any(ch in ch_types for ch in ('mag', 'grad'))
+    has_sss = False
+    if len(info['proc_history']) > 0:
+        has_sss = (info['proc_history'][0].get('max_info') is not
+                   None and has_meg)
+    if has_sss:
+        logger.info('Found SSS. Doing low-rank computation.')
+        rank = _get_rank_sss(info)
+        picks_list_ = _merge_picks_list(picks_list)
+
+        pca_sss = PCA(n_components=rank, whiten=True)
+        _data = list()
+        for ch_type, picks in picks_list_:
+            if ch_type == 'meg':
+                _data.append(pca_sss.fit_transform(data[:, picks]))
+            else:
+                _data.append(data[:, picks])
+        data = np.concatenate(_data, axis=1)
+        del _data
+    else:
+        picks_list_ = picks_list
+
     estimator_cov_info = list()
+
     msg = 'Estimating covariance using %s'
     for this_method in method:
         data_ = data.copy()
@@ -953,19 +981,19 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             est = EmpiricalCovariance(**method_params[this_method])
             est.fit(data_)
             _info = None
-            estimator_cov_info.append((est, est.covariance_, _info))
+            estimator_cov_info.append([est, est.covariance_, _info])
 
         elif this_method == 'diagonal_fixed':
             est = _RegCovariance(info=info, **method_params[this_method])
             est.fit(data_)
             _info = None
-            estimator_cov_info.append((est, est.covariance_, _info))
+            estimator_cov_info.append([est, est.covariance_, _info])
 
         elif this_method == 'ledoit_wolf':
             shrinkages = []
             lw = LedoitWolf(**method_params[this_method])
 
-            for ch_type, picks in picks_list:
+            for ch_type, picks in picks_list_:
                 lw.fit(data_[:, picks])
                 shrinkages.append((
                     ch_type,
@@ -976,15 +1004,14 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                    **method_params[this_method])
             sc.fit(data_)
             _info = None
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-
+            estimator_cov_info.append([sc, sc.covariance_, _info])
         elif this_method == 'shrunk':
             shrinkage = method_params[this_method].pop('shrinkage')
             tuned_parameters = [{'shrinkage': shrinkage}]
             shrinkages = []
             gs = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
                               tuned_parameters, cv=cv)
-            for ch_type, picks in picks_list:
+            for ch_type, picks in picks_list_:
                 gs.fit(data_[:, picks])
                 shrinkages.append((
                     ch_type,
@@ -996,8 +1023,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                    **method_params[this_method])
             sc.fit(data_)
             _info = None
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-
+            estimator_cov_info.append([sc, sc.covariance_, _info])
         elif this_method == 'pca':
             mp = method_params[this_method]
             pca, _info = _auto_low_rank_model(data_, this_method,
@@ -1005,7 +1031,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                               method_params=mp, cv=cv,
                                               stop_early=stop_early)
             pca.fit(data_)
-            estimator_cov_info.append((pca, pca.get_covariance(), _info))
+            estimator_cov_info.append([pca, pca.get_covariance(), _info])
 
         elif this_method == 'factor_analysis':
             mp = method_params[this_method]
@@ -1013,7 +1039,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                              method_params=mp, cv=cv,
                                              stop_early=stop_early)
             fa.fit(data_)
-            estimator_cov_info.append((fa, fa.get_covariance(), _info))
+            estimator_cov_info.append([fa, fa.get_covariance(), _info])
         else:
             raise ValueError('Oh no! Your estimator does not have'
                              ' a .fit method')
@@ -1025,6 +1051,35 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
     # undo scaling
     for c in estimator_cov_info:
+        if has_sss:
+            logger.info('reprojecting low-rank covariance')
+            C_low = c[1]
+            C_full = np.zeros(
+                [sum(len(dd) for _, dd in picks_list)] * 2)
+
+            eeg_full_idx = None
+            eeg_low_idx = None
+
+            picks = np.concatenate(
+                [pp for ch, pp in picks_list if ch in ('mag', 'grad')])
+            meg_full_idx = np.ix_(picks, picks)
+            for ch_type, picks in picks_list:
+                if ch_type == 'eeg':
+                    eeg_full_idx = np.ix_(picks, picks)
+
+            for ch_type, picks in picks_list_:
+                if ch_type == 'meg':
+                    meg_low_idx = np.ix_(picks, picks)
+                if ch_type == 'eeg':
+                    eeg_full_idx = np.ix_(picks, picks)
+
+            C_full[meg_full_idx] = pca_sss.inverse_transform(
+                pca_sss.inverse_transform(C_low[meg_low_idx]).T)
+            if eeg_low_idx is not None:
+                C_full[eeg_full_idx] = pca_sss.inverse_transform(
+                    pca_sss.inverse_transform(C_low[eeg_low_idx]).T)
+            c[1] = C_full
+
         _undo_scaling_cov(c[1], picks_list, scalings)
 
     out = dict()
