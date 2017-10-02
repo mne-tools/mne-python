@@ -56,7 +56,6 @@ sqd_fname = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-@requires_version('matplotlib', '1.5')  # pivot kwarg
 def test_plot_head_positions():
     """Test plotting of head positions."""
     import matplotlib.pyplot as plt
@@ -128,7 +127,6 @@ def test_plot_evoked_field():
 
 @testing.requires_testing_data
 @requires_mayavi
-@requires_version('matplotlib', '1.5')  # pivot kwarg
 def test_plot_alignment():
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
@@ -322,7 +320,6 @@ def test_stc_mpl():
 
 @testing.requires_testing_data
 @requires_nibabel()
-@requires_version('matplotlib', '1.5')  # pivot kwarg
 def test_plot_dipole_mri_orthoview():
     """Test mpl dipole plotting."""
     import matplotlib.pyplot as plt

@@ -141,13 +141,14 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         ax.add_collection(lc)
         # now plot the head directions as a quiver
         dir_idx = dict(x=0, y=1, z=2)
+        kwargs = _pivot_kwargs()
         for d, length in zip(direction, [1., 0.5, 0.25]):
             use_dir = use_rot[:, :, dir_idx[d]]
             # draws stems, then heads
             array = np.concatenate((t, np.repeat(t, 2)))
             ax.quiver(use_trans[:, 0], use_trans[:, 1], use_trans[:, 2],
                       use_dir[:, 0], use_dir[:, 1], use_dir[:, 2], norm=norm,
-                      cmap=cmap, array=array, pivot='tail', length=length)
+                      cmap=cmap, array=array, length=length, **kwargs)
         mins = use_trans.min(0)
         maxs = use_trans.max(0)
         scale = (maxs - mins).max() / 2.
@@ -158,6 +159,18 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     tight_layout(fig=fig)
     plt_show(show)
     return fig
+
+
+def _pivot_kwargs():
+    """Get kwargs for quiver."""
+    kwargs = dict()
+    if check_version('matplotlib', '1.5'):
+        kwargs['pivot'] = 'tail'
+    else:
+        import matplotlib
+        warn('pivot cannot be set in matplotlib %s (need version 1.5+), '
+             'locations are approximate' % (matplotlib.__version__,))
+    return kwargs
 
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -2615,8 +2628,9 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     ax.plot(np.repeat(xyz[idx, 0], len(zz)),
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
             linestyle='-', color='r')
+    kwargs = _pivot_kwargs()
     ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-              ori[2], length=50, pivot='tail', color='r')
+              ori[2], length=50, color='r', **kwargs)
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
     ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
     ax.set_ylim(-1 * dims * zooms[:2])
