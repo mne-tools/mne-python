@@ -292,18 +292,17 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         in_pos = 0
         if len(X) < 3 * len(active_src):
             X_xyz = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
-            X_ori = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
+            X_ori_ = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
             for ii in range(len(active_src)):
                 for jj in range(3):
                     if in_pos >= len(active_set):
                         break
                     if (active_set[in_pos] + jj) % 3 == 0:
                         X_xyz[3 * ii + jj] = X[in_pos]
-                        X_ori[3 * ii + jj] = X_xyz[3 * ii + jj] \
-                            / source_weighting[active_set][in_pos]
+                        X_ori_[3 * ii + jj] = X_ori[in_pos]
                         in_pos += 1
             X = X_xyz
-            # X_ori = X / (source_weighting ** 2)
+            X_ori = X_ori_
 
     tmin = evoked.times[0]
     tstep = 1.0 / evoked.info['sfreq']

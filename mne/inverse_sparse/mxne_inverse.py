@@ -657,8 +657,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         active_set = active_set_tmp
         del active_set_tmp
 
+    X_ori = X.copy()
     X = _reapply_source_weighting(
         X, source_weighting, active_set, n_dip_per_pos)
+    X_ori /= source_weighting[active_set][:, None]
 
     if return_residual:
         residual = _compute_residual(
@@ -667,7 +669,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     if return_as_dipoles:
         out = _make_dipoles_sparse(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
-            M, M_estimated, verbose=None)
+            M, M_estimated, X_ori=X_ori, verbose=None)
     else:
         out = _make_sparse_stc(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'])
