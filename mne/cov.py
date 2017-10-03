@@ -7,7 +7,6 @@
 from copy import deepcopy
 from distutils.version import LooseVersion
 import itertools as itt
-from collections import OrderedDict
 from math import log
 import os
 
@@ -858,7 +857,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
 
 def _merge_picks_list(picks_list):
-    """little helper to move between channel block picks."""
+    """Helper to move between channel block picks."""
     keys, picks_ = [list(ee) for ee in zip(*picks_list)]
     picks_dict = dict(picks_list)
     if 'mag' in keys and 'grad' in keys:
@@ -873,19 +872,26 @@ def _merge_picks_list(picks_list):
         keys.remove('mag')
         keys.remove('grad')
 
-    return [picks_dict[kk] for kk in keys]
+    return [(kk, picks_dict[kk]) for kk in keys]
 
 
 def _estimate_rank_by_type(data, info, picks_list, scalings):
     """Estimate rank from data by type."""
     out = dict()
     # now go over indices and compute rank
-    picks_list_ = _merge_picks_list(picks_list)
+    has_sss = False
+    if len(info['proc_history']) > 0:
+        has_sss = (info['proc_history'][0].get('max_info') is not None)
+    if has_sss:
+        picks_list_ = _merge_picks_list(picks_list)
+    else:
+        picks_list_ = picks_list
+
     for key, this_picks in picks_list_:
         rank = _estimate_rank_meeg_signals(
             data,
             pick_info(info.copy(), this_picks),
-            scalings=scalings, tol='auto', return_singular=True)
+            scalings=scalings, tol='auto', return_singular=False)
         out[key] = rank
 
     return out
@@ -902,8 +908,14 @@ def _get_expected_rank_from_info(info, picks_list):
     """Lookup rank from info by type."""
     out = dict()
     # now go over indices and look up rank
-    picks_list_ = _merge_picks_list(picks_list)
-    has_sss = (info['proc_history'][0].get('max_info') is not None)
+    has_sss = False
+    if len(info['proc_history']) > 0:
+        has_sss = (info['proc_history'][0].get('max_info') is not None)
+    if has_sss:
+        picks_list_ = _merge_picks_list(picks_list)
+    else:
+        picks_list_ = picks_list
+
     for key, this_picks in picks_list_:
         this_info = pick_info(info.copy(), this_picks)
         rank = len(this_picks)
@@ -912,7 +924,7 @@ def _get_expected_rank_from_info(info, picks_list):
         n_ssp = sum(pp['active'] for pp in info['projs'] if
                     _match_proj_type(pp, this_info['ch_names']))
         rank -= n_ssp
-        out['key'] = rank
+        out[key] = rank
 
     return out
 
@@ -979,7 +991,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         data_tmp = list()
         picks_meg = dict(picks_list_merged_)['meg']
         data_tmp.append(pca_sss.fit_transform(data[:, picks_meg]))
-        picks_list_ = [list(range(pca_sss.n_components))]
+        picks_list_ = [('meg', list(range(pca_sss.n_components)))]
 
         picks_eeg = dict(picks_list_merged_).get('meg', None)
         if picks_eeg is not None:
@@ -988,9 +1000,10 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         data = np.concatenate(data_tmp, axis=1)
         del data_tmp
         if picks_eeg is not None:
-            picks_list_.append(
-                list(range(pca_sss.n_components,
-                           pca_sss.n_components + len(picks_eeg))))
+            new_picks_eeg = list(
+                range(pca_sss.n_components,
+                      pca_sss.n_components + len(picks_eeg)))
+            picks_list_.append(('eeg', new_picks_eeg))
     else:
         picks_list_ = picks_list
 
@@ -1077,7 +1090,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
 
     # undo scaling
-    for c in estimator_cov_info:
+    for cov in estimator_cov_info:
         # this is now a bit convoluted.
         # The right part of the cov has to be picked, reprojected if needed
         # and here the clipping has to happen.
@@ -1087,7 +1100,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             # XXX the logic is broken here for EEG
             logger.info('reprojecting low-rank covariance')
 
-            C_low = c[1]
+            C_low = cov[1]
             C_full = np.zeros([sum(len(dd) for _, dd in picks_list)] * 2)
 
             picks = np.concatenate(  # get orig picks
@@ -1111,13 +1124,21 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             if eeg_low_idx is not None:
                 #  XXX PCA not needed if it's not done for EEG.
                 C_full[eeg_full_idx] = C_low[eeg_low_idx]
-            c[1] = C_full  # replace low rank with full rank cov
+            cov[1] = C_full  # replace low rank with full rank cov
 
-        _undo_scaling_cov(c[1], picks_list, scalings)
+        _undo_scaling_cov(cov[1], picks_list, scalings)
+
         # XXX clip here
-        for ch_type, picks in picks_list_:
-            this_cov_idx = np.ix_(picks, picks)
-            c[1] = _clip_cov(c[1][this_cov_idx], rank=rank_dict[ch_type])
+        if has_sss:
+            picks_list_final_ = _merge_picks_list(picks_list)
+        else:
+            picks_list_final_ = picks_list
+        for ch_type, picks in picks_list_final_:
+            this_rank = rank_dict[ch_type]
+            if this_rank < len(picks):
+                this_cov_idx = np.ix_(picks, picks)
+                cov[1][this_cov_idx] = _clip_cov(
+                    cov[1][this_cov_idx], rank=this_rank)
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
