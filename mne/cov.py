@@ -919,7 +919,7 @@ def _get_expected_rank_from_info(info, picks_list):
     for key, this_picks in picks_list_:
         this_info = pick_info(info.copy(), this_picks)
         rank = len(this_picks)
-        if 'key' == 'meg' and has_sss:
+        if key == 'meg' and has_sss:
             rank = min(rank, _get_rank_sss(info))
         n_ssp = sum(pp['active'] for pp in info['projs'] if
                     _match_proj_type(pp, this_info['ch_names']))
@@ -982,7 +982,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     rank_from_info = _get_expected_rank_from_info(info, picks_list)
     rank_dict = {k: min(v, rank_from_data[k])
                  for k, v in rank_from_info.items()}
-
+    import pdb; pdb.set_trace()
     if has_sss:
         logger.info('Found SSS. Doing low-rank computation.')
         picks_list_merged_ = _merge_picks_list(picks_list)
@@ -1000,16 +1000,17 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         data = np.concatenate(data_tmp, axis=1)
         del data_tmp
         new_ch_names = ['C%i' % ii for ii in dict(picks_list_)['meg']]
+        new_ch_types = ['mag'] * pca_sss.n_components
         if picks_eeg is not None:
             new_picks_eeg = list(
                 range(pca_sss.n_components,
                       pca_sss.n_components + len(picks_eeg)))
             picks_list_.append(('eeg', new_picks_eeg))
             new_ch_names.extend([info['ch_names'][kk] for kk in picks_eeg])
+            new_ch_types.extend(['eeg'] * len(picks_eeg))
         info_ = create_info(
             ch_names=new_ch_names,
-            ch_types=((['mag'] * pca_sss.n_components) +
-                      (['eeg'] * len(picks_eeg))),
+            ch_types=new_ch_types,
             sfreq=info['sfreq'])
     else:
         picks_list_ = picks_list
