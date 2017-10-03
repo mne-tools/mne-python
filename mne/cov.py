@@ -28,7 +28,6 @@ from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
-from .io.proc_history import _get_rank_sss
 
 from .defaults import _handle_default
 from .epochs import Epochs
@@ -906,6 +905,7 @@ def _match_proj_type(proj, ch_names):
 
 def _get_expected_rank_from_info(info, picks_list):
     """Lookup rank from info by type."""
+    from .io.proc_history import _get_rank_sss
     out = dict()
     # now go over indices and look up rank
     has_sss = False
