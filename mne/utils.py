@@ -1929,7 +1929,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         finally:
             u.close()
             del u
-        logger.info('Downloading data from %s (%s)\n'
+        logger.info('Downloading %s (%s)'
                     % (url, sizeof_fmt(file_size)))
 
         # Triage resume
@@ -1961,7 +1961,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
 
         # check md5sum
         if hash_ is not None:
-            logger.info('Verifying download hash.')
+            logger.info('Verifying hash %s.' % (hash_,))
             md5 = md5sum(temp_file_name)
             if hash_ != md5:
                 raise RuntimeError('Hash mismatch for downloaded file %s, '
