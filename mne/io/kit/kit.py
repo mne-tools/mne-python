@@ -34,7 +34,7 @@ from ...event import read_events
 
 class UnsupportedKITFormat(Exception):
     """Our reader is not guaranteed to work with old files."""
-    
+
     pass
 
 
