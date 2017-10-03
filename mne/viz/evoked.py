@@ -25,6 +25,8 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _setup_vmin_vmax, _grad_pair_pick_and_name)
 from ..utils import logger, _clean_names, warn, _pl, verbose
 from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
+from ..io.proc_history import _get_rank_sss
+
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
@@ -912,6 +914,30 @@ def plot_evoked_white(evoked, noise_cov, show=True):
                               scalings=None, rank=None, show=show)
 
 
+def _check_estimated_rank(this_estimated_rank, this_picks, this_info, evoked,
+                          cov, ch_type, has_meg, has_sss):
+    """Compare estimated against expected rank."""
+    from ..cov import _match_proj_type
+
+    expected_rank = len(this_picks)
+    expected_rank_reduction = 0
+    if has_meg and has_sss:
+        sss_rank = _get_rank_sss(evoked)
+        expected_rank_reduction += (expected_rank - sss_rank)
+    n_ssp = sum(pp['active'] for pp in cov['projs'] if
+                _match_proj_type(pp, this_info['ch_names']))
+    expected_rank_reduction += n_ssp
+    expected_rank -= expected_rank_reduction
+    if this_estimated_rank != expected_rank:
+        logger.warning(
+            'For (%s) the expected and estimated rank diverge '
+            '(%i VS %i). \nThis may lead to surprising reults. '
+            '\nPlease consider using the `rank` parameter to '
+            'manually specify the spatial degrees of freedom.' % (
+                ch_type, expected_rank, this_estimated_rank
+            ))
+
+
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     """Help plot_evoked_white.
 
@@ -927,18 +953,14 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         Note. Theses values were tested on different datests across various
         conditions. You should not need to update them.
 
-    rank : dict of int | None
-        Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
-        the rank is detected automatically. Defaults to None. Note.
-        The rank estimation will be printed by the logger for each noise
-        covariance estimator that is passed.
     """
     from ..cov import whiten_evoked, read_cov  # recursive import
     from ..cov import _estimate_rank_meeg_cov
     import matplotlib.pyplot as plt
     if scalings is None:
         scalings = dict(mag=1e12, grad=1e11, eeg=1e5)
-
+    if rank is None:
+        rank = {}
     ch_used = [ch for ch in ['eeg', 'grad', 'mag'] if ch in evoked]
     has_meg = 'mag' in ch_used and 'grad' in ch_used
 
@@ -952,7 +974,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         # if SSSed, mags and grad are not longer independent
         # for correct display of the whitening we will drop the cross-terms
         # (the gradiometer * magnetometer covariance)
-        has_sss = 'max_info' in evoked.info['proc_history'][0] and has_meg
+        has_sss = (evoked.info['proc_history'][0].get('max_info') is not
+                   None and has_meg)
     if has_sss:
         logger.info('SSS has been applied to data. Showing mag and grad '
                     'whitening jointly.')
@@ -981,23 +1004,27 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     n_ch_used = len(ch_used)
 
     # make sure we use the same rank estimates for GFP and whitening
+
     rank_list = []
     for cov in noise_cov:
         rank_ = {}
         C = cov['data'].copy()
         picks_list2 = [k for k in picks_list]
-        if rank is None:
-            if has_meg and not has_sss:
-                picks_list2 += _picks_by_type(evoked.info,
-                                              meg_combined=True)
-            for ch_type, this_picks in picks_list2:
+        if has_meg and not has_sss:
+            picks_list2 += _picks_by_type(evoked.info,
+                                          meg_combined=True)
+        for ch_type, this_picks in picks_list2:
+            if rank.get(ch_type) is None:
                 this_info = pick_info(evoked.info, this_picks)
                 idx = np.ix_(this_picks, this_picks)
-                this_rank = _estimate_rank_meeg_cov(C[idx], this_info,
-                                                    scalings)
-                rank_[ch_type] = this_rank
-        if rank is not None:
-            rank_.update(rank)
+                this_estimated_rank = _estimate_rank_meeg_cov(
+                    C[idx], this_info, scalings)
+                _check_estimated_rank(
+                    this_estimated_rank, this_picks, this_info, evoked,
+                    cov, ch_type, has_meg, has_sss)
+                rank_[ch_type] = this_estimated_rank
+            if rank.get(ch_type) is not None:
+                rank_[ch_type] = rank[ch_type]
         rank_list.append(rank_)
     evokeds_white = [whiten_evoked(evoked, n, picks, rank=r)
                      for n, r in zip(noise_cov, rank_list)]

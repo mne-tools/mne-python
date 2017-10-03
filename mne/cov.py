@@ -1121,6 +1121,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
             C_full[meg_full_idx] = pca_sss.inverse_transform(
                 pca_sss.inverse_transform(C_low[meg_low_idx]).T)
+
             if eeg_low_idx is not None:
                 #  XXX PCA not needed if it's not done for EEG.
                 C_full[eeg_full_idx] = C_low[eeg_low_idx]
@@ -1133,9 +1134,12 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             picks_list_final_ = _merge_picks_list(picks_list)
         else:
             picks_list_final_ = picks_list
+
         for ch_type, picks in picks_list_final_:
             this_rank = rank_dict[ch_type]
             if this_rank < len(picks):
+                logger.info(
+                    'clipping cov for %s at rank=%i' % (ch_type, this_rank))
                 this_cov_idx = np.ix_(picks, picks)
                 cov[1][this_cov_idx] = _clip_cov(
                     cov[1][this_cov_idx], rank=this_rank)
