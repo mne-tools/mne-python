@@ -73,6 +73,9 @@ matrix:
 
 # Setup anaconda
 before_install:
+    - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+      fi;
     - git clone https://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
     - if [ ! -z $CONDA_ENVIRONMENT ]; then
@@ -91,9 +94,6 @@ before_install:
           export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH;
         fi;
         mne_surf2bem --version;
-      fi;
-    - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       fi;
 
 install:
