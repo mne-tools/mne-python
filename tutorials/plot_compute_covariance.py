@@ -35,6 +35,7 @@ raw.info['bads'] = ['MEG 2443', 'EEG 053', 'MEG 1032', 'MEG 2313']  # set bads
 raw = mne.preprocessing.maxwell_filter(
     raw, cross_talk=ctc_fname, calibration=fine_cal_fname)
 
+
 ###############################################################################
 # The definition of noise depends on the paradigm. In MEG it is quite common
 # to use empty room measurements for the estimation of sensor noise. However if
@@ -59,8 +60,13 @@ raw_empty_room.info['bads'] = [
 raw_empty_room.add_proj(
     [pp.copy() for pp in raw.info['projs'] if 'EEG' not in pp['desc']])
 
-noise_cov = mne.compute_raw_covariance(raw_empty_room, tmin=0, tmax=None)
+raw_empty_room = mne.preprocessing.maxwell_filter(
+    raw_empty_room, cross_talk=ctc_fname, calibration=fine_cal_fname,
+    coord_frame='meg')
 
+noise_cov = mne.compute_raw_covariance(
+    raw_empty_room, tmin=0, tmax=None, method='diagonal_fixed')
+noise_cov.nfree
 ###############################################################################
 # Now that you the covariance matrix in an MNE-Python object you can save it
 # to a file with :func:`mne.write_cov`. Later you can read it back
@@ -89,7 +95,6 @@ noise_cov_baseline = mne.compute_covariance(epochs, tmax=0)
 noise_cov.plot(raw_empty_room.info, proj=True)
 noise_cov_baseline.plot(epochs.info, proj=True)
 
-
 ###############################################################################
 # How should I regularize the covariance matrix?
 # ----------------------------------------------
@@ -107,7 +112,6 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 
 noise_cov_reg = mne.compute_covariance(epochs, tmax=0.,
                                        method='auto')
-
 
 ###############################################################################
 # This procedure evaluates the noise covariance quantitatively by how well it
@@ -168,7 +172,7 @@ noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
 noise_cov['method'] = 'empty_room'
 noise_cov_meg['method'] = 'basleline'
 
-# evoked_meg.plot_white([noise_cov_meg, noise_cov])
+evoked_meg.plot_white([noise_cov, noise_cov_reg])
 
 
 ##############################################################################

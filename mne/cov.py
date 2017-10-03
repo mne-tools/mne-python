@@ -977,6 +977,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     # and create low rank data. Merge with EEG if needed.
     # update picks and the keys (now "meg" instead of mag/grad)
 
+    # we're taking the lowest rank between the
+    # expected and the estimated number.
     rank_from_data = _estimate_rank_by_type(
         data=data.T, info=info, picks_list=picks_list, scalings=scalings)
     rank_from_info = _get_expected_rank_from_info(info, picks_list)
@@ -987,11 +989,12 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         logger.info('Found SSS. Doing low-rank computation.')
         picks_list_merged_ = _merge_picks_list(picks_list)
 
-        pca_sss = PCA(n_components=rank_dict['meg'], whiten=True)
+        rank_meg = rank_dict['meg']
+        pca_sss = PCA(n_components=rank_meg, whiten=True)
         data_tmp = list()
         picks_meg = dict(picks_list_merged_)['meg']
         data_tmp.append(pca_sss.fit_transform(data[:, picks_meg]))
-        picks_list_ = [('meg', list(range(pca_sss.n_components)))]
+        picks_list_ = [('meg', list(range(rank_meg)))]
 
         picks_eeg = dict(picks_list_merged_).get('eeg', None)
         if picks_eeg is not None:
@@ -1000,21 +1003,19 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         data = np.concatenate(data_tmp, axis=1)
         del data_tmp
         new_ch_names = ['C%i' % ii for ii in dict(picks_list_)['meg']]
-        new_ch_types = ['mag'] * pca_sss.n_components
+        new_ch_types = ['mag'] * rank_meg
         if picks_eeg is not None:
-            new_picks_eeg = list(
-                range(pca_sss.n_components,
-                      pca_sss.n_components + len(picks_eeg)))
+            n_eeg = len(picks_eeg)
+            new_picks_eeg = list(range(rank_meg, rank_meg + n_eeg))
             picks_list_.append(('eeg', new_picks_eeg))
             new_ch_names.extend([info['ch_names'][kk] for kk in picks_eeg])
-            new_ch_types.extend(['eeg'] * len(picks_eeg))
-        info_ = create_info(
-            ch_names=new_ch_names,
-            ch_types=new_ch_types,
-            sfreq=info['sfreq'])
+            new_ch_types.extend(['eeg'] * n_eeg)
+        info_low_rank_ = create_info(ch_names=new_ch_names,
+                                     ch_types=new_ch_types,
+                                     sfreq=info['sfreq'])
     else:
         picks_list_ = picks_list
-        info_ = info
+        info_low_rank_ = info
 
     estimator_cov_info = list()
 
@@ -1033,7 +1034,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append([est, est.covariance_, _info])
 
         elif this_method == 'diagonal_fixed':
-            est = _RegCovariance(info=info_, **method_params[this_method])
+            est = _RegCovariance(
+                info=info_low_rank_, **method_params[this_method])
             est.fit(data_)
             _info = None
             estimator_cov_info.append([est, est.covariance_, _info])
@@ -1138,6 +1140,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             cov[1] = C_full  # replace low rank with full rank cov
 
         # XXX clip here
+        _undo_scaling_cov(cov[1], picks_list, scalings)
         if has_sss:
             picks_list_final_ = _merge_picks_list(picks_list)
         else:
@@ -1151,8 +1154,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 this_cov_idx = np.ix_(picks, picks)
                 cov[1][this_cov_idx] = _clip_cov(
                     cov[1][this_cov_idx], rank=this_rank)
-
-        _undo_scaling_cov(cov[1], picks_list, scalings)
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
