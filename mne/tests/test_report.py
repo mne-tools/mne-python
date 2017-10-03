@@ -44,11 +44,6 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-def _get_svg_format():
-    """Save AppVeyor from failure."""
-    return 'png' if os.getenv('APPVEYOR', 'false').lower() == 'true' else 'svg'
-
-
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_PIL
@@ -134,7 +129,7 @@ def test_render_report():
 
     # SVG rendering
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
-                    image_format=_get_svg_format())
+                    image_format='svg')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, on_error='raise')
@@ -151,16 +146,15 @@ def test_render_add_sections():
     report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
-    fmt = _get_svg_format()
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions=['evoked response'], scale=1.2,
-                               image_format=fmt)
+                               image_format='svg')
     assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
     assert_raises(ValueError, report.add_figs_to_section, figs=fig,
-                  captions=['foo'], scale=0, image_format=fmt)
+                  captions=['foo'], scale=0, image_format='svg')
     assert_raises(ValueError, report.add_figs_to_section, figs=fig,
-                  captions=['foo'], scale=1e-10, image_format=fmt)
+                  captions=['foo'], scale=1e-10, image_format='svg')
     # need to recreate because calls above change size
     fig = plt.plot([1, 2], [1, 2])[0].figure
 

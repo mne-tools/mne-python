@@ -25,13 +25,6 @@ fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 warnings.simplefilter('always')
 
 
-def _safe_traits_close(ui):
-    from pyface.api import GUI
-    gui = GUI()
-    gui.process_events()
-    ui.dispose()
-
-
 @requires_mayavi
 def test_kit2fiff_model():
     """Test Kit2Fiff model."""
