@@ -25,7 +25,7 @@ from mne import (concatenate_events, find_events, equalize_channels,
 from mne.utils import (_TempDir, requires_pandas, object_diff,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
-from mne import _get_rank_sss
+from mne.io.proc_history import _get_rank_sss
 from mne.io.pick import _picks_by_type
 from mne.annotations import Annotations
 from mne.tests.common import assert_naming

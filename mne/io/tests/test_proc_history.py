@@ -6,7 +6,7 @@ import numpy as np
 import os.path as op
 from mne.io import read_info, read_raw_fif
 from mne.io.constants import FIFF
-from mne import _get_rank_sss
+from mne.io.proc_history import _get_rank_sss
 from nose.tools import assert_true, assert_equal
 
 base_dir = op.join(op.dirname(__file__), 'data')
