@@ -188,9 +188,12 @@ def test_coreg_gui():
             assert_true(frame.model.prepare_bem_model)
             frame.model.prepare_bem_model = False
             frame.save_config(home_dir)
+            ui.dispose()
+
             ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
             assert_false(frame.model.prepare_bem_model)
             assert_false(frame.model.mri.use_high_res_head)
+            ui.dispose()
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
         del os.environ['_MNE_FAKE_HOME_DIR']
