@@ -168,7 +168,7 @@ noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
 noise_cov['method'] = 'empty_room'
 noise_cov_meg['method'] = 'basleline'
 
-evoked_meg.plot_white([noise_cov_meg, noise_cov])
+# evoked_meg.plot_white([noise_cov_meg, noise_cov])
 
 
 ##############################################################################

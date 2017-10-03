@@ -921,7 +921,7 @@ def _check_estimated_rank(this_estimated_rank, this_picks, this_info, evoked,
 
     expected_rank = len(this_picks)
     expected_rank_reduction = 0
-    if has_meg and has_sss:
+    if has_meg and has_sss and ch_type == 'meg':
         sss_rank = _get_rank_sss(evoked)
         expected_rank_reduction += (expected_rank - sss_rank)
     n_ssp = sum(pp['active'] for pp in cov['projs'] if

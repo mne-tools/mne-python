@@ -931,8 +931,8 @@ def _get_expected_rank_from_info(info, picks_list):
 
 def _clip_cov(C, rank):
     """Truncate the SVD of the cov and reconstruct."""
-    U, s, V = linalg.svd(C)
-    C_out = np.dot(U[:, :rank] * s[:rank], V[:rank, :])
+    U, s, _ = linalg.svd(C)
+    C_out = np.dot(U[:, :rank] * s[:rank], U[:, :rank].T)
     return C_out
 
 
@@ -1137,8 +1137,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 C_full[eeg_full_idx] = C_low[eeg_low_idx]
             cov[1] = C_full  # replace low rank with full rank cov
 
-        _undo_scaling_cov(cov[1], picks_list, scalings)
-
         # XXX clip here
         if has_sss:
             picks_list_final_ = _merge_picks_list(picks_list)
@@ -1153,6 +1151,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 this_cov_idx = np.ix_(picks, picks)
                 cov[1][this_cov_idx] = _clip_cov(
                     cov[1][this_cov_idx], rank=this_rank)
+
+        _undo_scaling_cov(cov[1], picks_list, scalings)
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
