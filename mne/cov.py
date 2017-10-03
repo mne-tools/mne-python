@@ -37,7 +37,7 @@ from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn,
                     copy_function_doc_to_method_doc, _pl)
 from . import viz
-
+from .io.meas_info import create_info
 from .externals.six.moves import zip
 from .externals.six import string_types
 from .fixes import BaseEstimator
@@ -993,19 +993,27 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         data_tmp.append(pca_sss.fit_transform(data[:, picks_meg]))
         picks_list_ = [('meg', list(range(pca_sss.n_components)))]
 
-        picks_eeg = dict(picks_list_merged_).get('meg', None)
+        picks_eeg = dict(picks_list_merged_).get('eeg', None)
         if picks_eeg is not None:
             data_tmp.append(data[:, picks_eeg])
 
         data = np.concatenate(data_tmp, axis=1)
         del data_tmp
+        new_ch_names = ['C%i' % ii for ii in dict(picks_list_)['meg']]
         if picks_eeg is not None:
             new_picks_eeg = list(
                 range(pca_sss.n_components,
                       pca_sss.n_components + len(picks_eeg)))
             picks_list_.append(('eeg', new_picks_eeg))
+            new_ch_names.extend([info['ch_names'][kk] for kk in picks_eeg])
+        info_ = create_info(
+            ch_names=new_ch_names,
+            ch_types=((['mag'] * pca_sss.n_components) +
+                      (['eeg'] * len(picks_eeg))),
+            sfreq=info['sfreq'])
     else:
         picks_list_ = picks_list
+        info_ = info
 
     estimator_cov_info = list()
 
@@ -1024,7 +1032,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append([est, est.covariance_, _info])
 
         elif this_method == 'diagonal_fixed':
-            est = _RegCovariance(info=info, **method_params[this_method])
+            est = _RegCovariance(info=info_, **method_params[this_method])
             est.fit(data_)
             _info = None
             estimator_cov_info.append([est, est.covariance_, _info])
@@ -1105,6 +1113,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
             picks = np.concatenate(  # get orig picks
                     [pp for ch, pp in picks_list if ch in ('mag', 'grad')])
+            picks = np.sort(picks)
             meg_full_idx = np.ix_(picks, picks)
 
             eeg_full_idx = None

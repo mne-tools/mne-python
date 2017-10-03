@@ -23,6 +23,17 @@ raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference()
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
+###############################################################################
+# Set parameters
+ctc_fname = data_path + '/SSS/ct_sparse_mgh.fif'
+fine_cal_fname = data_path + '/SSS/sss_cal_mgh.dat'
+
+###############################################################################
+# Preprocess with Maxwell filtering
+raw.info['bads'] = ['MEG 2443', 'EEG 053', 'MEG 1032', 'MEG 2313']  # set bads
+# Here we don't use tSSS (set st_duration) because MGH data is very clean
+raw = mne.preprocessing.maxwell_filter(
+    raw, cross_talk=ctc_fname, calibration=fine_cal_fname)
 
 ###############################################################################
 # The definition of noise depends on the paradigm. In MEG it is quite common
