@@ -982,7 +982,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     rank_from_info = _get_expected_rank_from_info(info, picks_list)
     rank_dict = {k: min(v, rank_from_data[k])
                  for k, v in rank_from_info.items()}
-    import pdb; pdb.set_trace()
+
     if has_sss:
         logger.info('Found SSS. Doing low-rank computation.')
         picks_list_merged_ = _merge_picks_list(picks_list)
