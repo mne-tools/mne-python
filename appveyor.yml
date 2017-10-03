@@ -2,7 +2,7 @@ environment:
   global:
       PYTHON: "C:\\conda"
       CONDA_ENVIRONMENT: "environment.yml"
-      PIP_DEPENDENCIES: "codecov pytest-faulthandler"
+      PIP_DEPENDENCIES: "codecov pytest-faulthandler pysurfer"
   matrix:
       - PYTHON_VERSION: "2.7"
         PYTHON_ARCH: "64"
