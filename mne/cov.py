@@ -876,7 +876,8 @@ def _merge_picks_list(picks_list):
     return [picks_dict[kk] for kk in keys]
 
 
-def _estimate_rank_by_type(picks_list, data, info, scalings):
+def _estimate_rank_by_type(data, info, picks_list, scalings):
+    """Estimate rank from data by type."""
     out = dict()
     # now go over indices and compute rank
     picks_list_ = _merge_picks_list(picks_list)
@@ -898,7 +899,7 @@ def _match_proj_type(proj, ch_names):
 
 
 def _get_expected_rank_from_info(info, picks_list):
-    """lookup rank from info by type."""
+    """Lookup rank from info by type."""
     out = dict()
     # now go over indices and look up rank
     picks_list_ = _merge_picks_list(picks_list)
@@ -914,6 +915,13 @@ def _get_expected_rank_from_info(info, picks_list):
         out['key'] = rank
 
     return out
+
+
+def _clip_cov(C, rank):
+    """Truncate the SVD of the cov and reconstruct."""
+    U, s, V = linalg.svd(C)
+    C_out = np.dot(U[:, :rank] * s[:rank], V[:rank, :])
+    return C_out
 
 
 def _check_scalings_user(scalings):
@@ -956,20 +964,33 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     # check if SSS was done, in that case use PCA
     # and create low rank data. Merge with EEG if needed.
     # update picks and the keys (now "meg" instead of mag/grad)
+
+    rank_from_data = _estimate_rank_by_type(
+        data=data.T, info=info, picks_list=picks_list, scalings=scalings)
+    rank_from_info = _get_expected_rank_from_info(info, picks_list)
+    rank_dict = {k: min(v, rank_from_data[k])
+                 for k, v in rank_from_info.items()}
+
     if has_sss:
         logger.info('Found SSS. Doing low-rank computation.')
-        rank = _get_rank_sss(info)  # XXX or estimate on data.
-        picks_list_ = _merge_picks_list(picks_list)
+        picks_list_merged_ = _merge_picks_list(picks_list)
 
-        pca_sss = PCA(n_components=rank, whiten=True)
-        _data = list()
-        for ch_type, picks in picks_list_:
-            if ch_type == 'meg':
-                _data.append(pca_sss.fit_transform(data[:, picks]))
-            else:
-                _data.append(data[:, picks])
-        data = np.concatenate(_data, axis=1)
-        del _data
+        pca_sss = PCA(n_components=rank_dict['meg'], whiten=True)
+        data_tmp = list()
+        picks_meg = dict(picks_list_merged_)['meg']
+        data_tmp.append(pca_sss.fit_transform(data[:, picks_meg]))
+        picks_list_ = [list(range(pca_sss.n_components))]
+
+        picks_eeg = dict(picks_list_merged_).get('meg', None)
+        if picks_eeg is not None:
+            data_tmp.append(data[:, picks_eeg])
+
+        data = np.concatenate(data_tmp, axis=1)
+        del data_tmp
+        if picks_eeg is not None:
+            picks_list_.append(
+                list(range(pca_sss.n_components,
+                           pca_sss.n_components + len(picks_eeg))))
     else:
         picks_list_ = picks_list
 
@@ -1065,35 +1086,38 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         if has_sss:
             # XXX the logic is broken here for EEG
             logger.info('reprojecting low-rank covariance')
+
             C_low = c[1]
             C_full = np.zeros([sum(len(dd) for _, dd in picks_list)] * 2)
 
+            picks = np.concatenate(  # get orig picks
+                    [pp for ch, pp in picks_list if ch in ('mag', 'grad')])
+            meg_full_idx = np.ix_(picks, picks)
+
             eeg_full_idx = None
             eeg_low_idx = None
-
-            picks = np.concatenate(
-                [pp for ch, pp in picks_list if ch in ('mag', 'grad')])
-            meg_full_idx = np.ix_(picks, picks)
-            for ch_type, picks in picks_list:
+            for ch_type, picks in picks_list:  # orig picks list
                 if ch_type == 'eeg':
                     eeg_full_idx = np.ix_(picks, picks)
 
-            for ch_type, picks in picks_list_:
+            for ch_type, picks_low in picks_list_:  # mod picks list
                 if ch_type == 'meg':
-                    meg_low_idx = np.ix_(picks, picks)
+                    meg_low_idx = np.ix_(picks_low, picks_low)
                 if ch_type == 'eeg':
-                    eeg_full_idx = np.ix_(picks, picks)
+                    eeg_low_idx = np.ix_(picks_low, picks_low)
 
             C_full[meg_full_idx] = pca_sss.inverse_transform(
                 pca_sss.inverse_transform(C_low[meg_low_idx]).T)
             if eeg_low_idx is not None:
                 #  XXX PCA not needed if it's not done for EEG.
-                C_full[eeg_full_idx] = pca_sss.inverse_transform(
-                    pca_sss.inverse_transform(C_low[eeg_low_idx]).T)
-            c[1] = C_full  # replace
+                C_full[eeg_full_idx] = C_low[eeg_low_idx]
+            c[1] = C_full  # replace low rank with full rank cov
 
         _undo_scaling_cov(c[1], picks_list, scalings)
         # XXX clip here
+        for ch_type, picks in picks_list_:
+            this_cov_idx = np.ix_(picks, picks)
+            c[1] = _clip_cov(c[1][this_cov_idx], rank=rank_dict[ch_type])
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
