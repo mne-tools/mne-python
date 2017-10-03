@@ -947,8 +947,8 @@ def _recursive_flatten(cell, dtype):
 def read_ch_connectivity(fname, picks=None):
     """Parse FieldTrip neighbors .mat file.
 
-    More information on these neighbor definitions can be found on the
-    related FieldTrip documentation pages:
+    More information on these neighbor definitions can be found on the related
+    FieldTrip documentation pages:
     http://fieldtrip.fcdonders.nl/template/neighbours
 
     Parameters
@@ -973,9 +973,10 @@ def read_ch_connectivity(fname, picks=None):
 
     Notes
     -----
-    This function is closely related to ``find_ch_connectivity``. In case you
-    don't know the correct file for the neighbor definitions, the use of
-    ``find_ch_connectivity`` is preferred.
+    This function is closely related to :func:`find_ch_connectivity`. If you
+    don't know the correct file for the neighbor definitions,
+    :func:`find_ch_connectivity` can compute the connectivity matrix from 2d
+    sensor locations.
     """
     from scipy.io import loadmat
     if not op.isabs(fname):
@@ -1081,6 +1082,11 @@ def find_ch_connectivity(info, ch_type):
     Notes
     -----
     .. versionadded:: 0.15
+    Automatic detection of an appropriate connectivity matrix template only
+    works for MEG data at the moment. This means that the connectivity matrix
+    is always computed for EEG data and never loaded from a template file. If
+    you want to load a template for a given montage use
+    :func:`read_ch_connectivity` directly.
     """
     if ch_type is None:
         picks = channel_indices_by_type(info)
