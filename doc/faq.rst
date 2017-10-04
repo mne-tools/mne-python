@@ -19,7 +19,7 @@ Help! I can't get Python and MNE-Python working!
 ------------------------------------------------
 
 Check out our section on how to get Anaconda up and running over at the
-:ref:`getting started page <install_interpreter>`.
+:ref:`getting started page <install_python_and_mne_python>`.
 
 I still can't get it to work!
 -----------------------------

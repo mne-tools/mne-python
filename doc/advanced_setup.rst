@@ -11,6 +11,46 @@ Advanced setup and troubleshooting
    :local:
    :depth: 1
 
+.. _installing_master:
+
+Using the development version of MNE
+####################################
+
+It is possible to update your version of MNE between releases for
+bugfixes or new features.
+
+.. warning:: In between releases, function and class APIs can change without
+             warning.
+
+You can use ``pip`` for a one-time update:
+
+.. code-block:: bash
+
+   $ pip install --upgrade --no-deps git+https://github.com/mne-tools/mne-python.git
+
+Or, if you prefer to be set up for frequent updates, you can use ``git`` directly:
+
+.. code-block:: bash
+
+   $ git clone git://github.com/mne-tools/mne-python.git
+   $ cd mne-python
+   $ python setup.py develop
+
+A feature of ``python setup.py develop`` is that any changes made to
+the files (e.g., by updating to latest ``master``) will be reflected in
+``mne`` as soon as you restart your Python interpreter. So to update to
+the latest version of the ``master`` development branch, you can do:
+
+   .. code-block:: bash
+
+   $ git pull origin master
+
+and MNE will be updated to have the latest changes.
+
+
+If you plan to contribute to MNE, please continue reading how to
+:ref:`contribute_to_mne`.
+
 .. _CUDA:
 
 CUDA
@@ -69,10 +109,10 @@ You can test if MNE CUDA support is working by running the associated test:
 If ``MNE_USE_CUDA=true`` and all tests pass with none skipped, then
 MNE-Python CUDA support works.
 
-IPython (and notebooks)
-#######################
+Jupyter / IPython (and notebooks)
+#################################
 
-In IPython, we strongly recommend using the Qt matplotlib backend for
+In Jupyter, we strongly recommend using the Qt matplotlib backend for
 fast and correct rendering:
 
 .. code-block:: bash
@@ -115,6 +155,9 @@ the interpreter to use QtGui and QtCore from pyface::
     >>> from pyface.qt import QtGui, QtCore
 
 This line should be added before any imports from mne-python.
+
+To avoid Qt conflicts, you can also try using the ``wx`` backend via
+``conda install wxpython`` and ``ETS_TOOLKIT=wx``.
 
 For more information, see
 http://docs.enthought.com/mayavi/mayavi/building_applications.html.
