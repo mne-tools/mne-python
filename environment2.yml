@@ -1,0 +1,38 @@
+name: mne27
+channels:
+- defaults
+dependencies:
+- numpy
+- scipy
+- mkl
+- matplotlib
+- pandas
+- scikit-learn
+- h5py
+- pillow
+- statsmodels
+- mayavi
+- jupyter
+- nose
+- pytest
+- pytest-cov
+- sphinx
+- wxpython
+- faulthandler
+- joblib
+- psutil
+- numpydoc
+- flake8
+- spyder
+- pip:
+  - mne
+  - pysurfer
+  - nitime
+  - nibabel
+  - nilearn
+  - neo
+  - pytest-sugar
+  - pytest-faulthandler
+  - pydocstyle
+  - sphinx_bootstrap_theme
+  - git+https://github.com/sphinx-gallery/sphinx-gallery.git
