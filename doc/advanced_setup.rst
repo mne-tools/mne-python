@@ -109,8 +109,8 @@ You can test if MNE CUDA support is working by running the associated test:
 If ``MNE_USE_CUDA=true`` and all tests pass with none skipped, then
 MNE-Python CUDA support works.
 
-Jupyter / IPython (and notebooks)
-#################################
+IPython / Jupyter notebooks
+###########################
 
 In Jupyter, we strongly recommend using the Qt matplotlib backend for
 fast and correct rendering:
