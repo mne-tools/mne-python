@@ -781,9 +781,16 @@ def test_label_sign_flip():
     known_flips = np.array([1, 1, np.nan, 1, 1])
     idx = [0, 1, 3, 4]  # indices that are usable (third row is orthognoal)
     flip = label_sign_flip(label, src)
-    # Need the abs here because the direction is arbitrary
-    assert_array_almost_equal(np.abs(np.dot(flip[idx], known_flips[idx])),
-                              len(idx))
+    assert_array_almost_equal(np.dot(flip[idx], known_flips[idx]), len(idx))
+    bi_label = label + Label(vertices=src[1]['vertno'][:5], hemi='rh')
+    src[1]['nn'][src[1]['vertno'][:5]] = -src[0]['nn'][label.vertices]
+    flip = label_sign_flip(bi_label, src)
+    known_flips = np.array([1, 1, np.nan, 1, 1, 1, 1, np.nan, 1, 1])
+    idx = [0, 1, 3, 4, 5, 6, 8, 9]
+    assert_array_almost_equal(np.dot(flip[idx], known_flips[idx]), 0.)
+    src[1]['nn'][src[1]['vertno'][:5]] *= -1
+    flip = label_sign_flip(bi_label, src)
+    assert_array_almost_equal(np.dot(flip[idx], known_flips[idx]), len(idx))
 
 
 @testing.requires_testing_data
