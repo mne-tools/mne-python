@@ -35,7 +35,9 @@ from ...event import read_events
 class UnsupportedKITFormat(Exception):
     """Our reader is not guaranteed to work with old files."""
 
-    pass
+    def __init__(self, sqd_version, *args, **kwargs):
+        self.sqd_version = sqd_version
+        Exception.__init__(self, *args, **kwargs)
 
 
 class RawKIT(BaseRaw):
@@ -558,13 +560,16 @@ def get_kit_info(rawfile, allow_unknown_format):
         # check file format version
         version, revision = unpack('2i', fid.read(2 * KIT.INT))
         if version < 2 or (version == 2 and revision < 3):
+            version_string = "V%iR%03i" % (version, revision)
             if allow_unknown_format:
                 unsupported_format = True
+                logger.warning("Force loading KIT format %s", version_string)
             else:
                 raise UnsupportedKITFormat(
-                    "SQD file format V%iR%03i is not officially supported. "
+                    version_string,
+                    "SQD file format %s is not officially supported. "
                     "Set allow_unknown_format=True to load it anyways." %
-                    (version, revision))
+                    (version_string,))
 
         sysid = unpack('i', fid.read(KIT.INT))[0]
         # basic info
