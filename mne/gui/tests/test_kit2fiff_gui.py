@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os
+import sys
 import warnings
 
 import numpy as np
@@ -23,6 +24,12 @@ fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
 fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
 warnings.simplefilter('always')
+
+
+def _check_ci():
+    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
+            sys.platform == 'darwin':
+        raise SkipTest('Skipping GUI tests on Travis OSX')
 
 
 @requires_mayavi
@@ -119,8 +126,7 @@ def test_kit2fiff_model():
 @requires_mayavi
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""
-    if os.environ.get('TRAVIS_OS_NAME') == 'linux':
-        raise SkipTest("Skipping on Travis for Linux due to GUI error")
+    _check_ci()
     home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
