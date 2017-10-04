@@ -280,7 +280,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     Average reference:
         A new virtual reference electrode is created by averaging the current
         EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
-        automatically excluded if they are properly set in ``info['bads']`.
+        automatically excluded if they are properly set in ``info['bads']``.
 
     A single electrode:
         Set ``ref_channels`` to a list containing the name of the channel that
@@ -350,7 +350,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
        necessary if ``ref_channels='average'`` and ``projection=True``.
 
     4. For an average reference, bad EEG channels are automatically excluded if
-       they are properly set in ``info['bads']`.
+       they are properly set in ``info['bads']``.
 
     .. versionadded:: 0.9.0
 
