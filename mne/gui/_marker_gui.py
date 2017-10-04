@@ -67,6 +67,8 @@ mrk_view_basic = View(
                 style='custom'),
            HGroup(Item('clear', enabled_when="can_save", show_label=False),
                   Item('edit', show_label=False),
+                  Item('switch_left_right', label="Switch Left/Right",
+                       show_label=False),
                   Item('save_as', enabled_when="can_save",
                        show_label=False)),
            ))
@@ -134,6 +136,9 @@ class MarkerPointSource(MarkerPoints):  # noqa: D401
     enabled = Property(Bool, depends_on=['points', 'use'])
     clear = Button(desc="Clear the current marker data")
     edit = Button(desc="Edit the marker coordinates manually")
+    switch_left_right = Button(
+        desc="Switch left and right marker points; this is intended to "
+             "correct for markers that were attached in the wrong order")
 
     view = mrk_view_basic
 
@@ -170,6 +175,9 @@ class MarkerPointSource(MarkerPoints):  # noqa: D401
 
     def _edit_fired(self):
         self.edit_traits(view=mrk_view_edit)
+
+    def _switch_left_right_fired(self):
+        self.points = self.points[[1, 0, 2, 4, 3]]
 
 
 class MarkerPointDest(MarkerPoints):  # noqa: D401
