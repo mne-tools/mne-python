@@ -174,7 +174,6 @@ def test_rank_estimation():
         if len(raw.info['proc_history']) == 0:
             expected_rank = n_meg + n_eeg
         else:
-            mf = raw.info['proc_history'][0]['max_info']
             expected_rank = _get_rank_sss(raw.info) + n_eeg
         assert_array_equal(raw.estimate_rank(scalings=scalings), expected_rank)
         assert_array_equal(raw.estimate_rank(picks=picks_eeg,

@@ -982,9 +982,13 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     rank_from_data = _estimate_rank_by_type(
         data=data.T, info=info, picks_list=picks_list, scalings=scalings)
     rank_from_info = _get_expected_rank_from_info(info, picks_list)
-    rank_dict = {k: min(v, rank_from_data[k])
-                 for k, v in rank_from_info.items()}
 
+    # rank estimation is futile if n < p, so we just rely on
+    # our explcit knowledge.
+    n_less_p = (data.shape[0] < data.shape[1])
+    rank_dict = {
+        k: (max if n_less_p else min)(v, rank_from_data[k])
+        for k, v in rank_from_info.items()}
     if has_sss:
         logger.info('Found SSS. Doing low-rank computation.')
         picks_list_merged_ = _merge_picks_list(picks_list)
