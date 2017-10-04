@@ -172,3 +172,10 @@ KIT_SYSNAMES = {
     KIT.SYSTEM_UMD_2014_07: 'University of Maryland, 2014',
     KIT.SYSTEM_UMD_2014_12: 'University of Maryland, 2014-',
 }
+
+LEGACY_AMP_PARAMS = {
+    KIT.SYSTEM_NYU_2008: (5., 11.),
+    KIT.SYSTEM_NYU_2009: (5., 11.),
+    KIT.SYSTEM_NYU_2010: (5., 11.),
+    KIT.SYSTEM_UMD_2004: (5., 11.),
+}

@@ -26,7 +26,7 @@ from ..utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from .constants import KIT
+from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk
 from ...externals.six import string_types
 from ...event import read_events
@@ -585,7 +585,7 @@ def get_kit_info(rawfile, allow_unknown_format):
         adboard_type = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(KIT.INT * 29, SEEK_CUR)  # reserved
 
-        if version == 2 and revision == 3:
+        if version < 2 or (version == 2 and revision <= 3):
             adc_range = float(unpack('i', fid.read(KIT.INT))[0])
         else:
             adc_range = unpack('d', fid.read(KIT.DOUBLE))[0]
@@ -711,8 +711,10 @@ def get_kit_info(rawfile, allow_unknown_format):
 
     # precompute conversion factor for reading data
     if unsupported_format:
-        adc_range = 5.
-        adc_stored = 11
+        if sysid not in LEGACY_AMP_PARAMS:
+            raise IOError("Legacy parameters for system ID %i unavailable" %
+                          (sysid,))
+        adc_range, adc_stored = LEGACY_AMP_PARAMS[sysid]
     is_meg = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
     ad_to_volt = adc_range / (2. ** adc_stored)
     ad_to_tesla = ad_to_volt / amp_gain * channel_gain
