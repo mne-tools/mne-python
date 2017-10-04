@@ -929,6 +929,7 @@ def _check_estimated_rank(this_estimated_rank, this_picks, this_info, evoked,
     expected_rank_reduction += n_ssp
     expected_rank -= expected_rank_reduction
     if this_estimated_rank != expected_rank:
+        import pdb; pdb.set_trace()
         logger.warning(
             'For (%s) the expected and estimated rank diverge '
             '(%i VS %i). \nThis may lead to surprising reults. '

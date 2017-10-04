@@ -859,17 +859,21 @@ def _merge_picks_list(picks_list):
     """Combine grad and mag into meg picks + label."""
     keys, picks_ = [list(ee) for ee in zip(*picks_list)]
     picks_dict = dict(picks_list)
-    if 'mag' in keys and 'grad' in keys:
+    if 'mag' in keys or 'grad' in keys:
+        picks_meg = [picks_dict.get('mag', None),
+                     picks_dict.get('grad', None)]
         picks_meg = np.concatenate(
-            [picks_dict['mag'], picks_dict['grad']])
+            [pp for pp in picks_meg if pp is not None])
         picks_meg = np.sort(picks_meg)
+
         picks_dict['meg'] = picks_meg
         # now update keys to reflect merge
-        meg_index = min(keys.index('mag'),
-                        keys.index('grad'))
+        meg_index = min(keys.index(kk) if kk in keys else np.inf
+                        for kk in ('grad', 'mag'))
         keys.insert(meg_index, 'meg')
-        keys.remove('mag')
-        keys.remove('grad')
+        for key in ('mag', 'grad'):
+            if key in keys:
+                keys.remove(key)
 
     return [(kk, picks_dict[kk]) for kk in keys]
 
@@ -1885,7 +1889,6 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
 
     W, rank = compute_whitener(noise_cov, evoked.info, picks=picks,
                                rank=rank, scalings=scalings)
-
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
 
