@@ -856,7 +856,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
 
 def _merge_picks_list(picks_list):
-    """Helper to move between channel block picks."""
+    """Combine grad and mag into meg picks + label."""
     keys, picks_ = [list(ee) for ee in zip(*picks_list)]
     picks_dict = dict(picks_list)
     if 'mag' in keys and 'grad' in keys:
