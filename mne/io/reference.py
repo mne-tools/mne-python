@@ -279,8 +279,8 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
     Average reference:
         A new virtual reference electrode is created by averaging the current
-        EEG signal. Make sure that all bad EEG channels are properly marked
-        and set ``ref_channels='average'``.
+        EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
+        automatically excluded if they are properly set in ``info['bads']`.
 
     A single electrode:
         Set ``ref_channels`` to a list containing the name of the channel that
@@ -293,12 +293,12 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         channels to use. For example, to apply an average mastoid reference,
         when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
 
-    .. note:: In case of average reference `ref_channels='average'`` in
-              combination with `projection=True`, the reference is added as a
-              projection and it is not applied automatically. For it to take
-              effect, apply with method
-              :meth:`apply_proj <mne.io.Raw.apply_proj>`. Other references are
-              directly applied (this behavior will change in MNE 0.16).
+    .. note:: In case of ``ref_channels='average'`` in combination with
+              ``projection=True``, the reference is added as a projection and
+              it is not applied automatically. For it to take effect, apply
+              with method :meth:`apply_proj <mne.io.Raw.apply_proj>`. Other
+              references are directly applied (this behavior will change in MNE
+              0.16).
 
     Parameters
     ----------
@@ -348,6 +348,9 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
     3. In order to apply a reference, the data must be preloaded. This is not
        necessary if ``ref_channels='average'`` and ``projection=True``.
+
+    4. For an average reference, bad EEG channels are automatically excluded if
+       they are properly set in ``info['bads']`.
 
     .. versionadded:: 0.9.0
 
