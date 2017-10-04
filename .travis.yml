@@ -9,7 +9,7 @@ cache:
 env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     global: PYTHON_VERSION=2.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
-            PIP_DEPENDENCIES="codecov pytest-faulthandler pysurfer" OPTION=""
+            PIP_DEPENDENCIES="codecov pytest-faulthandler" OPTION=""
             TRAVIS_PYTHON_VERSION=3.6
 
 matrix:
