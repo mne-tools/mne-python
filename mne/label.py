@@ -1214,9 +1214,9 @@ def label_sign_flip(label, src):
 
     Parameters
     ----------
-    label : Label
+    label : Label | BiHemiLabel
         A label.
-    src : list of dict
+    src : SourceSpaces
         The source space over which the label is defined.
 
     Returns
@@ -1231,18 +1231,20 @@ def label_sign_flip(label, src):
     rh_vertno = src[1]['vertno']
 
     # get source orientations
-    if label.hemi == 'lh':
-        vertno_sel = np.intersect1d(lh_vertno, label.vertices)
-        if len(vertno_sel) == 0:
-            return np.array([], int)
-        ori = src[0]['nn'][vertno_sel]
-    elif label.hemi == 'rh':
-        vertno_sel = np.intersect1d(rh_vertno, label.vertices)
-        if len(vertno_sel) == 0:
-            return np.array([], int)
-        ori = src[1]['nn'][vertno_sel]
-    else:
-        raise Exception("Unknown hemisphere type")
+    ori = list()
+    if label.hemi in ('lh', 'both'):
+        vertices = label.vertices if label.hemi == 'lh' else label.lh.vertices
+        vertno_sel = np.intersect1d(lh_vertno, vertices)
+        ori.append(src[0]['nn'][vertno_sel])
+    if label.hemi in ('rh', 'both'):
+        vertices = label.vertices if label.hemi == 'rh' else label.rh.vertices
+        vertno_sel = np.intersect1d(rh_vertno, vertices)
+        ori.append(src[1]['nn'][vertno_sel])
+    if len(ori) == 0:
+        raise Exception('Unknown hemisphere type "%s"' % (label.hemi,))
+    ori = np.concatenate(ori, axis=0)
+    if len(ori) == 0:
+        return np.array([], int)
 
     _, _, Vh = linalg.svd(ori, full_matrices=False)
 

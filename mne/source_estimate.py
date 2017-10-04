@@ -1490,7 +1490,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        labels : Label | list of Label
+        labels : Label | BiHemiLabel | list of Label or BiHemiLabel
             The labels for which to extract the time courses.
         src : list
             Source spaces for left and right hemisphere.
@@ -3089,8 +3089,6 @@ def _get_label_flip(labels, label_vertidx, src):
     # get the sign-flip vector for every label
     label_flip = list()
     for label, vertidx in zip(labels, label_vertidx):
-        if label.hemi == 'both':
-            raise ValueError('BiHemiLabel not supported when using sign-flip')
         if vertidx is not None:
             flip = label_sign_flip(label, src)[:, None]
         else:
@@ -3273,7 +3271,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     ----------
     stcs : SourceEstimate | list (or generator) of SourceEstimate
         The source estimates from which to extract the time course.
-    labels : Label | list of Label
+    labels : Label | BiHemiLabel | list of Label or BiHemiLabel
         The labels for which to extract the time course.
     src : list
         Source spaces for left and right hemisphere.
