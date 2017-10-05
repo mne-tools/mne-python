@@ -259,7 +259,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         if not pick_ori == 'max-power':
             raise NotImplementedError('The computation of spatial filters '
                                       'with rank reduction using reduce_rank '
-                                      'parameter is not yet implemented with '
+                                      'parameter is only implemented with '
                                       'pick_ori=="max-power".')
         if not isinstance(reduce_rank, bool):
             raise ValueError('reduce_rank has to be True or False '
