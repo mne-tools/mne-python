@@ -21,7 +21,7 @@ Install Python and MNE-Python
 
 * Once everything is set up, check the installation:
 
-  .. code-block:: bash
+  .. code-block:: console
 
       $ conda --version
       conda 4.2.14
@@ -42,7 +42,7 @@ Install Python and MNE-Python
       <div class="row container">
         <div class="col-sm-7 container">
 
-  .. code-block:: bash
+  .. code-block:: console
 
       $ conda install scipy matplotlib scikit-learn mayavi jupyter spyder
       $ pip install PySurfer mne
@@ -57,9 +57,9 @@ Install Python and MNE-Python
               <p>Try the conda environment available
               <a class="reference external" href="https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml">here</a>:
               </p>
-              <div class="highlight-bash">
+              <div class="highlight-console">
                 <div class="highlight">
-                  <pre><span></span>$ conda env create -f environment.yml<br>$ source activate mne</pre>
+                  <pre><span></span><span class="gp">$</span> curl -O https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml<br><span class="gp">$</span> conda env create -f environment.yml<br><span class="gp">$</span> source activate mne</pre>
                 </div>
               </div>
             </div>

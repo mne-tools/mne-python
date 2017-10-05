@@ -119,7 +119,7 @@ If you downloaded data and an example asks you whether to download it again,
 make sure the data reside in the examples directory and that you run the
 script from its current directory:
 
-.. code-block:: bash
+.. code-block:: console
 
   $ cd examples/preprocessing
 
