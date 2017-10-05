@@ -90,7 +90,7 @@ class ReorderDialog(HasPrivateTraits):
     def _get_index(self):
         try:
             return [int(i) for i in self.order.split()]
-        except:
+        except ValueError:
             return []
 
     def _get_is_ok(self):
