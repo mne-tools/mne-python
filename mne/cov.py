@@ -1123,7 +1123,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             C_full = np.zeros([sum(len(dd) for _, dd in picks_list)] * 2)
 
             picks = np.concatenate(  # get orig picks
-                    [pp for ch, pp in picks_list if ch in ('mag', 'grad')])
+                [pp for ch, pp in picks_list if ch in ('mag', 'grad')])
             picks = np.sort(picks)
             meg_full_idx = np.ix_(picks, picks)
 
