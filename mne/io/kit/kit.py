@@ -32,12 +32,12 @@ from ...externals.six import string_types
 from ...event import read_events
 
 
-class UnsupportedKITFormat(Exception):
+class UnsupportedKITFormat(ValueError):
     """Our reader is not guaranteed to work with old files."""
 
     def __init__(self, sqd_version, *args, **kwargs):
         self.sqd_version = sqd_version
-        Exception.__init__(self, *args, **kwargs)
+        ValueError.__init__(self, *args, **kwargs)
 
 
 class RawKIT(BaseRaw):
