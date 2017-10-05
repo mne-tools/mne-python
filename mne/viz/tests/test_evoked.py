@@ -121,7 +121,7 @@ def test_plot_evoked():
 
         cov = read_cov(cov_fname)
         cov['method'] = 'empirical'
-        evoked.plot_white(cov)
+        evoked.plot_white(cov, rank={'mag': 64})  # test rank param.
         evoked.plot_white([cov, cov])
 
         # plot_compare_evokeds: test condition contrast, CI, color assignment
