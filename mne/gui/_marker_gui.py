@@ -79,7 +79,7 @@ mrk_view_edit = View(VGroup('points'))
 
 class ReorderDialog(HasPrivateTraits):
     """Dialog for reordering marker points."""
-    
+
     order = Str("0 1 2 3 4")
     index = Property(List, depends_on='order')
     is_ok = Property(Bool, depends_on='order')
