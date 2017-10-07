@@ -277,10 +277,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
 
     # Reapply weights to have correct unit
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
-    X_ori = X.copy()
     X = _reapply_source_weighting(X, source_weighting,
                                   active_set, n_dip_per_pos)
-    X_ori /= source_weighting[active_set][:, None]
 
     if return_residual:
         residual = _compute_residual(forward, evoked, X, active_set,
@@ -292,25 +290,21 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         in_pos = 0
         if len(X) < 3 * len(active_src):
             X_xyz = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
-            X_ori_ = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
             for ii in range(len(active_src)):
                 for jj in range(3):
                     if in_pos >= len(active_set):
                         break
                     if (active_set[in_pos] + jj) % 3 == 0:
                         X_xyz[3 * ii + jj] = X[in_pos]
-                        X_ori_[3 * ii + jj] = X_ori[in_pos]
                         in_pos += 1
             X = X_xyz
-            X_ori = X_ori_
 
     tmin = evoked.times[0]
     tstep = 1.0 / evoked.info['sfreq']
 
     if return_as_dipoles:
         out = _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
-                                   M_estimated, active_is_idx=True,
-                                   X_ori=X_ori)
+                                   M_estimated, active_is_idx=True)
     else:
         out = _make_sparse_stc(X, active_set, forward, tmin, tstep,
                                active_is_idx=True, verbose=verbose)
