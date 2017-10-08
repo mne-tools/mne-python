@@ -6,7 +6,8 @@
 import numpy as np
 from scipy import linalg, signal
 
-from ..source_estimate import SourceEstimate, VolSourceEstimate
+from ..source_estimate import (SourceEstimate, VolSourceEstimate,
+                               _BaseSourceEstimate)
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference, _check_loose_forward)
 from ..forward import (compute_orient_prior, is_fixed_orient,
@@ -24,7 +25,7 @@ from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
 @verbose
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     mask = None
-    if isinstance(weights, (SourceEstimate, VolSourceEstimate)):
+    if isinstance(weights, _BaseSourceEstimate):
         weights = np.max(np.abs(weights.data), axis=1)
     weights_max = np.max(weights)
     if weights_min > weights_max:
