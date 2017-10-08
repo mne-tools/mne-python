@@ -172,7 +172,6 @@ def test_mxne_vol_sphere():
 
     # Compare orientation obtained using fit_dipole and mixed_norm
     # for a simulated evoked
-    pos = src[0]['rr'][stc.vertices[0]]
     evoked_dip = mne.simulation.simulate_evoked(fwd, stc, info, cov, nave=1e9)
 
     dip_mxne = mixed_norm(evoked_dip, fwd, cov, alpha=80,
@@ -181,11 +180,11 @@ def test_mxne_vol_sphere():
 
     amp_max = [np.max(d.amplitude) for d in dip_mxne]
     dip_mxne = dip_mxne[np.argmax(amp_max)]
-    assert_true(dip_mxne[0].pos[0] in pos)
+    assert_true(dip_mxne.pos[0] in src[0]['rr'][stc.vertices])
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
     assert_true(np.max(np.abs(np.dot(dip_fit.ori,
-                                     dip_mxne[0].ori.T))) > 0.99)
+                                     dip_mxne.ori.T))) > 0.99)
 
     # Do with TF-MxNE for test memory savings
     alpha_space = 60.  # spatial regularization parameter

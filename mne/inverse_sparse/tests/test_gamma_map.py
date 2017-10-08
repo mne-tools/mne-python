@@ -136,6 +136,6 @@ def test_gamma_map_vol_sphere():
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
     assert_true(np.max(np.abs(np.dot(dip_fit.ori[0],
-                                     dip_gmap[0].ori.T))) > 0.99)
+                                     dip_gmap.ori.T))) > 0.99)
 
 run_tests_if_main()
