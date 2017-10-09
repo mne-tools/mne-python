@@ -420,7 +420,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
     ax._cursorline = None
     # choose cursor color based on perceived brightness of background
-    bg_br = np.dot(ax.get_axis_bgcolor()[:3], [299, 587, 114])
+    bg_br = np.dot(ax.get_axis_bgcolor()[:3], np.array([299, 587, 114]))
     ax._cursorcolor = 'white' if bg_br < 150 else 'black'
 
     plt.connect('motion_notify_event', _cursor_vline)
