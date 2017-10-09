@@ -140,6 +140,9 @@ fig.tight_layout()
 plt.show()
 
 
+###############################################################################
+# Let's plot the positions and the orientations of the actual and the estimated
+# dipoles
 def plot_pos_ori(pos, ori, color=(0., 0., 0.)):
     mlab.points3d(pos[:, 0], pos[:, 1], pos[:, 2], scale_factor=0.005,
                   color=color)
