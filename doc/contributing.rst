@@ -29,7 +29,7 @@ Code guidelines
   style violations automatcally, such as Spyder_. From the MNE code root, you
   can check for violations using flake8_ with:
 
-  .. code-block:: bash
+  .. code-block:: console
 
      $ make flake
 
@@ -47,13 +47,13 @@ Code guidelines
 * After making changes, **ensure all tests pass**. This can be done
   by running:
 
-  .. code-block:: bash
+  .. code-block:: console
 
      $ make test
 
   To run individual tests, you can also run e.g.:
 
-  .. code-block:: bash
+  .. code-block:: console
 
      $ pytest mne/tests/test_evoked.py:test_io_evoked -x --verbose
 
@@ -124,14 +124,14 @@ you want to also test documentation locally, you will need to install
 ``sphinx sphinx-gallery sphinx_bootstrap_theme numpydoc``, and then within
 the ``mne/doc`` directory do:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ make html_dev-noplot
 
 If you are working on examples or tutorials, you can build specific examples
 with:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ PATTERN=plot_background_filtering.py make html_dev-pattern
 

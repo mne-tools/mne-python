@@ -1086,6 +1086,7 @@ def find_ch_connectivity(info, ch_type):
     Notes
     -----
     .. versionadded:: 0.15
+
     Automatic detection of an appropriate connectivity matrix template only
     works for MEG data at the moment. This means that the connectivity matrix
     is always computed for EEG data and never loaded from a template file. If

@@ -21,7 +21,8 @@ skip_files = (
     # part of testing compatibility with older BV formats is testing
     # the line endings and coding schemes used there
     'test_old_layout_latin1_software_filter.vhdr',
-    'test_old_layout_latin1_software_filter.vmrk'
+    'test_old_layout_latin1_software_filter.vmrk',
+    'searchindex.dat',
 )
 
 
@@ -68,5 +69,6 @@ def test_line_endings():
     assert_raises(AssertionError, _assert_line_endings, tempdir)
     # now check mne
     _assert_line_endings(_get_root_dir())
+
 
 run_tests_if_main()

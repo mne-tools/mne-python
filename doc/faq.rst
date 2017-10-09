@@ -19,7 +19,7 @@ Help! I can't get Python and MNE-Python working!
 ------------------------------------------------
 
 Check out our section on how to get Anaconda up and running over at the
-:ref:`getting started page <install_interpreter>`.
+:ref:`getting started page <install_python_and_mne_python>`.
 
 I still can't get it to work!
 -----------------------------
@@ -119,7 +119,7 @@ If you downloaded data and an example asks you whether to download it again,
 make sure the data reside in the examples directory and that you run the
 script from its current directory:
 
-.. code-block:: bash
+.. code-block:: console
 
   $ cd examples/preprocessing
 
