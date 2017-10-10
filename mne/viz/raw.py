@@ -598,9 +598,9 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
 
     if estimate == 'auto':
         if dB:
-             estimate = 'power'
+            estimate = 'power'
         else:
-             estimate = 'amplitude'
+            estimate = 'amplitude'
 
     if estimate == 'amplitude':
         np.sqrt(psds, out=psds)
