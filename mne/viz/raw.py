@@ -570,7 +570,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     """Convert PSDs to dB (if necessary) and appropriate units.
 
     The following table summarizes the relationship between the value of
-    parameters `dB` and `estimate`, and the type of plot and corresponding
+    parameters ``dB`` and ``estimate``, and the type of plot and corresponding
     units.
 
     | dB    | estimate    | plot | units             |
@@ -583,7 +583,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     | False | 'auto'      | ASD  | amp/sqrt(Hz)      |
 
     where amp are the units corresponding to the variable, as specified by
-    `unit`.
+    ``unit``.
     """
     where = np.where(psds.min(1) <= 0)[0]
     if len(where) > 0:
@@ -671,12 +671,12 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         is 0 (no overlap).
     dB : bool
         Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
-        `dB=True`, and `estimate='power'` or `estimate='auto'`. Plot PSD in
-        units (amplitude**2/Hz) if `dB=False` and, `estimate='power'. Plot
-        Amplitude Spectral Density (ASD), in units (amplitude/sqrt(Hz)), if
-        `dB=False` and `estimate='amplitude'` or `estimate='auto'`. Plot ASD,
-        in units (amplitude/sqrt(Hz) (db)), if `dB=True` and
-        `estimate='amplitude'`.
+        ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
+        in units (amplitude**2/Hz) if ``dB=False`` and,
+        ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
+        (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
+        ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (db)), if
+        ``dB=True`` and ``estimate='amplitude'``.
     estimate : str, {'auto', 'power', 'amplitude'}
         Can be "power" for power spectral density (PSD), "amplitude" for
         amplitude spectrum density (ASD), or "auto" (default), which uses
