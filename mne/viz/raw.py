@@ -573,43 +573,48 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     parameters `dB` and `estimate`, and the type of plot and corresponding
     units.
 
-    | dB    | estimate    | plot | units           |
-    |-------+-------------+------+-----------------|
-    | True  | 'power'     | PSD  | u**2/Hz (dB)    |
-    | False | 'amplitude' | ASD  | u/sqrt{Hz}      |
-    | True  | 'auto'      | PSD  | u**2/Hz (dB)    |
-    | False | 'power'     | PSD  | u**2/Hz         |
-    | True  | 'amplitude' | ASD  | u/sqrt{Hz} (dB) |
-    | False | 'auto'      | ASD  | u/sqrt{Hz}      |
-    """
+    | dB    | estimate    | plot | units             |
+    |-------+-------------+------+-------------------|
+    | True  | 'power'     | PSD  | amp**2/Hz (dB)    |
+    | True  | 'amplitude' | ASD  | amp/sqrt(Hz) (dB) |
+    | True  | 'auto'      | PSD  | amp**2/Hz (dB)    |
+    | False | 'power'     | PSD  | amp**2/Hz         |
+    | False | 'amplitude' | ASD  | amp/sqrt(Hz)      |
+    | False | 'auto'      | ASD  | amp/sqrt(Hz)      |
 
+    where amp are the units corresponding to the variable, as specified by
+    `unit`.
+    """
     where = np.where(psds.min(1) <= 0)[0]
     if len(where) > 0:
-        raise ValueError("Infinite value in PSD for channel(s) %s. "
-                         "These channels might be dead." %
-                         ', '.join(ch_names[ii] for ii in where))
+        if dB:
+            raise ValueError("Infinite value in PSD for channel(s) %s. "
+                             "These channels might be dead." %
+                             ', '.join(ch_names[ii] for ii in where))
+        else:
+            raise ValueError("Zero value in PSD for channel(s) %s. "
+                             "These channels might be dead." %
+                             ', '.join(ch_names[ii] for ii in where))
 
-    if dB and ((estimate == 'power') or (estimate == 'auto')):
-        psds *= scaling * scaling
-        np.log10(psds, out=psds)
-        psds *= 10
-        ylabel = '%s**2/Hz (dB)' % unit # Better to use latex and ^?
+    if estimate == 'auto':
+        if dB:
+             estimate = 'power'
+        else:
+             estimate = 'amplitude'
 
-    if not dB and ((estimate == 'amplitude' or estimate == 'auto')):
+    if estimate == 'amplitude':
         np.sqrt(psds, out=psds)
         psds *= scaling
         ylabel = '$\\frac{%s}{\\sqrt{Hz}}$' % unit
-
-    if not dB and (estimate == 'power'):
+    else:
         psds *= scaling * scaling
-        ylabel = '%s**2/Hz' % unit # Better to use latex and ^?
+        ylabel = '$%s^2/Hz$' % unit
 
-    if dB and (estimate == 'amplitude'):
-        np.sqrt(psds, out=psds)
-        psds *= scaling
+    if dB:
         np.log10(psds, out=psds)
         psds *= 10
-        ylabel = '$\\frac{%s}{\\sqrt{Hz}}\ (dB)$ ' % unit
+        ylabel += '$\ (dB)$'
+
     return ylabel
 
 
