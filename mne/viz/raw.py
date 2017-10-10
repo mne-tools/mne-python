@@ -712,7 +712,6 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     -------
     fig : instance of matplotlib figure
         Figure with frequency spectra of the data channels.
-
     """
     from matplotlib.ticker import ScalarFormatter
     if average is None:
