@@ -30,6 +30,10 @@ References
 import numpy as np
 import matplotlib.pyplot as plt
 
+from sklearn.pipeline import Pipeline
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.model_selection import ShuffleSplit, cross_val_score
+
 from mne import Epochs, pick_types, find_events
 from mne.channels import read_layout
 from mne.io import concatenate_raws, read_raw_edf
@@ -49,14 +53,15 @@ subject = 1
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
-raw_files = [read_raw_edf(f, preload=True) for f in raw_fnames]
+raw_files = [read_raw_edf(f, preload=True, stim_channel='auto') for f in
+             raw_fnames]
 raw = concatenate_raws(raw_files)
 
 # strip channel names of "." characters
 raw.rename_channels(lambda x: x.strip('.'))
 
 # Apply band-pass filter
-raw.filter(7., 30., fir_design='firwin')
+raw.filter(7., 30., fir_design='firwin', skip_by_annotation='edge')
 
 events = find_events(raw, shortest_event=0, stim_channel='STI 014')
 
@@ -73,22 +78,18 @@ labels = epochs.events[:, -1] - 2
 ###############################################################################
 # Classification with linear discrimant analysis
 
-from sklearn.lda import LDA  # noqa
-from sklearn.cross_validation import ShuffleSplit  # noqa
-
-# Assemble a classifier
-lda = LDA()
-csp = CSP(n_components=4, reg=None, log=True)
-
 # Define a monte-carlo cross-validation generator (reduce variance):
-cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
 scores = []
 epochs_data = epochs.get_data()
 epochs_data_train = epochs_train.get_data()
+cv = ShuffleSplit(10, test_size=0.2, random_state=42)
+cv_split = cv.split(epochs_data_train)
+
+# Assemble a classifier
+lda = LinearDiscriminantAnalysis()
+csp = CSP(n_components=4, reg=None, log=True, norm_trace=False)
 
 # Use scikit-learn Pipeline with cross_val_score function
-from sklearn.pipeline import Pipeline  # noqa
-from sklearn.cross_validation import cross_val_score  # noqa
 clf = Pipeline([('CSP', csp), ('LDA', lda)])
 scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
 
@@ -101,14 +102,9 @@ print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
 
-evoked = epochs.average()
-evoked.data = csp.patterns_.T
-evoked.times = np.arange(evoked.data.shape[0])
-
 layout = read_layout('EEG1005')
-evoked.plot_topomap(times=[0, 1, 2, 3, 4, 5], ch_type='eeg', layout=layout,
-                    scale_time=1, time_format='%i', scale=1,
-                    unit='Patterns (AU)', size=1.5)
+csp.plot_patterns(epochs.info, layout=layout, ch_type='eeg',
+                  units='Patterns (AU)', size=1.5)
 
 ###############################################################################
 # Look at performance over time
@@ -120,7 +116,7 @@ w_start = np.arange(0, epochs_data.shape[2] - w_length, w_step)
 
 scores_windows = []
 
-for train_idx, test_idx in cv:
+for train_idx, test_idx in cv_split:
     y_train, y_test = labels[train_idx], labels[test_idx]
 
     X_train = csp.fit_transform(epochs_data_train[train_idx], y_train)

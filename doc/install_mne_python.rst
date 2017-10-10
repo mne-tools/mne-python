@@ -7,117 +7,71 @@ Install Python and MNE-Python
 
 .. contents:: Steps
    :local:
-   :depth: 1
+   :depth: 2
 
-.. note:: Users who work at a facility with a site-wide install of
-          MNE (e.g. Martinos center) are encouraged to contact
-          their technical staff about how to access and use MNE,
-          as the instructions might differ.
+1. Install a Python interpreter
+###############################
 
-.. _install_interpreter:
+* For a fast and up to date scientific Python environment, **we recommend the
+  Anaconda Python 2.7 distribution**. Get it for Windows, OSX, and Linux
+  `here <http://docs.continuum.io/anaconda/install>`_.
 
-1. Install a Python interpreter and dependencies
-################################################
+  .. note :: Python has two major versions currently available, 2.7+ and 3.3+.
+             Currently 3D visualization is only officially supported on 2.7.
 
-There are multiple options available for getting a suitable Python interpreter
-running on your system. However, for a fast and up to date scientific Python
-environment that resolves all dependencies, **we recommend the
-Anaconda Python distribution**.
+* Once everything is set up, check the installation:
 
-Python has two major versions currently available, 2.7+ and 3.3+. Currently
-the 3D visualization dependencies `Mayavi`_ and `PySurfer`_ only run out of the
-box on Python 2.7, so **we recommend using Python 2.7**. You can get
-Anaconda 2.7 for Windows, OSX, and Linux download and installation instructions
-`from the ContinuumIO site <http://docs.continuum.io/anaconda/install>`_.
+  .. code-block:: console
 
-Once everything is set up, you should be able to check the version
-of ``conda`` and ``python`` that is installed:
+      $ conda --version
+      conda 4.2.14
+      $ python --version
+      Python 2.7.12 :: Continuum Analytics, Inc.
 
-.. code-block:: bash
+  If your installation doesn't look something like this, **something went wrong**.
+  Try looking through the Anaconda documentation or Googling for Anaconda install
+  tips (StackExchange results are often helpful).
 
-    $ conda --version
-    conda 4.2.14
-    $ which python
-    /home/agramfort/anaconda/bin/python
-    $ python --version
-    Python 2.7.12 :: Continuum Analytics, Inc.
+2. Install dependencies and MNE
+###############################
 
-.. note:: If your installation doesn't look something like this,
-          *something went wrong* and you should try to fix it. Try looking
-          through the Anaconda documentation or Googling for Anaconda
-          install tips (StackExchange results are often helpful).
+* From the command line, install the MNE dependencies to the root Anaconda environment:
 
-You can then do this to resolve the MNE dependencies:
+  .. raw:: html
 
-.. code-block:: bash
+      <div class="row container">
+        <div class="col-sm-7 container">
 
-    $ conda install scipy matplotlib scikit-learn mayavi ipython-notebook
-    $ pip install PySurfer
+  .. code-block:: console
 
-Now that you have a working Python environment you can install MNE.
+      $ conda install scipy matplotlib scikit-learn mayavi jupyter spyder
+      $ pip install PySurfer mne
 
-Users who would like a MATLAB-like interface should consider using Spyder_,
-which can easily be installed ``$ conda install spyder``.
+  .. raw:: html
 
-.. _install_mne_python:
+         </div>
+         <div class="col-sm-4 container">
+          <div class="panel panel-success">
+            <div class="panel-heading"><h1 class="panel-title"><a data-toggle="collapse" href="#collapse_conda"><strong>Experimental</strong> Python 3.6 alternative ▼</a></h1></div>
+            <div id="collapse_conda" class="panel-body panel-collapse collapse">
+              <p>Try the conda environment available
+              <a class="reference external" href="https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml">here</a>:
+              </p>
+              <div class="highlight-console">
+                <div class="highlight">
+                  <pre><span></span><span class="gp">$</span> curl -O https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml<br><span class="gp">$</span> conda env create -f environment.yml<br><span class="gp">$</span> source activate mne</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-2. Install the MNE module
-#########################
+* To check that everything went fine, in Python, type::
 
-There are a many options for installing MNE, but two of the most
-useful and common are:
+      >>> import mne
 
-1. **Use the stable release version of MNE.** It can be installed as:
+  If you get a new prompt with no error messages, you should be good to go!
 
-   .. code-block:: bash
-
-       $ pip install mne --upgrade
-
-   We tend to release about once every six months, and this
-   command can be used to update the install after each release.
-
-.. _installing_master:
-
-2. **Use the development master version of MNE.** If you want to
-   be able to update your version between releases for
-   bugfixes or new features, this will set you up for frequent updates:
-
-   .. code-block:: bash
-
-       $ git clone git://github.com/mne-tools/mne-python.git
-       $ cd mne-python
-       $ python setup.py develop
-
-   A feature of ``python setup.py develop`` is that any changes made to
-   the files (e.g., by updating to latest ``master``) will be reflected in
-   ``mne`` as soon as you restart your Python interpreter. So to update to
-   the latest version of the ``master`` development branch, you can do:
-
-   .. code-block:: bash
-
-       $ git pull origin master
-
-   and MNE will be updated to have the latest changes.
-
-If you plan to contribute to MNE, please read how to :ref:`contribute_to_mne`.
-
-3. Check your installation
-##########################
-
-To check that everything went fine, in ipython, type::
-
-    >>> import mne
-
-If you get a new prompt with no error messages, you should be good to go!
-
-You can launch a web browser to the documentation with::
-
-
-    >>> mne.open_docs()  # doctest: +SKIP
-
-Along the way, make frequent use of the :ref:`api_reference` and
-:ref:`documentation` to understand the capabilities of MNE.
-
-For advanced topics like how to get NVIDIA :ref:`CUDA` support working for ~10x
-faster filtering and resampling, or if you're having trouble, visit
-:ref:`advanced_setup`.
+* For advanced topics like how to get NVIDIA :ref:`CUDA` support or if you're
+  having trouble, visit :ref:`advanced_setup`.

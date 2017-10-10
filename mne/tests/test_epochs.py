@@ -8,13 +8,12 @@ from copy import deepcopy
 
 from nose.tools import (assert_true, assert_equal, assert_raises,
                         assert_not_equal)
-
+import pytest
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
 import numpy as np
 import copy as cp
 import warnings
-from scipy import fftpack
 import matplotlib
 
 from mne import (Epochs, Annotations, read_events, pick_events, read_epochs,
@@ -26,7 +25,7 @@ from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
-from mne.utils import (_TempDir, requires_pandas, slow_test,
+from mne.utils import (_TempDir, requires_pandas,
                        run_tests_if_main, requires_version)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
@@ -68,6 +67,7 @@ def _get_data(preload=False):
                        exclude='bads')
     return raw, events, picks
 
+
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
@@ -94,7 +94,7 @@ def test_hierarchical():
     assert_array_equal(epochs.get_data(), epochs_all.get_data())
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_average_movements():
     """Test movement averaging algorithm."""
@@ -426,24 +426,50 @@ def test_base_epochs():
 @requires_version('scipy', '0.14')
 def test_savgol_filter():
     """Test savgol filtering."""
-    h_freq = 10.
+    h_freq = 20.
     raw, events = _get_data()[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax)
     assert_raises(RuntimeError, epochs.savgol_filter, 10.)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
-    freqs = fftpack.fftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
-    data = np.abs(fftpack.fft(epochs.get_data()))
-    match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
-    mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
+    epochs.pick_types(meg='grad')
+    freqs = np.fft.rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data = np.abs(np.fft.rfft(epochs.get_data()))
+    pass_mask = (freqs <= h_freq / 2. - 5.)
+    stop_mask = (freqs >= h_freq * 2 + 5.)
     epochs.savgol_filter(h_freq)
-    data_filt = np.abs(fftpack.fft(epochs.get_data()))
+    data_filt = np.abs(np.fft.rfft(epochs.get_data()))
     # decent in pass-band
-    assert_allclose(np.mean(data[:, :, match_mask], 0),
-                    np.mean(data_filt[:, :, match_mask], 0),
-                    rtol=1e-4, atol=1e-2)
+    assert_allclose(np.mean(data[:, :, pass_mask], 0),
+                    np.mean(data_filt[:, :, pass_mask], 0),
+                    rtol=1e-2, atol=1e-18)
     # suppression in stop-band
-    assert_true(np.mean(data[:, :, mismatch_mask]) >
-                np.mean(data_filt[:, :, mismatch_mask]) * 5)
+    assert_true(np.mean(data[:, :, stop_mask]) >
+                np.mean(data_filt[:, :, stop_mask]) * 5)
+
+
+def test_filter():
+    """Test filtering."""
+    h_freq = 40.
+    raw, events = _get_data()[:2]
+    epochs = Epochs(raw, events, event_id, tmin, tmax)
+    assert round(epochs.info['lowpass']) == 172
+    assert_raises(RuntimeError, epochs.savgol_filter, 10.)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
+    epochs.pick_types(meg='grad')
+    freqs = np.fft.rfftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data = np.abs(np.fft.rfft(epochs.get_data()))
+    pass_mask = (freqs <= h_freq / 2. - 5.)
+    stop_mask = (freqs >= h_freq * 2 + 5.)
+    epochs.filter(None, h_freq, fir_design='firwin')
+    assert epochs.info['lowpass'] == h_freq
+    data_filt = np.abs(np.fft.rfft(epochs.get_data()))
+    # decent in pass-band
+    assert_allclose(np.mean(data_filt[:, :, pass_mask], 0),
+                    np.mean(data[:, :, pass_mask], 0),
+                    rtol=5e-2, atol=1e-16)
+    # suppression in stop-band
+    assert_true(np.mean(data[:, :, stop_mask]) >
+                np.mean(data_filt[:, :, stop_mask]) * 10)
 
 
 def test_epochs_hash():
@@ -560,7 +586,7 @@ def test_read_epochs_bad_events():
     warnings.resetwarnings()
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_read_write_epochs():
     """Test epochs from raw files with IO as fif file."""
     raw, events, picks = _get_data(preload=True)
@@ -794,7 +820,7 @@ def test_epochs_proj():
                             eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
-    epochs.set_eeg_reference().apply_proj()
+    epochs.set_eeg_reference(projection=True).apply_proj()
     assert_true(_has_eeg_average_ref_proj(epochs.info['projs']))
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
@@ -836,10 +862,10 @@ def test_epochs_proj():
     epochs.save(temp_fname)
     for preload in (True, False):
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
-        epochs.set_eeg_reference().apply_proj()
+        epochs.set_eeg_reference(projection=True).apply_proj()
         assert_allclose(epochs.get_data().mean(axis=1), 0, atol=1e-15)
         epochs = read_epochs(temp_fname, proj=False, preload=preload)
-        epochs.set_eeg_reference()
+        epochs.set_eeg_reference(projection=True)
         assert_raises(AssertionError, assert_allclose,
                       epochs.get_data().mean(axis=1), 0., atol=1e-15)
         epochs.apply_proj()
@@ -1064,7 +1090,7 @@ def test_comparision_with_c():
     c_evoked = read_evokeds(evoked_nf_name, condition=0)
     epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=None,
                     preload=True, proj=False)
-    evoked = epochs.set_eeg_reference().apply_proj().average()
+    evoked = epochs.set_eeg_reference(projection=True).apply_proj().average()
     sel = pick_channels(c_evoked.ch_names, evoked.ch_names)
     evoked_data = evoked.data
     c_evoked_data = c_evoked.data[sel]
@@ -1318,7 +1344,7 @@ def test_epoch_eq():
     assert_true(len([l for l in epochs_1.drop_log if not l]) ==
                 len(epochs_1.events))
     drop_log1 = epochs_1.drop_log = [[] for _ in range(len(epochs_1.events))]
-    drop_log2 = [[] if l == ['EQUALIZED_COUNT'] else l for l in
+    drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
                  epochs_1.drop_log]
     assert_true(drop_log1 == drop_log2)
     assert_true(len([l for l in epochs_1.drop_log if not l]) ==
@@ -1342,7 +1368,7 @@ def test_epoch_eq():
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'])
     # undo the eq logging
-    drop_log2 = [[] if l == ['EQUALIZED_COUNT'] else l for l in
+    drop_log2 = [[] if log == ['EQUALIZED_COUNT'] else log for log in
                  epochs.drop_log]
     assert_true(drop_log1 == drop_log2)
 
@@ -1505,7 +1531,7 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
     for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
-        df = epochs.to_data_frame(index=ind)
+        df = epochs.to_data_frame(picks=[11, 12, 14], index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
         # test that non-indexed data were present as categorial variables
         assert_array_equal(sorted(df.reset_index().columns[:3]),
@@ -1548,15 +1574,16 @@ def test_epochs_proj_mixin():
     for preload in [True, False]:
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         proj='delayed', preload=preload,
-                        reject=reject).set_eeg_reference()
+                        reject=reject).set_eeg_reference(projection=True)
         epochs_proj = Epochs(
             raw, events[:4], event_id, tmin, tmax, picks=picks,
             proj=True, preload=preload,
-            reject=reject).set_eeg_reference().apply_proj()
+            reject=reject).set_eeg_reference(projection=True).apply_proj()
 
-        epochs_noproj = Epochs(
-            raw, events[:4], event_id, tmin, tmax, picks=picks,
-            proj=False, preload=preload, reject=reject).set_eeg_reference()
+        epochs_noproj = Epochs(raw, events[:4], event_id, tmin, tmax,
+                               picks=picks, proj=False, preload=preload,
+                               reject=reject)
+        epochs_noproj.set_eeg_reference(projection=True)
 
         assert_allclose(epochs.copy().apply_proj().get_data(),
                         epochs_proj.get_data(), rtol=1e-10, atol=1e-25)
@@ -1581,7 +1608,8 @@ def test_epochs_proj_mixin():
 
     # test mixin against manual application
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=None, proj=False).set_eeg_reference()
+                    baseline=None,
+                    proj=False).set_eeg_reference(projection=True)
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])

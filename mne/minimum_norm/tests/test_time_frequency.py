@@ -81,13 +81,10 @@ def test_tfr_with_inverse_operator():
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
                     preload=True)
 
-    frequencies = np.arange(7, 30, 2)  # define frequencies of interest
-    power, phase_lock = source_induced_power(epochs, inv,
-                                             frequencies, label,
-                                             baseline=(-0.1, 0),
-                                             baseline_mode='percent',
-                                             n_cycles=2, n_jobs=1,
-                                             prepared=True)
+    freqs = np.arange(7, 30, 2)  # define frequencies of interest
+    power, phase_lock = source_induced_power(
+        epochs, inv, freqs, label, baseline=(-0.1, 0), baseline_mode='percent',
+        n_cycles=2, n_jobs=1, prepared=True)
     assert_true(np.all(phase_lock > 0))
     assert_true(np.all(phase_lock <= 1))
     assert_true(np.max(power) > 10)

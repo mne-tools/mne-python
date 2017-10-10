@@ -5,6 +5,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #
 # License: Simplified BSD
 
@@ -21,15 +22,18 @@ from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show,
-                    _compute_scalings, DraggableColorbar, _setup_cmap)
+                    _compute_scalings, DraggableColorbar, _setup_cmap,
+                    _grad_pair_pick_and_name, _handle_decim)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
+from ..externals.six import string_types
 
 
 def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None, cmap='RdBu_r',
-                      fig=None, axes=None, overlay_times=None):
+                      units=None, scalings=None, cmap=None, fig=None,
+                      axes=None, overlay_times=None, combine=None,
+                      group_by=None, evoked=True, ts_args=dict(), title=None):
     """Plot Event Related Potential / Fields image.
 
     Parameters
@@ -37,17 +41,25 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     epochs : instance of Epochs
         The epochs.
     picks : int | array-like of int | None
-        The indices of the channels to consider. If None, the first
-        five good channels are plotted.
+        The indices of the channels to consider. If None and ``combine`` is
+        also None, the first five good channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
-    vmin : float
-        The min value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers.
-    vmax : float
-        The max value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers.
+        Defaults to 0.
+    vmin : None | float | callable
+        The min value in the image (and the ER[P/F]). The unit is uV for
+        EEG channels, fT for magnetometers and fT/cm for gradiometers.
+        If vmin is None and multiple plots are returned, the limit is
+        equalized within channel types.
+        Hint: to specify the lower limit of the data, use
+        ``vmin=lambda data: data.min()``.
+
+    vmax : None | float | callable
+        The max value in the image (and the ER[P/F]). The unit is uV for
+        EEG channels, fT for magnetometers and fT/cm for gradiometers.
+        If vmin is None and multiple plots are returned, the limit is
+        equalized within channel types.
     colorbar : bool
         Display or not a colorbar.
     order : None | array of int | callable
@@ -65,74 +77,316 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         The scalings of the channel types to be applied for plotting.
         If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
         eog=1e6)`.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+    cmap : None | matplotlib colormap | (colormap, bool) | 'interactive'
         Colormap. If tuple, the first value indicates the colormap to use and
         the second value is a boolean defining interactivity. In interactive
         mode the colors are adjustable by clicking and dragging the colorbar
         with left and right mouse button. Left mouse button moves the scale up
         and down and right mouse button adjusts the range. Hitting space bar
         resets the scale. Up and down arrows can be used to change the
-        colormap. If 'interactive', translates to ('RdBu_r', True). Defaults to
-        'RdBu_r'.
+        colormap. If 'interactive', translates to ('RdBu_r', True).
+        If None, "RdBu_r" is used, unless the data is all positive, in which
+        case "Reds" is used.
     fig : matplotlib figure | None
         Figure instance to draw the image to. Figure must contain two axes for
         drawing the single trials and evoked responses. If None a new figure is
         created. Defaults to None.
-    axes : list of matplotlib axes | None
+    axes : list of matplotlib axes | dict of lists of matplotlib Axes | None
         List of axes instances to draw the image, erp and colorbar to.
         Must be of length three if colorbar is True (with the last list element
         being the colorbar axes) or two if colorbar is False. If both fig and
-        axes are passed an error is raised. Defaults to None.
+        axes are passed, an error is raised.
+        If ``group_by`` is a dict, this cannot be a list, but it can be a dict
+        of lists of axes, with the keys matching those of ``group_by``. In that
+        case, the provided axes will be used for the corresponding groups.
+        Defaults to `None`.
     overlay_times : array-like, shape (n_epochs,) | None
         If not None the parameter is interpreted as time instants in seconds
         and is added to the image. It is typically useful to display reaction
         times. Note that it is defined with respect to the order
         of epochs such that overlay_times[0] corresponds to epochs[0].
+    combine : None | str | callable
+        If None, return one figure per pick. If not None, aggregate over
+        channels via the indicated method. If str, must be one of "mean",
+        "median", "std" or "gfp", in which case the mean, the median, the
+        standard deviation or the GFP over channels are plotted.
+        array (n_epochs, n_times).
+        If callable, it must accept one positional input, the data
+        in the format `(n_epochs, n_channels, n_times)`. It must return an
+        array `(n_epochs, n_times)`. For example::
+
+            combine = lambda data: np.median(data, axis=1)
+
+        Defaults to `None` if picks are provided, otherwise 'gfp'.
+    group_by : None | str | dict
+        If not None, combining happens over channel groups defined by this
+        parameter.
+        If str, must be "type", in which case one figure per channel type is
+        returned (combining within channel types).
+        If a dict, the values must be picks and one figure will be returned
+        for each entry, aggregating over the corresponding pick groups; keys
+        will become plot titles. This is useful for e.g. ROIs. Each entry must
+        contain only one channel type. For example::
+
+            group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
+
+        If not None, combine must not be None. Defaults to `None` if picks are
+        provided, otherwise 'type'.
+
+    evoked : Bool
+        Draw the ER[P/F] below the image or not.
+    ts_args : dict
+        Arguments passed to a call to `mne.viz.plot_compare_evoked` to style
+        the evoked plot below the image. Defaults to an empty dictionary,
+        meaning `plot_compare_evokeds` will be called with default parameters
+        (yaxis truncation will be turned off).
+    title : None | str
+        If str, will be plotted as figure title. Else, the channels will be
+        indicated.
 
     Returns
     -------
     figs : lists of matplotlib figures
         One figure per channel displayed.
     """
-    from scipy import ndimage
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
 
-    import matplotlib.pyplot as plt
+    # setting defaults
+    if group_by is not None and combine is None:
+        combine = 'gfp'
+
+    if all(param is None for param in (group_by, picks, combine)):
+        group_by = "type"
+        combine = "gfp"
+
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')[:5]
+                           exclude='bads')
+        if group_by is None:
+            picks = picks[:5]  # take 5 picks to prevent spawning many figs
+    else:
+        picks = np.atleast_1d(picks)
+
+    manual_ylims = "ylim" in ts_args
+    vlines = ts_args.get(
+        "vlines", [0] if (epochs.times[0] < 0 < epochs.times[-1]) else [])
+
+    # input checks
+    if (combine is None and (fig is not None or axes is not None) and
+            len(picks) > 1):
+        raise ValueError('Only single pick can be drawn to a figure/axis; '
+                         'provide only one pick, or use `combine`.')
 
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
 
-    picks = np.atleast_1d(picks)
-    if (fig is not None or axes is not None) and len(picks) > 1:
-        raise ValueError('Only single pick can be drawn to a figure.')
-    if axes is not None:
-        if fig is not None:
-            raise ValueError('Both figure and axes were passed, please'
-                             'decide between the two.')
-        from .utils import _validate_if_list_of_axes
-        oblig_len = 3 if colorbar else 2
-        _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
-        ax1, ax2 = axes[:2]
-        # if axes were passed - we ignore fig param and get figure from axes
-        fig = ax1.get_figure()
-        if colorbar:
-            ax3 = axes[-1]
-    evoked = epochs.average(picks)
-    data = epochs.get_data()[:, picks, :]
-    n_epochs = len(data)
-    data = np.swapaxes(data, 0, 1)
-    if sigma > 0.:
-        for k in range(len(picks)):
-            data[k, :] = ndimage.gaussian_filter1d(
-                data[k, :], sigma=sigma, axis=0)
+    ch_types = [channel_type(epochs.info, idx) for idx in picks]
+    if len(set(ch_types)) > 1 and group_by is None and combine is not None:
+        warn("Combining over multiple channel types. "
+             "Please use ``group_by``.")
+    for ch_type in ch_types:
+        if ch_type not in scalings:
+            # We know it's not in either scalings or units since keys match
+            raise KeyError('%s type not in scalings and units' % ch_type)
 
-    scale_vmin = True if vmin is None else False
-    scale_vmax = True if vmax is None else False
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    if isinstance(axes, dict):
+        show = False
+        if not isinstance(group_by, dict):
+            raise ValueError("If axes is a dict, group_by must be a dict, "
+                             "got " + str(type(group_by)))
+    else:
+        if axes is not None and isinstance(group_by, dict):
+            raise ValueError("If ``group_by`` is a dict, axes must be a dict "
+                             "or None, got " + str(type(group_by)))
+    if isinstance(group_by, dict) and combine is None:
+        raise ValueError("If ``group_by`` is a dict, ``combine`` must not be "
+                         "None.")
+
+    # call helpers to prepare the plot
+    # First, we collect groupings of picks and types in two lists
+    # (all_picks, all_ch_types, names) -> group_by.
+    # Then, we construct a list of the corresponding data, names and evokeds
+    # (groups) -> combine.
+    # Then, we loop over this list and plot using _plot_epochs_image.
+
+    # group_by
+    all_picks, all_ch_types, names = _get_picks_and_types(
+        picks, ch_types, group_by, combine)
+    # all_picks is a list of lists of ints (picks); those lists will
+    # be length 1 if combine is None, else of length > 1.
+
+    # combine/construct list for plotting
+    groups = _pick_and_combine(
+        epochs, combine, all_picks, all_ch_types, scalings, names)
+    # each entry of groups is: (data, ch_type, evoked, name)
+
+    # prepare the image - required for uniform vlims
+    vmins, vmaxs = dict(), dict()
+    for group in groups:
+        epochs, ch_type = group[:2]
+        group.extend(_prepare_epochs_image_im_data(
+            epochs, ch_type, overlay_times, order, sigma, vmin, vmax,
+            scalings[ch_type], ts_args))
+        if vmin is None or vmax is None:  # equalize across groups
+            this_vmin, this_vmax, this_ylim = group[-3:]
+            if vmin is None and (this_vmin < vmins.get(ch_type, 1)):
+                vmins[ch_type] = this_vmin
+            if vmax is None and (this_vmax > vmaxs.get(ch_type, -1)):
+                vmaxs[ch_type] = this_vmax
+
+    # plot
+    figs, axes_list = list(), list()
+    ylims = dict((ch_type, (1., -1.)) for ch_type in all_ch_types)
+    for (epochs_, ch_type, ax_name, name, data, overlay_times, vmin, vmax,
+         ts_args) in groups:
+        vmin, vmax = vmins.get(ch_type, vmin), vmaxs.get(ch_type, vmax)
+        these_axes = axes[ax_name] if isinstance(axes, dict) else axes
+        axes_dict = _prepare_epochs_image_axes(these_axes, fig, colorbar,
+                                               evoked)
+        axes_list.append(axes_dict)
+        title_ = ((ax_name if isinstance(axes, dict) else name)
+                  if title is None else title)
+        this_fig = _plot_epochs_image(
+            epochs_, data, vmin=vmin, vmax=vmax, colorbar=colorbar, show=False,
+            unit=units[ch_type], ch_type=ch_type, cmap=cmap,
+            axes_dict=axes_dict, title=title_, overlay_times=overlay_times,
+            evoked=evoked, ts_args=ts_args)
+        figs.append(this_fig)
+
+        # the rest of the code is for aligning ylims for multiple plots
+        if evoked is True and not manual_ylims:
+            evoked_ax = axes_dict["evoked"]
+            this_min, this_max = evoked_ax.get_ylim()
+            curr_min, curr_max = ylims[ch_type]
+            ylims[ch_type] = min(curr_min, this_min), max(curr_max, this_max),
+
+    if evoked is True:  # adjust ylims
+        for group, axes_dict in zip(groups, axes_list):
+            ch_type = group[1]
+            ax = axes_dict["evoked"]
+            if not manual_ylims:
+                ax.set_ylim(ylims[ch_type])
+            if len(vlines) > 0:
+                upper_v, lower_v = ylims[ch_type]
+                if overlay_times is not None:
+                    overlay = {overlay_times.mean(), np.median(overlay_times)}
+                else:
+                    overlay = {}
+                for line in vlines:
+                    ax.vlines(line, upper_v, lower_v, colors='k',
+                              linestyles='-' if line in overlay else "--",
+                              linewidth=2. if line in overlay else 1.)
+
+    plt_show(show)
+    return figs
+
+
+def _get_picks_and_types(picks, ch_types, group_by, combine):
+    """Pack picks and types into a list. Helper for plot_epochs_image."""
+    if group_by is None:
+        if combine is not None:
+            picks = [picks]
+        return picks, ch_types, ch_types
+    elif group_by == "type":
+        all_picks, all_ch_types = list(), list()
+        for this_type in set(ch_types):
+            these_picks = picks[np.array(ch_types) == this_type]
+            all_picks.append(these_picks)
+            all_ch_types.append(this_type)
+        names = all_ch_types  # only differs for dict group_by
+    elif isinstance(group_by, dict):
+        names = list(group_by.keys())
+        all_picks = [group_by[name] for name in names]
+        for name, picks_ in group_by.items():
+            n_picks = len(picks_)
+            if n_picks < 2:
+                raise ValueError(" ".join(
+                    (name, "has only ", str(n_picks), "sensors.")))
+        all_ch_types = list()
+        for picks_, name in zip(all_picks, names):
+            this_ch_type = list(set((ch_types[pick] for pick in picks_)))
+            n_types = len(this_ch_type)
+            if n_types > 1:  # we can only scale properly with 1 type
+                raise ValueError(
+                    "Roi {} contains {} sensor types!".format(
+                        name, n_types))
+            all_ch_types.append(this_ch_type[0])
+            names.append(name)
+    else:
+        raise ValueError("If ``group_by`` is not None, it must be a dict "
+                         "or 'type', got " + str(type(group_by)))
+    return all_picks, all_ch_types, names  # all_picks is a list of lists
+
+
+def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
+                      names):
+    """Pick and combine epochs image. Helper for plot_epochs_image."""
+    to_plot_list = list()
+    tmin = epochs.times[0]
+
+    if combine is None:
+        if epochs.preload is False:
+            epochs = epochs.copy().load_data()  # FIXME: avoid copy
+        for pick, ch_type in zip(all_picks, all_ch_types):
+            name = epochs.ch_names[pick]
+            these_epochs = epochs.copy().pick_channels([name])
+            to_plot_list.append([these_epochs, ch_type, name, name])
+        return to_plot_list
+
+    # if combine is not None ...
+    from .. import EpochsArray, pick_info
+    data = epochs.get_data()
+    type2name = {"eeg": "EEG", "grad": "Gradiometers",
+                 "mag": "Magnetometers"}
+    combine_title = (" (" + combine + ")"
+                     if isinstance(combine, string_types) else "")
+    if combine == "gfp":
+        combine = lambda data: np.sqrt((data * data).mean(axis=1))  # noqa
+    elif combine == "mean":
+        combine = lambda data: np.mean(data, axis=1)  # noqa
+    elif combine == "std":
+        combine = lambda data: np.std(data, axis=1)  # noqa
+    elif combine == "median":
+        combine = lambda data: np.median(data, axis=1)  # noqa
+    elif not callable(combine):
+        raise ValueError(
+            "``combine`` must be None, a callable or one out of 'mean' "
+            "or 'gfp'. Got " + str(type(combine)))
+    for ch_type, picks_, name in zip(all_ch_types, all_picks, names):
+        if len(np.atleast_1d(picks_)) < 2:
+            raise ValueError("Cannot combine over only one sensor. "
+                             "Consider using different values for "
+                             "``picks`` and/or ``group_by``.")
+        if ch_type == "grad":
+            def pair_and_combine(data):
+                data = data ** 2
+                data = (data[:, ::2, :] + data[:, 1::2, :]) / 2
+                return combine(np.sqrt(data))
+            picks_ = _grad_pair_pick_and_name(epochs.info, picks_)[0]
+            this_data = pair_and_combine(
+                data[:, picks_, :])[:, np.newaxis, :]
+        else:
+            this_data = combine(
+                data[:, picks_, :])[:, np.newaxis, :]
+        info = pick_info(epochs.info, [picks_[0]], copy=True)
+        these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
+        d = these_epochs.get_data()  # Why is this necessary?
+        d[:] = this_data  # Without this, the data is all-zeros!
+        to_plot_list.append([these_epochs, ch_type, name,
+                             type2name.get(name, name) + combine_title])
+
+    return to_plot_list  # epochs, ch_type, name, axtitle
+
+
+def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
+                                  sigma, vmin, vmax, scaling, ts_args):
+    """Preprocess epochs image (sort, filter). Helper for plot_epochs_image."""
+    from scipy import ndimage
+
+    # data transforms - sorting, scaling, smoothing
+    data = epochs.get_data()[:, 0, :]
+    n_epochs = len(data)
 
     if overlay_times is not None and len(overlay_times) != n_epochs:
         raise ValueError('size of overlay_times parameter (%s) do not '
@@ -143,88 +397,131 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         overlay_times = np.array(overlay_times)
         times_min = np.min(overlay_times)
         times_max = np.max(overlay_times)
-        if ((times_min < epochs.tmin) or (times_max > epochs.tmax)):
+        if ((times_min < epochs.times[0]) or (times_max > epochs.times[-1])):
             warn('Some values in overlay_times fall outside of the epochs '
                  'time interval (between %s s and %s s)'
-                 % (epochs.tmin, epochs.tmax))
+                 % (epochs.times[0], epochs.times[-1]))
 
-    figs = list()
-    for i, (this_data, idx) in enumerate(zip(data, picks)):
-        if fig is None:
-            this_fig = plt.figure()
-        else:
-            this_fig = fig
-        figs.append(this_fig)
+    if callable(order):
+        order = order(epochs.times, data)
+    if order is not None and (len(order) != n_epochs):
+        raise ValueError(("`order` must be None, callable or an array as long "
+                          "as the data. Got " + str(type(order))))
 
-        ch_type = channel_type(epochs.info, idx)
-        if ch_type not in scalings:
-            # We know it's not in either scalings or units since keys match
-            raise KeyError('%s type not in scalings and units' % ch_type)
-        this_data *= scalings[ch_type]
-
-        this_order = order
-        if callable(order):
-            this_order = order(epochs.times, this_data)
-
-        if this_order is not None and (len(this_order) != len(this_data)):
-            raise ValueError('size of order parameter (%s) does not '
-                             'match the number of epochs (%s).'
-                             % (len(this_order), len(this_data)))
-
-        this_overlay_times = None
+    if order is not None:
+        order = np.asarray(order)
+        data = data[order]
         if overlay_times is not None:
-            this_overlay_times = overlay_times
+            overlay_times = overlay_times[order]
 
-        if this_order is not None:
-            this_order = np.asarray(this_order)
-            this_data = this_data[this_order]
-            if this_overlay_times is not None:
-                this_overlay_times = this_overlay_times[this_order]
+    if sigma > 0.:
+        data = ndimage.gaussian_filter1d(data, sigma=sigma, axis=0)
 
-        plt.figure(this_fig.number)
-        if axes is None:
-            ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
-            ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
-            if colorbar:
-                ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
+    # setup lims and cmap
+    scale_vmin = True if (vmin is None or callable(vmin)) else False
+    scale_vmax = True if (vmax is None or callable(vmax)) else False
+    vmin, vmax = _setup_vmin_vmax(
+        data, vmin, vmax, norm=(data.min() >= 0) and (vmin is None))
+    if not scale_vmin:
+        vmin /= scaling
+    if not scale_vmax:
+        vmax /= scaling
 
-        this_vmin = vmin * scalings[ch_type] if scale_vmin else vmin
-        this_vmax = vmax * scalings[ch_type] if scale_vmax else vmax
+    ylim = dict()
+    ts_args_ = dict(colors={"cond": "black"}, ylim=ylim, picks=[0], title='',
+                    truncate_yaxis=False, truncate_xaxis=False, show=False)
+    ts_args_.update(**ts_args)
+    ts_args_["vlines"] = []
 
-        cmap = _setup_cmap(cmap)
-        im = ax1.imshow(this_data,
-                        extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
-                                0, n_epochs],
-                        aspect='auto', origin='lower', interpolation='nearest',
-                        vmin=this_vmin, vmax=this_vmax, cmap=cmap[0])
-        if this_overlay_times is not None:
-            ax1.plot(1e3 * this_overlay_times, 0.5 + np.arange(len(this_data)),
-                     'k', linewidth=2)
-        ax1.set_title(epochs.ch_names[idx])
-        ax1.set_ylabel('Epochs')
-        ax1.axis('auto')
-        ax1.axis('tight')
-        ax1.axvline(0, color='m', linewidth=3, linestyle='--')
-        evoked_data = scalings[ch_type] * evoked.data[i]
-        ax2.plot(1e3 * evoked.times, evoked_data)
-        ax2.set_xlabel('Time (ms)')
-        ax2.set_xlim([1e3 * evoked.times[0], 1e3 * evoked.times[-1]])
-        ax2.set_ylabel(units[ch_type])
-        evoked_vmin = min(evoked_data) * 1.1 if scale_vmin else vmin
-        evoked_vmax = max(evoked_data) * 1.1 if scale_vmax else vmax
-        if scale_vmin or scale_vmax:
-            evoked_vmax = max(np.abs([evoked_vmax, evoked_vmin]))
-            evoked_vmin = -evoked_vmax
-        ax2.set_ylim([evoked_vmin, evoked_vmax])
-        ax2.axvline(0, color='m', linewidth=3, linestyle='--')
+    return [data * scaling, overlay_times, vmin * scaling, vmax * scaling,
+            ts_args_]
+
+
+def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
+    """Prepare axes for image plotting. Helper for plot_epochs_image."""
+    import matplotlib.pyplot as plt
+    # prepare fig and axes
+    axes_dict = dict()
+    if axes is None:
+        if fig is None:
+            fig = plt.figure()
+        plt.figure(fig.number)
+        axes_dict["image"] = plt.subplot2grid(
+            (3, 10), (0, 0), colspan=9 if colorbar else 10,
+            rowspan=2 if evoked else 3)
+        if evoked:
+            axes_dict["evoked"] = plt.subplot2grid(
+                (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
         if colorbar:
-            cbar = plt.colorbar(im, cax=ax3)
-            if cmap[1]:
-                ax1.CB = DraggableColorbar(cbar, im)
-            tight_layout(fig=this_fig)
-    plt_show(show)
+            axes_dict["colorbar"] = plt.subplot2grid((3, 10), (0, 9),
+                                                     colspan=1, rowspan=3)
+    else:
+        if fig is not None:
+            raise ValueError('Both figure and axes were passed, please'
+                             'only pass one of these.')
+        from .utils import _validate_if_list_of_axes
+        oblig_len = 3 - ((not colorbar) + (not evoked))
+        _validate_if_list_of_axes(axes, obligatory_len=oblig_len)
+        axes_dict["image"] = axes[0]
+        if evoked:
+            axes_dict["evoked"] = axes[1]
+        # if axes were passed - we ignore fig param and get figure from axes
+        fig = axes_dict["image"].get_figure()
+        if colorbar:
+            axes_dict["colorbar"] = axes[-1]
+    return axes_dict
 
-    return figs
+
+def _plot_epochs_image(epochs, data, ch_type, vmin=None, vmax=None,
+                       colorbar=False, show=False, unit=None, cmap=None,
+                       axes_dict=None, overlay_times=None, title=None,
+                       evoked=False, ts_args=None):
+    """Plot epochs image. Helper function for plot_epochs_image."""
+    if cmap is None:
+        cmap = "Reds" if data.min() >= 0 else 'RdBu_r'
+
+    # Plot
+    # draw the image
+    ax = axes_dict["image"]
+    fig = ax.get_figure()
+    cmap = _setup_cmap(cmap)
+    n_epochs = len(data)
+    extent = [1e3 * epochs.times[0], 1e3 * epochs.times[-1], 0, n_epochs]
+    im = ax.imshow(data, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
+                   origin='lower', interpolation='nearest', extent=extent)
+    if overlay_times is not None:
+        ax.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
+                linewidth=2)
+    ax.set_title(title)
+    ax.set_ylabel('Epochs')
+    ax.axis('auto')
+    ax.axis('tight')
+    if overlay_times is not None:
+        ax.set_xlim(1e3 * epochs.times[0], 1e3 * epochs.times[-1])
+    ax.axvline(0, color='k', linewidth=1, linestyle='--')
+
+    # draw the evoked
+    if evoked:
+        from mne.viz import plot_compare_evokeds
+        plot_compare_evokeds(
+            {"cond": list(epochs.iter_evoked())}, axes=axes_dict["evoked"],
+            **ts_args)
+        axes_dict["evoked"].set_xlim(epochs.times[[0, -1]])
+        ax.set_xticks(())
+
+    # draw the colorbar
+    if colorbar:
+        import matplotlib.pyplot as plt
+        cbar = plt.colorbar(im, cax=axes_dict['colorbar'])
+        cbar.ax.set_ylabel(unit + "\n\n", rotation=270)
+        if cmap[1]:
+            ax.CB = DraggableColorbar(cbar, im)
+        tight_layout(fig=fig)
+    fig._axes_dict = axes_dict  # storing this here for easy access later
+
+    # finish
+    plt_show(show)
+    return fig
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
@@ -382,7 +679,7 @@ def _epochs_axes_onclick(event, params):
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, show=True,
-                block=False):
+                block=False, decim='auto'):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -438,6 +735,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Whether to halt program execution until the figure is closed.
         Useful for rejecting bad trials on the fly by clicking on an epoch.
         Defaults to False.
+    decim : int | 'auto'
+        Amount to decimate the data during display for speed purposes.
+        You should only decimate if the data are sufficiently low-passed,
+        otherwise aliasing can occur. The 'auto' mode (default) uses
+        the decimation that results in a sampling rate at least three times
+        larger than ``info['lowpass']`` (e.g., a 40 Hz lowpass will result in
+        at least a 120 Hz displayed sample rate).
+
+        .. versionadded:: 0.15
 
     Returns
     -------
@@ -463,14 +769,16 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     epochs.drop_bad()
     scalings = _compute_scalings(scalings, epochs)
     scalings = _handle_default('scalings_plot_raw', scalings)
-
+    decim, data_picks = _handle_decim(epochs.info.copy(), decim, None)
     projs = epochs.info['projs']
 
     params = {'epochs': epochs,
               'info': copy.deepcopy(epochs.info),
               'bad_color': (0.8, 0.8, 0.8),
               't_start': 0,
-              'histogram': None}
+              'histogram': None,
+              'decim': decim,
+              'data_picks': data_picks}
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events,
@@ -715,7 +1023,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
             break
-        lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+        lc = LineCollection(list(), antialiased=True, linewidths=0.5,
                             zorder=3, picker=3.)
         ax.add_collection(lc)
         lines.append(lc)
@@ -833,6 +1141,9 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     # Draw event lines for the first time.
     _plot_vert_lines(params)
 
+    # default key to close window
+    params['close_key'] = 'escape'
+
 
 def _prepare_projectors(params):
     """Set up the projectors for epochs browser."""
@@ -908,13 +1219,20 @@ def _plot_traces(params):
             else:
                 tick_list += [params['ch_names'][ch_idx]]
                 offset = offsets[line_idx]
+
+            if params['inds'][ch_idx] in params['data_picks']:
+                this_decim = params['decim']
+            else:
+                this_decim = 1
             this_data = data[ch_idx]
 
             # subtraction here gets correct orientation for flipped ylim
             ydata = offset - this_data
             xdata = params['times'][:params['duration']]
             num_epochs = np.min([params['n_epochs'], len(epochs.events)])
+
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
+            segments = [segment[::this_decim] for segment in segments]
 
             ch_name = params['ch_names'][ch_idx]
             if ch_name in params['info']['bads']:
@@ -1278,7 +1596,7 @@ def _plot_onkey(event, params):
         offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
-        lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+        lc = LineCollection(list(), antialiased=True, linewidths=0.5,
                             zorder=3, picker=3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
@@ -1397,7 +1715,7 @@ def _prepare_butterfly(params):
             used_types += 1
 
         while len(params['lines']) < len(params['picks']):
-            lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+            lc = LineCollection(list(), antialiased=True, linewidths=0.5,
                                 zorder=3, picker=3.)
             ax.add_collection(lc)
             params['lines'].append(lc)
@@ -1460,7 +1778,7 @@ def _update_channels_epochs(event, params):
         params['ax'].collections.pop()
         params['lines'].pop()
     while len(params['lines']) < n_channels:
-        lc = LineCollection(list(), linewidths=0.5, antialiased=False,
+        lc = LineCollection(list(), linewidths=0.5, antialiased=True,
                             zorder=3, picker=3.)
         params['ax'].add_collection(lc)
         params['lines'].append(lc)
@@ -1563,7 +1881,7 @@ def _settings_closed(events, params):
 
 
 def _plot_histogram(params):
-    """Plott histogram of peak-to-peak values."""
+    """Plot histogram of peak-to-peak values."""
     import matplotlib.pyplot as plt
     epochs = params['epochs']
     p2p = np.ptp(epochs.get_data(), axis=2)

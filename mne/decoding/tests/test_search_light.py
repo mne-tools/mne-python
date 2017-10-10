@@ -6,7 +6,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
-from mne.utils import requires_sklearn_0_15
+from mne.utils import requires_version
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
 
@@ -22,12 +22,13 @@ def make_data():
     return X, y
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.17')
 def test_search_light():
     """Test SlidingEstimator"""
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
     from sklearn.metrics import roc_auc_score, make_scorer
+    from sklearn.ensemble import BaggingClassifier
 
     X, y = make_data()
     n_epochs, _, n_time = X.shape
@@ -41,6 +42,7 @@ def test_search_light():
     assert_equal(sl.__repr__()[-28:], ', fitted with 10 estimators>')
     assert_raises(ValueError, sl.fit, X[1:], y)
     assert_raises(ValueError, sl.fit, X[:, :, 0], y)
+    sl.fit(X, y, sample_weight=np.ones_like(y))
 
     # transforms
     assert_raises(ValueError, sl.predict, X[:, :, :2])
@@ -61,10 +63,10 @@ def test_search_light():
     assert_equal(sl.scoring, None)
 
     # Scoring method
-    for err, scoring in [(ValueError, 'foo'), (TypeError, 999)]:
+    for scoring in ['foo', 999]:
         sl = SlidingEstimator(LogisticRegression(), scoring=scoring)
         sl.fit(X, y)
-        assert_raises(err, sl.score, X, y)
+        assert_raises((ValueError, TypeError), sl.score, X, y)
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem
@@ -138,8 +140,16 @@ def test_search_light():
         assert_array_equal(features_shape, [3, 4])
     assert_array_equal(y_preds[0], y_preds[1])
 
+    # Bagging classifiers
+    X = np.random.rand(10, 3, 4)
+    for n_jobs in (1, 2):
+        pipe = SlidingEstimator(BaggingClassifier(None, 2), n_jobs=n_jobs)
+        pipe.fit(X, y)
+        pipe.score(X, y)
+        assert_true(isinstance(pipe.estimators_[0], BaggingClassifier))
 
-@requires_sklearn_0_15
+
+@requires_version('sklearn', '0.17')
 def test_generalization_light():
     """Test GeneralizingEstimator"""
     from sklearn.pipeline import make_pipeline
@@ -152,6 +162,7 @@ def test_generalization_light():
     gl = GeneralizingEstimator(LogisticRegression())
     assert_equal(repr(gl)[:23], '<GeneralizingEstimator(')
     gl.fit(X, y)
+    gl.fit(X, y, sample_weight=np.ones_like(y))
 
     assert_equal(gl.__repr__()[-28:], ', fitted with 10 estimators>')
     # transforms
@@ -178,10 +189,10 @@ def test_generalization_light():
     auc = roc_auc_score(y, gl.estimators_[0].predict_proba(X[..., 0])[..., 1])
     assert_equal(score[0, 0], auc)
 
-    for err, scoring in [(ValueError, 'foo'), (TypeError, 999)]:
+    for scoring in ['foo', 999]:
         gl = GeneralizingEstimator(LogisticRegression(), scoring=scoring)
         gl.fit(X, y)
-        assert_raises(err, gl.score, X, y)
+        assert_raises((ValueError, TypeError), gl.score, X, y)
 
     # Check sklearn's roc_auc fix: scikit-learn/scikit-learn#6874
     # -- 3 class problem

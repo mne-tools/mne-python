@@ -35,7 +35,7 @@ import mne
 from mne import io, EvokedArray
 from mne.datasets import sample
 from mne.decoding import EMS, compute_ems
-from sklearn.cross_validation import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 
 print(__doc__)
 
@@ -48,8 +48,7 @@ event_ids = {'AudL': 1, 'VisL': 3}
 
 # Read data and create epochs
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(0.5, 45, l_trans_bandwidth='auto', h_trans_bandwidth='auto',
-           filter_length='auto', phase='zero')
+raw.filter(0.5, 45, fir_design='firwin')
 events = mne.read_events(event_fname)
 
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
@@ -80,7 +79,7 @@ filters = list()  # Spatial filters at each time point
 # to overfit and cannot be used to estimate the variance of the
 # prediction within a given fold.
 
-for train, test in StratifiedKFold(y):
+for train, test in StratifiedKFold().split(X, y):
     # In the original paper, the z-scoring is applied outside the CV.
     # However, we recommend to apply this preprocessing inside the CV.
     # Note that such scaling should be done separately for each channels if the

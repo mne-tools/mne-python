@@ -16,7 +16,7 @@ adapted for our use here!]
 The only absolutely necessary configuration step is identifying yourself and
 your contact info:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git config --global user.name "Your Name"
    $ git config --global user.email you@yourdomain.example.com
@@ -76,7 +76,7 @@ Setting up the fork and the working directory
 
 Briefly, this is done using:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git clone git@github.com:your-user-name/mne-python.git
    $ cd mne-python
@@ -86,19 +86,19 @@ These steps can be broken out to be more explicit as:
 
 #. Clone your fork to the local computer:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ git clone git@github.com:your-user-name/mne-python.git
 
 #. Change directory to your new repo:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ cd mne-python
 
    Then type:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ git branch -a
 
@@ -115,7 +115,7 @@ These steps can be broken out to be more explicit as:
    Now you want to connect to the mne-python repository, so you can
    merge in changes from the trunk:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ cd mne-python
       $ git remote add upstream git://github.com/mne-tools/mne-python.git
@@ -143,7 +143,7 @@ These steps can be broken out to be more explicit as:
    To be able to conveniently edit your files after installing mne,
    install using the following setting:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ python setup.py develop --user
 
@@ -152,9 +152,9 @@ These steps can be broken out to be more explicit as:
 
 #. Ensure unit tests pass
 
-   Make sure before starting to code that all unit tests pass with `nose`_:
+   Make sure before starting to code that all unit tests pass with `pytest`_:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ make test
 
@@ -207,7 +207,7 @@ Updating the mirror of trunk
 
 From time to time you should fetch the upstream (trunk) changes from GitHub:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git fetch upstream
 
@@ -232,7 +232,7 @@ Choose an informative name for the branch to remind yourself and the rest of
 us what the changes in the branch are for. For example ``add-ability-to-fly``,
 or ``buxfix-for-issue-42``.
 
-.. code-block:: bash
+.. code-block:: console
 
    # Update the mirror of trunk
    $ git fetch upstream
@@ -247,14 +247,14 @@ github repo. Generally (if you followed the instructions in these pages, and
 by default), git will have a link to your GitHub repo, called ``origin``. You
 push up to your own repo on GitHub with:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git push origin my-new-feature
 
 In git > 1.7 you can ensure that the link is correctly set by using the
 ``--set-upstream`` option:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git push --set-upstream origin my-new-feature
 
@@ -269,7 +269,7 @@ The editing workflow
 Overview
 ^^^^^^^^
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git add my_new_file
    $ git commit -am 'FIX: some message'
@@ -398,7 +398,7 @@ See `rebase without tears`_ for more detail.
 
 To do a rebase on trunk:
 
-.. code-block:: bash
+.. code-block:: console
 
     # Update the mirror of trunk
     $ git fetch upstream
@@ -415,13 +415,13 @@ To do a rebase on trunk:
 In this situation, where you are already on branch ``cool-feature``, the last
 command can be written more succinctly as:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ git rebase upstream/master
 
 When all looks good you can delete your backup branch:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git branch -D tmp
 
@@ -439,7 +439,7 @@ push the branch; a normal push would give an error. If the branch you rebased is
 called ``cool-feature`` and your GitHub fork is available as the remote called ``origin``,
 you use this command to force-push:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git push -f origin cool-feature
 
@@ -459,20 +459,20 @@ straightforward to recover from such mistakes.
 
 If you mess up during a rebase:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git rebase --abort
 
 If you notice you messed up after the rebase:
 
-.. code-block:: bash
+.. code-block:: console
 
    # Reset branch back to the saved point
    $ git reset --hard tmp
 
 If you forgot to make a backup branch:
 
-.. code-block:: bash
+.. code-block:: console
 
    # Look at the reflog of the branch
    $ git reflog show cool-feature
@@ -504,7 +504,7 @@ This can be done via *interactive rebasing*.
 
 Suppose that the commit history looks like this:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ git log --oneline
     eadc391 Fix some remaining bugs
@@ -523,7 +523,7 @@ want to make the following changes:
 
 We do as follows:
 
-.. code-block:: bash
+.. code-block:: console
 
     # make a backup of the current state
     $ git branch tmp HEAD
@@ -585,14 +585,14 @@ Fetching a pull request
 To fetch a pull request on the main repository to your local working
 directory as a new branch, just do:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git fetch upstream pull/<pull request number>/head:<local-branch>
 
 As an example, to pull the realtime pull request which has a url
 ``https://github.com/mne-tools/mne-python/pull/615/``, do:
 
-.. code-block:: bash
+.. code-block:: console
 
    $ git fetch upstream pull/615/head:realtime
 

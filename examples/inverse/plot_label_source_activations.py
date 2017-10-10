@@ -3,11 +3,10 @@
 Extracting the time series of activations in a label
 ====================================================
 
-We first apply a dSPM inverse operator to get signed activations
-in a label (with positive and negative values) and we then
-compare different strategies to average the times series
-in a label. We compare a simple average, with an averaging
-using the dipoles normal (flip mode) and then a PCA,
+We first apply a dSPM inverse operator to get signed activations in a label
+(with positive and negative values) and we then compare different strategies
+to average the times series in a label. We compare a simple average, with an
+averaging using the dipoles normal (flip mode) and then a PCA,
 also using a sign flip.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>

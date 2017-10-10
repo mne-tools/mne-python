@@ -19,7 +19,6 @@ Runs a full pipeline using MNE-Python:
 #
 # License: BSD (3-clause)
 
-import os.path as op
 import matplotlib.pyplot as plt
 
 import mne
@@ -44,7 +43,7 @@ raw = io.read_raw_ctf(raw_fname % 1, preload=True)  # Take first run
 raw.resample(120., npad='auto')
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
-raw.filter(1, 30, method='iir')
+raw.filter(1, 30, method='fir', fir_design='firwin')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
 
@@ -89,6 +88,8 @@ noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk')
 ###############################################################################
 # Visualize fields on MEG helmet
 
+# The transformation here was aligned using the dig-montage. It's included in
+# the spm_faces dataset and is named SPM_dig_montage.fif.
 trans_fname = data_path + ('/MEG/spm/SPM_CTF_MEG_example_faces1_3D_'
                            'raw-trans.fif')
 
@@ -102,17 +103,9 @@ evoked[0].plot_field(maps, time=0.170)
 # Compute forward model
 
 # Make source space
-src_fname = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
-if not op.isfile(src_fname):
-    src = mne.setup_source_space('spm', spacing='oct6',
-                                 subjects_dir=subjects_dir)
-    mne.write_source_spaces(src_fname, src)
-else:
-    src = mne.read_source_spaces(src_fname)
-
+src = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(contrast.info, trans_fname, src, bem)
-forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 ###############################################################################
 # Compute inverse solution
@@ -126,9 +119,9 @@ inverse_operator = make_inverse_operator(contrast.info, forward, noise_cov,
 
 # Compute inverse solution on contrast
 stc = apply_inverse(contrast, inverse_operator, lambda2, method, pick_ori=None)
-# stc.save('spm_%s_dSPM_inverse' % constrast.comment)
+# stc.save('spm_%s_dSPM_inverse' % contrast.comment)
 
 # Plot contrast in 3D with PySurfer if available
 brain = stc.plot(hemi='both', subjects_dir=subjects_dir, initial_time=0.170,
-                 views=['ven'])
+                 views=['ven'], clim={'kind': 'value', 'lims': [3., 5.5, 9.]})
 # brain.save_image('dSPM_map.png')

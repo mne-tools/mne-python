@@ -37,41 +37,26 @@ n_chan = 15
 layout = read_layout('Vectorview-all')
 
 
-def _get_picks(raw):
-    """Get picks."""
-    return pick_types(raw.info, meg=True, eeg=False, stim=False,
-                      ecg=False, eog=False, exclude='bads')
-
-
 def _get_epochs():
     """Get epochs."""
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks = _get_picks(raw)
+    picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+                       ecg=False, eog=False, exclude='bads')
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     with warnings.catch_warnings(record=True):  # bad proj
-        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks)
+        epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                        proj=False)
+    epochs.info.normalize_proj()  # avoid warnings
     return epochs
-
-
-def _get_epochs_delayed_ssp():
-    """Get epochs with delayed SSP."""
-    raw = read_raw_fif(raw_fname)
-    events = read_events(event_name)
-    picks = _get_picks(raw)
-    reject = dict(mag=4e-12)
-    epochs_delayed_ssp = Epochs(
-        raw, events[:10], event_id, tmin, tmax, picks=picks,
-        proj='delayed', reject=reject)
-    return epochs_delayed_ssp
 
 
 def test_plot_epochs():
     """Test epoch plotting."""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    epochs.info.normalize_proj()  # avoid warnings
+    epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
@@ -128,16 +113,38 @@ def test_plot_epochs_image():
     epochs = _get_epochs()
     epochs.plot_image(picks=[1, 2])
     overlay_times = [0.1]
-    epochs.plot_image(order=[0], overlay_times=overlay_times, vmin=0.01)
-    epochs.plot_image(overlay_times=overlay_times, vmin=-0.001, vmax=0.001)
+    epochs.plot_image(picks=[1], order=[0], overlay_times=overlay_times,
+                      vmin=0.01, title="test"
+                      )
+    epochs.plot_image(picks=[1], overlay_times=overlay_times, vmin=-0.001,
+                      vmax=0.001)
     assert_raises(ValueError, epochs.plot_image,
-                  overlay_times=[0.1, 0.2])
+                  picks=[1], overlay_times=[0.1, 0.2])
     assert_raises(ValueError, epochs.plot_image,
-                  order=[0, 1])
+                  picks=[1], order=[0, 1])
+    assert_raises(ValueError, epochs.plot_image, axes=dict(), group_by=list(),
+                  combine='mean')
+    assert_raises(ValueError, epochs.plot_image, axes=list(), group_by=dict(),
+                  combine='mean')
+    with warnings.catch_warnings(record=True):  # deprecated combine as str
+        assert_raises(ValueError, epochs.plot_image, combine='error',
+                      picks=[1, 2])
+    assert_raises(ValueError, epochs.plot_image, units={"hi": 1},
+                  scalings={"ho": 1})
+    epochs.load_data().pick_types(meg='mag')
+    epochs.info.normalize_proj()
+    with warnings.catch_warnings(record=True):  # projs
+        epochs.plot_image(group_by='type', combine='mean')
+        epochs.plot_image(group_by={"1": [1, 2], "2": [1, 2]}, combine='mean')
+        epochs.plot_image(vmin=lambda x: x.min())
+        assert_raises(ValueError, epochs.plot_image, axes=1, fig=2)
+    ts_args = dict(show_sensors=False)
     with warnings.catch_warnings(record=True) as w:
-        epochs.plot_image(overlay_times=[1.1])
+        epochs.plot_image(overlay_times=[1.1], combine="gfp", ts_args=ts_args)
+        assert_raises(ValueError, epochs.plot_image, combine='error',
+                      ts_args=ts_args)
         warnings.simplefilter('always')
-    assert_equal(len(w), 1)
+    assert_equal(len(w), 4)
 
     plt.close('all')
 

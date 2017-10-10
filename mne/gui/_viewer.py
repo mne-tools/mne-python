@@ -222,6 +222,8 @@ class PointObject(Object):
     def _plot_points(self):
         """Add the points to the mayavi pipeline"""
         from . import _testing_mode
+        if not self.scene.running():
+            return
 
         if hasattr(self.glyph, 'remove'):
             self.glyph.remove()

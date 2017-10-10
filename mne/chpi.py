@@ -43,7 +43,7 @@ from .io.pick import pick_types, pick_channels
 from .io.constants import FIFF
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils, _read_coil_defs)
-from .cov import make_ad_hoc_cov, _get_whitener_data
+from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import verbose, logger, use_log_level, _check_fname, warn
@@ -183,7 +183,7 @@ def _get_hpi_info(info, verbose=None):
     hpi_on = hpi_on[hpi_mask]
     hpi_freqs = hpi_freqs[hpi_mask]
 
-    return hpi_freqs,  hpi_pick, hpi_on
+    return hpi_freqs, hpi_pick, hpi_on
 
 
 @verbose
@@ -401,14 +401,16 @@ def _setup_hpi_struct(info, model_n_window,
         coils = _concatenate_coils(coils)
     else:  # == 'multipole'
         coils = _prep_mf_coils(info)
-    scale = make_ad_hoc_cov(info, verbose=False)
-    scale = _get_whitener_data(info, scale, meg_picks, verbose=False)
+    diag_cov = make_ad_hoc_cov(info, verbose=False)
+
+    diag_whitener, _ = compute_whitener(diag_cov, info, picks=meg_picks,
+                                        verbose=False)
 
     hpi = dict(meg_picks=meg_picks, hpi_pick=hpi_pick,
                model=model, inv_model=inv_model,
                on=hpi_ons, n_window=model_n_window, method=method,
                freqs=hpi_freqs, line_freqs=line_freqs, n_freqs=len(hpi_freqs),
-               scale=scale, coils=coils
+               scale=diag_whitener, coils=coils
                )
 
     return hpi

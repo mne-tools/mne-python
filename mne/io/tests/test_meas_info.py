@@ -86,6 +86,7 @@ def test_make_info():
     assert_array_equal(ch_pos, m.pos)
     idents = [p['ident'] for p in info['dig']]
     assert_true(FIFF.FIFFV_POINT_NASION in idents)
+    assert_array_equal(info['meas_date'], [0, 0])
 
 
 def test_fiducials_io():
@@ -121,8 +122,6 @@ def test_info():
 
     evoked = epochs.average()
 
-    events = read_events(event_name)
-
     # Test subclassing was successful.
     info = Info(a=7, b='aaaaa')
     assert_true('a' in info)
@@ -136,6 +135,7 @@ def test_info():
         info_str = '%s' % obj.info
         assert_equal(len(info_str.split('\n')), len(obj.info.keys()) + 2)
         assert_true(all(k in info_str for k in obj.info.keys()))
+        assert '2002-12-03 19:01:10 GMT' in repr(obj.info), repr(obj.info)
 
     # Test read-only fields
     info = raw.info.copy()
@@ -339,6 +339,13 @@ def test_check_consistency():
     info2['chs'][2]['ch_name'] = 'b'
     assert_raises(RuntimeError, info2._check_consistency)
 
+    # Duplicates appended with running numbers
+    with warnings.catch_warnings(record=True) as w:
+        info3 = create_info(ch_names=['a', 'b', 'b', 'c', 'b'], sfreq=1000.)
+    assert_equal(len(w), 1)
+    assert_true(all('Channel names are not' in '%s' % ww.message for ww in w))
+    assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
+
 
 def test_anonymize():
     """Test that sensitive information can be anonymized."""
@@ -365,7 +372,7 @@ def test_anonymize():
         assert_true('subject_info' not in inst.info.keys())
         assert_equal(inst.info['file_id']['secs'], 0)
         assert_equal(inst.info['meas_id']['secs'], 0)
-        assert_equal(inst.info['meas_date'], [0, 0])
+        assert_array_equal(inst.info['meas_date'], [0, 0])
 
     # When we write out with raw.save, these get overwritten with the
     # new save time

@@ -12,6 +12,7 @@ Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 from copy import deepcopy
 from functools import partial
 from math import sqrt
+from warnings import warn
 
 import numpy as np
 from scipy import linalg
@@ -19,7 +20,8 @@ from scipy.fftpack import fft, ifft
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
+from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
+                     _freqs_dep)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import pick_info, pick_types
@@ -188,10 +190,6 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     if mode not in ['same', 'valid', 'full']:
         raise ValueError("`mode` must be 'same', 'valid' or 'full', "
                          "got %s instead." % mode)
-    if mode == 'full' and (not use_fft):
-        # XXX JRK: full wavelet decomposition needs to be implemented
-        raise ValueError('`full` decomposition with convolution is currently' +
-                         ' not supported.')
     decim = _check_decim(decim)
     X = np.asarray(X)
 
@@ -208,13 +206,19 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
     # precompute FFTs of Ws
     if use_fft:
         fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
+
+    warn_me = True
     for i, W in enumerate(Ws):
-        if len(W) > n_times:
-            raise ValueError('At least one of the wavelets is longer than the '
-                             'signal. Use a longer signal or shorter '
-                             'wavelets.')
         if use_fft:
             fft_Ws[i] = fft(W, fsize)
+        if len(W) > n_times and warn_me:
+            msg = ('At least one of the wavelets is longer than the signal. '
+                   'Consider padding the signal or using shorter wavelets.')
+            if use_fft:
+                warn(msg)
+                warn_me = False  # Suppress further warnings
+            else:
+                raise ValueError(msg)
 
     # Make generator looping across signals
     tfr = np.zeros((n_freqs, n_times_out), dtype=np.complex128)
@@ -230,7 +234,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                 ret = np.convolve(x, W, mode=mode)
 
             # Center and decimate decomposition
-            if mode == "valid":
+            if mode == 'valid':
                 sz = int(abs(W.size - n_times)) + 1
                 offset = (n_times - sz) // 2
                 this_slice = slice(offset // decim.step,
@@ -238,6 +242,11 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
                 if use_fft:
                     ret = _centered(ret, sz)
                 tfr[ii, this_slice] = ret[decim]
+            elif mode == 'full' and not use_fft:
+                start = (W.size - 1) // 2
+                end = len(ret) - (W.size // 2)
+                ret = ret[start:end]
+                tfr[ii, :] = ret[decim]
             else:
                 if use_fft:
                     ret = _centered(ret, n_times)
@@ -248,17 +257,17 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 # Loop of convolution: single trial
 
 
-def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
+def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
                  n_cycles=7.0, zero_mean=None, time_bandwidth=None,
                  use_fft=True, decim=1, output='complex', n_jobs=1,
-                 verbose=None):
+                 frequencies=None, verbose=None):
     """Compute time-frequency transforms.
 
     Parameters
     ----------
     epoch_data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
-    frequencies : array-like of floats, shape (n_freqs)
+    freqs : array-like of floats, shape (n_freqs)
         The frequencies.
     sfreq : float | int, defaults to 1.0
         Sampling frequency of the data.
@@ -302,6 +311,8 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     n_jobs : int, defaults to 1
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
+    frequencies : None
+        Deprecated.
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -322,17 +333,17 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
                          '(n_epochs, n_chans, n_times)')
 
     # Check params
-    frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
-        _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
-                         time_bandwidth, use_fft, decim, output)
+    freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
+        _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
+                         time_bandwidth, use_fft, decim, output, frequencies)
 
     # Setup wavelet
     if method == 'morlet':
-        W = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
+        W = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
 
     elif method == 'multitaper':
-        Ws = _make_dpss(sfreq, frequencies, n_cycles=n_cycles,
+        Ws = _make_dpss(sfreq, freqs, n_cycles=n_cycles,
                         time_bandwidth=time_bandwidth, zero_mean=zero_mean)
 
     # Check wavelets
@@ -342,7 +353,7 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
 
     # Initialize output
     decim = _check_decim(decim)
-    n_freqs = len(frequencies)
+    n_freqs = len(freqs)
     n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
     if output in ('power', 'phase', 'avg_power', 'itc'):
         dtype = np.float
@@ -374,17 +385,18 @@ def _compute_tfr(epoch_data, frequencies, sfreq=1.0, method='morlet',
     return out
 
 
-def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
-                     time_bandwidth, use_fft, decim, output):
+def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
+                     time_bandwidth, use_fft, decim, output, frequencies):
     """Aux. function to _compute_tfr to check the params validity."""
-    # Check frequencies
-    if not isinstance(frequencies, (list, np.ndarray)):
-        raise ValueError('frequencies must be an array-like, got %s '
-                         'instead.' % type(frequencies))
-    frequencies = np.asarray(frequencies, dtype=float)
-    if frequencies.ndim != 1:
-        raise ValueError('frequencies must be of shape (n_freqs,), got %s '
-                         'instead.' % np.array(frequencies.shape))
+    freqs = _freqs_dep(freqs, frequencies)
+    # Check freqs
+    if not isinstance(freqs, (list, np.ndarray)):
+        raise ValueError('freqs must be an array-like, got %s '
+                         'instead.' % type(freqs))
+    freqs = np.asarray(freqs, dtype=float)
+    if freqs.ndim != 1:
+        raise ValueError('freqs must be of shape (n_freqs,), got %s '
+                         'instead.' % np.array(freqs.shape))
 
     # Check sfreq
     if not isinstance(sfreq, (float, int)):
@@ -397,7 +409,7 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
     if not isinstance(zero_mean, bool):
         raise ValueError('zero_mean should be of type bool, got %s. instead'
                          % type(zero_mean))
-    frequencies = np.asarray(frequencies)
+    freqs = np.asarray(freqs)
 
     if (method == 'multitaper') and (output == 'phase'):
         raise NotImplementedError(
@@ -409,10 +421,10 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
         n_cycles = float(n_cycles)
     elif isinstance(n_cycles, (list, np.ndarray)):
         n_cycles = np.array(n_cycles)
-        if len(n_cycles) != len(frequencies):
+        if len(n_cycles) != len(freqs):
             raise ValueError('n_cycles must be a float or an array of length '
                              '%i frequencies, got %i cycles instead.' %
-                             (len(frequencies), len(n_cycles)))
+                             (len(freqs), len(n_cycles)))
     else:
         raise ValueError('n_cycles must be a float or an array, got %s '
                          'instead.' % type(n_cycles))
@@ -446,7 +458,7 @@ def _check_tfr_param(frequencies, sfreq, method, zero_mean, n_cycles,
         raise ValueError('method must be "morlet" or "multitaper", got %s '
                          'instead.' % type(method))
 
-    return frequencies, sfreq, zero_mean, n_cycles, time_bandwidth, decim
+    return freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
 
 def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
@@ -561,7 +573,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
     Returns
     -------
-    tfr : array, shape (n_signals, n_frequencies, n_times)
+    tfr : array, shape (n_signals, n_freqs, n_times)
         The time-frequency decompositions.
 
     See Also
@@ -582,7 +594,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
 
 
 def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
-             **tfr_params):
+             output=None, **tfr_params):
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
@@ -592,12 +604,14 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     data = data[:, picks, :]
 
     if average:
+        if output == 'complex':
+            raise ValueError('output must be "power" if average=True')
         if return_itc:
             output = 'avg_power_itc'
         else:
             output = 'avg_power'
     else:
-        output = 'power'
+        output = 'power' if output is None else output
         if return_itc:
             raise ValueError('Inter-trial coherence is not supported'
                              ' with average=False')
@@ -627,7 +641,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                n_jobs=1, picks=None, zero_mean=True, average=True,
-               verbose=None):
+               output='power', frequencies=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Parameters
@@ -664,6 +678,11 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         If True average across Epochs.
 
         .. versionadded:: 0.13.0
+    output : str
+        Can be "power" (default) or "complex". If "complex", then
+        average must be False.
+
+        .. versionadded:: 0.15.0
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -685,15 +704,16 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     mne.time_frequency.tfr_array_stockwell
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
-                      zero_mean=zero_mean)
+                      zero_mean=zero_mean, output=output,
+                      frequencies=frequencies)
     return _tfr_aux('morlet', inst, freqs, decim, return_itc, picks,
                     average, **tfr_params)
 
 
 @verbose
-def tfr_array_morlet(epoch_data, sfreq, frequencies, n_cycles=7.0,
+def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
-                     n_jobs=1, verbose=None):
+                     n_jobs=1, frequencies=None, verbose=None):
     """Compute time-frequency transform using Morlet wavelets.
 
     Convolves epoch data with selected Morlet wavelets.
@@ -704,7 +724,7 @@ def tfr_array_morlet(epoch_data, sfreq, frequencies, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    frequencies : array-like of floats, shape (n_freqs)
+    freqs : array-like of floats, shape (n_freqs)
         The frequencies.
     n_cycles : float | array of float, defaults to 7.0
         Number of cycles in the Morlet wavelet. Fixed number or one per
@@ -761,11 +781,12 @@ def tfr_array_morlet(epoch_data, sfreq, frequencies, n_cycles=7.0,
     -----
     .. versionadded:: 0.14.0
     """
-    return _compute_tfr(epoch_data=epoch_data, frequencies=frequencies,
+    return _compute_tfr(epoch_data=epoch_data, freqs=freqs,
                         sfreq=sfreq, method='morlet', n_cycles=n_cycles,
                         zero_mean=zero_mean, time_bandwidth=None,
                         use_fft=use_fft, decim=decim, output=output,
-                        n_jobs=n_jobs, verbose=verbose)
+                        n_jobs=n_jobs, frequencies=frequencies,
+                        verbose=verbose)
 
 
 @verbose
@@ -898,24 +919,30 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see :func:`mne.verbose`).
+            If not None, override default verbose level (see
+            :func:`mne.verbose`).
 
         Returns
         -------
         inst : instance of AverageTFR
             The modified instance.
-
         """  # noqa: E501
         self.data = rescale(self.data, self.times, baseline, mode,
                             copy=False)
@@ -1007,17 +1034,23 @@ class AverageTFR(_BaseTFR):
             the interval is between "a (s)" and "b (s)".
             If a is None the beginning of the data is used
             and if b is None then b is set to the end of the interval.
-            If baseline is equal ot (None, None) all the time
+            If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -1076,7 +1109,8 @@ class AverageTFR(_BaseTFR):
             .. versionadded:: 0.14.0
 
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see :func:`mne.verbose`).
+            If not None, override default verbose level (see
+            :func:`mne.verbose`).
 
         Returns
         -------
@@ -1117,7 +1151,7 @@ class AverageTFR(_BaseTFR):
                                         mode=mode, layout=layout)
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
-                        x_label='Time (ms)', y_label='Frequency (Hz)',
+                        x_label='Time (s)', y_label='Frequency (Hz)',
                         colorbar=colorbar, cmap=cmap, yscale=yscale)
             if title:
                 fig.suptitle(title)
@@ -1130,8 +1164,8 @@ class AverageTFR(_BaseTFR):
         from ..viz import plot_tfr_topomap
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
             return
-        tmin = round(min(eclick.xdata, erelease.xdata) / 1000., 5)  # ms to s
-        tmax = round(max(eclick.xdata, erelease.xdata) / 1000., 5)
+        tmin = round(min(eclick.xdata, erelease.xdata), 5)  # s
+        tmax = round(max(eclick.xdata, erelease.xdata), 5)
         fmin = round(min(eclick.ydata, erelease.ydata), 5)  # Hz
         fmax = round(max(eclick.ydata, erelease.ydata), 5)
         tmin = min(self.times, key=lambda x: abs(x - tmin))  # find closest
@@ -1184,17 +1218,23 @@ class AverageTFR(_BaseTFR):
             the interval is between "a (s)" and "b (s)".
             If a is None the beginning of the data is used
             and if b is None then b is set to the end of the interval.
-            If baseline is equal ot (None, None) all the time
+            If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         tmin : None | float
             The first time instant to display. If None the first time point
@@ -1278,7 +1318,7 @@ class AverageTFR(_BaseTFR):
                          click_func=click_fun, layout=layout,
                          colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                          layout_scale=layout_scale, title=title, border=border,
-                         x_label='Time (ms)', y_label='Frequency (Hz)',
+                         x_label='Time (s)', y_label='Frequency (Hz)',
                          fig_facecolor=fig_facecolor, font_color=font_color,
                          unified=True, img=True)
 
@@ -1322,15 +1362,21 @@ class AverageTFR(_BaseTFR):
             and if b is None then b is set to the end of the interval.
             If baseline is equal to (None, None) all the time
             interval is used.
-        mode : None | 'ratio' | 'zscore' | 'mean' | 'percent' | 'logratio' | 'zlogratio'
-            Do baseline correction with ratio (power is divided by mean
-            power during baseline) or zscore (power is divided by standard
-            deviation of power during baseline after subtracting the mean,
-            power = [power - mean(power_baseline)] / std(power_baseline)),
-            mean simply subtracts the mean power, percent is the same as
-            applying ratio then mean, logratio is the same as mean but then
-            rendered in log-scale, zlogratio is the same as zscore but data
-            is rendered in log-scale first.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+            Perform baseline correction by
+
+              - subtracting the mean baseline power ('mean')
+              - dividing by the mean baseline power ('ratio')
+              - dividing by the mean baseline power and taking the log
+                ('logratio')
+              - subtracting the mean baseline power followed by dividing by the
+                mean baseline power ('percent')
+              - subtracting the mean baseline power and dividing by the
+                standard deviation of the baseline power ('zscore')
+              - dividing by the mean baseline power, taking the log, and
+                dividing by the standard deviation of the baseline power
+                ('zlogratio')
+
             If None no baseline correction is applied.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
@@ -1526,6 +1572,24 @@ class EpochsTFR(_BaseTFR):
         s += ', ~%s' % (sizeof_fmt(self._size),)
         return "<EpochsTFR  |  %s>" % s
 
+    def __abs__(self):
+        """Take the absolute value."""
+        return EpochsTFR(info=self.info.copy(), data=np.abs(self.data),
+                         times=self.times.copy(), freqs=self.freqs.copy(),
+                         method=self.method, comment=self.comment)
+
+    def copy(self):
+        """Give a copy of the EpochsTFR.
+
+        Returns
+        -------
+        tfr : instance of EpochsTFR
+            The copy.
+        """
+        return EpochsTFR(info=self.info.copy(), data=self.data.copy(),
+                         times=self.times.copy(), freqs=self.freqs.copy(),
+                         method=self.method, comment=self.comment)
+
     def average(self):
         """Average the data across epochs.
 
@@ -1537,8 +1601,8 @@ class EpochsTFR(_BaseTFR):
         data = np.mean(self.data, axis=0)
         return AverageTFR(info=self.info.copy(), data=data,
                           times=self.times.copy(), freqs=self.freqs.copy(),
-                          nave=self.data.shape[0],
-                          method=self.method)
+                          nave=self.data.shape[0], method=self.method,
+                          comment=self.comment)
 
 
 def combine_tfr(all_tfr, weights='nave'):
@@ -1675,7 +1739,6 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     # crop data
     data = data[:, ifmin:ifmax, itmin:itmax]
 
-    times *= 1e3
     if dB:
         data = 10 * np.log10((data * data.conj()).real)
 

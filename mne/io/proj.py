@@ -34,6 +34,84 @@ class Projection(dict):
         s += ", n_channels : %s" % self['data']['ncol']
         return "<Projection  |  %s>" % s
 
+    # Can't use copy_ function here b/c of circular import
+    def plot_topomap(self, layout=None, cmap=None, sensors=True,
+                     colorbar=False, res=64, size=1, show=True,
+                     outlines='head', contours=6, image_interp='bilinear',
+                     axes=None, info=None):
+        """Plot topographic maps of SSP projections.
+
+        Parameters
+        ----------
+        layout : None | Layout | list of Layout
+            Layout instance specifying sensor positions (does not need to be
+            specified for Neuromag data). Or a list of Layout if projections
+            are from different sensor types.
+        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+            Colormap to use. If tuple, the first value indicates the colormap to
+            use and the second value is a boolean defining interactivity. In
+            interactive mode (only works if ``colorbar=True``) the colors are
+            adjustable by clicking and dragging the colorbar with left and right
+            mouse button. Left mouse button moves the scale up and down and right
+            mouse button adjusts the range. Hitting space bar resets the range. Up
+            and down arrows can be used to change the colormap. If None (default),
+            'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
+            If 'interactive', translates to (None, True).
+        sensors : bool | str
+            Add markers for sensor locations to the plot. Accepts matplotlib plot
+            format string (e.g., 'r+' for red plusses). If True, a circle will be
+            used (via .add_artist). Defaults to True.
+        colorbar : bool
+            Plot a colorbar.
+        res : int
+            The resolution of the topomap image (n pixels along each side).
+        size : scalar
+            Side length of the topomaps in inches (only applies when plotting
+            multiple topomaps at a time).
+        show : bool
+            Show figure if True.
+        outlines : 'head' | 'skirt' | dict | None
+            The outlines to be drawn. If 'head', the default head scheme will be
+            drawn. If 'skirt' the head scheme will be drawn, but sensors are
+            allowed to be plotted outside of the head circle. If dict, each key
+            refers to a tuple of x and y positions, the values in 'mask_pos' will
+            serve as image mask, and the 'autoshrink' (bool) field will trigger
+            automated shrinking of the positions due to points outside the outline.
+            Alternatively, a matplotlib patch object can be passed for advanced
+            masking options, either directly or as a function that returns patches
+            (required for multi-axis plots). If None, nothing will be drawn.
+            Defaults to 'head'.
+        contours : int | array of float
+            The number of contour lines to draw. If 0, no contours will be drawn.
+            When an integer, matplotlib ticker locator is used to find suitable
+            values for the contour thresholds (may sometimes be inaccurate, use
+            array for accuracy). If an array, the values represent the levels for
+            the contours. Defaults to 6.
+        image_interp : str
+            The image interpolation to be used. All matplotlib options are
+            accepted.
+        axes : instance of Axes | list | None
+            The axes to plot to. If list, the list must be a list of Axes of
+            the same length as the number of projectors. If instance of Axes,
+            there must be only one projector. Defaults to None.
+        info : instance of Info | None
+            The measurement information to use to determine the layout.
+            If not None, ``layout`` must be None.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+
+        Notes
+        -----
+        .. versionadded:: 0.15.0
+        """  # noqa: E501
+        from ..viz.topomap import plot_projs_topomap
+        return plot_projs_topomap([self], layout, cmap, sensors, colorbar,
+                                  res, size, show, outlines,
+                                  contours, image_interp, axes, info)
+
 
 class ProjMixin(object):
     """Mixin class for Raw, Evoked, Epochs.
@@ -501,6 +579,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
     vecs = np.zeros((nchan, nvec))
     nvec = 0
     nonzero = 0
+    bads = set(bads)
     for k, p in enumerate(projs):
         if not p['active'] or include_active:
             if (len(p['data']['col_names']) !=
@@ -512,8 +591,9 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
             # the projection vectors omitting bad channels
             sel = []
             vecsel = []
+            p_set = set(p['data']['col_names'])  # faster membership access
             for c, name in enumerate(ch_names):
-                if name in p['data']['col_names'] and name not in bads:
+                if name not in bads and name in p_set:
                     sel.append(c)
                     vecsel.append(p['data']['col_names'].index(name))
 

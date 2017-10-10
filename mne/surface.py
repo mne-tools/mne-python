@@ -502,7 +502,7 @@ def read_surface(fname, read_metadata=False, return_dict=False, verbose=None):
     volume_info : dict-like
         If read_metadata is true, key-value pairs found in the geometry file.
     surf : dict
-        The surface parameters. Only returned if read_dict is True.
+        The surface parameters. Only returned if ``return_dict`` is True.
 
     See Also
     --------
@@ -570,7 +570,7 @@ def _tessellate_sphere(mylevel):
 
     # Subdivide each starting triangle (mylevel - 1) times
     for _ in range(1, mylevel):
-        """
+        r"""
         Subdivide each triangle in the old approximation and normalize
         the new points thus generated to lie on the surface of the unit
         sphere.
@@ -820,7 +820,7 @@ def decimate_surface(points, triangles, n_triangles):
 # Morph maps
 
 @verbose
-def read_morph_map(subject_from, subject_to, subjects_dir=None,
+def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
                    verbose=None):
     """Read morph map.
 
@@ -836,6 +836,10 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment.
+    xhemi : bool
+        Morph across hemisphere. Currently only implemented for
+        ``subject_to == subject_from``. See notes at
+        :func:`mne.compute_morph_matrix`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -855,28 +859,43 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         except Exception:
             warn('Could not find or make morph map directory "%s"' % mmap_dir)
 
-    # Does the file exist
-    fname = op.join(mmap_dir, '%s-%s-morph.fif' % (subject_from, subject_to))
-    if not op.exists(fname):
-        fname = op.join(mmap_dir, '%s-%s-morph.fif'
-                        % (subject_to, subject_from))
-        if not op.exists(fname):
-            warn('Morph map "%s" does not exist, creating it and saving it to '
-                 'disk (this may take a few minutes)' % fname)
-            logger.info('Creating morph map %s -> %s'
-                        % (subject_from, subject_to))
-            mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir)
-            logger.info('Creating morph map %s -> %s'
-                        % (subject_to, subject_from))
-            mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir)
-            try:
-                _write_morph_map(fname, subject_from, subject_to,
-                                 mmap_1, mmap_2)
-            except Exception as exp:
-                warn('Could not write morph-map file "%s" (error: %s)'
-                     % (fname, exp))
-            return mmap_1
+    # filename components
+    if xhemi:
+        if subject_to != subject_from:
+            raise NotImplementedError(
+                "Morph-maps between hemispheres are currently only "
+                "implemented for subject_to == subject_from")
+        map_name_temp = '%s-%s-xhemi'
+        log_msg = 'Creating morph map %s -> %s xhemi'
+    else:
+        map_name_temp = '%s-%s'
+        log_msg = 'Creating morph map %s -> %s'
 
+    map_names = [map_name_temp % (subject_from, subject_to),
+                 map_name_temp % (subject_to, subject_from)]
+
+    # find existing file
+    for map_name in map_names:
+        fname = op.join(mmap_dir, '%s-morph.fif' % map_name)
+        if op.exists(fname):
+            return _read_morph_map(fname, subject_from, subject_to)
+    # if file does not exist, make it
+    warn('Morph map "%s" does not exist, creating it and saving it to '
+         'disk (this may take a few minutes)' % fname)
+    logger.info(log_msg % (subject_from, subject_to))
+    mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir, xhemi)
+    if subject_to == subject_from:
+        mmap_2 = None
+    else:
+        logger.info(log_msg % (subject_to, subject_from))
+        mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir,
+                                 xhemi)
+    _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2)
+    return mmap_1
+
+
+def _read_morph_map(fname, subject_from, subject_to):
+    """Read a morph map from disk."""
     f, tree, _ = fiff_open(fname)
     with f as fid:
         # Locate all maps
@@ -911,9 +930,14 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
 
 def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
     """Write a morph map to disk."""
-    fid = start_file(fname)
+    try:
+        fid = start_file(fname)
+    except Exception as exp:
+        warn('Could not write morph-map file "%s" (error: %s)'
+             % (fname, exp))
+        return
+
     assert len(mmap_1) == 2
-    assert len(mmap_2) == 2
     hemis = [FIFF.FIFFV_MNE_SURF_LEFT_HEMI, FIFF.FIFFV_MNE_SURF_RIGHT_HEMI]
     for m, hemi in zip(mmap_1, hemis):
         start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
@@ -922,13 +946,16 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
         write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
         end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
-    for m, hemi in zip(mmap_2, hemis):
-        start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
-        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_FROM, subject_to)
-        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_TO, subject_from)
-        write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
-        write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
-        end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
+    # don't write mmap_2 if it is identical (subject_to == subject_from)
+    if mmap_2 is not None:
+        assert len(mmap_2) == 2
+        for m, hemi in zip(mmap_2, hemis):
+            start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
+            write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_FROM, subject_to)
+            write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_TO, subject_from)
+            write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
+            write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
+            end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
     end_file(fid)
 
 
@@ -960,8 +987,7 @@ def _get_tri_supp_geom(surf):
                 a=a, b=b, c=c, mat=mat, nn=nn)
 
 
-@verbose
-def _make_morph_map(subject_from, subject_to, subjects_dir=None):
+def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
     """Construct morph map from one subject to another.
 
     Note that this is close, but not exactly like the C version.
@@ -973,54 +999,57 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     than just running on a single core :(
     """
     subjects_dir = get_subjects_dir(subjects_dir)
-    morph_maps = list()
+    if xhemi:
+        reg = '%s.sphere.left_right'
+        hemis = (('lh', 'rh'), ('rh', 'lh'))
+    else:
+        reg = '%s.sphere.reg'
+        hemis = (('lh', 'lh'), ('rh', 'rh'))
 
+    return [_make_morph_map_hemi(subject_from, subject_to, subjects_dir,
+                                 reg % hemi_from, reg % hemi_to)
+            for hemi_from, hemi_to in hemis]
+
+
+def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
+                         reg_to):
+    """Construct morph map for one hemisphere."""
     # add speedy short-circuit for self-maps
-    if subject_from == subject_to:
-        for hemi in ['lh', 'rh']:
-            fname = op.join(subjects_dir, subject_from, 'surf',
-                            '%s.sphere.reg' % hemi)
-            from_pts = read_surface(fname, verbose=False)[0]
-            n_pts = len(from_pts)
-            morph_maps.append(speye(n_pts, n_pts, format='csr'))
-        return morph_maps
+    if subject_from == subject_to and reg_from == reg_to:
+        fname = op.join(subjects_dir, subject_from, 'surf', reg_from)
+        n_pts = len(read_surface(fname, verbose=False)[0])
+        return speye(n_pts, n_pts, format='csr')
 
-    for hemi in ['lh', 'rh']:
-        # load surfaces and normalize points to be on unit sphere
-        fname = op.join(subjects_dir, subject_from, 'surf',
-                        '%s.sphere.reg' % hemi)
-        from_pts, from_tris = read_surface(fname, verbose=False)
-        n_from_pts = len(from_pts)
-        _normalize_vectors(from_pts)
-        tri_geom = _get_tri_supp_geom(dict(rr=from_pts, tris=from_tris))
+    # load surfaces and normalize points to be on unit sphere
+    fname = op.join(subjects_dir, subject_from, 'surf', reg_from)
+    from_rr, from_tri = read_surface(fname, verbose=False)
+    fname = op.join(subjects_dir, subject_to, 'surf', reg_to)
+    to_rr = read_surface(fname, verbose=False)[0]
+    _normalize_vectors(from_rr)
+    _normalize_vectors(to_rr)
 
-        fname = op.join(subjects_dir, subject_to, 'surf',
-                        '%s.sphere.reg' % hemi)
-        to_pts = read_surface(fname, verbose=False)[0]
-        n_to_pts = len(to_pts)
-        _normalize_vectors(to_pts)
+    # from surface: get nearest neighbors, find triangles for each vertex
+    nn_pts_idx = _compute_nearest(from_rr, to_rr)
+    from_pt_tris = _triangle_neighbors(from_tri, len(from_rr))
+    from_pt_tris = [from_pt_tris[pt_idx] for pt_idx in nn_pts_idx]
 
-        # from surface: get nearest neighbors, find triangles for each vertex
-        nn_pts_idx = _compute_nearest(from_pts, to_pts)
-        from_pt_tris = _triangle_neighbors(from_tris, len(from_pts))
-        from_pt_tris = [from_pt_tris[pt_idx] for pt_idx in nn_pts_idx]
+    # find triangle in which point lies and assoc. weights
+    tri_inds = []
+    weights = []
+    tri_geom = _get_tri_supp_geom(dict(rr=from_rr, tris=from_tri))
+    for pt_tris, to_pt in zip(from_pt_tris, to_rr):
+        p, q, idx, dist = _find_nearest_tri_pt(to_pt, tri_geom, pt_tris,
+                                               run_all=False)
+        tri_inds.append(idx)
+        weights.append([1. - (p + q), p, q])
 
-        # find triangle in which point lies and assoc. weights
-        nn_tri_inds = []
-        nn_tris_weights = []
-        for pt_tris, to_pt in zip(from_pt_tris, to_pts):
-            p, q, idx, dist = _find_nearest_tri_pt(to_pt, tri_geom, pt_tris,
-                                                   run_all=False)
-            nn_tri_inds.append(idx)
-            nn_tris_weights.extend([1. - (p + q), p, q])
+    nn_idx = from_tri[tri_inds]
+    weights = np.array(weights)
 
-        nn_tris = from_tris[nn_tri_inds]
-        row_ind = np.repeat(np.arange(n_to_pts), 3)
-        this_map = csr_matrix((nn_tris_weights, (row_ind, nn_tris.ravel())),
-                              shape=(n_to_pts, n_from_pts))
-        morph_maps.append(this_map)
-
-    return morph_maps
+    row_ind = np.repeat(np.arange(len(to_rr)), 3)
+    this_map = csr_matrix((weights.ravel(), (row_ind, nn_idx.ravel())),
+                          shape=(len(to_rr), len(from_rr)))
+    return this_map
 
 
 def _find_nearest_tri_pt(rr, tri_geom, pt_tris=None, run_all=True):
@@ -1266,3 +1295,14 @@ def _get_solids(tri_rrs, fros):
         ss += np.einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
         tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
     return tot_angle
+
+
+def _complete_sphere_surf(sphere, idx, level):
+    """Convert sphere conductor model to surface."""
+    rad = sphere['layers'][idx]['rad']
+    r0 = sphere['r0']
+    surf = _tessellate_sphere_surf(level, rad=rad)
+    surf['rr'] += r0
+    complete_surface_info(surf)
+    surf['coord_frame'] = sphere['coord_frame']
+    return surf

@@ -8,6 +8,8 @@ import time
 
 import numpy as np
 
+from .egimff import _read_raw_egi_mff
+from .events import _combine_triggers
 from ..base import BaseRaw, _check_update_montage
 from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
@@ -85,48 +87,17 @@ def _read_events(fid, info):
     return events
 
 
-def _combine_triggers(data, remapping=None):
-    """Combine binary triggers."""
-    new_trigger = np.zeros(data.shape[1])
-    if data.astype(bool).sum(axis=0).max() > 1:  # ensure no overlaps
-        logger.info('    Found multiple events at the same time '
-                    'sample. Cannot create trigger channel.')
-        return
-    if remapping is None:
-        remapping = np.arange(data) + 1
-    for d, event_id in zip(data, remapping):
-        idx = d.nonzero()
-        if np.any(idx):
-            new_trigger[idx] += event_id
-    return new_trigger
-
-
 @verbose
 def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
     """Read EGI simple binary as raw object.
 
-    .. note:: The trigger channel names are based on the
-              arbitrary user dependent event codes used. However this
-              function will attempt to generate a synthetic trigger channel
-              named ``STI 014`` in accordance with the general
-              Neuromag / MNE naming pattern.
-
-              The event_id assignment equals
-              ``np.arange(n_events - n_excluded) + 1``. The resulting
-              `event_id` mapping is stored as attribute to the resulting
-              raw object but will be ignored when saving to a fiff.
-              Note. The trigger channel is artificially constructed based
-              on timestamps received by the Netstation. As a consequence,
-              triggers have only short durations.
-
-              This step will fail if events are not mutually exclusive.
-
     Parameters
     ----------
     input_fname : str
-        Path to the raw file.
+        Path to the raw file. Files with an extension .mff are automatically
+        considered to be EGI's native MFF format files.
     montage : str | None | instance of montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0). See the documentation of
@@ -171,10 +142,28 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     raw : Instance of RawEGI
         A Raw object containing EGI data.
 
+    Notes
+    -----
+    The trigger channel names are based on the arbitrary user dependent event
+    codes used. However this function will attempt to generate a synthetic
+    trigger channel named ``STI 014`` in accordance with the general
+    Neuromag / MNE naming pattern.
+
+    The event_id assignment equals ``np.arange(n_events) + 1``. The resulting
+    ``event_id`` mapping is stored as attribute to the resulting raw object but
+    will be ignored when saving to a fiff. Note. The trigger channel is
+    artificially constructed based on timestamps received by the Netstation.
+    As a consequence, triggers have only short durations.
+
+    This step will fail if events are not mutually exclusive.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+    if input_fname.endswith('.mff'):
+        return _read_raw_egi_mff(input_fname, montage, eog, misc, include,
+                                 exclude, preload, channel_naming, verbose)
     return RawEGI(input_fname, montage, eog, misc, include, exclude, preload,
                   channel_naming, verbose)
 
@@ -257,7 +246,7 @@ class RawEGI(BaseRaw):
             egi_info['year'], egi_info['month'], egi_info['day'],
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
-        info['meas_date'] = np.array([my_timestamp], dtype=np.float32)
+        info['meas_date'] = np.array([my_timestamp, 0], dtype=np.float32)
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))

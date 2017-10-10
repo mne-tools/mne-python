@@ -33,7 +33,7 @@ def test_psi():
 
     cwt_freqs = np.arange(5., 20, 0.5)
     psi_cwt, freqs, times, n_epochs, n_tapers = phase_slope_index(
-        data, mode='cwt_morlet', sfreq=sfreq, cwt_frequencies=cwt_freqs,
+        data, mode='cwt_morlet', sfreq=sfreq, cwt_freqs=cwt_freqs,
         indices=indices)
 
     assert_true(np.all(psi_cwt > 0))

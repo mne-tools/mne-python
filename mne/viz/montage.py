@@ -1,5 +1,7 @@
 """Functions to plot EEG sensor montages or digitizer montages."""
-from ..utils import check_version
+from copy import deepcopy
+import numpy as np
+from ..utils import check_version, logger
 from . import plot_sensors
 
 
@@ -25,8 +27,10 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     fig : Instance of matplotlib.figure.Figure
         The figure object.
     """
+    from scipy.spatial.distance import cdist
     from ..channels import Montage, DigMontage
     from .. import create_info
+
     if isinstance(montage, Montage):
         ch_names = montage.ch_names
         title = montage.kind
@@ -39,6 +43,26 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
                         "mne.channels.montage.DigMontage")
     if kind not in ['topomap', '3d']:
         raise ValueError("kind must be 'topomap' or '3d'")
+
+    if isinstance(montage, Montage):  # check for duplicate labels
+        dists = cdist(montage.pos, montage.pos)
+        # only consider upper triangular part by setting the rest to np.nan
+        dists[np.tril_indices(dists.shape[0])] = np.nan
+        dupes = np.argwhere(np.isclose(dists, 0))
+        if dupes.any():
+            montage = deepcopy(montage)
+            n_chans = montage.pos.shape[0]
+            n_dupes = dupes.shape[0]
+            idx = np.setdiff1d(montage.selection, dupes[:, 1]).tolist()
+            logger.info("{} duplicate electrode labels found:".format(n_dupes))
+            logger.info(", ".join([ch_names[d[0]] + "/" + ch_names[d[1]]
+                                   for d in dupes]))
+            logger.info("Plotting {} unique labels.".format(n_chans - n_dupes))
+            montage.ch_names = [montage.ch_names[i] for i in idx]
+            ch_names = montage.ch_names
+            montage.pos = montage.pos[idx, :]
+            montage.selection = np.arange(n_chans - n_dupes)
+
     info = create_info(ch_names, sfreq=256, ch_types="eeg", montage=montage)
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
                        title=title)

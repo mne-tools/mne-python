@@ -287,6 +287,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/visualization/plot_ssp_projs_sensitivity_map.rst
     auto_examples/visualization/plot_topo_compare_conditions.rst
     auto_examples/visualization/plot_topo_customized.rst
+    auto_examples/visualization/plot_xhemi.rst
 
 .. raw:: html
 
@@ -371,11 +372,14 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
+    auto_tutorials/plot_source_alignment.rst
     auto_tutorials/plot_forward.rst
     auto_tutorials/plot_compute_covariance.rst
     auto_tutorials/plot_mne_dspm_source_localization.rst
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_point_spread.rst
+    auto_tutorials/plot_dipole_orientations.rst
+
 
 .. raw:: html
 
@@ -388,7 +392,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/forward/plot_decimate_head_surface.rst
     auto_examples/forward/plot_forward_sensitivity_maps.rst
     auto_examples/forward/plot_left_cerebellum_volume_source.rst
-    auto_examples/forward/plot_read_bem_surfaces.rst
     auto_examples/forward/plot_source_space_morphing.rst
 
 .. raw:: html
@@ -429,6 +432,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/inverse/plot_tf_dics.rst
     auto_examples/inverse/plot_tf_lcmv.rst
     auto_examples/inverse/plot_time_frequency_mixed_norm_inverse.rst
+    auto_examples/inverse/plot_vector_mne_solution.rst
 
 .. raw:: html
 
@@ -549,6 +553,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/decoding/plot_decoding_csp_space.rst
     auto_examples/decoding/plot_decoding_csp_timefreq.rst
     auto_examples/decoding/plot_decoding_spatio_temporal_source.rst
+    auto_examples/decoding/plot_decoding_spoc_CMC.rst
     auto_examples/decoding/plot_decoding_time_generalization_conditions.rst
     auto_examples/decoding/plot_decoding_unsupervised_spatial_filter.rst
     auto_examples/decoding/plot_decoding_xdawn_eeg.rst
@@ -603,7 +608,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     :maxdepth: 1
 
     auto_examples/connectivity/plot_cwt_sensor_connectivity.rst
-    auto_examples/connectivity/plot_mixed_source_space_connectity.rst
+    auto_examples/connectivity/plot_mixed_source_space_connectivity.rst
     auto_examples/connectivity/plot_mne_inverse_coherence_epochs.rst
     auto_examples/connectivity/plot_mne_inverse_connectivity_spectrum.rst
     auto_examples/connectivity/plot_mne_inverse_label_connectivity.rst

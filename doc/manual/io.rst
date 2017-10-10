@@ -32,6 +32,7 @@ EEG                   European data format       .edf       :func:`mne.io.read_r
 EEG                   Biosemi data format        .bdf       :func:`mne.io.read_raw_edf`
 EEG                   General data format        .gdf       :func:`mne.io.read_raw_edf`
 EEG                   EGI simple binary          .egi       :func:`mne.io.read_raw_egi`
+EEG                   EGI MFF format             .mff       :func:`mne.io.read_raw_egi`
 EEG                   EEGLAB                     .set       :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab`
 Electrode locations   elc, txt, csd, sfp, htps   Misc       :func:`mne.channels.read_montage`
 Electrode locations   EEGLAB loc, locs, eloc     Misc       :func:`mne.channels.read_montage`

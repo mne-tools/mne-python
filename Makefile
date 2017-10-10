@@ -3,7 +3,7 @@
 # caution: testing won't work on windows, see README
 
 PYTHON ?= python
-NOSETESTS ?= nosetests
+PYTESTS ?= py.test
 CTAGS ?= ctags
 CODESPELL_SKIPS ?= "*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii,*.pyc,*.doctree,*.pickle,*.inv,*.png,*.edf,*.touch,*.thickness,*.nofix,*.volume,*.defect_borders,*.mgh,lh.*,rh.*,COR-*,FreeSurferColorLUT.txt,*.examples,.xdebug_mris_calc,bad.segments,BadChannels,*.hist,empty_file,*.orig,*.js,*.map,*.ipynb,searchindex.dat"
 CODESPELL_DIRS ?= mne/ doc/ tutorials/ examples/
@@ -39,44 +39,41 @@ testing_data:
 
 test: in
 	rm -f .coverage
-	$(NOSETESTS) -a '!ultra_slow_test' mne
+	$(PYTESTS) -m 'not ultraslowtest' mne
 
 test-verbose: in
 	rm -f .coverage
-	$(NOSETESTS) -a '!ultra_slow_test' mne --verbose
+	$(PYTESTS) -m 'not ultraslowtest' mne --verbose
 
 test-fast: in
 	rm -f .coverage
-	$(NOSETESTS) -a '!slow_test' mne
+	$(PYTESTS) -m 'not slowtest' mne
 
 test-full: in
 	rm -f .coverage
-	$(NOSETESTS) mne
+	$(PYTESTS) mne
 
 test-no-network: in
-	sudo unshare -n -- sh -c 'MNE_SKIP_NETWORK_TESTS=1 nosetests mne'
+	sudo unshare -n -- sh -c 'MNE_SKIP_NETWORK_TESTS=1 py.test mne'
 
 test-no-testing-data: in
 	@MNE_SKIP_TESTING_DATASET_TESTS=true \
-	$(NOSETESTS) mne
+	$(PYTESTS) mne
 
 test-no-sample-with-coverage: in testing_data
 	rm -rf coverage .coverage
-	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
+	$(PYTESTS) --cov=mne --cov-report html:coverage
 
 test-doc: sample_data testing_data
-	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/
+	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/
 
 test-coverage: testing_data
 	rm -rf coverage .coverage
-	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
-
-test-profile: testing_data
-	$(NOSETESTS) --with-profile --profile-stats-file stats.pf mne
-	hotshot2dot stats.pf | dot -Tpng -o profile.png
+	$(PYTESTS) --cov=mne --cov-report html:coverage
+# whats the difference with test-no-sample-with-coverage?
 
 test-mem: in testing_data
-	ulimit -v 1097152 && $(NOSETESTS)
+	ulimit -v 1097152 && $(PYTESTS) mne
 
 trailing-spaces:
 	find . -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
@@ -111,7 +108,7 @@ pydocstyle:
 
 docstring:
 	@echo "Running docstring tests"
-	@$(NOSETESTS) mne/tests/test_docstring_parameters.py
+	@$(PYTESTS) --doctest-modules mne/tests/test_docstring_parameters.py
 
 pep:
 	@$(MAKE) -k flake pydocstyle docstring codespell-error

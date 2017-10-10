@@ -48,7 +48,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 evoked = epochs.average()
 
 # Read forward operator
-forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
+forward = mne.read_forward_solution(fname_fwd)
 
 # Computing the data and noise cross-spectral density matrices
 # The time-frequency window was chosen on the basis of spectrograms from
@@ -64,10 +64,10 @@ noise_csds = csd_epochs(epochs, mode='multitaper', tmin=-0.11,
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
 
 for i, csd in enumerate(data_csds):
-    message = 'DICS source power at %0.1f Hz' % csd.frequencies[0]
+    message = 'DICS source power at %0.1f Hz' % csd.freqs[0]
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                      time_label=message, figure=i)
     brain.set_data_time_index(i)
     brain.show_view('lateral')
     # Uncomment line below to save images
-    # brain.save_image('DICS_source_power_freq_%d.png' % csd.frequencies[0])
+    # brain.save_image('DICS_source_power_freq_%d.png' % csd.freqs[0])

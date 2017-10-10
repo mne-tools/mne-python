@@ -10,13 +10,14 @@ import warnings
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_false
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
+import pytest
 
 from mne import pick_types
 # from mne.tests.common import assert_dig_allclose
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import _TempDir, run_tests_if_main, slow_test
+from mne.utils import _TempDir, run_tests_if_main
 from mne.datasets import testing, spm_face
 from mne.io.constants import FIFF
 
@@ -44,7 +45,7 @@ single_trials = (
 ctf_fnames = tuple(sorted(block_sizes.keys()))
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_read_ctf():
     """Test CTF reader"""
@@ -194,8 +195,6 @@ def test_read_ctf():
             raw = read_raw_ctf(fname, preload=True)
         assert_true(all('MISC channel' in str(ww.message) for ww in w))
         assert_allclose(raw[:][0], raw_c[:][0])
-    raw.plot(show=False)  # Test plotting with ref_meg channels.
-    assert_raises(ValueError, raw.plot, order='selection')
     assert_raises(TypeError, read_raw_ctf, 1)
     assert_raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
     # test ignoring of system clock

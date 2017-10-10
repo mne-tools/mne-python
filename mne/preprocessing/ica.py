@@ -46,7 +46,7 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-                     _get_fast_dot, compute_corr, _get_inst_data,
+                     compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn)
 
 from ..fixes import _get_args
@@ -136,6 +136,20 @@ class ICA(ContainsMixin):
               in floating point arithmetic due to exponential non-linearity.
               Extended-Infomax seems to be more stable in this respect
               enhancing reproducibility and stability of results.
+
+    .. warning:: ICA is sensitive to low-frequency drifts and therefore
+                 requires the data to be high-pass filtered prior to fitting.
+                 Typically, a cutoff frequency of 1 Hz is recommended. Note
+                 that FIR filters prior to MNE 0.15 used the ``'firwin2'``
+                 design method, which generally produces rather shallow filters
+                 that might not work for ICA processing. Therefore, it is
+                 recommended to use IIR filters for MNE up to 0.14. In MNE
+                 0.15, FIR filters can be designed with the ``'firwin'``
+                 method, which generally produces much steeper filters. This
+                 method will be the default FIR design method in MNE 0.16. In
+                 MNE 0.15, you need to explicitly set ``fir_design='firwin'``
+                 to use this method. This is the recommended filter method for
+                 ICA preprocessing.
 
     Parameters
     ----------
@@ -484,7 +498,6 @@ class ICA(ContainsMixin):
 
     def _pre_whiten(self, data, info, picks):
         """Aux function."""
-        fast_dot = _get_fast_dot()
         has_pre_whitener = hasattr(self, '_pre_whitener')
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
@@ -514,12 +527,12 @@ class ICA(ContainsMixin):
         elif not has_pre_whitener and self.noise_cov is not None:
             pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
             assert data.shape[0] == pre_whitener.shape[1]
-            data = fast_dot(pre_whitener, data)
+            data = np.dot(pre_whitener, data)
         elif has_pre_whitener and self.noise_cov is None:
             data /= self._pre_whitener
             pre_whitener = self._pre_whitener
         else:
-            data = fast_dot(self._pre_whitener, data)
+            data = np.dot(self._pre_whitener, data)
             pre_whitener = self._pre_whitener
 
         return data, pre_whitener
@@ -548,7 +561,11 @@ class ICA(ContainsMixin):
         if isinstance(self.n_components, float):
             # compute eplained variance manually, cf. sklearn bug
             # fixed in #2664
-            explained_variance_ratio_ = pca.explained_variance_ / full_var
+            if check_version('sklearn', '0.19'):
+                explained_variance_ratio_ = pca.explained_variance_ratio_
+            else:
+                explained_variance_ratio_ = pca.explained_variance_ / full_var
+            del full_var
             n_components_ = np.sum(explained_variance_ratio_.cumsum() <=
                                    self.n_components)
             if n_components_ < 1:
@@ -581,6 +598,7 @@ class ICA(ContainsMixin):
         del pca
         # update number of components
         self.n_components_ = sel.stop
+        self._update_ica_names()
         if self.n_pca_components is not None:
             if self.n_pca_components > len(self.pca_components_):
                 self.n_pca_components = len(self.pca_components_)
@@ -602,16 +620,19 @@ class ICA(ContainsMixin):
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
 
+    def _update_ica_names(self):
+        """Update ICA names when n_components_ is set."""
+        self._ica_names = ['ICA%03d' % ii for ii in range(self.n_components_)]
+
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
-        fast_dot = _get_fast_dot()
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
         # Apply first PCA
-        pca_data = fast_dot(self.pca_components_[:self.n_components_], data)
+        pca_data = np.dot(self.pca_components_[:self.n_components_], data)
         # Apply unmixing to low dimension PCA
-        sources = fast_dot(self.unmixing_matrix_, pca_data)
+        sources = np.dot(self.unmixing_matrix_, pca_data)
         return sources
 
     def _transform_raw(self, raw, start, stop, reject_by_annotation=False):
@@ -689,9 +710,8 @@ class ICA(ContainsMixin):
         components : array, shape (n_channels, n_components)
             The ICA components (maps).
         """
-        fast_dot = _get_fast_dot()
-        return fast_dot(self.mixing_matrix_[:, :self.n_components_].T,
-                        self.pca_components_[:self.n_components_]).T
+        return np.dot(self.mixing_matrix_[:, :self.n_components_].T,
+                      self.pca_components_[:self.n_components_]).T
 
     def get_sources(self, inst, add_channels=None, start=None, stop=None):
         """Estimate sources given the unmixing matrix.
@@ -813,16 +833,14 @@ class ICA(ContainsMixin):
         # set channel names and info
         ch_names = []
         ch_info = info['chs'] = []
-        for ii in range(self.n_components_):
-            this_source = 'ICA %03d' % (ii + 1)
-            ch_names.append(this_source)
-            ch_info.append(dict(ch_name=this_source, cal=1,
-                                logno=ii + 1, coil_type=FIFF.FIFFV_COIL_NONE,
-                                kind=FIFF.FIFFV_MISC_CH,
-                                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
-                                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
-                                unit=FIFF.FIFF_UNIT_NONE,
-                                range=1.0, scanno=ii + 1, unit_mul=0))
+        for ii, name in enumerate(self._ica_names):
+            ch_names.append(name)
+            ch_info.append(dict(
+                ch_name=name, cal=1, logno=ii + 1,
+                coil_type=FIFF.FIFFV_COIL_NONE, kind=FIFF.FIFFV_MISC_CH,
+                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_NONE,
+                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
+                range=1.0, scanno=ii + 1, unit_mul=0))
 
         if add_channels is not None:
             # re-append additionally picked ch_names
@@ -1168,6 +1186,7 @@ class ICA(ContainsMixin):
         zero out components, and inverse transform the data.
         This procedure will reconstruct M/EEG signals from which
         the dynamics described by the excluded components is subtracted.
+        The data is processed in place.
 
         Parameters
         ----------
@@ -1189,6 +1208,11 @@ class ICA(ContainsMixin):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+
+        Returns
+        -------
+        out : instance of Raw, Epochs or Evoked
+            The processed data.
         """
         if isinstance(inst, BaseRaw):
             out = self._apply_raw(raw=inst, include=include,
@@ -1294,7 +1318,6 @@ class ICA(ContainsMixin):
 
     def _pick_sources(self, data, include, exclude):
         """Aux function."""
-        fast_dot = _get_fast_dot()
         if exclude is None:
             exclude = self.exclude
         else:
@@ -1336,7 +1359,7 @@ class ICA(ContainsMixin):
 
         proj_mat = np.dot(mixing[:, sel_keep], unmixing[sel_keep, :])
 
-        data = fast_dot(proj_mat, data)
+        data = np.dot(proj_mat, data)
 
         if self.pca_mean_ is not None:
             data += self.pca_mean_[:, None]
@@ -1345,7 +1368,7 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self._pre_whitener
         else:
-            data = fast_dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
+            data = np.dot(linalg.pinv(self._pre_whitener, cond=1e-14), data)
 
         return data
 
@@ -1421,7 +1444,7 @@ class ICA(ContainsMixin):
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
-                    title='ICA component scores', figsize=(12, 6),
+                    title='ICA component scores', figsize=None,
                     show=True):
         return plot_ica_scores(
             ica=self, scores=scores, exclude=exclude, labels=labels,
@@ -1564,8 +1587,16 @@ class ICA(ContainsMixin):
 
 def _check_start_stop(raw, start, stop):
     """Aux function."""
-    return [c if (isinstance(c, int) or c is None) else
-            raw.time_as_index(c)[0] for c in (start, stop)]
+    out = list()
+    for st in (start, stop):
+        if st is None:
+            out.append(st)
+        else:
+            try:
+                out.append(_ensure_int(st))
+            except TypeError:  # not int-like
+                out.append(raw.time_as_index(st)[0])
+    return out
 
 
 @verbose
@@ -1943,6 +1974,7 @@ def read_ica(fname):
     ica.pca_mean_ = f(pca_mean)
     ica.pca_components_ = f(pca_components)
     ica.n_components_ = unmixing_matrix.shape[0]
+    ica._update_ica_names()
     ica.pca_explained_variance_ = f(pca_explained_variance)
     ica.unmixing_matrix_ = f(unmixing_matrix)
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_)
@@ -2235,7 +2267,7 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
-                  layout, cmap, contours, template=True):
+                  layout, cmap, contours, template=False):
     """Customize ica.plot_components for corrmap."""
     if not template:
         title = 'Detected components'
@@ -2273,7 +2305,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
         if template:
-            ttl = 'Subj. {0}, IC {1}'.format(subject, idx)
+            ttl = 'Subj. {0}, {1}'.format(subject, ica._ica_names[idx])
             ax.set_title(ttl, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
@@ -2301,8 +2333,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     specific ICs across subjects.
 
     The specific procedure consists of two iterations. In a first step, the
-    maps best correlating with the template are identified. In the step, the
-    analysis is repeated with the mean of the maps identified in the first
+    maps best correlating with the template are identified. In the next step,
+    the analysis is repeated with the mean of the maps identified in the first
     stage.
 
     Run with `plot` and `show` set to `True` and `label=False` to find

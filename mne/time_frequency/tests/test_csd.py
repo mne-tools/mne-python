@@ -98,15 +98,15 @@ def test_csd_epochs():
     # a given range when fsum=False
     csd_fsum = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20, fsum=True)
     csds = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20, fsum=False)
-    freqs = [csd.frequencies[0] for csd in csds]
+    freqs = [csd.freqs[0] for csd in csds]
 
     csd_sum = np.zeros_like(csd_fsum.data)
     for csd in csds:
         csd_sum += csd.data
 
     assert_equal(len(csds), 2)
-    assert_equal(len(csd_fsum.frequencies), 2)
-    assert_array_equal(csd_fsum.frequencies, freqs)
+    assert_equal(len(csd_fsum.freqs), 2)
+    assert_array_equal(csd_fsum.freqs, freqs)
     assert_array_equal(csd_fsum.data, csd_sum)
 
 

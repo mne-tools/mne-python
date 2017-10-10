@@ -55,7 +55,7 @@ n_times = len(rt_epochs.times)
 from sklearn import preprocessing  # noqa
 from sklearn.svm import SVC  # noqa
 from sklearn.pipeline import Pipeline  # noqa
-from sklearn.cross_validation import cross_val_score, ShuffleSplit  # noqa
+from sklearn.model_selection import cross_val_score, ShuffleSplit  # noqa
 from mne.decoding import Vectorizer, FilterEstimator  # noqa
 
 
@@ -63,7 +63,7 @@ scores_x, scores, std_scores = [], [], []
 
 # don't highpass filter because it's epoched data and the signal length
 # is small
-filt = FilterEstimator(rt_epochs.info, None, 40)
+filt = FilterEstimator(rt_epochs.info, None, 40, fir_design='firwin')
 scaler = preprocessing.StandardScaler()
 vectorizer = Vectorizer()
 clf = SVC(C=1, kernel='linear')
@@ -95,7 +95,7 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
     if ev_num >= min_trials:
 
-        cv = ShuffleSplit(len(y), 5, test_size=0.2, random_state=42)
+        cv = ShuffleSplit(5, test_size=0.2, random_state=42)
         scores_t = cross_val_score(concat_classifier, X, y, cv=cv,
                                    n_jobs=1) * 100
 
@@ -107,7 +107,6 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
         plt.plot(scores_x[-2:], scores[-2:], '-x', color='b',
                  label="Classif. score")
-        ax.hold(True)
         ax.plot(scores_x[-1], scores[-1])
 
         hyp_limits = (np.asarray(scores) - np.asarray(std_scores),

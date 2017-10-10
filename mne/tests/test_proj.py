@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_equal)
+import pytest
 
 import copy as cp
 
@@ -19,7 +20,7 @@ from mne.io.proj import (make_projector, activate_proj,
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne.tests.common import assert_naming
-from mne.utils import _TempDir, run_tests_if_main, slow_test
+from mne.utils import _TempDir, run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -102,7 +103,8 @@ def _check_warnings(raw, events, picks=None, count=3):
 @testing.requires_testing_data
 def test_sensitivity_maps():
     """Test sensitivity map computation."""
-    fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
+    fwd = mne.read_forward_solution(fwd_fname)
+    fwd = mne.convert_forward_solution(fwd, surf_ori=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         projs = read_proj(eog_fname)
@@ -209,7 +211,7 @@ def test_compute_proj_epochs():
     # XXX : test something
 
     # test parallelization
-    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2,
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=1,
                                 desc_prefix='foobar')
     assert_true(all('foobar' in x['desc'] for x in projs))
     projs = activate_proj(projs)
@@ -225,7 +227,7 @@ def test_compute_proj_epochs():
     assert_naming(w, 'test_proj.py', 2)
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_compute_proj_raw():
     """Test SSP computation on raw"""
     tempdir = _TempDir()
@@ -318,7 +320,7 @@ def test_has_eeg_average_ref_proj():
     assert_true(not _has_eeg_average_ref_proj([]))
 
     raw = read_raw_fif(raw_fname)
-    raw.set_eeg_reference()
+    raw.set_eeg_reference(projection=True)
     assert_true(_has_eeg_average_ref_proj(raw.info['projs']))
 
 
@@ -327,7 +329,7 @@ def test_needs_eeg_average_ref_proj():
     raw = read_raw_fif(raw_fname)
     assert_true(_needs_eeg_average_ref_proj(raw.info))
 
-    raw.set_eeg_reference()
+    raw.set_eeg_reference(projection=True)
     assert_true(not _needs_eeg_average_ref_proj(raw.info))
 
     # No EEG channels
@@ -340,5 +342,6 @@ def test_needs_eeg_average_ref_proj():
     raw = read_raw_fif(raw_fname)
     raw.info['custom_ref_applied'] = True
     assert_true(not _needs_eeg_average_ref_proj(raw.info))
+
 
 run_tests_if_main()

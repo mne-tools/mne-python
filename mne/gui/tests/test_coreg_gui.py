@@ -5,6 +5,8 @@
 import os
 import os.path as op
 import re
+import sys
+from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -126,7 +128,7 @@ def test_coreg_model():
     # find BEM files
     bems = set()
     for fname in os.listdir(op.join(subjects_dir, 'sample', 'bem')):
-        match = re.match('sample-(.+-bem)\.fif', fname)
+        match = re.match(r'sample-(.+-bem)\.fif', fname)
         if match:
             bems.add(match.group(1))
     assert_equal(set(bemsol), bems)
@@ -139,10 +141,17 @@ def test_coreg_model():
     model.load_trans(fname_trans)
 
 
+def _check_ci():
+    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
+            sys.platform == 'darwin':
+        raise SkipTest('Skipping GUI tests on Travis OSX')
+
+
 @testing.requires_testing_data
 @requires_mayavi
 def test_coreg_gui():
     """Test CoregFrame."""
+    _check_ci()
     home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
@@ -188,9 +197,12 @@ def test_coreg_gui():
             assert_true(frame.model.prepare_bem_model)
             frame.model.prepare_bem_model = False
             frame.save_config(home_dir)
+            ui.dispose()
+
             ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
             assert_false(frame.model.prepare_bem_model)
             assert_false(frame.model.mri.use_high_res_head)
+            ui.dispose()
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
         del os.environ['_MNE_FAKE_HOME_DIR']

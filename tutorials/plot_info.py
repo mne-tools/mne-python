@@ -2,29 +2,27 @@
 .. _tut_info_objects:
 
 The :class:`Info <mne.Info>` data structure
-==============================================
-"""
+===========================================
 
-from __future__ import print_function
+The :class:`Info <mne.Info>` data object is typically created
+when data is imported into MNE-Python and contains details such as:
+
+- date, subject information, and other recording details
+- the sampling rate
+- information about the data channels (name, type, position, etc.)
+- digitized points
+- sensor–head coordinate transformation matrices
+
+and so forth. See the :class:`the API reference <mne.Info>`
+for a complete list of all data fields. Once created, this object is passed
+around throughout the data analysis pipeline.
+"""
 
 import mne
 import os.path as op
 
 ###############################################################################
-# The :class:`Info <mne.Info>` data object is typically created
-# when data is imported into MNE-Python and contains details such as:
-#
-#  - date, subject information, and other recording details
-#  - the sampling rate
-#  - information about the data channels (name, type, position, etc.)
-#  - digitized points
-#  - sensor–head coordinate transformation matrices
-#
-# and so forth. See the :class:`the API reference <mne.Info>`
-# for a complete list of all data fields. Once created, this object is passed
-# around throughout the data analysis pipeline.
-#
-# It behaves as a nested Python dictionary:
+# :class:`mne.Info` behaves as a nested Python dictionary:
 
 # Read the info object from an example recording
 info = mne.io.read_info(
@@ -61,6 +59,28 @@ channel_indices = mne.pick_channels(info['ch_names'], ['MEG 0312', 'EEG 005'])
 channel_indices = mne.pick_channels_regexp(info['ch_names'], 'MEG *')
 
 ###############################################################################
+# Channel types
+# -------------
+#
+# MNE supports different channel types:
+#
+# - eeg : For EEG channels with data stored in Volts (V)
+# - meg (mag) : For MEG magnetometers channels stored in Tesla (T)
+# - meg (grad) : For MEG gradiometers channels stored in Tesla/Meter (T/m)
+# - ecg : For ECG channels stored in Volts (V)
+# - seeg : For Stereotactic EEG channels in Volts (V).
+# - ecog : For Electrocorticography (ECoG) channels in Volts (V).
+# - fnirs (HBO) : Functional near-infrared spectroscopy oxyhemoglobin data.
+# - fnirs (HBR) : Functional near-infrared spectroscopy deoxyhemoglobin data.
+# - emg : For EMG channels stored in Volts (V)
+# - bio : For biological channels (AU).
+# - stim : For the stimulus (a.k.a. trigger) channels (AU)
+# - resp : For the response-trigger channel (AU)
+# - chpi : For HPI coil channels (T).
+# - exci : Flux excitation channel used to be a stimulus channel.
+# - ias : For Internal Active Shielding data (maybe on Triux only).
+# - syst : System status channel information (on Triux systems only).
+#
 # Get channel indices by type
 channel_indices = mne.pick_types(info, meg=True)  # MEG only
 channel_indices = mne.pick_types(info, eeg=True)  # EEG only

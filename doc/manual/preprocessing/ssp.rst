@@ -167,12 +167,12 @@ Adding/removing projectors
 
 To explicitly add a ``proj``, use ``add_proj``. For example::
 
-    >>> projs = mne.read_proj('proj_a.fif')
-    >>> evoked.add_proj(projs)
+    >>> projs = mne.read_proj('proj_a.fif')  # doctest: +SKIP
+    >>> evoked.add_proj(projs)  # doctest: +SKIP
 
 If projectors are already present in the raw `fif` file, it will be added to the ``info`` dictionary automatically. To remove existing projectors, you can do::
 
-	>>> evoked.add_proj([], remove_existing=True)
+	>>> evoked.add_proj([], remove_existing=True)  # doctest: +SKIP
 
 Applying projectors
 -------------------
@@ -181,7 +181,7 @@ Projectors can be applied at any stage of the pipeline. When the ``raw`` data is
 
 To apply explicitly projs at any stage of the pipeline, use ``apply_proj``. For example::
 
-	>>> evoked.apply_proj()
+	>>> evoked.apply_proj()  # doctest: +SKIP
 
 The projectors might not be applied if data are not :ref:`preloaded <memory>`. In this case, it's the ``_projector`` attribute that indicates if a projector will be applied when the data is loaded in memory. If the data is already in memory, then the projectors applied to it are the ones marked as `active`. As soon as you've applied the projectors, it will stay active in the remaining pipeline.
 

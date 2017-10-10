@@ -52,7 +52,7 @@ from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
                         Enum, Float, HasTraits, HasPrivateTraits, Instance,
                         Int, on_trait_change, Property, Str)
 from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
-                          Handler, Label, TextEditor, Spring)
+                          Handler, Label, TextEditor, Spring, InstanceEditor)
 from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -402,7 +402,7 @@ class CoregModel(HasPrivateTraits):
         if old_filter is None:
             new_filter = new_sub_filter
         else:
-            new_filter = np.ones(len(self.hsp.raw_points), np.bool8)
+            new_filter = np.ones(len(self.hsp.points), np.bool8)
             new_filter[old_filter] = new_sub_filter
 
         # set the filter
@@ -607,77 +607,8 @@ class CoregFrameHandler(Handler):
             return True
 
 
-class CoregPanel(HasPrivateTraits):
-    """Coregistration panel for Head<->MRI with scaling."""
-
-    model = Instance(CoregModel)
-
-    # parameters
-    reset_params = Button(label='Reset')
-    grow_hair = DelegatesTo('model')
-    n_scale_params = DelegatesTo('model')
-    scale_step = Float(0.01)
-    scale_x = DelegatesTo('model')
-    scale_x_dec = Button('-')
-    scale_x_inc = Button('+')
-    scale_y = DelegatesTo('model')
-    scale_y_dec = Button('-')
-    scale_y_inc = Button('+')
-    scale_z = DelegatesTo('model')
-    scale_z_dec = Button('-')
-    scale_z_inc = Button('+')
-    rot_step = Float(0.01)
-    rot_x = DelegatesTo('model')
-    rot_x_dec = Button('-')
-    rot_x_inc = Button('+')
-    rot_y = DelegatesTo('model')
-    rot_y_dec = Button('-')
-    rot_y_inc = Button('+')
-    rot_z = DelegatesTo('model')
-    rot_z_dec = Button('-')
-    rot_z_inc = Button('+')
-    trans_step = Float(0.001)
-    trans_x = DelegatesTo('model')
-    trans_x_dec = Button('-')
-    trans_x_inc = Button('+')
-    trans_y = DelegatesTo('model')
-    trans_y_dec = Button('-')
-    trans_y_inc = Button('+')
-    trans_z = DelegatesTo('model')
-    trans_z_dec = Button('-')
-    trans_z_inc = Button('+')
-
-    # fitting
-    has_fid_data = DelegatesTo('model')
-    has_pts_data = DelegatesTo('model')
-    has_eeg_data = DelegatesTo('model')
-    # fitting with scaling
-    fits_hsp_points = Button(label='Fit Head Shape')
-    fits_fid = Button(label='Fit Fiducials')
-    fits_ap = Button(label='Fit LPA/RPA')
-    # fitting without scaling
-    fit_hsp_points = Button(label='Fit Head Shape')
-    fit_fid = Button(label='Fit Fiducials')
-    fit_ap = Button(label='Fit LPA/RPA')
-
-    # fit info
-    fid_eval_str = DelegatesTo('model')
-    points_eval_str = DelegatesTo('model')
-
-    # saving
-    can_prepare_bem_model = DelegatesTo('model')
-    can_save = DelegatesTo('model')
-    scale_labels = DelegatesTo('model')
-    copy_annot = DelegatesTo('model')
-    prepare_bem_model = DelegatesTo('model')
-    save = Button(label="Save As...")
-    load_trans = Button(label='Load trans...')
-    queue = Instance(queue.Queue, ())
-    queue_feedback = Str('')
-    queue_current = Str('')
-    queue_len = Int(0)
-    queue_len_str = Property(Str, depends_on=['queue_len'])
-
+def _make_view_coreg_panel(scrollable=False):
+    """Generate View for CoregPanel."""
     view = View(VGroup(Item('grow_hair', show_label=True),
                        Item('n_scale_params', label='MRI Scaling',
                             style='custom', show_label=True,
@@ -828,7 +759,82 @@ class CoregPanel(HasPrivateTraits):
                        Item('queue_current', style='readonly'),
                        Item('queue_len_str', style='readonly'),
                        show_labels=False),
-                kind='panel', buttons=[UndoButton])
+                kind='panel', buttons=[UndoButton], scrollable=scrollable)
+    return view
+
+
+class CoregPanel(HasPrivateTraits):
+    """Coregistration panel for Head<->MRI with scaling."""
+
+    model = Instance(CoregModel)
+
+    # parameters
+    reset_params = Button(label='Reset')
+    grow_hair = DelegatesTo('model')
+    n_scale_params = DelegatesTo('model')
+    scale_step = Float(0.01)
+    scale_x = DelegatesTo('model')
+    scale_x_dec = Button('-')
+    scale_x_inc = Button('+')
+    scale_y = DelegatesTo('model')
+    scale_y_dec = Button('-')
+    scale_y_inc = Button('+')
+    scale_z = DelegatesTo('model')
+    scale_z_dec = Button('-')
+    scale_z_inc = Button('+')
+    rot_step = Float(0.01)
+    rot_x = DelegatesTo('model')
+    rot_x_dec = Button('-')
+    rot_x_inc = Button('+')
+    rot_y = DelegatesTo('model')
+    rot_y_dec = Button('-')
+    rot_y_inc = Button('+')
+    rot_z = DelegatesTo('model')
+    rot_z_dec = Button('-')
+    rot_z_inc = Button('+')
+    trans_step = Float(0.001)
+    trans_x = DelegatesTo('model')
+    trans_x_dec = Button('-')
+    trans_x_inc = Button('+')
+    trans_y = DelegatesTo('model')
+    trans_y_dec = Button('-')
+    trans_y_inc = Button('+')
+    trans_z = DelegatesTo('model')
+    trans_z_dec = Button('-')
+    trans_z_inc = Button('+')
+
+    # fitting
+    has_fid_data = DelegatesTo('model')
+    has_pts_data = DelegatesTo('model')
+    has_eeg_data = DelegatesTo('model')
+    # fitting with scaling
+    fits_hsp_points = Button(label='Fit Head Shape')
+    fits_fid = Button(label='Fit Fiducials')
+    fits_ap = Button(label='Fit LPA/RPA')
+    # fitting without scaling
+    fit_hsp_points = Button(label='Fit Head Shape')
+    fit_fid = Button(label='Fit Fiducials')
+    fit_ap = Button(label='Fit LPA/RPA')
+
+    # fit info
+    fid_eval_str = DelegatesTo('model')
+    points_eval_str = DelegatesTo('model')
+
+    # saving
+    can_prepare_bem_model = DelegatesTo('model')
+    can_save = DelegatesTo('model')
+    scale_labels = DelegatesTo('model')
+    copy_annot = DelegatesTo('model')
+    prepare_bem_model = DelegatesTo('model')
+    save = Button(label="Save As...")
+    load_trans = Button(label='Load trans...')
+    queue = Instance(queue.Queue, ())
+    queue_feedback = Str('')
+    queue_current = Str('')
+    queue_len = Int(0)
+    queue_len_str = Property(Str, depends_on=['queue_len'])
+
+    view = _make_view_coreg_panel()
 
     def __init__(self, *args, **kwargs):  # noqa: D102
         super(CoregPanel, self).__init__(*args, **kwargs)
@@ -846,7 +852,7 @@ class CoregPanel(HasPrivateTraits):
                     scale_mri(subject_from, subject_to, scale, True,
                               subjects_dir, skip_fiducials, include_labels,
                               include_annot)
-                except:
+                except Exception:
                     logger.error('Error scaling %s:\n' % subject_to +
                                  traceback.format_exc())
                     self.queue_feedback = ('Error scaling %s (see Terminal)' %
@@ -865,7 +871,7 @@ class CoregPanel(HasPrivateTraits):
                                                     name=bem_name)
                         bemsol = make_bem_solution(bem_file)
                         write_bem_solution(bem_file[:-4] + '-sol.fif', bemsol)
-                    except:
+                    except Exception:
                         logger.error('Error computing %s solution:\n' %
                                      bem_name + traceback.format_exc())
                         self.queue_feedback = ('Error computing %s solution '
@@ -1169,7 +1175,8 @@ class NewMriDialog(HasPrivateTraits):
             self.can_overwrite = False
 
 
-def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400):
+def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
+               scrollable=True):
     """Create a view for the CoregFrame.
 
     Parameters
@@ -1182,6 +1189,8 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400):
         unnecessary for wx backend).
     scene_width : int
         Specify a minimum width for the 3d scene (in pixels).
+    scrollable : bool
+        Make the coregistration panel vertically scrollable (default True).
 
     Returns
     -------
@@ -1216,13 +1225,20 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400):
                HGroup(Item('distance', show_label=False, width=20),
                       'omit_points', 'reset_omit_points', show_labels=False),
                Item('omitted_info', style='readonly', show_label=False),
-               label='Head Shape Source (Raw/Epochs/Evoked)', show_border=True,
-               show_labels=False),
+               label='Head Shape Source (Raw/Epochs/Evoked/DigMontage)',
+               show_border=True, show_labels=False),
         show_labels=False, label="Data Source")
 
+    # Setting `scrollable=True` for a Group does not seem to have any effect
+    # (macOS), in order to be effective the parameter has to be set for a View
+    # object; hence we use a special InstanceEditor to set the parameter
+    # programmatically:
     coreg_panel = VGroup(
-        Item('coreg_panel', style='custom', width=1),
-        label="Coregistration", show_border=True, show_labels=False,
+        # width=410 is optimized for macOS to avoid a horizontal scroll-bar;
+        # might benefit from platform-specific values
+        Item('coreg_panel', style='custom', width=410 if scrollable else 1,
+             editor=InstanceEditor(view=_make_view_coreg_panel(scrollable))),
+        label="Coregistration", show_border=not scrollable, show_labels=False,
         enabled_when="fid_panel.locked")
 
     main_layout = 'split' if split else 'normal'

@@ -1,11 +1,12 @@
-
 import os.path as op
+import pytest
+
 import mne
 from mne.datasets import testing
 from mne import read_forward_solution
 from mne.minimum_norm import (read_inverse_operator,
                               point_spread_function, cross_talk_function)
-from mne.utils import slow_test, run_tests_if_main
+from mne.utils import run_tests_if_main
 
 from nose.tools import assert_true
 
@@ -24,7 +25,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_psf_ctf():
     """Test computation of PSFs and CTFs for linear estimators
@@ -43,7 +44,7 @@ def test_psf_ctf():
             stc_psf, psf_ev = point_spread_function(
                 inverse_operator, forward, method=method, labels=labels,
                 lambda2=lambda2, pick_ori='normal', mode=mode,
-                n_svd_comp=n_svd_comp)
+                n_svd_comp=n_svd_comp, use_cps=True)
 
             n_vert, n_samples = stc_psf.shape
             should_n_vert = (inverse_operator['src'][1]['vertno'].shape[0] +
@@ -64,7 +65,7 @@ def test_psf_ctf():
             stc_ctf = cross_talk_function(
                 inverse_operator, forward, labels, method=method,
                 lambda2=lambda2, signed=False, mode=mode,
-                n_svd_comp=n_svd_comp)
+                n_svd_comp=n_svd_comp, use_cps=True)
 
             n_vert, n_samples = stc_ctf.shape
             should_n_vert = (inverse_operator['src'][1]['vertno'].shape[0] +

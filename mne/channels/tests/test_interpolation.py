@@ -3,11 +3,12 @@ import warnings
 
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_equal)
+import pytest
 from nose.tools import assert_raises, assert_equal, assert_true
 
 from mne import io, pick_types, pick_channels, read_events, Epochs
 from mne.channels.interpolation import _make_interpolation_matrix
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -41,7 +42,7 @@ def _load_data():
     return raw, epochs, epochs_eeg, epochs_meg
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_interpolation():
     """Test interpolation"""
     raw, epochs, epochs_eeg, epochs_meg = _load_data()
@@ -92,6 +93,18 @@ def test_interpolation():
         inst.info['bads'] = [inst.ch_names[1]]
         assert_raises(ValueError, inst.interpolate_bads)
 
+    # check that interpolation works with few channels
+    raw_few = raw.copy().crop(0, 0.1).load_data()
+    raw_few.pick_channels(raw_few.ch_names[:1] + raw_few.ch_names[3:4])
+    assert_equal(len(raw_few.ch_names), 2)
+    raw_few.del_proj()
+    raw_few.info['bads'] = [raw_few.ch_names[-1]]
+    orig_data = raw_few[1][0]
+    raw_few.interpolate_bads(reset_bads=False)
+    new_data = raw_few[1][0]
+    assert_true((new_data == 0).mean() < 0.5)
+    assert_true(np.corrcoef(new_data, orig_data)[0, 1] > 0.1)
+
     # check that interpolation works when non M/EEG channels are present
     # before MEG channels
     with warnings.catch_warnings(record=True):  # change of units
@@ -130,5 +143,6 @@ def test_interpolation():
     evoked.info.normalize_proj()
     data2 = evoked.interpolate_bads().data[pick]
     assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
+
 
 run_tests_if_main()

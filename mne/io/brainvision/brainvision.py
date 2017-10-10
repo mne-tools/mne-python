@@ -6,6 +6,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Phillip Alday <phillip.alday@unisa.edu.au>
+#          Okba Bekhelifi <okba.bekhelifi@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -34,9 +35,10 @@ class RawBrainVision(BaseRaw):
     vhdr_fname : str
         Path to the EEG header file.
     montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+        Path or instance of montage containing electrode positions. If None,
+        read sensor locations from header file if present, otherwise (0, 0, 0).
+        See the documentation of :func:`mne.channels.read_montage` for more
+        information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
@@ -81,8 +83,10 @@ class RawBrainVision(BaseRaw):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        info, data_filename, fmt, self._order, mrk_fname, montage = \
+        info, data_filename, fmt, order, mrk_fname, montage, n_samples = \
             _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
+        self._order = order
+        self._n_samples = n_samples
         events = _read_vmrk_events(mrk_fname, event_id, response_trig_shift)
         _check_update_montage(info, montage)
         with open(data_filename, 'rb') as f:
@@ -108,7 +112,9 @@ class RawBrainVision(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         # read data
-        if isinstance(self.orig_format, string_types):
+        if self._order == 'C':
+            _read_segments_c(self, data, idx, fi, start, stop, cals, mult)
+        elif isinstance(self.orig_format, string_types):
             dtype = _fmt_dtype_dict[self.orig_format]
             n_data_ch = len(self.ch_names) - 1
             _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
@@ -162,6 +168,26 @@ class RawBrainVision(BaseRaw):
             self._data[-1] = self._event_ch
 
 
+def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
+    """Read chunk of vectorized raw data."""
+    n_samples = raw._n_samples
+    dtype = _fmt_dtype_dict[raw.orig_format]
+    n_bytes = _fmt_byte_dict[raw.orig_format]
+    n_channels = len(raw.ch_names)
+    trigger_ch = raw._event_ch
+    block = np.zeros((n_channels, stop - start))
+    with open(raw._filenames[fi], 'rb', buffering=0) as fid:
+        for ch_id in np.arange(n_channels)[idx]:
+            if ch_id == n_channels - 1:  # stim channel
+                stim_ch = trigger_ch[start:stop]
+                block[ch_id] = stim_ch
+                continue
+            fid.seek(start * n_bytes + ch_id * n_bytes * n_samples)
+            block[ch_id] = np.fromfile(fid, dtype, stop - start)
+
+        _mult_cal_one(data, block, idx, cals, mult)
+
+
 def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     """Read events from a vmrk file.
 
@@ -206,15 +232,20 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     # blocks, such as that the filename are specifying are not
     # guaranteed to be ASCII.
 
-    codepage = 'utf-8'
     try:
         # if there is an explicit codepage set, use it
         # we pretend like it's ascii when searching for the codepage
         cp_setting = re.search('Codepage=(.+)',
                                txt.decode('ascii', 'ignore'),
                                re.IGNORECASE & re.MULTILINE)
+        codepage = 'utf-8'
         if cp_setting:
             codepage = cp_setting.group(1).strip()
+        # BrainAmp Recorder also uses ANSI codepage
+        # an ANSI codepage raises a LookupError exception
+        # python recognize ANSI decoding as cp1252
+        if codepage == 'ANSI':
+            codepage = 'cp1252'
         txt = txt.decode(codepage)
     except UnicodeDecodeError:
         # if UTF-8 (new standard) or explicit codepage setting fails,
@@ -223,16 +254,16 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
         txt = txt.decode('latin-1')
 
     # extract Marker Infos block
-    m = re.search("\[Marker Infos\]", txt)
+    m = re.search(r"\[Marker Infos\]", txt)
     if not m:
         return np.zeros(0)
     mk_txt = txt[m.end():]
-    m = re.search("\[.*\]", mk_txt)
+    m = re.search(r"\[.*\]", mk_txt)
     if m:
         mk_txt = mk_txt[:m.start()]
 
     # extract event information
-    items = re.findall("^Mk\d+=(.*)", mk_txt, re.MULTILINE)
+    items = re.findall(r"^Mk\d+=(.*)", mk_txt, re.MULTILINE)
     events, dropped = list(), list()
     for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
@@ -242,7 +273,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
             trigger = event_id[mdesc]
         else:
             try:
-                trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
+                trigger = int(re.findall(r'[A-Za-z]*\s*?(\d+)', mdesc)[0])
             except IndexError:
                 trigger = None
             if mtype.lower().startswith('response'):
@@ -272,12 +303,13 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
 
 def _check_hdr_version(header):
     """Check the header version."""
-    tags = ['Brain Vision Data Exchange Header File Version 1.0',
-            'Brain Vision Data Exchange Header File Version 2.0']
-    if header not in tags:
-        raise ValueError("Currently only support %r, not %r"
-                         "Contact MNE-Developers for support."
-                         % (str(tags), header))
+    if header == 'Brain Vision Data Exchange Header File Version 1.0':
+        return 1
+    elif header == 'Brain Vision Data Exchange Header File Version 2.0':
+        return 2
+    else:
+        raise ValueError("Currently only support versions 1.0 and 2.0, not %r "
+                         "Contact MNE-Developers for support." % header)
 
 
 def _check_mrk_version(header):
@@ -323,10 +355,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
-    montage : str | True | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions. If None,
+        read sensor locations from header file if present, otherwise (0, 0, 0).
+        See the documentation of :func:`mne.channels.read_montage` for more
+        information.
 
     Returns
     -------
@@ -363,6 +396,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                                    re.IGNORECASE & re.MULTILINE)
             if cp_setting:
                 codepage = cp_setting.group(1).strip()
+            # BrainAmp Recorder also uses ANSI codepage
+            # an ANSI codepage raises a LookupError exception
+            # python recognize ANSI decoding as cp1252
+            if codepage == 'ANSI':
+                codepage = 'cp1252'
             settings = settings.decode(codepage)
         except UnicodeDecodeError:
             # if UTF-8 (new standard) or explicit codepage setting fails,
@@ -401,8 +439,26 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         fmt = dict((key, cfg.get('ASCII Infos', key))
                    for key in cfg.options('ASCII Infos'))
 
+    # locate EEG and marker files
+    path = os.path.dirname(vhdr_fname)
+    data_filename = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
+    info['meas_date'] = int(time.time())
+    info['buffer_size_sec'] = 1.  # reasonable default
+
     # load channel labels
     nchan = cfg.getint('Common Infos', 'NumberOfChannels') + 1
+    n_samples = None
+    if order == 'C':
+        try:
+            n_samples = cfg.getint('Common Infos', 'DataPoints')
+        except configparser.NoOptionError:
+            logger.warning('No info on DataPoints found. Inferring number of '
+                           'samples from the data file size.')
+            with open(data_filename, 'rb') as fid:
+                fid.seek(0, 2)
+                n_bytes = fid.tell()
+                n_samples = n_bytes // _fmt_byte_dict[fmt] // (nchan - 1)
+
     ch_names = [''] * nchan
     cals = np.empty(nchan)
     ranges = np.empty(nchan)
@@ -434,20 +490,31 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
     # create montage
-    if montage is True:
-        from ...transforms import _sphere_to_cartesian
+    if cfg.has_section('Coordinates') and montage is None:
+        from ...transforms import _sph_to_cart
         from ...channels.montage import Montage
         montage_pos = list()
         montage_names = list()
+        to_misc = list()
         for ch in cfg.items('Coordinates'):
-            montage_names.append(ch_dict[ch[0]])
+            ch_name = ch_dict[ch[0]]
+            montage_names.append(ch_name)
             radius, theta, phi = map(float, ch[1].split(','))
             # 1: radius, 2: theta, 3: phi
-            pos = _sphere_to_cartesian(r=radius, theta=theta, phi=phi)
+            pol = np.deg2rad(theta)
+            az = np.deg2rad(phi)
+            pos = _sph_to_cart(np.array([[radius * 85., az, pol]]))[0]
+            if (pos == 0).all() and ch_name not in list(eog) + misc:
+                to_misc.append(ch_name)
             montage_pos.append(pos)
         montage_sel = np.arange(len(montage_pos))
         montage = Montage(montage_pos, montage_names, 'Brainvision',
                           montage_sel)
+        if len(to_misc) > 0:
+            misc += to_misc
+            warn('No coordinate information found for channels {}. '
+                 'Setting channel types to misc. To avoid this warning, set '
+                 'channel types explicitly.'.format(to_misc))
 
     ch_names[-1] = 'STI 014'
     cals[-1] = 1.
@@ -465,7 +532,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         settings = settings[idx + 1:]
         hp_col, lp_col = 4, 5
         for idx, setting in enumerate(settings):
-            if re.match('#\s+Name', setting):
+            if re.match(r'#\s+Name', setting):
                 break
             else:
                 idx = None
@@ -478,7 +545,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     if 'S o f t w a r e  F i l t e r s' in settings:
         idx = settings.index('S o f t w a r e  F i l t e r s')
         for idx, setting in enumerate(settings[idx + 1:], idx + 1):
-            if re.match('#\s+Low Cutoff', setting):
+            if re.match(r'#\s+Low Cutoff', setting):
                 hp_col, lp_col = 1, 2
                 warn('Online software filter detected. Using software '
                      'filter settings and ignoring hardware values')
@@ -490,28 +557,34 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         lowpass = []
         highpass = []
 
+        # for newer BV files, the unit is specified for every channel
+        # separated by a single space, while for older files, the unit is
+        # specified in the column headers
+        divider = r'\s+'
+        if 'Resolution / Unit' in settings[idx]:
+            shift = 1  # shift for unit
+        else:
+            shift = 0
+
         # extract filter units and convert s to Hz if necessary
         # this cannot be done as post-processing as the inverse t-f
         # relationship means that the min/max comparisons don't make sense
         # unless we know the units
-        header = re.split('\s\s+', settings[idx])
+        header = re.split(r'\s\s+', settings[idx])
         hp_s = '[s]' in header[hp_col]
         lp_s = '[s]' in header[lp_col]
 
         for i, ch in enumerate(ch_names[:-1], 1):
-            line = re.split('\s\s+', settings[idx + i])
+            line = re.split(divider, settings[idx + i])
             # double check alignment with channel by using the hw settings
-            # the actual divider is multiple spaces -- for newer BV
-            # files, the unit is specified for every channel separated
-            # by a single space, while for older files, the unit is
-            # specified in the column headers
             if idx == idx_amp:
                 line_amp = line
             else:
-                line_amp = re.split('\s\s+', settings[idx_amp + i])
+                line_amp = re.split(divider, settings[idx_amp + i])
             assert ch in line_amp
-            highpass.append(line[hp_col])
-            lowpass.append(line[lp_col])
+
+            highpass.append(line[hp_col + shift])
+            lowpass.append(line[lp_col + shift])
         if len(highpass) == 0:
             pass
         elif len(set(highpass)) == 1:
@@ -615,12 +688,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                      'Highest (weakest) filter setting (%0.2f Hz%s) '
                      'will be stored.' % (info['lowpass'], nyquist))
 
-    # locate EEG and marker files
-    path = os.path.dirname(vhdr_fname)
-    data_filename = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
-    info['meas_date'] = int(time.time())
-    info['buffer_size_sec'] = 1.  # reasonable default
-
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
@@ -654,7 +721,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info._update_redundant()
     info._check_consistency()
-    return info, data_filename, fmt, order, mrk_fname, montage
+    return info, data_filename, fmt, order, mrk_fname, montage, n_samples
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,

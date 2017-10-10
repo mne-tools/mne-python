@@ -25,9 +25,9 @@ print(__doc__)
 ###############################################################################
 # Read and preprocess the data. Preprocessing consists of:
 #
-# - meg channel selection
+# - MEG channel selection
 #
-# - 1 - 30 Hz band-pass IIR filter
+# - 1-30 Hz band-pass filter
 #
 # - epoching -0.2 to 0.5 seconds with respect to events
 

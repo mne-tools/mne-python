@@ -4,16 +4,22 @@
 
 import os.path as op
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
+import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
+from numpy.testing import (assert_array_almost_equal, assert_equal,
+                           assert_allclose)
 
+import mne
 from mne.datasets import testing
-from mne import read_cov, read_forward_solution, read_evokeds
+from mne import (read_cov, read_forward_solution, read_evokeds,
+                 convert_forward_solution)
 from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
+from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne import pick_types_forward
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
+from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
 fname_evoked = op.join(data_path, 'MEG', 'sample',
@@ -35,17 +41,28 @@ def _check_stc(stc, evoked, idx, ratio=50.):
     assert_true(amps[0] > ratio * amps[1], msg=str(amps[0] / amps[1]))
 
 
-@slow_test
+def _check_stcs(stc1, stc2):
+    """Helper to check correctness"""
+    assert_allclose(stc1.times, stc2.times)
+    assert_allclose(stc1.data, stc2.data)
+    assert_allclose(stc1.vertices[0], stc2.vertices[0])
+    assert_allclose(stc1.vertices[1], stc2.vertices[1])
+    assert_allclose(stc1.tmin, stc2.tmin)
+    assert_allclose(stc1.tstep, stc2.tstep)
+
+
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_gamma_map():
     """Test Gamma MAP inverse"""
-    forward = read_forward_solution(fname_fwd, force_fixed=False,
-                                    surf_ori=True)
+    forward = read_forward_solution(fname_fwd)
+    forward = convert_forward_solution(forward, surf_ori=True)
+
     forward = pick_types_forward(forward, meg=False, eeg=True)
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
                           proj=False)
     evoked.resample(50, npad=100)
-    evoked.crop(tmin=0.1, tmax=0.16)  # crop to nice window near samp border
+    evoked.crop(tmin=0.1, tmax=0.16)  # crop to window around peak
 
     cov = read_cov(fname_cov)
     cov = regularize(cov, evoked.info)
@@ -59,11 +76,53 @@ def test_gamma_map():
                     xyz_same_gamma=False, update_mode=1)
     _check_stc(stc, evoked, 82010)
 
+    dips = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                     xyz_same_gamma=False, update_mode=1,
+                     return_as_dipoles=True)
+    assert_true(isinstance(dips[0], Dipole))
+    stc_dip = make_stc_from_dipoles(dips, forward['src'])
+    _check_stcs(stc, stc_dip)
+
     # force fixed orientation
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=2,
-                    loose=None, return_residual=False)
+                    loose=0, return_residual=False)
     _check_stc(stc, evoked, 85739, 20)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_gamma_map_vol_sphere():
+    """Gamma MAP with a sphere forward and volumic source space"""
+    evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0),
+                          proj=False)
+    evoked.resample(50, npad=100)
+    evoked.crop(tmin=0.1, tmax=0.16)  # crop to window around peak
+
+    cov = read_cov(fname_cov)
+    cov = regularize(cov, evoked.info)
+
+    info = evoked.info
+    sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
+    src = mne.setup_volume_source_space(subject=None, pos=15., mri=None,
+                                        sphere=(0.0, 0.0, 0.0, 80.0),
+                                        bem=None, mindist=5.0,
+                                        exclude=2.0)
+    fwd = mne.make_forward_solution(info, trans=None, src=src, bem=sphere,
+                                    eeg=False, meg=True)
+
+    alpha = 0.5
+    assert_raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
+                  loose=0, return_residual=False)
+
+    assert_raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
+                  loose=0.2, return_residual=False)
+
+    stc = gamma_map(evoked, fwd, cov, alpha, tol=1e-4,
+                    xyz_same_gamma=False, update_mode=2,
+                    return_residual=False)
+
+    assert_array_almost_equal(stc.times, evoked.times, 5)
 
 
 run_tests_if_main()

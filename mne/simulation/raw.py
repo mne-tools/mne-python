@@ -45,7 +45,7 @@ def _log_ch(start, info, ch):
 def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
-                 random_state=None, verbose=None):
+                 random_state=None, use_cps=None, verbose=None):
     u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
@@ -109,6 +109,9 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     random_state : None | int | np.random.RandomState
         The random generator state used for blink, ECG, and sensor
         noise randomization.
+    use_cps : None | bool (default None)
+        Whether to use cortical patch statistics to define normal
+        orientations. Only used when surf_ori and/or force_fixed are True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -361,8 +364,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         # must be fixed orientation
         # XXX eventually we could speed this up by allowing the forward
         # solution code to only compute the normal direction
-        fwd = convert_forward_solution(fwd, surf_ori=True,
-                                       force_fixed=True, verbose=False)
+        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                       verbose=False, use_cps=use_cps)
         if blink:
             fwd_blink = fwd_blink['sol']['data']
             for ii in range(len(blink_rrs)):
@@ -459,6 +462,8 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
                                      [None], ['eeg'], n_jobs,
                                      verbose=False)[0]
         eegblink = _to_forward_dict(eegblink, eegnames)
+    else:
+        eegblink = None
 
     # short circuit here if there are no MEG channels (don't need to iterate)
     if len(pick_types(info, meg=True)) == 0:

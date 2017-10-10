@@ -56,7 +56,7 @@ n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
 # channels first. Note that there are several parameters to the
 # :meth:`mne.io.Raw.plot_psd` method, some of which will be explained below.
 
-raw.plot_psd(area_mode='range', tmax=10.0, show=False)
+raw.plot_psd(area_mode='range', tmax=10.0, show=False, average=True)
 
 ###############################################################################
 # Plot a cleaned PSD
@@ -83,18 +83,18 @@ plt.figure()
 ax = plt.axes()
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              n_jobs=1, proj=False, ax=ax, color=(0, 0, 1),  picks=picks,
-             show=False)
+             show=False, average=True)
 
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              n_jobs=1, proj=True, ax=ax, color=(0, 1, 0), picks=picks,
-             show=False)
+             show=False, average=True)
 
 # And now do the same with SSP + notch filtering
 # Pick all channels for notch since the SSP projection mixes channels together
-raw.notch_filter(np.arange(60, 241, 60), n_jobs=1)
+raw.notch_filter(np.arange(60, 241, 60), n_jobs=1, fir_design='firwin')
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
              n_jobs=1, proj=True, ax=ax, color=(1, 0, 0), picks=picks,
-             show=False)
+             show=False, average=True)
 
 ax.set_title('Four left-temporal magnetometers')
 plt.legend(ax.lines[::3], ['Without SSP', 'With SSP', 'SSP + Notch'])

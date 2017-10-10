@@ -47,7 +47,7 @@ def _copy_channel(inst, ch_name, new_ch_name):
 def _apply_reference(inst, ref_from, ref_to=None):
     """Apply a custom EEG referencing scheme.
 
-    This function modifies the instance inplace.
+    This function modifies the instance in-place.
 
     Calculates a reference signal by taking the mean of a set of channels and
     applies the reference to another set of channels. Input data can be in the
@@ -68,7 +68,7 @@ def _apply_reference(inst, ref_from, ref_to=None):
     Returns
     -------
     inst : instance of Raw | Epochs | Evoked
-        The data with EEG channels rereferenced.
+        The data with EEG channels re-referenced.
     ref_data : array, shape (n_times,)
         Array of reference data subtracted from EEG channels.
 
@@ -76,17 +76,13 @@ def _apply_reference(inst, ref_from, ref_to=None):
     -----
     This function operates in-place.
 
-    1. Do not use this function to apply an average reference. By default, an
-       average reference projection has already been added upon loading raw
-       data.
-
-    2. If the reference is applied to any EEG channels, this function removes
+    1. If the reference is applied to any EEG channels, this function removes
        any pre-existing average reference projections.
 
-    3. During source localization, the EEG signal should have an average
+    2. During source localization, the EEG signal should have an average
        reference.
 
-    4. The data must be preloaded.
+    3. The data must be preloaded.
 
     See Also
     --------
@@ -136,22 +132,22 @@ def _apply_reference(inst, ref_from, ref_to=None):
     inst._projector, _ = \
         setup_proj(inst.info, add_eeg_ref=False, activate=False)
 
-    ref_from = pick_channels(inst.ch_names, ref_from)
-    ref_to = pick_channels(inst.ch_names, ref_to)
-    data = inst._data
-
     # Compute reference
     if len(ref_from) > 0:
+        ref_from = pick_channels(inst.ch_names, ref_from)
+        ref_to = pick_channels(inst.ch_names, ref_to)
+
+        data = inst._data
         ref_data = data[..., ref_from, :].mean(-2, keepdims=True)
         data[..., ref_to, :] -= ref_data
         ref_data = ref_data[..., 0, :]
+
+        # If the reference touches EEG electrodes, note in the info that a
+        # non-CAR has been applied.
+        if len(np.intersect1d(ref_to, eeg_idx)) > 0:
+            inst.info['custom_ref_applied'] = True
     else:
         ref_data = None
-
-    # If the reference touches EEG electrodes, note in the info that a non-CAR
-    # has been applied.
-    if len(np.intersect1d(ref_to, eeg_idx)) > 0:
-        inst.info['custom_ref_applied'] = True
 
     return inst, ref_data
 
@@ -161,7 +157,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
 
     Adds reference channels to data that were not included during recording.
     This is useful when you need to re-reference your data to different
-    channel. These added channels will consist of all zeros.
+    channels. These added channels will consist of all zeros.
 
     Parameters
     ----------
@@ -172,7 +168,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         recording. If a name is provided, a corresponding channel is added
         and its data is set to 0. This is useful for later re-referencing.
     copy : bool
-        Specifies whether the data will be copied (True) or modified in place
+        Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
 
     Returns
@@ -262,7 +258,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
 
 
 @verbose
-def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
+def set_eeg_reference(inst, ref_channels='average', copy=True,
+                      projection=None, verbose=None):
     """Specify which reference to use for EEG data.
 
     By default, MNE-Python will automatically re-reference the EEG signal to
@@ -270,7 +267,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     specify the desired reference for EEG. This can be either an existing
     electrode or a new virtual channel. This function will re-reference the
     data according to the desired reference and prevent MNE-Python from
-    automatically adding an average reference.
+    automatically adding an average reference projection.
 
     Some common referencing schemes and the corresponding value for the
     ``ref_channels`` parameter:
@@ -278,16 +275,16 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     No re-referencing:
         If the EEG data is already using the proper reference, set
         ``ref_channels=[]``. This will prevent MNE-Python from automatically
-        re-referencing the data to an average reference.
+        adding an average reference projection.
 
     Average reference:
         A new virtual reference electrode is created by averaging the current
-        EEG signal. Make sure that all bad EEG channels are properly marked
-        and set ``ref_channels=None``.
+        EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
+        automatically excluded if they are properly set in ``info['bads']``.
 
     A single electrode:
-        Set ``ref_channels`` to the name of the channel that will act as the
-        new reference.
+        Set ``ref_channels`` to a list containing the name of the channel that
+        will act as the new reference, for example ``ref_channels=['Cz']``.
 
     The mean of multiple electrodes:
         A new virtual reference electrode is created by computing the average
@@ -296,27 +293,37 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
         channels to use. For example, to apply an average mastoid reference,
         when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
 
-    .. note:: In case of average reference (ref_channels=None), the
-              reference is added as an SSP projector and it is not applied
-              automatically. For it to take effect, apply with method
-              :meth:`apply_proj <mne.io.Raw.apply_proj>`.
-              For custom reference (ref_channel is not None), this method
-              operates in place.
+    .. note:: In case of ``ref_channels='average'`` in combination with
+              ``projection=True``, the reference is added as a projection and
+              it is not applied automatically. For it to take effect, apply
+              with method :meth:`apply_proj <mne.io.Raw.apply_proj>`. Other
+              references are directly applied (this behavior will change in MNE
+              0.16).
 
     Parameters
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    ref_channels : list of str | None
-        The names of the channels to use to construct the reference. To apply
-        an average reference, specify ``None`` here (default). It will be added
-        as an SSP projector, so it is not immediately applied to the data. If
-        an empty list is specified, the data is assumed to already have a
-        proper reference and MNE will not attempt any re-referencing of the
-        data. Defaults to an average reference (None).
+    ref_channels : list of str | str
+        The name(s) of the channel(s) used to construct the reference. To apply
+        an average reference, specify ``'average'`` here (default). If an empty
+        list is specified, the data is assumed to already have a proper
+        reference and MNE will not attempt any re-referencing of the data.
+        Defaults to an average reference.
     copy : bool
-        Specifies whether the data will be copied (True) or modified in place
+        Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
+    projection : bool | None
+        If ``ref_channels='average'`` this argument specifies if the average
+        reference should be computed as a projection (True) or not (False). If
+        ``projection=True``, the average reference is added as a projection and
+        is not applied to the data (it can be applied afterwards with the
+        ``apply_proj`` method). If ``projection=False``, the average
+        reference is directly applied to the data. Defaults to None, which
+        means ``projection=True``, but will change to ``projection=False`` in
+        the next release.
+        If ``ref_channels`` is not ``'average'``, ``projection`` must be set to
+        ``False`` (the default in this case).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -324,12 +331,12 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     Returns
     -------
     inst : instance of Raw | Epochs | Evoked
-        Data with EEG channels re-referenced. For ``ref_channels=None``,
-        an average projector will be added instead of directly subtarcting
-        data.
+        Data with EEG channels re-referenced. If ``ref_channels='average'`` and
+        ``projection=True`` a projection will be added instead of directly
+        re-referencing the data.
     ref_data : array
-        Array of reference data subtracted from EEG channels. This will
-        be None for an average reference.
+        Array of reference data subtracted from EEG channels. This will be
+        ``None`` if ``ref_channels='average'`` and ``projection=True``.
 
     Notes
     -----
@@ -339,13 +346,11 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
     2. During source localization, the EEG signal should have an average
        reference.
 
-    3. In order to apply a reference other than an average reference, the data
-       must be preloaded.
+    3. In order to apply a reference, the data must be preloaded. This is not
+       necessary if ``ref_channels='average'`` and ``projection=True``.
 
-    4. Re-referencing to an average reference is done with an SSP projector.
-       This allows applying this reference without preloading the data. Be
-       aware that on preloaded data, SSP projectors are not automatically
-       applied. Use the ``apply_proj()`` method to apply them.
+    4. For an average reference, bad EEG channels are automatically excluded if
+       they are properly set in ``info['bads']``.
 
     .. versionadded:: 0.9.0
 
@@ -359,47 +364,75 @@ def set_eeg_reference(inst, ref_channels=None, copy=True, verbose=None):
                          'of Raw, Epochs or Evoked.')
 
     if ref_channels is None:
-        # CAR requested
+        warn('Setting ref_channels=None to compute an average reference is '
+             'deprecated and will be replaced by ref_channels="average" in '
+             '0.16.', DeprecationWarning)
+        ref_channels = 'average'
+
+    if projection is None and ref_channels == 'average':
+        warn('The behavior of set_eeg_reference will change in 0.16 when '
+             'ref_channels="average". Currently, a projection is '
+             'computed, which has to be applied manually with the apply_proj '
+             'method. In 0.16, the average reference will be directly applied.'
+             ' Set projection=True if you want to retain the old behavior, or '
+             'set projection=False if you want the new behavior.',
+             DeprecationWarning)
+        if ref_channels == 'average':
+            projection = True
+        else:
+            projection = False
+
+    if ref_channels != 'average' and projection:
+        raise ValueError('Setting projection=True is only supported for '
+                         'ref_channels="average".')
+
+    if ref_channels == 'average' and projection:  # average reference projector
         if _has_eeg_average_ref_proj(inst.info['projs']):
             warn('An average reference projection was already added. The data '
                  'has been left untouched.')
             return inst, None
         else:
-            # Creating an average reference may fail. In this case, make sure
-            # that the custom_ref_applied flag is left untouched.
+            # Creating an average reference may fail. In this case, make
+            # sure that the custom_ref_applied flag is left untouched.
             custom_ref_applied = inst.info['custom_ref_applied']
             try:
                 inst.info['custom_ref_applied'] = False
                 inst.add_proj(make_eeg_average_ref_proj(inst.info,
                               activate=False))
-                # If the data has been preloaded, projections will no longer be
-                # automatically applied.
+                # If the data has been preloaded, projections will no
+                # longer be automatically applied.
                 if inst.preload:
-                    logger.info('Average reference projection was added, but '
-                                "hasn't been applied yet. Use the "
-                                '.apply_proj() method function to apply '
-                                'projections.')
-            except:
+                    logger.info('Average reference projection was added, '
+                                'but has not been applied yet. Use the '
+                                'apply_proj method to apply it.')
+            except Exception:
                 inst.info['custom_ref_applied'] = custom_ref_applied
                 raise
-
             return inst, None
+
+    inst = inst.copy() if copy else inst
+
+    if ref_channels == 'average' and not projection:  # apply average reference
+        logger.info('Applying average reference.')
+        eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
+        ref_from = [inst.ch_names[i] for i in eeg_idx]
+        return _apply_reference(inst, ref_from)
 
     if ref_channels == []:
         logger.info('EEG data marked as already having the desired reference. '
                     'Preventing automatic future re-referencing to an average '
                     'reference.')
+        inst.info['custom_ref_applied'] = True
+        return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
-
-    inst = inst.copy() if copy else inst
-    return _apply_reference(inst, ref_channels)
+        return _apply_reference(inst, ref_channels)
 
 
 @verbose
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
                           copy=True, verbose=None):
-    """Rereference selected channels using a bipolar referencing scheme.
+    """Re-reference selected channels using a bipolar referencing scheme.
 
     A bipolar reference takes the difference between two channels (the anode
     minus the cathode) and adds it as a new virtual channel. The original

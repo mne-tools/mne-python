@@ -29,7 +29,7 @@ epochs_fnames = load_data(condition=condition, data_format='single-trial',
 # Take only 10 trials from the same simulation setup.
 epochs_fnames = [f for f in epochs_fnames if 'sim6_trial_' in f][:10]
 
-evokeds = [read_evokeds(f)[0] for f in epochs_fnames]
+evokeds = [read_evokeds(f, verbose='error')[0] for f in epochs_fnames]
 mean_evoked = combine_evoked(evokeds, weights='nave')
 
 # Visualize the average

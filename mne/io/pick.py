@@ -304,7 +304,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     for k in range(nchan):
         kind = info['chs'][k]['kind']
         # XXX eventually we should de-duplicate this with channel_type!
-        if kind == FIFF.FIFFV_MEG_CH:
+        if kind == FIFF.FIFFV_MEG_CH and meg:
             pick[k] = _triage_meg_pick(info['chs'][k], meg)
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True
@@ -385,8 +385,7 @@ def pick_info(info, sel=(), copy=True):
         Info structure restricted to a selection of channels.
     """
     info._check_consistency()
-    if copy:
-        info = deepcopy(info)
+    info = info.copy() if copy else info
     if sel is None:
         return info
     elif len(sel) == 0:
@@ -396,17 +395,18 @@ def pick_info(info, sel=(), copy=True):
     info._update_redundant()
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
 
-    comps = deepcopy(info['comps'])
-    for c in comps:
-        row_idx = [k for k, n in enumerate(c['data']['row_names'])
-                   if n in info['ch_names']]
-        row_names = [c['data']['row_names'][i] for i in row_idx]
-        rowcals = c['rowcals'][row_idx]
-        c['rowcals'] = rowcals
-        c['data']['nrow'] = len(row_names)
-        c['data']['row_names'] = row_names
-        c['data']['data'] = c['data']['data'][row_idx]
-    info['comps'] = comps
+    if 'comps' in info:
+        comps = deepcopy(info['comps'])
+        for c in comps:
+            row_idx = [k for k, n in enumerate(c['data']['row_names'])
+                       if n in info['ch_names']]
+            row_names = [c['data']['row_names'][i] for i in row_idx]
+            rowcals = c['rowcals'][row_idx]
+            c['rowcals'] = rowcals
+            c['data']['nrow'] = len(row_names)
+            c['data']['row_names'] = row_names
+            c['data']['data'] = c['data']['data'][row_idx]
+        info['comps'] = comps
     info._check_consistency()
     return info
 
@@ -613,18 +613,16 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     res : dict
         Covariance solution restricted to selected channels.
     """
+    from ..cov import Covariance
     exclude = orig['bads'] if exclude == 'bads' else exclude
     sel = pick_channels(orig['names'], include=include, exclude=exclude)
-    res = deepcopy(orig)
-    res['dim'] = len(sel)
-    if not res['diag']:
-        res['data'] = orig['data'][sel][:, sel]
-    else:
-        res['data'] = orig['data'][sel]
-    res['names'] = [orig['names'][k] for k in sel]
-    res['bads'] = [name for name in orig['bads'] if name in res['names']]
-    res['eig'] = None
-    res['eigvec'] = None
+    data = orig['data'][sel][:, sel] if not orig['diag'] else orig['data'][sel]
+    names = [orig['names'][k] for k in sel]
+    bads = [name for name in orig['bads'] if name in orig['names']]
+    res = Covariance(
+        data=data, names=names, bads=bads, projs=deepcopy(orig['projs']),
+        nfree=orig['nfree'], eig=None, eigvec=None,
+        method=orig.get('method', None), loglik=orig.get('loglik', None))
     return res
 
 
@@ -737,8 +735,7 @@ def _pick_aux_channels(info, exclude='bads'):
 
 def _pick_data_or_ica(info):
     """Pick only data or ICA channels."""
-    ch_names = [c['ch_name'] for c in info['chs']]
-    if 'ICA ' in ','.join(ch_names):
+    if any(ch_name.startswith('ICA') for ch_name in info['ch_names']):
         picks = pick_types(info, exclude=[], misc=True)
     else:
         picks = _pick_data_channels(info, exclude=[], with_ref_meg=True)

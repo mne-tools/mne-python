@@ -8,8 +8,8 @@
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python
 
-.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/reccwk3filrasumg/branch/master?svg=true
-.. _Appveyor: https://ci.appveyor.com/project/Eric89GXL/mne-python/branch/master
+.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/7isroetnxsp7hgxv/branch/master?svg=true
+.. _Appveyor: https://ci.appveyor.com/project/mne-tools/mne-python/branch/master
 
 .. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
 .. _Circle: https://circleci.com/gh/mne-tools/mne-python

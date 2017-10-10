@@ -68,28 +68,34 @@ def test_add_background_image():
     """Test adding background image to a figure."""
     import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
-    f, axs = plt.subplots(1, 2)
-    x, y = rng.randn(2, 10)
-    im = rng.randn(10, 10)
-    axs[0].scatter(x, y)
-    axs[1].scatter(y, x)
-    for ax in axs:
-        ax.set_aspect(1)
+    for ii in range(2):
+        f, axs = plt.subplots(1, 2)
+        x, y = rng.randn(2, 10)
+        im = rng.randn(10, 10)
+        axs[0].scatter(x, y)
+        axs[1].scatter(y, x)
+        for ax in axs:
+            ax.set_aspect(1)
 
-    # Background without changing aspect
-    ax_im = add_background_image(f, im)
-    assert_true(ax_im.get_aspect() == 'auto')
-    for ax in axs:
-        assert_true(ax.get_aspect() == 1)
-
-    # Background with changing aspect
-    ax_im_asp = add_background_image(f, im, set_ratios='auto')
-    assert_true(ax_im_asp.get_aspect() == 'auto')
-    for ax in axs:
-        assert_true(ax.get_aspect() == 'auto')
+        # Background without changing aspect
+        if ii == 0:
+            ax_im = add_background_image(f, im)
+            return
+            assert_true(ax_im.get_aspect() == 'auto')
+            for ax in axs:
+                assert_true(ax.get_aspect() == 1)
+        else:
+            # Background with changing aspect
+            ax_im_asp = add_background_image(f, im, set_ratios='auto')
+            assert_true(ax_im_asp.get_aspect() == 'auto')
+            for ax in axs:
+                assert_true(ax.get_aspect() == 'auto')
+        plt.close('all')
 
     # Make sure passing None as image returns None
+    f, axs = plt.subplots(1, 2)
     assert_true(add_background_image(f, None) is None)
+    plt.close('all')
 
 
 def test_auto_scale():
@@ -137,6 +143,7 @@ def test_validate_if_list_of_axes():
     ax_flat[2] = 23
     assert_raises(ValueError, _validate_if_list_of_axes, ax_flat)
     _validate_if_list_of_axes(ax, 4)
+    plt.close('all')
 
 
 run_tests_if_main()

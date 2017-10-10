@@ -30,7 +30,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     Parameters
     ----------
     directory : str
-        Path to the KIT data (ending in ``'.ds'``).
+        Path to the CTF data (ending in ``'.ds'``).
     system_clock : str
         How to treat the system clock. Use "truncate" (default) to truncate
         the data file when the system clock drops to zero, and use "ignore"
@@ -68,7 +68,7 @@ class RawCTF(BaseRaw):
     Parameters
     ----------
     directory : str
-        Path to the KIT data (ending in ``'.ds'``).
+        Path to the CTF data (ending in ``'.ds'``).
     system_clock : str
         How to treat the system clock. Use "truncate" (default) to truncate
         the data file when the system clock drops to zero, and use "ignore"

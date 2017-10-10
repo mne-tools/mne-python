@@ -6,6 +6,7 @@ import os.path as op
 import warnings
 
 from nose.tools import assert_raises, assert_true
+import pytest
 import numpy as np
 from numpy.testing import (assert_equal, assert_allclose)
 
@@ -18,7 +19,7 @@ from mne import (read_forward_solution, make_forward_solution,
                  pick_types_forward, pick_info, pick_types, Transform,
                  read_evokeds, read_cov, read_dipole)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
-                       run_tests_if_main, slow_test, run_subprocess)
+                       run_tests_if_main, run_subprocess)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward, _do_forward_solution
@@ -56,10 +57,10 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
     _compare_source_spaces(fwd['src'], fwd_py['src'], mode='approx')
     for surf_ori, force_fixed in product([False, True], [False, True]):
         # use copy here to leave our originals unmodified
-        fwd = convert_forward_solution(fwd, surf_ori, force_fixed,
-                                       copy=True)
+        fwd = convert_forward_solution(fwd, surf_ori, force_fixed, copy=True,
+                                       use_cps=True)
         fwd_py = convert_forward_solution(fwd_py, surf_ori, force_fixed,
-                                          copy=True)
+                                          copy=True, use_cps=True)
         check_src = n_src // 3 if force_fixed else n_src
 
         for key in ('nchan', 'source_rr', 'source_ori',
@@ -100,10 +101,10 @@ def test_magnetic_dipole():
     picks = pick_types(info, meg=True, eeg=False, exclude=[])
     info = pick_info(info, picks[:12])
     coils = _create_meg_coils(info['chs'], 'normal', trans)
-    # magnetic dipole at device origin
+    # magnetic dipole far (meters!) from device origin
     r0 = np.array([0., 13., -6.])
     for ch, coil in zip(info['chs'], coils):
-        rr = (ch['loc'][:3] + r0) / 2.
+        rr = (ch['loc'][:3] + r0) / 2.  # get halfway closer
         far_fwd = _magnetic_dipole_field_vec(r0[np.newaxis, :], [coil])
         near_fwd = _magnetic_dipole_field_vec(rr[np.newaxis, :], [coil])
         ratio = 8. if ch['ch_name'][-1] == '1' else 16.  # grad vs mag
@@ -202,7 +203,7 @@ def test_make_forward_solution_kit():
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python."""
@@ -244,7 +245,7 @@ def test_make_forward_solution_sphere():
                         1.0, rtol=1e-3)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_nibabel(False)
 def test_forward_mixed_source_space():
@@ -293,7 +294,7 @@ def test_forward_mixed_source_space():
                   mri_resolution=True, trans=vox_mri_t)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_forward_dipole():
     """Test forward-projecting dipoles."""

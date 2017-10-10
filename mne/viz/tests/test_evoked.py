@@ -13,14 +13,16 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_raises
-
+from nose.tools import assert_true
+import pytest
 
 from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.utils import slow_test, run_tests_if_main
+from mne.utils import run_tests_if_main, catch_logging
 from mne.viz.evoked import _line_plot_onselect, plot_compare_evokeds
 from mne.viz.utils import _fake_click
+from mne.stats import _parametric_ci
 
 # Set our plotters to test mode
 import matplotlib
@@ -71,7 +73,7 @@ def _get_epochs_delayed_ssp():
     return epochs_delayed_ssp
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_plot_evoked():
     """Test plotting of evoked."""
     import matplotlib.pyplot as plt
@@ -124,6 +126,8 @@ def test_plot_evoked():
 
         # plot_compare_evokeds: test condition contrast, CI, color assignment
         plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
+        plot_compare_evokeds(evoked.copy().pick_types(meg='grad'),
+                             picks=[1, 2])
         evoked.rename_channels({'MEG 2142': "MEG 1642"})
         assert len(plot_compare_evokeds(evoked)) == 2
         colors = dict(red='r', blue='b')
@@ -132,6 +136,7 @@ def test_plot_evoked():
         red.data *= 1.1
         blue.data *= 0.9
         plot_compare_evokeds([red, blue], picks=3)  # list of evokeds
+        plot_compare_evokeds([red, blue], picks=3, truncate_yaxis=True)
         plot_compare_evokeds([[red, evoked], [blue, evoked]],
                              picks=3)  # list of lists
         # test picking & plotting grads
@@ -142,7 +147,8 @@ def test_plot_evoked():
         plot_compare_evokeds(contrast, colors=colors, linestyles=linestyles,
                              picks=[0, 2], vlines=[.01, -.04], invert_y=True,
                              truncate_yaxis=False, ylim=dict(mag=(-10, 10)),
-                             styles={"red/stim": {"linewidth": 1}})
+                             styles={"red/stim": {"linewidth": 1}},
+                             show_sensors=True)
         assert_raises(ValueError, plot_compare_evokeds,
                       contrast, picks='str')  # bad picks: not int
         assert_raises(ValueError, plot_compare_evokeds, evoked, picks=3,
@@ -157,10 +163,13 @@ def test_plot_evoked():
                       gfp=True)  # no single-channel GFP
         assert_raises(TypeError, plot_compare_evokeds, evoked, picks=3,
                       ci='fake')  # ci must be float or None
+        assert_raises(TypeError, plot_compare_evokeds, evoked, picks=3,
+                      show_sensors='a')  # show_sensors must be int or bool
         contrast["red/stim"] = red
         contrast["blue/stim"] = blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
-                             ylim=dict(mag=(1, 10)))
+                             ylim=dict(mag=(1, 10)), ci=_parametric_ci,
+                             truncate_yaxis='max_ticks')
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()
@@ -177,5 +186,11 @@ def test_plot_evoked():
         plt.close('all')
     evoked.plot_sensors()  # Test plot_sensors
     plt.close('all')
+
+    evoked.pick_channels(evoked.ch_names[:4])
+    with catch_logging() as log_file:
+        evoked.plot(verbose=True)
+    assert_true('Need more than one' in log_file.getvalue())
+
 
 run_tests_if_main()

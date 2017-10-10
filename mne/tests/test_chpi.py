@@ -3,11 +3,12 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import warnings
+
 import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import assert_raises, assert_equal, assert_true
-import warnings
-
+import pytest
 
 from mne import (pick_types, Dipole, make_sphere_model, make_forward_dipole,
                  pick_info)
@@ -175,6 +176,7 @@ def _decimate_chpi(raw, decim=4):
     return raw_dec
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_calculate_chpi_positions():
     """Test calculation of cHPI positions."""
@@ -196,17 +198,20 @@ def test_calculate_chpi_positions():
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
-            d['coord_frame'] = 999
+            d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
             break
     assert_raises(RuntimeError, _calculate_chpi_positions, raw_bad)
-    raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
+            d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
             d['r'] = np.ones(3)
     raw_bad.crop(0, 1.)
+    picks = np.concatenate([np.arange(306, len(raw_bad.ch_names)),
+                            pick_types(raw_bad.info, meg=True)[::16]])
+    raw_bad.pick_channels([raw_bad.ch_names[pick] for pick in picks])
     with warnings.catch_warnings(record=True):  # bad pos
         with catch_logging() as log_file:
-            _calculate_chpi_positions(raw_bad, t_step_min=5., verbose=True)
+            _calculate_chpi_positions(raw_bad, t_step_min=1., verbose=True)
     # ignore HPI info header and [done] footer
     assert_true('0/5 good' in log_file.getvalue().strip().split('\n')[-2])
 
@@ -219,7 +224,8 @@ def test_calculate_chpi_positions():
     raw = read_raw_artemis123(art_fname, preload=True)
     mf_quats = read_head_pos(art_mc_fname)
     with catch_logging() as log:
-        py_quats = _calculate_chpi_positions(raw, verbose='debug')
+        py_quats = _calculate_chpi_positions(raw, t_step_min=2.,
+                                             verbose='debug')
     _assert_quats(py_quats, mf_quats, dist_tol=0.004, angle_tol=2.5)
 
 
@@ -239,6 +245,7 @@ def test_calculate_chpi_positions_on_chpi5_in_one_second_steps():
     _assert_quats(py_quats, mf_quats, dist_tol=0.0008, angle_tol=.5)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_calculate_chpi_positions_on_chpi5_in_shorter_steps():
     """Comparing estimated cHPI positions with MF results (smaller steps)."""
@@ -326,7 +333,7 @@ def test_simulate_calculate_chpi_positions():
     raw = simulate_raw(raw, stc, None, fwd['src'], sphere, cov=None,
                        blink=False, ecg=False, chpi=True,
                        head_pos=dev_head_pos, mindist=1.0, interp='zero',
-                       verbose=None)
+                       verbose=None, use_cps=True)
 
     quats = _calculate_chpi_positions(
         raw, t_step_min=raw.info['sfreq'] * head_pos_sfreq_quotient,

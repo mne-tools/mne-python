@@ -181,7 +181,6 @@ def apply_trans(trans, pts, move=True):
     """
     if isinstance(trans, dict):
         trans = trans['trans']
-    trans = np.asarray(trans)
     pts = np.asarray(pts)
     if pts.size == 0:
         return pts.copy()
@@ -189,10 +188,8 @@ def apply_trans(trans, pts, move=True):
     # apply rotation & scale
     out_pts = np.dot(pts, trans[:3, :3].T)
     # apply translation
-    if move is True:
-        transl = trans[:3, 3]
-        if np.any(transl != 0):
-            out_pts += transl
+    if move:
+        out_pts += trans[:3, 3]
 
     return out_pts
 
@@ -453,36 +450,41 @@ def combine_transforms(t_first, t_second, fro, to):
     return Transform(fro, to, np.dot(t_second['trans'], t_first['trans']))
 
 
-def read_trans(fname):
+def read_trans(fname, return_all=False):
     """Read a -trans.fif file.
 
     Parameters
     ----------
     fname : str
         The name of the file.
+    return_all : bool
+        If True, return all transformations in the file.
+        False (default) will only return the first.
+
+        .. versionadded:: 0.15
 
     Returns
     -------
-    trans : dict
+    trans : dict | list of dict
         The transformation dictionary from the fif file.
 
     See Also
     --------
     write_trans
-    Transform
+    mne.transforms.Transform
     """
     fid, tree, directory = fiff_open(fname)
 
+    trans = list()
     with fid:
         for t in directory:
             if t.kind == FIFF.FIFF_COORD_TRANS:
-                tag = read_tag(fid, t.pos)
-                break
-        else:
-            raise IOError('This does not seem to be a -trans.fif file.')
-
-    trans = tag.data
-    return trans
+                trans.append(read_tag(fid, t.pos).data)
+                if not return_all:
+                    break
+    if len(trans) == 0:
+        raise IOError('This does not seem to be a -trans.fif file.')
+    return trans if return_all else trans[0]
 
 
 def write_trans(fname, trans):

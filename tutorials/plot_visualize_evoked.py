@@ -4,6 +4,8 @@
 =====================
 Visualize Evoked data
 =====================
+
+In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
 """
 import os.path as op
 import numpy as np
@@ -14,7 +16,6 @@ import mne
 # sphinx_gallery_thumbnail_number = 9
 
 ###############################################################################
-# In this tutorial we focus on plotting functions of :class:`mne.Evoked`.
 # First we read the evoked object from a file. Check out
 # :ref:`tut_epoching_and_averaging` to get to this stage from raw data.
 data_path = mne.datasets.sample.data_path()
@@ -84,11 +85,15 @@ evoked_r_aud.plot_topomap(times='peaks', ch_type='mag')
 # customise your plots even further. First we create a set of matplotlib
 # axes in a single figure and plot all of our evoked categories next to each
 # other.
-fig, ax = plt.subplots(1, 5)
-evoked_l_aud.plot_topomap(times=0.1, axes=ax[0], show=False)
-evoked_r_aud.plot_topomap(times=0.1, axes=ax[1], show=False)
-evoked_l_vis.plot_topomap(times=0.1, axes=ax[2], show=False)
-evoked_r_vis.plot_topomap(times=0.1, axes=ax[3], show=True)
+fig, ax = plt.subplots(1, 5, figsize=(8, 2))
+kwargs = dict(times=0.1, show=False, vmin=-300, vmax=300)
+evoked_l_aud.plot_topomap(axes=ax[0], colorbar=True, **kwargs)
+evoked_r_aud.plot_topomap(axes=ax[1], colorbar=False, **kwargs)
+evoked_l_vis.plot_topomap(axes=ax[2], colorbar=False, **kwargs)
+evoked_r_vis.plot_topomap(axes=ax[3], colorbar=False, **kwargs)
+for ax, title in zip(ax[:4], ['Aud/L', 'Aud/R', 'Vis/L', 'Vis/R']):
+    ax.set_title(title)
+plt.show()
 
 ###############################################################################
 # Notice that we created five axes, but had only four categories. The fifth
@@ -143,8 +148,8 @@ colors = dict(Left="Crimson", Right="CornFlowerBlue")
 linestyles = dict(Auditory='-', visual='--')
 pick = evoked_dict["Left/Auditory"].ch_names.index('MEG 1811')
 
-mne.viz.plot_compare_evokeds(evoked_dict, picks=pick,
-                             colors=colors, linestyles=linestyles)
+mne.viz.plot_compare_evokeds(evoked_dict, picks=pick, colors=colors,
+                             linestyles=linestyles)
 
 ###############################################################################
 # We can also plot the activations as images. The time runs along the x-axis

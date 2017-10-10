@@ -7,12 +7,14 @@ import copy
 import os.path as op
 
 from nose.tools import assert_equal, assert_true, assert_raises
+import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import (requires_sklearn, requires_sklearn_0_15, slow_test,
-                       run_tests_if_main, check_version, use_log_level)
+from mne.fixes import is_classifier
+from mne.utils import (requires_version, run_tests_if_main, check_version,
+                       use_log_level)
 from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 
@@ -42,13 +44,11 @@ def make_epochs():
     return epochs
 
 
-@slow_test
-@requires_sklearn_0_15
+@pytest.mark.slowtest
+@requires_version('sklearn', '0.17')
 def test_generalization_across_time():
-    """Test time generalization decoding
-    """
+    """Test time generalization decoding."""
     from sklearn.svm import SVC
-    from sklearn.base import is_classifier
     # KernelRidge is used for testing 1) regression analyses 2) n-dimensional
     # predictions.
     from sklearn.kernel_ridge import KernelRidge
@@ -80,7 +80,8 @@ def test_generalization_across_time():
         # therefore the scoring metrics cannot be automatically assigned.
         scorer_regress = mean_squared_error
     # Test default running
-    gat = GeneralizationAcrossTime(picks='foo')
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(picks='foo')
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
     assert_raises(ValueError, gat.fit, epochs)
     with warnings.catch_warnings(record=True):
@@ -97,7 +98,8 @@ def test_generalization_across_time():
                  "prediction, no score>", '%s' % gat)
     assert_equal(gat.ch_names, epochs.ch_names)
     # test different predict function:
-    gat = GeneralizationAcrossTime(predict_method='decision_function')
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(predict_method='decision_function')
     gat.fit(epochs)
     # With classifier, the default cv is StratifiedKFold
     assert_true(gat.cv_.__class__ == StratifiedKFold)
@@ -191,7 +193,8 @@ def test_generalization_across_time():
                         for ww in w))
 
     # Test longer time window
-    gat = GeneralizationAcrossTime(train_times={'length': .100})
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(train_times={'length': .100})
     with warnings.catch_warnings(record=True):
         gat2 = gat.fit(epochs)
     assert_true(gat is gat2)  # return self
@@ -203,7 +206,8 @@ def test_generalization_across_time():
     assert_equal(len(scores[0]), len(scores))  # shape check
     assert_equal(len(gat.test_times_['slices'][0][0]), 2)
     # Decim training steps
-    gat = GeneralizationAcrossTime(train_times={'step': .100})
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(train_times={'step': .100})
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
     gat.score(epochs)
@@ -213,7 +217,8 @@ def test_generalization_across_time():
     # Test start stop training & test cv without n_fold params
     y_4classes = np.hstack((epochs.events[:7, 2], epochs.events[7:, 2] + 1))
     train_times = dict(start=0.090, stop=0.250)
-    gat = GeneralizationAcrossTime(cv=cv_lolo, train_times=train_times)
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(cv=cv_lolo, train_times=train_times)
     # predict without fit
     assert_raises(RuntimeError, gat.predict, epochs)
     with warnings.catch_warnings(record=True):
@@ -224,7 +229,8 @@ def test_generalization_across_time():
     assert_equal(gat.train_times_['times'][-1], epochs.times[9])
 
     # Test score without passing epochs & Test diagonal decoding
-    gat = GeneralizationAcrossTime(test_times='diagonal')
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(test_times='diagonal')
     with warnings.catch_warnings(record=True):  # not vectorizing
         gat.fit(epochs)
     assert_raises(RuntimeError, gat.score)
@@ -236,7 +242,8 @@ def test_generalization_across_time():
     assert_array_equal([tim for ttime in gat.test_times_['times']
                         for tim in ttime], gat.train_times_['times'])
     # Test generalization across conditions
-    gat = GeneralizationAcrossTime(predict_mode='mean-prediction', cv=2)
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(predict_mode='mean-prediction', cv=2)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs[0:6])
     with warnings.catch_warnings(record=True):
@@ -297,8 +304,9 @@ def test_generalization_across_time():
     # The first estimator is tested once, the second estimator is tested on
     # two successive time samples.
     test_times = dict(slices=[[[0, 1]], [[0], [1]]])
-    gat = GeneralizationAcrossTime(train_times=train_times,
-                                   test_times=test_times)
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(train_times=train_times,
+                                       test_times=test_times)
     gat.fit(epochs)
     with warnings.catch_warnings(record=True):  # not vectorizing
         gat.score(epochs)
@@ -309,7 +317,8 @@ def test_generalization_across_time():
     assert_raises(ValueError, gat.predict, epochs)
 
     svc = SVC(C=1, kernel='linear', probability=True)
-    gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
 
@@ -323,18 +332,21 @@ def test_generalization_across_time():
     assert_true(0.0 <= np.max(scores) <= 1.0)
 
     # Test that error if cv is not partition
-    gat = GeneralizationAcrossTime(cv=cv_shuffle,
-                                   predict_mode='cross-validation')
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(cv=cv_shuffle,
+                                       predict_mode='cross-validation')
     gat.fit(epochs)
     assert_raises(ValueError, gat.predict, epochs)
-    gat = GeneralizationAcrossTime(cv=cv_shuffle,
-                                   predict_mode='mean-prediction')
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(cv=cv_shuffle,
+                                       predict_mode='mean-prediction')
     gat.fit(epochs)
     gat.predict(epochs)
 
     # Test that gets error if train on one dataset, test on another, and don't
     # specify appropriate cv:
-    gat = GeneralizationAcrossTime()
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime()
     gat.fit(epochs)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
@@ -351,13 +363,15 @@ def test_generalization_across_time():
         assert_true(any('do not have any test epochs' in str(ww.message)
                         for ww in w))
     # --- empty train fold(s) should raise when gat.fit()
-    gat = GeneralizationAcrossTime(cv=[([0], [1]), ([], [0])])
+    with warnings.catch_warnings(record=True):  # dep
+        gat = GeneralizationAcrossTime(cv=[([0], [1]), ([], [0])])
     assert_raises(ValueError, gat.fit, epochs[:2])
 
     # Check that still works with classifier that output y_pred with
     # shape = (n_trials, 1) instead of (n_trials,)
     if check_version('sklearn', '0.17'):  # no is_regressor before v0.17
-        gat = GeneralizationAcrossTime(clf=KernelRidge(), cv=2)
+        with warnings.catch_warnings(record=True):  # dep
+            gat = GeneralizationAcrossTime(clf=KernelRidge(), cv=2)
         epochs.crop(None, epochs.times[2])
         gat.fit(epochs)
         # With regression the default cv is KFold and not StratifiedKFold
@@ -415,17 +429,17 @@ def test_generalization_across_time():
                         assert_equal(scorer_name, scorer.__name__)
 
 
-@requires_sklearn
+@requires_version('sklearn', '0.17')
 def test_decoding_time():
-    """Test TimeDecoding
-    """
+    """Test TimeDecoding."""
     from sklearn.svm import SVR
     if check_version('sklearn', '0.18'):
         from sklearn.model_selection import KFold
     else:
         from sklearn.cross_validation import KFold
     epochs = make_epochs()
-    tg = TimeDecoding()
+    with warnings.catch_warnings(record=True):  # dep
+        tg = TimeDecoding()
     assert_equal("<TimeDecoding | no fit, no prediction, no score>", '%s' % tg)
     assert_true(hasattr(tg, 'times'))
     assert_true(not hasattr(tg, 'train_times'))
@@ -453,16 +467,19 @@ def test_decoding_time():
     clf = SVR()
     cv = KFold(len(epochs))
     y = np.random.rand(len(epochs))
-    tg = TimeDecoding(clf=clf, cv=cv)
+    with warnings.catch_warnings(record=True):  # dep
+        tg = TimeDecoding(clf=clf, cv=cv)
     tg.fit(epochs, y=y)
 
     # Test scorer parameter to accept string
     epochs.crop(epochs.times[0], epochs.times[2])
-    td_1 = TimeDecoding(scorer='accuracy')
+    with warnings.catch_warnings(record=True):  # dep
+        td_1 = TimeDecoding(scorer='accuracy')
     td_1.fit(epochs)
     score_1 = td_1.score(epochs)
 
-    td_2 = TimeDecoding()
+    with warnings.catch_warnings(record=True):  # dep
+        td_2 = TimeDecoding()
     td_2.fit(epochs)
     score_2 = td_2.score(epochs)
     assert_array_equal(score_1, score_2)

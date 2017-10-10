@@ -6,7 +6,7 @@ import copy
 
 import numpy as np
 
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _freqs_dep
 from .spectral import spectral_connectivity
 
 
@@ -15,8 +15,8 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
                       mode='multitaper', fmin=None, fmax=np.inf,
                       tmin=None, tmax=None, mt_bandwidth=None,
                       mt_adaptive=False, mt_low_bias=True,
-                      cwt_frequencies=None, cwt_n_cycles=7, block_size=1000,
-                      n_jobs=1, verbose=None):
+                      cwt_freqs=None, cwt_n_cycles=7, block_size=1000,
+                      n_jobs=1, cwt_frequencies=None, verbose=None):
     """Compute the Phase Slope Index (PSI) connectivity measure.
 
     The PSI is an effective connectivity measure, i.e., a measure which can
@@ -78,7 +78,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     mt_low_bias : bool
         Only use tapers with more than 90% spectral concentration within
         bandwidth. Only used in 'multitaper' mode.
-    cwt_frequencies : array
+    cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
     cwt_n_cycles: float | array of float
         Number of cycles. Fixed number or one per frequency. Only used in
@@ -112,13 +112,14 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
         Otherwise None is returned.
     """
+    cwt_freqs = _freqs_dep(cwt_freqs, cwt_frequencies, 'cwt_')
     logger.info('Estimating phase slope index (PSI)')
     # estimate the coherency
     cohy, freqs_, times, n_epochs, n_tapers = spectral_connectivity(
         data, method='cohy', indices=indices, sfreq=sfreq, mode=mode,
         fmin=fmin, fmax=fmax, fskip=0, faverage=False, tmin=tmin, tmax=tmax,
         mt_bandwidth=mt_bandwidth, mt_adaptive=mt_adaptive,
-        mt_low_bias=mt_low_bias, cwt_frequencies=cwt_frequencies,
+        mt_low_bias=mt_low_bias, cwt_freqs=cwt_freqs,
         cwt_n_cycles=cwt_n_cycles, block_size=block_size, n_jobs=n_jobs,
         verbose=verbose)
 

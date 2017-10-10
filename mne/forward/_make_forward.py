@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
 import os
 from os import path as op
 import numpy as np
@@ -65,51 +66,59 @@ def _read_coil_defs(elekta_defs=False, verbose=None):
     return coils
 
 
+# Typically we only have 1 or 2 coil def files, but they can end up being
+# read a lot. Let's keep a list of them and just reuse them:
+_coil_register = {}
+
+
 def _read_coil_def_file(fname):
     """Read a coil def file."""
-    big_val = 0.5
-    coils = list()
-    with open(fname, 'r') as fid:
-        lines = fid.readlines()
-    lines = lines[::-1]
-    while len(lines) > 0:
-        line = lines.pop()
-        if line[0] != '#':
-            vals = np.fromstring(line, sep=' ')
-            assert len(vals) in (6, 7)  # newer numpy can truncate comment
-            start = line.find('"')
-            end = len(line.strip()) - 1
-            assert line.strip()[end] == '"'
-            desc = line[start:end]
-            npts = int(vals[3])
-            coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
-                        accuracy=vals[2], size=vals[4], base=vals[5])
-            # get parameters of each component
-            rmag = list()
-            cosmag = list()
-            w = list()
-            for p in range(npts):
-                # get next non-comment line
-                line = lines.pop()
-                while(line[0] == '#'):
-                    line = lines.pop()
+    if fname not in _coil_register:
+        big_val = 0.5
+        coils = list()
+        with open(fname, 'r') as fid:
+            lines = fid.readlines()
+        lines = lines[::-1]
+        while len(lines) > 0:
+            line = lines.pop()
+            if line[0] != '#':
                 vals = np.fromstring(line, sep=' ')
-                assert len(vals) == 7
-                # Read and verify data for each integration point
-                w.append(vals[0])
-                rmag.append(vals[[1, 2, 3]])
-                cosmag.append(vals[[4, 5, 6]])
-            w = np.array(w)
-            rmag = np.array(rmag)
-            cosmag = np.array(cosmag)
-            size = np.sqrt(np.sum(cosmag ** 2, axis=1))
-            if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
-                raise RuntimeError('Unreasonable integration point')
-            if np.any(size <= 0):
-                raise RuntimeError('Unreasonable normal')
-            cosmag /= size[:, np.newaxis]
-            coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
-            coils.append(coil)
+                assert len(vals) in (6, 7)  # newer numpy can truncate comment
+                start = line.find('"')
+                end = len(line.strip()) - 1
+                assert line.strip()[end] == '"'
+                desc = line[start:end]
+                npts = int(vals[3])
+                coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
+                            accuracy=vals[2], size=vals[4], base=vals[5])
+                # get parameters of each component
+                rmag = list()
+                cosmag = list()
+                w = list()
+                for p in range(npts):
+                    # get next non-comment line
+                    line = lines.pop()
+                    while(line[0] == '#'):
+                        line = lines.pop()
+                    vals = np.fromstring(line, sep=' ')
+                    assert len(vals) == 7
+                    # Read and verify data for each integration point
+                    w.append(vals[0])
+                    rmag.append(vals[[1, 2, 3]])
+                    cosmag.append(vals[[4, 5, 6]])
+                w = np.array(w)
+                rmag = np.array(rmag)
+                cosmag = np.array(cosmag)
+                size = np.sqrt(np.sum(cosmag ** 2, axis=1))
+                if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
+                    raise RuntimeError('Unreasonable integration point')
+                if np.any(size <= 0):
+                    raise RuntimeError('Unreasonable normal')
+                cosmag /= size[:, np.newaxis]
+                coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
+                coils.append(coil)
+        _coil_register[fname] = coils
+    coils = deepcopy(_coil_register[fname])
     logger.info('%d coil definitions read', len(coils))
     return coils
 
@@ -240,7 +249,7 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
 @verbose
 def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
                        elekta_defs=False, head_frame=True, do_es=False,
-                       verbose=None):
+                       do_picking=True, verbose=None):
     """Prepare MEG coil definitions for forward calculation.
 
     Parameters
@@ -262,6 +271,8 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         If True (default), use head frame coords. Otherwise, use device frame.
     do_es : bool
         If True, compute and store ex, ey, ez, and r0_exey.
+    do_picking : bool
+        If True, pick info and return it.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -279,7 +290,6 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     """
     accuracy = 'accurate' if accurate else 'normal'
     info_extra = 'info'
-    meg_info = None
     megnames, megcoils, compcoils = [], [], []
 
     # Find MEG channels
@@ -292,7 +302,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         raise RuntimeError('Could not find any MEG channels')
 
     # Get channel info and names for MEG channels
-    megchs = pick_info(info, picks)['chs']
+    megchs = [info['chs'][pick] for pick in picks]
     megnames = [info['ch_names'][p] for p in picks]
     logger.info('Read %3d MEG channels from %s'
                 % (len(picks), info_extra))
@@ -318,7 +328,6 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
     ncomp_data = len(info['comps'])
     ref_meg = True if not ignore_ref else False
     picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
-    meg_info = pick_info(info, picks) if nmeg > 0 else None
 
     # Create coil descriptions with transformation to head or device frame
     templates = _read_coil_defs(elekta_defs=elekta_defs)
@@ -346,7 +355,10 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_DEVICE
         logger.info('MEG coil definitions created in device coordinate.')
 
-    return megcoils, compcoils, megnames, meg_info
+    out = (megcoils, compcoils, megnames)
+    if do_picking:
+        out = out + (pick_info(info, picks) if nmeg > 0 else None,)
+    return out
 
 
 @verbose
@@ -670,7 +682,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
                                 verbose=verbose)
     # Convert from free orientations to fixed (in-place)
     convert_forward_solution(fwd, surf_ori=False, force_fixed=True,
-                             copy=False, verbose=None)
+                             copy=False, use_cps=False, verbose=None)
 
     # Check for omissions due to proximity to inner skull in
     # make_forward_solution, which will result in an exception

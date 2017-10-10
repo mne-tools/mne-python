@@ -37,7 +37,7 @@ def run():
 
     print("Converting %s to BEM FIF file." % options.surf)
     surf = mne.bem._surfaces_to_bem([options.surf], [int(options.id)],
-                                    sigma=[1])
+                                    sigmas=[1])
     mne.write_bem_surfaces(options.fif, surf)
 
 

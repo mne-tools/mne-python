@@ -45,7 +45,7 @@ def _assert_trans(actual, desired, dist_tol=0.003, angle_tol=5.):
 def test_data():
     """Test reading raw Artemis123 files."""
     _test_raw_reader(read_raw_artemis123, input_fname=short_hpi_1kz_fname,
-                     pos_fname=dig_fname)
+                     pos_fname=dig_fname, verbose='error')
 
     # test a random selected point
     raw = read_raw_artemis123(short_hpi_1kz_fname, preload=True,

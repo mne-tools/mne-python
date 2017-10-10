@@ -32,7 +32,8 @@ def test_stockwell_check_input():
 
     for last_dim in (127, 128):
         data = np.zeros((2, 10, last_dim))
-        x_in, n_fft, zero_pad = _check_input_st(data, None)
+        with warnings.catch_warnings(record=True):  # 127 < n_fft
+            x_in, n_fft, zero_pad = _check_input_st(data, None)
 
         assert_equal(x_in.shape, (2, 10, 128))
         assert_equal(n_fft, 128)

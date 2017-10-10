@@ -23,14 +23,14 @@ surf = mne.read_bem_surfaces(path + '/subjects/sample/bem/sample-head.fif')[0]
 
 points, triangles = surf['rr'], surf['tris']
 
-# # reduce to 30000 meshes equaling ${SUBJECT}-head-medium.fif output from
-# # mne_make_scalp_surfaces.py and mne_make_scalp_surfaces
-# points_dec, triangles_dec = decimate_surface(points, triangles,
-#                                              n_triangles=30000)
+# reduce to 30000 meshes equaling ${SUBJECT}-head-medium.fif output from
+# mne_make_scalp_surfaces.py and mne_make_scalp_surfaces
+points_dec, triangles_dec = decimate_surface(points, triangles,
+                                             n_triangles=30000)
 
-# from mayavi import mlab  # noqa
+from mayavi import mlab  # noqa
 
-# head_col = (0.95, 0.83, 0.83)  # light pink
+head_col = (0.95, 0.83, 0.83)  # light pink
 
-# p, t = points_dec, triangles_dec
-# mlab.triangular_mesh(p[:, 0], p[:, 1], p[:, 2], t, color=head_col)
+p, t = points_dec, triangles_dec
+mlab.triangular_mesh(p[:, 0], p[:, 1], p[:, 2], t, color=head_col)

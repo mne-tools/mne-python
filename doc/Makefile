@@ -39,17 +39,17 @@ clean:
 	-rm -rf *.nii.gz
 
 html_stable:
-	$(SPHINXBUILD) -D raise_gallery=1 -b html $(ALLSPHINXOPTS) _build/html_stable
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html_stable
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html_stable."
 
 html_dev:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D raise_gallery=1 -D abort_on_example_error=1 -b html $(ALLSPHINXOPTS) _build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
 html_dev-pattern:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=1 -D raise_gallery=1 -D abort_on_example_error=1 -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -b html $(ALLSPHINXOPTS) _build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=1 -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -b html $(ALLSPHINXOPTS) _build/html
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 

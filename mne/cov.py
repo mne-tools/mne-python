@@ -15,13 +15,14 @@ from scipy import linalg
 
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
-                      _needs_eeg_average_ref_proj, _check_projs)
+                      _needs_eeg_average_ref_proj, _check_projs,
+                      _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _picks_by_type, _pick_data_channels)
 
 from .io.constants import FIFF
-from .io.meas_info import read_bad_channels
+from .io.meas_info import read_bad_channels, _simplify_info
 from .io.proj import _read_proj, _write_proj
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
@@ -37,6 +38,7 @@ from . import viz
 
 from .externals.six.moves import zip
 from .externals.six import string_types
+from .fixes import BaseEstimator
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -95,6 +97,8 @@ class Covariance(dict):
         List of channels' names.
     nfree : int
         Number of degrees of freedom i.e. number of time points used.
+    dim : int
+        The number of channels ``n_channels``.
 
     See Also
     --------
@@ -280,10 +284,12 @@ def make_ad_hoc_cov(info, verbose=None):
 
     Notes
     -----
+    This uses values of 5 fT/cm, 20 fT, and 0.2 uV for gradiometers,
+    magnetometers, and EEG channels, respectively.
+
     .. versionadded:: 0.9.0
     """
-    info = pick_info(info, pick_types(info, meg=True, eeg=True, exclude=[]))
-    info._check_consistency()
+    picks = pick_types(info, meg=True, eeg=True, exclude=())
 
     # Standard deviations to be used
     grad_std = 5e-13
@@ -293,12 +299,13 @@ def make_ad_hoc_cov(info, verbose=None):
                 '(MEG grad : %6.1f fT/cm MEG mag : %6.1f fT EEG : %6.1f uV)'
                 % (1e13 * grad_std, 1e15 * mag_std, 1e6 * eeg_std))
 
-    data = np.zeros(len(info['ch_names']))
+    data = np.zeros(len(picks))
     for meg, eeg, val in zip(('grad', 'mag', False), (False, False, True),
                              (grad_std, mag_std, eeg_std)):
-        data[pick_types(info, meg=meg, eeg=eeg)] = val * val
-    return Covariance(data, info['ch_names'], info['bads'], info['projs'],
-                      nfree=0)
+        these_picks = pick_types(info, meg=meg, eeg=eeg)
+        data[np.searchsorted(picks, these_picks)] = val * val
+    ch_names = [info['ch_names'][pick] for pick in picks]
+    return Covariance(data, ch_names, info['bads'], info['projs'], nfree=0)
 
 
 def _check_n_samples(n_samples, n_chan):
@@ -875,7 +882,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
     estimator_cov_info = list()
     msg = 'Estimating covariance using %s'
-    _RegCovariance, _ShrunkCovariance = _get_covariance_classes()
     for this_method in method:
         data_ = data.copy()
         name = this_method.__name__ if callable(this_method) else this_method
@@ -1065,117 +1071,119 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
     return est, runtime_info
 
 
-def _get_covariance_classes():
-    """Prepare special cov estimators."""
-    from sklearn.covariance import (EmpiricalCovariance, shrunk_covariance,
-                                    ShrunkCovariance)
+###############################################################################
+# Sklearn Estimators
 
-    class _RegCovariance(EmpiricalCovariance):
-        """Aux class."""
+class _RegCovariance(BaseEstimator):
+    """Aux class."""
 
-        def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
-                     store_precision=False, assume_centered=False):
-            self.info = info
-            self.grad = grad
-            self.mag = mag
-            self.eeg = eeg
-            self.store_precision = store_precision
-            self.assume_centered = assume_centered
+    def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
+                 store_precision=False, assume_centered=False):
+        self.info = info
+        self.grad = grad
+        self.mag = mag
+        self.eeg = eeg
+        self.store_precision = store_precision
+        self.assume_centered = assume_centered
 
-        def fit(self, X):
-            EmpiricalCovariance.fit(self, X)
-            self.covariance_ = 0.5 * (self.covariance_ + self.covariance_.T)
-            cov_ = Covariance(
-                data=self.covariance_, names=self.info['ch_names'],
-                bads=self.info['bads'], projs=self.info['projs'],
-                nfree=len(self.covariance_))
-            cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
-                              eeg=self.eeg, proj=False,
-                              exclude='bads')  # ~proj == important!!
-            self.covariance_ = cov_.data
-            return self
+    def fit(self, X):
+        """Fit covariance model with classical diagonal regularization."""
+        from sklearn.covariance import EmpiricalCovariance
+        self.estimator_ = EmpiricalCovariance(
+            store_precision=self.store_precision,
+            assume_centered=self.assume_centered)
 
-    class _ShrunkCovariance(ShrunkCovariance):
-        """Aux class."""
+        self.covariance_ = self.estimator_.fit(X).covariance_
+        self.covariance_ = 0.5 * (self.covariance_ + self.covariance_.T)
+        cov_ = Covariance(
+            data=self.covariance_, names=self.info['ch_names'],
+            bads=self.info['bads'], projs=self.info['projs'],
+            nfree=len(self.covariance_))
+        cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
+                          eeg=self.eeg, proj=False,
+                          exclude='bads')  # ~proj == important!!
+        self.estimator_.covariance_ = self.covariance_ = cov_.data
+        return self
 
-        def __init__(self, store_precision, assume_centered,
-                     shrinkage=0.1):
-            self.store_precision = store_precision
-            self.assume_centered = assume_centered
-            self.shrinkage = shrinkage
+    def score(self, X_test, y=None):
+        """Delegate call to modified EmpiricalCovariance instance."""
+        return self.estimator_.score(X_test, y=y)
 
-        def fit(self, X):
-            EmpiricalCovariance.fit(self, X)
-            cov = self.covariance_
+    def get_precision(self):
+        """Delegate call to modified EmpiricalCovariance instance."""
+        return self.estimator_.get_precision()
 
-            if not isinstance(self.shrinkage, (list, tuple)):
-                shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
-            else:
-                shrinkage = self.shrinkage
 
-            zero_cross_cov = np.zeros_like(cov, dtype=bool)
-            for a, b in itt.combinations(shrinkage, 2):
-                picks_i, picks_j = a[2], b[2]
-                ch_ = a[0], b[0]
-                if 'eeg' in ch_:
-                    zero_cross_cov[np.ix_(picks_i, picks_j)] = True
-                    zero_cross_cov[np.ix_(picks_j, picks_i)] = True
+class _ShrunkCovariance(BaseEstimator):
+    """Aux class."""
 
-            self.zero_cross_cov_ = zero_cross_cov
+    def __init__(self, store_precision, assume_centered,
+                 shrinkage=0.1):
 
-            # Apply shrinkage to blocks
-            for ch_type, c, picks in shrinkage:
-                sub_cov = cov[np.ix_(picks, picks)]
-                cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
-                                                              shrinkage=c)
+        self.store_precision = store_precision
+        self.assume_centered = assume_centered
+        self.shrinkage = shrinkage
 
-            # Apply shrinkage to cross-cov
-            for a, b in itt.combinations(shrinkage, 2):
-                shrinkage_i, shrinkage_j = a[1], b[1]
-                picks_i, picks_j = a[2], b[2]
-                c_ij = np.sqrt((1. - shrinkage_i) * (1. - shrinkage_j))
-                cov[np.ix_(picks_i, picks_j)] *= c_ij
-                cov[np.ix_(picks_j, picks_i)] *= c_ij
+    def fit(self, X):
+        """Fit covariance model with oracle shrinkage regularization."""
+        from sklearn.covariance import shrunk_covariance
+        from sklearn.covariance import EmpiricalCovariance
+        self.estimator_ = EmpiricalCovariance(
+            store_precision=self.store_precision,
+            assume_centered=self.assume_centered)
 
-            # Set to zero the necessary cross-cov
-            if np.any(zero_cross_cov):
-                cov[zero_cross_cov] = 0.0
+        cov = self.estimator_.fit(X).covariance_
 
-            self.covariance_ = cov
-            return self
+        if not isinstance(self.shrinkage, (list, tuple)):
+            shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
+        else:
+            shrinkage = self.shrinkage
 
-        def score(self, X_test, y=None):
-            """Compute the log-likelihood of a Gaussian data set.
+        zero_cross_cov = np.zeros_like(cov, dtype=bool)
+        for a, b in itt.combinations(shrinkage, 2):
+            picks_i, picks_j = a[2], b[2]
+            ch_ = a[0], b[0]
+            if 'eeg' in ch_:
+                zero_cross_cov[np.ix_(picks_i, picks_j)] = True
+                zero_cross_cov[np.ix_(picks_j, picks_i)] = True
 
-            This uses `self.covariance_` as an estimator of the data's
-            covariance matrix.
+        self.zero_cross_cov_ = zero_cross_cov
 
-            Parameters
-            ----------
-            X_test : array-like, shape = [n_samples, n_features]
-                Test data of which we compute the likelihood, where n_samples
-                is the number of samples and n_features is the number of
-                features. X_test is assumed to be drawn from the same
-                distribution as the data used in fit (including centering).
+        # Apply shrinkage to blocks
+        for ch_type, c, picks in shrinkage:
+            sub_cov = cov[np.ix_(picks, picks)]
+            cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
+                                                          shrinkage=c)
 
-            y : not used, present for API consistence purpose.
+        # Apply shrinkage to cross-cov
+        for a, b in itt.combinations(shrinkage, 2):
+            shrinkage_i, shrinkage_j = a[1], b[1]
+            picks_i, picks_j = a[2], b[2]
+            c_ij = np.sqrt((1. - shrinkage_i) * (1. - shrinkage_j))
+            cov[np.ix_(picks_i, picks_j)] *= c_ij
+            cov[np.ix_(picks_j, picks_i)] *= c_ij
 
-            Returns
-            -------
-            res : float
-                The likelihood of the data set with `self.covariance_` as an
-                estimator of its covariance matrix.
-            """
-            from sklearn.covariance import empirical_covariance, log_likelihood
-            # compute empirical covariance of the test set
-            test_cov = empirical_covariance(X_test - self.location_,
-                                            assume_centered=True)
-            if np.any(self.zero_cross_cov_):
-                test_cov[self.zero_cross_cov_] = 0.
-            res = log_likelihood(test_cov, self.get_precision())
-            return res
+        # Set to zero the necessary cross-cov
+        if np.any(zero_cross_cov):
+            cov[zero_cross_cov] = 0.0
 
-    return _RegCovariance, _ShrunkCovariance
+        self.estimator_.covariance_ = self.covariance_ = cov
+        return self
+
+    def score(self, X_test, y=None):
+        """Delegate to modified EmpiricalCovariance instance."""
+        from sklearn.covariance import empirical_covariance, log_likelihood
+        # compute empirical covariance of the test set
+        test_cov = empirical_covariance(X_test - self.estimator_.location_,
+                                        assume_centered=True)
+        if np.any(self.zero_cross_cov_):
+            test_cov[self.zero_cross_cov_] = 0.
+        res = log_likelihood(test_cov, self.estimator_.get_precision())
+        return res
+
+    def get_precision(self):
+        """Delegate to modified EmpiricalCovariance instance."""
+        return self.estimator_.get_precision()
 
 
 ###############################################################################
@@ -1229,6 +1237,33 @@ def _get_ch_whitener(A, pca, ch_type, rank):
     return eig, eigvec
 
 
+def _get_whitener(noise_cov, info, ch_names, rank, pca, scalings=None):
+    #
+    #   Handle noise cov
+    #
+    noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank)
+    n_chan = len(ch_names)
+
+    #   Omit the zeroes due to projection
+    eig = noise_cov['eig']
+    nzero = (eig > 0)
+    n_nzero = np.sum(nzero)
+
+    if pca:
+        #   Rows of eigvec are the eigenvectors
+        whitener = noise_cov['eigvec'][nzero] / np.sqrt(eig[nzero])[:, None]
+        logger.info('Reducing data rank to %d' % n_nzero)
+    else:
+        whitener = np.zeros((n_chan, n_chan), dtype=np.float)
+        whitener[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
+        #   Rows of eigvec are the eigenvectors
+        whitener = np.dot(whitener, noise_cov['eigvec'])
+
+    logger.info('Total rank is %d' % n_nzero)
+
+    return whitener, noise_cov, n_nzero
+
+
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
                       scalings=None, verbose=None):
@@ -1273,7 +1308,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     scalings = _handle_default('scalings_cov_rank', scalings)
 
     # Create the projection operator
-    proj, ncomp, _ = make_projector(info['projs'], ch_names)
+    proj, ncomp, _ = make_projector(info['projs'] + noise_cov['projs'],
+                                    ch_names)
     if ncomp > 0:
         logger.info('    Created an SSP operator (subspace dimension = %d)'
                     % ncomp)
@@ -1320,26 +1356,30 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
     if has_meg:
         C_meg = C[np.ix_(out_meg_idx, out_meg_idx)]
-        this_info = pick_info(info, info_pick_meg)
+        this_info = pick_info(_simplify_info(info), info_pick_meg, copy=False)
         if rank_meg is None:
             rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
         eig[out_meg_idx], eigvec[np.ix_(out_meg_idx, out_meg_idx)] = \
             _get_ch_whitener(C_meg, False, 'MEG', rank_meg)
     if has_eeg:
         C_eeg = C[np.ix_(out_eeg_idx, out_eeg_idx)]
-        this_info = pick_info(info, info_pick_eeg)
+        this_info = pick_info(_simplify_info(info), info_pick_eeg, copy=False)
         if rank_eeg is None:
             rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
         eig[out_eeg_idx], eigvec[np.ix_(out_eeg_idx, out_eeg_idx)], = \
             _get_ch_whitener(C_eeg, False, 'EEG', rank_eeg)
-        if _needs_eeg_average_ref_proj(info):
+        if _needs_eeg_average_ref_proj(info) and not \
+                _has_eeg_average_ref_proj(noise_cov['projs']):
             warn('No average EEG reference present in info["projs"], '
                  'covariance may be adversely affected. Consider recomputing '
                  'covariance using with an average eeg reference projector '
                  'added.')
-    noise_cov = noise_cov.copy()
-    noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
-                     diag=False, names=ch_names)
+    noise_cov = Covariance(
+        data=C, names=ch_names, bads=list(noise_cov['bads']),
+        projs=deepcopy(noise_cov['projs']),
+        nfree=noise_cov['nfree'], eig=eig, eigvec=eigvec,
+        method=noise_cov.get('method', None),
+        loglik=noise_cov.get('loglik', None))
     return noise_cov
 
 
@@ -1540,7 +1580,8 @@ def _regularized_covariance(data, reg=None):
 
 @verbose
 def compute_whitener(noise_cov, info, picks=None, rank=None,
-                     scalings=None, verbose=None):
+                     scalings=None, return_rank=False,
+                     verbose=None):
     """Compute whitening matrix.
 
     Parameters
@@ -1560,6 +1601,10 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     scalings : dict | None
         The rescaling method to be applied. See documentation of
         ``prepare_noise_cov`` for details.
+    return_rank : bool
+        If True, return the rank used to compute the whitener.
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1570,35 +1615,37 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         The whitening matrix.
     ch_names : list
         The channel names.
+    rank : int
+        Rank reduction of the whitener. Returned only if return_rank is True.
     """
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
-    ch_names = [info['chs'][k]['ch_name'] for k in picks]
+    ch_names = [info['ch_names'][k] for k in picks]
 
-    noise_cov = noise_cov.copy()
-    noise_cov = prepare_noise_cov(noise_cov, info, ch_names,
-                                  rank=rank, scalings=scalings)
-    n_chan = len(ch_names)
+    # XXX this relies on pick_channels, which does not respect order,
+    # so this could create problems if users have reordered their data
+    noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
+    if len(noise_cov['data']) != len(ch_names):
+        missing = list(set(ch_names) - set(noise_cov['names']))
+        raise RuntimeError('Not all channels present in noise covariance:\n%s'
+                           % missing)
 
-    W = np.zeros((n_chan, n_chan), dtype=np.float)
-    #
-    #   Omit the zeroes due to projection
-    #
-    eig = noise_cov['eig']
-    nzero = (eig > 0)
-    W[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-    #
-    #   Rows of eigvec are the eigenvectors
-    #
-    W = np.dot(W, noise_cov['eigvec'])
+    scalings = _handle_default('scalings_cov_rank', scalings)
+    W, noise_cov, n_nzero = _get_whitener(noise_cov, info, ch_names, rank,
+                                          pca=False, scalings=scalings)
+
+    # Do the back projection
     W = np.dot(noise_cov['eigvec'].T, W)
-    return W, ch_names
+    out = W, ch_names
+    if return_rank:
+        out += (n_nzero,)
+    return out
 
 
 @verbose
-def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
+def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
                   scalings=None, verbose=None):
     """Whiten evoked data using given noise covariance.
 
@@ -1638,32 +1685,15 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
     evoked = evoked.copy()
     if picks is None:
         picks = pick_types(evoked.info, meg=True, eeg=True)
-    W = _get_whitener_data(evoked.info, noise_cov, picks,
-                           diag=diag, rank=rank, scalings=scalings)
+
+    if diag:
+        noise_cov = noise_cov.as_diag()
+
+    W, rank = compute_whitener(noise_cov, evoked.info, picks=picks,
+                               rank=rank, scalings=scalings)
+
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
-
-
-@verbose
-def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
-                       scalings=None, verbose=None):
-    """Get whitening matrix for a set of data."""
-    ch_names = [info['ch_names'][k] for k in picks]
-    # XXX this relies on pick_channels, which does not respect order,
-    # so this could create problems if users have reordered their data
-    noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
-    if len(noise_cov['data']) != len(ch_names):
-        missing = list(set(ch_names) - set(noise_cov['names']))
-        raise RuntimeError('Not all channels present in noise covariance:\n%s'
-                           % missing)
-    if diag:
-        noise_cov = noise_cov.copy()
-        noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
-
-    scalings = _handle_default('scalings_cov_rank', scalings)
-    W = compute_whitener(noise_cov, info, picks=picks, rank=rank,
-                         scalings=scalings)[0]
-    return W
 
 
 @verbose

@@ -25,6 +25,7 @@ FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
 vmrk_path = op.join(data_dir, 'test.vmrk')
+eeg_path = op.join(data_dir, 'test.eeg')
 
 vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
                                                  'test_partially_disabled'
@@ -55,6 +56,36 @@ eog = ['HL', 'HR', 'Vb']
 event_id = {'Sync On': 5}
 
 warnings.simplefilter('always')
+
+
+def test_vhdr_codepage_ansi():
+    """Test BV reading with ANSI codepage."""
+    raw_init = read_raw_brainvision(vhdr_path, event_id=event_id)
+    tempdir = _TempDir()
+    ansi_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
+    ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
+    ansi_eeg_path = op.join(tempdir, op.split(eeg_path)[-1])
+    # copy data file
+    shutil.copy(eeg_path, ansi_eeg_path)
+    # modify header file
+    with open(ansi_vhdr_path, 'wb') as fout:
+        with open(vhdr_path, 'rb') as fin:
+            for line in fin:
+                # Common Infos section
+                if line.startswith(b'Codepage'):
+                    line = b'Codepage=ANSI\n'
+                fout.write(line)
+    # modify marker file
+    with open(ansi_vmrk_path, 'wb') as fout:
+        with open(vmrk_path, 'rb') as fin:
+            for line in fin:
+                # Common Infos section
+                if line.startswith(b'Codepage'):
+                    line = b'Codepage=ANSI\n'
+                fout.write(line)
+    raw = read_raw_brainvision(ansi_vhdr_path, event_id=event_id)
+    data_new, times_new = raw[:]
+    assert_equal(raw_init.ch_names, raw.ch_names)
 
 
 def test_ascii():
@@ -294,7 +325,49 @@ def test_brainvision_data():
 
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True,
-                         response_trig_shift=1000)
+                         response_trig_shift=1000, verbose='error')
+
+
+def test_brainvision_vectorized_data():
+    """Test reading BrainVision data files with vectorized data."""
+
+    with warnings.catch_warnings(record=True):  # software filter settings
+        raw = read_raw_brainvision(vhdr_old_path, preload=True)
+
+    assert_array_equal(raw._data.shape, (30, 251))
+
+    first_two_samples_all_chs = np.array([[+5.22000008e-06, +5.10000000e-06],
+                                          [+2.10000000e-06, +2.27000008e-06],
+                                          [+1.15000000e-06, +1.33000002e-06],
+                                          [+4.00000000e-07, +4.00000000e-07],
+                                          [-3.02999992e-06, -2.82000008e-06],
+                                          [+2.71000004e-06, +2.45000000e-06],
+                                          [+2.41000004e-06, +2.36000004e-06],
+                                          [+1.01999998e-06, +1.18000002e-06],
+                                          [-1.33999996e-06, -1.25000000e-06],
+                                          [-2.60000000e-06, -2.46000004e-06],
+                                          [+6.80000019e-07, +8.00000000e-07],
+                                          [+1.48000002e-06, +1.48999996e-06],
+                                          [+1.61000004e-06, +1.51000004e-06],
+                                          [+7.19999981e-07, +8.60000038e-07],
+                                          [-3.00000000e-07, -4.00000006e-08],
+                                          [-1.20000005e-07, +6.00000024e-08],
+                                          [+8.19999981e-07, +9.89999962e-07],
+                                          [+1.13000002e-06, +1.28000002e-06],
+                                          [+1.08000002e-06, +1.33999996e-06],
+                                          [+2.20000005e-07, +5.69999981e-07],
+                                          [-4.09999990e-07, +4.00000006e-08],
+                                          [+5.19999981e-07, +9.39999962e-07],
+                                          [+1.01000004e-06, +1.51999998e-06],
+                                          [+1.01000004e-06, +1.55000000e-06],
+                                          [-1.43000002e-06, -1.13999996e-06],
+                                          [+3.65000000e-06, +3.65999985e-06],
+                                          [+4.15999985e-06, +3.79000015e-06],
+                                          [+9.26999969e-06, +8.95999985e-06],
+                                          [-7.35999985e-06, -7.18000031e-06],
+                                          [+0.00000000e+00, +0.00000000e+00]])
+
+    assert_array_almost_equal(raw._data[:, :2], first_two_samples_all_chs)
 
 
 def test_events():
@@ -409,6 +482,21 @@ def test_events():
     assert_equal(raw.info['nchan'], nchan)
     assert_equal(len(raw._data), nchan)
     assert_equal(raw.info['chs'][-1]['ch_name'], 'STI 014')
+
+
+def test_brainvision_with_montage():
+    """Test reading embedded montage information"""
+    raw = read_raw_brainvision(vhdr_v2_path, eog=eog, misc=['ReRef'])
+    for i, d in enumerate(raw.info['dig'], 1):
+        assert_equal(d['coord_frame'], FIFF.FIFFV_COORD_HEAD)
+        assert_equal(d['ident'], i)
+        assert_equal(d['kind'], FIFF.FIFFV_POINT_EEG)
+        assert_equal(len(d['r']), 3)
+
+    raw_none = read_raw_brainvision(vhdr_v2_path, verbose='error')
+    for r, n in zip(raw.info['chs'], raw_none.info['chs']):
+        if r['kind'] != n['kind']:
+            assert_array_equal(r['loc'], n['loc'])
 
 
 run_tests_if_main()

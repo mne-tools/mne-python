@@ -3,7 +3,7 @@
 Compute sparse inverse solution with mixed norm: MxNE and irMxNE
 ================================================================
 
-Runs (ir)MxNE (L1/L2 [1]_ or L0.5/L2 [2]_ mixed norm) inverse solver.
+Runs an (ir)MxNE (L1/L2 [1]_ or L0.5/L2 [2]_ mixed norm) inverse solver.
 L0.5/L2 is done with irMxNE which allows for sparser
 source estimates with less amplitude bias due to the non-convexity
 of the L0.5/L2 mixed norm penalty.
@@ -21,14 +21,18 @@ References
    Tuebingen, 2014. 10.1109/PRNI.2014.6858545
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 
+import numpy as np
+
 import mne
 from mne.datasets import sample
-from mne.inverse_sparse import mixed_norm
+from mne.inverse_sparse import mixed_norm, make_stc_from_dipoles
 from mne.minimum_norm import make_inverse_operator, apply_inverse
-from mne.viz import plot_sparse_source_estimates
+from mne.viz import (plot_sparse_source_estimates,
+                     plot_dipole_locations, plot_dipole_amplitudes)
 
 print(__doc__)
 
@@ -45,10 +49,7 @@ condition = 'Left Auditory'
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked.crop(tmin=0, tmax=0.3)
 # Handling forward solution
-forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
-
-ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
-evoked.plot(ylim=ylim, proj=True)
+forward = mne.read_forward_solution(fwd_fname)
 
 ###############################################################################
 # Run solver
@@ -59,16 +60,45 @@ n_mxne_iter = 10  # if > 1 use L0.5/L2 reweighted mixed norm solver
 
 # Compute dSPM solution to be used as weights in MxNE
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,
-                                         loose=None, depth=depth, fixed=True)
+                                         depth=depth, fixed=True,
+                                         use_cps=True)
 stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 
-# Compute (ir)MxNE inverse solution
-stc, residual = mixed_norm(
+# Compute (ir)MxNE inverse solution with dipole output
+dipoles, residual = mixed_norm(
     evoked, forward, cov, alpha, loose=loose, depth=depth, maxit=3000,
     tol=1e-4, active_set_size=10, debias=True, weights=stc_dspm,
-    weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=True)
+    weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=True,
+    return_as_dipoles=True)
+
+###############################################################################
+# Plot dipole activations
+plot_dipole_amplitudes(dipoles)
+
+# Plot dipole location of the strongest dipole with MRI slices
+idx = np.argmax([np.max(np.abs(dip.amplitude)) for dip in dipoles])
+plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
+                      subjects_dir=subjects_dir, mode='orthoview',
+                      idx='amplitude')
+
+# # Plot dipole locations of all dipoles with MRI slices
+# for dip in dipoles:
+#     plot_dipole_locations(dip, forward['mri_head_t'], 'sample',
+#                           subjects_dir=subjects_dir, mode='orthoview',
+#                           idx='amplitude')
+
+###############################################################################
+# Plot residual
+ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
+evoked.pick_types(meg=True, eeg=True, exclude='bads')
+evoked.plot(ylim=ylim, proj=True)
+residual.pick_types(meg=True, eeg=True, exclude='bads')
 residual.plot(ylim=ylim, proj=True)
+
+###############################################################################
+# Generate stc from dipoles
+stc = make_stc_from_dipoles(dipoles, forward['src'])
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
@@ -76,11 +106,13 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              fig_name="MxNE (cond %s)" % condition,
                              opacity=0.1)
 
-# and on the fsaverage brain after morphing
+###############################################################################
+# Morph onto fsaverage brain and view
 stc_fsaverage = stc.morph(subject_from='sample', subject_to='fsaverage',
                           grade=None, sparse=True, subjects_dir=subjects_dir)
 src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 
 plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
+                             fig_name="Morphed MxNE (cond %s)" % condition,
                              opacity=0.1)

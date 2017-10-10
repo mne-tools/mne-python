@@ -27,8 +27,7 @@ plt.close('all')
 
 ###############################################################################
 # Set parameters
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 tmin, tmax = -0.200, 0.500
 event_id = dict(audio_left=1, visual_left=3)
 
@@ -36,9 +35,11 @@ event_id = dict(audio_left=1, visual_left=3)
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 # The subsequent decoding analyses only capture evoked responses, so we can
-# low-pass the MEG data.
-raw.filter(None, 40., fir_design='firwin')
-events = mne.read_events(event_fname)
+# low-pass the MEG data. Usually a value more like 40 Hz would be used,
+# but here low-pass at 20 so we can more heavily decimate, and allow
+# the examlpe to run faster.
+raw.filter(None, 20., fir_design='firwin')
+events = mne.find_events(raw, 'STI 014')
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
@@ -48,8 +49,7 @@ picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0.), preload=True,
-                    reject=dict(grad=4000e-13, eog=150e-6), decim=2)
-
+                    reject=dict(grad=4000e-13, eog=150e-6), decim=10)
 epochs.pick_types(meg=True, exclude='bads')
 
 ###############################################################################

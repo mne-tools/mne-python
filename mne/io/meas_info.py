@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -6,7 +7,7 @@
 
 from collections import Counter
 from copy import deepcopy
-from datetime import datetime as dt
+import datetime
 import os.path as op
 import re
 
@@ -55,6 +56,14 @@ def _summarize_str(st):
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
+def _stamp_to_dt(stamp):
+    """Convert timestamp to datetime object in Windows-friendly way."""
+    # The min on windows is 86400
+    stamp = [int(s) for s in stamp]
+    return (datetime.datetime.utcfromtimestamp(stamp[0]) +
+            datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
+
+
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
 class Info(dict):
     """Measurement information.
@@ -63,7 +72,7 @@ class Info(dict):
     that is available for a recording.
 
     This class should not be instantiated directly. To create a measurement
-    information strucure, use :func:`mne.io.create_info`.
+    information strucure, use :func:`mne.create_info`.
 
     The only entries that should be manually changed by the user are
     ``info['bads']`` and ``info['description']``. All other entries should
@@ -158,6 +167,10 @@ class Info(dict):
     subject_info : dict | None
         Information about the subject.
         See Notes for details.
+
+    See Also
+    --------
+    mne.create_info
 
     Notes
     -----
@@ -394,9 +407,9 @@ class Info(dict):
                     entr = _summarize_str(entr)
             elif k == 'meas_date' and np.iterable(v):
                 # first entry in meas_date is meaningful
-                entr = dt.fromtimestamp(v[0]).strftime('%Y-%m-%d %H:%M:%S')
+                entr = _stamp_to_dt(v).strftime('%Y-%m-%d %H:%M:%S') + ' GMT'
             elif k == 'kit_system_id' and v is not None:
-                from .kit.constants import SYSNAMES as KIT_SYSNAMES
+                from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
@@ -441,21 +454,57 @@ class Info(dict):
             if self.get(key) is not None:
                 self[key] = float(self[key])
 
+        # make sure channel names are not too long
+        self._check_ch_name_length()
+
         # make sure channel names are unique
         unique_ids = np.unique(self['ch_names'], return_index=True)[1]
         if len(unique_ids) != self['nchan']:
             dups = set(self['ch_names'][x]
                        for x in np.setdiff1d(range(self['nchan']), unique_ids))
-            raise RuntimeError('Channel names are not unique, found '
-                               'duplicates for: %s' % dups)
+            warn('Channel names are not unique, found duplicates for: '
+                 '%s. Applying running numbers for duplicates.' % dups)
+            for ch_stem in dups:
+                overlaps = np.where(np.array(self['ch_names']) == ch_stem)[0]
+                n_keep = min(len(ch_stem),
+                             14 - int(np.ceil(np.log10(len(overlaps)))))
+                ch_stem = ch_stem[:n_keep]
+                for idx, ch_idx in enumerate(overlaps):
+                    ch_name = ch_stem + '-%s' % idx
+                    assert ch_name not in self['ch_names']
+                    self['ch_names'][ch_idx] = ch_name
+                    self['chs'][ch_idx]['ch_name'] = ch_name
+
         if 'filename' in self:
             warn('the "filename" key is misleading\
                  and info should not have it')
+
+    def _check_ch_name_length(self):
+        """Check that channel names are sufficiently short."""
+        bad_names = list()
+        for ch in self['chs']:
+            if len(ch['ch_name']) > 15:
+                bad_names.append(ch['ch_name'])
+                ch['ch_name'] = ch['ch_name'][:15]
+        if len(bad_names) > 0:
+            warn('%d channel names are too long, have been truncated to 15 '
+                 'characters:\n%s' % (len(bad_names), bad_names))
+            self._update_redundant()
 
     def _update_redundant(self):
         """Update the redundant entries."""
         self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
         self['nchan'] = len(self['chs'])
+
+
+def _simplify_info(info):
+    """Return a simplified info structure to speed up picking."""
+    chs = [{key: ch[key] for key in ('ch_name', 'kind', 'unit', 'coil_type',
+                                     'loc')}
+           for ch in info['chs']]
+    sub_info = Info(chs=chs, bads=info['bads'], comps=info['comps'])
+    sub_info._update_redundant()
+    return sub_info
 
 
 def read_fiducials(fname):
@@ -479,7 +528,7 @@ def read_fiducials(fname):
         isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
         isotrak = isotrak[0]
         pts = []
-        coord_frame = FIFF.FIFFV_COORD_UNKNOWN
+        coord_frame = FIFF.FIFFV_COORD_HEAD
         for k in range(isotrak['nent']):
             kind = isotrak['directory'][k].kind
             pos = isotrak['directory'][k].pos
@@ -489,11 +538,6 @@ def read_fiducials(fname):
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
                 coord_frame = tag.data[0]
-
-    if coord_frame == FIFF.FIFFV_COORD_UNKNOWN:
-        err = ("No coordinate frame was found in the file %r, it is probably "
-               "not a valid fiducials file." % fname)
-        raise ValueError(err)
 
     # coord_frame is not stored in the tag
     for pt in pts:
@@ -601,8 +645,8 @@ def _read_dig_points(fname, comments='%', unit='auto'):
     if ext == '.elp' or ext == '.hsp':
         with open(fname) as fid:
             file_str = fid.read()
-        value_pattern = "\-?\d+\.?\d*e?\-?\d*"
-        coord_pattern = "({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+        value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
+        coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
         if ext == '.hsp':
             coord_pattern = '^' + coord_pattern
         points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
@@ -653,7 +697,7 @@ def _write_dig_points(fname, dig_points):
     if ext == '.txt':
         with open(fname, 'wb') as fid:
             version = __version__
-            now = dt.now().strftime("%I:%M%p on %B %d, %Y")
+            now = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
             fid.write(b("% Ascii 3D points file created by mne-python version "
                         "{version} at {now}\n".format(version=version,
                                                       now=now)))
@@ -1601,7 +1645,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     return info
 
 
-def create_info(ch_names, sfreq, ch_types=None, montage=None):
+@verbose
+def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     """Create a basic Info instance suitable for use with create_raw.
 
     Parameters
@@ -1623,6 +1668,9 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         digitizer information will be updated. A list of unique montages,
         can be specifed and applied to the info. See also the documentation of
         :func:`mne.channels.read_montage` for more information.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------

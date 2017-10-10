@@ -14,6 +14,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 from nose.tools import assert_true, assert_raises, assert_not_equal
+import pytest
 
 from mne.datasets import testing
 from mne.io.constants import FIFF
@@ -21,7 +22,7 @@ from mne.io import RawArray, concatenate_raws, read_raw_fif
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info)
-from mne.utils import (_TempDir, requires_pandas, slow_test, object_diff,
+from mne.utils import (_TempDir, requires_pandas, object_diff,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
@@ -155,7 +156,7 @@ def test_copy_append():
     assert_equal(data.shape[1], 2 * raw._data.shape[1])
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_rank_estimation():
     """Test raw rank estimation."""
@@ -164,36 +165,25 @@ def test_rank_estimation():
         ['norm', dict(mag=1e11, grad=1e9, eeg=1e5)]
     )
     for fname, scalings in iter_tests:
-        raw = read_raw_fif(fname)
+        raw = read_raw_fif(fname).crop(0, 4.).load_data()
         (_, picks_meg), (_, picks_eeg) = _picks_by_type(raw.info,
                                                         meg_combined=True)
         n_meg = len(picks_meg)
         n_eeg = len(picks_eeg)
 
-        raw = read_raw_fif(fname, preload=True)
         if len(raw.info['proc_history']) == 0:
             expected_rank = n_meg + n_eeg
         else:
             mf = raw.info['proc_history'][0]['max_info']
             expected_rank = _get_sss_rank(mf) + n_eeg
         assert_array_equal(raw.estimate_rank(scalings=scalings), expected_rank)
-
         assert_array_equal(raw.estimate_rank(picks=picks_eeg,
-                                             scalings=scalings),
-                           n_eeg)
-
-        raw = read_raw_fif(fname, preload=False)
+                                             scalings=scalings), n_eeg)
         if 'sss' in fname:
-            tstart, tstop = 0., 30.
             raw.add_proj(compute_proj_raw(raw))
-            raw.apply_proj()
-        else:
-            tstart, tstop = 10., 20.
-
         raw.apply_proj()
         n_proj = len(raw.info['projs'])
-
-        assert_array_equal(raw.estimate_rank(tstart=tstart, tstop=tstop,
+        assert_array_equal(raw.estimate_rank(tstart=0, tstop=3.,
                                              scalings=scalings),
                            expected_rank - (1 if 'sss' in fname else n_proj))
 
@@ -228,7 +218,7 @@ def _compare_combo(raw, new, times, n_times):
         assert_allclose(orig, new[:, ti][0])
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_multiple_files():
     """Test loading multiple files simultaneously."""
@@ -479,7 +469,7 @@ def test_load_bad_channels():
     assert_equal([], raw_new.info['bads'])
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)."""
@@ -761,7 +751,7 @@ def test_preload_modify():
         assert_allclose(data, data_new)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface."""
@@ -1038,11 +1028,22 @@ def test_resample():
         assert_true(len(w) == 1)
 
     # test resampling events: this should no longer give a warning
-    stim = [0, 1, 1, 0, 0, 1, 1, 0]
-    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    # we often have first_samp != 0, include it here too
+    stim = [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0]
+    # test is on half the sfreq, but should work with trickier ones too
+    o_sfreq, sfreq_ratio = len(stim), 0.5
+    n_sfreq = o_sfreq * sfreq_ratio
+    first_samp = len(stim) // 2
+    raw = RawArray([stim], create_info(1, o_sfreq, ['stim']),
+                   first_samp=first_samp)
     events = find_events(raw)
-    raw, events = raw.resample(4., events=events, npad='auto')
-    assert_equal(events, np.array([[0, 0, 1], [2, 0, 1]]))
+    raw, events = raw.resample(n_sfreq, events=events, npad='auto')
+    n_fsamp = int(first_samp * sfreq_ratio)  # how it's calc'd in base.py
+    # NB np.round used for rounding event times, which has 0.5 as corner case:
+    # https://docs.scipy.org/doc/numpy/reference/generated/numpy.around.html
+    assert_equal(events,
+                 np.array([[np.round(1 * sfreq_ratio) + n_fsamp, 0, 1],
+                           [np.round(10 * sfreq_ratio) + n_fsamp, 0, 1]]))
 
     # test copy flag
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]

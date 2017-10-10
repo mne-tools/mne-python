@@ -24,7 +24,8 @@ from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
-from ..io.pick import channel_type, channel_indices_by_type, pick_channels
+from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
+                       _pick_data_channels)
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
@@ -59,20 +60,22 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     return vmin, vmax
 
 
-def plt_show(show=True, **kwargs):
+def plt_show(show=True, fig=None, **kwargs):
     """Show a figure while suppressing warnings.
 
     Parameters
     ----------
     show : bool
         Show the figure.
+    fig : instance of Figure | None
+        If non-None, use fig.show().
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
     import matplotlib
     import matplotlib.pyplot as plt
     if show and matplotlib.get_backend() != 'agg':
-        plt.show(**kwargs)
+        (fig or plt).show(**kwargs)
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
@@ -426,7 +429,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     # this should work for non-test cases
     try:
         fig_proj.canvas.draw()
-        fig_proj.show(warn=False)
+        plt_show(fig=fig_proj, warn=False)
     except Exception:
         pass
 
@@ -440,7 +443,7 @@ def _layout_figure(params):
     l_border = 100
     r_border = 10
     t_border = 35
-    b_border = 40
+    b_border = 45
 
     # only bother trying to reset layout if it's reasonable to do so
     if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
@@ -699,7 +702,7 @@ def _handle_change_selection(event, params):
 def _plot_raw_onkey(event, params):
     """Interpret key presses."""
     import matplotlib.pyplot as plt
-    if event.key == 'escape':
+    if event.key == params['close_key']:
         plt.close(params['fig'])
         if params['fig_annotation'] is not None:
             plt.close(params['fig_annotation'])
@@ -830,7 +833,7 @@ def _setup_annotation_fig(params):
     fig.button = Button(button_ax, 'Add label')
     fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center')
     fig.button.on_clicked(partial(_onclick_new_label, params=params))
-    fig.show()
+    plt_show(fig=fig)
     params['fig_annotation'] = fig
 
     ax = params['ax']
@@ -1026,7 +1029,7 @@ def _onclick_help(event, params):
     # this should work for non-test cases
     try:
         fig_help.canvas.draw()
-        fig_help.show(warn=False)
+        plt_show(fig=fig_help, warn=False)
     except Exception:
         pass
 
@@ -1232,18 +1235,20 @@ def _find_peaks(evoked, npeaks):
 def _process_times(inst, use_times, n_peaks=None, few=False):
     """Return a list of times for topomaps."""
     if isinstance(use_times, string_types):
-        if use_times == "peaks":
+        if use_times == 'interactive':
+            use_times, n_peaks = 'peaks', 1
+        if use_times == 'peaks':
             if n_peaks is None:
                 n_peaks = min(3 if few else 7, len(inst.times))
             use_times = _find_peaks(inst, n_peaks)
-        elif use_times == "auto":
+        elif use_times == 'auto':
             if n_peaks is None:
                 n_peaks = min(5 if few else 10, len(use_times))
             use_times = np.linspace(inst.times[0], inst.times[-1], n_peaks)
         else:
             raise ValueError("Got an unrecognized method for `times`. Only "
-                             "'peaks' and 'auto' are supported (or directly "
-                             "passing numbers).")
+                             "'peaks', 'auto' and 'interactive' are supported "
+                             "(or directly passing numbers).")
     elif np.isscalar(use_times):
         use_times = [use_times]
 
@@ -1331,7 +1336,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     -----
     This function plots the sensor locations from the info structure using
     matplotlib. For drawing the sensors using mayavi see
-    :func:`mne.viz.plot_trans`.
+    :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
 
@@ -1854,7 +1859,7 @@ def _setup_annotation_colors(params):
     for idx, key in enumerate(color_keys):
         if key in segment_colors:
             continue
-        elif key.lower().startswith('bad'):
+        elif key.lower().startswith('bad') or key.lower().startswith('edge'):
             segment_colors[key] = 'red'
         else:
             segment_colors[key] = next(color_cycle)
@@ -2139,12 +2144,16 @@ def _set_ax_facecolor(ax, face_color):
 
 
 def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
-                     ymax_bound=None, unit=None):
-    y_range = -np.subtract(*axes.get_ylim())
+                     ymax_bound=None, unit=None, truncate_xaxis=True):
+    ymin, ymax = axes.get_ylim()
+    y_range = -np.subtract(ymin, ymax)
 
     # style the spines/axes
     axes.spines["top"].set_position('zero')
-    axes.spines["top"].set_smart_bounds(True)
+    if truncate_xaxis is True:
+        axes.spines["top"].set_smart_bounds(True)
+    else:
+        axes.spines['top'].set_bounds(tmin, tmax)
 
     axes.tick_params(direction='out')
     axes.tick_params(right="off")
@@ -2157,7 +2166,7 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
 
     # set y label and ylabel position
     if unit is not None:
-        axes.set_ylabel(unit, rotation=0)
+        axes.set_ylabel(unit + "\n", rotation=90)
         ylabel_height = (-(current_ymin / y_range)
                          if 0 > current_ymin  # ... if we have negative values
                          else (axes.get_yticks()[-1] / 2 / y_range))
@@ -2168,7 +2177,12 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
     axes.set_xticks(xticks)
     axes.set_xticklabels(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
-    axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    if truncate_xaxis is True:
+        axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    else:
+        axes.spines['bottom'].set_bounds(tmin, tmax)
+    if ymin >= 0:
+        axes.spines["top"].set_color('none')
     axes.spines["left"].set_zorder(0)
 
     # finishing touches
@@ -2176,3 +2190,39 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.invert_yaxis()
     axes.spines['right'].set_color('none')
     axes.set_xlim(tmin, tmax)
+    if truncate_xaxis is False:
+        axes.axis("tight")
+        axes.set_autoscale_on(False)
+
+
+def _handle_decim(info, decim, lowpass):
+    """Handle decim parameter for plotters."""
+    from ..evoked import _check_decim
+    from ..utils import _ensure_int
+    if isinstance(decim, string_types) and decim == 'auto':
+        lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
+        lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
+        info['lowpass'] = lp
+        decim = max(int(info['sfreq'] / (lp * 3) + 1e-6), 1)
+    decim = _ensure_int(decim, 'decim', must_be='an int or "auto"')
+    if decim <= 0:
+        raise ValueError('decim must be "auto" or a positive integer, got %s'
+                         % (decim,))
+    decim = _check_decim(info, decim, 0)[0]
+    data_picks = _pick_data_channels(info, exclude=())
+    return decim, data_picks
+
+
+def _grad_pair_pick_and_name(info, picks):
+    """Deal with grads. (Helper for a few viz functions)."""
+    from ..channels.layout import _pair_grad_sensors
+    picked_chans = list()
+    pairpicks = _pair_grad_sensors(info, topomap_coords=False)
+    for ii in np.arange(0, len(pairpicks), 2):
+        first, second = pairpicks[ii], pairpicks[ii + 1]
+        if first in picks or second in picks:
+            picked_chans.append(first)
+            picked_chans.append(second)
+    picks = list(sorted(set(picked_chans)))
+    ch_names = [info["ch_names"][pick] for pick in picks]
+    return picks, ch_names

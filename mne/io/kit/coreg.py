@@ -30,7 +30,7 @@ def read_mrk(fname):
     ext = op.splitext(fname)[-1]
     if ext in ('.sqd', '.mrk'):
         with open(fname, 'rb', buffering=0) as fid:
-            fid.seek(KIT.MRK_INFO)
+            fid.seek(192)
             mrk_offset = unpack('i', fid.read(KIT.INT))[0]
             fid.seek(mrk_offset)
             # skips match_done, meg_to_mri and mri_to_meg

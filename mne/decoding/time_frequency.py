@@ -6,6 +6,7 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
+from ..utils import warn
 
 
 class TimeFrequency(TransformerMixin, BaseEstimator):
@@ -15,7 +16,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    frequencies : array-like of floats, shape (n_freqs,)
+    freqs : array-like of floats, shape (n_freqs,)
         The frequencies.
     sfreq : float | int, defaults to 1.0
         Sampling frequency of the data.
@@ -59,14 +60,15 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
     mne.time_frequency.tfr_multitaper
     """
 
-    def __init__(self, frequencies, sfreq=1.0, method='morlet', n_cycles=7.0,
+    def __init__(self, freqs, sfreq=1.0, method='morlet', n_cycles=7.0,
                  time_bandwidth=None, use_fft=True, decim=1, output='complex',
-                 n_jobs=1, verbose=None):  # noqa: D102
+                 n_jobs=1, frequencies=None, verbose=None):  # noqa: D102
         """Init TimeFrequency transformer."""
-        frequencies, sfreq, _, n_cycles, time_bandwidth, decim = \
-            _check_tfr_param(frequencies, sfreq, method, True, n_cycles,
-                             time_bandwidth, use_fft, decim, output)
-        self.frequencies = frequencies
+        freqs, sfreq, _, n_cycles, time_bandwidth, decim = \
+            _check_tfr_param(freqs, sfreq, method, True, n_cycles,
+                             time_bandwidth, use_fft, decim, output,
+                             frequencies)
+        self.freqs = freqs
         self.sfreq = sfreq
         self.method = method
         self.n_cycles = n_cycles
@@ -81,6 +83,13 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.n_jobs = n_jobs
         self.verbose = verbose
 
+    @property
+    def frequencies(self):
+        """Deprecated and will be removed in 0.16. use freqs."""
+        warn('frequencies is deprecated and will be removed in 0.16, use'
+             'freqs instead', DeprecationWarning)
+        return self.freqs
+
     def fit_transform(self, X, y=None):
         """Time-frequency transform of times series along the last axis.
 
@@ -94,7 +103,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        Xt : array, shape (n_samples, n_channels, n_frequencies, n_times)
+        Xt : array, shape (n_samples, n_channels, n_freqs, n_times)
             The time-frequency transform of the data, where n_channels can be
             zero- or 1-dimensional.
         """
@@ -128,7 +137,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        Xt : array, shape (n_samples, n_channels, n_frequencies, n_times)
+        Xt : array, shape (n_samples, n_channels, n_freqs, n_times)
             The time-frequency transform of the data, where n_channels can be
             zero- or 1-dimensional.
 
@@ -139,7 +148,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
             X = X[:, np.newaxis, :]
 
         # Compute time-frequency
-        Xt = _compute_tfr(X, self.frequencies, self.sfreq, self.method,
+        Xt = _compute_tfr(X, self.freqs, self.sfreq, self.method,
                           self.n_cycles, True, self.time_bandwidth,
                           self.use_fft, self.decim, self.output, self.n_jobs,
                           self.verbose)

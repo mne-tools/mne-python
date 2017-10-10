@@ -15,7 +15,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
-from mne.utils import requires_sklearn_0_15, run_tests_if_main, check_version
+from mne.utils import requires_version, run_tests_if_main, check_version
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -81,7 +81,7 @@ def test_scaler():
 
     # Test init exception
     assert_raises(ValueError, scaler.fit, epochs, y)
-    assert_raises(ValueError, scaler.transform, epochs, y)
+    assert_raises(ValueError, scaler.transform, epochs)
     epochs_bad = Epochs(raw, events, event_id, 0, 0.01,
                         picks=np.arange(len(raw.ch_names)))  # non-data chs
     scaler = Scaler(epochs_bad.info, None)
@@ -179,7 +179,7 @@ def test_vectorizer():
                   np.random.rand(102, 12, 12))
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.15')
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
     from sklearn.decomposition import PCA
@@ -206,8 +206,8 @@ def test_unsupervised_spatial_filter():
     assert_equal(usf.transform(X).ndim, 3)
     # test fit_transform
     assert_array_almost_equal(usf.transform(X), usf1.fit_transform(X))
-    # assert shape
     assert_equal(usf.transform(X).shape[1], n_components)
+    assert_array_almost_equal(usf.inverse_transform(usf.transform(X)), X)
 
     # Test with average param
     usf = UnsupervisedSpatialFilter(PCA(4), average=True)
@@ -223,12 +223,12 @@ def test_temporal_filter():
     values = (('10hz', None, 100., 'auto'), (5., '10hz', 100., 'auto'),
               (10., 20., 5., 'auto'), (None, None, 100., '5hz'))
     for low, high, sf, ltrans in values:
-        filt = TemporalFilter(low, high, sf, ltrans)
+        filt = TemporalFilter(low, high, sf, ltrans, fir_design='firwin')
         assert_raises(ValueError, filt.fit_transform, X)
 
     # Add tests for different combinations of l_freq and h_freq
     for low, high in ((5., 15.), (None, 15.), (5., None)):
-        filt = TemporalFilter(low, high, sfreq=100.)
+        filt = TemporalFilter(low, high, sfreq=100., fir_design='firwin')
         Xt = filt.fit_transform(X)
         assert_array_equal(filt.fit_transform(X), Xt)
         assert_true(X.shape == Xt.shape)
@@ -240,7 +240,8 @@ def test_temporal_filter():
     # Test with 2 dimensional data array
     X = np.random.rand(101, 500)
     filt = TemporalFilter(l_freq=25., h_freq=50., sfreq=1000.,
-                          filter_length=150)
+                          filter_length=150, fir_design='firwin2')
     assert_equal(filt.fit_transform(X).shape, X.shape)
+
 
 run_tests_if_main()

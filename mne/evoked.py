@@ -15,7 +15,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
 from .channels.layout import _merge_grad_data, _pair_grad_sensors
-from .filter import resample, detrend, FilterMixin
+from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
@@ -291,13 +291,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
-             spatial_colors=False, zorder='unsorted', selectable=True):
+             spatial_colors=False, zorder='unsorted', selectable=True,
+             verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
-            zorder=zorder, selectable=selectable)
+            zorder=zorder, selectable=selectable, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
@@ -334,24 +335,22 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
                      vmax=None, cmap=None, sensors=True, colorbar=True,
-                     scale=None, scale_time=1e3, unit=None, res=64, size=1,
-                     cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
-                     show=True, show_names=False, title=None, mask=None,
-                     mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None,
-                     axes=None):
-        return plot_evoked_topomap(self, times=times, ch_type=ch_type,
-                                   layout=layout, vmin=vmin, vmax=vmax,
-                                   cmap=cmap, sensors=sensors,
-                                   colorbar=colorbar, scale=scale,
-                                   scale_time=scale_time, unit=unit, res=res,
-                                   proj=proj, size=size, cbar_fmt=cbar_fmt,
-                                   time_format=time_format, show=show,
-                                   show_names=show_names, title=title,
-                                   mask=mask, mask_params=mask_params,
-                                   outlines=outlines, contours=contours,
-                                   image_interp=image_interp, average=average,
-                                   head_pos=head_pos, axes=axes)
+                     scalings=None, scaling_time=1e3, units=None, res=64,
+                     size=1, cbar_fmt="%3.1f", time_format='%01d ms',
+                     proj=False, show=True, show_names=False, title=None,
+                     mask=None, mask_params=None, outlines='head',
+                     contours=6, image_interp='bilinear', average=None,
+                     head_pos=None, axes=None, scale=None, scale_time=None,
+                     unit=None):
+        return plot_evoked_topomap(
+            self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
+            vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
+            scalings=scalings, scaling_time=scaling_time, units=units, res=res,
+            size=size, cbar_fmt=cbar_fmt, time_format=time_format,
+            proj=proj, show=show, show_names=show_names, title=title,
+            mask=mask, mask_params=mask_params, outlines=outlines, unit=unit,
+            contours=contours, image_interp=image_interp, average=average,
+            head_pos=head_pos, axes=axes, scale=scale, scale_time=scale_time)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -458,7 +457,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Compute virtual evoked using interpolated fields.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
-            unexpected results. The virtual channels have `'_virtual'` appended
+            unexpected results. The virtual channels have `'_v'` appended
             at the end of the names to emphasize that the data contained in
             them are interpolated.
 
@@ -482,38 +481,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         from .forward import _as_meg_type_evoked
         return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
-
-    def resample(self, sfreq, npad='auto', window='boxcar'):
-        """Resample data.
-
-        This function operates in-place.
-
-        Parameters
-        ----------
-        sfreq : float
-            New sample rate to use
-        npad : int | str
-            Amount to pad the start and end of the data.
-            Can also be "auto" to use a padding that will result in
-            a power-of-two size (can be much faster).
-        window : string or tuple
-            Window to use in resampling. See scipy.signal.resample.
-
-        Returns
-        -------
-        evoked : instance of mne.Evoked
-            The resampled evoked object.
-        """
-        sfreq = float(sfreq)
-        o_sfreq = self.info['sfreq']
-        self.data = resample(self.data, sfreq, o_sfreq, npad, -1, window)
-        # adjust indirectly affected variables
-        self.info['sfreq'] = sfreq
-        self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq +
-                      self.times[0])
-        self.first = int(self.times[0] * self.info['sfreq'])
-        self.last = len(self.times) + self.first - 1
-        return self
 
     def detrend(self, order=1, picks=None):
         """Detrend data.

@@ -11,6 +11,7 @@ import warnings
 
 from nose.tools import (assert_true, assert_raises, assert_equal, assert_false,
                         assert_not_equal, assert_is_none)
+import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
@@ -28,7 +29,7 @@ from mne.io import read_raw_fif, Info, RawArray
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.tests.common import assert_naming
-from mne.utils import (catch_logging, _TempDir, requires_sklearn, slow_test,
+from mne.utils import (catch_logging, _TempDir, requires_sklearn,
                        run_tests_if_main)
 
 # Set our plotters to test mode
@@ -49,7 +50,7 @@ score_funcs_unsuited = ['pointbiserialr', 'ansari']
 try:
     from sklearn.utils.validation import NonBLASDotWarning
     warnings.simplefilter('error', NonBLASDotWarning)
-except:
+except Exception:
     pass
 
 
@@ -157,7 +158,7 @@ def test_ica_reset():
         'pca_explained_variance_',
         'pca_mean_'
     )
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True):  # convergence
         ica = ICA(
             n_components=3, max_pca_components=3, n_pca_components=3,
             method='fastica', max_iter=1).fit(raw, picks=picks)
@@ -209,7 +210,7 @@ def test_ica_core():
         assert_raises(RuntimeError, ica.get_sources, epochs)
 
         # test decomposition
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings(record=True):  # convergence
             ica.fit(raw, picks=pcks, start=start, stop=stop)
             repr(ica)  # to test repr
         assert_true('mag' in ica)  # should now work without error
@@ -274,7 +275,7 @@ def test_ica_core():
     assert_raises(ValueError, ica.apply, offender)
 
 
-@slow_test
+@pytest.mark.slowtest
 @requires_sklearn
 def test_ica_additional():
     """Test additional ICA functionality."""
@@ -320,8 +321,9 @@ def test_ica_additional():
         ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
 
     # check passing a ch_name to find_bads_ecg
-    _, scores_1 = ica.find_bads_ecg(raw)
-    _, scores_2 = ica.find_bads_ecg(raw, raw.ch_names[1])
+    with warnings.catch_warnings(record=True):  # filter length
+        _, scores_1 = ica.find_bads_ecg(raw)
+        _, scores_2 = ica.find_bads_ecg(raw, raw.ch_names[1])
     assert_false(scores_1[0] == scores_2[0])
 
     # test corrmap
@@ -591,13 +593,15 @@ def test_ica_additional():
 
     ica = ICA()
     ica.fit(raw, picks=picks[:5])
-    ica.find_bads_ecg(raw)
+    with warnings.catch_warnings(record=True):  # filter length
+        ica.find_bads_ecg(raw)
     ica.find_bads_eog(epochs, ch_name='MEG 0121')
     assert_array_equal(raw_data, raw[:][0])
 
     raw.drop_channels(['MEG 0122'])
-    assert_raises(RuntimeError, ica.find_bads_eog, raw)
-    assert_raises(RuntimeError, ica.find_bads_ecg, raw)
+    with warnings.catch_warnings(record=True):  # filter length
+        assert_raises(RuntimeError, ica.find_bads_eog, raw)
+        assert_raises(RuntimeError, ica.find_bads_ecg, raw)
 
 
 @requires_sklearn
@@ -721,6 +725,7 @@ def test_eog_channel():
 
 @requires_sklearn
 def test_max_pca_components_none():
+    """Test max_pca_components=None."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)
@@ -736,7 +741,8 @@ def test_max_pca_components_none():
 
     ica = ICA(max_pca_components=max_pca_components,
               n_components=n_components, random_state=random_state)
-    ica.fit(epochs)
+    with warnings.catch_warnings(record=True):  # convergence
+        ica.fit(epochs)
     ica.save(output_fname)
 
     ica = read_ica(output_fname)
@@ -749,6 +755,7 @@ def test_max_pca_components_none():
 
 @requires_sklearn
 def test_n_components_none():
+    """Test n_components=None."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)
@@ -764,7 +771,8 @@ def test_n_components_none():
 
     ica = ICA(max_pca_components=max_pca_components,
               n_components=n_components, random_state=random_state)
-    ica.fit(epochs)
+    with warnings.catch_warnings(record=True):  # convergence
+        ica.fit(epochs)
     ica.save(output_fname)
 
     ica = read_ica(output_fname)
@@ -777,6 +785,7 @@ def test_n_components_none():
 
 @requires_sklearn
 def test_n_components_and_max_pca_components_none():
+    """Test n_components and max_pca_components=None."""
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, eeg=True, meg=False)
@@ -792,7 +801,8 @@ def test_n_components_and_max_pca_components_none():
 
     ica = ICA(max_pca_components=max_pca_components,
               n_components=n_components, random_state=random_state)
-    ica.fit(epochs)
+    with warnings.catch_warnings(record=True):  # convergence
+        ica.fit(epochs)
     ica.save(output_fname)
 
     ica = read_ica(output_fname)

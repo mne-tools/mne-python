@@ -25,10 +25,13 @@ from ..io.meas_info import (_make_dig_points, _read_dig_points, _read_dig_fif,
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
-from ..utils import _check_fname, warn, copy_function_doc_to_method_doc
+from ..utils import (_check_fname, warn, copy_function_doc_to_method_doc,
+                     _clean_names)
 
 from ..externals.six import string_types
 from ..externals.six.moves import map
+
+from .layout import _pol_to_cart, _cart_to_sph
 
 
 class Montage(object):
@@ -60,11 +63,15 @@ class Montage(object):
     .. versionadded:: 0.9.0
     """
 
-    def __init__(self, pos, ch_names, kind, selection):  # noqa: D102
+    def __init__(self, pos, ch_names, kind, selection,
+                 nasion=None, lpa=None, rpa=None):  # noqa: D102
         self.pos = pos
         self.ch_names = ch_names
         self.kind = kind
         self.selection = selection
+        self.lpa = lpa
+        self.nasion = nasion
+        self.rpa = rpa
 
     def __repr__(self):
         """Return string representation."""
@@ -72,20 +79,41 @@ class Montage(object):
              % (self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])))
         return s
 
+    def get_pos2d(self):
+        """Return positions converted to 2D."""
+        return _pol_to_cart(_cart_to_sph(self.pos)[:, 1:][:, ::-1])
+
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
+    def plot(self, scale_factor=20, show_names=False, kind='topomap',
+             show=True):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
+
+
+def get_builtin_montages():
+    """Get a list of all builtin montages.
+
+    Returns
+    -------
+    montages : list
+        Names of all builtin montages that can be loaded with
+        :func:`read_montage`.
+    """
+    path = op.join(op.dirname(__file__), 'data', 'montages')
+    supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts', '.loc',
+                 '.locs', '.eloc', '.bvef')
+    files = [op.splitext(f) for f in os.listdir(path)]
+    return sorted([f for f, ext in files if ext in supported])
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read a generic (built-in) montage.
 
-    Individualized (digitized) electrode positions should be
-    read in using :func:`read_dig_montage`.
+    Individualized (digitized) electrode positions should be read in using
+    :func:`read_dig_montage`.
 
-    In most cases, you should only need the `kind` parameter to load one of
-    the built-in montages (see Notes).
+    In most cases, you should only need to set the `kind` parameter to load one
+    of the built-in montages (see Notes).
 
     Parameters
     ----------
@@ -96,7 +124,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         '.eloc') or .bvef are supported.
     ch_names : list of str | None
         If not all electrodes defined in the montage are present in the EEG
-        data, use this parameter to select subset of electrode positions to
+        data, use this parameter to select a subset of electrode positions to
         load. If None (default), all defined electrode positions are returned.
 
         .. note:: ``ch_names`` are compared to channel names in the montage
@@ -111,10 +139,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         Unit of the input file. If not 'm' (default), coordinates will be
         rescaled to 'm'.
     transform : bool
-        If True, points will be transformed to Neuromag space.
-        The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
-        the montage file. Useful for points captured using Polhemus FastSCAN.
-        Default is False.
+        If True, points will be transformed to Neuromag space. The fidicuals,
+        'nasion', 'lpa', 'rpa' must be specified in the montage file. Useful
+        for points captured using Polhemus FastSCAN. Default is False.
 
     Returns
     -------
@@ -131,50 +158,56 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     -----
     Built-in montages are not scaled or transformed by default.
 
-    Montages can contain fiducial points in addition to electrode
-    locations, e.g. ``biosemi64`` contains 67 total channels.
+    Montages can contain fiducial points in addition to electrode channels,
+    e.g. ``biosemi64`` contains 67 locations. In the following table, the
+    number of channels and fiducials is given in parentheses in the description
+    column (e.g. 64+3 means 64 channels and 3 fiducials).
 
-    The valid ``kind`` arguments are:
+    Valid ``kind`` arguments are:
 
     ===================   =====================================================
-    Kind                  description
+    Kind                  Description
     ===================   =====================================================
     standard_1005         Electrodes are named and positioned according to the
-                          international 10-05 system.
+                          international 10-05 system (343+3 locations)
     standard_1020         Electrodes are named and positioned according to the
-                          international 10-20 system.
+                          international 10-20 system (94+3 locations)
     standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
-                          (A1, B2, F4, etc.)
+                          (A1, B2, F4, ...) (65+3 locations)
     standard_postfixed    Electrodes are named according to the international
                           10-20 system using postfixes for intermediate
-                          positions.
+                          positions (100+3 locations)
     standard_prefixed     Electrodes are named according to the international
                           10-20 system using prefixes for intermediate
-                          positions.
+                          positions (74+3 locations)
     standard_primed       Electrodes are named according to the international
                           10-20 system using prime marks (' and '') for
-                          intermediate positions.
+                          intermediate positions (100+3 locations)
 
-    biosemi16             BioSemi cap with 16 electrodes
-    biosemi32             BioSemi cap with 32 electrodes
-    biosemi64             BioSemi cap with 64 electrodes
-    biosemi128            BioSemi cap with 128 electrodes
-    biosemi160            BioSemi cap with 160 electrodes
-    biosemi256            BioSemi cap with 256 electrodes
+    biosemi16             BioSemi cap with 16 electrodes (16+3 locations)
+    biosemi32             BioSemi cap with 32 electrodes (32+3 locations)
+    biosemi64             BioSemi cap with 64 electrodes (64+3 locations)
+    biosemi128            BioSemi cap with 128 electrodes (128+3 locations)
+    biosemi160            BioSemi cap with 160 electrodes (160+3 locations)
+    biosemi256            BioSemi cap with 256 electrodes (256+3 locations)
 
-    easycap-M10           Brainproducts EasyCap with electrodes named
-                          according to the 10-05 system
-    easycap-M1            Brainproduct EasyCap with numbered electrodes
+    easycap-M1            EasyCap with 10-05 electrode names (74 locations)
+    easycap-M10           EasyCap with numbered electrodes (61 locations)
 
-    EGI_256               Geodesic Sensor Net with 256 channels
+    EGI_256               Geodesic Sensor Net (256 locations)
 
-    GSN-HydroCel-32       HydroCel Geodesic Sensor Net with 32 electrodes
-    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net with 64 electrodes
-    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net with 64 electrodes + Cz
-    GSN-HydroCel-128      HydroCel Geodesic Sensor Net with 128 electrodes
-    GSN-HydroCel-129      HydroCel Geodesic Sensor Net with 128 electrodes + Cz
-    GSN-HydroCel-256      HydroCel Geodesic Sensor Net with 256 electrodes
-    GSN-HydroCel-257      HydroCel Geodesic Sensor Net with 256 electrodes + Cz
+    GSN-HydroCel-32       HydroCel Geodesic Sensor Net and Cz (33+3 locations)
+    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net (64+3 locations)
+    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net and Cz (65+3 locations)
+    GSN-HydroCel-128      HydroCel Geodesic Sensor Net (128+3 locations)
+    GSN-HydroCel-129      HydroCel Geodesic Sensor Net and Cz (129+3 locations)
+    GSN-HydroCel-256      HydroCel Geodesic Sensor Net (256+3 locations)
+    GSN-HydroCel-257      HydroCel Geodesic Sensor Net and Cz (257+3 locations)
+
+    mgh60                 The (older) 60-channel cap used at
+                          MGH (60+3 locations)
+    mgh70                 The (newer) 70-channel BrainVision cap used at
+                          MGH (70+3 locations)
     ===================   =====================================================
 
     .. versionadded:: 0.9.0
@@ -194,8 +227,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         kind, ext = op.splitext(kind)
     fname = op.join(path, kind + ext)
 
+    fid_names = ['lpa', 'nz', 'rpa']
     if ext == '.sfp':
         # EGI geodesic
+        fid_names = ['fidt9', 'fidnz', 'fidt10']
         with open(fname, 'r') as f:
             lines = f.read().replace('\t', ' ').splitlines()
 
@@ -241,22 +276,20 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
             data = np.genfromtxt(fname, dtype='str', skip_header=1)
         except TypeError:
             data = np.genfromtxt(fname, dtype='str', skiprows=1)
-        ch_names_ = list(data[:, 0])
+        ch_names_ = data[:, 0].tolist()
         az = np.deg2rad(data[:, 2].astype(float))
         pol = np.deg2rad(data[:, 1].astype(float))
         pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.csd':
         # CSD toolbox
-        dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
-                 ('radius', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
-                 ('off_sph', 'f8')]
         try:  # newer version
-            table = np.loadtxt(fname, skip_header=2, dtype=dtype)
+            data = np.genfromtxt(fname, dtype='str', skip_header=2)
         except TypeError:
-            table = np.loadtxt(fname, skiprows=2, dtype=dtype)
-        ch_names_ = table['label']
-        az = np.deg2rad(table['theta'])
-        pol = np.deg2rad(90. - table['phi'])
+            data = np.genfromtxt(fname, dtype='str', skiprows=2)
+
+        ch_names_ = data[:, 0].tolist()
+        az = np.deg2rad(data[:, 1].astype(float))
+        pol = np.deg2rad(90. - data[:, 2].astype(float))
         pos = _sph_to_cart(np.array([np.ones(len(az)), az, pol]).T)
     elif ext == '.elp':
         # standard BESA spherical
@@ -266,7 +299,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         except TypeError:
             data = np.loadtxt(fname, dtype=dtype, skiprows=1)
 
-        ch_names_ = data['f1'].astype(np.str)
+        ch_names_ = data['f1'].astype(str).tolist()
         az = data['f2']
         horiz = data['f3']
         radius = np.abs(az / 180.)
@@ -276,15 +309,15 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = _sph_to_cart(np.array([np.ones(len(az)) * 85., az, pol]).T)
     elif ext == '.hpts':
         # MNE-C specified format for generic digitizer data
+        fid_names = ['1', '2', '3']
         dtype = [('type', 'S8'), ('name', 'S8'),
                  ('x', 'f8'), ('y', 'f8'), ('z', 'f8')]
         data = np.loadtxt(fname, dtype=dtype)
-        ch_names_ = data['name'].astype(np.str)
+        ch_names_ = data['name'].astype(str).tolist()
         pos = np.vstack((data['x'], data['y'], data['z'])).T
     elif ext in ('.loc', '.locs', '.eloc'):
         ch_names_ = np.loadtxt(fname, dtype='S4',
-                               usecols=[3]).astype(np.str).tolist()
-        dtype = {'names': ('angle', 'radius'), 'formats': ('f4', 'f4')}
+                               usecols=[3]).astype(str).tolist()
         topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
         sph = _topo_to_sph(topo)
         pos = _sph_to_cart(sph)
@@ -309,26 +342,23 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos /= 1e2
     elif unit != 'm':
         raise ValueError("'unit' should be either 'm', 'cm', or 'mm'.")
+    names_lower = [name.lower() for name in list(ch_names_)]
+    fids = {key: pos[names_lower.index(fid_names[ii])]
+            if fid_names[ii] in names_lower else None
+            for ii, key in enumerate(['lpa', 'nasion', 'rpa'])}
     if transform:
-        names_lower = [name.lower() for name in list(ch_names_)]
-        if ext == '.hpts':
-            fids = ('2', '1', '3')  # Alternate cardinal point names
-        else:
-            fids = ('nasion', 'lpa', 'rpa')
-
-        missing = [name for name in fids
-                   if name not in names_lower]
+        missing = [name for name, val in fids.items() if val is None]
         if missing:
             raise ValueError("The points %s are missing, but are needed "
                              "to transform the points to the MNE coordinate "
                              "system. Either add the points, or read the "
                              "montage with transform=False. " % missing)
-        nasion = pos[names_lower.index(fids[0])]
-        lpa = pos[names_lower.index(fids[1])]
-        rpa = pos[names_lower.index(fids[2])]
-
-        neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        neuromag_trans = get_ras_to_neuromag_trans(
+            fids['nasion'], fids['lpa'], fids['rpa'])
         pos = apply_trans(neuromag_trans, pos)
+    fids = {key: pos[names_lower.index(fid_names[ii])]
+            if fid_names[ii] in names_lower else None
+            for ii, key in enumerate(['lpa', 'nasion', 'rpa'])}
 
     if ch_names is not None:
         # Ensure channels with differing case are found.
@@ -339,10 +369,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         sel = list(sel)
         pos = pos[sel]
         selection = selection[sel]
-    else:
-        ch_names_ = list(ch_names_)
     kind = op.split(kind)[-1]
-    return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection)
+    return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection,
+                   lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
 class DigMontage(object):
@@ -733,7 +762,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     return out
 
 
-def _set_montage(info, montage, update_ch_names=False):
+def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     """Apply montage to data.
 
     With a Montage, this function will replace the EEG channel names and
@@ -787,7 +816,11 @@ def _set_montage(info, montage, update_ch_names=False):
         else:
             montage_ch_names = montage.ch_names
             info_ch_names = info['ch_names']
+        info_ch_names = _clean_names(info_ch_names, remove_whitespace=True)
+        montage_ch_names = _clean_names(montage_ch_names,
+                                        remove_whitespace=True)
 
+        dig = dict()
         for pos, ch_name in zip(montage.pos, montage_ch_names):
             if ch_name not in info_ch_names:
                 continue
@@ -795,7 +828,11 @@ def _set_montage(info, montage, update_ch_names=False):
             ch_idx = info_ch_names.index(ch_name)
             info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
             sensors_found.append(ch_idx)
-
+            dig[ch_name] = pos
+        if set_dig:
+            info['dig'] = _make_dig_points(
+                nasion=montage.nasion, lpa=montage.lpa, rpa=montage.rpa,
+                dig_ch_pos=dig)
         if len(sensors_found) == 0:
             raise ValueError('None of the sensors defined in the montage were '
                              'found in the info structure. Check the channel '
@@ -812,7 +849,8 @@ def _set_montage(info, montage, update_ch_names=False):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
-        info['dig'] = montage._get_dig()
+        if set_dig:
+            info['dig'] = montage._get_dig()
 
         if montage.dev_head_t is not None:
             info['dev_head_t']['trans'] = montage.dev_head_t

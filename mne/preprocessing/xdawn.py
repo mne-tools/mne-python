@@ -7,7 +7,6 @@
 import numpy as np
 import copy as cp
 from scipy import linalg
-from .ica import _get_fast_dot
 from .. import EvokedArray, Evoked
 from ..cov import Covariance, _regularized_covariance
 from ..decoding import TransformerMixin, BaseEstimator
@@ -177,7 +176,11 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
         evo_cov = np.matrix(_regularized_covariance(evo, reg))
 
         # Fit spatial filters
-        evals, evecs = linalg.eigh(evo_cov, signal_cov)
+        try:
+            evals, evecs = linalg.eigh(evo_cov, signal_cov)
+        except np.linalg.LinAlgError as exp:
+            raise ValueError('Could not compute eigenvalues, ensure '
+                             'proper regularization (%s)' % (exp,))
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
         _patterns = np.linalg.pinv(evecs.T)
@@ -307,8 +310,7 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
                 self.n_components * len(self.classes_), n_comp))
 
         # Transform
-        fast_dot = _get_fast_dot()
-        return fast_dot(self.patterns_.T, X).transpose(1, 0, 2)
+        return np.dot(self.patterns_.T, X).transpose(1, 0, 2)
 
     def _check_Xy(self, X, y=None):
         """Check X and y types and dimensions."""
@@ -445,7 +447,7 @@ class Xdawn(_XdawnTransformer):
 
         # Main fitting function
         filters, patterns, evokeds = _fit_xdawn(
-            X, y,  n_components=n_components, reg=self.reg,
+            X, y, n_components=n_components, reg=self.reg,
             signal_cov=self.signal_cov, events=events, tmin=tmin, sfreq=sfreq)
 
         # Re-order filters and patterns according to event_id
@@ -463,23 +465,27 @@ class Xdawn(_XdawnTransformer):
             self.evokeds_[eid] = evoked
         return self
 
-    def transform(self, epochs):
+    def transform(self, inst):
         """Apply Xdawn dim reduction.
 
         Parameters
         ----------
-        epochs : Epochs | ndarray, shape (n_epochs, n_channels, n_times)
+        inst : Epochs | Evoked | ndarray, shape ([n_epochs, ]n_channels, n_times)
             Data on which Xdawn filters will be applied.
 
         Returns
         -------
-        X : ndarray, shape (n_epochs, n_components * n_event_types, n_times)
+        X : ndarray, shape ([n_epochs, ]n_components * n_event_types, n_times)
             Spatially filtered signals.
-        """
-        if isinstance(epochs, BaseEpochs):
-            X = epochs.get_data()
-        elif isinstance(epochs, np.ndarray):
-            X = epochs
+        """  # noqa: E501
+        if isinstance(inst, BaseEpochs):
+            X = inst.get_data()
+        elif isinstance(inst, Evoked):
+            X = inst.data
+        elif isinstance(inst, np.ndarray):
+            X = inst
+            if X.ndim not in (2, 3):
+                raise ValueError('X must be 2D or 3D, got %s' % (X.ndim,))
         else:
             raise ValueError('Data input must be of Epoch type or numpy array')
 
@@ -487,7 +493,9 @@ class Xdawn(_XdawnTransformer):
                    for filt in itervalues(self.filters_)]
         filters = np.concatenate(filters, axis=0)
         X = np.dot(filters, X)
-        return X.transpose((1, 0, 2))
+        if X.ndim == 3:
+            X = X.transpose((1, 0, 2))
+        return X
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.
@@ -600,12 +608,10 @@ class Xdawn(_XdawnTransformer):
 
     def _pick_sources(self, data, include, exclude, eid):
         """Aux method."""
-        fast_dot = _get_fast_dot()
-
         logger.info('Transforming to Xdawn space')
 
         # Apply unmixing
-        sources = fast_dot(self.filters_[eid].T, data)
+        sources = np.dot(self.filters_[eid].T, data)
 
         if include not in (None, list()):
             mask = np.ones(len(sources), dtype=np.bool)
@@ -617,7 +623,7 @@ class Xdawn(_XdawnTransformer):
             sources[exclude_] = 0.
             logger.info('Zeroing out %i Xdawn components' % len(exclude_))
         logger.info('Inverse transforming to sensor space')
-        data = fast_dot(self.patterns_[eid], sources)
+        data = np.dot(self.patterns_[eid], sources)
 
         return data
 

@@ -10,14 +10,15 @@ import shutil
 import warnings
 
 from nose.tools import assert_true, assert_equal, assert_raises
+import pytest
 
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
-                       requires_PIL, run_tests_if_main, slow_test)
-from mne.viz import plot_trans
+                       requires_PIL, run_tests_if_main)
+from mne.viz import plot_alignment
 
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -43,7 +44,7 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_PIL
 def test_render_report():
@@ -123,6 +124,16 @@ def test_render_report():
                     [op.basename(x) for x in report.fnames])
         assert_true(''.join(report.html).find(op.basename(fname)) != -1)
 
+    assert_raises(ValueError, Report, image_format='foo')
+    assert_raises(ValueError, Report, image_format=None)
+
+    # SVG rendering
+    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir,
+                    image_format='svg')
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        report.parse_folder(data_path=tempdir, on_error='raise')
+
 
 @testing.requires_testing_data
 @requires_mayavi
@@ -167,15 +178,15 @@ def test_render_add_sections():
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
-    fig = plot_trans(evoked.info, trans_fname, subject='sample',
-                     subjects_dir=subjects_dir)
+    fig = plot_alignment(evoked.info, trans_fname, subject='sample',
+                         subjects_dir=subjects_dir)
 
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
     assert_true(repr(report))
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_mayavi
 @requires_nibabel()

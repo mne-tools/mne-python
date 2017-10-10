@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Single-dipole functions and classes."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -12,14 +13,14 @@ import re
 import numpy as np
 from scipy import linalg
 
-from .cov import read_cov, _get_whitener_data
+from .cov import read_cov, compute_whitener
 from .io.constants import FIFF
 from .io.pick import pick_types, channel_type
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
 from .transforms import (_print_coord_trans, _coord_frame_name,
-                         apply_trans, invert_transform, Transform)
+                         apply_trans, Transform)
 from .viz.evoked import _plot_evoked
 from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
@@ -27,8 +28,7 @@ from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
 
 from .externals.six import string_types
-from .surface import (transform_surface_to, _normalize_vectors,
-                      _get_ico_surface, _compute_nearest)
+from .surface import transform_surface_to, _compute_nearest
 from .bem import _bem_find_surface, _bem_explain_surface
 from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
@@ -38,7 +38,7 @@ from .utils import (logger, verbose, _time_mask, warn, _check_fname,
 
 
 class Dipole(object):
-    """Dipole class for sequential dipole fits.
+    u"""Dipole class for sequential dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
               instead :func:`mne.read_dipole` should be used.
@@ -62,11 +62,28 @@ class Dipole(object):
         The goodness of fit.
     name : str | None
         Name of the dipole.
+    conf : dict
+        Confidence limits in dipole orientation for "vol" in m^3 (volume),
+        "depth" in m (along the depth axis), "long" in m (longitudinal axis),
+        "trans" in m (transverse axis), "qlong" in Am, and "qtrans" in Am
+        (currents). The current confidence limit in the depth direction is
+        assumed to be zero (although it can be non-zero when a BEM is used).
+
+        .. versionadded:: 0.15
+    khi2 : array, shape (n_dipoles,)
+        The χ^2 values for the fits.
+
+        .. versionadded:: 0.15
+    nfree : array, shape (n_dipoles,)
+        The number of free parameters for each fit.
+
+        .. versionadded:: 0.15
 
     See Also
     --------
-    read_dipole
+    fit_dipole
     DipoleFixed
+    read_dipole
 
     Notes
     -----
@@ -76,18 +93,21 @@ class Dipole(object):
     """
 
     def __init__(self, times, pos, amplitude, ori, gof,
-                 name=None):  # noqa: D102
+                 name=None, conf=None, khi2=None, nfree=None):  # noqa: D102
         self.times = np.array(times)
         self.pos = np.array(pos)
         self.amplitude = np.array(amplitude)
         self.ori = np.array(ori)
         self.gof = np.array(gof)
         self.name = name
+        self.conf = deepcopy(conf) if conf is not None else dict()
+        self.khi2 = np.array(khi2) if khi2 is not None else None
+        self.nfree = np.array(nfree) if nfree is not None else None
 
     def __repr__(self):  # noqa: D105
         s = "n_times : %s" % len(self.times)
-        s += ", tmin : %s" % np.min(self.times)
-        s += ", tmax : %s" % np.max(self.times)
+        s += ", tmin : %0.3f" % np.min(self.times)
+        s += ", tmax : %0.3f" % np.max(self.times)
         return "<Dipole  |  %s>" % s
 
     def save(self, fname):
@@ -98,18 +118,43 @@ class Dipole(object):
         fname : str
             The name of the .dip file.
         """
-        fmt = "  %7.1f %7.1f %8.2f %8.2f %8.2f %8.3f %8.3f %8.3f %8.3f %6.1f"
+        # obligatory fields
+        fmt = '  %7.1f %7.1f %8.2f %8.2f %8.2f %8.3f %8.3f %8.3f %8.3f %6.2f'
+        header = ('#   begin     end   X (mm)   Y (mm)   Z (mm)'
+                  '   Q(nAm)  Qx(nAm)  Qy(nAm)  Qz(nAm)    g/%')
+        t = self.times[:, np.newaxis] * 1000.
+        gof = self.gof[:, np.newaxis]
+        amp = 1e9 * self.amplitude[:, np.newaxis]
+        out = (t, t, self.pos / 1e-3, amp, self.ori * amp, gof)
+
+        # optional fields
+        fmts = dict(khi2=('    khi^2', ' %8.1f', 1.),
+                    nfree=('  free', ' %5d', 1),
+                    vol=('  vol/mm^3', ' %9.3f', 1e9),
+                    depth=('  depth/mm', ' %9.3f', 1e3),
+                    long=('  long/mm', ' %8.3f', 1e3),
+                    trans=('  trans/mm', ' %9.3f', 1e3),
+                    qlong=('  Qlong/nAm', ' %10.3f', 1e9),
+                    qtrans=('  Qtrans/nAm', ' %11.3f', 1e9),
+                    )
+        for key in ('khi2', 'nfree'):
+            data = getattr(self, key)
+            if data is not None:
+                header += fmts[key][0]
+                fmt += fmts[key][1]
+                out += (data[:, np.newaxis] * fmts[key][2],)
+        for key in ('vol', 'depth', 'long', 'trans', 'qlong', 'qtrans'):
+            data = self.conf.get(key)
+            if data is not None:
+                header += fmts[key][0]
+                fmt += fmts[key][1]
+                out += (data[:, np.newaxis] * fmts[key][2],)
+        out = np.concatenate(out, axis=-1)
+
         # NB CoordinateSystem is hard-coded as Head here
         with open(fname, 'wb') as fid:
             fid.write('# CoordinateSystem "Head"\n'.encode('utf-8'))
-            fid.write('#   begin     end   X (mm)   Y (mm)   Z (mm)'
-                      '   Q(nAm)  Qx(nAm)  Qy(nAm)  Qz(nAm)    g/%\n'
-                      .encode('utf-8'))
-            t = self.times[:, np.newaxis] * 1000.
-            gof = self.gof[:, np.newaxis]
-            amp = 1e9 * self.amplitude[:, np.newaxis]
-            out = np.concatenate((t, t, self.pos / 1e-3, amp,
-                                  self.ori * amp, gof), axis=-1)
+            fid.write((header + '\n').encode('utf-8'))
             np.savetxt(fid, out, fmt=fmt)
             if self.name is not None:
                 fid.write(('## Name "%s dipoles" Style "Dipoles"'
@@ -124,13 +169,23 @@ class Dipole(object):
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+
+        Returns
+        -------
+        self : instance of Dipole
+            The cropped intance.
         """
         sfreq = None
         if len(self.times) > 1:
             sfreq = 1. / np.median(np.diff(self.times))
         mask = _time_mask(self.times, tmin, tmax, sfreq=sfreq)
-        for attr in ('times', 'pos', 'gof', 'amplitude', 'ori'):
-            setattr(self, attr, getattr(self, attr)[mask])
+        for attr in ('times', 'pos', 'gof', 'amplitude', 'ori',
+                     'khi2', 'nfree'):
+            if getattr(self, attr) is not None:
+                setattr(self, attr, getattr(self, attr)[mask])
+        for key in self.conf.keys():
+            self.conf[key] = self.conf[key][mask]
+        return self
 
     def copy(self):
         """Copy the Dipoles object.
@@ -144,13 +199,9 @@ class Dipole(object):
 
     @verbose
     def plot_locations(self, trans, subject, subjects_dir=None,
-                       bgcolor=(1, 1, 1), opacity=0.3,
-                       brain_color=(1, 1, 0), fig_name=None,
-                       fig_size=(600, 600), mode='orthoview',
-                       scale_factor=0.1e-1, colors=None,
-                       coord_frame='mri', idx='gof',
-                       show_all=True, ax=None, block=False,
-                       show=True, verbose=None):
+                       mode='orthoview', coord_frame='mri', idx='gof',
+                       show_all=True, ax=None, block=False, show=True,
+                       verbose=None):
         """Plot dipole locations in 3d.
 
         Parameters
@@ -164,25 +215,10 @@ class Dipole(object):
             The path to the freesurfer subjects reconstructions.
             It corresponds to Freesurfer environment variable SUBJECTS_DIR.
             The default is None.
-        bgcolor : tuple of length 3
-            Background color in 3D.
-        opacity : float in [0, 1]
-            Opacity of brain mesh.
-        brain_color : tuple of length 3
-            Brain color.
-        fig_name : str
-            Mayavi figure name.
-        fig_size : tuple of length 2
-            Mayavi figure size.
         mode : str
             Currently only ``'orthoview'`` is supported.
 
             .. versionadded:: 0.14.0
-        scale_factor : float
-            The scaling applied to amplitudes for the plot. Only applies for
-            modes ``cone`` and ``sphere``.
-        colors: list of colors | None
-            Color to plot with each dipole. If None default colors are used.
         coord_frame : str
             Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
 
@@ -243,9 +279,8 @@ class Dipole(object):
             raise ValueError("mode must be 'cone', 'sphere' or 'orthoview'. "
                              "Got %s." % mode)
         return plot_dipole_locations(
-            dipoles, trans, subject, subjects_dir, bgcolor, opacity,
-            brain_color, fig_name, fig_size, mode, scale_factor,
-            colors, coord_frame, idx, show_all, ax, block, show)
+            dipoles, trans, subject, subjects_dir, mode, coord_frame, idx,
+            show_all, ax, block, show)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
@@ -287,9 +322,15 @@ class Dipole(object):
         selected_ori = self.ori[item, :].copy()
         selected_gof = self.gof[item].copy()
         selected_name = self.name
+        selected_conf = dict()
+        for key in self.conf.keys():
+            selected_conf[key] = self.conf[key][item]
+        selected_khi2 = self.khi2[item] if self.khi2 is not None else None
+        selected_nfree = self.nfree[item] if self.nfree is not None else None
         return Dipole(
             selected_times, selected_pos, selected_amplitude, selected_ori,
-            selected_gof, selected_name)
+            selected_gof, selected_name, selected_conf, selected_khi2,
+            selected_nfree)
 
     def __len__(self):
         """Return the number of dipoles.
@@ -351,6 +392,7 @@ class DipoleFixed(object):
     --------
     read_dipole
     Dipole
+    fit_dipole
 
     Notes
     -----
@@ -446,8 +488,9 @@ def read_dipole(fname, verbose=None):
 
     See Also
     --------
-    mne.Dipole
-    mne.DipoleFixed
+    Dipole
+    DipoleFixed
+    fit_dipole
     """
     _check_fname(fname, overwrite='read', must_exist=True)
     if fname.endswith('.fif') or fname.endswith('.fif.gz'):
@@ -484,23 +527,31 @@ def _read_dipole_text(fname):
     # actually parse the fields
     def_line = def_line.lstrip('%').lstrip('#').strip()
     # MNE writes it out differently than Elekta, let's standardize them...
-    fields = re.sub('([X|Y|Z] )\(mm\)',  # "X (mm)", etc.
+    fields = re.sub(r'([X|Y|Z] )\(mm\)',  # "X (mm)", etc.
                     lambda match: match.group(1).strip() + '/mm', def_line)
-    fields = re.sub('\((.*?)\)',  # "Q(nAm)", etc.
+    fields = re.sub(r'\((.*?)\)',  # "Q(nAm)", etc.
                     lambda match: '/' + match.group(1), fields)
     fields = re.sub('(begin|end) ',  # "begin" and "end" with no units
                     lambda match: match.group(1) + '/ms', fields)
     fields = fields.lower().split()
-    used_fields = ('begin/ms',
-                   'x/mm', 'y/mm', 'z/mm',
-                   'q/nam',
-                   'qx/nam', 'qy/nam', 'qz/nam',
-                   'g/%')
-    missing_fields = sorted(set(used_fields) - set(fields))
+    required_fields = ('begin/ms',
+                       'x/mm', 'y/mm', 'z/mm',
+                       'q/nam', 'qx/nam', 'qy/nam', 'qz/nam',
+                       'g/%')
+    optional_fields = ('khi^2', 'free',  # standard ones
+                       # now the confidence fields (up to 5!)
+                       'vol/mm^3', 'depth/mm', 'long/mm', 'trans/mm',
+                       'qlong/nam', 'qtrans/nam')
+    conf_scales = [1e-9, 1e-3, 1e-3, 1e-3, 1e-9, 1e-9]
+    missing_fields = sorted(set(required_fields) - set(fields))
     if len(missing_fields) > 0:
         raise RuntimeError('Could not find necessary fields in header: %s'
                            % (missing_fields,))
-    ignored_fields = sorted(set(fields) - set(used_fields) - set(['end/ms']))
+    handled_fields = set(required_fields) | set(optional_fields)
+    assert len(handled_fields) == len(required_fields) + len(optional_fields)
+    ignored_fields = sorted(set(fields) -
+                            set(handled_fields) -
+                            set(['end/ms']))
     if len(ignored_fields) > 0:
         warn('Ignoring extra fields in dipole file: %s' % (ignored_fields,))
     if len(fields) != data.shape[1]:
@@ -516,8 +567,8 @@ def _read_dipole_text(fname):
                  'to store time values')
 
     # Find the correct column in our data array, then scale to proper units
-    idx = [fields.index(field) for field in used_fields]
-    assert len(idx) == 9
+    idx = [fields.index(field) for field in required_fields]
+    assert len(idx) >= 9
     times = data[:, idx[0]] / 1000.
     pos = 1e-3 * data[:, idx[1:4]]  # put data in meters
     amplitude = data[:, idx[4]]
@@ -526,7 +577,17 @@ def _read_dipole_text(fname):
     norm[norm == 0] = 1
     ori = data[:, idx[5:8]] / norm[:, np.newaxis]
     gof = data[:, idx[8]]
-    return Dipole(times, pos, amplitude, ori, gof, name)
+    # Deal with optional fields
+    optional = [None] * 2
+    for fi, field in enumerate(optional_fields[:2]):
+        if field in fields:
+            optional[fi] = data[:, fields.index(field)]
+    khi2, nfree = optional
+    conf = dict()
+    for field, scale in zip(optional_fields[2:], conf_scales):  # confidence
+        if field in fields:
+            conf[field.split('/')[0]] = scale * data[:, fields.index(field)]
+    return Dipole(times, pos, amplitude, ori, gof, name, conf, khi2, nfree)
 
 
 # #############################################################################
@@ -550,24 +611,19 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     return B, B_orig, scales
 
 
-def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
+def _make_guesses(surf, grid, exclude, mindist, n_jobs):
     """Make a guess space inside a sphere or BEM surface."""
-    if isinstance(surf_or_rad, dict):
-        surf = surf_or_rad
+    if 'rr' in surf:
         logger.info('Guess surface (%s) is in %s coordinates'
                     % (_bem_explain_surface(surf['id']),
                        _coord_frame_name(surf['coord_frame'])))
     else:
-        radius = surf_or_rad[0]
         logger.info('Making a spherical guess space with radius %7.1f mm...'
-                    % (1000 * radius))
-        surf = _get_ico_surface(3)
-        _normalize_vectors(surf['rr'])
-        surf['rr'] *= radius
-        surf['rr'] += r0
+                    % (1000 * surf['R']))
     logger.info('Filtering (grid = %6.f mm)...' % (1000 * grid))
     src = _make_volume_source_space(surf, grid, exclude, 1000 * mindist,
                                     do_neighbors=False, n_jobs=n_jobs)
+    assert 'vertno' in src
     # simplify the result to make things easier later
     src = dict(rr=src['rr'][src['vertno']], nn=src['nn'][src['vertno']],
                nuse=src['nuse'], coord_frame=src['coord_frame'],
@@ -589,7 +645,7 @@ def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None):
 
 def _dipole_gof(uu, sing, vv, B, B2):
     """Calculate the goodness of fit from the forward SVD."""
-    ncomp = 3 if sing[2] / sing[0] > 0.2 else 2
+    ncomp = 3 if sing[2] / (sing[0] if sing[0] > 0 else 1.) > 0.2 else 2
     one = np.dot(vv[:ncomp], B)
     Bm2 = np.sum(one * one)
     gof = Bm2 / B2
@@ -627,8 +683,9 @@ def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd, ori=None):
         one = np.dot(fwd / sing, B)
         gof = (one * one)[0] / B2
         Q = ori * (scales[0] * np.sum(one / sing))
+        ncomp = 3
     B_residual = _compute_residual(proj_op, B_orig, fwd_orig, Q)
-    return Q, gof, B_residual
+    return Q, gof, B_residual, ncomp
 
 
 def _compute_residual(proj_op, B_orig, fwd_orig, Q):
@@ -638,22 +695,29 @@ def _compute_residual(proj_op, B_orig, fwd_orig, Q):
 
 
 def _fit_dipoles(fun, min_dist_to_inner_skull, data, times, guess_rrs,
-                 guess_data, fwd_data, whitener, proj_op, ori, n_jobs):
+                 guess_data, fwd_data, whitener, proj_op, ori, n_jobs, rank):
     """Fit a single dipole to the given whitened, projected data."""
     from scipy.optimize import fmin_cobyla
     parallel, p_fun, _ = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(p_fun(min_dist_to_inner_skull, B, t, guess_rrs,
                          guess_data, fwd_data, whitener, proj_op,
-                         fmin_cobyla, ori)
+                         fmin_cobyla, ori, rank)
                    for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
     amp = np.array([r[1] for r in res])
     ori = np.array([r[2] for r in res])
     gof = np.array([r[3] for r in res]) * 100  # convert to percentage
-    residual = np.array([r[4] for r in res]).T
+    conf = None
+    if res[0][4] is not None:
+        conf = np.array([r[4] for r in res])
+        keys = ['vol', 'depth', 'long', 'trans', 'qlong', 'qtrans']
+        conf = {key: conf[:, ki] for ki, key in enumerate(keys)}
+    khi2 = np.array([r[5] for r in res])
+    nfree = np.array([r[6] for r in res])
+    residual = np.array([r[7] for r in res]).T
 
-    return pos, amp, ori, gof, residual
+    return pos, amp, ori, gof, conf, khi2, nfree, residual
 
 
 '''Simplex code in case we ever want/need it for testing
@@ -749,6 +813,68 @@ def _simplex_minimize(p, ftol, stol, fun, max_eval=1000):
 '''
 
 
+def _fit_confidence(rd, Q, ori, whitener, fwd_data, proj):
+    # As describedd in the Xfit manual, confidence intervals can be calculated
+    # by examining a linearization of model at the best-fitting location,
+    # i.e. taking the Jacobian and using the whitener:
+    #
+    #     J = [∂b/∂x ∂b/∂y ∂b/∂z ∂b/∂Qx ∂b/∂Qy ∂b/∂Qz]
+    #     C = (J.T C^-1 J)^-1
+    #
+    # And then the confidence interval is the diagonal of C, scaled by 1.96
+    # (for 95% confidence).
+    direction = np.empty((3, 3))
+    # The coordinate system has the x axis aligned with the dipole orientation,
+    direction[0] = ori
+    # the z axis through the origin of the sphere model
+    rvec = rd - fwd_data['inner_skull']['r0']
+    direction[2] = rvec - ori * np.dot(ori, rvec)  # orthogonalize
+    direction[2] /= np.linalg.norm(direction[2])
+    # and the y axis perpendical with these forming a right-handed system.
+    direction[1] = np.cross(direction[2], direction[0])
+    assert np.allclose(np.dot(direction, direction.T), np.eye(3))
+    # Get spatial deltas in dipole coordinate directions
+    deltas = (-1e-4, 1e-4)
+    J = np.empty((whitener.shape[0], 6))
+    for ii in range(3):
+        fwds = []
+        for delta in deltas:
+            this_r = rd[np.newaxis] + delta * direction[ii]
+            fwds.append(
+                np.dot(Q, _dipole_forwards(fwd_data, whitener, this_r)[0]))
+        J[:, ii] = np.diff(fwds, axis=0)[0] / np.diff(deltas)[0]
+    # Get current (Q) deltas in the dipole directions
+    deltas = np.array([-0.01, 0.01]) * np.linalg.norm(Q)
+    this_fwd = _dipole_forwards(fwd_data, whitener, rd[np.newaxis])[0]
+    for ii in range(3):
+        fwds = []
+        for delta in deltas:
+            fwds.append(np.dot(Q + delta * direction[ii], this_fwd))
+        J[:, ii + 3] = np.diff(fwds, axis=0)[0] / np.diff(deltas)[0]
+    # J is already whitened, so we don't need to do np.dot(whitener, J).
+    # However, the units in the Jacobian are potentially quite different,
+    # so we need to do some normalization during inversion, then revert.
+    direction_norm = np.linalg.norm(J[:, :3])
+    Q_norm = np.linalg.norm(J[:, 3:5])  # omit possible zero Z
+    norm = np.array([direction_norm] * 3 + [Q_norm] * 3)
+    J /= norm
+    J = np.dot(J.T, J)
+    C = linalg.pinvh(J, rcond=1e-14)
+    C /= norm
+    C /= norm[:, np.newaxis]
+    conf = 1.96 * np.sqrt(np.diag(C))
+    # The confidence volume of the dipole location is obtained from by
+    # taking the eigenvalues of the upper left submatrix and computing
+    # v = 4π/3 √(c^3 λ1 λ2 λ3) with c = 7.81, or:
+    vol_conf = 4 * np.pi / 3. * np.sqrt(
+        476.379541 * np.prod(linalg.eigh(C[:3, :3], eigvals_only=True)))
+    conf = np.concatenate([conf, [vol_conf]])
+    # Now we reorder and subselect the proper columns:
+    # vol, depth, long, trans, Qlong, Qtrans (discard Qdepth, assumed zero)
+    conf = conf[[6, 2, 0, 1, 3, 4]]
+    return conf
+
+
 def _surface_constraint(rd, surf, min_dist_to_inner_skull):
     """Surface fitting constraint."""
     dist = _compute_nearest(surf['rr'], rd[np.newaxis, :],
@@ -770,21 +896,20 @@ def _sphere_constraint(rd, r0, R_adj):
 
 def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
                 guess_data, fwd_data, whitener, proj_op,
-                fmin_cobyla, ori):
+                fmin_cobyla, ori, rank):
     """Fit a single bit of data."""
     B = np.dot(whitener, B_orig)
 
     # make constraint function to keep the solver within the inner skull
-    if isinstance(fwd_data['inner_skull'], dict):  # bem
+    if 'rr' in fwd_data['inner_skull']:  # bem
         surf = fwd_data['inner_skull']
         constraint = partial(_surface_constraint, surf=surf,
                              min_dist_to_inner_skull=min_dist_to_inner_skull)
     else:  # sphere
         surf = None
-        R, r0 = fwd_data['inner_skull']
-        constraint = partial(_sphere_constraint, r0=r0,
-                             R_adj=R - min_dist_to_inner_skull)
-        del R, r0
+        constraint = partial(
+            _sphere_constraint, r0=fwd_data['inner_skull']['r0'],
+            R_adj=fwd_data['inner_skull']['R'] - min_dist_to_inner_skull)
 
     # Find a good starting point (find_best_guess in C)
     B2 = np.dot(B, B)
@@ -810,11 +935,15 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
     # rd_final = simplex[0]
 
     # Compute the dipole moment at the final point
-    Q, gof, residual = _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig,
-                              rd_final, ori=ori)
+    Q, gof, residual, n_comp = _fit_Q(
+        fwd_data, whitener, proj_op, B, B2, B_orig, rd_final, ori=ori)
+    khi2 = (1 - gof) * B2
+    nfree = rank - n_comp
     amp = np.sqrt(np.dot(Q, Q))
     norm = 1. if amp == 0. else amp
     ori = Q / norm
+
+    conf = _fit_confidence(rd_final, Q, ori, whitener, fwd_data, proj_op)
 
     msg = '---- Fitted : %7.1f ms' % (1000. * t)
     if surf is not None:
@@ -824,29 +953,33 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
                 % (dist_to_inner_skull * 1000.))
 
     logger.info(msg)
-    return rd_final, amp, ori, gof, residual
+    return rd_final, amp, ori, gof, conf, khi2, nfree, residual
 
 
 def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
                       guess_data, fwd_data, whitener, proj_op,
-                      fmin_cobyla, ori):
+                      fmin_cobyla, ori, rank):
     """Fit a data using a fixed position."""
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
     if B2 == 0:
         warn('Zero field found for time %s' % t)
-        return np.zeros(3), 0, np.zeros(3), 0
+        return np.zeros(3), 0, np.zeros(3), 0, np.zeros(6)
     # Compute the dipole moment
     Q, gof, residual = _fit_Q(guess_data, whitener, proj_op, B, B2, B_orig,
-                              rd=None, ori=ori)
+                              rd=None, ori=ori)[:3]
     if ori is None:
         amp = np.sqrt(np.dot(Q, Q))
         norm = 1. if amp == 0. else amp
         ori = Q / norm
     else:
         amp = np.dot(Q, ori)
+    rd_final = guess_rrs[0]
+    # This will be slow, and we don't use it anyway, so omit it for now:
+    # conf = _fit_confidence(rd_final, Q, ori, whitener, fwd_data, proj_op)
+    conf = khi2 = nfree = None
     # No corresponding 'logger' message here because it should go *very* fast
-    return guess_rrs[0], amp, ori, gof, residual
+    return rd_final, amp, ori, gof, conf, khi2, nfree, residual
 
 
 @verbose
@@ -899,7 +1032,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     -------
     dip : instance of Dipole or DipoleFixed
         The dipole fits. A :class:`mne.DipoleFixed` is returned if
-        ``pos`` and ``ori`` are both not None.
+        ``pos`` and ``ori`` are both not None, otherwise a
+        :class:`mne.Dipole` is returned.
     residual : ndarray, shape (n_meeg_channels, n_times)
         The good M-EEG data channels with the fitted dipolar activity
         removed.
@@ -907,6 +1041,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     See Also
     --------
     mne.beamformer.rap_music
+    Dipole
+    DipoleFixed
+    read_dipole
 
     Notes
     -----
@@ -960,9 +1097,11 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         R, r0 = _fit_sphere(inner_skull['rr'], disp=False)
         # r0 back to head frame for logging
         r0 = apply_trans(mri_head_t['trans'], r0[np.newaxis, :])[0]
+        inner_skull['r0'] = r0
         logger.info('Head origin       : '
                     '%6.1f %6.1f %6.1f mm rad = %6.1f mm.'
                     % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2], 1000 * R))
+        del R, r0
     else:
         r0 = bem['r0']
         if len(bem.get('layers', [])) > 0:
@@ -982,9 +1121,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         logger.info('Sphere model      : origin at (% 7.2f % 7.2f % 7.2f) mm, '
                     '%s = %6.1f mm'
                     % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2], kind, R))
-        inner_skull = [R, r0]  # NB sphere model defined in head frame
-    r0_mri = apply_trans(invert_transform(mri_head_t)['trans'],
-                         r0[np.newaxis, :])[0]
+        inner_skull = dict(R=R, r0=r0)  # NB sphere model defined in head frame
+        del R, r0
     accurate = False  # can be an option later (shouldn't make big diff)
 
     # Deal with DipoleFixed cases here
@@ -1069,7 +1207,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
     # whitener = np.dot(whitener, cov['eigvec'])
 
-    whitener = _get_whitener_data(info, cov, picks, verbose=False)
+    whitener, _, rank = compute_whitener(cov, info, picks=picks,
+                                         return_rank=True)
 
     # Proceed to computing the fits (make_guess_data)
     if fixed_position:
@@ -1077,23 +1216,23 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         logger.info('Compute forward for dipole location...')
     else:
         logger.info('\n---- Computing the forward solution for the guesses...')
-        guess_src = _make_guesses(inner_skull, r0_mri,
-                                  guess_grid, guess_exclude, guess_mindist,
-                                  n_jobs=n_jobs)[0]
+        guess_src = _make_guesses(inner_skull, guess_grid, guess_exclude,
+                                  guess_mindist, n_jobs=n_jobs)[0]
         # grid coordinates go from mri to head frame
         transform_surface_to(guess_src, 'head', mri_head_t)
         logger.info('Go through all guess source locations...')
 
     # inner_skull goes from mri to head frame
-    if isinstance(inner_skull, dict):
+    if 'rr' in inner_skull:
         transform_surface_to(inner_skull, 'head', mri_head_t)
     if fixed_position:
-        if isinstance(inner_skull, dict):
+        if 'rr' in inner_skull:
             check = _surface_constraint(pos, inner_skull,
                                         min_dist_to_inner_skull)
         else:
-            check = _sphere_constraint(pos, r0,
-                                       R_adj=R - min_dist_to_inner_skull)
+            check = _sphere_constraint(
+                pos, inner_skull['r0'],
+                R_adj=inner_skull['R'] - min_dist_to_inner_skull)
         if check <= 0:
             raise ValueError('fixed position is %0.1fmm outside the inner '
                              'skull boundary' % (-1000 * check,))
@@ -1124,7 +1263,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     fun = _fit_dipole_fixed if fixed_position else _fit_dipole
     out = _fit_dipoles(
         fun, min_dist_to_inner_skull, data, times, guess_src['rr'],
-        guess_data, fwd_data, whitener, proj_op, ori, n_jobs)
+        guess_data, fwd_data, whitener, proj_op, ori, n_jobs, rank)
+    assert len(out) == 8
     if fixed_position and ori is not None:
         # DipoleFixed
         data = np.array([out[1], out[3]])
@@ -1152,8 +1292,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                               evoked._aspect_kind, evoked.first, evoked.last,
                               comment)
     else:
-        dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment)
-    residual = out[4]
+        dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment,
+                         out[4], out[5], out[6])
+    residual = out[-1]
     logger.info('%d time points fitted' % len(dipoles.times))
     return dipoles, residual
 

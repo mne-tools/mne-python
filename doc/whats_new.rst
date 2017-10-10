@@ -29,7 +29,7 @@ Changelog
 
     - Add :class:`mne.decoding.TimeDelayingRidge` class, used by default by :class:`mne.decoding.ReceptiveField`, to speed up auto- and cross-correlation computations and enable Laplacian regularization by `Ross Maddox`_ and `Eric Larson`_
 
-    - Add new :mod:`mne.datasets.mtrf` dataset by `Chris Holdgraf`_
+    - Add new :mod:`mne.datasets.mtrf <mne.datasets.mtrf.data_path>` dataset by `Chris Holdgraf`_
 
     - Add example of time-frequency decoding with CSP by `Laura Gwilliams`_
 
@@ -47,15 +47,78 @@ Changelog
 
     - Add ``axes`` parameter to plot_topo functions by `Jaakko Leppakangas`_
 
-    - Add options to change time windowing in :func:`mne.filter.filter_chpi` by `Eric Larson`_
+    - Add options to change time windowing in :func:`mne.chpi.filter_chpi` by `Eric Larson`_
 
-    - :meth:`mne.channels.Montage.plot`, :meth:`mne.channels.DigMontage.plot`, and :func:`mne.viz.montage.plot_montage` now allow plotting channel locations as a topomap by `Clemens Brunner`_
+    - :meth:`mne.channels.Montage.plot`, :meth:`mne.channels.DigMontage.plot`, and :func:`mne.viz.plot_montage` now allow plotting channel locations as a topomap by `Clemens Brunner`_
 
-    - Add ``background_color`` parameter to :meth:`mne.Epochs.plot_topo` and :func:`mne.viz.plot_evoked_topo` and improve axes rendering as done in :func:`mne.viz.plot_compare_evokeds` by `Alex Gramfort`_
+    - Add ``background_color`` parameter to :meth:`mne.Evoked.plot_topo` and :func:`mne.viz.plot_evoked_topo` and improve axes rendering as done in :func:`mne.viz.plot_compare_evokeds` by `Alex Gramfort`_
 
+    - Add support for GDF files in :func:`mne.io.read_raw_edf` by `Nicolas Barascud`_
+
+    - Add :func:`mne.io.find_edf_events` for getting the events as they are in the EDF/GDF header by `Jaakko Leppakangas`_
+
+    - Speed up :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_ and `Jaakko Leppakangas`_
+
+    - Add ``mne.inverse_sparse.mxne_optim.dgap_l21l1`` for computing the duality gap for TF-MxNE as the new stopping criterion by `Daniel Strohmeier`_
+
+    - Add option to return a list of :class:`Dipole` objects in sparse source imaging methods by `Daniel Strohmeier`_
+
+    - Add :func:`mne.inverse_sparse.make_stc_from_dipoles` to generate stc objects from lists of dipoles by `Daniel Strohmeier`_
+
+    - Add :func:`mne.channels.find_ch_connectivity` that tries to infer the correct connectivity template using channel info. If no template is found, it computes the connectivity matrix using :class:`Delaunay <scipy.spatial.Delaunay>` triangulation of the 2d projected channel positions by `Jaakko Leppakangas`_
+
+    - Add IO support for EGI MFF format by `Jaakko Leppakangas`_  and `ramonapariciog`_
+
+    - Add option to use matplotlib backend when plotting with :func:`mne.viz.plot_source_estimates` by `Jaakko Leppakangas`_
+
+    - Add :meth:`mne.channels.Montage.get_pos2d` to get the 2D positions of channels in a montage by `Clemens Brunner`_
+
+    - Add MGH 60- and 70-channel standard montages to :func:`mne.channels.read_montage` by `Eric Larson`_
+
+    - Add option for embedding SVG instead of PNG in HTML for :class:`mne.report.Report` by `Eric Larson`_
+
+    - Add confidence intervals, number of free parameters, and χ² to :func:`mne.fit_dipole` and :func:`mne.read_dipole` by `Eric Larson`_
+
+    - :attr:`mne.SourceEstimate.data` is now writable, writing to it will also update :attr:`mne.SourceEstimate.times` by `Marijn van Vliet`_
+
+    - :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` now use anti-aliasing to draw signals by `Clemens Brunner`_
+
+    - Allow using saved ``DigMontage`` to import digitization to :func:`mne.gui.coregistration` by `Jaakko Leppakangas`_
+
+    - Add function :func:`mne.channels.get_builtin_montages` to list all built-in montages by `Clemens Brunner`_
+
+    - :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` now accept ``**fit_params`` at fitting by `Jean-Remi King`_
+
+    - Add :class:`mne.VectorSourceEstimate` class which enables working with both source power and dipole orientations by `Marijn van Vliet`_
+
+    - Add option ``pick_ori='vector'`` to :func:`mne.minimum_norm.apply_inverse` to produce :class:`mne.VectorSourceEstimate` by `Marijn van Vliet`_
+
+    - Add support for :class:`numpy.random.RandomState` argument to ``seed`` in :mod:`statistical clustering functions <mne.stats>` and better documentation of exact 1-sample tests by `Eric Larson`_
+
+    - Extend :func:`mne.viz.plot_epochs_image`/:meth:`mne.Epochs.plot_image` with regards to grouping by or aggregating over channels. See the new example at `examples/visualization/plot_roi_erpimage_by_rt.py` by `Jona Sassenhagen`_
+
+    - Add bootstrapped confidence intervals to :func:`mne.viz.plot_compare_evokeds` by `Jona Sassenhagen`_ and `Denis Engemann`_
+
+    - Add example on how to plot ERDS maps (also known as ERSP) by `Clemens Brunner`_
+
+    - Add support for volume source spaces to :func:`spatial_src_connectivity` and :func:`spatio_temporal_src_connectivity` by `Alex Gramfort`_
+
+    - Plotting raw data (:func:`mne.viz.plot_raw` or :meth:`mne.io.Raw.plot`) with events now includes event numbers (if there are not more than 50 events on a page) by `Clemens Brunner`_
+
+    - Add filtering functions :meth:`mne.Epochs.filter` and :meth:`mne.Evoked.filter`, as well as ``pad`` argument to :meth:`mne.io.Raw.filter` by `Eric Larson`_
+
+    - Add high frequency somatosensory MEG dataset by `Jussi Nurminen`_
+
+    - Add reduced set of labels for HCPMMP-1.0 parcellation in :func:`mne.datasets.fetch_hcp_mmp_parcellation` by `Eric Larson`_
+
+    - Enable morphing between hemispheres with :func:`mne.compute_morph_matrix` by `Christian Brodbeck`_
 
 BUG
 ~~~
+
+    - Fixed a bug when creating spherical volumetric grid source spaces in :func:`setup_volume_source_space` by improving the minimum-distance computations, which in general will decrease the number of used source space points by `Eric Larson`_
+
+    - Fix bug in :meth:`mne.io.read_raw_brainvision` read .vhdr files with ANSI codepage by `Okba Bekhelifi`_ and `Alex Gramfort`_
 
     - Fix unit scaling when reading in EGI digitization files using :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
 
@@ -93,10 +156,59 @@ BUG
 
     - Fix :func:`mne.read_bem_surfaces` for BEM files missing normals by `Christian Brodbeck`_
 
-    - Fix :func:`mne.transforms.transform_surface_to` to actually copy when ``copy=True`` by `Eric Larson`_
+    - Fix :func:`mne.transform_surface_to` to actually copy when ``copy=True`` by `Eric Larson`_
+
+    - Fix :func:`mne.io.read_raw_brainvision` to read vectorized data correctly by `Jaakko Leppakangas`_ and `Phillip Alday`_
+
+    - Fix :func:`mne.connectivity.spectral_connectivity` so that if ``n_jobs > 1`` it does not ignore last ``n_epochs % n_jobs`` epochs by `Mikołaj Magnuski`_
+
+    - Fix :func:`mne.io.read_raw_edf` to infer sampling rate correctly when reading EDF+ files where tal-channel has a higher sampling frequency by `Jaakko Leppakangas`_
+
+    - Fix default value of ``kind='topomap'`` in :meth:`mne.channels.Montage.plot` to be consistent with :func:`mne.viz.plot_montage` by `Clemens Brunner`_
+
+    - Fix bug in :meth:`to_data_frame <mne.io.Raw.to_data_frame>` where non-consecutive picks would make the function crash by `Jaakko Leppakangas`_
+
+    - Fix channel picking and drop in :class:`mne.time_frequency.EpochsTFR` by `Lukáš Hejtmánek`_
+
+    - Fix :func:`mne.SourceEstimate.transform` to properly update :attr:`mne.SourceEstimate.times` by `Marijn van Vliet`_
+
+    - Fix :func:`mne.viz.plot_evoked_joint` to allow custom titles without appending information about the channels by `Jaakko Leppakangas`_
+
+    - Fix writing a forward solution after being processed by :func:`mne.forward.restrict_forward_to_label` or :func:`mne.forward.restrict_forward_to_stc` by `Marijn van Vliet`_
+
+    - Fix bug in :func:`mne.viz.plot_compare_evokeds` where ``truncate_yaxis`` was ignored (default is now ``False``), by `Jona Sassenhagen`_
+
+    - Fix bug in :func:`mne.viz.plot_evoked` where all xlabels were removed when using ``spatial_colors=True``, by `Jesper Duemose Nielsen`_
+
+    - Fix field mapping :func:`mne.make_field_map` and MEG bad channel interpolation functions (e.g., :meth:`mne.Evoked.interpolate_bads`) to choose a better number of components during pseudoinversion when few channels are available, by `Eric Larson`_
+
+    - Fix bug in :func:`mne.io.read_raw_brainvision`, changed default to read coordinate information if available and added test, by `Jesper Duemose Nielsen`_
+
+    - Fix bug in :meth:`mne.SourceEstimate.to_original_src` where morphing failed if two vertices map to the same target vertex, by `Marijn van Vliet`_
+
+    - Fix :class:`mne.preprocessing.Xdawn` to give verbose error messages about rank deficiency and handle transforming :class:`mne.Evoked`, by `Eric Larson`_
+
+    - Fix bug in DC and Nyquist frequency multitaper PSD computations, e.g. in :func:`mne.time_frequency.psd_multitaper`, by `Eric Larson`_
+
+    - Fix default padding type for :meth:`mne.Epochs.resample` and :meth:`mne.Evoked.resample` to be ``'edge'`` by default, by `Eric Larson`_
+
+    - Fix :func:`mne.inverse_sparse.mixed_norm`, :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.gamma_map` to work with volume source space and sphere head models in MEG by `Alex Gramfort`_ and `Yousra Bekhti`_
+
+    - Fix :meth:`mne.Evoked.as_type` channel renaming to append ``'_v'`` instead of ``'_virtual'`` to channel names to comply with shorter naming (15 char) requirements, by `Eric Larson`_
+
+    - Fix treatment of CTF HPI coils as fiducial points in :func:`mne.gui.coregistration` by `Eric Larson`_
+
+    - Fix resampling of events along with raw in :func:`mne.io.Raw` to now take into consideration the value of ``first_samp`` by `Chris Bailey`_
 
 API
 ~~~
+    - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
+
+    - ICA channel names have now been reformatted to start from zero, e.g. ``"ICA000"``, to match indexing schemes in :class:`mne.preprocessing.ICA` and related functions, by `Stefan Repplinger`_ and `Eric Larson`_
+
+    - Add :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.apply_lcmv`, :func:`mne.beamformer.apply_lcmv_epochs`, and :func:`mne.beamformer.apply_lcmv_raw` to enable the separate computation and application of LCMV beamformer weights by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
+
+    - Add ``weight_norm`` parameter to enable both unit-noise-gain beamformer and neural activity index (weight normalization) and make whitening optional by allowing ``noise_cov=None`` in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, and :func:`mne.beamformer.lcmv_raw`, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
     - Add new filtering mode ``fir_design='firwin'`` (default in the next 0.16 release) that gets improved attenuation using fewer samples compared to ``fir_design='firwin2'`` (default in the current 0.15 release) by `Eric Larson`_
 
@@ -116,6 +228,40 @@ API
 
     - :func:`mne.find_events` ``mask_type`` parameter will change from ``'not_and'`` to ``'and'`` in 0.16.
 
+    - Instead of raising an error, duplicate channel names in the data file are now appended with a running number by `Jaakko Leppakangas`_
+
+    - :func:`mne.io.read_raw_edf` has now ``'auto'`` option for ``stim_channel`` (default in version 0.16) that automatically detects if EDF annotations or GDF events exist in the header and constructs the stim channel based on these events by `Jaakko Leppakangas`_
+
+    - :meth:`mne.io.Raw.plot_psd` now rejects data annotated bad by default. Turn off with ``reject_by_annotation=False``, by `Eric Larson`_
+
+    - :func:`mne.set_eeg_reference` and the related methods (e.g., :meth:`mne.io.Raw.set_eeg_reference`) have a new argument ``projection``, which if set to False directly applies an average reference instead of adding an SSP projector, by `Clemens Brunner`_
+
+    - Deprecate ``plot_trans`` in favor of :func:`mne.viz.plot_alignment` and add ``bem`` parameter for plotting conductor model by `Jaakko Leppakangas`_
+
+    - :func:`mne.beamformer.tf_lcmv` now has a ``raw`` parameter to accommodate epochs objects that already have data loaded with ``preload=True``, with :meth:`mne.Epochs.load_data`, or that are read from disk, by `Eric Larson`_
+
+    - :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` now use a Hamming window (instead of a Hann window) by `Clemens Brunner`_
+
+    - ``picks`` parameter in :func:`mne.beamformer.lcmv`, :func:`mne.beamformer.lcmv_epochs`, :func:`mne.beamformer.lcmv_raw`, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
+
+    - The keyword argument ``frequencies`` has been deprecated in favor of ``freqs`` in various time-frequency functions, e.g. :func:`mne.time_frequency.tfr_array_morlet`, by `Eric Larson`_
+
+    - Add ``patterns=False`` parameter in :class:`mne.decoding.ReceptiveField`. Turn on to compute inverse model coefficients, by `Nicolas Barascud`_
+
+    - The ``scale``, ``scale_time``, and ``unit`` parameters have been deprecated in favor of ``scalings``, ``scalings_time``, and ``units`` in :func:`mne.viz.plot_evoked_topomap` and related functions, by `Eric Larson`_
+
+    - ``loose`` parameter in inverse solvers has now a default value ``'auto'`` depending if the source space is a surface, volume, or discrete type by `Alex Gramfort`_ and `Yousra Bekhti`_
+
+    - The behavior of ``'mean_flip'`` label-flipping in :meth:`mne.extract_label_time_course` and related functions has been changed such that the flip, instead of having arbitrary sign, maximally aligns in the positive direction of the normals of the label, by `Eric Larson`_
+
+    - Deprecate force_fixed and surf_ori in :func:`mne.read_forward_solution` by `Daniel Strohmeier`_
+
+    - :func:`mne.convert_forward_solution` has a new argument ``use_cps``, which controls wether information on cortical patch statistics is applied while generating surface-oriented forward solutions with free and fixed orientation by `Daniel Strohmeier`_
+
+    - :func:`mne.write_forward_solution` writes a forward solution as a forward solution with free orientation in X/Y/Z RAS coordinates if it is derived from a forward solution with free orientation and as a forward solution with fixed orientation in surface-based local coordinates otherwise by `Daniel Strohmeier`_
+
+    - ``loose=None`` in inverse solvers is deprecated, use explicitly ``loose=0`` for fixed constraint and ``loose=1.0`` for free orientations by `Eric Larson`_
+
 .. _changes_0_14:
 
 Version 0.14
@@ -134,11 +280,11 @@ Changelog
 
     - Add HCP-MMP1.0 parcellation dataset downloader by `Eric Larson`_
 
-    - Add option to project EEG electrodes onto the scalp in :func:`mne.viz.plot_trans` by `Eric Larson`_
+    - Add option to project EEG electrodes onto the scalp in ``mne.viz.plot_trans`` by `Eric Larson`_
 
     - Add option to plot individual sensors in :meth:`mne.io.Raw.plot_psd` by `Alex Gramfort`_ and `Eric Larson`_
 
-    - Add option to plot ECoG electrodes in :func:`mne.viz.plot_trans` by `Eric Larson`_
+    - Add option to plot ECoG electrodes in ``mne.viz.plot_trans`` by `Eric Larson`_
 
     - Add convenient default values to :meth:`mne.io.Raw.apply_hilbert` and :meth:`mne.io.Raw.apply_function` by `Denis Engemann`_
 
@@ -148,7 +294,7 @@ Changelog
 
     - Add option to convert 3d electrode plots to a snapshot with 2d electrode positions with :func:`mne.viz.snapshot_brain_montage` by `Chris Holdgraf`_
 
-    - Add skull surface plotting option to :func:`mne.viz.plot_trans` by `Jaakko Leppakangas`_
+    - Add skull surface plotting option to ``mne.viz.plot_trans`` by `Jaakko Leppakangas`_
 
     - Add minimum-phase filtering option in :meth:`mne.io.Raw.filter` by `Eric Larson`_
 
@@ -168,7 +314,7 @@ Changelog
 
     - Add option in :meth:`mne.io.Raw.plot` to display the time axis relative to ``raw.first_samp`` by `Mainak Jas`_
 
-    - Add new :mod:`mne.datasets.visual_92_categories` dataset by `Jaakko Leppakangas`_
+    - Add new :mod:`mne.datasets.visual_92_categories <mne.datasets.visual_92_categories.data_path>` dataset by `Jaakko Leppakangas`_
 
     - Add option in :func:`mne.io.read_raw_edf` to allow channel exclusion by `Jaakko Leppakangas`_
 
@@ -178,7 +324,7 @@ Changelog
 
     - Add ``yscale`` keyword argument to :meth:`mne.time_frequency.AverageTFR.plot` that allows specifying whether to present the frequency axis in linear (``'linear'``) or log (``'log'``) scale. The default value is ``'auto'`` which detects whether frequencies are log-spaced and sets yscale to log. Added by `Mikołaj Magnuski`_
 
-    - Add :ref:`Representational Similarity Analysis (RSA) <sphx_glr_auto_examples_decoding_decoding_rsa.py>` example on :mod:`mne.datasets.visual_92_categories` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
+    - Add :ref:`Representational Similarity Analysis (RSA) <rsa_noplot>` example on :mod:`mne.datasets.visual_92_categories.data_path` dataset by `Jaakko Leppakangas`_, `Jean-Remi King`_ and `Alex Gramfort`_
 
     - Add support for NeuroScan files with event type 3 in :func:`mne.io.read_raw_cnt` by `Marijn van Vliet`_
 
@@ -186,7 +332,7 @@ Changelog
 
     - Add support for deleting all projectors or a list of indices in :meth:`mne.io.Raw.del_proj` by `Eric Larson`_
 
-    - Add source space plotting with :meth:`mne.SourceSpaces.plot` using :func:`mne.viz.plot_trans` by `Eric Larson`_
+    - Add source space plotting with :meth:`mne.SourceSpaces.plot` using ``mne.viz.plot_trans`` by `Eric Larson`_
 
     - Add :func:`mne.decoding.get_coef` to retrieve and inverse the coefficients of a linear model - typically a spatial filter or pattern, by `Jean-Remi King`_
 
@@ -209,6 +355,8 @@ Changelog
     - Allow using ``spatial_colors`` for non-standard layouts by creating custom layouts from channel locations and add ``to_sphere`` keyword to :func:`mne.viz.plot_sensors` to allow plotting sensors that are not on the head surface by `Jaakko Leppakangas`_
 
     - Concatenating raws with :func:`mne.concatenate_raws` now creates boundary annotations automatically by `Jaakko Leppakangas`_
+
+    - :func:`mne.viz.plot_projs_topomap` now supports plotting EEG topomaps by passing in :class:`mne.Info` by `Eric Larson`_
 
 BUG
 ~~~
@@ -287,7 +435,7 @@ BUG
 
     - Fix :func:`mne.beamformer.rap_music` to return dipoles with amplitudes in Am instead of nAm by `Jaakko Leppakangas`_
 
-    - Fix computation of duality gap in :func:`mne.inverse_sparse.mxne_optim.dgap_l21` by `Mathurin Massias`_
+    - Fix computation of duality gap in ``mne.inverse_sparse.mxne_optim.dgap_l21`` by `Mathurin Massias`_
 
 API
 ~~~
@@ -296,7 +444,7 @@ API
 
     - :class:`EvokedArray` now has default value ``tmin=0.`` by `Jaakko Leppakangas`_
 
-    - The ``ch_type`` argument for :func:`mne.viz.plot_trans` has been deprecated, use ``eeg_sensors`` and ``meg_sensors`` instead, by `Eric Larson`_
+    - The ``ch_type`` argument for ``mne.viz.plot_trans`` has been deprecated, use ``eeg_sensors`` and ``meg_sensors`` instead, by `Eric Larson`_
 
     - The default ``tmax=60.`` in :meth:`mne.io.Raw.plot_psd` will change to ``tmax=np.inf`` in 0.15, by `Eric Larson`_
 
@@ -344,7 +492,7 @@ Changelog
 
     - Add generic array-filtering function :func:`mne.filter.filter_data` by `Eric Larson`_
 
-    - :func:`mne.viz.plot_trans` now also shows head position indicators by `Christian Brodbeck`_
+    - ``mne.viz.plot_trans`` now also shows head position indicators by `Christian Brodbeck`_
 
     - Add label center of mass function :func:`mne.Label.center_of_mass` by `Eric Larson`_
 
@@ -684,7 +832,7 @@ BUG
 
     - Fix bug in :class: `mne.io.edf.RawEDF` highpass filter setting to take max highpass to match warning message by `Teon Brooks`_
 
-    - Fix bugs with coordinane frame adjustments in :func:`mne.viz.plot_trans` by `Eric Larson`_
+    - Fix bugs with coordinane frame adjustments in ``mne.viz.plot_trans`` by `Eric Larson`_
 
     - Fix bug in colormap selection in :func:`mne.Evoked.plot_projs_topomap` by `Jaakko Leppakangas`_
 
@@ -894,7 +1042,7 @@ Changelog
 
     - Add support for scaling and adjusting the number of channels/time per view by `Jaakko Leppakangas`_
 
-    - Add support to toggle the show/hide state of all sections with a single keypress ('t') in :class:`mne.Report` by `Mainak Jas`_
+    - Add support to toggle the show/hide state of all sections with a single keypress ('t') in :class:`mne.report.Report` by `Mainak Jas`_
 
     - Add support for BEM model creation :func:`mne.make_bem_model` by `Eric Larson`_
 
@@ -922,7 +1070,7 @@ Changelog
 
     - Add ``plot_topo`` method to ``Evoked`` object by `Jaakko Leppakangas`_
 
-    - Add fetcher :mod:`mne.datasets.brainstorm` for datasets used by Brainstorm in their tutorials by `Mainak Jas`_
+    - Add fetcher :mod:`mne.datasets.brainstorm <mne.datasets>` for datasets used by Brainstorm in their tutorials by `Mainak Jas`_
 
     - Add interactive plotting of single trials by right clicking on channel name in epochs browser by `Jaakko Leppakangas`_
 
@@ -952,7 +1100,7 @@ Changelog
 
     - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
 
-    - Add :func:`mne.Report.add_slider_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
+    - Add :meth:`mne.report.Report.add_slider_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
 
 BUG
 ~~~
@@ -1114,7 +1262,7 @@ Changelog
 
    - Add ``evoked.as_type`` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Mainak Jas`_
 
-   - Add :func:`mne.Report.add_bem_to_section`, :func:`mne.Report.add_htmls_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
+   - Add :meth:`mne.report.Report.add_bem_to_section`, :meth:`mne.report.Report.add_htmls_to_section` methods to :class:`mne.report.Report` by `Teon Brooks`_
 
    - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
 
@@ -2169,3 +2317,15 @@ of commits):
 .. _Jesper Duemose Nielsen: https://github.com/jdue
 
 .. _Mathurin Massias: https://mathurinm.github.io/
+
+.. _ramonapariciog: https://github.com/ramonapariciog
+
+.. _Britta Westner: https://github.com/britta-wstnr
+
+.. _Lukáš Hejtmánek: https://github.com/hejtmy
+
+.. _Stefan Repplinger: https://github.com/stfnrpplngr
+
+.. _Okba Bekhelifi: https://github.com/okbalefthanded
+
+.. _Nicolas Barascud: https://github.com/nbara

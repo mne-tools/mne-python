@@ -103,7 +103,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         sources = ica.get_sources(inst)
         fig = _plot_ica_sources_evoked(
             evoked=sources, picks=picks, exclude=exclude, title=title,
-            labels=getattr(ica, 'labels_', None), show=show)
+            labels=getattr(ica, 'labels_', None), show=show, ica=ica)
     else:
         raise ValueError('Data input must be of Raw or Epochs type')
 
@@ -212,6 +212,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     psd_args = dict() if psd_args is None else psd_args
     topomap_args = dict() if topomap_args is None else topomap_args
     image_args = dict() if image_args is None else image_args
+    image_args["ts_args"] = dict(truncate_xaxis=False, show_sensors=False)
     for d in (psd_args, topomap_args, image_args):
         if not isinstance(d, dict):
             raise ValueError('topomap_args, image_args and psd_args have to be'
@@ -222,14 +223,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
     # calculations
     # ------------
-    plot_line_at_zero = False
     if isinstance(inst, BaseRaw):
         # break up continuous signal into segments
         from ..epochs import _segment_raw
         inst = _segment_raw(inst, segment_length=2., verbose=False,
                             preload=True)
-    if inst.times[0] < 0. and inst.times[-1] > 0.:
-        plot_line_at_zero = True
 
     epochs_src = ica.get_sources(inst)
     ica_data = np.swapaxes(epochs_src.get_data()[:, picks, :], 0, 1)
@@ -273,15 +271,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
         spectrum_std = np.array(spectrum_std) * num_std
 
-        # erp std
-        if plot_std:
-            erp = ica_data[idx].mean(axis=0)
-            diffs = ica_data[idx] - erp
-            erp_std = [
-                [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-                [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
-            erp_std = np.array(erp_std) * num_std
-
         # epoch variance
         epoch_var = np.var(ica_data[idx], axis=1)
 
@@ -291,7 +280,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         _plot_ica_topomap(ica, pick, show=False, axes=axes[0], **topomap_args)
 
         # image and erp
-        plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3],
+        plot_epochs_image(epochs_src, picks=pick, axes=axes[1:3], combine=None,
                           colorbar=False, show=False, **image_args)
 
         # spectrum
@@ -299,10 +288,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         if plot_std:
             axes[3].fill_between(freqs, psds_mean - spectrum_std[0],
                                  psds_mean + spectrum_std[1],
-                                 color='k', alpha=.15)
+                                 color='k', alpha=.2)
         if plot_lowpass_edge:
             axes[3].axvline(inst.info['lowpass'], lw=2, linestyle='--',
-                            color='k', alpha=0.15)
+                            color='k', alpha=0.2)
 
         # epoch variance
         axes[4].scatter(range(len(epoch_var)), epoch_var, alpha=0.5,
@@ -310,32 +299,19 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
         # aesthetics
         # ----------
-        axes[0].set_title('IC #{0:0>3}'.format(pick))
+        axes[0].set_title(ica._ica_names[pick])
 
         set_title_and_labels(axes[1], 'epochs image and ERP/ERF', [], 'Epochs')
 
         # erp
-        set_title_and_labels(axes[2], [], 'time', 'AU')
-        # line color and std
-        axes[2].lines[0].set_color('k')
-        if plot_std:
-            erp_xdata = axes[2].lines[0].get_data()[0]
-            axes[2].fill_between(erp_xdata, erp - erp_std[0],
-                                 erp + erp_std[1], color='k', alpha=.15)
-            axes[2].autoscale(enable=True, axis='y')
-            axes[2].axis('auto')
-            axes[2].set_xlim(erp_xdata[[0, -1]])
+        set_title_and_labels(axes[2], [], 'time', 'AU\n')
+        axes[2].spines["right"].set_color('k')
+        axes[2].set_xlim(epochs_src.times[[0, -1]])
         # remove half of yticks if more than 5
         yt = axes[2].get_yticks()
         if len(yt) > 5:
             yt = yt[::2]
             axes[2].yaxis.set_ticks(yt)
-
-        if not plot_line_at_zero:
-            xlims = [1e3 * inst.times[0], 1e3 * inst.times[-1]]
-            for k, ax in enumerate(axes[1:3]):
-                ax.lines[k].remove()
-                ax.set_xlim(xlims)
 
         # remove xticks - erp plot shows xticks for both image and erp plot
         axes[1].xaxis.set_ticks([])
@@ -351,6 +327,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         ylim = axes[3].get_ylim()
         air = np.diff(ylim)[0] * 0.1
         axes[3].set_ylim(ylim[0] - air, ylim[1] + air)
+        axes[1].axhline(0, color='k', linewidth=.5)
 
         # epoch variance
         set_title_and_labels(axes[4], 'epochs variance', 'epoch', 'AU')
@@ -361,7 +338,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     return all_fig
 
 
-def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
+def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
+                             labels=None):
     """Plot average over epochs in ICA space.
 
     Parameters
@@ -404,7 +382,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
     exclude_labels = list()
     for ii in picks:
         if ii in exclude:
-            line_label = 'IC #%03d' % ii
+            line_label = ica._ica_names[ii]
             if labels is not None:
                 annot = list()
                 for this_label in labels_used:
@@ -476,7 +454,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, labels=None):
 
 
 def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
-                    title='ICA component scores', figsize=(12, 6), show=True):
+                    title='ICA component scores', figsize=None, show=True):
     """Plot scores related to detected components.
 
     Use this function to asses how well your score describes outlier
@@ -501,8 +479,8 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         Draw horizontal line to e.g. visualize rejection threshold.
     title : str
         The figure title.
-    figsize : tuple of int
-        The figure size. Defaults to (12, 6).
+    figsize : tuple of int | None
+        The figure size. If None it gets set automatically.
     show : bool
         Show figure if True.
 
@@ -519,13 +497,14 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     if not isinstance(scores[0], (list, np.ndarray)):
         scores = [scores]
     n_rows = len(scores)
-    figsize = (12, 6) if figsize is None else figsize
+    if figsize is None:
+        figsize = (6.4, 2.7 * n_rows)
     fig, axes = plt.subplots(n_rows, figsize=figsize, sharex=True, sharey=True)
     if isinstance(axes, np.ndarray):
         axes = axes.flatten()
     else:
         axes = [axes]
-    plt.suptitle(title)
+    axes[0].set_title(title)
 
     if labels == 'ecg':
         labels = [l for l in ica.labels_ if l.startswith('ecg/')]
@@ -540,14 +519,15 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         if len(labels) != len(axes):
             raise ValueError('Need as many labels as axes (%i)' % len(axes))
     elif labels is None:
-        labels = (None, None)
+        labels = (None,) * n_rows
+
     for label, this_scores, ax in zip(labels, scores, axes):
         if len(my_range) != len(this_scores):
             raise ValueError('The length of `scores` must equal the '
                              'number of ICA components.')
-        ax.bar(my_range, this_scores, color='w')
+        ax.bar(my_range, this_scores, color='w', edgecolor='k')
         for excl in exclude:
-            ax.bar(my_range[excl], this_scores[excl], color='r')
+            ax.bar(my_range[excl], this_scores[excl], color='r', edgecolor='k')
         if axhline is not None:
             if np.isscalar(axhline):
                 axhline = [axhline]
@@ -566,8 +546,6 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         ax.set_xlim(0, len(this_scores))
 
     tight_layout(fig=fig)
-    if len(axes) > 1:
-        plt.subplots_adjust(top=0.9)
     plt_show(show)
     return fig
 
@@ -753,7 +731,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     eog_chs = pick_types(raw.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(raw.info, meg=False, ecg=True, ref_meg=False)
     data = [orig_data[pick] for pick in picks]
-    c_names = ['IC #%03d' % x for x in range(len(orig_data))]
+    c_names = list(ica._ica_names)  # new list
     for eog_idx in eog_chs:
         c_names.append(raw.ch_names[eog_idx])
         types.append('eog')
@@ -797,7 +775,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=n_channels, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
-                  first_time=first_time)
+                  first_time=first_time, data_picks=[], decim=1)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -850,8 +828,8 @@ def _pick_bads(event, params):
 def _close_event(events, params):
     """Exclude the selected components on close."""
     info = params['info']
-    c_names = ['IC #%03d' % x for x in range(params['ica'].n_components_)]
-    exclude = [c_names.index(x) for x in info['bads'] if x.startswith('IC')]
+    exclude = [params['ica']._ica_names.index(x)
+               for x in info['bads'] if x.startswith('ICA')]
     params['ica'].exclude = exclude
 
 
@@ -861,7 +839,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
     ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
-    c_names = ['IC #%03d' % x for x in range(ica.n_components_)]
+    c_names = list(ica._ica_names)
     ch_types = np.repeat('misc', ica.n_components_)
     for eog_idx in eog_chs:
         c_names.append(epochs.ch_names[eog_idx])
@@ -900,7 +878,9 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
               'orig_data': data,
               'bads': list(),
               'bad_color': (1., 0., 0.),
-              't_start': start * len(epochs.times)}
+              't_start': start * len(epochs.times),
+              'data_picks': [],
+              'decim': 1}
     params['label_click_fun'] = partial(_label_clicked, params=params)
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
@@ -977,7 +957,7 @@ def _label_clicked(pos, params):
         if merge_grads:
             from ..channels.layout import _merge_grad_data
         for ii, data_ in zip(ic_idx, this_data):
-            ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
+            ax.set_title('%s %s' % (ica._ica_names[ii], ch_type), fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
             plot_topomap(data_.flatten(), pos, axes=ax, show=False)
             _hide_frame(ax)

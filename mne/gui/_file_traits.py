@@ -19,11 +19,14 @@ from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 from ..bem import read_bem_surfaces
 from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
+from ..io.meas_info import _empty_info
+from ..io.open import fiff_open, dir_tree_find
 from ..surface import read_surface
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
 from ..viz._3d import _fiducial_coords
+from ..channels import read_dig_montage, DigMontage
 
 
 fid_wildcard = "*.fif"
@@ -243,34 +246,30 @@ class DigSource(HasPrivateTraits):
 
     inst_fname = Property(Str, depends_on='file')
     inst_dir = Property(depends_on='file')
-    inst = Property(depends_on='file')
+    _info = Property(depends_on='file')
 
     points_filter = Any(desc="Index to select a subset of the head shape "
-                        "points")
+                             "points")
     n_omitted = Property(Int, depends_on=['points_filter'])
 
     # head shape
-    inst_points = Property(depends_on='inst', desc="Head shape points in the "
-                           "inst file(n x 3 array)")
-    points = Property(depends_on=['inst_points', 'points_filter'], desc="Head "
-                      "shape points selected by the filter (n x 3 array)")
+    _hsp_points = Property(depends_on='_info',
+                           desc="Head shape points in the file (n x 3 array)")
+    points = Property(depends_on=['_hsp_points', 'points_filter'],
+                      desc="Head shape points selected by the filter (n x 3 "
+                           "array)")
 
     # fiducials
-    fid_dig = Property(depends_on='inst', desc="Fiducial points "
-                       "(list of dict)")
-    fid_points = Property(depends_on='fid_dig', desc="Fiducial points {ident: "
-                          "point} dict}")
-    lpa = Property(depends_on='fid_points', desc="LPA coordinates (1 x 3 "
-                   "array)")
-    nasion = Property(depends_on='fid_points', desc="Nasion coordinates (1 x "
-                      "3 array)")
-    rpa = Property(depends_on='fid_points', desc="RPA coordinates (1 x 3 "
-                   "array)")
+    lpa = Property(depends_on='_info',
+                   desc="LPA coordinates (1 x 3 array)")
+    nasion = Property(depends_on='_info',
+                      desc="Nasion coordinates (1 x 3 array)")
+    rpa = Property(depends_on='_info',
+                   desc="RPA coordinates (1 x 3 array)")
 
     # EEG
-    eeg_dig = Property(depends_on='inst', desc="EEG points (list of dict)")
-    eeg_points = Property(depends_on='eeg_dig', desc="EEG coordinates (N x 3 "
-                          "array)")
+    eeg_points = Property(depends_on='_info',
+                          desc="EEG sensor coordinates (N x 3 array)")
 
     view = View(VGroup(Item('file'),
                        Item('inst_fname', show_label=False, style='readonly')))
@@ -283,16 +282,61 @@ class DigSource(HasPrivateTraits):
             return np.sum(self.points_filter == False)  # noqa: E712
 
     @cached_property
-    def _get_inst(self):
+    def _get__info(self):
         if self.file:
-            info = read_info(self.file, verbose=False)
-            if info['dig'] is None:
+            info = None
+            _, tree, _ = fiff_open(self.file)
+            if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
+                info = read_info(self.file, verbose=False)
+            elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:
+                info = read_dig_montage(fif=self.file)
+
+            if info is None:
                 error(None, "The selected FIFF file does not contain "
                       "digitizer information. Please select a different "
                       "file.", "Error Reading FIFF File")
                 self.reset_traits(['file'])
+                return
+            elif isinstance(info, DigMontage):
+                info.transform_to_head()
+                digs = list()
+                _append_fiducials(digs, info.lpa, info.nasion, info.rpa)
+                for idx, pos in enumerate(info.hsp):
+                    dig = {'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                           'ident': idx,
+                           'kind': FIFF.FIFFV_POINT_EXTRA,
+                           'r': pos}
+                    digs.append(dig)
+                info = _empty_info(1)
+                info['dig'] = digs
             else:
-                return info
+                # check that all fiducial points are present
+                has_point = {FIFF.FIFFV_POINT_LPA: False,
+                             FIFF.FIFFV_POINT_NASION: False,
+                             FIFF.FIFFV_POINT_RPA: False}
+                for d in info['dig']:
+                    if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+                        has_point[d['ident']] = True
+                if not all(has_point.values()):
+                    points = _fiducial_coords(info['dig'])
+                    if len(points) == 3:
+                        _append_fiducials(info['dig'], *points.T)
+                    else:
+                        missing = []
+                        if not has_point[FIFF.FIFFV_POINT_LPA]:
+                            missing.append('LPA')
+                        if not has_point[FIFF.FIFFV_POINT_NASION]:
+                            missing.append('Nasion')
+                        if not has_point[FIFF.FIFFV_POINT_RPA]:
+                            missing.append('RPA')
+                        error(None, "The selected FIFF file does not contain "
+                              "all cardinal points (missing: %s). Please "
+                              "select a different file." % ', '.join(missing),
+                              "Error Reading FIFF File")
+                        self.reset_traits(['file'])
+                        return
+
+            return info
 
     @cached_property
     def _get_inst_dir(self):
@@ -306,75 +350,68 @@ class DigSource(HasPrivateTraits):
             return '-'
 
     @cached_property
-    def _get_inst_points(self):
-        if not self.inst:
-            return np.zeros((1, 3))
+    def _get__hsp_points(self):
+        if not self._info:
+            return np.zeros((0, 3))
 
-        points = np.array([d['r'] for d in self.inst['dig']
+        points = np.array([d['r'] for d in self._info['dig']
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
+        points = np.empty((0, 3)) if len(points) == 0 else points
         return points
 
     @cached_property
     def _get_points(self):
         if self.points_filter is None:
-            return self.inst_points
+            return self._hsp_points
         else:
-            return self.inst_points[self.points_filter]
+            return self._hsp_points[self.points_filter]
 
-    @cached_property
-    def _get_fid_dig(self):
-        """Get fiducials from info['dig']."""
-        if not self.inst:
-            return []
-        dig = [d for d in self.inst['dig']
-               if d['kind'] == FIFF.FIFFV_POINT_CARDINAL]
-        return dig
-
-    @cached_property
-    def _get_eeg_dig(self):
-        """Get EEG from info['dig']."""
-        if not self.inst:
-            return []
-        dig = [d for d in self.inst['dig']
-               if d['kind'] == FIFF.FIFFV_POINT_EEG]
-        return dig
-
-    @cached_property
-    def _get_fid_points(self):
-        if not self.inst:
-            return {}
-        return dict((d['ident'], d) for d in self.fid_dig)
+    def _cardinal_point(self, ident):
+        """Coordinates for a cardinal point."""
+        if self._info:
+            for d in self._info['dig']:
+                if (d['kind'] == FIFF.FIFFV_POINT_CARDINAL and
+                        d['ident'] == ident):
+                    return d['r'][None, :]
+        return np.zeros((1, 3))
 
     @cached_property
     def _get_nasion(self):
-        if self.fid_points:
-            return self.fid_points[FIFF.FIFFV_POINT_NASION]['r'][None, :]
-        else:
-            return np.zeros((1, 3))
+        return self._cardinal_point(FIFF.FIFFV_POINT_NASION)
 
     @cached_property
     def _get_lpa(self):
-        if self.fid_points:
-            return self.fid_points[FIFF.FIFFV_POINT_LPA]['r'][None, :]
-        else:
-            return np.zeros((1, 3))
+        return self._cardinal_point(FIFF.FIFFV_POINT_LPA)
 
     @cached_property
     def _get_rpa(self):
-        if self.fid_points:
-            return self.fid_points[FIFF.FIFFV_POINT_RPA]['r'][None, :]
-        else:
-            return np.zeros((1, 3))
+        return self._cardinal_point(FIFF.FIFFV_POINT_RPA)
 
     @cached_property
     def _get_eeg_points(self):
-        if not self.inst or not self.eeg_dig:
+        if self._info:
+            return np.array([d['r'] for d in self._info['dig'] if
+                             d['kind'] == FIFF.FIFFV_POINT_EEG])
+        else:
             return np.empty((0, 3))
-        dig = np.array([d['r'] for d in self.eeg_dig])
-        return dig
 
     def _file_changed(self):
         self.reset_traits(('points_filter',))
+
+
+def _append_fiducials(dig, lpa, nasion, rpa):
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_LPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': lpa})
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_NASION,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': nasion})
+    dig.append({'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                'ident': FIFF.FIFFV_POINT_RPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'r': rpa})
 
 
 class MRISubjectSource(HasPrivateTraits):

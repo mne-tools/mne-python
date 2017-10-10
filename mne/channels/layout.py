@@ -22,6 +22,7 @@ from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import _clean_names, warn
 from ..externals.six.moves import map
+from .channels import _get_ch_info
 
 
 class Layout(object):
@@ -389,41 +390,12 @@ def find_layout(info, ch_type=None, exclude='bads'):
         raise ValueError('Invalid channel type (%s) requested '
                          '`ch_type` must be %s' % (ch_type, our_types))
 
-    chs = info['chs']
-    # Only take first 16 bits, as higher bits store CTF comp order
-    coil_types = set([ch['coil_type'] & 0xFFFF for ch in chs])
-    channel_types = set([ch['kind'] for ch in chs])
-
-    has_vv_mag = any(k in coil_types for k in
-                     [FIFF.FIFFV_COIL_VV_MAG_T1, FIFF.FIFFV_COIL_VV_MAG_T2,
-                      FIFF.FIFFV_COIL_VV_MAG_T3])
-    has_vv_grad = any(k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
-                                                FIFF.FIFFV_COIL_VV_PLANAR_T2,
-                                                FIFF.FIFFV_COIL_VV_PLANAR_T3])
+    (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
+     has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
+     has_eeg_coils_and_meg, has_eeg_coils_only) = _get_ch_info(info)
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
-    is_old_vv = ' ' in chs[0]['ch_name']
-
-    has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
-    ctf_other_types = (FIFF.FIFFV_COIL_CTF_REF_MAG,
-                       FIFF.FIFFV_COIL_CTF_REF_GRAD,
-                       FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD)
-    has_CTF_grad = (FIFF.FIFFV_COIL_CTF_GRAD in coil_types or
-                    (FIFF.FIFFV_MEG_CH in channel_types and
-                     any(k in ctf_other_types for k in coil_types)))
-    # hack due to MNE-C bug in IO of CTF
-    # only take first 16 bits, as higher bits store CTF comp order
-    n_kit_grads = sum(ch['coil_type'] & 0xFFFF == FIFF.FIFFV_COIL_KIT_GRAD
-                      for ch in chs)
-
-    has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
-                       n_kit_grads])
-    has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
-                     FIFF.FIFFV_EEG_CH in channel_types)
-    has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
-    has_eeg_coils_only = has_eeg_coils and not has_any_meg
-
     if ch_type == "meg" and not has_any_meg:
         raise RuntimeError('No MEG channels present. Cannot find MEG layout.')
 
@@ -727,7 +699,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
 
     # Duplicate points cause all kinds of trouble during visualization
     dist = pdist(locs3d)
-    if np.min(dist) < 1e-10 and not ignore_overlap:
+    if len(locs3d) > 1 and np.min(dist) < 1e-10 and not ignore_overlap:
         problematic_electrodes = [
             chs[elec_i]['ch_name']
             for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]

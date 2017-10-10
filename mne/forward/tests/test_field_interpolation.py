@@ -6,6 +6,7 @@ from numpy.testing import (assert_allclose, assert_array_equal, assert_equal,
                            assert_array_almost_equal)
 from scipy.interpolate import interp1d
 from nose.tools import assert_raises, assert_true
+import pytest
 
 from mne.forward import _make_surface_mapping, make_field_map
 from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
@@ -16,7 +17,7 @@ from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
 from mne import read_evokeds, pick_types
 from mne.externals.six.moves import zip
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -116,7 +117,7 @@ def test_make_field_map_eeg():
 
 
 @testing.requires_testing_data
-@slow_test
+@pytest.mark.slowtest
 def test_make_field_map_meg():
     """Test interpolation of MEG field onto helmet | head."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
@@ -176,17 +177,20 @@ def test_make_field_map_meeg():
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
     evoked.info.normalize_proj()
     maps = make_field_map(evoked, trans_fname, subject='sample',
-                          subjects_dir=subjects_dir, n_jobs=1)
+                          subjects_dir=subjects_dir, n_jobs=1, verbose='debug')
     assert_equal(maps[0]['data'].shape, (642, 6))  # EEG->Head
     assert_equal(maps[1]['data'].shape, (304, 31))  # MEG->Helmet
     # reasonable ranges
-    for map_ in maps:
-        assert_true(0.5 < map_['data'].max() < 2)
-        assert_true(-2 < map_['data'].min() < -0.5)
+    maxs = (1.2, 2.0)  # before #4418, was (1.1, 2.0)
+    mins = (-0.8, -1.3)  # before #4418, was (-0.6, -1.2)
+    assert_equal(len(maxs), len(maps))
+    for map_, max_, min_ in zip(maps, maxs, mins):
+        assert_allclose(map_['data'].max(), max_, rtol=5e-2)
+        assert_allclose(map_['data'].min(), min_, rtol=5e-2)
     # calculated from correct looking mapping on 2015/12/26
-    assert_allclose(np.sqrt(np.sum(maps[0]['data'] ** 2)), 16.6088,
+    assert_allclose(np.sqrt(np.sum(maps[0]['data'] ** 2)), 19.0903,  # 16.6088,
                     atol=1e-3, rtol=1e-3)
-    assert_allclose(np.sqrt(np.sum(maps[1]['data'] ** 2)), 20.1245,
+    assert_allclose(np.sqrt(np.sum(maps[1]['data'] ** 2)), 19.4748,  # 20.1245,
                     atol=1e-3, rtol=1e-3)
 
 
@@ -214,7 +218,7 @@ def test_as_meg_type_evoked():
     virt_evoked = evoked.copy().pick_channels(ch_names=ch_names[:10:1])
     virt_evoked.info.normalize_proj()
     virt_evoked = virt_evoked.as_type('mag')
-    assert_true(all('_virtual' in ch for ch in virt_evoked.info['ch_names']))
+    assert_true(all(ch.endswith('_v') for ch in virt_evoked.info['ch_names']))
 
     # pick from and to channels
     evoked_from = evoked.copy().pick_channels(ch_names=ch_names[2:10:3])
@@ -238,5 +242,6 @@ def test_as_meg_type_evoked():
     data1 = evoked.pick_types(meg='grad').data.ravel()
     data2 = evoked.as_type('grad').data.ravel()
     assert_true(np.corrcoef(data1, data2)[0, 1] > 0.95)
+
 
 run_tests_if_main()

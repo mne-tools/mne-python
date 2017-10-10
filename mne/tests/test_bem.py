@@ -10,6 +10,7 @@ import warnings
 
 import numpy as np
 from nose.tools import assert_raises, assert_true
+import pytest
 from numpy.testing import assert_equal, assert_allclose
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
@@ -19,8 +20,8 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, _TempDir, slow_test, catch_logging,
-                       requires_freesurfer)
+from mne.utils import (run_tests_if_main, _TempDir, catch_logging,
+                       requires_freesurfer, requires_nibabel)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
                      _check_surface_size, _bem_find_surface, make_flash_bem)
@@ -134,7 +135,7 @@ def test_bem_model():
                   conductivity=[0.3, 0.006], subjects_dir=subjects_dir)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_bem_solution():
     """Test making a BEM solution from Python with I/O"""
@@ -339,6 +340,7 @@ def test_fit_sphere_to_headshape():
     assert_raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
 
+@requires_nibabel()
 @requires_freesurfer
 @testing.requires_testing_data
 def test_make_flash_bem():

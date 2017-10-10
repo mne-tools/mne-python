@@ -12,7 +12,8 @@ from .externals.six import string_types, integer_types
 from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
-from .utils import logger, verbose, sum_squared, check_version, warn
+from .utils import (logger, verbose, sum_squared, check_version, warn,
+                    _check_preload)
 
 # These values from Ifeachor and Jervis.
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
@@ -122,7 +123,7 @@ def next_fast_len(target):
 
 
 def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
-                        n_jobs=1, copy=True):
+                        n_jobs=1, copy=True, pad='reflect_limited'):
     """Filter the signal x using h with overlap-add FFTs.
 
     Parameters
@@ -150,6 +151,8 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
+    pad : str
+        Padding type for ``_smart_pad``.
 
     Returns
     -------
@@ -206,11 +209,11 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     if n_jobs == 1:
         for p in picks:
             x[p] = _1d_overlap_filter(x[p], h_fft, len(h), n_edge, phase,
-                                      cuda_dict)
+                                      cuda_dict, pad)
     else:
         parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
         data_new = parallel(p_fun(x[p], h_fft, len(h), n_edge, phase,
-                                  cuda_dict) for p in picks)
+                                  cuda_dict, pad) for p in picks)
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
 
@@ -218,14 +221,14 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     return x
 
 
-def _1d_overlap_filter(x, h_fft, n_h, n_edge, phase, cuda_dict):
+def _1d_overlap_filter(x, h_fft, n_h, n_edge, phase, cuda_dict, pad):
     """Do one-dimensional overlap-add FFT FIR filtering."""
     # pad to reduce ringing
     if cuda_dict['use_cuda']:
         n_fft = cuda_dict['x'].size  # account for CUDA's modification of h_fft
     else:
         n_fft = len(h_fft)
-    x_ext = _smart_pad(x, np.array([n_edge, n_edge]))
+    x_ext = _smart_pad(x, (n_edge, n_edge), pad)
     n_x = len(x_ext)
     x_filtered = np.zeros_like(x_ext)
 
@@ -720,7 +723,8 @@ def _check_method(method, iir_params, extra_types=()):
 def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                 method='fir', iir_params=None, copy=True, phase='zero',
-                fir_window='hamming', fir_design=None, verbose=None):
+                fir_window='hamming', fir_design=None, pad='reflect_limited',
+                verbose=None):
     """Filter a subset of channels.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -820,6 +824,14 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
+    pad : str
+        The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+        options. Can also be "reflect_limited" (default), which pads with a
+        reflected version of each vector mirrored on the first and last
+        values of the vector, followed by zeros.
+        Only used for ``method='fir'``.
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -851,7 +863,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         h_trans_bandwidth, method, iir_params, phase, fir_window, fir_design)
     if method in ('fir', 'fft'):
         data = _overlap_add_filter(data, filt, None, phase, picks, n_jobs,
-                                   copy)
+                                   copy, pad)
     else:
         data = _filtfilt(data, filt, picks, n_jobs, copy)
     return data
@@ -1155,7 +1167,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
                  trans_bandwidth=1, method='fir', iir_params=None,
                  mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=1,
                  copy=True, phase='zero', fir_window='hamming',
-                 fir_design=None, verbose=None):
+                 fir_design=None, pad='reflect_limited', verbose=None):
     r"""Notch filter for the signal x.
 
     Applies a zero-phase notch filter to the signal x, operating on the last
@@ -1229,13 +1241,11 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         then a minimum-phase, causal filter will be used.
 
         .. versionadded:: 0.13
-
     fir_window : str
         The window to use in FIR design, can be "hamming" (default),
         "hann" (default in 0.13), or "blackman".
 
         .. versionadded:: 0.13
-
     fir_design : str
         Can be "firwin" (default in 0.16) to use
         :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
@@ -1244,7 +1254,14 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
+    pad : str
+        The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+        options. Can also be "reflect_limited" (default), which pads with a
+        reflected version of each vector mirrored on the first and last
+        values of the vector, followed by zeros.
+        Only used for ``method='fir'``.
 
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1313,7 +1330,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
                  for freq, nw in zip(freqs, notch_widths)]
         xf = filter_data(x, Fs, highs, lows, picks, filter_length, tb_2, tb_2,
                          n_jobs, method, iir_params, copy, phase, fir_window,
-                         fir_design)
+                         fir_design, pad=pad)
     elif method == 'spectrum_fit':
         xf = _mt_spectrum_proc(x, Fs, freqs, notch_widths, mt_bandwidth,
                                p_value, picks, n_jobs, copy)
@@ -1461,7 +1478,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
 
 @verbose
 def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
-             verbose=None):
+             pad='reflect_limited', verbose=None):
     """Resample an array.
 
     Operates along the last dimension of the array.
@@ -1484,6 +1501,13 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
+    pad : str
+        The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+        options. Can also be "reflect_limited" (default), which pads with a
+        reflected version of each vector mirrored on the first and last
+        values of the vector, followed by zeros.
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1577,10 +1601,10 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x.dtype)
         for xi, x_ in enumerate(x_flat):
             y[xi] = fft_resample(x_, W, new_len, npads, to_removes,
-                                 cuda_dict)
+                                 cuda_dict, pad)
     else:
         parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
-        y = parallel(p_fun(x_, W, new_len, npads, to_removes, cuda_dict)
+        y = parallel(p_fun(x_, W, new_len, npads, to_removes, cuda_dict, pad)
                      for x_ in x_flat)
         y = np.array(y)
 
@@ -1836,7 +1860,8 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
 class FilterMixin(object):
     """Object for Epoch/Evoked filtering."""
 
-    def savgol_filter(self, h_freq, copy=False):
+    @verbose
+    def savgol_filter(self, h_freq, copy=False, verbose=None):
         """Filter the data using Savitzky-Golay polynomial method.
 
         Parameters
@@ -1848,8 +1873,11 @@ class FilterMixin(object):
             This parameter is thus used to determine the length of the
             window over which a 5th-order polynomial smoothing is used.
         copy : bool
-            If True, a copy of the object, filtered, is returned.
-            If False (default), it operates on the object in place.
+            Deprecated. Use ``inst.copy()`` instead.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -1884,11 +1912,11 @@ class FilterMixin(object):
                Differentiation of Data by Simplified Least Squares
                Procedures". Analytical Chemistry 36 (8): 1627-39.
         """  # noqa: E501
+        if copy:
+            warn('copy is deprecated and will be removed in 0.16, '
+                 'use inst.copy() instead', DeprecationWarning)
         inst = self.copy() if copy else self
-        if not inst.preload:
-            raise RuntimeError('data must be preloaded to filter')
-        data = inst._data
-
+        _check_preload(self, 'inst.savgol_filter')
         h_freq = float(h_freq)
         if h_freq >= inst.info['sfreq'] / 2.:
             raise ValueError('h_freq must be less than half the sample rate')
@@ -1899,9 +1927,203 @@ class FilterMixin(object):
         from scipy.signal import savgol_filter
         window_length = (int(np.round(inst.info['sfreq'] /
                                       h_freq)) // 2) * 2 + 1
-        data[...] = savgol_filter(data, axis=-1, polyorder=5,
-                                  window_length=window_length)
+        logger.info('Using savgol length %d' % window_length)
+        inst._data[:] = savgol_filter(inst._data, axis=-1, polyorder=5,
+                                      window_length=window_length)
         return inst
+
+    @verbose
+    def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
+               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
+               method='fir', iir_params=None, phase='zero',
+               fir_window='hamming', fir_design=None,
+               pad='edge', verbose=None):
+        """Filter a subset of channels.
+
+        Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
+        filter to the channels selected by ``picks``.
+        The data are modified inplace.
+
+        The object has to have the data loaded e.g. with ``preload=True``
+        or ``self.load_data()``.
+
+        ``l_freq`` and ``h_freq`` are the frequencies below which and above
+        which, respectively, to filter out of the data. Thus the uses are:
+
+            * ``l_freq < h_freq``: band-pass filter
+            * ``l_freq > h_freq``: band-stop filter
+            * ``l_freq is not None and h_freq is None``: high-pass filter
+            * ``l_freq is None and h_freq is not None``: low-pass filter
+
+        ``self.info['lowpass']`` and ``self.info['highpass']`` are only
+        updated with picks=None.
+
+        .. note:: If n_jobs > 1, more memory is required as
+                  ``len(picks) * n_times`` additional time points need to
+                  be temporaily stored in memory.
+
+        Parameters
+        ----------
+        l_freq : float | None
+            Low cut-off frequency in Hz. If None the data are only low-passed.
+        h_freq : float | None
+            High cut-off frequency in Hz. If None the data are only
+            high-passed.
+        picks : array-like of int | None
+            Indices of channels to filter. If None only the data (MEG/EEG)
+            channels will be filtered.
+        filter_length : str | int
+            Length of the FIR filter to use (if applicable):
+
+            * 'auto' (default): the filter length is chosen based
+              on the size of the transition regions (6.6 times the reciprocal
+              of the shortest transition band for fir_window='hamming'
+              and fir_design="firwin2", and half that for "firwin").
+            * str: a human-readable time in
+              units of "s" or "ms" (e.g., "10s" or "5500ms") will be
+              converted to that number of samples if ``phase="zero"``, or
+              the shortest power-of-two length at least that duration for
+              ``phase="zero-double"``.
+            * int: specified length in samples. For fir_design="firwin",
+              this should not be used.
+
+        l_trans_bandwidth : float | str
+            Width of the transition band at the low cut-off frequency in Hz
+            (high pass or cutoff 1 in bandpass). Can be "auto"
+            (default) to use a multiple of ``l_freq``::
+
+                min(max(l_freq * 0.25, 2), l_freq)
+
+            Only used for ``method='fir'``.
+        h_trans_bandwidth : float | str
+            Width of the transition band at the high cut-off frequency in Hz
+            (low pass or cutoff 2 in bandpass). Can be "auto"
+            (default) to use a multiple of ``h_freq``::
+
+                min(max(h_freq * 0.25, 2.), info['sfreq'] / 2. - h_freq)
+
+            Only used for ``method='fir'``.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+            is installed properly, CUDA is initialized, and method='fir'.
+        method : str
+            'fir' will use overlap-add FIR filtering, 'iir' will use IIR
+            forward-backward filtering (via filtfilt).
+        iir_params : dict | None
+            Dictionary of parameters to use for IIR filtering.
+            See mne.filter.construct_iir_filter for details. If iir_params
+            is None and method="iir", 4th order Butterworth will be used.
+        phase : str
+            Phase of the filter, only used if ``method='fir'``.
+            By default, a symmetric linear-phase FIR filter is constructed.
+            If ``phase='zero'`` (default), the delay of this filter
+            is compensated for. If ``phase=='zero-double'``, then this filter
+            is applied twice, once forward, and once backward. If 'minimum',
+            then a minimum-phase, causal filter will be used.
+        fir_window : str
+            The window to use in FIR design, can be "hamming" (default),
+            "hann" (default in 0.13), or "blackman".
+        fir_design : str
+            Can be "firwin" (default in 0.16) to use
+            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+            time-domain design technique that generally gives improved
+            attenuation using fewer samples than "firwin2".
+        pad : str
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+            options. Can also be "reflect_limited", which pads with a
+            reflected version of each vector mirrored on the first and last
+            values of the vector, followed by zeros. The default is "edge",
+            which pads with the edge values of each vector.
+            Only used for ``method='fir'``.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
+
+        Returns
+        -------
+        inst : instance of Epochs or Evoked
+            The filtered data.
+
+        Notes
+        -----
+        .. versionadded:: 0.15
+        """
+        _check_preload(self, 'inst.filter')
+        if pad is None and method != 'iir':
+            pad = 'edge'
+        update_info, picks = _filt_check_picks(self.info, picks,
+                                               l_freq, h_freq)
+        filter_data(self._data, self.info['sfreq'], l_freq, h_freq, picks,
+                    filter_length, l_trans_bandwidth, h_trans_bandwidth,
+                    n_jobs, method, iir_params, copy=False, phase=phase,
+                    fir_window=fir_window, fir_design=fir_design, pad=pad)
+        _filt_update_info(self.info, update_info, l_freq, h_freq)
+        return self
+
+    @verbose
+    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
+                 pad='edge', verbose=None):
+        """Resample data.
+
+        .. note:: Data must be loaded.
+
+        Parameters
+        ----------
+        sfreq : float
+            New sample rate to use
+        npad : int | str
+            Amount to pad the start and end of the data.
+            Can also be "auto" to use a padding that will result in
+            a power-of-two size (can be much faster).
+        window : string or tuple
+            Window to use in resampling. See :func:`scipy.signal.resample`.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        pad : str
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+            options. Can also be "reflect_limited", which pads with a
+            reflected version of each vector mirrored on the first and last
+            values of the vector, followed by zeros. The default is "edge",
+            which pads with the edge values of each vector.
+
+            .. versionadded:: 0.15
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` :ref:`Logging documentation <tut_logging>` for
+            more). Defaults to self.verbose.
+
+        Returns
+        -------
+        inst : instance of Epochs | instance of Evoked
+            The resampled epochs object.
+
+        See Also
+        --------
+        mne.io.Raw.resample
+
+        Notes
+        -----
+        For some data, it may be more accurate to use npad=0 to reduce
+        artifacts. This is dataset dependent -- check your data!
+        """
+        from .epochs import BaseEpochs
+        _check_preload(self, 'inst.resample')
+        sfreq = float(sfreq)
+        o_sfreq = self.info['sfreq']
+        self._data = resample(self._data, sfreq, o_sfreq, npad, window=window,
+                              n_jobs=n_jobs, pad=pad)
+        self.info['sfreq'] = float(sfreq)
+        self.times = (np.arange(self._data.shape[-1], dtype=np.float) /
+                      sfreq + self.times[0])
+        # adjust indirectly affected variables
+        if isinstance(self, BaseEpochs):
+            self._raw_times = self.times
+        else:
+            self.first = int(self.times[0] * self.info['sfreq'])
+            self.last = len(self.times) + self.first - 1
+        return self
 
 
 @verbose
@@ -1981,6 +2203,38 @@ def design_mne_c_filter(sfreq, l_freq=None, h_freq=40.,
     h = ifft(np.concatenate((freq_resp, freq_resp[::-1][:-1]))).real
     h = np.roll(h, n_freqs - 1)  # center the impulse like a linear-phase filt
     return h
+
+
+def _filt_check_picks(info, picks, h_freq, l_freq):
+    from .io.pick import _pick_data_or_ica
+    data_picks = _pick_data_or_ica(info)
+    update_info = False
+    if picks is None:
+        picks = data_picks
+        update_info = True
+        # let's be safe.
+        if len(picks) == 0:
+            raise RuntimeError('Could not find any valid channels for '
+                               'your Raw object. Please contact the '
+                               'MNE-Python developers.')
+    elif h_freq is not None or l_freq is not None:
+        if np.in1d(data_picks, picks).all():
+            update_info = True
+        else:
+            logger.info('Filtering a subset of channels. The highpass and '
+                        'lowpass values in the measurement info will not '
+                        'be updated.')
+    return update_info, picks
+
+
+def _filt_update_info(info, update_info, l_freq, h_freq):
+    if update_info:
+        if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
+                (info["lowpass"] is None or h_freq < info['lowpass']):
+            info['lowpass'] = float(h_freq)
+        if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
+                (info["highpass"] is None or l_freq > info['highpass']):
+            info['highpass'] = float(l_freq)
 
 
 ###############################################################################

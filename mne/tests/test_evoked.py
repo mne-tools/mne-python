@@ -14,6 +14,7 @@ from scipy import fftpack
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_not_equal
+import pytest
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  grand_average, combine_evoked, create_info, read_events,
@@ -21,7 +22,7 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.tests.common import assert_naming
-from mne.utils import (_TempDir, requires_pandas, slow_test, requires_version,
+from mne.utils import (_TempDir, requires_pandas, requires_version,
                        run_tests_if_main)
 from mne.externals.six.moves import cPickle as pickle
 
@@ -109,7 +110,7 @@ def test_hash_evoked():
     assert_not_equal(hash(ave), hash(ave_2))
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_io_evoked():
     """Test IO for evoked data (fif + gz) with integer and str args."""
     tempdir = _TempDir()
@@ -225,7 +226,7 @@ def test_shift_time_evoked():
 
 
 def test_evoked_resample():
-    """Test for resampling of evoked data."""
+    """Test resampling evoked data."""
     tempdir = _TempDir()
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
@@ -253,6 +254,17 @@ def test_evoked_resample():
     # we'll add a couple extra checks anyway
     assert_true(len(ave_up.times) == 2 * len(ave_normal.times))
     assert_true(ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
+
+
+def test_evoked_filter():
+    """Test filtering evoked data."""
+    # this is mostly a smoke test as the Epochs and raw tests are more complete
+    ave = read_evokeds(fname, 0).pick_types('grad')
+    ave.data[:] = 1.
+    assert round(ave.info['lowpass']) == 172
+    ave_filt = ave.copy().filter(None, 40.)
+    assert ave_filt.info['lowpass'] == 40.
+    assert_allclose(ave.data, 1., atol=1e-6)
 
 
 def test_evoked_detrend():

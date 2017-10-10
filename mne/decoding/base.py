@@ -10,7 +10,7 @@ import numpy as np
 import time
 import numbers
 from ..parallel import parallel_func
-from ..fixes import BaseEstimator
+from ..fixes import BaseEstimator, is_classifier
 from ..utils import check_version, logger, warn
 
 
@@ -31,9 +31,9 @@ class LinearModel(BaseEstimator):
 
     Attributes
     ----------
-    ``filters_`` : ndarray
+    ``filters_`` : ndarray, shape ([n_targets], n_features)
         If fit, the filters used to decompose the data.
-    ``patterns_`` : ndarray
+    ``patterns_`` : ndarray, shape ([n_targets], n_features)
         If fit, the patterns used to restore M/EEG signals.
 
     Notes
@@ -60,6 +60,7 @@ class LinearModel(BaseEstimator):
             model = LogisticRegression()
 
         self.model = model
+        self._estimator_type = getattr(model, "_estimator_type", None)
 
     def fit(self, X, y):
         """Estimate the coefficients of the linear model.
@@ -71,7 +72,7 @@ class LinearModel(BaseEstimator):
         ----------
         X : array, shape (n_samples, n_features)
             The training input samples to estimate the linear coefficients.
-        y : array, shape (n_samples,)
+        y : array, shape (n_samples, [n_targets])
             The target values.
 
         Returns
@@ -79,28 +80,36 @@ class LinearModel(BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        X = np.asarray(X)
+        X, y = np.asarray(X), np.asarray(y)
         if X.ndim != 2:
             raise ValueError('LinearModel only accepts 2-dimensional X, got '
                              '%s instead.' % (X.shape,))
+        if y.ndim > 2:
+            raise ValueError('LinearModel only accepts up to 2-dimensional y, '
+                             'got %s instead.' % (y.shape,))
 
         # fit the Model
         self.model.fit(X, y)
 
-        # computes the patterns
-        if (
-            not hasattr(self.model, 'coef_') or  # missing attribute
-            self.model.coef_.ndim > 2 or         # weird case
-            (self.model.coef_.size not in
-             self.model.coef_.shape)             # shape (n), (n, 1) or (1, n)
-        ):
+        # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
 
-            raise ValueError('model needs a unidimensional coef_ attribute to '
-                             'compute the patterns')
-        self.filters_ = np.squeeze(self.model.coef_)
-        self.patterns_ = np.cov(X.T).dot(self.filters_)
+        inv_Y = 1.
+        X = X - X.mean(0, keepdims=True)
+        if y.ndim == 2 and y.shape[1] != 1:
+            y = y - y.mean(0, keepdims=True)
+            inv_Y = np.linalg.pinv(np.cov(y.T))
+        self.patterns_ = np.cov(X.T).dot(self.filters_.T.dot(inv_Y)).T
 
         return self
+
+    @property
+    def filters_(self):
+        if not hasattr(self.model, 'coef_'):
+            raise ValueError('model does not have a `coef_` attribute.')
+        filters = self.model.coef_
+        if filters.ndim == 2 and filters.shape[0] == 1:
+            filters = filters[0]
+        return filters
 
     def transform(self, X):
         """Transform the data using the linear model.
@@ -200,8 +209,6 @@ class LinearModel(BaseEstimator):
 
 def _set_cv(cv, estimator=None, X=None, y=None):
     """Set the default CV depending on whether clf is classifier/regressor."""
-    from sklearn.base import is_classifier
-
     # Detect whether classification or regression
     if estimator in ['classifier', 'regressor']:
         est_is_classifier = estimator == 'classifier'
@@ -417,7 +424,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     """
     # This code is copied from sklearn
 
-    from sklearn.base import is_classifier, clone
+    from sklearn.base import clone
     from sklearn.utils import indexable
     from sklearn.metrics.scorer import check_scoring
     from sklearn.model_selection._split import check_cv

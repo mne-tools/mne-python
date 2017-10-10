@@ -2,13 +2,14 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
+import pytest
 from nose.tools import assert_true, assert_raises
 
 from mne.connectivity import spectral_connectivity
-from mne.connectivity.spectral import _CohEst
+from mne.connectivity.spectral import _CohEst, _get_n_epochs
 
 from mne import SourceEstimate
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 from mne.filter import filter_data
 
 warnings.simplefilter('always')
@@ -30,7 +31,7 @@ def _stc_gen(data, sfreq, tmin, combo=False):
             yield (arr, stc)
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_spectral_connectivity():
     """Test frequency-domain connectivity methods"""
     # Use a case known to have no spurious correlations (it would bad if
@@ -78,7 +79,7 @@ def test_spectral_connectivity():
     modes = ['multitaper', 'fourier', 'cwt_morlet']
 
     # define some frequencies for cwt
-    cwt_frequencies = np.arange(3, 24.5, 1)
+    cwt_freqs = np.arange(3, 24.5, 1)
 
     for mode in modes:
         for method in methods:
@@ -90,7 +91,7 @@ def test_spectral_connectivity():
 
             if method == 'coh' and mode == 'cwt_morlet':
                 # so we also test using an array for num cycles
-                cwt_n_cycles = 7. * np.ones(len(cwt_frequencies))
+                cwt_n_cycles = 7. * np.ones(len(cwt_freqs))
             else:
                 cwt_n_cycles = 7.
 
@@ -104,7 +105,7 @@ def test_spectral_connectivity():
                 con, freqs, times, n, _ = spectral_connectivity(
                     data, method=method, mode=mode, indices=None, sfreq=sfreq,
                     mt_adaptive=adaptive, mt_low_bias=True,
-                    mt_bandwidth=mt_bandwidth, cwt_frequencies=cwt_frequencies,
+                    mt_bandwidth=mt_bandwidth, cwt_freqs=cwt_freqs,
                     cwt_n_cycles=cwt_n_cycles)
 
                 assert_true(n == n_epochs)
@@ -161,7 +162,7 @@ def test_spectral_connectivity():
                     stc_data, method=test_methods, mode=mode, indices=indices,
                     sfreq=sfreq, mt_adaptive=adaptive, mt_low_bias=True,
                     mt_bandwidth=mt_bandwidth, tmin=tmin, tmax=tmax,
-                    cwt_frequencies=cwt_frequencies,
+                    cwt_freqs=cwt_freqs,
                     cwt_n_cycles=cwt_n_cycles, n_jobs=2)
 
                 assert_true(isinstance(con2, list))
@@ -194,7 +195,7 @@ def test_spectral_connectivity():
                     data, method=method, mode=mode, indices=indices,
                     sfreq=sfreq, fmin=fmin, fmax=fmax, fskip=1, faverage=True,
                     mt_adaptive=adaptive, mt_low_bias=True,
-                    mt_bandwidth=mt_bandwidth, cwt_frequencies=cwt_frequencies,
+                    mt_bandwidth=mt_bandwidth, cwt_freqs=cwt_freqs,
                     cwt_n_cycles=cwt_n_cycles)
 
                 assert_true(isinstance(freqs3, list))
@@ -215,6 +216,12 @@ def test_spectral_connectivity():
                             freq_idx = np.searchsorted(freqs2, freqs3[i])
                             con2_avg = np.mean(con2[j][:, freq_idx], axis=1)
                             assert_array_almost_equal(con2_avg, con3[j][:, i])
-
+    # test _get_n_epochs
+    full_list = list(range(10))
+    out_lens = np.array([len(x) for x in _get_n_epochs(full_list, 4)])
+    assert_true((out_lens == np.array([4, 4, 2])).all())
+    out_lens = np.array([len(x) for x in _get_n_epochs(full_list, 11)])
+    assert_true(len(out_lens) > 0)
+    assert_true(out_lens[0] == 10)
 
 run_tests_if_main()

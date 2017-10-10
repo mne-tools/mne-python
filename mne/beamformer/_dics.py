@@ -35,7 +35,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-    Cm_inv = _reg_pinv(Cm, reg)
+    Cm_inv, _ = _reg_pinv(Cm, reg)
     del Cm
 
     # Compute spatial filters
@@ -172,7 +172,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
     data = evoked.data
     tmin = evoked.times[0]
 
-    picks = _setup_picks(picks=None, info=info, forward=forward)
+    picks = _setup_picks(info=info, forward=forward)
     data = data[picks]
 
     stc = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
@@ -244,7 +244,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
     info = epochs.info
     tmin = epochs.times[0]
 
-    picks = _setup_picks(picks=None, info=info, forward=forward)
+    picks = _setup_picks(info=info, forward=forward)
     data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
@@ -324,16 +324,16 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
     frequencies = []
     for data_csd, noise_csd in zip(data_csds, noise_csds):
-        if not np.allclose(data_csd.frequencies, noise_csd.frequencies):
+        if not np.allclose(data_csd.freqs, noise_csd.freqs):
             raise ValueError('Data and noise CSDs should be calculated at '
                              'identical frequencies')
 
         # If CSD is summed over multiple frequencies, take the average
         # frequency
-        if(len(data_csd.frequencies) > 1):
-            frequencies.append(np.mean(data_csd.frequencies))
+        if(len(data_csd.freqs) > 1):
+            frequencies.append(np.mean(data_csd.freqs))
         else:
-            frequencies.append(data_csd.frequencies[0])
+            frequencies.append(data_csd.freqs[0])
     fmin = frequencies[0]
 
     if len(frequencies) > 2:
@@ -349,7 +349,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
     else:
         fstep = 1  # dummy value
 
-    picks = _setup_picks(picks=None, info=info, forward=forward)
+    picks = _setup_picks(info=info, forward=forward)
 
     is_free_ori, _, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks=picks,
@@ -375,7 +375,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
         # Tikhonov regularization using reg parameter to control for
         # trade-off between spatial resolution and noise sensitivity
         # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
-        Cm_inv = _reg_pinv(Cm, reg)
+        Cm_inv, _ = _reg_pinv(Cm, reg)
         del Cm
 
         # Compute spatial filters

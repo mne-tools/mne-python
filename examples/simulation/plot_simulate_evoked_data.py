@@ -33,7 +33,7 @@ fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
-fwd = mne.read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
+fwd = mne.read_forward_solution(fwd_fname)
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
 cov = mne.read_cov(cov_fname)
 info = mne.io.read_info(ave_fname)
@@ -54,6 +54,7 @@ def data_fun(times):
     return (50e-9 * np.sin(30. * times) *
             np.exp(- (times - 0.15 + 0.05 * rng.randn(1)) ** 2 / 0.01))
 
+
 stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
                           random_state=42, labels=labels, data_fun=data_fun)
 
@@ -62,7 +63,8 @@ stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 iir_filter = fit_iir_model_raw(raw, order=5, picks=picks, tmin=60, tmax=180)[1]
 nave = 100  # simulate average of 100 epochs
-evoked = simulate_evoked(fwd, stc, info, cov, nave=nave, iir_filter=iir_filter)
+evoked = simulate_evoked(fwd, stc, info, cov, nave=nave, use_cps=True,
+                         iir_filter=iir_filter)
 
 ###############################################################################
 # Plot
