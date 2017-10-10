@@ -10,7 +10,6 @@ import glob
 import os
 import os.path as op
 import shutil
-import sys
 from copy import deepcopy
 
 import numpy as np
