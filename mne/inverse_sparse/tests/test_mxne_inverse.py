@@ -172,7 +172,8 @@ def test_mxne_vol_sphere():
 
     # Compare orientation obtained using fit_dipole and mixed_norm
     # for a simulated evoked
-    evoked_dip = mne.simulation.simulate_evoked(fwd, stc, info, cov, nave=1e9)
+    evoked_dip = mne.simulation.simulate_evoked(fwd, stc, info, cov,
+                                                nave=1e9, use_cps=True)
 
     dip_mxne = mixed_norm(evoked_dip, fwd, cov, alpha=80,
                           n_mxne_iter=1, maxit=30, tol=1e-8,
