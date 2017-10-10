@@ -605,15 +605,15 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     if estimate == 'amplitude':
         np.sqrt(psds, out=psds)
         psds *= scaling
-        ylabel = '$\\mathrm{\\frac{%s}{\\sqrt{Hz}}}$' % unit
+        ylabel = r'$\mathrm{\frac{%s}{\sqrt{Hz}}}$' % unit
     else:
         psds *= scaling * scaling
-        ylabel = '$\\mathrm{%s^2}/Hz}$' % unit
+        ylabel = r'$\mathrm{%s^2}/Hz}$' % unit
 
     if dB:
         np.log10(psds, out=psds)
         psds *= 10
-        ylabel += '$\\ \\mathrm{(dB)}$'
+        ylabel += r'$\ \mathrm{(dB)}$'
 
     return ylabel
 
