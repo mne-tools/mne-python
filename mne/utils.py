@@ -89,10 +89,10 @@ def _ensure_int(x, name='unknown', must_be='an int'):
     return x
 
 
-def _pl(x):
+def _pl(x, non_pl=''):
     """Determine if plural should be used."""
     len_x = x if isinstance(x, (integer_types, np.generic)) else len(x)
-    return '' if len_x == 1 else 's'
+    return non_pl if len_x == 1 else 's'
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -1173,11 +1173,12 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     stderr : str
         Stderr returned by the process.
     """
-    for stdxxx, sys_stdxxx in (['stderr', sys.stderr],
-                               ['stdout', sys.stdout]):
-        if stdxxx not in kwargs:
+    for stdxxx, sys_stdxxx, thresh in (
+            ['stderr', sys.stderr, logging.ERROR],
+            ['stdout', sys.stdout, logging.WARNING]):
+        if stdxxx not in kwargs and logger.level >= thresh:
             kwargs[stdxxx] = subprocess.PIPE
-        elif kwargs[stdxxx] is sys_stdxxx:
+        elif kwargs.get(stdxxx, sys_stdxxx) is sys_stdxxx:
             if isinstance(sys_stdxxx, StringIO):
                 # nose monkey patches sys.stderr and sys.stdout to StringIO
                 kwargs[stdxxx] = subprocess.PIPE
@@ -1207,15 +1208,10 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
         logger.error('Command not found: %s' % command_name)
         raise
     stdout_, stderr = p.communicate()
-    stdout_ = '' if stdout_ is None else stdout_.decode('utf-8')
-    stderr = '' if stderr is None else stderr.decode('utf-8')
-
-    if stdout_.strip():
-        logger.info("stdout:\n%s" % stdout_)
-    if stderr.strip():
-        logger.info("stderr:\n%s" % stderr)
-
+    stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
+    stderr = u'' if stderr is None else stderr.decode('utf-8')
     output = (stdout_, stderr)
+
     if p.returncode:
         print(output)
         err_fun = subprocess.CalledProcessError.__init__
