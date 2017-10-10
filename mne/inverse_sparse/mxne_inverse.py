@@ -64,19 +64,16 @@ def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
     is_fixed_ori = is_fixed_orient(forward)
 
     if depth is not None:
-        if is_fixed_ori:
-            depth_prior = np.sum(gain ** 2, axis=0) ** depth
-            # Spherical leadfield can be zero at the center
-            depth_prior[depth_prior == 0.] = np.min(
-                depth_prior[depth_prior != 0.])
-            source_weighting = np.sqrt(1. / depth_prior)
-        else:
-            depth_prior = np.sum(gain ** 2, axis=0)
-            # Spherical leadfield can be zero at the center
-            depth_prior[depth_prior == 0.] = np.min(
-                depth_prior[depth_prior != 0.])
-            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1) ** depth
-            source_weighting = np.repeat(1. / np.sqrt(depth_prior), 3)
+        depth_prior = np.sum(gain ** 2, axis=0)
+        if not is_fixed_ori:
+            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1)
+        # Spherical leadfield can be zero at the center
+        depth_prior[depth_prior == 0.] = np.min(
+            depth_prior[depth_prior != 0.])
+        depth_prior **= depth
+        if not is_fixed_ori:
+            depth_prior = np.repeat(depth_prior, 3)
+        source_weighting = np.sqrt(1. / depth_prior)
     else:
         source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
 
