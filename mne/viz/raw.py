@@ -613,7 +613,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     if dB:
         np.log10(psds, out=psds)
         psds *= 10
-        ylabel += '$\ (dB)$'
+        ylabel += '$\\ (dB)$'
 
     return ylabel
 
