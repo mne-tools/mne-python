@@ -53,7 +53,7 @@ forward = mne.read_forward_solution(fwd_fname)
 
 ###############################################################################
 # Run solver
-alpha = 50  # regularization parameter between 0 and 100 (100 is high)
+alpha = 55  # regularization parameter between 0 and 100 (100 is high)
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
 n_mxne_iter = 10  # if > 1 use L0.5/L2 reweighted mixed norm solver
 # if n_mxne_iter > 1 dSPM weighting can be avoided.
