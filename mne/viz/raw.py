@@ -566,31 +566,59 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
             ax_list, make_label)
 
 
-def _convert_psds(psds, dB, scaling, unit, ch_names):
-    """Convert PSDs to dB (if necessary) and appropriate units."""
-    if dB:
-        where = np.where(psds.min(1) <= 0)[0]
-        if len(where) > 0:
-            raise ValueError("Infinite value in PSD for channel(s) %s. "
-                             "These channels might be dead." %
-                             ', '.join(ch_names[ii] for ii in where))
+def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
+    """Convert PSDs to dB (if necessary) and appropriate units.
+
+    The following table summarizes the relationship between the value of
+    parameters `dB` and `estimate`, and the type of plot and corresponding
+    units.
+
+    | dB    | estimate    | plot | units           |
+    |-------+-------------+------+-----------------|
+    | True  | 'power'     | PSD  | u**2/Hz (dB)    |
+    | False | 'amplitude' | ASD  | u/sqrt{Hz}      |
+    | True  | 'auto'      | PSD  | u**2/Hz (dB)    |
+    | False | 'power'     | PSD  | u**2/Hz         |
+    | True  | 'amplitude' | ASD  | u/sqrt{Hz} (dB) |
+    | False | 'auto'      | ASD  | u/sqrt{Hz}      |
+    """
+
+    where = np.where(psds.min(1) <= 0)[0]
+    if len(where) > 0:
+        raise ValueError("Infinite value in PSD for channel(s) %s. "
+                         "These channels might be dead." %
+                         ', '.join(ch_names[ii] for ii in where))
+
+    if dB and ((estimate == 'power') or (estimate == 'auto')):
         psds *= scaling * scaling
         np.log10(psds, out=psds)
         psds *= 10
-        ylabel = '%s/Hz (dB)' % unit
-    else:
+        ylabel = '%s**2/Hz (dB)' % unit # Better to use latex and ^?
+
+    if not dB and ((estimate == 'amplitude' or estimate == 'auto')):
         np.sqrt(psds, out=psds)
         psds *= scaling
         ylabel = '$\\frac{%s}{\\sqrt{Hz}}$' % unit
+
+    if not dB and (estimate == 'power'):
+        psds *= scaling * scaling
+        ylabel = '%s**2/Hz' % unit # Better to use latex and ^?
+
+    if dB and (estimate == 'amplitude'):
+        np.sqrt(psds, out=psds)
+        psds *= scaling
+        np.log10(psds, out=psds)
+        psds *= 10
+        ylabel = '$\\frac{%s}{\\sqrt{Hz}}\ (dB)$ ' % unit
     return ylabel
 
 
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=None, picks=None, ax=None, color='black',
-                 area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
-                 average=None, show=True, n_jobs=1, line_alpha=None,
-                 spatial_colors=None, xscale='linear',
+                 area_mode='std', area_alpha=0.33, n_overlap=0,
+                 dB=True, estimate='auto', average=None, show=True, n_jobs=1,
+                 line_alpha=None, spatial_colors=None, xscale='linear',
                  reject_by_annotation=True, verbose=None):
     """Plot the power spectral density across channels.
 
@@ -637,7 +665,17 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
     dB : bool
-        If True, transform data to decibels. If False, plot amplitudes.
+        Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
+        `dB=True`, and `estimate='power'` or `estimate='auto'`. Plot PSD in
+        units (amplitude**2/Hz) if `dB=False` and, `estimate='power'. Plot
+        Amplitude Spectral Density (ASD), in units (amplitude/sqrt(Hz)), if
+        `dB=False` and `estimate='amplitude'` or `estimate='auto'`. Plot ASD,
+        in units (amplitude/sqrt(Hz) (db)), if `dB=True` and
+        `estimate='amplitude'`.
+    estimate : str, {'auto', 'power', 'amplitude'}
+        Can be "power" for power spectral density (PSD), "amplitude" for
+        amplitude spectrum density (ASD), or "auto" (default), which uses
+        "power" when dB is True and "amplitude" otherwise.
     average : bool
         If False, the PSDs of all channels is displayed. No averaging
         is done and parameters area_mode and area_alpha are ignored. When
@@ -669,6 +707,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     -------
     fig : instance of matplotlib figure
         Figure with frequency spectra of the data channels.
+
     """
     from matplotlib.ticker import ScalarFormatter
     if average is None:
@@ -700,7 +739,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                                 n_overlap=n_overlap, n_jobs=n_jobs,
                                 reject_by_annotation=reject_by_annotation)
 
-        ylabel = _convert_psds(psds, dB, scalings_list[ii], units_list[ii],
+        ylabel = _convert_psds(psds, dB, estimate, scalings_list[ii],
+                               units_list[ii],
                                [raw.ch_names[pi] for pi in picks])
 
         if average:

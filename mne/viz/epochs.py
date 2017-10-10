@@ -873,7 +873,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                                      normalization=normalization, proj=proj,
                                      n_jobs=n_jobs)
 
-        ylabel = _convert_psds(psds, dB, scalings_list[ii], units_list[ii],
+        ylabel = _convert_psds(psds, dB, 'auto', scalings_list[ii],
+                               units_list[ii],
                                [epochs.ch_names[pi] for pi in picks])
 
         # mean across epochs and channels
