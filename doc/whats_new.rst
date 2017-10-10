@@ -113,6 +113,8 @@ Changelog
 
     - Enable morphing between hemispheres with :func:`mne.compute_morph_matrix` by `Christian Brodbeck`_
 
+    - Add ``return_drop_log`` to :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.preprocessing.compute_proj_ecg` by `Eric Larson`_
+
 BUG
 ~~~
 

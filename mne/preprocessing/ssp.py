@@ -289,6 +289,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         If False, filtering raw data is done in place. Defaults to True.
     return_drop_log : bool
         If True, return the drop log.
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -380,6 +382,8 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         If False, filtering raw data is done in place. Defaults to True.
     return_drop_log : bool
         If True, return the drop log.
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
