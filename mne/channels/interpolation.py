@@ -13,6 +13,42 @@ from ..bem import _fit_sphere
 from ..forward import _map_meg_channels
 
 
+class Interpolator(dict):
+    """Precomputed interpolation matrix.
+
+    Parameters
+    ----------
+    eeg : tuple | None
+        EEG interpolation parameters (output of _interpolate_bads_eeg).
+    meg : tuple | None
+        MEG interpolation parameters (output of _interpolate_bads_meg).
+    """
+    def __init__(self, eeg, meg):
+        dict.__init__(self, eeg=eeg, meg=meg)
+
+    def apply_in_place(self, inst):
+        """Dot product of channel mapping matrix to channel data."""
+        if self['eeg'] is not None:
+            self._apply_one(inst, *self['eeg'])
+        if self['meg'] is not None:
+            self._apply_one(inst, *self['meg'])
+
+    @staticmethod
+    def _apply_one(inst, interpolator, goods_index, bads_index):
+        from ..io.base import BaseRaw
+        from ..epochs import BaseEpochs
+        from ..evoked import Evoked
+
+        if isinstance(inst, (BaseRaw, Evoked)):
+            inst._data[bads_index] = interpolator.dot(inst._data[goods_index])
+        elif isinstance(inst, BaseEpochs):
+            inst._data[:, bads_index, :] = np.einsum(
+                'ij,xjy->xiy', interpolator, inst._data[:, goods_index, :])
+        else:
+            raise ValueError('Inputs of type {0} are not supported'
+                             .format(type(inst)))
+
+
 def _calc_g(cosang, stiffness=4, num_lterms=50):
     """Calculate spherical spline g function between points on a sphere.
 
@@ -34,6 +70,13 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
     factors = [(2 * n + 1) / (n ** stiffness * (n + 1) ** stiffness *
                               4 * np.pi) for n in range(1, num_lterms + 1)]
     return legval(cosang, [0] + factors)
+
+
+def _compute_interpolation_matrix(inst, mode):
+    """Implement InterpolationMixin.compute_interpolation_matrix()."""
+    interp_eeg = _interpolate_bads_eeg(inst)
+    interp_meg = _interpolate_bads_meg(inst, mode=mode)
+    return Interpolator(interp_eeg, interp_meg)
 
 
 def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
@@ -88,22 +131,6 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     return interpolation
 
 
-def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
-    """Dot product of channel mapping matrix to channel data."""
-    from ..io.base import BaseRaw
-    from ..epochs import BaseEpochs
-    from ..evoked import Evoked
-
-    if isinstance(inst, (BaseRaw, Evoked)):
-        inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
-    elif isinstance(inst, BaseEpochs):
-        inst._data[:, bads_idx, :] = np.einsum('ij,xjy->xiy', interpolation,
-                                               inst._data[:, goods_idx, :])
-    else:
-        raise ValueError('Inputs of type {0} are not supported'
-                         .format(type(inst)))
-
-
 @verbose
 def _interpolate_bads_eeg(inst, verbose=None):
     """Interpolate bad EEG channels.
@@ -151,7 +178,7 @@ def _interpolate_bads_eeg(inst, verbose=None):
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
     logger.info('Interpolating {0} sensors'.format(len(pos_bad)))
-    _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
+    return interpolation, goods_idx, bads_idx
 
 
 @verbose
@@ -179,8 +206,7 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     if len(bads_meg) == 0:
         picks_bad = []
     else:
-        picks_bad = pick_channels(inst.info['ch_names'], bads_meg,
-                                  exclude=[])
+        picks_bad = pick_channels(inst.info['ch_names'], bads_meg, exclude=[])
 
     # return without doing anything if there are no meg channels
     if len(picks_meg) == 0 or len(picks_bad) == 0:
@@ -188,4 +214,4 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     info_from = pick_info(inst.info, picks_good)
     info_to = pick_info(inst.info, picks_bad)
     mapping = _map_meg_channels(info_from, info_to, mode=mode)
-    _do_interp_dots(inst, mapping, picks_good, picks_bad)
+    return mapping, picks_good, picks_bad

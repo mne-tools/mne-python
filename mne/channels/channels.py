@@ -834,8 +834,39 @@ class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs."""
 
     @verbose
+    def compute_interpolation_matrix(self, mode='accurate', verbose=None):
+        """Compute matrix to interpolate bad MEG and EEG channels.
+
+        Parameters
+        ----------
+        mode : str
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
+            Legendre polynomial expansion used for interpolation of MEG
+            channels.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
+
+        Returns
+        -------
+        interpolator : Interpolator
+            Matrix and indices needed for interpolating bad channels.
+
+        Notes
+        -----
+        .. versionadded:: 0.16.0
+
+        Use this function to precompute an interpolation matrix for
+        :meth:`interpolate_bads`.
+        """
+        from .interpolation import _compute_interpolation_matrix
+
+        return _compute_interpolation_matrix(self, mode)
+
+    @verbose
     def interpolate_bads(self, reset_bads=True, mode='accurate',
-                         verbose=None):
+                         interpolator=None, verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -848,6 +879,10 @@ class InterpolationMixin(object):
             Either ``'accurate'`` or ``'fast'``, determines the quality of the
             Legendre polynomial expansion used for interpolation of MEG
             channels.
+        interpolator : bool
+            Interpolation matrix precomputed with
+            :meth:`compute_interpolation_matrix`. If specified, ``mode`` is
+            ignored.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -861,14 +896,18 @@ class InterpolationMixin(object):
         Notes
         -----
         .. versionadded:: 0.9.0
-        """
-        from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
 
+        See Also
+        --------
+        compute_interpolation_matrix : precompute interpolation matrix
+        """
         if getattr(self, 'preload', None) is False:
             raise ValueError('Data must be preloaded.')
 
-        _interpolate_bads_eeg(self)
-        _interpolate_bads_meg(self, mode=mode)
+        if interpolator is None:
+            interpolator = self.compute_interpolation_matrix(mode)
+
+        interpolator.apply_in_place(self)
 
         if reset_bads is True:
             self.info['bads'] = []
