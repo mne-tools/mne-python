@@ -23,10 +23,11 @@ class Interpolator(dict):
     meg : tuple | None
         MEG interpolation parameters (output of _interpolate_bads_meg).
     """
+
     def __init__(self, eeg, meg):
         dict.__init__(self, eeg=eeg, meg=meg)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         desc = []
         if self['eeg'] is not None:
             desc.append('%i bad EEG' % (self['eeg'][1].sum(),))
