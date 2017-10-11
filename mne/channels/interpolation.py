@@ -26,6 +26,16 @@ class Interpolator(dict):
     def __init__(self, eeg, meg):
         dict.__init__(self, eeg=eeg, meg=meg)
 
+    def __repr__(self):
+        desc = []
+        if self['eeg'] is not None:
+            desc.append('%i bad EEG' % (self['eeg'][1].sum(),))
+        if self['meg'] is not None:
+            desc.append('%i bad MEG' % (len(self['meg'][1]),))
+        if not desc:
+            desc.append('0 bad')
+        "<Interpolator | %s>" % (', '.join(desc),)
+
     def apply_in_place(self, inst):
         """Dot product of channel mapping matrix to channel data."""
         if self['eeg'] is not None:
