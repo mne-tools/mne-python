@@ -26,10 +26,18 @@ from ..utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
-from .constants import KIT
+from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk
 from ...externals.six import string_types
 from ...event import read_events
+
+
+class UnsupportedKITFormat(ValueError):
+    """Our reader is not guaranteed to work with old files."""
+
+    def __init__(self, sqd_version, *args, **kwargs):
+        self.sqd_version = sqd_version
+        ValueError.__init__(self, *args, **kwargs)
 
 
 class RawKIT(BaseRaw):
@@ -73,6 +81,9 @@ class RawKIT(BaseRaw):
     stim_code : 'binary' | 'channel'
         How to decode trigger values from stim channels. 'binary' read stim
         channel events as binary code, 'channel' encodes channel number.
+    allow_unknown_format : bool
+        Force reading old data that is not officially supported. Alternatively,
+        read and re-save the data with the KIT MEG Laboratory application.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -92,12 +103,12 @@ class RawKIT(BaseRaw):
     @verbose
     def __init__(self, input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
-                 verbose=None):  # noqa: D102
+                 allow_unknown_format=False, verbose=None):  # noqa: D102
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         self.preload = False
         logger.info('Creating Raw.info structure...')
-        info, kit_info = get_kit_info(input_fname)
+        info, kit_info = get_kit_info(input_fname, allow_unknown_format)
         kit_info['slope'] = slope
         kit_info['stimthresh'] = stimthresh
         if kit_info['acq_type'] != KIT.CONTINUOUS:
@@ -340,6 +351,9 @@ class EpochsKIT(BaseEpochs):
     hsp : None | str | array, shape = (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
         10`000 points are in the head shape, they are automatically decimated.
+    allow_unknown_format : bool
+        Force reading old data that is not officially supported. Alternatively,
+        read and re-save the data with the KIT MEG Laboratory application.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -360,7 +374,7 @@ class EpochsKIT(BaseEpochs):
     def __init__(self, input_fname, events, event_id=None, tmin=0,
                  baseline=None,  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, mrk=None, elp=None, hsp=None,
-                 verbose=None):  # noqa: D102
+                 allow_unknown_format=False, verbose=None):  # noqa: D102
 
         if isinstance(events, string_types):
             events = read_events(events)
@@ -380,7 +394,7 @@ class EpochsKIT(BaseEpochs):
 
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        self.info, kit_info = get_kit_info(input_fname)
+        self.info, kit_info = get_kit_info(input_fname, allow_unknown_format)
         kit_info.update(filename=input_fname)
         self._raw_extras = [kit_info]
         self._filenames = []
@@ -518,13 +532,16 @@ def _set_dig_kit(mrk, elp, hsp):
     return dig_points, dev_head_t
 
 
-def get_kit_info(rawfile):
+def get_kit_info(rawfile, allow_unknown_format):
     """Extract all the information from the sqd file.
 
     Parameters
     ----------
     rawfile : str
         KIT file to be read.
+    allow_unknown_format : bool
+        Force reading old data that is not officially supported. Alternatively,
+        read and re-save the data with the KIT MEG Laboratory application.
 
     Returns
     -------
@@ -535,6 +552,7 @@ def get_kit_info(rawfile):
     """
     sqd = dict()
     sqd['rawfile'] = rawfile
+    unsupported_format = False
     with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
         fid.seek(16)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
@@ -542,8 +560,16 @@ def get_kit_info(rawfile):
         # check file format version
         version, revision = unpack('2i', fid.read(2 * KIT.INT))
         if version < 2 or (version == 2 and revision < 3):
-            raise IOError("SQD file format V%iR%03i not supported." %
-                          (version, revision))
+            version_string = "V%iR%03i" % (version, revision)
+            if allow_unknown_format:
+                unsupported_format = True
+                logger.warning("Force loading KIT format %s", version_string)
+            else:
+                raise UnsupportedKITFormat(
+                    version_string,
+                    "SQD file format %s is not officially supported. "
+                    "Set allow_unknown_format=True to load it anyways." %
+                    (version_string,))
 
         sysid = unpack('i', fid.read(KIT.INT))[0]
         # basic info
@@ -564,7 +590,7 @@ def get_kit_info(rawfile):
         adboard_type = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(KIT.INT * 29, SEEK_CUR)  # reserved
 
-        if version == 2 and revision == 3:
+        if version < 2 or (version == 2 and revision <= 3):
             adc_range = float(unpack('i', fid.read(KIT.INT))[0])
         else:
             adc_range = unpack('d', fid.read(KIT.DOUBLE))[0]
@@ -689,6 +715,11 @@ def get_kit_info(rawfile):
                           "continuous nor epoched data." % (acq_type,))
 
     # precompute conversion factor for reading data
+    if unsupported_format:
+        if sysid not in LEGACY_AMP_PARAMS:
+            raise IOError("Legacy parameters for system ID %i unavailable" %
+                          (sysid,))
+        adc_range, adc_stored = LEGACY_AMP_PARAMS[sysid]
     is_meg = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
     ad_to_volt = adc_range / (2. ** adc_stored)
     ad_to_tesla = ad_to_volt / amp_gain * channel_gain
@@ -753,7 +784,7 @@ def get_kit_info(rawfile):
 
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
-                 verbose=None):
+                 allow_unknown_format=False, verbose=None):
     """Reader function for KIT conversion to FIF.
 
     Parameters
@@ -791,6 +822,9 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     stim_code : 'binary' | 'channel'
         How to decode trigger values from stim channels. 'binary' read stim
         channel events as binary code, 'channel' encodes channel number.
+    allow_unknown_format : bool
+        Force reading old data that is not officially supported. Alternatively,
+        read and re-save the data with the KIT MEG Laboratory application.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -811,11 +845,12 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     """
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,
-                  preload=preload, stim_code=stim_code, verbose=verbose)
+                  preload=preload, stim_code=stim_code,
+                  allow_unknown_format=allow_unknown_format, verbose=verbose)
 
 
-def read_epochs_kit(input_fname, events, event_id=None,
-                    mrk=None, elp=None, hsp=None, verbose=None):
+def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
+                    hsp=None, allow_unknown_format=False, verbose=None):
     """Reader function for KIT epochs files.
 
     Parameters
@@ -845,6 +880,9 @@ def read_epochs_kit(input_fname, events, event_id=None,
     hsp : None | str | array, shape (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
         10,000 points are in the head shape, they are automatically decimated.
+    allow_unknown_format : bool
+        Force reading old data that is not officially supported. Alternatively,
+        read and re-save the data with the KIT MEG Laboratory application.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -860,5 +898,6 @@ def read_epochs_kit(input_fname, events, event_id=None,
     """
     epochs = EpochsKIT(input_fname=input_fname, events=events,
                        event_id=event_id, mrk=mrk, elp=elp, hsp=hsp,
+                       allow_unknown_format=allow_unknown_format,
                        verbose=verbose)
     return epochs
