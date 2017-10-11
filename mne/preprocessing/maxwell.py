@@ -411,7 +411,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
             logger.info('    Spatiotemporal window did not fit evenly into '
                         'raw object. The final %0.2f seconds were lumped '
                         'onto the previous window.'
-                        % ((read_lims[-1] - read_lims[-2]) / info['sfreq'],))
+                        % ((read_lims[-1] - read_lims[-2] - st_duration) /
+                           info['sfreq'],))
     assert len(read_lims) >= 2
     assert read_lims[0] == 0 and read_lims[-1] == len(raw_sss.times)
 
@@ -706,10 +707,11 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
     np.asarray_chkfinite(resid)
     t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in [2]_
-    msg = ('        Projecting %2d intersecting tSSS components '
-           'for %s' % (t_proj.shape[1], t_str))
+    msg = ('        Projecting %2d intersecting tSSS component%s '
+           'for %s' % (t_proj.shape[1], _pl(t_proj.shape[1], ' '), t_str))
     if n_positions > 1:
-        msg += ' (across %2d positions)' % n_positions
+        msg += ' (across %2d position%s)' % (n_positions,
+                                             _pl(n_positions, ' '))
     logger.info(msg)
     clean_data -= np.dot(np.dot(clean_data, t_proj), t_proj.T)
 
@@ -851,7 +853,6 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
     n_in, n_out = _get_n_moments([int_order, ext_order])
     t_str = '%8.3f' % t
     if regularize is not None:  # regularize='in'
-        logger.info('    Computing regularization')
         in_removes, out_removes = _regularize_in(
             int_order, ext_order, S_decomp, mag_or_fine)
     else:

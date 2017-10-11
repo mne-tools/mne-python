@@ -2284,6 +2284,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
+    from scipy.sparse.csgraph import dijkstra
     n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
     if not np.isscalar(dist_limit):
@@ -2300,8 +2301,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         # can't do introspection on dijkstra function because it's Cython,
         # so we'll just try quickly here
         try:
-            sparse.csgraph.dijkstra(sparse.csr_matrix(np.zeros((2, 2))),
-                                    limit=1.0)
+            dijkstra(sparse.csr_matrix(np.zeros((2, 2))), limit=1.0)
         except TypeError:
             raise RuntimeError('Cannot use "limit < np.inf" unless scipy '
                                '> 0.13 is installed')
@@ -2351,10 +2351,11 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 
 def _do_src_distances(con, vertno, run_inds, limit):
     """Compute source space distances in chunks."""
+    from scipy.sparse.csgraph import dijkstra
     if limit < np.inf:
-        func = partial(sparse.csgraph.dijkstra, limit=limit)
+        func = partial(dijkstra, limit=limit)
     else:
-        func = sparse.csgraph.dijkstra
+        func = dijkstra
     chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
     n_chunks = len(lims) - 1
