@@ -134,13 +134,12 @@ def test_gamma_map_vol_sphere():
                                                 use_cps=True)
 
     dip_gmap = gamma_map(evoked_dip, fwd, cov, 0.1, return_as_dipoles=True)
-    assert_true(dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices])
 
     amp_max = [np.max(d.amplitude) for d in dip_gmap]
     dip_gmap = dip_gmap[np.argmax(amp_max)]
+    assert_true(dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices])
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
-    assert_true(np.max(np.abs(np.dot(dip_fit.ori[0],
-                                     dip_gmap.ori.T))) > 0.99)
+    assert_true(np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)  # XXX
 
 run_tests_if_main()
