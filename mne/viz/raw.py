@@ -586,15 +586,15 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     ``unit``.
     """
     where = np.where(psds.min(1) <= 0)[0]
+    dead_ch = ', '.join(ch_names[ii] for ii in where)
     if len(where) > 0:
         if dB:
-            raise ValueError("Infinite value in PSD for channel(s) %s. "
-                             "These channels might be dead." %
-                             ', '.join(ch_names[ii] for ii in where))
+            msg = "Infinite value in PSD for channel(s) %s. " \
+                  "These channels might be dead." % dead_ch
         else:
-            raise ValueError("Zero value in PSD for channel(s) %s. "
-                             "These channels might be dead." %
-                             ', '.join(ch_names[ii] for ii in where))
+            msg = "Zero value in PSD for channel(s) %s. " \
+                  "These channels might be dead." % dead_ch
+        warn(msg)
 
     if estimate == 'auto':
         if dB:
@@ -611,7 +611,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
         ylabel = r'$\mathrm{%s^2}/Hz}$' % unit
 
     if dB:
-        np.log10(psds, out=psds)
+        np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
         psds *= 10
         ylabel += r'$\ \mathrm{(dB)}$'
 
