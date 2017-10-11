@@ -49,12 +49,13 @@ def test_compute_proj_ecg():
         # without setting a bad channel, this should throw a warning
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            projs, events = compute_proj_ecg(
+            projs, events, drop_log = compute_proj_ecg(
                 raw, n_mag=2, n_grad=2, n_eeg=2, ch_name='MEG 1531', bads=[],
                 average=average, avg_ref=True, no_proj=True, l_freq=None,
-                h_freq=None, tmax=dur_use)
+                h_freq=None, tmax=dur_use, return_drop_log=True)
         assert_true(len(w) >= 1)
         assert_equal(projs, None)
+        assert_equal(len(events), len(drop_log))
 
 
 def test_compute_proj_eog():
