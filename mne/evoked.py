@@ -358,7 +358,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
 
-    def plot_white(self, noise_cov, rank=None, show=True):
+    def plot_white(self, noise_cov, show=True, rank=None):
         """Plot whitened evoked response.
 
         Plots the whitened evoked response and the whitened GFP as described in
@@ -377,13 +377,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         noise_cov : list | instance of Covariance | str
             The noise covariance as computed by ``mne.cov.compute_covariance``.
+        show : bool
+            Whether to show the figure or not. Defaults to True.
         rank : dict of int | None
             Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
             the rank is detected automatically. Defaults to None. Note.
             The rank estimation will be printed by the logger for each noise
             covariance estimator that is passed.
-        show : bool
-            Whether to show the figure or not. Defaults to True.
 
         Returns
         -------

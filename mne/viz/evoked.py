@@ -876,7 +876,7 @@ def _plot_update_evoked(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
+def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
     """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
@@ -896,13 +896,13 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
         The evoked response.
     noise_cov : list | instance of Covariance | str
         The noise covariance as computed by ``mne.cov.compute_covariance``.
+    show : bool
+        Show figure if True.
     rank : dict of int | None
         Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
         the rank is detected automatically. Defaults to None. Note.
         The rank estimation will be printed by the logger for each noise
         covariance estimator that is passed.
-    show : bool
-        Show figure if True.
 
     Returns
     -------

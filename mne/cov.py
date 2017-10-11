@@ -1083,7 +1083,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             sc.fit(data_)
             _info = None
             estimator_cov_info.append([sc, sc.covariance_, _info])
-        elif this_method == 'pca':  # XXX this is now nonsensical
+        elif this_method == 'pca':
+            # XXX maybe block this if SSS is used.
             mp = method_params[this_method]
             pca, _info = _auto_low_rank_model(data_, this_method,
                                               n_jobs=n_jobs,
@@ -1092,7 +1093,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             pca.fit(data_)
             estimator_cov_info.append([pca, pca.get_covariance(), _info])
 
-        elif this_method == 'factor_analysis':  # XXX SSS case + EEG weird?
+        elif this_method == 'factor_analysis':
+            # XXX maybe block this if SSS is used?
             mp = method_params[this_method]
             fa, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
                                              method_params=mp, cv=cv,
@@ -1113,10 +1115,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         # this is now a bit convoluted.
         # The right part of the cov has to be picked, reprojected if needed
         # and here the clipping has to happen.
-        # XXX we need a rank dict here and clip conditional upon
-        # low rank config.
         if has_sss:
-            # XXX the logic is broken here for EEG
             logger.info('reprojecting low-rank covariance')
 
             C_low = cov[1]
@@ -1143,11 +1142,10 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 pca_sss.inverse_transform(C_low[meg_low_idx]).T)
 
             if eeg_low_idx is not None:
-                #  XXX PCA not needed if it's not done for EEG.
                 C_full[eeg_full_idx] = C_low[eeg_low_idx]
             cov[1] = C_full  # replace low rank with full rank cov
 
-        # XXX clip here
+        # clip here
         _undo_scaling_cov(cov[1], picks_list, scalings)
         if has_sss:
             picks_list_final_ = _merge_picks_list(picks_list)

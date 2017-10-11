@@ -30,18 +30,6 @@ raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference()
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
-###############################################################################
-# Set parameters
-ctc_fname = data_path + '/SSS/ct_sparse_mgh.fif'
-fine_cal_fname = data_path + '/SSS/sss_cal_mgh.dat'
-
-###############################################################################
-# Preprocess with Maxwell filtering
-raw.info['bads'] = ['MEG 2443', 'EEG 053', 'MEG 1032', 'MEG 2313']  # set bads
-# Here we don't use tSSS (set st_duration) because MGH data is very clean
-raw = mne.preprocessing.maxwell_filter(
-    raw, cross_talk=ctc_fname, calibration=fine_cal_fname)
-
 
 ###############################################################################
 # The definition of noise depends on the paradigm. In MEG it is quite common
@@ -67,13 +55,9 @@ raw_empty_room.info['bads'] = [
 raw_empty_room.add_proj(
     [pp.copy() for pp in raw.info['projs'] if 'EEG' not in pp['desc']])
 
-raw_empty_room = mne.preprocessing.maxwell_filter(
-    raw_empty_room, cross_talk=ctc_fname, calibration=fine_cal_fname,
-    coord_frame='meg')
-
 noise_cov = mne.compute_raw_covariance(
-    raw_empty_room, tmin=0, tmax=None, method='diagonal_fixed')
-noise_cov.nfree
+    raw_empty_room, tmin=0, tmax=None)
+
 ###############################################################################
 # Now that you the covariance matrix in an MNE-Python object you can save it
 # to a file with :func:`mne.write_cov`. Later you can read it back
@@ -179,7 +163,7 @@ noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
 noise_cov['method'] = 'empty_room'
 noise_cov_meg['method'] = 'basleline'
 
-evoked_meg.plot_white([noise_cov, noise_cov_reg])
+evoked_meg.plot_white([noise_cov_meg, noise_cov])
 
 
 ##############################################################################
