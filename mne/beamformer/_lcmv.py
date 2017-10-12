@@ -63,6 +63,28 @@ def _eig_inv(x, rank):
     return x_inv
 
 
+def _ori_selection_inv(tmp, reduce_rank):
+    """Compute inversion within orientation selection process.
+
+    Considers the rank reduction option.
+    """
+    if reduce_rank:
+        # use pseudo inverse computation setting smallest component
+        # to zero if the leadfield is not full rank
+        tmp_inv = _eig_inv(tmp, tmp.shape[0] - 1)
+    else:
+        # use straight inverse with full rank leadfield
+        try:
+            tmp_inv = linalg.inv(tmp)
+        except np.linalg.linalg.LinAlgError:
+            raise ValueError('Singular matrix detected when '
+                             'estimating LCMV filters. Consider '
+                             'reducing the rank of the leadfield '
+                             'by using reduce_rank=True.')
+
+    return tmp_inv
+
+
 def _setup_picks(info, forward, data_cov=None, noise_cov=None):
     """Return good channels common to forward model and covariance matrices."""
     # get a list of all channel names:
@@ -279,26 +301,13 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         # Compute scalar beamformer by finding the source orientation which
         # maximizes output source power
         if pick_ori == 'max-power':
+            is_free_ori = False
             # weight normalization and orientation selection:
-            if weight_norm is not None and pick_ori == 'max-power':
+            if weight_norm is not None:
                 # finding optimal orientation for NAI and unit-noise-gain
                 # based on [2]_, Eq. 4.47
                 tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
-
-                if reduce_rank:
-                    # use pseudo inverse computation setting smallest component
-                    # to zero if the leadfield is not full rank
-                    tmp_inv = _eig_inv(tmp, tmp.shape[0] - 1)
-                else:
-                    # use straight inverse with full rank leadfield
-                    try:
-                        tmp_inv = linalg.inv(tmp)
-                    except np.linalg.linalg.LinAlgError:
-                        raise ValueError('Singular matrix detected when '
-                                         'estimating LCMV filters. Consider '
-                                         'reducing the rank of the leadfield '
-                                         'by using reduce_rank=True.')
-
+                tmp_inv = _ori_selection_inv(tmp, reduce_rank)
                 eig_vals, eig_vecs = linalg.eig(np.dot(tmp_inv,
                                                        np.dot(Wk, Gk)))
 
@@ -320,13 +329,18 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 if weight_norm == 'nai':
                     Wk /= np.sqrt(noise)
 
-                is_free_ori = False
+            else:  # orientation selection for unit-gain LCMV:
+                # finding the optimal orientation:
+                tmp = np.dot(Gk.T, np.dot(Cm_inv, Gk))
+                tmp_inv = _ori_selection_inv(tmp, reduce_rank)
+                U, _, _ = linalg.svd(tmp)
+                max_ori = U[:, 0]
+                Wk[:] = np.dot(max_ori, Wk)
+                Gk = np.dot(Gk, max_ori)
 
-            # no weight-normalization and max-power is not implemented yet:
-            else:
-                raise NotImplementedError('The max-power orientation '
-                                          'selection is not yet implemented '
-                                          'with weight_norm set to None.')
+                # compute the spatial filter
+                denom = np.dot(Gk.T, np.dot(Cm_inv, Gk))
+                Wk /= denom
 
         else:  # do vector beamformer
             # compute the filters:
