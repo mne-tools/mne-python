@@ -6,7 +6,8 @@
 import numpy as np
 from scipy import linalg, signal
 
-from ..source_estimate import SourceEstimate, VolSourceEstimate
+from ..source_estimate import (SourceEstimate, VolSourceEstimate,
+                               _BaseSourceEstimate)
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference, _check_loose_forward)
 from ..forward import (compute_orient_prior, is_fixed_orient,
@@ -24,8 +25,7 @@ from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
 @verbose
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     mask = None
-    if isinstance(weights, SourceEstimate):
-        # weights = np.sqrt(np.sum(weights.data ** 2, axis=1))
+    if isinstance(weights, _BaseSourceEstimate):
         weights = np.max(np.abs(weights.data), axis=1)
     weights_max = np.max(weights)
     if weights_min > weights_max:
@@ -61,16 +61,23 @@ def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
 
     logger.info('Whitening lead field matrix.')
     gain = np.dot(whitener, gain)
+    is_fixed_ori = is_fixed_orient(forward)
 
     if depth is not None:
-        depth_prior = np.sum(gain ** 2, axis=0) ** depth
+        depth_prior = np.sum(gain ** 2, axis=0)
+        if not is_fixed_ori:
+            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1)
         # Spherical leadfield can be zero at the center
-        depth_prior[depth_prior == 0.] = np.min(depth_prior[depth_prior != 0.])
+        depth_prior[depth_prior == 0.] = np.min(
+            depth_prior[depth_prior != 0.])
+        depth_prior **= depth
+        if not is_fixed_ori:
+            depth_prior = np.repeat(depth_prior, 3)
         source_weighting = np.sqrt(1. / depth_prior)
     else:
         source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
 
-    assert (is_fixed_orient(forward) or (0 <= loose <= 1))
+    assert (is_fixed_ori or (0 <= loose <= 1))
     if loose is not None and loose < 1.:
         source_weighting *= np.sqrt(compute_orient_prior(forward, loose))
 
@@ -178,7 +185,6 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 @verbose
 def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
                          active_is_idx=False, verbose=None):
-
     times = tmin + tstep * np.arange(X.shape[1])
 
     if not active_is_idx:
@@ -209,10 +215,12 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
             if forward['surf_ori']:
                 X_ = np.dot(forward['source_nn'][i_dip *
                             n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
+
             amplitude = np.sqrt(np.sum(X_ ** 2, axis=0))
             i_ori = np.zeros((len(times), 3))
             i_ori[amplitude > 0.] = (X_[:, amplitude > 0.] /
                                      amplitude[amplitude > 0.]).T
+
         dipoles.append(Dipole(times, i_pos, amplitude, i_ori, gof))
 
     return dipoles
