@@ -115,6 +115,8 @@ Changelog
 
     - Add ``return_drop_log`` to :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.preprocessing.compute_proj_ecg` by `Eric Larson`_
 
+    - Significantly speed up covariance computation for data cleaned with SSS via low rank projection by `Denis Engemann`_
+
 BUG
 ~~~
 
@@ -204,6 +206,9 @@ BUG
 
     - Fix depth weighting of sparse solvers (:func:`mne.inverse_sparse.mixed_norm`, :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.gamma_map`) with free orientation source spaces to improve orientation estimation by `Alex Gramfort`_ and `Yousra Bekhti`_
 
+    - Fix parallel processing when computing covariance with shrinkage estimators by `Denis Engemann`_
+
+    - Fix handling of numerical rank when plotting whitened evoked data by `Denis Engemann`_
 
 API
 ~~~
