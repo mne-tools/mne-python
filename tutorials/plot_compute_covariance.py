@@ -59,8 +59,8 @@ noise_cov = mne.compute_raw_covariance(
     raw_empty_room, tmin=0, tmax=None)
 
 ###############################################################################
-# Now that you the covariance matrix in an MNE-Python object you can save it
-# to a file with :func:`mne.write_cov`. Later you can read it back
+# Now that you have the covariance matrix in an MNE-Python object you can
+# save it to a file with :func:`mne.write_cov`. Later you can read it back
 # using :func:`mne.read_cov`.
 #
 # You can also use the pre-stimulus baseline to estimate the noise covariance.
