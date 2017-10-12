@@ -140,6 +140,6 @@ def test_gamma_map_vol_sphere():
     assert_true(dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices])
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
-    assert_true(np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)  # XXX
+    assert_true(np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)
 
 run_tests_if_main()

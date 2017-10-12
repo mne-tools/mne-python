@@ -188,7 +188,7 @@ def test_mxne_vol_sphere():
     assert_true(dip_mxne.pos[0] in src[0]['rr'][stc.vertices])
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
-    assert_true(np.abs(np.dot(dip_fit.ori[0], dip_mxne.ori[0])) > 0.99)  # XXX
+    assert_true(np.abs(np.dot(dip_fit.ori[0], dip_mxne.ori[0])) > 0.99)
 
     # Do with TF-MxNE for test memory savings
     alpha_space = 60.  # spatial regularization parameter
