@@ -333,7 +333,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 # finding the optimal orientation:
                 tmp = np.dot(Gk.T, np.dot(Cm_inv, Gk))
                 tmp_inv = _ori_selection_inv(tmp, reduce_rank)
-                U, _, _ = linalg.svd(tmp)
+                U, _, _ = linalg.svd(tmp_inv)
                 max_ori = U[:, 0]
                 Wk[:] = np.dot(max_ori, Wk)
                 Gk = np.dot(Gk, max_ori)
