@@ -893,7 +893,7 @@ def _estimate_rank_by_type(data, info, picks_list, scalings):
     for key, this_picks in picks_list_:
         rank = _estimate_rank_meeg_signals(
             data,
-            pick_info(info.copy(), this_picks),
+            pick_info(info, this_picks),
             scalings=scalings, tol='auto', return_singular=False)
         out[key] = rank
 
