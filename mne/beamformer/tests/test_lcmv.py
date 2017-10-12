@@ -241,12 +241,6 @@ def test_lcmv():
     assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
                   data_cov, reg=0.01, pick_ori=None, weight_norm='nai')
 
-    # Test if no weight-normalization and max-power source orientation throw
-    # an error
-    assert_raises(NotImplementedError, lcmv, evoked, forward_vol, noise_cov,
-                  data_cov, reg=0.01, pick_ori="max-power", weight_norm=None,
-                  max_ori_out='signed')
-
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = deepcopy(evoked)
     evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
