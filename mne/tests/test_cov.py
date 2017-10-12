@@ -588,9 +588,9 @@ def test_compute_covariance_auto_reg():
                         cov_b['data'][diag_mask]))
 
             # but the rest is the same
-            assert_array_almost_equal(  # XXX make sure this is ok.
+            assert_array_almost_equal(
                 cov_a['data'][off_diag_mask],
-                cov_b['data'][off_diag_mask])
+                cov_b['data'][off_diag_mask], 27)
 
         else:
             # and here we have shrinkage everywhere.
