@@ -605,7 +605,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     if estimate == 'amplitude':
         np.sqrt(psds, out=psds)
         psds *= scaling
-        ylabel = r'$\mathrm{\frac{%s}{\sqrt{Hz}}}$' % unit
+        ylabel = r'$\mathrm{%s / \sqrt{Hz}}$' % unit
     else:
         psds *= scaling * scaling
         ylabel = r'$\mathrm{%s^2}/Hz}$' % unit
@@ -767,7 +767,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
         if make_label:
             if ii == len(picks_list) - 1:
-                ax.set_xlabel('Freq (Hz)')
+                ax.set_xlabel('Frequency (Hz)')
             ax.set_ylabel(ylabel)
             ax.set_title(titles_list[ii])
             ax.set_xlim(freqs[0], freqs[-1])
