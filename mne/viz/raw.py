@@ -733,6 +733,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     line_alpha = float(line_alpha)
 
     psd_list = list()
+    ylabels = list()
     if n_fft is None:
         tmax = raw.times[-1] if not np.isfinite(tmax) else tmax
         n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
@@ -771,6 +772,9 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             ax.set_ylabel(ylabel)
             ax.set_title(titles_list[ii])
             ax.set_xlim(freqs[0], freqs[-1])
+
+        ylabels.append(ylabel)
+
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
         if raw.info[key] is not None:
@@ -794,8 +798,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         for this_type in valid_channel_types:
             if this_type in types:
                 ch_types_used.append(this_type)
-        unit = 'dB/Hz' if dB else '$1/\\sqrt{Hz}$)'
-        units = {t: 'PSD (%s)' % unit for t in ch_types_used}
+        unit = ''
+        units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
         picks = np.arange(len(psd_list))
         if not spatial_colors:
