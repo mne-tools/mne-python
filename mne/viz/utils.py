@@ -105,15 +105,18 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         with catch_warnings(record=True) as ws:
             fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
-        for msg in [w.get_message() for w in ws]:
-            if not msg.startswith('This figure includes Axes'):
-                warn(msg)
     except Exception:
         try:
-            fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+            with catch_warnings(record=True) as ws:
+                fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
         except Exception:
             warn('Matplotlib function "tight_layout" is not supported.'
                  ' Skipping subplot adjustment.')
+            return
+    for w in ws:
+        w = str(w.message) if hasattr(w, 'message') else w.get_message()
+        if not w.startswith('This figure includes Axes'):
+            warn(w)
 
 
 def _check_delayed_ssp(container):

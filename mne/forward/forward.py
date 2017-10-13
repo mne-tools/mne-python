@@ -618,7 +618,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     if use_cps is None:
         if force_fixed:
             use_cps = False
-            warn('The default settings controlling the the application of '
+            warn('The default settings controlling the application of '
                  'cortical patch statistics (cps) in the creation of forward '
                  'operators with fixed orientation will be modified in 0.16. '
                  'The cps (if available) will then be applied by default. '

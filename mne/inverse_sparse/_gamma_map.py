@@ -121,7 +121,8 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             if denom is None:
                 gammas = numer
             else:
-                gammas = numer / denom_fun(denom)
+                gammas = numer / np.maximum(denom_fun(denom),
+                                            np.finfo('float').eps)
         else:
             numer_comb = np.sum(numer.reshape(-1, group_size), axis=1)
             if denom is None:

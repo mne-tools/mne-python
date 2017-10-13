@@ -32,7 +32,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       average, filter_length, n_jobs, ch_name,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
-                      filter_method, iir_params=None, verbose=None):
+                      filter_method, iir_params=None, return_drop_log=False,
+                      verbose=None):
     """Compute SSP/PCA projections for ECG or EOG artifacts.
 
     .. note:: raw data must be preloaded.
@@ -95,6 +96,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
+    return_drop_log : bool
+        If True, return the drop log.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -105,6 +108,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         Computed SSP projectors.
     events : ndarray
         Detected events.
+    drop_log : list
+        The drop log, if requested.
     """
     if not raw.preload:
         raise ValueError('raw needs to be preloaded, '
@@ -188,10 +193,10 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
                     picks=picks, reject=reject, flat=flat, proj=True)
 
-    epochs.drop_bad()
+    drop_log = epochs.drop_log
     if epochs.events.shape[0] < 1:
         warn('No good epochs found, returning None for projs')
-        return None, events
+        return (None, events) + ((drop_log,) if return_drop_log else ())
 
     if average:
         evoked = epochs.average()
@@ -205,10 +210,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         p['desc'] = mode + "-" + p['desc']
 
     projs.extend(ev_projs)
-
     logger.info('Done.')
-
-    return projs, events
+    return (projs, events) + ((drop_log,) if return_drop_log else ())
 
 
 @verbose
@@ -220,7 +223,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
                      tstart=0., qrs_threshold='auto', filter_method='fft',
-                     iir_params=None, copy=True, verbose=None):
+                     iir_params=None, copy=True, return_drop_log=False,
+                     verbose=None):
     """Compute SSP/PCA projections for ECG artifacts.
 
     .. note:: raw data must be preloaded.
@@ -283,6 +287,10 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         is None and method="iir", 4th order Butterworth will be used.
     copy : bool
         If False, filtering raw data is done in place. Defaults to True.
+    return_drop_log : bool
+        If True, return the drop log.
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -293,19 +301,15 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         Computed SSP projectors.
     ecg_events : ndarray
         Detected ECG events.
+    drop_log : list
+        The drop log, if requested.
     """
-    if copy is True:
-        raw = raw.copy()
-
-    projs, ecg_events = _compute_exg_proj('ECG', raw, raw_event, tmin, tmax,
-                                          n_grad, n_mag, n_eeg, l_freq, h_freq,
-                                          average, filter_length, n_jobs,
-                                          ch_name, reject, flat, bads, avg_ref,
-                                          no_proj, event_id, ecg_l_freq,
-                                          ecg_h_freq, tstart, qrs_threshold,
-                                          filter_method, iir_params)
-
-    return projs, ecg_events
+    raw = raw.copy() if copy else raw
+    return _compute_exg_proj(
+        'ECG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
+        l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
+        bads, avg_ref, no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart,
+        qrs_threshold, filter_method, iir_params, return_drop_log)
 
 
 @verbose
@@ -316,7 +320,8 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                                  eog=np.inf), flat=None, bads=[],
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
                      eog_h_freq=10, tstart=0., filter_method='fft',
-                     iir_params=None, ch_name=None, copy=True, verbose=None):
+                     iir_params=None, ch_name=None, copy=True,
+                     return_drop_log=False, verbose=None):
     """Compute SSP/PCA projections for EOG artifacts.
 
     .. note:: raw data must be preloaded.
@@ -375,6 +380,10 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         If not None, specify EOG channel name.
     copy : bool
         If False, filtering raw data is done in place. Defaults to True.
+    return_drop_log : bool
+        If True, return the drop log.
+
+        .. versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -385,17 +394,13 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Computed SSP projectors.
     eog_events: ndarray
         Detected EOG events.
+    drop_log : list
+        The drop log, if requested.
     """
-    if copy is True:
-        raw = raw.copy()
-    projs, eog_events = _compute_exg_proj('EOG', raw, raw_event, tmin, tmax,
-                                          n_grad, n_mag, n_eeg, l_freq, h_freq,
-                                          average, filter_length, n_jobs,
-                                          ch_name, reject, flat, bads, avg_ref,
-                                          no_proj, event_id, eog_l_freq,
-                                          eog_h_freq, tstart,
-                                          qrs_threshold='auto',
-                                          filter_method=filter_method,
-                                          iir_params=iir_params)
-
-    return projs, eog_events
+    raw = raw.copy() if copy else raw
+    return _compute_exg_proj(
+        'EOG', raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
+        l_freq, h_freq, average, filter_length, n_jobs, ch_name, reject, flat,
+        bads, avg_ref, no_proj, event_id, eog_l_freq, eog_h_freq, tstart,
+        qrs_threshold='auto', filter_method=filter_method,
+        iir_params=iir_params, return_drop_log=return_drop_log)

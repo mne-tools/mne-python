@@ -566,6 +566,7 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             trans = _find_trans(subject, subjects_dir)
         trans = read_trans(trans, return_all=True)
+        exp = None
         for trans in trans:  # we got at least 1
             try:
                 trans = _ensure_trans(trans, 'head', 'mri')
@@ -1040,6 +1041,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             trans = _find_trans(subject, subjects_dir)
         trans = read_trans(trans, return_all=True)
+        exp = None
         for trans in trans:  # we got at least 1
             try:
                 trans = _ensure_trans(trans, 'head', 'mri')

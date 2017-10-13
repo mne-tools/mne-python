@@ -124,5 +124,22 @@ def test_gamma_map_vol_sphere():
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
 
+    # Compare orientation obtained using fit_dipole and gamma_map
+    # for a simulated evoked containing a single dipole
+    stc = mne.VolSourceEstimate(50e-9 * np.random.RandomState(42).randn(1, 4),
+                                vertices=stc.vertices[:1],
+                                tmin=stc.tmin,
+                                tstep=stc.tstep)
+    evoked_dip = mne.simulation.simulate_evoked(fwd, stc, info, cov, nave=1e9,
+                                                use_cps=True)
+
+    dip_gmap = gamma_map(evoked_dip, fwd, cov, 0.1, return_as_dipoles=True)
+
+    amp_max = [np.max(d.amplitude) for d in dip_gmap]
+    dip_gmap = dip_gmap[np.argmax(amp_max)]
+    assert_true(dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices])
+
+    dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
+    assert_true(np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)
 
 run_tests_if_main()

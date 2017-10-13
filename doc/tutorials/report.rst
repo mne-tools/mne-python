@@ -29,7 +29,7 @@ The command line interface
 To generate a barebones report from all the \*.fif files in the sample dataset,
 invoke the following command in a system (e.g., Bash) shell:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ mne report --path MNE-sample-data/ --verbose
 
@@ -40,20 +40,20 @@ If the report is generated for a single subject, give the ``SUBJECT`` name and t
 ``SUBJECTS_DIR`` and this will generate the MRI slices (with BEM contours overlaid on top
 if available):
 
-.. code-block:: bash
+.. code-block:: console
 
     $ mne report --path MNE-sample-data/ --subject sample --subjects-dir MNE-sample-data/subjects --verbose
 
 To properly render `trans` and `covariance` files, add the measurement information:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
           --subject sample --subjects-dir MNE-sample-data/subjects --verbose
 
 To render whitened `evoked` files with baseline correction, add the noise covariance file:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
           --cov MNE-sample-data/MEG/sample/sample_audvis-cov.fif --bmax 0 --subject sample \
@@ -61,7 +61,7 @@ To render whitened `evoked` files with baseline correction, add the noise covari
 
 To generate the report in parallel:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
           --subject sample --subjects-dir MNE-sample-data/subjects --verbose --jobs 6
@@ -73,7 +73,7 @@ The report rendered on sample-data is shown below:
 
 For help on all the available options, do:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ mne report --help
 

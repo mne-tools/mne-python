@@ -113,6 +113,8 @@ Changelog
 
     - Enable morphing between hemispheres with :func:`mne.compute_morph_matrix` by `Christian Brodbeck`_
 
+    - Add ``return_drop_log`` to :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.preprocessing.compute_proj_ecg` by `Eric Larson`_
+
 BUG
 ~~~
 
@@ -201,6 +203,9 @@ BUG
     - Fix resampling of events along with raw in :func:`mne.io.Raw` to now take into consideration the value of ``first_samp`` by `Chris Bailey`_
 
     - Fix labels of PSD plots in :func:`mne.viz.raw.plot_raw_psd` by `Alejandro Weinstein`_
+
+    - Fix depth weighting of sparse solvers (:func:`mne.inverse_sparse.mixed_norm`, :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.gamma_map`) with free orientation source spaces to improve orientation estimation by `Alex Gramfort`_ and `Yousra Bekhti`_
+
 
 API
 ~~~
