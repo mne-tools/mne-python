@@ -1449,7 +1449,8 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
 
 def _close_event(event, fig):
     """Listen for sensor plotter close event."""
-    fig.lasso.disconnect()
+    if fig.lasso is not None:
+        fig.lasso.disconnect()
 
 
 def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
@@ -1499,6 +1500,8 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
 
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
+        else:
+            fig.lasso = None
 
         ax.axis("off")  # remove border around figure
 
