@@ -200,6 +200,8 @@ BUG
 
     - Fix resampling of events along with raw in :func:`mne.io.Raw` to now take into consideration the value of ``first_samp`` by `Chris Bailey`_
 
+    - Fix labels of PSD plots in :func:`mne.viz.raw.plot_raw_psd` by `Alejandro Weinstein`_
+
 API
 ~~~
     - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
@@ -261,6 +263,8 @@ API
     - :func:`mne.write_forward_solution` writes a forward solution as a forward solution with free orientation in X/Y/Z RAS coordinates if it is derived from a forward solution with free orientation and as a forward solution with fixed orientation in surface-based local coordinates otherwise by `Daniel Strohmeier`_
 
     - ``loose=None`` in inverse solvers is deprecated, use explicitly ``loose=0`` for fixed constraint and ``loose=1.0`` for free orientations by `Eric Larson`_
+
+    - Zero-channel-value in PSD calculation in :func:`mne.viz.raw.plot_raw_psd` has been relaxed from error to warning by `Alejandro Weinstein`_
 
 .. _changes_0_14:
 
@@ -2329,3 +2333,5 @@ of commits):
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
 .. _Nicolas Barascud: https://github.com/nbara
+
+.. _Alejandro Weinstein: http://ocam.cl
