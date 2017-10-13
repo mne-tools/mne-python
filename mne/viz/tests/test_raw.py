@@ -5,6 +5,7 @@
 import numpy as np
 import os.path as op
 import warnings
+import itertools
 
 from numpy.testing import assert_raises, assert_equal
 
@@ -266,7 +267,11 @@ def test_plot_raw_psd():
         raw.plot_psd(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0
-    assert_raises(ValueError, raw.plot_psd, average=True)
+    with warnings.catch_warnings(record=True) as w:
+        for dB, estimate in itertools.product((True, False),
+                                              ('power', 'amplitude')):
+            raw.plot_psd(average=True, dB=dB, estimate=estimate)
+    assert_equal(len(w), 4)
 
 
 def test_plot_sensors():

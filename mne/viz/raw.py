@@ -566,31 +566,64 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
             ax_list, make_label)
 
 
-def _convert_psds(psds, dB, scaling, unit, ch_names):
-    """Convert PSDs to dB (if necessary) and appropriate units."""
-    if dB:
-        where = np.where(psds.min(1) <= 0)[0]
-        if len(where) > 0:
-            raise ValueError("Infinite value in PSD for channel(s) %s. "
-                             "These channels might be dead." %
-                             ', '.join(ch_names[ii] for ii in where))
-        psds *= scaling * scaling
-        np.log10(psds, out=psds)
-        psds *= 10
-        ylabel = '%s/Hz (dB)' % unit
-    else:
+def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
+    """Convert PSDs to dB (if necessary) and appropriate units.
+
+    The following table summarizes the relationship between the value of
+    parameters ``dB`` and ``estimate``, and the type of plot and corresponding
+    units.
+
+    | dB    | estimate    | plot | units             |
+    |-------+-------------+------+-------------------|
+    | True  | 'power'     | PSD  | amp**2/Hz (dB)    |
+    | True  | 'amplitude' | ASD  | amp/sqrt(Hz) (dB) |
+    | True  | 'auto'      | PSD  | amp**2/Hz (dB)    |
+    | False | 'power'     | PSD  | amp**2/Hz         |
+    | False | 'amplitude' | ASD  | amp/sqrt(Hz)      |
+    | False | 'auto'      | ASD  | amp/sqrt(Hz)      |
+
+    where amp are the units corresponding to the variable, as specified by
+    ``unit``.
+    """
+    where = np.where(psds.min(1) <= 0)[0]
+    dead_ch = ', '.join(ch_names[ii] for ii in where)
+    if len(where) > 0:
+        if dB:
+            msg = "Infinite value in PSD for channel(s) %s. " \
+                  "These channels might be dead." % dead_ch
+        else:
+            msg = "Zero value in PSD for channel(s) %s. " \
+                  "These channels might be dead." % dead_ch
+        warn(msg)
+
+    if estimate == 'auto':
+        if dB:
+            estimate = 'power'
+        else:
+            estimate = 'amplitude'
+
+    if estimate == 'amplitude':
         np.sqrt(psds, out=psds)
         psds *= scaling
-        ylabel = '$\\frac{%s}{\\sqrt{Hz}}$' % unit
+        ylabel = r'$\mathrm{%s / \sqrt{Hz}}$' % unit
+    else:
+        psds *= scaling * scaling
+        ylabel = r'$\mathrm{%s^2}/Hz}$' % unit
+
+    if dB:
+        np.log10(np.maximum(psds, np.finfo(float).tiny), out=psds)
+        psds *= 10
+        ylabel += r'$\ \mathrm{(dB)}$'
+
     return ylabel
 
 
 @verbose
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=None, picks=None, ax=None, color='black',
-                 area_mode='std', area_alpha=0.33, n_overlap=0, dB=True,
-                 average=None, show=True, n_jobs=1, line_alpha=None,
-                 spatial_colors=None, xscale='linear',
+                 area_mode='std', area_alpha=0.33, n_overlap=0,
+                 dB=True, estimate='auto', average=None, show=True, n_jobs=1,
+                 line_alpha=None, spatial_colors=None, xscale='linear',
                  reject_by_annotation=True, verbose=None):
     """Plot the power spectral density across channels.
 
@@ -637,7 +670,17 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
     dB : bool
-        If True, transform data to decibels. If False, plot amplitudes.
+        Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
+        ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
+        in units (amplitude**2/Hz) if ``dB=False`` and,
+        ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
+        (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
+        ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (db)), if
+        ``dB=True`` and ``estimate='amplitude'``.
+    estimate : str, {'auto', 'power', 'amplitude'}
+        Can be "power" for power spectral density (PSD), "amplitude" for
+        amplitude spectrum density (ASD), or "auto" (default), which uses
+        "power" when dB is True and "amplitude" otherwise.
     average : bool
         If False, the PSDs of all channels is displayed. No averaging
         is done and parameters area_mode and area_alpha are ignored. When
@@ -690,6 +733,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     line_alpha = float(line_alpha)
 
     psd_list = list()
+    ylabels = list()
     if n_fft is None:
         tmax = raw.times[-1] if not np.isfinite(tmax) else tmax
         n_fft = min(np.diff(raw.time_as_index([tmin, tmax]))[0] + 1, 2048)
@@ -700,7 +744,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                                 n_overlap=n_overlap, n_jobs=n_jobs,
                                 reject_by_annotation=reject_by_annotation)
 
-        ylabel = _convert_psds(psds, dB, scalings_list[ii], units_list[ii],
+        ylabel = _convert_psds(psds, dB, estimate, scalings_list[ii],
+                               units_list[ii],
                                [raw.ch_names[pi] for pi in picks])
 
         if average:
@@ -723,10 +768,13 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
         if make_label:
             if ii == len(picks_list) - 1:
-                ax.set_xlabel('Freq (Hz)')
+                ax.set_xlabel('Frequency (Hz)')
             ax.set_ylabel(ylabel)
             ax.set_title(titles_list[ii])
             ax.set_xlim(freqs[0], freqs[-1])
+
+        ylabels.append(ylabel)
+
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
         if raw.info[key] is not None:
@@ -750,8 +798,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         for this_type in valid_channel_types:
             if this_type in types:
                 ch_types_used.append(this_type)
-        unit = 'dB/Hz' if dB else '$1/\\sqrt{Hz}$)'
-        units = {t: 'PSD (%s)' % unit for t in ch_types_used}
+        unit = ''
+        units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
         picks = np.arange(len(psd_list))
         if not spatial_colors:
