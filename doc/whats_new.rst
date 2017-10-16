@@ -210,6 +210,7 @@ BUG
 
     - Fix the threshold in :func:`mne.beamformer.rap_music` to properly estimate the rank by `Yousra Bekhti`_
 
+    - Fix treatment of vector inverse in :func:`mne.minimum_norm.apply_inverse_epochs` by `Emily Stephen`_
 
 API
 ~~~
@@ -2344,3 +2345,5 @@ of commits):
 .. _Nicolas Barascud: https://github.com/nbara
 
 .. _Alejandro Weinstein: http://ocam.cl
+
+.. _Emily Stephen: http://github.com/emilyps14
