@@ -113,7 +113,7 @@ for ((freq_name, fmin, fmax), average), color, ax in zip(
     ax.plot(times, gfp, label=freq_name, color=color, linewidth=2.5)
     ax.axhline(0, linestyle='--', color='grey', linewidth=2)
     ci_low, ci_up = _bootstrap_ci(average.data, random_state=0,
-                                  statfun=lambda x: np.sum(x ** 2, axis=0))
+                                  stat_fun=lambda x: np.sum(x ** 2, axis=0))
     ci_low = rescale(ci_low, average.times, baseline=(None, 0))
     ci_up = rescale(ci_up, average.times, baseline=(None, 0))
     ax.fill_between(times, gfp + ci_up, gfp - ci_low, color=color, alpha=0.3)
