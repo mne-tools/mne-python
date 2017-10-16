@@ -916,7 +916,7 @@ def test_epochs_vector_inverse():
     stc_evo = apply_inverse(evoked, inv, lambda2, method=method,
                             pick_ori='vector')
 
-    assert_allclose(stc_epo.data, stc_evo.data, rtol=1e-10, atol=0)
+    assert_allclose(stc_epo.data, stc_evo.data, rtol=1e-9, atol=0)
 
 
 @requires_sklearn
