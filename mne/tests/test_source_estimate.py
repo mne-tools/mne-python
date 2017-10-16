@@ -13,7 +13,7 @@ from scipy.fftpack import fft
 from mne.datasets import testing
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
-                 read_evokeds, MixedSourceEstimate,
+                 read_evokeds, MixedSourceEstimate, find_events, Epochs,
                  read_source_estimate, morph_data, extract_label_time_course,
                  spatio_temporal_tris_connectivity,
                  spatio_temporal_src_connectivity,
@@ -22,10 +22,12 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
 from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
                                  grade_to_tris, _get_vol_mask)
 
-from mne.minimum_norm import read_inverse_operator, apply_inverse
+from mne.minimum_norm import (read_inverse_operator, apply_inverse,
+                              apply_inverse_epochs)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
                        requires_h5py, run_tests_if_main, requires_nibabel)
+from mne.io import read_raw_fif
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -35,6 +37,7 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-ave.fif')
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
@@ -884,6 +887,39 @@ def test_vec_stc():
     # Vector components projected onto the vertex normals
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
+
+
+def test_epochs_vector_inverse():
+    """Test vector inverse consistency between evoked and epochs"""
+
+    raw = read_raw_fif(fname_raw)
+    events = find_events(raw, stim_channel='STI 014')
+    event_id = dict(aud_l=1)  # event trigger and conditions
+    tmin = -0.2  # start of each epoch (200ms before the trigger)
+    tmax = 0.5  # end of each epoch (500ms after the trigger)
+    raw.info['bads'] = ['MEG 2443', 'EEG 053']
+    baseline = (None, 0)  # means from the first instant to t = 0
+    reject = dict(grad=2000e-13, mag=4e-12, eog=150e-6)
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=baseline,
+                    reject=reject, preload=True).crop(0, 0.01)
+    evoked = epochs.average(picks=range(len(epochs.ch_names)))
+    # only differs from evoked in STI 001 and STI 014 (not rounded in original)
+
+    inv = read_inverse_operator(fname_inv)
+
+    method = "MNE"
+    snr = 3.
+    lambda2 = 1. / snr ** 2
+
+    stcs_epo = apply_inverse_epochs(epochs, inv, lambda2, method=method,
+                                    pick_ori='vector', return_generator=False)
+    stc_epo = np.mean(stcs_epo)
+
+    stc_evo = apply_inverse(evoked, inv, lambda2, method=method,
+                            pick_ori='vector')
+
+    assert(np.allclose(stc_epo.data,stc_evo.data))
 
 
 @requires_sklearn
