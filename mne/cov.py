@@ -833,7 +833,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         cov.update(method=this_method, **data)
         covs.append(cov)
 
-    if ok_sklearn:
+    if ok_sklearn and len(covs) > 1:
         msg = ['log-likelihood on unseen data (descending order):']
         logliks = [(c['method'], c['loglik']) for c in covs]
         logliks.sort(reverse=True, key=lambda c: c[1])
@@ -841,11 +841,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             msg.append('%s: %0.3f' % (k, v))
         logger.info('\n   '.join(msg))
 
-    if ok_sklearn and not return_estimators:
+    if ok_sklearn and not return_estimators and len(covs) > 1:
         keys, scores = zip(*[(c['method'], c['loglik']) for c in covs])
         out = covs[np.argmax(scores)]
         logger.info('selecting best estimator: {0}'.format(out['method']))
-    elif ok_sklearn:
+    elif ok_sklearn and len(covs) > 1:
         out = covs
         out.sort(key=lambda c: c['loglik'], reverse=True)
     else:
@@ -957,9 +957,13 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                              ' a .fit method')
         logger.info('Done.')
 
-    logger.info('Using cross-validation to select the best estimator.')
     estimators, _, _ = zip(*estimator_cov_info)
-    logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
+    if len(method) > 1:
+        logger.info('Using cross-validation to select the best estimator.')
+        logliks = np.array(
+            [_cross_val(data, e, cv, n_jobs) for e in estimators])
+    else:
+        logliks = [None]
 
     # undo scaling
     for c in estimator_cov_info:
