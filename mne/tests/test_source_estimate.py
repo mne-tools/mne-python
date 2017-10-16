@@ -893,18 +893,15 @@ def test_epochs_vector_inverse():
     """Test vector inverse consistency between evoked and epochs"""
 
     raw = read_raw_fif(fname_raw)
-    events = find_events(raw, stim_channel='STI 014')
-    event_id = dict(aud_l=1)  # event trigger and conditions
-    tmin = -0.2  # start of each epoch (200ms before the trigger)
-    tmax = 0.5  # end of each epoch (500ms after the trigger)
-    raw.info['bads'] = ['MEG 2443', 'EEG 053']
-    baseline = (None, 0)  # means from the first instant to t = 0
+    events = find_events(raw, stim_channel='STI 014')[:2]
     reject = dict(grad=2000e-13, mag=4e-12, eog=150e-6)
 
-    epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=baseline,
-                    reject=reject, preload=True).crop(0, 0.01)
+    epochs = Epochs(raw, events, None, 0, 0.01, baseline=None,
+                    reject=reject, preload=True)
+
+    assert_equal(len(epochs), 2)
+
     evoked = epochs.average(picks=range(len(epochs.ch_names)))
-    # only differs from evoked in STI 001 and STI 014 (not rounded in original)
 
     inv = read_inverse_operator(fname_inv)
 
@@ -919,7 +916,7 @@ def test_epochs_vector_inverse():
     stc_evo = apply_inverse(evoked, inv, lambda2, method=method,
                             pick_ori='vector')
 
-    assert(np.allclose(stc_epo.data,stc_evo.data))
+    assert_allclose(stc_epo.data, stc_evo.data, rtol=1e-10, atol=0)
 
 
 @requires_sklearn
