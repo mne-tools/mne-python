@@ -121,7 +121,7 @@ def _pick_channels_spatial_filter(ch_names, filters):
     Unlike ``pick_channels``, this respects the order of ch_names.
     """
     sel = []
-    # first check for channel discrapancies between filter and data:
+    # first check for channel discrepancies between filter and data:
     for ch_name in filters['ch_names']:
         if ch_name not in ch_names:
             raise ValueError('The spatial filter was computed with channel %s '
