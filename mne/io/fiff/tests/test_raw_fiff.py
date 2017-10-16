@@ -25,7 +25,7 @@ from mne import (concatenate_events, find_events, equalize_channels,
 from mne.utils import (_TempDir, requires_pandas, object_diff,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
-from mne.io.proc_history import _get_sss_rank
+from mne.io.proc_history import _get_rank_sss
 from mne.io.pick import _picks_by_type
 from mne.annotations import Annotations
 from mne.tests.common import assert_naming
@@ -174,8 +174,7 @@ def test_rank_estimation():
         if len(raw.info['proc_history']) == 0:
             expected_rank = n_meg + n_eeg
         else:
-            mf = raw.info['proc_history'][0]['max_info']
-            expected_rank = _get_sss_rank(mf) + n_eeg
+            expected_rank = _get_rank_sss(raw.info) + n_eeg
         assert_array_equal(raw.estimate_rank(scalings=scalings), expected_rank)
         assert_array_equal(raw.estimate_rank(picks=picks_eeg,
                                              scalings=scalings), n_eeg)
