@@ -28,6 +28,7 @@ from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
+
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
@@ -35,7 +36,7 @@ from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_version, _time_mask, warn,
                     copy_function_doc_to_method_doc, _pl)
 from . import viz
-
+from .io.meas_info import create_info
 from .externals.six.moves import zip
 from .externals.six import string_types
 from .fixes import BaseEstimator
@@ -854,6 +855,91 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     return out
 
 
+def _merge_picks_list(picks_list):
+    """Combine grad and mag into meg picks + label."""
+    keys, picks_ = [list(ee) for ee in zip(*picks_list)]
+    picks_dict = dict(picks_list)
+    if 'mag' in keys or 'grad' in keys:
+        picks_meg = [picks_dict.get('mag', None),
+                     picks_dict.get('grad', None)]
+        picks_meg = np.concatenate(
+            [pp for pp in picks_meg if pp is not None])
+        picks_meg = np.sort(picks_meg)
+
+        picks_dict['meg'] = picks_meg
+        # now update keys to reflect merge
+        meg_index = min(keys.index(kk) if kk in keys else np.inf
+                        for kk in ('grad', 'mag'))
+        keys.insert(meg_index, 'meg')
+        for key in ('mag', 'grad'):
+            if key in keys:
+                keys.remove(key)
+
+    return [(kk, picks_dict[kk]) for kk in keys]
+
+
+def _estimate_rank_by_type(data, info, picks_list, scalings):
+    """Estimate rank from data by type."""
+    out = dict()
+    # now go over indices and compute rank
+    has_sss = False
+    if len(info['proc_history']) > 0:
+        has_sss = (info['proc_history'][0].get('max_info') is not None)
+    if has_sss:
+        picks_list_ = _merge_picks_list(picks_list)
+    else:
+        picks_list_ = picks_list
+
+    for key, this_picks in picks_list_:
+        rank = _estimate_rank_meeg_signals(
+            data,
+            pick_info(info, this_picks),
+            scalings=scalings, tol='auto', return_singular=False)
+        out[key] = rank
+
+    return out
+
+
+def _match_proj_type(proj, ch_names):
+    """See if proj should be counted."""
+    proj_ch_names = proj['data']['col_names']
+    select = any(kk in ch_names for kk in proj_ch_names)
+    return select
+
+
+def _get_expected_rank_from_info(info, picks_list):
+    """Lookup rank from info by type."""
+    from .io.proc_history import _get_rank_sss
+    out = dict()
+    # now go over indices and look up rank
+    has_sss = False
+    if len(info['proc_history']) > 0:
+        has_sss = (info['proc_history'][0].get('max_info') is not None)
+    if has_sss:
+        picks_list_ = _merge_picks_list(picks_list)
+    else:
+        picks_list_ = picks_list
+
+    for key, this_picks in picks_list_:
+        this_info = pick_info(info.copy(), this_picks)
+        rank = len(this_picks)
+        if key == 'meg' and has_sss:
+            rank = min(rank, _get_rank_sss(info))
+        n_ssp = sum(pp['active'] for pp in info['projs'] if
+                    _match_proj_type(pp, this_info['ch_names']))
+        rank -= n_ssp
+        out[key] = rank
+
+    return out
+
+
+def _clip_cov(C, rank):
+    """Truncate the SVD of the cov and reconstruct."""
+    U, s, _ = linalg.svd(C)
+    C_out = np.dot(U[:, :rank] * s[:rank], U[:, :rank].T)
+    return C_out
+
+
 def _check_scalings_user(scalings):
     if isinstance(scalings, dict):
         for k, v in scalings.items():
@@ -877,10 +963,72 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         from sklearn.grid_search import GridSearchCV
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
+    from sklearn.decomposition import PCA
+    # remember that `picks_list` is a [(ch_type, picks), ...] list
+    # MEG sensors are not combined
 
     # rescale to improve numerical stability
     _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
+
+    ch_types, _ = zip(*picks_list)
+    has_meg = any(ch in ch_types for ch in ('mag', 'grad'))
+    has_sss = False
+    if len(info['proc_history']) > 0:
+        has_sss = (info['proc_history'][0].get('max_info') is not
+                   None and has_meg)
+
+    # check if SSS was done, in that case use PCA
+    # and create low rank data. Merge with EEG if needed.
+    # update picks and the keys (now "meg" instead of mag/grad)
+
+    # we're taking the lowest rank between the
+    # expected and the estimated number.
+    rank_from_data = _estimate_rank_by_type(
+        data=data.T, info=info, picks_list=picks_list, scalings=scalings)
+    rank_from_info = _get_expected_rank_from_info(info, picks_list)
+
+    # rank estimation is futile if n < p, so we just rely on
+    # our explcit knowledge.
+    n_less_p = (data.shape[0] < data.shape[1])
+    rank_dict = {
+        k: (max if n_less_p else min)(v, rank_from_data[k])
+        for k, v in rank_from_info.items()}
+    if has_sss:
+        logger.info('Found SSS. Doing low-rank computation.')
+        picks_list_merged_ = _merge_picks_list(picks_list)
+
+        rank_meg = rank_dict['meg']
+        pca_sss = PCA(n_components=rank_meg, whiten=True)
+        data_tmp = list()
+        picks_meg = dict(picks_list_merged_)['meg']
+        data_tmp.append(pca_sss.fit_transform(data[:, picks_meg]))
+        picks_list_ = [('meg', list(range(rank_meg)))]
+
+        picks_eeg = dict(picks_list_merged_).get('eeg', None)
+        if picks_eeg is not None:
+            data_tmp.append(data[:, picks_eeg])
+
+        data = np.concatenate(data_tmp, axis=1)
+        del data_tmp
+        new_ch_names = ['C%i' % ii for ii in dict(picks_list_)['meg']]
+        new_ch_types = ['mag'] * rank_meg
+        if picks_eeg is not None:
+            n_eeg = len(picks_eeg)
+            new_picks_eeg = list(range(rank_meg, rank_meg + n_eeg))
+            picks_list_.append(('eeg', new_picks_eeg))
+            new_ch_names.extend([info['ch_names'][kk] for kk in picks_eeg])
+            new_ch_types.extend(['eeg'] * n_eeg)
+        info_low_rank_ = create_info(ch_names=new_ch_names,
+                                     ch_types=new_ch_types,
+                                     sfreq=info['sfreq'])
+    else:
+        picks_list_ = picks_list
+        info_low_rank_ = info
+
     estimator_cov_info = list()
+
+    # what follows is essentially as before.
+
     msg = 'Estimating covariance using %s'
     for this_method in method:
         data_ = data.copy()
@@ -891,19 +1039,20 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             est = EmpiricalCovariance(**method_params[this_method])
             est.fit(data_)
             _info = None
-            estimator_cov_info.append((est, est.covariance_, _info))
+            estimator_cov_info.append([est, est.covariance_, _info])
 
         elif this_method == 'diagonal_fixed':
-            est = _RegCovariance(info=info, **method_params[this_method])
+            est = _RegCovariance(
+                info=info_low_rank_, **method_params[this_method])
             est.fit(data_)
             _info = None
-            estimator_cov_info.append((est, est.covariance_, _info))
+            estimator_cov_info.append([est, est.covariance_, _info])
 
         elif this_method == 'ledoit_wolf':
             shrinkages = []
             lw = LedoitWolf(**method_params[this_method])
 
-            for ch_type, picks in picks_list:
+            for ch_type, picks in picks_list_:
                 lw.fit(data_[:, picks])
                 shrinkages.append((
                     ch_type,
@@ -914,15 +1063,14 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                    **method_params[this_method])
             sc.fit(data_)
             _info = None
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-
+            estimator_cov_info.append([sc, sc.covariance_, _info])
         elif this_method == 'shrunk':
             shrinkage = method_params[this_method].pop('shrinkage')
             tuned_parameters = [{'shrinkage': shrinkage}]
             shrinkages = []
             gs = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
                               tuned_parameters, cv=cv)
-            for ch_type, picks in picks_list:
+            for ch_type, picks in picks_list_:
                 gs.fit(data_[:, picks])
                 shrinkages.append((
                     ch_type,
@@ -934,24 +1082,25 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                    **method_params[this_method])
             sc.fit(data_)
             _info = None
-            estimator_cov_info.append((sc, sc.covariance_, _info))
-
+            estimator_cov_info.append([sc, sc.covariance_, _info])
         elif this_method == 'pca':
+            # XXX maybe block this if SSS is used.
             mp = method_params[this_method]
             pca, _info = _auto_low_rank_model(data_, this_method,
                                               n_jobs=n_jobs,
                                               method_params=mp, cv=cv,
                                               stop_early=stop_early)
             pca.fit(data_)
-            estimator_cov_info.append((pca, pca.get_covariance(), _info))
+            estimator_cov_info.append([pca, pca.get_covariance(), _info])
 
         elif this_method == 'factor_analysis':
+            # XXX maybe block this if SSS is used?
             mp = method_params[this_method]
             fa, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
                                              method_params=mp, cv=cv,
                                              stop_early=stop_early)
             fa.fit(data_)
-            estimator_cov_info.append((fa, fa.get_covariance(), _info))
+            estimator_cov_info.append([fa, fa.get_covariance(), _info])
         else:
             raise ValueError('Oh no! Your estimator does not have'
                              ' a .fit method')
@@ -962,8 +1111,55 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
 
     # undo scaling
-    for c in estimator_cov_info:
-        _undo_scaling_cov(c[1], picks_list, scalings)
+    for cov in estimator_cov_info:
+        # this is now a bit convoluted.
+        # The right part of the cov has to be picked, reprojected if needed
+        # and here the clipping has to happen.
+        if has_sss:
+            logger.info('reprojecting low-rank covariance')
+
+            C_low = cov[1]
+            C_full = np.zeros([sum(len(dd) for _, dd in picks_list)] * 2)
+
+            picks = np.concatenate(  # get orig picks
+                [pp for ch, pp in picks_list if ch in ('mag', 'grad')])
+            picks = np.sort(picks)
+            meg_full_idx = np.ix_(picks, picks)
+
+            eeg_full_idx = None
+            eeg_low_idx = None
+            for ch_type, picks in picks_list:  # orig picks list
+                if ch_type == 'eeg':
+                    eeg_full_idx = np.ix_(picks, picks)
+
+            for ch_type, picks_low in picks_list_:  # mod picks list
+                if ch_type == 'meg':
+                    meg_low_idx = np.ix_(picks_low, picks_low)
+                if ch_type == 'eeg':
+                    eeg_low_idx = np.ix_(picks_low, picks_low)
+
+            C_full[meg_full_idx] = pca_sss.inverse_transform(
+                pca_sss.inverse_transform(C_low[meg_low_idx]).T)
+
+            if eeg_low_idx is not None:
+                C_full[eeg_full_idx] = C_low[eeg_low_idx]
+            cov[1] = C_full  # replace low rank with full rank cov
+
+        # clip here
+        _undo_scaling_cov(cov[1], picks_list, scalings)
+        if has_sss:
+            picks_list_final_ = _merge_picks_list(picks_list)
+        else:
+            picks_list_final_ = picks_list
+
+        for ch_type, picks in picks_list_final_:
+            this_rank = rank_dict[ch_type]
+            if this_rank < len(picks):
+                logger.info(
+                    'clipping cov for %s at rank=%i' % (ch_type, this_rank))
+                this_cov_idx = np.ix_(picks, picks)
+                cov[1][this_cov_idx] = _clip_cov(
+                    cov[1][this_cov_idx], rank=this_rank)
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
@@ -1691,7 +1887,6 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
 
     W, rank = compute_whitener(noise_cov, evoked.info, picks=picks,
                                rank=rank, scalings=scalings)
-
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
 
