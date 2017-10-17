@@ -60,6 +60,8 @@ def _stamp_to_dt(stamp):
     """Convert timestamp to datetime object in Windows-friendly way."""
     # The min on windows is 86400
     stamp = [int(s) for s in stamp]
+    if len(stamp) == 1:  # In case there is no microseconds information
+        stamp.append(0)
     return (datetime.datetime.utcfromtimestamp(stamp[0]) +
             datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
 
