@@ -979,6 +979,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     if not isinstance(noise_cov, (list, tuple)):
         noise_cov = [noise_cov]
 
+    if 'meg' in rank and ('grad' in rank or 'mag' in rank):
+        raise ValueError('Either pass rank for mag and/or grad or for meg')
     has_sss = False
     if len(evoked.info['proc_history']) > 0:
         # if SSSed, mags and grad are not longer independent
@@ -989,6 +991,9 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     if has_sss:
         logger.info('SSS has been applied to data. Showing mag and grad '
                     'whitening jointly.')
+        if 'mag' in rank or 'grad' in rank:
+            raise ValueError('When using SSS separate rank values for mag or '
+                             'grad are meaningless.')
 
     evoked = evoked.copy()  # handle ref meg
     passive_idx = [idx for idx, proj in enumerate(evoked.info['projs'])
@@ -1015,15 +1020,26 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     # make sure we use the same rank estimates for GFP and whitening
 
-    rank_list = []
+    picks_list2 = [k for k in picks_list]
+    # add meg picks if needed.
+    if 'grad' in evoked and 'mag' in evoked:
+        # append ("meg", picks_meg)
+        picks_list2 += _picks_by_type(evoked.info, meg_combined=True)
+
+    rank_list = []  # rank dict for each cov
     for cov in noise_cov:
-        rank_ = {}
+        this_rank = {}
         C = cov['data'].copy()
-        picks_list2 = [k for k in picks_list]
-        if has_meg and not has_sss:
-            picks_list2 += _picks_by_type(evoked.info,
-                                          meg_combined=True)
+        # assemble rank dict for this cov, such that we have meg
         for ch_type, this_picks in picks_list2:
+            # if we have already estimates / values for mag/grad but not
+            # a value for meg, combine grad and mag.
+            if ('mag' in this_rank and 'grad' in this_rank and
+                    'meg' not in rank):
+                this_rank['meg'] = this_rank['mag'] + this_rank['grad']
+                # and we're done here
+                break
+
             if rank.get(ch_type) is None:
                 this_info = pick_info(evoked.info, this_picks)
                 idx = np.ix_(this_picks, this_picks)
@@ -1032,10 +1048,13 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                 _check_estimated_rank(
                     this_estimated_rank, this_picks, this_info, evoked,
                     cov, ch_type, has_meg, has_sss)
-                rank_[ch_type] = this_estimated_rank
-            if rank.get(ch_type) is not None:
-                rank_[ch_type] = rank[ch_type]
-        rank_list.append(rank_)
+                this_rank[ch_type] = this_estimated_rank
+            elif rank.get(ch_type) is not None:
+                this_rank[ch_type] = rank[ch_type]
+
+        rank_list.append(this_rank)
+
+    # get one whitened evoked per cov
     evokeds_white = [whiten_evoked(evoked, n, picks, rank=r)
                      for n, r in zip(noise_cov, rank_list)]
 
@@ -1086,6 +1105,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                  'meg': 'steelblue'}
     iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
 
+    # the first is by law the best noise cov, on the left we plot that one.
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked,
                               hline=[-1.96, 1.96], show=False)
@@ -1095,7 +1115,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             for hline in [-1.96, 1.96]:
                 ax.axhline(hline, color='red', linestyle='--')
 
-    # Now plot the GFP
+    # Now plot the GFP for all covs if indicated.
     for evoked_white, noise_cov, rank_, color in iter_gfp:
         i = 0
         for ch, sub_picks in picks_list:
