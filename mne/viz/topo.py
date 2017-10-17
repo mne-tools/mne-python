@@ -360,7 +360,6 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      colorbar=False, hline=None, hvline_color='w',
                      labels=None):
     """Show time series on topo split across multiple axes."""
-
     import matplotlib.pyplot as plt
     picker_flag = False
     for data_, color_ in zip(data, color):
