@@ -249,11 +249,24 @@ def test_lcmv():
 
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = deepcopy(evoked)
-    evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
+    evoked_ch.pick_channels(evoked_ch.ch_names[1:])
     filters = make_lcmv(evoked.info, forward_vol, data_cov, reg=0.01,
                         noise_cov=noise_cov)
     assert_raises(ValueError, apply_lcmv, evoked_ch, filters,
                   max_ori_out='signed')
+
+    # Test if discrepancies in channel selection of data and fwd model are
+    # handled correctly in apply_lcmv
+    # make filter with data where first channel was removed
+    filters = make_lcmv(evoked_ch.info, forward_vol, data_cov, reg=0.01,
+                        noise_cov=noise_cov)
+    # applying that filter to the full data set should automatically exclude
+    # this channel from the data
+    stc = apply_lcmv(evoked, filters)
+    # the result should be equal to applying this filter to a dataset without
+    # this channel:
+    stc_ch = apply_lcmv(evoked_ch, filters)
+    assert_array_almost_equal(stc.data, stc_ch.data)
 
     # Test if non-matching SSP projection is detected in application of filter
     raw_proj = deepcopy(raw)
