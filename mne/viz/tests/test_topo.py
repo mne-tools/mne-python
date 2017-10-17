@@ -11,6 +11,7 @@ from collections import namedtuple
 
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
+from nose.tools import assert_true
 
 from mne import read_events, Epochs, pick_channels_evoked
 from mne.channels import read_layout
@@ -128,6 +129,22 @@ def test_plot_topo():
     for ax, idx in iter_topography(evoked.info):
         ax.plot(evoked.data[idx], color='red')
     plt.close('all')
+
+
+def test_plot_topo_single_ch():
+    """Test single channel topoplot with time cursor"""
+    import matplotlib.pyplot as plt
+    evoked = _get_epochs().average()
+    fig = plot_evoked_topo(evoked)
+    num_figures_before = len(plt.get_fignums())
+    _fake_click(fig, fig.axes[0], (0.08, 0.65))
+    assert_equal(num_figures_before + 1, len(plt.get_fignums()))
+    fig = plt.gcf()
+    ax = plt.gca()
+    _fake_click(fig, ax, (.5, .5), kind='motion')  # cursor should appear
+    assert_true(isinstance(ax._cursorline, matplotlib.lines.Line2D))
+    _fake_click(fig, ax, (1.5, 1.5), kind='motion')  # cursor should disappear
+    assert_equal(ax._cursorline, None)
 
 
 def test_plot_topo_image_epochs():

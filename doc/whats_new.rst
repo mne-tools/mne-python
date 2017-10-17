@@ -19,6 +19,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+    - Add time cursor and category/amplitude status message into the single-channel evoked plot by `Jussi Nurminen`_
+
     - :meth:`mne.channels.Layout.plot` and :func:`mne.viz.plot_layout` now allows plotting a subset of channels with ``picks`` argument by `Jaakko Leppakangas`_
 
     - Add .bvef extension (BrainVision Electrodes File) to :func:`mne.channels.read_montage` by `Jean-Baptiste Schiratti`_
