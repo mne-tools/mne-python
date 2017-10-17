@@ -145,6 +145,7 @@ def test_plot_topo_single_ch():
     assert_true(isinstance(ax._cursorline, matplotlib.lines.Line2D))
     _fake_click(fig, ax, (1.5, 1.5), kind='motion')  # cursor should disappear
     assert_equal(ax._cursorline, None)
+    plt.close('all')
 
 
 def test_plot_topo_image_epochs():
