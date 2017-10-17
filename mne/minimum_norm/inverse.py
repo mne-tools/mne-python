@@ -1040,7 +1040,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     tmin = epochs.times[0]
 
     is_free_ori = (inverse_operator['source_ori'] ==
-                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori is None)
+                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
 
     if pick_ori == 'vector' and noise_norm is not None:
         noise_norm = noise_norm.repeat(3, axis=0)
@@ -1064,7 +1064,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                 sol *= noise_norm
         else:
             # Linear inverse: do computation here or delayed
-            if len(sel) < K.shape[0]:
+            if len(sel) < K.shape[1]:
                 sol = (K, e[sel])
             else:
                 sol = np.dot(K, e[sel])
