@@ -206,6 +206,7 @@ BUG
 
     - Fix depth weighting of sparse solvers (:func:`mne.inverse_sparse.mixed_norm`, :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.gamma_map`) with free orientation source spaces to improve orientation estimation by `Alex Gramfort`_ and `Yousra Bekhti`_
 
+    - Fix treatment of vector inverse in :func:`mne.minimum_norm.apply_inverse_epochs` by `Emily Stephen`_
 
 API
 ~~~
@@ -2340,3 +2341,5 @@ of commits):
 .. _Nicolas Barascud: https://github.com/nbara
 
 .. _Alejandro Weinstein: http://ocam.cl
+
+.. _Emily Stephen: http://github.com/emilyps14

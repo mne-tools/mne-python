@@ -888,7 +888,7 @@ def test_vec_stc():
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
 
-
+@testing.requires_testing_data
 def test_epochs_vector_inverse():
     """Test vector inverse consistency between evoked and epochs"""
 
