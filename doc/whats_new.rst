@@ -206,6 +206,8 @@ BUG
 
     - Fix depth weighting of sparse solvers (:func:`mne.inverse_sparse.mixed_norm`, :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.gamma_map`) with free orientation source spaces to improve orientation estimation by `Alex Gramfort`_ and `Yousra Bekhti`_
 
+    - Fix the threshold in :func:`mne.beamformer.rap_music` to properly estimate the rank by `Yousra Bekhti`_
+
 
 API
 ~~~
