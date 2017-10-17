@@ -259,7 +259,7 @@ def test_lcmv():
     # handled correctly in apply_lcmv
     # make filter with data where first channel was removed
     filters = make_lcmv(evoked_ch.info, forward_vol, data_cov, reg=0.01,
-                      noise_cov=noise_cov)
+                        noise_cov=noise_cov)
     # applying that filter to the full data set should automatically exclude
     # this channel from the data
     stc = apply_lcmv(evoked, filters)
