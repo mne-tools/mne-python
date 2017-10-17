@@ -43,8 +43,8 @@ def test_ci():
     arr = np.linspace(0, 1, 1000)[..., np.newaxis]
     assert_allclose(_ci(arr, method="parametric"),
                     _ci(arr, method="bootstrap"), rtol=.005)
-    assert_allclose(_bootstrap_ci(arr, statfun="median", random_state=0),
-                    _bootstrap_ci(arr, statfun="mean", random_state=0),
+    assert_allclose(_bootstrap_ci(arr, stat_fun="median", random_state=0),
+                    _bootstrap_ci(arr, stat_fun="mean", random_state=0),
                     rtol=.1)
 
 run_tests_if_main()

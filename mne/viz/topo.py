@@ -11,7 +11,7 @@ from __future__ import print_function
 from functools import partial
 from itertools import cycle
 from copy import deepcopy
-
+from matplotlib.colors import colorConverter
 import numpy as np
 
 from ..io.constants import Bunch
@@ -357,7 +357,8 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      times, vline=None, x_label=None, y_label=None,
-                     colorbar=False, hline=None, hvline_color='w'):
+                     colorbar=False, hline=None, hvline_color='w',
+                     labels=None):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
     picker_flag = False
@@ -377,6 +378,54 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
             ax.set_ylabel(y_label[ch_idx])
         else:
             ax.set_ylabel(y_label)
+
+    def _format_coord(x, y, labels, ax):
+        """Create status string based on cursor coordinates."""
+        idx = np.abs(times - x).argmin()
+        ylabel = ax.get_ylabel()
+        unit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
+                if '(' in ylabel and ')' in ylabel else '')
+        labels = [''] * len(data) if labels is None else labels
+        # try to estimate whether to truncate condition labels
+        slen = 10 + sum([12 + len(unit) + len(label) for label in labels])
+        bar_width = (ax.figure.get_size_inches() * ax.figure.dpi)[0] / 5.5
+        trunc_labels = bar_width < slen
+        s = '%6.3f s: ' % times[idx]
+        for data_, label in zip(data, labels):
+            s += '%7.2f %s' % (data_[ch_idx, idx], unit)
+            if trunc_labels:
+                label = (label if len(label) <= 10 else
+                         '%s..%s' % (label[:6], label[-2:]))
+            s += ' [%s] ' % label if label else ' '
+        return s
+
+    ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)
+
+    def _cursor_vline(event):
+        """Draw cursor (vertical line)."""
+        ax = event.inaxes
+        if not ax:
+            return
+        if ax._cursorline is not None:
+            ax._cursorline.remove()
+        ax._cursorline = ax.axvline(event.xdata, color=ax._cursorcolor)
+        ax.figure.canvas.draw()
+
+    def _rm_cursor(event):
+        ax = event.inaxes
+        if ax._cursorline is not None:
+            ax._cursorline.remove()
+            ax._cursorline = None
+        ax.figure.canvas.draw()
+
+    ax._cursorline = None
+    # choose cursor color based on perceived brightness of background
+    facecol = colorConverter.to_rgb(ax.get_axis_bgcolor())
+    face_brightness = np.dot(facecol, np.array([299, 587, 114]))
+    ax._cursorcolor = 'white' if face_brightness < 150 else 'black'
+
+    plt.connect('motion_notify_event', _cursor_vline)
+    plt.connect('axes_leave_event', _rm_cursor)
 
     _setup_ax_spines(ax, vline, tmin, tmax)
     ax.figure.set_facecolor('k' if hvline_color is 'w' else 'w')
@@ -676,11 +725,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         raise TypeError('ylim must be None or a dict. Got %s.' % type(ylim))
 
     data = [e.data for e in evoked]
+    comments = [e.comment for e in evoked]
     show_func = partial(_plot_timeseries_unified, data=data, color=color,
                         times=times, vline=vline, hline=hline,
                         hvline_color=font_color)
     click_func = partial(_plot_timeseries, data=data, color=color, times=times,
-                         vline=vline, hline=hline, hvline_color=font_color)
+                         vline=vline, hline=hline, hvline_color=font_color,
+                         labels=comments)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
                      click_func=click_func, layout=layout, colorbar=False,

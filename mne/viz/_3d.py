@@ -1894,7 +1894,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 brain.add_data(data, colormap=colormap, vertices=vertices,
                                smoothing_steps=smoothing_steps, time=times,
                                time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar, **ad_kwargs)
+                               colorbar=colorbar, min=0, max=1, **ad_kwargs)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],

@@ -121,13 +121,16 @@ def _pick_channels_spatial_filter(ch_names, filters):
     Unlike ``pick_channels``, this respects the order of ch_names.
     """
     sel = []
-    for ii, ch_name in enumerate(filters['ch_names']):
+    # first check for channel discrepancies between filter and data:
+    for ch_name in filters['ch_names']:
         if ch_name not in ch_names:
             raise ValueError('The spatial filter was computed with channel %s '
                              'which is not present in the data. You should '
                              'compute a new spatial filter restricted to the '
                              'good data channels.' % ch_name)
-        else:
+    # then compare list of channels and get selection based on data:
+    for ii, ch_name in enumerate(ch_names):
+        if ch_name in filters['ch_names']:
             sel.append(ii)
     return sel
 

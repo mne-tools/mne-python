@@ -115,6 +115,8 @@ Changelog
 
     - Add ``return_drop_log`` to :func:`mne.preprocessing.compute_proj_eog` and :func:`mne.preprocessing.compute_proj_ecg` by `Eric Larson`_
 
+    - Add time cursor and category/amplitude status message into the single-channel evoked plot by `Jussi Nurminen`_
+
 BUG
 ~~~
 
@@ -207,6 +209,8 @@ BUG
     - Fix depth weighting of sparse solvers (:func:`mne.inverse_sparse.mixed_norm`, :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.gamma_map`) with free orientation source spaces to improve orientation estimation by `Alex Gramfort`_ and `Yousra Bekhti`_
 
     - Fix treatment of vector inverse in :func:`mne.minimum_norm.apply_inverse_epochs` by `Emily Stephen`_
+
+    - Fix the threshold in :func:`mne.beamformer.rap_music` to properly estimate the rank by `Yousra Bekhti`_
 
 API
 ~~~
