@@ -123,10 +123,14 @@ def test_plot_evoked():
         cov['method'] = 'empirical'
         # test rank param.
         evoked.plot_white(cov, rank={'mag': 101, 'grad': 201})
-        evoked.plot_white(cov, rank={'meg': 305})  # test rank param.
+        evoked.plot_white(cov, rank={'mag': 101})  # test rank param.
+        evoked.plot_white(cov, rank={'grad': 201})  # test rank param.
         assert_raises(
             ValueError, evoked.plot_white, cov,
             rank={'mag': 101, 'grad': 201, 'meg': 306})
+        assert_raises(
+            ValueError, evoked.plot_white, cov, rank={'meg': 306})
+
         evoked.plot_white([cov, cov])
 
         # plot_compare_evokeds: test condition contrast, CI, color assignment

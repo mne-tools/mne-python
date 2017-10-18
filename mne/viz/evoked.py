@@ -901,9 +901,11 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
     rank : dict of int | None
         Dict of ints where keys are 'eeg', 'meg', mag' or 'grad'. If None,
         the rank is detected automatically. Defaults to None. 'mag' or
-        'grad' cannot be specified jointly with 'meg'. Note.
-        The rank estimation will be printed by the logger for each noise
-        covariance estimator that is passed.
+        'grad' cannot be specified jointly with 'meg'. For SSS'd data,
+        only 'meg' is valid. For non-SSS'd data, 'mag' and/or 'grad' must be
+        specified separately. If only one is specified, the other one gets
+        estimated. Note. The rank estimation will be printed by the logger for
+        each noise covariance estimator that is passed.
 
     Returns
     -------
@@ -982,6 +984,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     if 'meg' in rank and ('grad' in rank or 'mag' in rank):
         raise ValueError('Either pass rank for mag and/or grad or for meg')
+
     has_sss = False
     if len(evoked.info['proc_history']) > 0:
         # if SSSed, mags and grad are not longer independent
@@ -995,7 +998,10 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         if 'mag' in rank or 'grad' in rank:
             raise ValueError('When using SSS separate rank values for mag or '
                              'grad are meaningless.')
-
+    else:
+        if 'meg' in rank:
+            raise ValueError('When not using SSS separate rank values for mag '
+                             'or grad mus be passed separately.')
     evoked = evoked.copy()  # handle ref meg
     passive_idx = [idx for idx, proj in enumerate(evoked.info['projs'])
                    if not proj['active']]
@@ -1119,8 +1125,10 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     # Now plot the GFP for all covs if indicated.
     for evoked_white, noise_cov, rank_, color in iter_gfp:
         i = 0
+
         for ch, sub_picks in picks_list:
             this_rank = rank_[ch]
+            print(ch, sub_picks, this_rank)
             title = '{0} ({2}{1})'.format(
                     titles_[ch] if n_columns > 1 else ch,
                     this_rank, 'rank ' if n_columns > 1 else '')
