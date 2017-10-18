@@ -469,16 +469,18 @@ def _reshape_for_est(X_del):
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
     from scipy.stats import pearsonr
+    assert multioutput == 'raw_values'
     for this_y in (y_true, y):
         if this_y.ndim != 2:
             raise ValueError('inputs must shape (samples, outputs), got %s'
                              % (this_y.shape,))
-    return [pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])]
+    return np.array([pearsonr(y_true[:, ii], y[:, ii])[0]
+                     for ii in range(y.shape[-1])])
 
 
 def _r2_score(y_true, y, multioutput=None):
     from sklearn.metrics import r2_score
-    return r2_score(y_true, y)
+    return r2_score(y_true, y, multioutput=multioutput)
 
 
 _SCORERS = {'r2': _r2_score, 'corrcoef': _corr_score}

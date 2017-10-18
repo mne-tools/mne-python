@@ -220,10 +220,12 @@ def test_receptive_field():
                             estimator=0, scoring=key, patterns=True)
         rf.fit(X[:, [0]], y)
         y_pred = rf.predict(X[:, [0]]).T.ravel()[:, np.newaxis]
-        assert_allclose(val(y[:, np.newaxis], y_pred),
+        assert_allclose(val(y[:, np.newaxis], y_pred,
+                            multioutput='raw_values'),
                         rf.score(X[:, [0]], y), rtol=1e-2)
     # Need 2D input
-    assert_raises(ValueError, _SCORERS['corrcoef'], y.ravel(), y_pred)
+    assert_raises(ValueError, _SCORERS['corrcoef'], y.ravel(), y_pred,
+                  multioutput='raw_values')
     # Need correct scorers
     rf = ReceptiveField(tmin, tmax, 1., scoring='foo')
     assert_raises(ValueError, rf.fit, X, y)
@@ -377,7 +379,7 @@ def test_receptive_field_1d():
                         assert_allclose(
                             model.predict(use_x)[model.valid_samples_],
                             y[model.valid_samples_], atol=1e-2)
-                        score = model.score(use_x, y)
+                        score = np.mean(model.score(use_x, y))
                         assert_true(score > 0.9999, msg=score)
 
 
@@ -436,7 +438,7 @@ def test_receptive_field_nd():
         assert_allclose(y_pred[model.valid_samples_],
                         y[model.valid_samples_],
                         atol=1e-2, err_msg=repr(estimator))
-        score = model.score(x, y)
+        score = np.mean(model.score(x, y))
         assert score > 0.9999
 
         # now with an intercept in the data
@@ -461,12 +463,12 @@ def test_receptive_field_nd():
         y_pred = model.predict(x_off)[model.valid_samples_]
         assert_allclose(y_pred, y[model.valid_samples_],
                         atol=ptol, err_msg=repr(estimator))
-        score = model.score(x_off, y)
+        score = np.mean(model.score(x_off, y))
         assert score > stol, estimator
         model = ReceptiveField(slim[0], slim[1], 1., fit_intercept=False)
         model.fit(x_off, y)
         assert_allclose(model.estimator_.intercept_, 0., atol=1e-7)
-        score = model.score(x_off, y)
+        score = np.mean(model.score(x_off, y))
         assert_true(score > 0.6, msg=score)
 
 
