@@ -495,7 +495,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 
 
 def _find_unique_events(events):
-    """Uniquify events (ie remove duplicated rows"""
+    """Uniquify events (ie remove duplicated rows."""
     e = np.ascontiguousarray(events).view(
         np.dtype((np.void, events.dtype.itemsize * events.shape[1])))
     _, idx = np.unique(e, return_index=True)
