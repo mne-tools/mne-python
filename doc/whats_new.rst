@@ -212,7 +212,7 @@ BUG
 
 - Fix treatment of vector inverse in :func:`mne.minimum_norm.apply_inverse_epochs` by `Emily Stephen`_
 
-    - Fix :func:`mne.find_events` when passing a list as stim_channel parameter by `Alex Gramfort`_
+- Fix :func:`mne.find_events` when passing a list as stim_channel parameter by `Alex Gramfort`_
 
 API
 ~~~
