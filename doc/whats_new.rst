@@ -214,6 +214,8 @@ BUG
 
 - Fix :func:`mne.find_events` when passing a list as stim_channel parameter by `Alex Gramfort`_
 
+    - Fix :func:`mne.find_events` when passing a list as stim_channel parameter by `Alex Gramfort`_
+
 API
 ~~~
 - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
