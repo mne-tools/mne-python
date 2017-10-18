@@ -343,6 +343,22 @@ def test_find_events():
         if o is not None:
             os.environ['MNE_STIM_CHANNEL%s' % s] = o
 
+    # Test with list of stim channels
+    raw._data[stim_channel_idx, 1:101] = np.zeros(100)
+    raw._data[stim_channel_idx, 10:11] = 1
+    raw._data[stim_channel_idx, 30:31] = 3
+    stim_channel2 = 'STI 015'
+    stim_channel2_idx = pick_channels(raw.info['ch_names'],
+                                      include=[stim_channel2])
+    raw._data[stim_channel2_idx, :] = 0
+    raw._data[stim_channel2_idx, :100] = raw._data[stim_channel_idx, 5:105]
+    events1 = find_events(raw, stim_channel='STI 014')
+    events2 = events1.copy()
+    events2[:, 0] -= 5
+    events = find_events(raw, stim_channel=['STI 014', stim_channel2])
+    assert_array_equal(events[::2], events2)
+    assert_array_equal(events[1::2], events1)
+
 
 def test_pick_events():
     """Test pick events in a events ndarray."""

@@ -425,6 +425,8 @@ def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=None,
                  uint_cast=False, mask_type=None):
     """Help find events."""
+    assert data.shape[0] == 1  # data should be only a row vector
+
     if min_samples > 0:
         merge = int(min_samples // 1)
         if merge == min_samples:
@@ -492,6 +494,18 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     return events
 
 
+def _find_unique_events(events):
+    """Uniquify events (ie remove duplicated rows."""
+    e = np.ascontiguousarray(events).view(
+        np.dtype((np.void, events.dtype.itemsize * events.shape[1])))
+    _, idx = np.unique(e, return_index=True)
+    n_dupes = len(events) - len(idx)
+    if n_dupes > 0:
+        warn("Some events are duplicated in your different stim channels."
+             " %d events were ignored during deduplication." % n_dupes)
+    return events[idx]
+
+
 @verbose
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
@@ -508,11 +522,13 @@ def find_events(raw, stim_channel=None, output='onset',
         The raw data.
     stim_channel : None | string | list of string
         Name of the stim channel or all the stim channels
-        affected by the trigger. If None, the config variables
+        affected by triggers. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
         etc. are read. If these are not found, it will fall back to
         'STI 014' if present, then fall back to the first channel of type
-        'stim', if present.
+        'stim', if present. If multiple channels are provided
+        then the returned events are the union of all the events
+        extracted from individual stim channels.
     output : 'onset' | 'offset' | 'step'
         Whether to report when events start, when events end, or both.
     consecutive : bool | 'increasing'
@@ -652,25 +668,34 @@ def find_events(raw, stim_channel=None, output='onset',
     # pull stim channel from config if necessary
     stim_channel = _get_stim_channel(stim_channel, raw.info)
 
-    pick = pick_channels(raw.info['ch_names'], include=stim_channel)
-    if len(pick) == 0:
+    picks = pick_channels(raw.info['ch_names'], include=stim_channel)
+    if len(picks) == 0:
         raise ValueError('No stim channel found to extract event triggers.')
-    data, _ = raw[pick, :]
+    data, _ = raw[picks, :]
 
-    events = _find_events(data, raw.first_samp, verbose=verbose, output=output,
-                          consecutive=consecutive, min_samples=min_samples,
-                          mask=mask, uint_cast=uint_cast, mask_type=mask_type)
+    events_list = []
+    for d in data:
+        events = _find_events(d[np.newaxis, :], raw.first_samp,
+                              verbose=verbose, output=output,
+                              consecutive=consecutive, min_samples=min_samples,
+                              mask=mask, uint_cast=uint_cast,
+                              mask_type=mask_type)
+        # add safety check for spurious events (for ex. from neuromag syst.) by
+        # checking the number of low sample events
+        n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
+        if n_short_events > 0:
+            raise ValueError("You have %i events shorter than the "
+                             "shortest_event. These are very unusual and you "
+                             "may want to set min_duration to a larger value "
+                             "e.g. x / raw.info['sfreq']. Where x = 1 sample "
+                             "shorter than the shortest event "
+                             "length." % (n_short_events))
 
-    # add safety check for spurious events (for ex. from neuromag syst.) by
-    # checking the number of low sample events
-    n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
-    if n_short_events > 0:
-        raise ValueError("You have %i events shorter than the "
-                         "shortest_event. These are very unusual and you "
-                         "may want to set min_duration to a larger value e.g."
-                         " x / raw.info['sfreq']. Where x = 1 sample shorter "
-                         "than the shortest event length." % (n_short_events))
+        events_list.append(events)
 
+    events = np.concatenate(events_list, axis=0)
+    events = _find_unique_events(events)
+    events = events[np.argsort(events[:, 0])]
     return events
 
 
@@ -955,7 +980,7 @@ class AcqParserFIF(object):
     _event_vars_compat = ('Comment', 'Delay')
 
     _cat_vars = ('Comment', 'Display', 'Start', 'State', 'End', 'Event',
-                 'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin',  'SubAve')
+                 'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin', 'SubAve')
 
     # new versions only (DACQ >= 3.4)
     _dacq_vars = _dacq_vars_compat + ('magMax', 'magMin', 'magNoise',
