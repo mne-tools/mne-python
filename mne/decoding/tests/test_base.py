@@ -40,6 +40,7 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     # Define Y latent factors
     np.random.seed(0)
     cov_Y = np.eye(n_targets) * 10 + np.random.rand(n_targets, n_targets)
+    cov_Y = (cov_Y + cov_Y.T) / 2.
     mean_Y = np.random.rand(n_targets)
     Y = np.random.multivariate_normal(mean_Y, cov_Y, size=n_samples)
 
