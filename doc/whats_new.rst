@@ -214,6 +214,8 @@ BUG
 
 - Fix :func:`mne.find_events` when passing a list as stim_channel parameter by `Alex Gramfort`_
 
+    - Fix parallel processing when computing covariance with shrinkage estimators by `Denis Engemann`_
+
 API
 ~~~
 - Add ``skip_by_annotation`` to :meth:`mne.io.Raw.filter` to process data concatenated with e.g. :func:`mne.concatenate_raws` separately. This parameter will default to the old behavior (treating all data as a single block) in 0.15 but will change to ``skip_by_annotation='edge'``, which will separately filter the concatenated chunks separately, in 0.16. This should help prevent potential problems with filter-induced ringing in concatenated files, by `Eric Larson`_
@@ -277,6 +279,8 @@ API
 - ``loose=None`` in inverse solvers is deprecated, use explicitly ``loose=0`` for fixed constraint and ``loose=1.0`` for free orientations by `Eric Larson`_
 
 - Zero-channel-value in PSD calculation in :func:`mne.viz.plot_raw_psd` has been relaxed from error to warning by `Alejandro Weinstein`_
+
+    - Expose "rank" parameter in :func:`mne.viz.evoked.plot_evoked_white` to correct rank estimates on the spot during visualization by `Denis Engemann`_, `Eric Larson`_, `Alex Gramfort`_.
 
 .. _changes_0_14:
 

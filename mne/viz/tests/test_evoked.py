@@ -121,7 +121,16 @@ def test_plot_evoked():
 
         cov = read_cov(cov_fname)
         cov['method'] = 'empirical'
-        evoked.plot_white(cov)
+        # test rank param.
+        evoked.plot_white(cov, rank={'mag': 101, 'grad': 201})
+        evoked.plot_white(cov, rank={'mag': 101})  # test rank param.
+        evoked.plot_white(cov, rank={'grad': 201})  # test rank param.
+        assert_raises(
+            ValueError, evoked.plot_white, cov,
+            rank={'mag': 101, 'grad': 201, 'meg': 306})
+        assert_raises(
+            ValueError, evoked.plot_white, cov, rank={'meg': 306})
+
         evoked.plot_white([cov, cov])
 
         # plot_compare_evokeds: test condition contrast, CI, color assignment
@@ -173,8 +182,11 @@ def test_plot_evoked():
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()
-        evoked_sss.info['proc_history'] = [dict(max_info=None)]
-        evoked_sss.plot_white(cov)
+        sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
+        evoked_sss.info['proc_history'] = [dict(max_info=sss)]
+        evoked_sss.plot_white(cov, rank={'meg': 64})
+        assert_raises(
+            ValueError, evoked_sss.plot_white, cov, rank={'grad': 201})
         evoked_sss.plot_white(cov_fname)
 
         # plot with bad channels excluded, spatial_colors, zorder & pos. layout
