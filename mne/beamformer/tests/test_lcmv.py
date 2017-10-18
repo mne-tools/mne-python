@@ -262,10 +262,10 @@ def test_lcmv():
                         noise_cov=noise_cov)
     # applying that filter to the full data set should automatically exclude
     # this channel from the data
-    stc = apply_lcmv(evoked, filters)
+    stc = apply_lcmv(evoked, filters, max_ori_out='signed')
     # the result should be equal to applying this filter to a dataset without
     # this channel:
-    stc_ch = apply_lcmv(evoked_ch, filters)
+    stc_ch = apply_lcmv(evoked_ch, filters, max_ori_out='signed')
     assert_array_almost_equal(stc.data, stc_ch.data)
 
     # Test if non-matching SSP projection is detected in application of filter

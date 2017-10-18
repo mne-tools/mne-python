@@ -1,7 +1,9 @@
+from distutils.version import LooseVersion
+import warnings
+
 import numpy as np
 from nose.tools import assert_raises
 from numpy.testing import assert_array_almost_equal
-from distutils.version import LooseVersion
 
 from mne.time_frequency import psd_multitaper
 from mne.time_frequency.multitaper import dpss_windows
@@ -52,8 +54,9 @@ def test_multitaper_psd():
             psd, freqs = psd_multitaper(raw, adaptive=adaptive,
                                         n_jobs=n_jobs,
                                         normalization=norm)
-            freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(
-                data, sfreq, adaptive=adaptive, jackknife=False)
+            with warnings.catch_warnings(record=True):  # nitime integers
+                freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(
+                    data, sfreq, adaptive=adaptive, jackknife=False)
             assert_array_almost_equal(psd, psd_ni, decimal=4)
             if n_times % 2 == 0:
                 # nitime's frequency definitions must be incorrect,

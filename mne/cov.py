@@ -390,7 +390,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
         .. versionadded:: 0.12
 
-    cv : int | sklearn cross_validation object (default 3)
+    cv : int | sklearn model_selection object (default 3)
         The cross validation method. Defaults to 3, which will
         internally trigger a default 3-fold shuffle split.
 
@@ -594,7 +594,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             'pca': {'iter_n_components': None},
             'factor_analysis': {'iter_n_components': None}
 
-    cv : int | sklearn cross_validation object (default 3)
+    cv : int | sklearn model_selection object (default 3)
         The cross validation method. Defaults to 3, which will
         internally trigger a default 3-fold shuffle split.
     scalings : dict | None (default None)

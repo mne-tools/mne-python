@@ -285,7 +285,8 @@ class DigSource(HasPrivateTraits):
     def _get__info(self):
         if self.file:
             info = None
-            _, tree, _ = fiff_open(self.file)
+            fid, tree, _ = fiff_open(self.file)
+            fid.close()
             if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
                 info = read_info(self.file, verbose=False)
             elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:

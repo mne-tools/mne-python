@@ -1186,8 +1186,9 @@ def _compute_ch_connectivity(info, ch_type):
                     ch_connectivity[idx * 2 + ii, idx * 2 + jj] = True  # pair
         ch_connectivity = sparse.csr_matrix(ch_connectivity)
     else:
-        ch_connectivity = sparse.csr_matrix(neighbors)
+        ch_connectivity = sparse.lil_matrix(neighbors)
         ch_connectivity.setdiag(np.repeat(1, ch_connectivity.shape[0]))
+        ch_connectivity = ch_connectivity.tocsr()
 
     return ch_connectivity, ch_names
 

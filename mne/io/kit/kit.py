@@ -35,7 +35,7 @@ from ...event import read_events
 class UnsupportedKITFormat(ValueError):
     """Our reader is not guaranteed to work with old files."""
 
-    def __init__(self, sqd_version, *args, **kwargs):
+    def __init__(self, sqd_version, *args, **kwargs):  # noqa: D102
         self.sqd_version = sqd_version
         ValueError.__init__(self, *args, **kwargs)
 

@@ -135,7 +135,7 @@ def test_plot_topo_single_ch():
     """Test single channel topoplot with time cursor"""
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
-    fig = plot_evoked_topo(evoked)
+    fig = plot_evoked_topo(evoked, background_color='w')
     num_figures_before = len(plt.get_fignums())
     _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert_equal(num_figures_before + 1, len(plt.get_fignums()))

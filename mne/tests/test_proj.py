@@ -56,7 +56,7 @@ def test_bad_proj():
     _check_warnings(raw, events, count=0)
     # eeg avg ref is okay
     raw = read_raw_fif(raw_fname, preload=True).pick_types(meg=False, eeg=True)
-    raw.set_eeg_reference()
+    raw.set_eeg_reference(projection=True)
     _check_warnings(raw, events, count=0)
     raw.info['bads'] = raw.ch_names[:10]
     _check_warnings(raw, events, count=0)
