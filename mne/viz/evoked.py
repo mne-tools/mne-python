@@ -1001,7 +1001,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     else:
         if 'meg' in rank:
             raise ValueError('When not using SSS separate rank values for mag '
-                             'or grad mus be passed separately.')
+                             'or grad must be passed separately.')
     evoked = evoked.copy()  # handle ref meg
     passive_idx = [idx for idx, proj in enumerate(evoked.info['projs'])
                    if not proj['active']]
