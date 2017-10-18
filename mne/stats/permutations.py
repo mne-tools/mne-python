@@ -156,10 +156,10 @@ def _bootstrap_ci(arr, ci=.95, n_bootstraps=2000, stat_fun='mean',
     """Get confidence intervals from non-parametric bootstrap."""
     if stat_fun == "mean":
         def stat_fun(x):
-            x.mean(axis=0)
+            return x.mean(axis=0)
     elif stat_fun == 'median':
         def stat_fun(x):
-            x.median(axis=0)
+            return np.median(x, axis=0)
     elif not callable(stat_fun):
         raise ValueError("stat_fun must be 'mean', 'median' or callable.")
     n_trials = arr.shape[0]
