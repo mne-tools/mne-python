@@ -899,8 +899,9 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
     show : bool
         Show figure if True.
     rank : dict of int | None
-        Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
-        the rank is detected automatically. Defaults to None. Note.
+        Dict of ints where keys are 'eeg', 'meg', mag' or 'grad'. If None,
+        the rank is detected automatically. Defaults to None. 'mag' or
+        'grad' cannot be specified jointly with 'meg'. Note.
         The rank estimation will be printed by the logger for each noise
         covariance estimator that is passed.
 

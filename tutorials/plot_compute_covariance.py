@@ -161,7 +161,7 @@ evoked.plot_white(noise_covs)
 evoked_meg = evoked.pick_types(meg=True, eeg=False)
 noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
 noise_cov['method'] = 'empty_room'
-noise_cov_meg['method'] = 'basleline'
+noise_cov_meg['method'] = 'baseline'
 
 evoked_meg.plot_white([noise_cov_meg, noise_cov])
 
