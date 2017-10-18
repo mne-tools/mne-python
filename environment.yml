@@ -3,7 +3,7 @@ channels:
 - defaults
 - clinicalgraphics  # Needed for VTK
 dependencies:
-- python=3.6
+- python=3.6.1
 - pip
 - mkl
 - numpy

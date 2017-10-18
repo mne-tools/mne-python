@@ -3,9 +3,6 @@ dist: trusty
 sudo: false
 cache:
   apt: true
-  directories:
-  - $HOME/.cache/pip
-  - $HOME/.ccache
 env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
