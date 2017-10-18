@@ -425,6 +425,8 @@ def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=None,
                  uint_cast=False, mask_type=None):
     """Help find events."""
+    assert data.shape[0] == 1  # data should be only a row vector
+
     if min_samples > 0:
         merge = int(min_samples // 1)
         if merge == min_samples:
