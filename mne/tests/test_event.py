@@ -343,7 +343,7 @@ def test_find_events():
         if o is not None:
             os.environ['MNE_STIM_CHANNEL%s' % s] = o
 
-    # # Test with list of stim channels
+    # Test with list of stim channels
     raw._data[stim_channel_idx, 1:101] = np.zeros(100)
     raw._data[stim_channel_idx, 10:11] = 1
     raw._data[stim_channel_idx, 30:31] = 3
