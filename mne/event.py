@@ -675,10 +675,11 @@ def find_events(raw, stim_channel=None, output='onset',
 
     events_list = []
     for d in data:
-        events = _find_events(d[None, :], raw.first_samp, verbose=verbose,
-                              output=output, consecutive=consecutive,
-                              min_samples=min_samples, mask=mask,
-                              uint_cast=uint_cast, mask_type=mask_type)
+        events = _find_events(d[np.newaxis, :], raw.first_samp,
+                              verbose=verbose, output=output,
+                              consecutive=consecutive, min_samples=min_samples,
+                              mask=mask, uint_cast=uint_cast,
+                              mask_type=mask_type)
         # add safety check for spurious events (for ex. from neuromag syst.) by
         # checking the number of low sample events
         n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)

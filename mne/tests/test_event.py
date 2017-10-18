@@ -360,7 +360,6 @@ def test_find_events():
     assert_array_equal(events[1::2], events1)
 
 
-
 def test_pick_events():
     """Test pick events in a events ndarray."""
     events = np.array([[1, 0, 1],
