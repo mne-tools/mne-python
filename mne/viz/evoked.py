@@ -1128,7 +1128,6 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
         for ch, sub_picks in picks_list:
             this_rank = rank_[ch]
-            print(ch, sub_picks, this_rank)
             title = '{0} ({2}{1})'.format(
                     titles_[ch] if n_columns > 1 else ch,
                     this_rank, 'rank ' if n_columns > 1 else '')
