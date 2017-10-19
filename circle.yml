@@ -190,7 +190,7 @@ deployment:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"
       - cd ../mne-tools.github.io && git checkout master && git pull origin master
-      - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
+      - cd doc/_build && rm -Rf ~/mne-tools.github.io/dev && cp -a html ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
   stable:
     branch: maint/0.15
@@ -198,5 +198,5 @@ deployment:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"
       - cd ../mne-tools.github.io && git checkout master && git pull origin master
-      - cd doc/_build/html_stable && cp -rf * ~/mne-tools.github.io/stable
+      - cd doc/_build && rm -Rf ~/mne-tools.github.io/0.15 && cp -a html_stable ~/mne-tools.github.io/0.15
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of stable docs.' && git push origin master
