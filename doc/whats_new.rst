@@ -13,8 +13,8 @@ What's new
 
 .. _current:
 
-Current
--------
+Version 0.15
+------------
 
 Changelog
 ~~~~~~~~~
@@ -280,7 +280,59 @@ API
 
 - Zero-channel-value in PSD calculation in :func:`mne.viz.plot_raw_psd` has been relaxed from error to warning by `Alejandro Weinstein`_
 
-    - Expose "rank" parameter in :func:`mne.viz.evoked.plot_evoked_white` to correct rank estimates on the spot during visualization by `Denis Engemann`_, `Eric Larson`_, `Alex Gramfort`_.
+- Expose "rank" parameter in :func:`mne.viz.evoked.plot_evoked_white` to correct rank estimates on the spot during visualization by `Denis Engemann`_, `Eric Larson`_, `Alex Gramfort`_.
+
+Authors
+~~~~~~~
+
+People who contributed to this release  (in alphabetical order):
+
+* akshay0724
+* Alejandro Weinstein
+* Alexander Rudiuk
+* Alexandre Barachant
+* Alexandre Gramfort
+* Andrew Dykstra
+* Britta Westner
+* Chris Bailey
+* Chris Holdgraf
+* Christian Brodbeck
+* Christopher Holdgraf
+* Clemens Brunner
+* Cristóbal Moënne-Loccoz
+* Daniel McCloy
+* Daniel Strohmeier
+* Denis A. Engemann
+* Emily P. Stephen
+* Eric Larson
+* Fede Raimondo
+* Jaakko Leppakangas
+* Jean-Baptiste Schiratti
+* Jean-Remi King
+* Jesper Duemose Nielsen
+* Joan Massich
+* Jon Houck
+* Jona Sassenhagen
+* Jussi Nurminen
+* Laetitia Grabot
+* Laura Gwilliams
+* Luke Bloy
+* Lukáš Hejtmánek
+* Mainak Jas
+* Marijn van Vliet
+* Mathurin Massias
+* Matt Boggess
+* Mikolaj Magnuski
+* Nicolas Barascud
+* Nicole Proulx
+* Phillip Alday
+* Ramonapariciog Apariciogarcia
+* Robin Tibor Schirrmeister
+* Rodrigo Hübner
+* S. M. Gutstein
+* Simon Kern
+* Teon Brooks
+* Yousra Bekhti
 
 .. _changes_0_14:
 
