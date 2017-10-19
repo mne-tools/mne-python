@@ -13,6 +13,27 @@ What's new
 
 .. _current:
 
+Current
+-------
+
+Changelog
+~~~~~~~~~
+
+- Nothing yet
+
+Bug
+~~~
+
+- Nothing yet
+
+API
+~~~
+
+- Nothing yet
+
+
+.. _changes_0_15:
+
 Version 0.15
 ------------
 
