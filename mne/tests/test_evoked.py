@@ -262,7 +262,7 @@ def test_evoked_filter():
     ave = read_evokeds(fname, 0).pick_types('grad')
     ave.data[:] = 1.
     assert round(ave.info['lowpass']) == 172
-    ave_filt = ave.copy().filter(None, 40.)
+    ave_filt = ave.copy().filter(None, 40., fir_design='firwin')
     assert ave_filt.info['lowpass'] == 40.
     assert_allclose(ave.data, 1., atol=1e-6)
 

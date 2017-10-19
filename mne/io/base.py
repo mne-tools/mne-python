@@ -2195,6 +2195,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     pos_prev = fid.tell()
     if pos_prev > split_size:
+        fid.close()
         raise ValueError('file is larger than "split_size" after writing '
                          'measurement information, you must use a larger '
                          'value for split size: %s plus enough bytes for '
@@ -2223,6 +2224,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         if overage > 0:
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
+            fid.close()
             raise ValueError(
                 'buffer size (%s) is too large for the given split size (%s) '
                 'by %s bytes after writing info (%s) and leaving enough space '

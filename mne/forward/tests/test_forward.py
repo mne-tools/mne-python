@@ -69,7 +69,10 @@ def test_convert_forward():
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
 
     # The following test can be removed in 0.16
-    fwd_surf_io = read_forward_solution(fname_meeg_grad, surf_ori=True)
+    # Capture warning when using surf_ori in reading
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        fwd_surf_io = read_forward_solution(fname_meeg_grad, surf_ori=True)
     compare_forwards(fwd_surf, fwd_surf_io)
     del fwd_surf_io
     gc.collect()
@@ -92,7 +95,10 @@ def test_convert_forward():
     assert_true(is_fixed_orient(fwd_fixed))
 
     # The following test can be removed in 0.16
-    fwd_fixed_io = read_forward_solution(fname_meeg_grad, force_fixed=True)
+    # Capture warning when using force_fixed in reading
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        fwd_fixed_io = read_forward_solution(fname_meeg_grad, force_fixed=True)
     assert_true(repr(fwd_fixed_io))
     assert_true(isinstance(fwd_fixed_io, Forward))
     assert_true(is_fixed_orient(fwd_fixed_io))
@@ -126,7 +132,9 @@ def test_io_forward():
     assert_equal(leadfield.shape, (n_channels, n_src))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
     fname_temp = op.join(temp_dir, 'test-fwd.fif')
-    write_forward_solution(fname_temp, fwd, overwrite=True)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        write_forward_solution(fname_temp, fwd, overwrite=True)
 
     fwd = read_forward_solution(fname_meeg_grad)
     fwd = convert_forward_solution(fwd, surf_ori=True)
@@ -143,7 +151,9 @@ def test_io_forward():
     fwd = read_forward_solution(fname_meeg)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                    use_cps=False)
-    write_forward_solution(fname_temp, fwd, overwrite=True)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
     fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
                                         force_fixed=True, use_cps=False)
@@ -161,7 +171,9 @@ def test_io_forward():
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])
-    write_forward_solution(fname_temp, fwd, overwrite=True)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
     fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
                                         force_fixed=True, use_cps=True)
@@ -180,7 +192,9 @@ def test_io_forward():
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])
-    write_forward_solution(fname_temp, fwd, overwrite=True)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
     fwd_read = convert_forward_solution(fwd_read, surf_ori=True,
                                         force_fixed=True, use_cps=True)
@@ -303,7 +317,9 @@ def test_restrict_forward_to_stc():
     # are properly accounted for.
     temp_dir = _TempDir()
     fname_copy = op.join(temp_dir, 'copy-fwd.fif')
-    write_forward_solution(fname_copy, fwd_out, overwrite=True)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
     fwd_out_read = convert_forward_solution(fwd_out_read, surf_ori=True,
                                             force_fixed=False)

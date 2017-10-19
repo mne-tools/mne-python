@@ -716,7 +716,8 @@ def test_morph():
     verts = [np.arange(10242), np.arange(10242)]
     for hemi in ['lh', 'rh']:
         label.hemi = hemi
-        label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
+        with warnings.catch_warnings(record=True):  # morph map maybe missing
+            label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
     assert_raises(TypeError, label.morph, None, 1, 5, verts,
                   subjects_dir, 2)
     assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,

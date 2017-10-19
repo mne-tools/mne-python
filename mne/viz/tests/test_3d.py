@@ -160,7 +160,8 @@ def test_plot_alignment():
                        subjects_dir=subjects_dir, meg=meg)
         mlab.close(all=True)
     # KIT ref sensor coil def is defined
-    plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
+    with warnings.catch_warnings(record=True):  # deprecated
+        plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
     mlab.close(all=True)
     info = infos['Neuromag']
     assert_raises(TypeError, plot_alignment, 'foo', trans_fname,
@@ -174,7 +175,8 @@ def test_plot_alignment():
                     brain='white')
     mlab.close(all=True)
     # no-head version
-    plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
+    with warnings.catch_warnings(record=True):  # deprecated
+        plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
     mlab.close(all=True)
     # all coord frames
     for coord_frame in ('meg', 'head', 'mri'):
@@ -345,9 +347,10 @@ def test_plot_dipole_mri_orthoview():
 def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
-    fig = plot_trans(info, trans=None, subject='sample',
-                     skull=['outer_skull', 'inner_skull'],
-                     subjects_dir=subjects_dir)  # deprecated, for coverage
+    with warnings.catch_warnings(record=True):  # deprecated
+        fig = plot_trans(
+            info, trans=None, subject='sample', subjects_dir=subjects_dir,
+            skull=['outer_skull', 'inner_skull'])
 
     xyz = np.vstack([ich['loc'][:3] for ich in info['chs']])
     ch_names = [ich['ch_name'] for ich in info['chs']]

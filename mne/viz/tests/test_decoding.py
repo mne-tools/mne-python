@@ -6,7 +6,7 @@
 import os.path as op
 import warnings
 
-from nose.tools import assert_raises, assert_equals
+from nose.tools import assert_raises, assert_equal
 
 import numpy as np
 
@@ -110,12 +110,12 @@ def test_gat_chance_level():
     with warnings.catch_warnings(record=True):  # deprecated
         ax = gat.plot_diagonal(chance=False)
         ax = gat.plot_diagonal()
-        assert_equals(chance(ax), .5)
+        assert_equal(chance(ax), .5)
         gat = _get_data(event_id=dict(aud_l=1, vis_l=3, aud_r=2, vis_r=4))
         ax = gat.plot_diagonal()
-        assert_equals(chance(ax), .25)
+        assert_equal(chance(ax), .25)
         ax = gat.plot_diagonal(chance=1.234)
-        assert_equals(chance(ax), 1.234)
+        assert_equal(chance(ax), 1.234)
         assert_raises(ValueError, gat.plot_diagonal, chance='foo')
         del gat.scores_
         assert_raises(RuntimeError, gat.plot)
@@ -129,7 +129,7 @@ def test_gat_plot_nonsquared():
         gat.plot()
         ax = gat.plot_diagonal()
     scores = ax.get_children()[1].get_lines()[2].get_ydata()
-    assert_equals(len(scores), len(gat.estimators_))
+    assert_equal(len(scores), len(gat.estimators_))
 
 
 run_tests_if_main()

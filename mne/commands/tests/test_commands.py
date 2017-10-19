@@ -98,7 +98,8 @@ def test_compute_proj_ecg_eog():
         shutil.copyfile(raw_fname, use_fname)
         with ArgvSetter(('-i', use_fname, '--bad=' + bad_fname,
                          '--rej-eeg', '150')):
-            fun.run()
+            with warnings.catch_warnings(record=True):  # too few samples
+                fun.run()
         fnames = glob.glob(op.join(tempdir, '*proj.fif'))
         assert_true(len(fnames) == 1)
         fnames = glob.glob(op.join(tempdir, '*-eve.fif'))

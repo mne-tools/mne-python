@@ -143,12 +143,16 @@ def test_continuous_regression_with_overlap():
 
     def solver(X, y):
         return ridge_regression(X, y, alpha=0.)
-    assert_allclose(effect, linear_regression_raw(
-        raw, events, tmin=0, solver=solver)['1'].data.flatten())
+
+    with warnings.catch_warnings(record=True):  # transpose
+        assert_allclose(effect, linear_regression_raw(
+            raw, events, tmin=0, solver=solver)['1'].data.flatten())
 
     # test bad solvers
     def solT(X, y):
         return ridge_regression(X, y, alpha=0.).T
-    assert_raises(ValueError, linear_regression_raw, raw, events, solver=solT)
+    with warnings.catch_warnings(record=True):  # transpose
+        assert_raises(ValueError, linear_regression_raw, raw, events,
+                      solver=solT)
     assert_raises(ValueError, linear_regression_raw, raw, events, solver='err')
     assert_raises(TypeError, linear_regression_raw, raw, events, solver=0)

@@ -68,6 +68,7 @@ def test_render_report():
     # Speed it up by picking channels
     raw = read_raw_fif(raw_fname_new, preload=True)
     raw.pick_channels(['MEG 0111', 'MEG 0121'])
+    raw.del_proj()
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
     epochs.save(epochs_fname)
     # This can take forever (stall Travis), so let's make it fast

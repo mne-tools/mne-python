@@ -209,11 +209,13 @@ def test_plot_annotations():
     """Test annotation mode of the plotter."""
     raw = _get_raw()
     raw.info['lowpass'] = 10.
-    _annotation_helper(raw)
+    with warnings.catch_warnings(record=True):  # matplotlib
+        _annotation_helper(raw)
 
     with warnings.catch_warnings(record=True):  # cut off
         raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])
-    _annotation_helper(raw)
+    with warnings.catch_warnings(record=True):  # matplotlib
+        _annotation_helper(raw)
 
 
 @requires_version('scipy', '0.10')

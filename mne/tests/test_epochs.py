@@ -1901,7 +1901,11 @@ def test_add_channels_epochs():
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
     epochs_meg2.info._update_redundant()
-    assert_raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        assert_raises(RuntimeError, add_channels_epochs,
+                      [epochs_meg2, epochs_eeg])
+        assert_equal(len(w), 1)
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['dev_head_t']['to'] += 1

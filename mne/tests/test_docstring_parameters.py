@@ -72,8 +72,8 @@ _docstring_ignores = [
     'mne.time_frequency.tfr.tfr_morlet',
     'mne.decoding.csp.*plot_.*',  # CSP and SPoc but on Py3k unbound methods
     'mne.decoding.csp.*plot_.*',  # are just functions so our naming is odd
-    'mne.*\.plot_topomap',
-    'mne.*\.to_data_frame',
+    r'mne.*\.plot_topomap',
+    r'mne.*\.to_data_frame',
     'mne.viz.topomap.plot_evoked_topomap',
 ]
 

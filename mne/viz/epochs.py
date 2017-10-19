@@ -342,13 +342,17 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
     combine_title = (" (" + combine + ")"
                      if isinstance(combine, string_types) else "")
     if combine == "gfp":
-        combine = lambda data: np.sqrt((data * data).mean(axis=1))  # noqa
+        def combine(data):
+            return np.sqrt((data * data).mean(axis=1))
     elif combine == "mean":
-        combine = lambda data: np.mean(data, axis=1)  # noqa
+        def combine(data):
+            return np.mean(data, axis=1)
     elif combine == "std":
-        combine = lambda data: np.std(data, axis=1)  # noqa
+        def combine(data):
+            return np.std(data, axis=1)
     elif combine == "median":
-        combine = lambda data: np.median(data, axis=1)  # noqa
+        def combine(data):
+            return np.median(data, axis=1)
     elif not callable(combine):
         raise ValueError(
             "``combine`` must be None, a callable or one out of 'mean' "
