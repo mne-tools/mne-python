@@ -170,7 +170,7 @@ test:
           timeout: 1500
     - tail $CIRCLE_ARTIFACTS/log.txt | grep -E "auto_tutorials\s*\[100%\]\s*plot_|Build finished"
   post:
-    - if [[ $(cat build.txt) == "html" ]]; then
+    - if [[ $(cat build.txt) == "html_stable" ]]; then
         cp -a doc/_build/html_stable $CIRCLE_ARTIFACTS/;
       else
         cp -a doc/_build/html $CIRCLE_ARTIFACTS/;
