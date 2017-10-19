@@ -301,7 +301,7 @@ API
 
 - Zero-channel-value in PSD calculation in :func:`mne.viz.plot_raw_psd` has been relaxed from error to warning by `Alejandro Weinstein`_
 
-- Expose "rank" parameter in :func:`mne.viz.evoked.plot_evoked_white` to correct rank estimates on the spot during visualization by `Denis Engemann`_, `Eric Larson`_, `Alex Gramfort`_.
+- Expose "rank" parameter in :func:`mne.viz.plot_evoked_white` to correct rank estimates on the spot during visualization by `Denis Engemann`_, `Eric Larson`_, `Alex Gramfort`_.
 
 Authors
 ~~~~~~~

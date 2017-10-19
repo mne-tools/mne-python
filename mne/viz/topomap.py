@@ -21,7 +21,7 @@ from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels)
-from ..utils import _clean_names, _time_mask, verbose, logger, warn, _scale_dep
+from ..utils import _clean_names, _time_mask, verbose, logger, warn
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -544,11 +544,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     """
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
-
-    if contours is None or contours is False:
-        warn('Using %s as contours is deprecated and will not be allowed in '
-             '0.16. Use 0 instead.' % str(contours), DeprecationWarning)
-        contours = 0
     data = np.asarray(data)
     logger.debug('Plotting topomap for data shape %s' % (data.shape,))
 
@@ -1236,7 +1231,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
-                        axes=None, scale=None, scale_time=None, unit=None):
+                        axes=None):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1383,11 +1378,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     from matplotlib import gridspec
     from matplotlib.widgets import Slider
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
-    scalings = _scale_dep(scalings, scale, 'scalings', 'scale')
-    scaling_time = _scale_dep(scaling_time, scale_time,
-                              'scaling_time', 'scale_time')
-    units = _scale_dep(units, unit, 'units', 'unit')
-    del scale, scale_time, unit
 
     if colorbar is None:
         colorbar = True

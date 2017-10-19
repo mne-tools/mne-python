@@ -16,7 +16,7 @@ from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _pick_channels_inverse_operator, _check_method,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, warn, _freqs_dep
+from ..utils import logger, verbose, warn
 from ..externals import six
 
 
@@ -305,7 +305,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
                          decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
                          n_jobs=1, zero_mean=False, prepared=False,
-                         frequencies=None, verbose=None):
+                         verbose=None):
     """Compute induced power and phase lock.
 
     Computation can optionaly be restricted in a label.
@@ -316,7 +316,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         The epochs.
     inverse_operator : instance of InverseOperator
         The inverse operator.
-    frequencies : array
+    freqs : array
         Array of frequencies of interest.
     label : Label
         Restricts the source estimates to a given label.
@@ -372,7 +372,6 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
     """  # noqa: E501
-    freqs = _freqs_dep(freqs, frequencies)
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
 

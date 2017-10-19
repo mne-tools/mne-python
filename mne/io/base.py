@@ -38,7 +38,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      check_fname, _get_stim_channel,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc,
-                     _check_preload, _scale_dep)
+                     _check_preload)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -60,8 +60,7 @@ class ToDataFrameMixin(object):
         return picks
 
     def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
-                      scalings=None, copy=True, start=None, stop=None,
-                      scale_time=None):
+                      scalings=None, copy=True, start=None, stop=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Columns and indices will depend on the object being converted.
@@ -106,9 +105,6 @@ class ToDataFrameMixin(object):
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
         from ..source_estimate import _BaseSourceEstimate
-        scaling_time = _scale_dep(scaling_time, scale_time,
-                                  'scaling_time', 'scale_time')
-        del scale_time
 
         pd = _check_pandas_installed()
         mindex = list()
@@ -1096,8 +1092,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
-               fir_window='hamming', fir_design=None,
-               skip_by_annotation=None, pad='reflect_limited', verbose=None):
+               fir_window='hamming', fir_design='firwin',
+               skip_by_annotation='edge', pad='reflect_limited', verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -1188,20 +1184,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.13
         fir_design : str
-            Can be "firwin" (default in 0.16) to use
-            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-            time-domain design technique that generally gives improved
+            Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+            or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+            a time-domain design technique that generally gives improved
             attenuation using fewer samples than "firwin2".
 
             .. versionadded:: 0.15
-
         skip_by_annotation : str | list of str
             If a string (or list of str), any annotation segment that begins
             with the given string will not be included in filtering, and
             segments on either side of the given excluded annotated segment
             will be filtered separately (i.e., as independent signals).
-            The default in 0.16 (``'edge'``) will separately filter any
+            The default (``'edge'``) will separately filter any
             segments that were concatenated by :func:`mne.concatenate_raws`
             or :meth:`mne.io.Raw.append`. To disable, provide an empty list.
 
@@ -1241,14 +1235,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         update_info, picks = _filt_check_picks(self.info, picks,
                                                l_freq, h_freq)
         # Deal with annotations
-        if skip_by_annotation is None:
-            if self.annotations is not None and any(
-                    desc.upper().startswith('EDGE')
-                    for desc in self.annotations.description):
-                warn('skip_by_annotation defaults to [] in 0.15 but will '
-                     'change to "edge" in 0.16, set it explicitly to avoid '
-                     'this warning', DeprecationWarning)
-            skip_by_annotation = []
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation,
                                                  'skip_by_annotation')
         if len(onsets) == 0 or onsets[0] != 0:
@@ -1273,7 +1259,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
-                     fir_design=None, pad='reflect_limited', verbose=None):
+                     fir_design='firwin', pad='reflect_limited', verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -1350,10 +1336,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.13
         fir_design : str
-            Can be "firwin" (default in 0.16) to use
-            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-            time-domain design technique that generally gives improved
+            Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+            or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+            a time-domain design technique that generally gives improved
             attenuation using fewer samples than "firwin2".
 
             ..versionadded:: 0.15

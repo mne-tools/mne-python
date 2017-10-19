@@ -20,8 +20,7 @@ from scipy.fftpack import fft, ifft
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import (logger, verbose, _time_mask, check_fname, sizeof_fmt,
-                     _freqs_dep)
+from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import pick_info, pick_types
@@ -260,7 +259,7 @@ def _cwt(X, Ws, mode="same", decim=1, use_fft=True):
 def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
                  n_cycles=7.0, zero_mean=None, time_bandwidth=None,
                  use_fft=True, decim=1, output='complex', n_jobs=1,
-                 frequencies=None, verbose=None):
+                 verbose=None):
     """Compute time-frequency transforms.
 
     Parameters
@@ -311,8 +310,6 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     n_jobs : int, defaults to 1
         The number of epochs to process at the same time. The parallelization
         is implemented across channels.
-    frequencies : None
-        Deprecated.
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -335,7 +332,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     # Check params
     freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
         _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
-                         time_bandwidth, use_fft, decim, output, frequencies)
+                         time_bandwidth, use_fft, decim, output)
 
     # Setup wavelet
     if method == 'morlet':
@@ -386,9 +383,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
 
 def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
-                     time_bandwidth, use_fft, decim, output, frequencies):
+                     time_bandwidth, use_fft, decim, output):
     """Aux. function to _compute_tfr to check the params validity."""
-    freqs = _freqs_dep(freqs, frequencies)
     # Check freqs
     if not isinstance(freqs, (list, np.ndarray)):
         raise ValueError('freqs must be an array-like, got %s '
@@ -641,7 +637,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
                n_jobs=1, picks=None, zero_mean=True, average=True,
-               output='power', frequencies=None, verbose=None):
+               output='power', verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Parameters
@@ -704,8 +700,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     mne.time_frequency.tfr_array_stockwell
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
-                      zero_mean=zero_mean, output=output,
-                      frequencies=frequencies)
+                      zero_mean=zero_mean, output=output)
     return _tfr_aux('morlet', inst, freqs, decim, return_itc, picks,
                     average, **tfr_params)
 
@@ -713,7 +708,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 @verbose
 def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
-                     n_jobs=1, frequencies=None, verbose=None):
+                     n_jobs=1, verbose=None):
     """Compute time-frequency transform using Morlet wavelets.
 
     Convolves epoch data with selected Morlet wavelets.
@@ -785,8 +780,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                         sfreq=sfreq, method='morlet', n_cycles=n_cycles,
                         zero_mean=zero_mean, time_bandwidth=None,
                         use_fft=use_fft, decim=decim, output=output,
-                        n_jobs=n_jobs, frequencies=frequencies,
-                        verbose=verbose)
+                        n_jobs=n_jobs, verbose=verbose)
 
 
 @verbose

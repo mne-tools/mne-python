@@ -126,9 +126,8 @@ def test_plot_epochs_image():
                   combine='mean')
     assert_raises(ValueError, epochs.plot_image, axes=list(), group_by=dict(),
                   combine='mean')
-    with warnings.catch_warnings(record=True):  # deprecated combine as str
-        assert_raises(ValueError, epochs.plot_image, combine='error',
-                      picks=[1, 2])
+    assert_raises(ValueError, epochs.plot_image, group_by='error',
+                  picks=[1, 2])
     assert_raises(ValueError, epochs.plot_image, units={"hi": 1},
                   scalings={"ho": 1})
     epochs.load_data().pick_types(meg='mag')

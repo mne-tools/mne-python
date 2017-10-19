@@ -7,7 +7,7 @@ import copy as cp
 import numpy as np
 
 from ..io.pick import pick_types
-from ..utils import logger, verbose, warn, _freqs_dep
+from ..utils import logger, verbose, warn
 from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
 
@@ -35,8 +35,7 @@ class CrossSpectralDensity(object):
     """
 
     def __init__(self, data, ch_names, projs, bads, freqs,
-                 n_fft, frequencies=None):  # noqa: D102
-        freqs = _freqs_dep(freqs, frequencies)
+                 n_fft):  # noqa: D102
         self.data = data
         self.dim = len(data)
         self.ch_names = cp.deepcopy(ch_names)
@@ -44,13 +43,6 @@ class CrossSpectralDensity(object):
         self.bads = cp.deepcopy(bads)
         self.freqs = np.atleast_1d(np.copy(freqs))
         self.n_fft = n_fft
-
-    @property
-    def frequencies(self):
-        """Deprecated and will be removed in 0.16. Use freqs."""
-        warn('frequencies is deprecated and will be removed in 0.16, use'
-             'freqs instead', DeprecationWarning)
-        return self.freqs
 
     def __repr__(self):  # noqa: D105
         s = 'frequencies : %s' % self.freqs

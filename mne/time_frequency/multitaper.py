@@ -562,7 +562,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
                          zero_mean=True, time_bandwidth=None, use_fft=True,
                          decim=1, output='complex', n_jobs=1,
-                         frequencies=None, verbose=None):
+                         verbose=None):
     """Compute time-frequency transforms using wavelets and multitaper windows.
 
     Uses Morlet wavelets windowed with multiple DPSS tapers.
@@ -639,5 +639,4 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
                         method='multitaper', n_cycles=n_cycles,
                         zero_mean=zero_mean, time_bandwidth=time_bandwidth,
                         use_fft=use_fft, decim=decim, output=output,
-                        n_jobs=n_jobs, frequencies=frequencies,
-                        verbose=verbose)
+                        n_jobs=n_jobs, verbose=verbose)

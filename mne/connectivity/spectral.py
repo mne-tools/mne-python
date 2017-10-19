@@ -17,7 +17,7 @@ from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose, _time_mask, warn, _freqs_dep
+from ..utils import logger, verbose, _time_mask, warn
 from ..externals.six import string_types
 
 ########################################################################
@@ -562,7 +562,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mt_bandwidth=None, mt_adaptive=False,
                           mt_low_bias=True, cwt_freqs=None,
                           cwt_n_cycles=7, block_size=1000, n_jobs=1,
-                          cwt_frequencies=None, verbose=None):
+                          verbose=None):
     """Compute frequency- and time-frequency-domain connectivity measures.
 
     The connectivity method(s) are specified using the "method" parameter.
@@ -745,7 +745,6 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
            noise and sample-size bias" NeuroImage, vol. 55, no. 4,
            pp. 1548-1565, Apr. 2011.
     """
-    cwt_freqs = _freqs_dep(cwt_freqs, cwt_frequencies, 'cwt_')
     if n_jobs != 1:
         parallel, my_epoch_spectral_connectivity, _ = \
             parallel_func(_epoch_spectral_connectivity, n_jobs,

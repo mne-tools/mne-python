@@ -723,8 +723,8 @@ def _check_method(method, iir_params, extra_types=()):
 def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                 method='fir', iir_params=None, copy=True, phase='zero',
-                fir_window='hamming', fir_design=None, pad='reflect_limited',
-                verbose=None):
+                fir_window='hamming', fir_design='firwin',
+                pad='reflect_limited', verbose=None):
     """Filter a subset of channels.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -817,10 +817,9 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
         .. versionadded:: 0.13
     fir_design : str
-        Can be "firwin" (default in 0.16) to use
-        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-        time-domain design technique that generally gives improved
+        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+        a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
@@ -873,7 +872,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                   l_trans_bandwidth='auto', h_trans_bandwidth='auto',
                   method='fir', iir_params=None, phase='zero',
-                  fir_window='hamming', fir_design=None, verbose=None):
+                  fir_window='hamming', fir_design='firwin', verbose=None):
     r"""Create a FIR or IIR filter.
 
     ``l_freq`` and ``h_freq`` are the frequencies below which and above
@@ -949,10 +948,9 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 
         .. versionadded:: 0.13
     fir_design : str
-        Can be "firwin" (default in 0.16) to use
-        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-        time-domain design technique that generally gives improved
+        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+        a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
@@ -1167,7 +1165,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
                  trans_bandwidth=1, method='fir', iir_params=None,
                  mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=1,
                  copy=True, phase='zero', fir_window='hamming',
-                 fir_design=None, pad='reflect_limited', verbose=None):
+                 fir_design='firwin', pad='reflect_limited', verbose=None):
     r"""Notch filter for the signal x.
 
     Applies a zero-phase notch filter to the signal x, operating on the last
@@ -1247,10 +1245,9 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
 
         .. versionadded:: 0.13
     fir_design : str
-        Can be "firwin" (default in 0.16) to use
-        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-        time-domain design technique that generally gives improved
+        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+        a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
@@ -1725,12 +1722,6 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             ('hann', 'hamming', 'blackman', ''):
         raise ValueError('fir_window must be "hamming", "hann", or "blackman",'
                          'got "%s"' % (fir_window,))
-    if fir_design is None:
-        fir_design = 'firwin2'
-        if method != 'iir':
-            warn('fir_design defaults to "firwin2" in 0.15 but will change to '
-                 '"firwin" in 0.16, set it explicitly to avoid this warning.',
-                 DeprecationWarning)
     if not isinstance(fir_design, string_types) or \
             fir_design not in ('firwin', 'firwin2'):
         raise ValueError('fir_design must be "firwin" or "firwin2", got %s'
@@ -1861,7 +1852,7 @@ class FilterMixin(object):
     """Object for Epoch/Evoked filtering."""
 
     @verbose
-    def savgol_filter(self, h_freq, copy=False, verbose=None):
+    def savgol_filter(self, h_freq, verbose=None):
         """Filter the data using Savitzky-Golay polynomial method.
 
         Parameters
@@ -1872,8 +1863,6 @@ class FilterMixin(object):
             done using polynomial fits instead of FIR/IIR filtering.
             This parameter is thus used to determine the length of the
             window over which a 5th-order polynomial smoothing is used.
-        copy : bool
-            Deprecated. Use ``inst.copy()`` instead.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1912,31 +1901,27 @@ class FilterMixin(object):
                Differentiation of Data by Simplified Least Squares
                Procedures". Analytical Chemistry 36 (8): 1627-39.
         """  # noqa: E501
-        if copy:
-            warn('copy is deprecated and will be removed in 0.16, '
-                 'use inst.copy() instead', DeprecationWarning)
-        inst = self.copy() if copy else self
         _check_preload(self, 'inst.savgol_filter')
         h_freq = float(h_freq)
-        if h_freq >= inst.info['sfreq'] / 2.:
+        if h_freq >= self.info['sfreq'] / 2.:
             raise ValueError('h_freq must be less than half the sample rate')
 
         # savitzky-golay filtering
         if not check_version('scipy', '0.14'):
             raise RuntimeError('scipy >= 0.14 must be installed for savgol')
         from scipy.signal import savgol_filter
-        window_length = (int(np.round(inst.info['sfreq'] /
+        window_length = (int(np.round(self.info['sfreq'] /
                                       h_freq)) // 2) * 2 + 1
         logger.info('Using savgol length %d' % window_length)
-        inst._data[:] = savgol_filter(inst._data, axis=-1, polyorder=5,
+        self._data[:] = savgol_filter(self._data, axis=-1, polyorder=5,
                                       window_length=window_length)
-        return inst
+        return self
 
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
-               fir_window='hamming', fir_design=None,
+               fir_window='hamming', fir_design='firwin',
                pad='edge', verbose=None):
         """Filter a subset of channels.
 
@@ -2024,10 +2009,9 @@ class FilterMixin(object):
             The window to use in FIR design, can be "hamming" (default),
             "hann" (default in 0.13), or "blackman".
         fir_design : str
-            Can be "firwin" (default in 0.16) to use
-            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-            time-domain design technique that generally gives improved
+            Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+            or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+            a time-domain design technique that generally gives improved
             attenuation using fewer samples than "firwin2".
         pad : str
             The type of padding to use. Supports all :func:`numpy.pad` ``mode``

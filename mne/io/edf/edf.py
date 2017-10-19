@@ -150,14 +150,8 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=True, annot=None, annotmap=None, exclude=(),
+                 stim_channel='auto', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
-        if stim_channel is True:
-            warn("stim_channel will default to 'auto' in version 0.16. "
-                 "Set stim_channel explicitly to avoid this warning.",
-                 DeprecationWarning)
-            stim_channel = 'auto' if input_fname[-4:] == '.gdf' else -1
-
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,

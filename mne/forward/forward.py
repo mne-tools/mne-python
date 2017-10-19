@@ -379,21 +379,13 @@ def _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=None):
 
 
 @verbose
-def read_forward_solution(fname, force_fixed=None, surf_ori=None,
-                          include=[], exclude=[], verbose=None):
+def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     """Read a forward solution a.k.a. lead field.
 
     Parameters
     ----------
     fname : string
         The file name, which should end with -fwd.fif or -fwd.fif.gz.
-    force_fixed : None | bool, optional (default None)
-        Deprecated. Use :func:`convert_forward_solution`.
-        Force fixed source orientation mode?
-    surf_ori : None | bool, optional (default None)
-        Deprecated. Use :func:`convert_forward_solution`.
-        Use surface-based source coordinate system? Note that force_fixed=True
-        implies surf_ori=True.
     include : list, optional
         List of names of channels to include. If empty all channels
         are included.
@@ -428,15 +420,6 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
     surface-based, fixed orienation cannot be reverted after loading the
     forward solution with :func:`read_forward_solution`.
     """
-    if force_fixed is not None:
-        warn('force_fixed is deprecated and will be removed in 0.16. '
-             'For handling transformations, apply convert_forward_solution '
-             'after read_forward_solution instead.', DeprecationWarning)
-    if surf_ori is not None:
-        warn('surf_ori is deprecated and will be removed in 0.16. '
-             'For handling transformations, apply convert_forward_solution '
-             'after read_forward_solution instead.', DeprecationWarning)
-
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
     #   Open the file, create directory
@@ -566,24 +549,15 @@ def read_forward_solution(fname, force_fixed=None, surf_ori=None,
     #   Deal with include and exclude
     fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
 
-    if surf_ori is not None or force_fixed is not None:
-        # Deal with transformations
-        if surf_ori is None:
-            surf_ori = False
-        if force_fixed is None:
-            force_fixed = False
-        convert_forward_solution(fwd, surf_ori=surf_ori,
-                                 force_fixed=force_fixed, copy=False)
+    if is_fixed_orient(fwd, orig=True):
+        fwd['source_nn'] = np.concatenate([_src['nn'][_src['vertno'], :]
+                                          for _src in fwd['src']], axis=0)
+        fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+        fwd['surf_ori'] = True
     else:
-        if is_fixed_orient(fwd, orig=True):
-            fwd['source_nn'] = np.concatenate([_src['nn'][_src['vertno'], :]
-                                              for _src in fwd['src']], axis=0)
-            fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
-            fwd['surf_ori'] = True
-        else:
-            fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
-            fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
-            fwd['surf_ori'] = False
+        fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
+        fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
+        fwd['surf_ori'] = False
     return Forward(fwd)
 
 
@@ -1000,12 +974,6 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     """
     is_fixed_ori = is_fixed_orient(forward)
     n_sources = forward['sol']['data'].shape[1]
-    if loose is None:
-        warn('loose=None is deprecated and will be removed in 0.16, use '
-             'loose=0. for fixed constraint and loose=1. for free '
-             'orientations', DeprecationWarning)
-        loose = 0. if is_fixed_ori else 1.
-
     loose = float(loose)
     if not (0 <= loose <= 1):
         raise ValueError('loose value should be smaller than 1 and bigger '
