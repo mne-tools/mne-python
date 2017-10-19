@@ -19,7 +19,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-- Nothing yet
+- Add support for metadata in :class:`mne.Epochs` by `Chris Holdgraf`_, `Jona Sassenhagen`_, and `Eric Larson`_
 
 Bug
 ~~~
