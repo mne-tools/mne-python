@@ -226,6 +226,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+        'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
         'mtrf': 'MNE_DATASETS_MTRF_PATH',
         'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH'
     }[name]
@@ -260,14 +261,16 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories=[
             'https://osf.io/8ejrs/download',
             'https://osf.io/t4yjp/download'],
-        mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/"
-             "mTRF_1.5.zip",
+        mtrf='https://superb-dca2.dl.sourceforge.net/project/aespa/'
+             'mTRF_1.5.zip',
+        kiloword='https://osf.io/qkvf9/download',
         fieldtrip_cmc='ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/'
                       'tutorial/SubjectCMC.zip',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
     archive_names = dict(
+        kiloword='MNE-kiloword-data.tar.gz',
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         multimodal='MNE-multimodal-data.tar.gz',
         sample='MNE-sample-data-processed.tar.gz',
@@ -312,6 +315,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
                               '203410a98afc9df9ae8ba9f933370e20'],
+        kiloword='3a124170795abbd2e48aae8727e719a8',
         mtrf='273a390ebbc48da2c3184b01a82e4636',
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c'
     )
@@ -501,7 +505,8 @@ def has_dataset(name):
         'spm': 'MNE-spm-face',
         'multimodal': 'MNE-multimodal-data',
         'testing': 'MNE-testing-data',
-        'visual_92_categories': 'visual_92_categories-data',
+        'visual_92_categories': 'MNE-visual_92_categories-data',
+        'kiloword': 'MNE-kiloword-data',
     }[name]
     archive_name = None
     if name == 'brainstorm':
@@ -518,7 +523,8 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal, hf_sef, mtrf, fieldtrip_cmc)
+                   eegbci, multimodal, hf_sef, mtrf, fieldtrip_cmc,
+                   kiloword)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -528,6 +534,7 @@ def _download_all_example_data(verbose=True):
     multimodal.data_path()
     mtrf.data_path()
     fieldtrip_cmc.data_path()
+    kiloword.data_path()
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()

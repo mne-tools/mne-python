@@ -1482,6 +1482,7 @@ known_config_types = (
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+    'MNE_DATASETS_KILOWORD_PATH',
     'MNE_DATASETS_FIELDTRIP_CMC_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
@@ -2150,14 +2151,17 @@ def _check_preload(inst, msg):
                            '%s.load_data().' % (name, name))
 
 
-def _check_pandas_installed():
+def _check_pandas_installed(strict=True):
     """Aux function."""
     try:
-        import pandas as pd
-        return pd
+        import pandas
+        return pandas
     except ImportError:
-        raise RuntimeError('For this method to work the Pandas library is'
-                           ' required.')
+        if strict is True:
+            raise RuntimeError('For this functionality to work the Pandas '
+                               'library is required.')
+        else:
+            return False
 
 
 def _check_pandas_index_arguments(index, defaults):

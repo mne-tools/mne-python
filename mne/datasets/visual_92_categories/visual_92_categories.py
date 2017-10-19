@@ -1,16 +1,7 @@
 # License: BSD Style.
 
-from functools import partial
-
-import numpy as np
-
-from ...utils import verbose, get_config
-from ..utils import (has_dataset, _data_path, _data_path_doc, _get_version,
-                     _version_doc)
-
-
-has_visual_92_categories_data = partial(has_dataset,
-                                        name='visual_92_categories')
+from ...utils import verbose
+from ..utils import _data_path, _data_path_doc, _get_version, _version_doc
 
 
 @verbose
@@ -56,6 +47,7 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
                       update_path=update_path, name='visual_92_categories',
                       download=download)
 
+
 data_path.__doc__ = _data_path_doc.format(
     name='visual_92_categories', conf='MNE_DATASETS_VISUAL_92_CATEGORIES_PATH')
 
@@ -64,15 +56,5 @@ def get_version():
     """Get dataset version."""
     return _get_version('visual_92_categories')
 
+
 get_version.__doc__ = _version_doc.format(name='visual_92_categories')
-
-
-# Allow forcing of visual_92_categories dataset skip
-def _skip_visual_92_categories_data():
-    skip_testing = (get_config('MNE_SKIP_VISUAL_92_CATEGORIES_DATASET_TESTS',
-                               'false') == 'true')
-    skip = skip_testing or not has_visual_92_categories_data()
-    return skip
-
-requires_visual_92_categories_data = np.testing.dec.skipif(
-    _skip_visual_92_categories_data, 'Requires visual_92_categories dataset')

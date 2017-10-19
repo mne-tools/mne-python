@@ -155,6 +155,13 @@ epochs_left = epochs['Left']
 evoked_left = epochs['Left/Auditory'].average(picks=picks)
 
 ###############################################################################
+# .. note::
+#
+#   It is also possible to add metadata to Epochs objects, allowing for
+#   more complex selections on subsets of Epochs. See
+#   :ref:`sphx_glr_auto_tutorials_plot_metadata_epochs.py` for more
+#   information.
+#
 # Finally, let's plot the evoked responses.
 evoked_left.plot()
 evoked_right.plot()
