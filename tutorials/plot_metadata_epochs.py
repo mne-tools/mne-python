@@ -86,7 +86,7 @@ for (cat1, cat2), _ in epochs.metadata.groupby(categories):
 # Style the plot
 colors = np.linspace(0, 1, num=len(avs))
 style_plot = dict(
-    colors=plt.cm.viridis(colors),
+    colors=plt.get_cmap('YlGnBu_r')(colors),
     linestyles={'Concrete': '-', 'Abstract': '--'}
 )
 
