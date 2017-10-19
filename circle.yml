@@ -84,7 +84,7 @@ dependencies:
       fi;
       if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
-      elif [ "$CIRCLE_BRANCH" == "maint/0.14" ]; then
+      elif [ "$CIRCLE_BRANCH" == "maint/0.15" ]; then
         echo html_stable > build.txt;
       else
         FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
@@ -182,7 +182,7 @@ deployment:
       - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
   stable:
-    branch: maint/0.14
+    branch: maint/0.15
     commands:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"
