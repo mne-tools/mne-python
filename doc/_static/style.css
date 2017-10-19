@@ -30,23 +30,9 @@ code {
 }
 
 .devbar {
-    background-color: rgb(242, 80, 80);
-    color: white;
-    font-weight:bold;
     text-align: center;
     padding: 5px;
     margin-bottom: 5px;
-    min-width: 910px;
-}
-
-.devbar a {
-    color: rgb(255, 238, 0);
-    text-decoration: none;
-}
-
-.devbar a:hover {
-    color: black;
-    text-decoration: underline;
 }
 
 #navbar a:hover {
