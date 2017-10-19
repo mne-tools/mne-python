@@ -26,8 +26,8 @@ data_path = sample.data_path()
 evokeds = mne.read_evokeds(data_path + '/MEG/sample/sample_audvis-ave.fif')
 left_auditory = evokeds[0].apply_baseline()
 fwd = mne.read_forward_solution(
-    data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif',
-    surf_ori=True)
+    data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif')
+mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
 noise_cov = mne.read_cov(data_path + '/MEG/sample/sample_audvis-cov.fif')
 subjects_dir = data_path + '/subjects'
 
