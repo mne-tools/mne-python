@@ -834,10 +834,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
         size = tuple([float(s) for s in size])
 
     fig = figure_nobar(facecolor=bgcolor, figsize=size)
-    if title:
-        fig.canvas.set_window_title(title)
-    else:
-        fig.canvas.set_window_title("Raw")
+    fig.canvas.set_window_title(title if title else "Raw")
     ax = plt.subplot2grid((10, 10), (0, 1), colspan=8, rowspan=9)
     ax_hscroll = plt.subplot2grid((10, 10), (9, 1), colspan=8)
     ax_hscroll.get_yaxis().set_visible(False)
