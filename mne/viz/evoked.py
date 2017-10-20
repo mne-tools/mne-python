@@ -1443,7 +1443,7 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None, vlines=list((0.,)),
                          ci=0.95, truncate_yaxis=False, truncate_xaxis=True, ylim=dict(),
-                         invert_y=False, show_legend=True, show_sensors=None,
+                         invert_y=False, show_sensors=None, show_legend=True,
                          split_legend=False, axes=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
