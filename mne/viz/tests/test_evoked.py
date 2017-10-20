@@ -162,7 +162,8 @@ def test_plot_evoked():
         plot_compare_evokeds(contrast, colors=colors, linestyles=linestyles,
                              picks=[0, 2], vlines=[.01, -.04], invert_y=True,
                              truncate_yaxis=False, ylim=dict(mag=(-10, 10)),
-                             styles={"red/stim": {"linewidth": 1}}, show_sensors=True)
+                             styles={"red/stim": {"linewidth": 1}}, 
+                             show_sensors=True)
         # various bad styles
         params = [dict(picks='str'), dict(picks=3, colors=dict(fake=1)),
                   dict(picks=3, styles=dict(fake=1)), dict(picks=3, gfp=True),

@@ -77,7 +77,7 @@ is_concrete = meta["NumberOfLetters"] > 5
 meta["is_long"] = np.where(is_concrete, 'Long', 'Short')
 epochs.metadata = meta
 
-################################################################################
+###############################################################################
 # Now we can quickly extract (and plot) subsets of the data. For example, to
 # look at words split by word length and concreteness:
 
@@ -91,7 +91,7 @@ for concreteness in ("Concrete", "Abstract"):
 # For the actual visualisation, we store a number of shared parameters.
 style_plot = dict(
     colors={"Long": "Crimson", "Short": "Cornflowerblue"},
-    linestyles={"Concrete":"-", "Abstract":":"},
+    linestyles={"Concrete": "-", "Abstract": ":"},
     split_legend=True,
     ci=.68,
     show_sensors=4,
@@ -101,26 +101,28 @@ style_plot = dict(
 )
 
 fig, ax = plt.subplots(figsize=(6, 4))
-mne.viz.evoked.plot_compare_evokeds(evokeds, axes=ax, **style_plot);
+mne.viz.evoked.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
 plt.show()
 
-################################################################################
+###############################################################################
 # To compare words which are 4, 5, 6, 7 or 8 letters long:
 
 evokeds = dict()
 for nlet in epochs.metadata["NumberOfLetters"].unique():
-     evokeds[str(nlet)] = epochs["NumberOfLetters == " + str(nlet)].average()
+    evokeds[str(nlet)] = epochs["NumberOfLetters == " + str(nlet)].average()
 
-style_plot["colors"] = {str(nlet):int(nlet) for nlet in
+style_plot["colors"] = {str(nlet): int(nlet) for nlet in
                         epochs.metadata["NumberOfLetters"].unique()}
 style_plot["cmap"] = "summer"
 del style_plot['linestyles']
 
 fig, ax = plt.subplots(figsize=(6, 4))
-mne.viz.evoked.plot_compare_evokeds(evokeds, axes=ax, **style_plot);
+mne.viz.evoked.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
 plt.show()
 
-# And finally, for the interaction between concreteness and continuous length in letters:
+###############################################################################
+# And finally, for the interaction between concreteness and continuous length
+# in letters:
 evokeds = dict()
 query = "is_concrete == '{0}' & NumberOfLetters == {1}"
 for concreteness in ("Concrete", "Abstract"):
@@ -128,10 +130,10 @@ for concreteness in ("Concrete", "Abstract"):
         subset = epochs[query.format(concreteness, nlet)]
         evokeds["/".join((concreteness, str(nlet)))] = subset.average()
 
-style_plot["linestyles"] = {"Concrete":"-", "Abstract":":"}
+style_plot["linestyles"] = {"Concrete": "-", "Abstract": ":"}
 
 fig, ax = plt.subplots(figsize=(6, 4))
-mne.viz.evoked.plot_compare_evokeds(evokeds, axes=ax, **style_plot);
+mne.viz.evoked.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
 plt.show()
 
 
