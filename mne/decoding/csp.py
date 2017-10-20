@@ -15,7 +15,6 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
-from ..utils import warn
 
 
 class CSP(TransformerMixin, BaseEstimator):
@@ -51,7 +50,7 @@ class CSP(TransformerMixin, BaseEstimator):
         each spatial filter. If 'csp_space' self.transform will return the data
         in CSP space. Defaults to 'average_power'.
     norm_trace : bool
-        Normalize class covariance by its trace. Defaults to True. Trace
+        Normalize class covariance by its trace. Defaults to False. Trace
         normalization is a step of the original CSP algorithm [1]_ to eliminate
         magnitude variations in the EEG between individuals. It is not applied
         in more recent work [2]_, [3]_ and can have a negative impact on
@@ -87,7 +86,7 @@ class CSP(TransformerMixin, BaseEstimator):
     """
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
-                 transform_into='average_power', norm_trace=None):
+                 transform_into='average_power', norm_trace=False):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
@@ -126,11 +125,6 @@ class CSP(TransformerMixin, BaseEstimator):
                 raise ValueError('log must be a None if transform_into == '
                                  '"csp_space".')
         self.log = log
-        if norm_trace is None:
-            norm_trace = True
-            warn("norm_trace defaults to True in 0.15, but will change to "
-                 "False in 0.16. Set it explicitly to avoid this warning.",
-                 DeprecationWarning)
 
         if not isinstance(norm_trace, bool):
             raise ValueError('norm_trace must be a bool.')
@@ -294,8 +288,7 @@ class CSP(TransformerMixin, BaseEstimator):
                       size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                       show=True, show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
-                      image_interp='bilinear', average=None, head_pos=None,
-                      scale=None, unit=None):
+                      image_interp='bilinear', average=None, head_pos=None):
         """Plot topographic patterns of components.
 
         The patterns explain how the measured data was generated from the
@@ -435,8 +428,7 @@ class CSP(TransformerMixin, BaseEstimator):
             time_format=name_format, size=size, show_names=show_names,
             title=title, mask_params=mask_params, mask=mask, outlines=outlines,
             contours=contours, image_interp=image_interp, show=show,
-            average=average, head_pos=head_pos, unit=unit,
-            scale=scale)
+            average=average, head_pos=head_pos)
 
     def plot_filters(self, info, components=None, ch_type=None, layout=None,
                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
@@ -444,8 +436,7 @@ class CSP(TransformerMixin, BaseEstimator):
                      size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None,
-                     scale=None, unit=None):
+                     image_interp='bilinear', average=None, head_pos=None):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -585,7 +576,7 @@ class CSP(TransformerMixin, BaseEstimator):
             show_names=show_names, title=title, mask_params=mask_params,
             mask=mask, outlines=outlines, contours=contours,
             image_interp=image_interp, show=show, average=average,
-            head_pos=head_pos, unit=unit, scale=scale)
+            head_pos=head_pos)
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):

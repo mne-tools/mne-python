@@ -67,16 +67,6 @@ def test_convert_forward():
     assert_true(isinstance(fwd, Forward))
     # look at surface orientation
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
-
-    # The following test can be removed in 0.16
-    # Capture warning when using surf_ori in reading
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
-        fwd_surf_io = read_forward_solution(fname_meeg_grad, surf_ori=True)
-    compare_forwards(fwd_surf, fwd_surf_io)
-    del fwd_surf_io
-    gc.collect()
-
     # go back
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
     assert_true(repr(fwd_new))
@@ -93,19 +83,6 @@ def test_convert_forward():
     assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
     assert_true(is_fixed_orient(fwd_fixed))
-
-    # The following test can be removed in 0.16
-    # Capture warning when using force_fixed in reading
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('always')
-        fwd_fixed_io = read_forward_solution(fname_meeg_grad, force_fixed=True)
-    assert_true(repr(fwd_fixed_io))
-    assert_true(isinstance(fwd_fixed_io, Forward))
-    assert_true(is_fixed_orient(fwd_fixed_io))
-    compare_forwards(fwd_fixed, fwd_fixed_io)
-    del fwd_fixed_io
-    gc.collect()
-
     # now go back to cartesian (original condition)
     fwd_new = convert_forward_solution(fwd_fixed, surf_ori=False,
                                        force_fixed=False)

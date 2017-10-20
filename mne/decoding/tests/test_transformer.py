@@ -100,9 +100,7 @@ def test_filterestimator():
     epochs_data = epochs.get_data()
 
     # Add tests for different combinations of l_freq and h_freq
-    filt = FilterEstimator(epochs.info, l_freq=40, h_freq=80,
-                           filter_length='auto',
-                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
+    filt = FilterEstimator(epochs.info, l_freq=40, h_freq=80)
     y = epochs.events[:, -1]
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         X = filt.fit_transform(epochs_data, y)
@@ -129,7 +127,7 @@ def test_filterestimator():
 
     # Test init exception
     assert_raises(ValueError, filt.fit, epochs, y)
-    assert_raises(ValueError, filt.transform, epochs, y)
+    assert_raises(ValueError, filt.transform, epochs)
 
 
 def test_psdestimator():
@@ -151,7 +149,7 @@ def test_psdestimator():
 
     # Test init exception
     assert_raises(ValueError, psd.fit, epochs, y)
-    assert_raises(ValueError, psd.transform, epochs, y)
+    assert_raises(ValueError, psd.transform, epochs)
 
 
 def test_vectorizer():

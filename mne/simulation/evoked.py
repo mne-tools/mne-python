@@ -3,7 +3,6 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
-import copy
 import warnings
 import math
 
@@ -11,13 +10,12 @@ import numpy as np
 
 from ..io.pick import pick_channels_cov
 from ..forward import apply_forward
-from ..utils import check_random_state, verbose, _time_mask, warn, deprecated
+from ..utils import check_random_state, verbose
 
 
 @verbose
-def simulate_evoked(fwd, stc, info, cov, nave=30, tmin=None, tmax=None,
-                    iir_filter=None, random_state=None, snr=None, use_cps=None,
-                    verbose=None):
+def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
+                    random_state=None, use_cps=None, verbose=None):
     """Generate noisy evoked data.
 
     .. note:: No projections from ``info`` will be present in the
@@ -40,20 +38,10 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, tmin=None, tmax=None,
         Number of averaged epochs (defaults to 30).
 
         .. versionadded:: 0.15.0
-    tmin : float | None
-        start of time interval to estimate SNR. If None first time point
-        is used. tmin is deprecated and will be removed in 0.16.
-    tmax : float | None
-        start of time interval to estimate SNR. If None last time point
-        is used. tmax is deprecated and will be removed in 0.16.
     iir_filter : None | array
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
-    snr : float
-        signal to noise ratio in dB. It corresponds to
-        ``10 * log10( var(signal) / var(noise) )``.
-        snr is deprecated and will be removed in 0.16.
     use_cps : None | bool (default None)
         Whether to use cortical patch statistics to define normal
         orientations when converting to fixed orientation (if necessary).
@@ -85,36 +73,9 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, tmin=None, tmax=None,
 
     .. versionadded:: 0.10.0
     """
-    if snr is not None:
-        warn('snr is deprecated and will be removed in 0.16. Set it to '
-             'None to remove this warning. Set nave parameter instead.',
-             DeprecationWarning)
-
-    if tmin is not None:
-        warn('tmin is deprecated and will be removed in 0.16. Set it to '
-             'None to remove this warning.',
-             DeprecationWarning)
-
-    if tmax is not None:
-        warn('tmax is deprecated and will be removed in 0.16. Set it to '
-             'None to remove this warning.',
-             DeprecationWarning)
-
     evoked = apply_forward(fwd, stc, info, use_cps=use_cps)
     if nave < np.inf:
         noise = simulate_noise_evoked(evoked, cov, iir_filter, random_state)
-
-        # Convert snr to nave before deprecation
-        if snr == np.inf:
-            nave = snr
-        elif snr is not None:
-            tmask = _time_mask(evoked.times, tmin, tmax,
-                               sfreq=evoked.info['sfreq'])
-            tmp = \
-                10 * np.log10(np.mean((evoked.data[:, tmask] ** 2)) /
-                              np.mean((noise.data ** 2)))
-            nave = 1. / 10 ** ((tmp - float(snr)) / 10)
-
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = np.int(nave)
     return evoked
@@ -174,37 +135,3 @@ def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None):
     else:
         zf = None
     return noise, zf
-
-
-@deprecated('add_noise_evoked will be deprecated and removed in 0.16.')
-def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
-    """Add noise to evoked object with specified SNR.
-
-    SNR is computed in the interval from tmin to tmax.
-
-    Parameters
-    ----------
-    evoked : Evoked object
-        An instance of evoked with signal
-    noise : Evoked object
-        An instance of evoked with noise
-    snr : float
-        signal to noise ratio in dB. It corresponds to
-        10 * log10( var(signal) / var(noise) )
-    tmin : float
-        start time before event
-    tmax : float
-        end time after event
-
-    Returns
-    -------
-    evoked_noise : Evoked object
-        An instance of evoked corrupted by noise
-    """
-    evoked = copy.deepcopy(evoked)
-    tmask = _time_mask(evoked.times, tmin, tmax, sfreq=evoked.info['sfreq'])
-    tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2)) /
-                        np.mean((noise.data ** 2)))
-    noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data
-    evoked.data += noise.data
-    return evoked

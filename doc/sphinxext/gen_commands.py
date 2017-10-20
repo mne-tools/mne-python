@@ -5,6 +5,8 @@ from __future__ import print_function
 import os
 import glob
 from os import path as op
+import subprocess
+import sys
 
 from mne.utils import run_subprocess
 
@@ -59,7 +61,8 @@ def generate_commands_rst(app):
 
     command_path = op.join(os.path.dirname(__file__), '..', '..', 'mne',
                            'commands')
-    print('Generating commands for: %s ... ' % command_path, end='')
+    print('Generating commands for: %s ... ' % op.abspath(command_path),
+          end='')
     fnames = glob.glob(op.join(command_path, 'mne_*.py'))
 
     with open(out_fname, 'w') as f:
@@ -67,7 +70,9 @@ def generate_commands_rst(app):
         for fname in fnames:
             cmd_name = op.basename(fname)[:-3]
 
-            output, _ = run_subprocess(['python', fname, '--help'])
+            output, _ = run_subprocess([sys.executable, fname, '--help'],
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
             f.write(command_rst % (cmd_name, cmd_name.replace('mne_', 'mne '),
                                    output))
     print('[Done]')

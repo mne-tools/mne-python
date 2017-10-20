@@ -20,7 +20,7 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
-                     plot_trans, snapshot_brain_montage, plot_head_positions,
+                     snapshot_brain_montage, plot_head_positions,
                      plot_alignment)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
@@ -160,8 +160,6 @@ def test_plot_alignment():
                        subjects_dir=subjects_dir, meg=meg)
         mlab.close(all=True)
     # KIT ref sensor coil def is defined
-    with warnings.catch_warnings(record=True):  # deprecated
-        plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
     mlab.close(all=True)
     info = infos['Neuromag']
     assert_raises(TypeError, plot_alignment, 'foo', trans_fname,
@@ -175,8 +173,6 @@ def test_plot_alignment():
                     brain='white')
     mlab.close(all=True)
     # no-head version
-    with warnings.catch_warnings(record=True):  # deprecated
-        plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
     mlab.close(all=True)
     # all coord frames
     for coord_frame in ('meg', 'head', 'mri'):
@@ -348,9 +344,8 @@ def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
     with warnings.catch_warnings(record=True):  # deprecated
-        fig = plot_trans(
-            info, trans=None, subject='sample', subjects_dir=subjects_dir,
-            skull=['outer_skull', 'inner_skull'])
+        fig = plot_alignment(
+            info, trans=None, subject='sample', subjects_dir=subjects_dir)
 
     xyz = np.vstack([ich['loc'][:3] for ich in info['chs']])
     ch_names = [ich['ch_name'] for ich in info['chs']]

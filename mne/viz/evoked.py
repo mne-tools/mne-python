@@ -597,10 +597,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
-                     proj=False, vline=[0.0], fig_facecolor=None,
-                     fig_background=None, axis_facecolor=None, font_color='w',
+                     proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
-                     background_color=None, show=True):
+                     background_color='w', show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -640,27 +639,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         be shown.
     vline : list of floats | None
         The values at which to show a vertical line.
-    fig_facecolor : str | obj
-        The figure face color. Defaults to black.
-
-        .. note:: The parameter will be removed in version v0.16.
-                  Use background_color parameter instead.
-
     fig_background : None | numpy ndarray
         A background image for the figure. This must work with a call to
         plt.imshow. Defaults to None.
-    axis_facecolor : str | obj
-        The face color to be used for each sensor plot. Defaults to black.
-
-        .. note:: The parameter will be removed in version v0.16.
-                  Use background_color parameter instead.
-
-    font_color : str | obj
-        The color of text in the colorbar and title. Defaults to white.
-
-        .. note:: The parameter will be removed in version v0.16.
-                  Use background_color parameter instead.
-
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
@@ -675,8 +656,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
     background_color : str | obj
-        Background color. Typically 'k' (black) or 'w' (white).
-        It will be set to 'w' by default in v0.16
+        Background color. Typically 'k' (black) or 'w' (white; default).
 
         .. versionadded:: 0.15.0
     show : bool
@@ -692,44 +672,25 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
-    dark_background = None
-    if background_color is not None:
-        dark_background = \
-            np.mean(colorConverter.to_rgb(background_color)) < 0.5
-
-    if dark_background is not None:
-        if dark_background:
-            fig_facecolor = background_color
-            axis_facecolor = background_color
-            font_color = 'w'
-        else:
-            fig_facecolor = background_color
-            axis_facecolor = background_color
-            font_color = 'k'
-
-        if color is None:
-            if dark_background:
-                color = ['w'] + COLORS
-            else:
-                # default colors from M Waskom's Seaborn
-                color = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
-                         '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
-            color = color * ((len(evoked) % len(color)) + 1)
-            color = color[:len(evoked)]
-
-    if fig_facecolor is None:
-        fig_facecolor = 'k'
-        warn('axis_facecolor is deprecated and will be removed in v0.16. Use '
-             'background_color parameter or change matplotlib defaults.')
-    if axis_facecolor is None:
-        axis_facecolor = 'k'
-        warn('axis_facecolor is deprecated and will be removed in v0.16. Use '
-             'background_color parameter or change matplotlib defaults.')
-    if font_color is None:
+    dark_background = \
+        np.mean(colorConverter.to_rgb(background_color)) < 0.5
+    if dark_background:
+        fig_facecolor = background_color
+        axis_facecolor = background_color
         font_color = 'w'
-        warn('font_color is deprecated and will be removed in v0.16. Use '
-             'background_color parameter or change matplotlib defaults.')
-
+    else:
+        fig_facecolor = background_color
+        axis_facecolor = background_color
+        font_color = 'k'
+    if color is None:
+        if dark_background:
+            color = ['w'] + COLORS
+        else:
+            # default colors from M Waskom's Seaborn
+            color = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+                     '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
+        color = color * ((len(evoked) % len(color)) + 1)
+        color = color[:len(evoked)]
     return _plot_evoked_topo(evoked=evoked, layout=layout,
                              layout_scale=layout_scale, color=color,
                              border=border, ylim=ylim, scalings=scalings,

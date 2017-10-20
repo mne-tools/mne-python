@@ -312,25 +312,21 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
                   border='none', ylim=None, scalings=None, title=None,
-                  proj=False, vline=[0.0], fig_facecolor=None,
-                  fig_background=None, axis_facecolor=None, font_color=None,
+                  proj=False, vline=[0.0], fig_background=None,
                   merge_grads=False, legend=True, axes=None,
-                  background_color=None, show=True):
+                  background_color='w', show=True):
         """
 
         Notes
         -----
         .. versionadded:: 0.10.0
         """
-        return plot_evoked_topo(self, layout=layout, layout_scale=layout_scale,
-                                color=color, border=border, ylim=ylim,
-                                scalings=scalings, title=title, proj=proj,
-                                vline=vline, fig_facecolor=fig_facecolor,
-                                fig_background=fig_background,
-                                axis_facecolor=axis_facecolor,
-                                font_color=font_color, merge_grads=merge_grads,
-                                legend=legend, axes=axes,
-                                background_color=background_color, show=show)
+        return plot_evoked_topo(
+            self, layout=layout, layout_scale=layout_scale, color=color,
+            border=border, ylim=ylim, scalings=scalings, title=title,
+            proj=proj, vline=vline, fig_background=fig_background,
+            merge_grads=merge_grads, legend=legend, axes=axes,
+            background_color=background_color, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
@@ -340,17 +336,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
-                     head_pos=None, axes=None, scale=None, scale_time=None,
-                     unit=None):
+                     head_pos=None, axes=None):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
             scalings=scalings, scaling_time=scaling_time, units=units, res=res,
             size=size, cbar_fmt=cbar_fmt, time_format=time_format,
             proj=proj, show=show, show_names=show_names, title=title,
-            mask=mask, mask_params=mask_params, outlines=outlines, unit=unit,
+            mask=mask, mask_params=mask_params, outlines=outlines,
             contours=contours, image_interp=image_interp, average=average,
-            head_pos=head_pos, axes=axes, scale=scale, scale_time=scale_time)
+            head_pos=head_pos, axes=axes)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',

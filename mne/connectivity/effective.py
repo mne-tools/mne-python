@@ -6,7 +6,7 @@ import copy
 
 import numpy as np
 
-from ..utils import logger, verbose, _freqs_dep
+from ..utils import logger, verbose
 from .spectral import spectral_connectivity
 
 
@@ -16,7 +16,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
                       tmin=None, tmax=None, mt_bandwidth=None,
                       mt_adaptive=False, mt_low_bias=True,
                       cwt_freqs=None, cwt_n_cycles=7, block_size=1000,
-                      n_jobs=1, cwt_frequencies=None, verbose=None):
+                      n_jobs=1, verbose=None):
     """Compute the Phase Slope Index (PSI) connectivity measure.
 
     The PSI is an effective connectivity measure, i.e., a measure which can
@@ -112,7 +112,6 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
         Otherwise None is returned.
     """
-    cwt_freqs = _freqs_dep(cwt_freqs, cwt_frequencies, 'cwt_')
     logger.info('Estimating phase slope index (PSI)')
     # estimate the coherency
     cohy, freqs_, times, n_epochs, n_tapers = spectral_connectivity(

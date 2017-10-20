@@ -6,7 +6,6 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
-from ..utils import warn
 
 
 class TimeFrequency(TransformerMixin, BaseEstimator):
@@ -62,12 +61,11 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
     def __init__(self, freqs, sfreq=1.0, method='morlet', n_cycles=7.0,
                  time_bandwidth=None, use_fft=True, decim=1, output='complex',
-                 n_jobs=1, frequencies=None, verbose=None):  # noqa: D102
+                 n_jobs=1, verbose=None):  # noqa: D102
         """Init TimeFrequency transformer."""
         freqs, sfreq, _, n_cycles, time_bandwidth, decim = \
             _check_tfr_param(freqs, sfreq, method, True, n_cycles,
-                             time_bandwidth, use_fft, decim, output,
-                             frequencies)
+                             time_bandwidth, use_fft, decim, output)
         self.freqs = freqs
         self.sfreq = sfreq
         self.method = method
@@ -82,13 +80,6 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.output = output
         self.n_jobs = n_jobs
         self.verbose = verbose
-
-    @property
-    def frequencies(self):
-        """Deprecated and will be removed in 0.16. use freqs."""
-        warn('frequencies is deprecated and will be removed in 0.16, use'
-             'freqs instead', DeprecationWarning)
-        return self.freqs
 
     def fit_transform(self, X, y=None):
         """Time-frequency transform of times series along the last axis.

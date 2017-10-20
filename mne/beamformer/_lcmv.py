@@ -24,17 +24,6 @@ from ..externals import six
 from ..channels.channels import _contains_ch_type
 
 
-def _deprecate_picks(info, picks):
-    if picks is not None:
-        warn('Specifying picks is deprecated and will be removed in 0.16. '
-             'Specifying the selection of channels in info and setting picks '
-             'to None will remove this warning.',
-             DeprecationWarning)
-
-        info = pick_info(info, picks)
-    return info
-
-
 def _reg_pinv(x, reg):
     """Compute a regularized pseudoinverse of a square array."""
     if reg == 0:
@@ -391,11 +380,9 @@ def _check_proj_match(info, filters):
 
 def _apply_lcmv(data, filters, info, tmin, max_ori_out):
     """Apply LCMV spatial filter to data for source reconstruction."""
-    if max_ori_out == 'abs':
-        warn('max_ori_out and the return of absolute values is deprecated and '
-             'will be removed in 0.16. Set it to "signed" to remove this '
-             'warning, this will return signed time series.',
-             DeprecationWarning)
+    if max_ori_out != 'signed':
+        raise ValueError('max_ori_out must be "signed", got %s'
+                         % (max_ori_out,))
 
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
@@ -503,7 +490,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 
 
 @verbose
-def apply_lcmv(evoked, filters, max_ori_out='abs', verbose=None):
+def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
@@ -516,13 +503,8 @@ def apply_lcmv(evoked, filters, max_ori_out='abs', verbose=None):
     filters : dict
         LCMV spatial filter (beamformer weights).
         Filter weights returned from `make_lcmv`.
-    max_ori_out: 'abs' | 'signed'
+    max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
-        If 'abs', the absolute value of the source space time series will be
-        returned,
-        if 'signed', the signed source space time series will be returned.
-        'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
-        'signed' to remove this warning.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -552,7 +534,7 @@ def apply_lcmv(evoked, filters, max_ori_out='abs', verbose=None):
 
 
 @verbose
-def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
+def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
                       return_generator=False, verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
@@ -566,13 +548,8 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
     filters : dict
         LCMV spatial filter (beamformer weights)
         Filter weights returned from `make_lcmv`.
-    max_ori_out: 'abs' | 'signed'
+    max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
-        If 'abs', the absolute value of the source space time series will be
-        returned,
-        if 'signed', the signed source space time series will be returned.
-        'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
-        'signed' to remove this warning.
     return_generator : bool
          Return a generator object instead of a list. This allows iterating
          over the stcs without having to keep them all in memory.
@@ -607,7 +584,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='abs',
 
 
 @verbose
-def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='abs',
+def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
                    verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
@@ -628,13 +605,8 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='abs',
         Index of first time sample (index not time is seconds).
     stop : int
         Index of first time sample not to include (index not time is seconds).
-    max_ori_out: 'abs' | 'signed'
+    max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
-        If 'abs', the absolute value of the source space time series will be
-        returned,
-        if 'signed', the signed source space time series will be returned.
-        'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
-        'signed' to remove this warning.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -664,8 +636,8 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='abs',
 
 @verbose
 def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
-         pick_ori=None, picks=None, rank=None, weight_norm='unit-noise-gain',
-         max_ori_out='abs', reduce_rank=False, verbose=None):
+         pick_ori=None, rank=None, weight_norm='unit-noise-gain',
+         max_ori_out='signed', reduce_rank=False, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -695,11 +667,6 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         is fixed, a scalar beamformer is computed. If the forward model has
         free orientation, a vector beamformer is computed, combining the output
         for all source orientations.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
-        picks is deprecated and will be removed in 0.16, use pick_channels or
-        pick_types instead.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -712,11 +679,6 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
         if None, the unit-gain LCMV beamformer [2]_ will be computed.
     max_ori_out: 'abs' | 'signed'
         Specify in case of pick_ori='max-power'.
-        If 'abs', the absolute value of the source space time series will be
-        returned,
-        if 'signed', the signed source space time series will be returned.
-        'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
-        'signed' to remove this warning.
 
         .. versionadded:: 0.15.0
     reduce_rank : bool
@@ -752,14 +714,11 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    info = evoked.info
-    info = _deprecate_picks(info, picks)
-
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
+    filters = make_lcmv(info=evoked.info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm,
                         reduce_rank=reduce_rank)
@@ -772,8 +731,8 @@ def lcmv(evoked, forward, noise_cov=None, data_cov=None, reg=0.05, label=None,
 
 @verbose
 def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
-                pick_ori=None, return_generator=False, picks=None, rank=None,
-                weight_norm='unit-noise-gain', max_ori_out='abs',
+                pick_ori=None, return_generator=False, rank=None,
+                weight_norm='unit-noise-gain', max_ori_out='signed',
                 reduce_rank=False, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
@@ -807,11 +766,6 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
-        picks is deprecated and will be removed in 0.16, use pick_channels or
-        pick_types instead.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -822,13 +776,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed,
         if None, the unit-gain LCMV beamformer [2]_ will be computed.
-    max_ori_out: 'abs' | 'signed'
+    max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
-        If 'abs', the absolute value of the source space time series will be
-        returned,
-        if 'signed', the signed source space time series will be returned.
-        'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
-        'signed' to remove this warning.
 
         .. versionadded:: 0.15.0
     reduce_rank : bool
@@ -864,14 +813,11 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    info = epochs.info
-    info = _deprecate_picks(info, picks)
-
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
+    filters = make_lcmv(info=epochs.info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm,
                         reduce_rank=reduce_rank)
@@ -886,8 +832,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.05, label=None,
 
 @verbose
 def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
-             start=None, stop=None, picks=None, pick_ori=None, rank=None,
-             weight_norm='unit-noise-gain', max_ori_out='abs',
+             start=None, stop=None, pick_ori=None, rank=None,
+             weight_norm='unit-noise-gain', max_ori_out='signed',
              reduce_rank=False, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
@@ -916,11 +862,6 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
         Index of first time sample (index not time is seconds).
     stop : int
         Index of first time sample not to include (index not time is seconds).
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
-        picks is deprecated and will be removed in 0.16, use pick_channels or
-        pick_types instead.
     pick_ori : None | 'normal' | 'max-power'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
@@ -939,13 +880,8 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed,
         if None, the unit-gain LCMV beamformer [2]_ will be computed.
-    max_ori_out: 'abs' | 'signed'
+    max_ori_out: 'signed'
         Specify in case of pick_ori='max-power'.
-        If 'abs', the absolute value of the source space time series will be
-        returned,
-        if 'signed', the signed source space time series will be returned.
-        'abs' is deprecated and will be removed in 0.16. Set max_ori_out to
-        'signed' to remove this warning.
     reduce_rank : bool
         If True, the rank of the leadfield will be reduced by 1 for each
         spatial location. Setting reduce_rank to True is typically necessary
@@ -977,14 +913,11 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.05, label=None,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    info = raw.info
-    info = _deprecate_picks(info, picks)
-
     # check whether data covariance is supplied
     _check_cov_matrix(data_cov)
 
     # construct spatial filter
-    filters = make_lcmv(info=info, forward=forward, data_cov=data_cov,
+    filters = make_lcmv(info=raw.info, forward=forward, data_cov=data_cov,
                         reg=reg, noise_cov=noise_cov, label=label,
                         pick_ori=pick_ori, rank=rank, weight_norm=weight_norm,
                         reduce_rank=reduce_rank)
@@ -1081,7 +1014,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.05,
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.05, label=None,
-            pick_ori=None, n_jobs=1, picks=None, rank=None,
+            pick_ori=None, n_jobs=1, rank=None,
             weight_norm='unit-noise-gain', raw=None, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
@@ -1137,11 +1070,6 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
-    picks : array-like of int
-        Channel indices to use for beamforming (if None all channels
-        are used except bad channels).
-        picks is deprecated and will be removed in 0.16, use pick_channels
-        or pick_types instead.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -1173,9 +1101,6 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
            brain imaging (2008) Springer Science & Business Media
     """
-    info = epochs.info
-    info = _deprecate_picks(info, picks)
-
     _check_reference(epochs)
 
     if pick_ori not in [None, 'normal']:
@@ -1199,14 +1124,14 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                          'underlying raw instance to this function')
 
     if noise_covs is None:
-        picks = _setup_picks(info, forward, data_cov=None)
+        picks = _setup_picks(epochs.info, forward, data_cov=None)
     else:
-        picks = _setup_picks(info, forward, data_cov=None,
+        picks = _setup_picks(epochs.info, forward, data_cov=None,
                              noise_cov=noise_covs[0])
     ch_names = [epochs.ch_names[k] for k in picks]
 
     # check number of sensor types present in the data
-    _check_one_ch_type(info, picks, noise_covs)
+    _check_one_ch_type(epochs.info, picks, noise_covs)
 
     # Use picks from epochs for picking channels in the raw object
     raw_picks = [raw.ch_names.index(c) for c in ch_names]

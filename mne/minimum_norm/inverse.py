@@ -732,14 +732,8 @@ def _check_ori(pick_ori, source_ori):
                            'inverse operator with fixed orientations.')
 
 
-def _check_loose_forward(loose, forward, loose_as_fixed=(0., None)):
+def _check_loose_forward(loose, forward):
     """Check the compatibility between loose and forward."""
-    if loose is None:
-        loose = 0. if None in loose_as_fixed else 1.
-        warn('loose=None is deprecated and will be removed in 0.16, '
-             'use loose=0 for fixed constraint and loose=1 for '
-             'free orientations, using loose=%s' % loose, DeprecationWarning)
-
     src_kind = forward['src'].kind
     if src_kind != 'surface':
         if loose == 'auto':
@@ -1358,7 +1352,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                              'forward solution to do depth weighting even '
                              'when calculating a fixed-orientation inverse.')
 
-    loose, forward = _check_loose_forward(loose, forward, loose_as_fixed=(0,))
+    loose, forward = _check_loose_forward(loose, forward)
 
     if (depth is not None or loose != 1) and not forward['surf_ori']:
         logger.info('Forward is not surface oriented, converting.')

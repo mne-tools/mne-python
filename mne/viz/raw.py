@@ -313,11 +313,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # put them back to original or modified order for natural plotting
     reord = np.argsort(inds)
     types = [types[ri] for ri in reord]
-    if isinstance(order, string_types):
-        group_by = order
-        warn('Using string order is deprecated and will not be allowed in '
-             '0.16. Use group_by instead.')
-    elif isinstance(order, (np.ndarray, list)):
+    if isinstance(order, (np.ndarray, list, tuple)):
         # put back to original order first, then use new order
         inds = inds[reord][order]
     elif order is not None:
@@ -622,7 +618,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=None, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33, n_overlap=0,
-                 dB=True, estimate='auto', average=None, show=True, n_jobs=1,
+                 dB=True, estimate='auto', average=False, show=True, n_jobs=1,
                  line_alpha=None, spatial_colors=None, xscale='linear',
                  reject_by_annotation=True, verbose=None):
     """Plot the power spectral density across channels.
@@ -682,7 +678,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         amplitude spectrum density (ASD), or "auto" (default), which uses
         "power" when dB is True and "amplitude" otherwise.
     average : bool
-        If False, the PSDs of all channels is displayed. No averaging
+        If False (default), the PSDs of all channels is displayed. No averaging
         is done and parameters area_mode and area_alpha are ignored. When
         False, it is possible to paint an area (hold left mouse button and
         drag) to plot a topomap.
@@ -714,10 +710,6 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Figure with frequency spectra of the data channels.
     """
     from matplotlib.ticker import ScalarFormatter
-    if average is None:
-        warn('In version 0.15 average will default to False and '
-             'spatial_colors will default to True.', DeprecationWarning)
-        average = True
 
     if average and spatial_colors:
         raise ValueError('Average and spatial_colors cannot be enabled '

@@ -189,7 +189,7 @@ def _read_events_fif(fid, tree):
 
 
 def read_events(filename, include=None, exclude=None, mask=None,
-                mask_type=None):
+                mask_type='and'):
     """Read events from fif or text file.
 
     See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
@@ -216,8 +216,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
         If None (default), no masking is performed.
     mask_type: 'and' | 'not_and'
         The type of operation between the mask and the trigger.
-        Choose 'and' for MNE-C masking behavior. The default ('not_and')
-        will change to 'and' in 0.16.
+        Choose 'and' (default) for MNE-C masking behavior.
 
         .. versionadded:: 0.13
 
@@ -423,7 +422,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=None,
-                 uint_cast=False, mask_type=None):
+                 uint_cast=False, mask_type='and'):
     """Help find events."""
     assert data.shape[0] == 1  # data should be only a row vector
 
@@ -510,7 +509,7 @@ def _find_unique_events(events):
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=None, uint_cast=False,
-                mask_type=None, verbose=None):
+                mask_type='and', verbose=None):
     """Find events from raw file.
 
     See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
@@ -555,14 +554,11 @@ def find_events(raw, stim_channel=None, output='onset',
         in MNE-C.
 
         .. versionadded:: 0.12
-
     mask_type: 'and' | 'not_and'
         The type of operation between the mask and the trigger.
-        Choose 'and' for MNE-C masking behavior. The default ('not_and')
-        will change to 'and' in 0.16.
+        Choose 'and' (default) for MNE-C masking behavior.
 
         .. versionadded:: 0.13
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -701,12 +697,6 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Mask digital trigger values."""
-    if mask_type is None:
-        mask_type = 'not_and'
-        if mask is not None:
-            warn('The default mask type "not_and" will change to "and" in '
-                 '0.16, set it explicitly to avoid this warning.',
-                 DeprecationWarning)
     if not isinstance(mask_type, string_types) or \
             mask_type not in ('not_and', 'and'):
         raise ValueError('mask_type must be "not_and" or "and", got %s'
@@ -723,9 +713,8 @@ def _mask_trigs(events, mask, mask_type):
         if mask_type == 'not_and':
             mask = np.bitwise_not(mask)
         elif mask_type != 'and':
-            if mask_type is not None:
-                raise ValueError("'mask_type' should be either 'and'"
-                                 " or 'not_and', instead of '%s'" % mask_type)
+            raise ValueError("'mask_type' should be either 'and'"
+                             " or 'not_and', instead of '%s'" % mask_type)
         events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
 

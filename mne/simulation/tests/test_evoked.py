@@ -6,7 +6,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal, assert_allclose)
+                           assert_equal)
 from nose.tools import assert_true, assert_raises
 import warnings
 
@@ -77,13 +77,6 @@ def test_simulate_evoked():
     evoked_2 = simulate_evoked(fwd, stc, evoked_template.info, cov,
                                nave=np.inf)
     assert_array_equal(evoked_1.data, evoked_2.data)
-
-    # Test the equivalence snr to nave
-    with warnings.catch_warnings(record=True):  # deprecation
-        evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                                 snr=6, random_state=42)
-    assert_allclose(np.linalg.norm(evoked.data, ord='fro'),
-                    0.00078346820226502716)
 
     cov['names'] = cov.ch_names[:-2]  # Error channels are different.
     assert_raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,
