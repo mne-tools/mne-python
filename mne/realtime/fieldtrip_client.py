@@ -9,6 +9,7 @@ import time
 
 import numpy as np
 
+from .base_client import _BaseClient, _buffer_recv_worker
 from ..io import _empty_info
 from ..io.pick import pick_info
 from ..io.constants import FIFF
@@ -17,18 +18,7 @@ from ..utils import logger, warn
 from ..externals.FieldTrip import Client as FtClient
 
 
-def _buffer_recv_worker(ft_client):
-    """Worker thread that constantly receives buffers."""
-    try:
-        for raw_buffer in ft_client.iter_raw_buffers():
-            ft_client._push_raw_buffer(raw_buffer)
-    except RuntimeError as err:
-        # something is wrong, the server stopped (or something)
-        ft_client._recv_thread = None
-        print('Buffer receive thread stopped: %s' % err)
-
-
-class FieldTripClient(object):
+class FieldTripClient(_BaseClient):
     """Realtime FieldTrip client.
 
     Parameters
@@ -70,28 +60,15 @@ class FieldTripClient(object):
 
         self._recv_thread = None
         self._recv_callbacks = list()
+        self.client = FtClient()
 
-    def __enter__(self):  # noqa: D105
-        # instantiate Fieldtrip client and connect
-        self.ft_client = FtClient()
+    def connect():
 
-        # connect to FieldTrip buffer
-        logger.info("FieldTripClient: Waiting for server to start")
-        start_time, current_time = time.time(), time.time()
-        success = False
-        while current_time < (start_time + self.wait_max):
-            try:
-                self.ft_client.connect(self.host, self.port)
-                logger.info("FieldTripClient: Connected")
-                success = True
-                break
-            except:
-                current_time = time.time()
-                time.sleep(0.1)
+        self.client.connect()
 
-        if not success:
-            raise RuntimeError('Could not connect to FieldTrip Buffer')
 
+
+    def _enter_extra():
         # retrieve header
         logger.info("FieldTripClient: Retrieving header")
         start_time, current_time = time.time(), time.time()

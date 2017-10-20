@@ -213,11 +213,11 @@ class RtEpochs(BaseEpochs):
         """
         if not self._started:
             # register the callback
-            self._client.register_receive_callback(self._process_raw_buffer)
+            self._client._register_receive_callback(self._process_raw_buffer)
 
             # start the measurement and the receive thread
             nchan = self._client_info['nchan']
-            self._client.start_receive_thread(nchan)
+            self._client._start_receive_thread(nchan)
             self._started = True
             self._last_time = np.inf  # init delay counter. Will stop iters
 
@@ -236,11 +236,11 @@ class RtEpochs(BaseEpochs):
             server will also stop receiving data.
         """
         if self._started:
-            self._client.unregister_receive_callback(self._process_raw_buffer)
+            self._client._unregister_receive_callback(self._process_raw_buffer)
             self._started = False
 
         if stop_receive_thread or stop_measurement:
-            self._client.stop_receive_thread(stop_measurement=stop_measurement)
+            self._client._stop_receive_thread(stop_measurement=stop_measurement)
 
     def next(self, return_event_id=False):
         """Make iteration over epochs easy.
