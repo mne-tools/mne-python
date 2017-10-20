@@ -1,7 +1,7 @@
 machine:
   environment:
     # We need to set this variable to let Anaconda take precedence
-    PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
+    PATH: "/home/ubuntu/miniconda/envs/mne27/bin:/home/ubuntu/miniconda/bin:$PATH"
     DISPLAY: ":99.0"
 
 # We should really build merged versions like on Travis, not the individual branches
@@ -47,29 +47,26 @@ dependencies:
         wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
         chmod +x ~/miniconda.sh;
         ~/miniconda.sh -b -p /home/ubuntu/miniconda;
-        conda update --yes --quiet conda;
       else
         echo "Conda already set up.";
       fi
-    - if ! conda env list | grep circleenv; then
-        conda create -n circleenv --yes pip python=2.7 pip;
-        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
+    - if ! conda env list | grep mne27; then
+        conda update --yes --quiet conda;
+        conda env create -f environment2.yml;
+        pip uninstall --yes mne sphinx-gallery;
+        conda remove mayavi;
+        conda install -y numpy scipy matplotlib vtk scikit-learn pandas;
       else
         echo "Conda env already set up.";
       fi;
-    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi nose;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
     - echo $CIRCLE_BRANCH
     - which python;
     - which pip;
-    - cat /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py | grep "ENABLE_USER_SITE"
-    - pip install --upgrade pyface;
-    - pip install --upgrade git+https://github.com/enthought/mayavi.git
-    - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
-    - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
-    - pip install sphinx_bootstrap_theme pysurfer nilearn neo numpydoc;
+    - pip install --upgrade --no-deps git+https://github.com/sphinx-gallery/sphinx-gallery.git;
+    - python -c "from mayavi import mlab"
 
   override:
     # Figure out if we should run a full, pattern, or noplot version

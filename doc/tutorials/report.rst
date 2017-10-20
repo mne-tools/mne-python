@@ -88,8 +88,9 @@ the required functions::
 
 Generate the report::
 
-    >>> path = sample.data_path()
-    >>> report = Report(verbose=True)
+    >>> path = sample.data_path()  # doctest:+ELLIPSIS
+    ...
+    >>> report = Report(verbose=True)  # doctest:+SKIP
     Embedding : jquery-1.10.2.min.js
     Embedding : jquery-ui.min.js
     Embedding : bootstrap.min.js
