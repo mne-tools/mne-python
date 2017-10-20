@@ -1444,7 +1444,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None, vlines=list((0.,)),
                          ci=0.95, truncate_yaxis=False, truncate_xaxis=True, ylim=dict(),
                          invert_y=False, show_legend=True, show_sensors=None,
-                         split_legend=True, axes=None, title=None, show=True):
+                         split_legend=False, axes=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
@@ -1561,8 +1561,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         If not False, show a legend. If int, the position of the axes
         (forwarded to ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
     split_legend : bool
-        If True, the legend shows color and linestyle separately. Defaults to
-        True if ``cmap`` is not None, else defaults to False.
+        If True, the legend shows color and linestyle separately; `colors` must not be
+        None. Defaults to True if ``cmap`` is not None, else defaults to False.
     axes : None | `matplotlib.axes.Axes` instance | list of `axes`
         What axes to plot to. If None, a new axes is created.
         When plotting multiple channel types, can also be a list of axes, one
@@ -1570,9 +1570,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     title : None | str
         If str, will be plotted as figure title. If None, the channel names
         will be shown.
-    split_legend : bool
-        If True, the legend shows color and linestyle separately. Defaults to
-        True if ``cmap`` is not None, else defaults to False.
     show : bool
         If True, show the figure.
 
@@ -1755,6 +1752,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if split_legend is None:
         split_legend = cmap is not None
     if split_legend is True:
+        if colors is None:
+            raise ValueError("If `split_legend` is True, `colors` must not be None.")
         import matplotlib.lines as mlines
         # mpl 1.3 requires us to split it like this. with recent mpl,
         # we could use the label parameter of the Line2D
@@ -1901,7 +1900,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
             pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
             if not isinstance(show_sensors, (np.int, bool)):
-                raise TypeError("`show_sensors` must be numeric or bool, not" +
+                raise ValueError("`show_sensors` must be numeric or bool, not" +
                                 str(type(show_sensors)))
             if show_sensors is True:
                 show_sensors = 2
