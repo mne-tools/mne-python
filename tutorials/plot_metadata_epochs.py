@@ -113,7 +113,7 @@ for nlet in epochs.metadata["NumberOfLetters"].unique():
 
 style_plot["colors"] = {str(nlet): int(nlet) for nlet in
                         epochs.metadata["NumberOfLetters"].unique()}
-style_plot["cmap"] = "summer"
+style_plot["cmap"] = "summer_r"
 del style_plot['linestyles']
 
 fig, ax = plt.subplots(figsize=(6, 4))
