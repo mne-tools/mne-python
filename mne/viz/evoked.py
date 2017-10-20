@@ -1788,7 +1788,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
         the_colors = cmapper(np.linspace(0, 1, n_colors))
 
-        colors_ = {cond: ind for cond, ind in zip(colors, color_order)}
+        colors_ = {cond: ind for cond, ind in zip(color_conds, color_order)}
         colors = dict()
         for cond in evokeds.keys():
             for cond_number, color in colors_.items():
@@ -1923,31 +1923,15 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     if split_legend and cmap is not None:
         # plot the colorbar ... complicated cause we don't have a heatmap
-        import matplotlib as mpl
-
-        colors_l = np.array([n for n in color_conds])[color_order]
-        colors_m = list()
-        for k1 in colors_l:
-            for k2 in colors:
-                if k1 in k2:
-                    colors_m.append(colors[k2])
-                    continue
-        colors_l = list(range(len(colors_l)))
-        l = plt.cm.jet.from_list(colors_l + [colors_l[-1] + 100],
-                                 colors_m + [colors_m[-1]])
-
-        norm = mpl.colors.BoundaryNorm(all_colors + [all_colors[-1] + 1], l.N)
-        sm = plt.cm.ScalarMappable(cmap=l, norm=norm)
-        sm.set_array(colors_l)
-
-        cbar = plt.colorbar(sm, ax=axes)
-        offset = np.diff(np.concatenate((all_colors,
-                                         [all_colors[-1] + 1]))) / 2
-        cbar.set_ticks(np.array(all_colors) + offset)
-        cbar.set_ticklabels(all_colors)
-        cbar.set_label(cmap_label)
-        fig.cbar = cbar
-
+        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        divider = make_axes_locatable(axes)
+        ax_cb = divider.append_axes("right", size="5%", pad=0.05)
+        ax_cb.imshow(the_colors[:, np.newaxis, : ], interpolation='none')
+        ax_cb.set_yticks(np.arange(len(the_colors)))
+        ax_cb.set_yticklabels(np.array(color_conds)[color_order])
+        ax_cb.yaxis.tick_right()
+        ax_cb.set_xticks(())
+        fig.cbar = ax_cb
     fig.ts_ax = axes
 
     plt_show(show)
