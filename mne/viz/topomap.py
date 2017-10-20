@@ -1991,12 +1991,12 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     plt_show(True)
 
 
-def _prepare_topomap(pos, ax):
+def _prepare_topomap(pos, ax, check_nonzero=True):
     """Prepare the topomap."""
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
     _hide_frame(ax)
-    if any([not pos_y.any(), not pos_x.any()]):
+    if check_nonzero and any([not pos_y.any(), not pos_x.any()]):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
     return pos_x, pos_y

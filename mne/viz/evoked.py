@@ -167,7 +167,7 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
-    pos_x, pos_y = _prepare_topomap(pos, ax)
+    pos_x, pos_y = _prepare_topomap(pos, ax, check_nonzero=False)
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
     if bads:
         bads = np.array(bads)
@@ -1810,8 +1810,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     if show_sensors:
         try:
-            pos = _auto_topomap_coords(example.info, picks,
-                                       ignore_overlap=True, to_sphere=True)
+            pos = _auto_topomap_coords(example.info, picks, ignore_overlap=True,
+                                       to_sphere=True)
         except ValueError:
             warn("Cannot find channel coordinates in the supplied Evokeds. "
                  "Not showing channel locations.")
