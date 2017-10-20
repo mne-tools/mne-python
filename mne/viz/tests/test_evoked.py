@@ -179,6 +179,8 @@ def test_plot_evoked():
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
                              ylim=dict(mag=(1, 10)), ci=_parametric_ci,
                              truncate_yaxis='max_ticks')
+        red.info["chs"][0]["loc"][:2] = 0  # test plotting channel at zero
+        plot_compare_evokeds(red, picks=[0])
 
         # Hack to test plotting of maxfiltered data
         evoked_sss = evoked.copy()
