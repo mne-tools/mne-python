@@ -1810,8 +1810,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
     if show_sensors:
         try:
-            pos = _auto_topomap_coords(example.info, picks, ignore_overlap=True,
-                                       to_sphere=True)
+            pos = _auto_topomap_coords(
+                example.info, picks, ignore_overlap=True, to_sphere=True)
         except ValueError:
             warn("Cannot find channel coordinates in the supplied Evokeds. "
                  "Not showing channel locations.")
