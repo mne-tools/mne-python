@@ -1594,7 +1594,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             if colors is None:
                 colors = dict(
                     (str(ii + 1), ii) for ii, evoked in enumerate(evokeds))
-            colors = {}
         evokeds = dict((str(ii + 1), evoked)
                        for ii, evoked in enumerate(evokeds))
     for cond in evokeds.keys():
@@ -1784,9 +1783,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 float(color_value)
             except ValueError:
                 raise ValueError("If ``cmap`` is not None, the values of "
-                                 "``colors`` needs to be numeric. Got " +
+                                 "``colors`` need to be numeric. Got " +
                                  str(type(color_value)))
-        cmapper = getattr(plt.cm, cmap, plt.cm.summer)
+        cmapper = getattr(plt.cm, cmap, cmap)
         color_conds = list(colors.keys())
         all_colors = [colors[cond] for cond in color_conds]
         n_colors = len(all_colors)

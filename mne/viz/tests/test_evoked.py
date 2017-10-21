@@ -173,13 +173,14 @@ def test_plot_evoked():
         plt.close('all')
         # `evoked` must contain Evokeds
         assert_raises(ValueError, plot_compare_evokeds, [[1, 2], [3, 4]])
-        # `ci` must be float
+        # `ci` must be float or None
         assert_raises(TypeError, plot_compare_evokeds, contrast, ci='err')
         # all-positive ylim
         contrast["red/stim"], contrast["blue/stim"] = red, blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
                              ylim=dict(mag=(1, 10)), ci=_parametric_ci,
-                             truncate_yaxis='max_ticks')
+                             truncate_yaxis='max_ticks', show_sensors=False,
+                             show_legend=False)
 
         # sequential colors
         evokeds = (evoked, blue, red)
@@ -193,7 +194,11 @@ def test_plot_evoked():
                                      cmap='Reds', split_legend=split,
                                      linestyles=linestyles)
         red.info["chs"][0]["loc"][:2] = 0  # test plotting channel at zero
-        plot_compare_evokeds(red, picks=[0])
+        plot_compare_evokeds(red, picks=[0], ci=lambda x: x.std(1))
+        plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
+                             split_legend=None)
+        plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
+        assert_raises(ValueError, plot_compare_evokeds, [red] * 20)
 
         plt.close('all')
 
