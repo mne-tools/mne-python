@@ -1926,11 +1926,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         divider = make_axes_locatable(axes)
         ax_cb = divider.append_axes("right", size="5%", pad=0.05)
-        ax_cb.imshow(the_colors[:, np.newaxis, : ], interpolation='none')
+        ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none')
         ax_cb.set_yticks(np.arange(len(the_colors)))
         ax_cb.set_yticklabels(np.array(color_conds)[color_order])
         ax_cb.yaxis.tick_right()
         ax_cb.set_xticks(())
+        ax_cb.set_ylabel(cmap_label)
         fig.cbar = ax_cb
     fig.ts_ax = axes
 
