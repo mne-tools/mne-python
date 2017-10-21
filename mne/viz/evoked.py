@@ -1502,11 +1502,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         parameters will be passed to the line plot call of the corresponding
         condition, overriding defaults.
         E.g., if evokeds is a dict with the keys "Aud/L", "Aud/R",
-        "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth": 1}}` to set
+        "Vis/L", "Vis/R", `styles` can be `{"Aud/L": {"linewidth": 1}}` to set
         the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
         not supported.
     cmap : None | dict | str | tuple | instance of matplotlib.colormap
-        If not None, plot evoked potentials with colors from a color gradient -
+        If not None, plot evoked activity with colors from a color gradient -
         either the one provided, or, if 'str', the colormap retrieved from
         Matplotlib (e.g., 'viridis' or 'Reds'). In that case, the color of
         each line depends on ``evokeds`` and ``cmap``.
@@ -1743,7 +1743,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                                  "conditions. Condition " + style_ +
                                  " was not found in the supplied data.")
 
-    # second, color
+    # third, color
     # check: is color a list?
     if (colors is not None and not isinstance(colors, string_types) and
             not isinstance(colors, dict) and len(colors) > 1):
@@ -1756,6 +1756,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         else:
             cmap_label = ""
 
+    # dealing with a split legend
     if split_legend is None:
         split_legend = cmap is not None  # default to True iff cmap is given
     if split_legend is True:
@@ -1766,17 +1767,18 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         # mpl 1.3 requires us to split it like this. with recent mpl,
         # we could use the label parameter of the Line2D
         legend_lines, legend_labels = list(), list()
-        if cmap is None:
+        if cmap is None:  # ... one set of lines for the colors
             for color in sorted(colors.keys()):
                 l = mlines.Line2D([], [], linestyle="-", color=colors[color])
                 legend_lines.append(l)
                 legend_labels.append(color)
-
-        if len(list(linestyles)) > 1:
+        if len(list(linestyles)) > 1:  # ... one set for the linestyle
             for style, s in linestyles.items():
                 l = mlines.Line2D([], [], color='k', linestyle=s)
                 legend_lines.append(l)
                 legend_labels.append(style)
+
+    # dealing with continuous colors
     if cmap is not None:
         for color_value in colors.values():
             try:
@@ -1845,7 +1847,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 d = np.sqrt((d * d).mean(axis=-1))
             else:
                 d = d.mean(-1)
-        axes.plot(times, d, zorder=1000, label=condition, **styles[condition])
+        axes.plot(times, d, zorder=100, label=condition, **styles[condition])
         if any(d > 0) or all_positive:
             any_positive = True
         if np.any(d < 0):

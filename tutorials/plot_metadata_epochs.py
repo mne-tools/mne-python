@@ -101,7 +101,7 @@ style_plot = dict(
 )
 
 fig, ax = plt.subplots(figsize=(6, 4))
-mne.viz.evoked.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
+mne.viz.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
 plt.show()
 
 ###############################################################################
@@ -117,7 +117,7 @@ style_plot["cmap"] = "summer_r"
 del style_plot['linestyles']
 
 fig, ax = plt.subplots(figsize=(6, 4))
-mne.viz.evoked.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
+mne.viz.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
 plt.show()
 
 ###############################################################################
@@ -133,7 +133,7 @@ for concreteness in ("Concrete", "Abstract"):
 style_plot["linestyles"] = {"Concrete": "-", "Abstract": ":"}
 
 fig, ax = plt.subplots(figsize=(6, 4))
-mne.viz.evoked.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
+mne.viz.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
 plt.show()
 
 
