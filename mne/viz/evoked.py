@@ -1484,6 +1484,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         "Vis/L", "Vis/R", `colors` can be `dict(Aud='r', Vis='b')` to map both
         Aud/L and Aud/R to the color red and both Visual conditions to blue.
         If None (default), a sequence of desaturated colors is used.
+        If `cmap` is None, `colors` will indicate how each condition will be
+        colored with reference to its position on the colormap - see `colormap`
+        below.
     linestyles : list | dict
         If a list, will be sequentially and repeatedly used for evoked plot
         linestyles.
@@ -1502,7 +1505,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth": 1}}` to set
         the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
         not supported.
-    cmap : None | dict | str | instance of matplotlib.colormap
+    cmap : None | dict | str | tuple | instance of matplotlib.colormap
         If not None, plot evoked potentials with colors from a color gradient -
         either the one provided, or, if 'str', the colormap retrieved from
         Matplotlib (e.g., 'viridis' or 'Reds'). In that case, the color of
@@ -1519,7 +1522,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             cmap='viridis', colors=dict(cond1=1 cond2=2, cond3=3),
             linestyles={"A": "-", "B": ":"}
 
-        If ``cmap`` is a (non-string) iterable of length 2, the first must be
+        If ``cmap`` is a tuple of length 2, the first item must be
         a string which will become the colorbar label, and the second one
         must be a colormap, e.g. ::
 
@@ -1586,7 +1589,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # set up labels and instances
     if isinstance(evokeds, Evoked):
         evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
-    elif not isinstance(evokeds, dict):
+    elif not isinstance(evokeds, dict):  # it's assumed to be a list
         if cmap is not None:
             if colors is None:
                 colors = dict(
@@ -1641,8 +1644,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     ch_types = list(set(channel_type(example.info, pick_)
                     for pick_ in picks))
     # XXX: could possibly be refactored; plot_joint is doing a similar thing
-    if any([type_ not in _VALID_CHANNEL_TYPES for type_ in ch_types]):
-        raise ValueError("Non-data channel picked.")
+    non_data_channels = [str(pick) for pick, type_ in zip(picks, ch_types)
+                         if type_ not in _VALID_CHANNEL_TYPES]
+    if len(non_data_channels) > 0:
+        msg = "Non-data channel(s) {0} were picked."
+        raise ValueError(msg.format(", ".join(non_data_channels)))
     if len(ch_types) > 1:
         warn("Multiple channel types selected, returning one figure per type.")
         if axes is not None:
@@ -1652,7 +1658,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         for ii, t in enumerate(ch_types):
             picks_ = [idx for idx in picks
                       if channel_type(example.info, idx) == t]
-            title_ = "GFP, " + t if not title and gfp is True else title
+            title_ = "GFP, " + t if (not title and (gfp is True)) else title
             ax_ = axes[ii] if axes is not None else None
             figs.append(
                 plot_compare_evokeds(
@@ -1752,7 +1758,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             cmap_label = ""
 
     if split_legend is None:
-        split_legend = cmap is not None
+        split_legend = cmap is not None  # default to True iff cmap is given
     if split_legend is True:
         if colors is None:
             raise ValueError(
@@ -1780,7 +1786,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 raise ValueError("If ``cmap`` is not None, the values of "
                                  "``colors`` needs to be numeric. Got " +
                                  str(type(color_value)))
-        cmapper = getattr(plt.cm, cmap, plt.cm.hot)
+        cmapper = getattr(plt.cm, cmap, plt.cm.summer)
         color_conds = list(colors.keys())
         all_colors = [colors[cond] for cond in color_conds]
         n_colors = len(all_colors)
@@ -1892,6 +1898,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     _setup_ax_spines(axes, vlines, tmin, tmax, invert_y, ymax_bound, unit,
                      truncate_xaxis)
 
+    # and now for 3 "legends" ..
+    # a head plot showing the sensors that are being plotted
     if show_sensors:
         try:
             pos = _auto_topomap_coords(
@@ -1910,6 +1918,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             _plot_legend(pos, ["k" for pick in picks], axes, list(), outlines,
                          show_sensors, size=20)
 
+    # the condition legend
     if len(conditions) > 1:
         if show_legend is True:
             show_legend = 'best'
@@ -1921,6 +1930,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         else:
             axes.legend(ncol=1 + (len(conditions) // 5), **legend_params)
 
+    # the colormap, if `cmap` is provided
     if split_legend and cmap is not None:
         # plot the colorbar ... complicated cause we don't have a heatmap
         from mpl_toolkits.axes_grid1 import make_axes_locatable
