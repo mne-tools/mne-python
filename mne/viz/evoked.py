@@ -1854,7 +1854,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             any_negative = True
 
         # plot the confidence interval
-        if ci and (gfp is not True):
+        if ci:
             ci_ = ci_array[condition]
             axes.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
                               zorder=9, color=styles[condition]['c'], alpha=.3)
