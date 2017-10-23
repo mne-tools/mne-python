@@ -149,7 +149,7 @@ linestyles = dict(Auditory='-', visual='--')
 pick = evoked_dict["Left/Auditory"].ch_names.index('MEG 1811')
 
 mne.viz.plot_compare_evokeds(evoked_dict, picks=pick, colors=colors,
-                             linestyles=linestyles)
+                             linestyles=linestyles, split_legend=True)
 
 ###############################################################################
 # We can also plot the activations as images. The time runs along the x-axis

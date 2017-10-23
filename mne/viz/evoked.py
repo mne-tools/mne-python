@@ -1505,11 +1505,10 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         "Vis/L", "Vis/R", `styles` can be `{"Aud/L": {"linewidth": 1}}` to set
         the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
         not supported.
-    cmap : None | dict | str | tuple | instance of matplotlib.colormap
-        If not None, plot evoked activity with colors from a color gradient -
-        either the one provided, or, if 'str', the colormap retrieved from
-        Matplotlib (e.g., 'viridis' or 'Reds'). In that case, the color of
-        each line depends on ``evokeds`` and ``cmap``.
+    cmap : None | str | tuple
+        If not None, plot evoked activity with colors from a color gradient
+        (indicated by a str referencing a matplotlib colormap - e.g., "viridis"
+        or "Reds").
         If ``evokeds`` is a list and ``colors`` is `None`, the color will
         depend on the list position. If ``colors`` is a list, it must contain
         integers where the list positions correspond to ``evokeds``, and the
@@ -1524,7 +1523,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
 
         If ``cmap`` is a tuple of length 2, the first item must be
         a string which will become the colorbar label, and the second one
-        must be a colormap, e.g. ::
+        must indicate a colormap, e.g. ::
 
             cmap=('conds', 'viridis'), cmap=dict(cond1=1 cond2=2, cond3=3),
 
