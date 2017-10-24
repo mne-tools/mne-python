@@ -29,7 +29,7 @@ Bug
 API
 ~~~
 
-- Nothing yet
+- Changed the line width in :func:`mne.viz.plot_bem` from 2.0 to 1.0 for better visibility of underlying structures, by `Eric Larson`_
 
 
 .. _changes_0_15:

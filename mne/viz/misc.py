@@ -337,8 +337,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
-             slices=None, brain_surfaces=None, src=None, show=True,
-             linewidth=1.):
+             slices=None, brain_surfaces=None, src=None, show=True):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -362,8 +361,6 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         can be absolute or relative to the subject's ``bem`` folder.
     show : bool
         Show figure if True.
-    linewidth : float
-        Line width to use for the contours (default: 1.0).
 
     Returns
     -------
@@ -427,7 +424,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show, linewidth=linewidth)
+                              show)
 
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
