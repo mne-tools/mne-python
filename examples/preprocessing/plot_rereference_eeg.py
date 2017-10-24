@@ -35,7 +35,7 @@ picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True, exclude='bads')
 
 reject = dict(eog=150e-6)
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
-                     picks=picks, reject=reject)
+                     picks=picks, reject=reject, proj=True)
 
 fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
 
