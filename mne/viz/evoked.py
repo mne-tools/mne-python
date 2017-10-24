@@ -1768,8 +1768,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         legend_lines, legend_labels = list(), list()
         if cmap is None:  # ... one set of lines for the colors
             for color in sorted(colors.keys()):
-                l = mlines.Line2D([], [], linestyle="-", color=colors[color])
-                legend_lines.append(l)
+                line = mlines.Line2D([], [], linestyle="-",
+                                     color=colors[color])
+                legend_lines.append(line)
                 legend_labels.append(color)
         if len(list(linestyles)) > 1:  # ... one set for the linestyle
             for style, s in linestyles.items():
