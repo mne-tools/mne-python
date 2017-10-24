@@ -245,30 +245,8 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
 
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, show=True):
-    """Plot BEM contours on anatomical slices.
-
-    Parameters
-    ----------
-    mri_fname : str
-        The name of the file containing anatomical data.
-    surfaces : list of (str, str) tuples
-        A list containing the BEM surfaces to plot as (filename, color) tuples.
-        Colors should be matplotlib-compatible.
-    src : None | SourceSpaces
-        SourceSpaces object for plotting individual sources.
-    orientation : str
-        'coronal' or 'axial' or 'sagittal'
-    slices : list of int
-        Slice indices.
-    show : bool
-        Show figure if True.
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figure
-        The figure.
-    """
+                       slices=None, show=True, linewidth=1.0):
+    """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
     import nibabel as nib
 
@@ -343,7 +321,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         for surf, color in surfs:
             ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
                           surf['tris'], surf['rr'][:, z],
-                          levels=[sl], colors=color, linewidths=2.0,
+                          levels=[sl], colors=color, linewidths=linewidth,
                           zorder=1)
 
         for sources in src_points:
@@ -359,7 +337,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
-             slices=None, brain_surfaces=None, src=None, show=True):
+             slices=None, brain_surfaces=None, src=None, show=True,
+             linewidth=1.):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -383,6 +362,8 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         can be absolute or relative to the subject's ``bem`` folder.
     show : bool
         Show figure if True.
+    linewidth : float
+        Line width to use for the contours (default: 1.0).
 
     Returns
     -------
@@ -446,7 +427,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show)
+                              show, linewidth=linewidth)
 
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
