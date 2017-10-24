@@ -407,6 +407,13 @@ def test_filters():
         assert_raises(ValueError, filter_data, a, sfreq, 4, 8,
                       np.array([0, 1]), 100, 1.0, 1.0)
 
+    # check corner case (#4693)
+    h = create_filter(
+        np.empty(10000), 1000., l_freq=None, h_freq=55.,
+        h_trans_bandwidth=0.5, method='fir', phase='zero-double',
+        fir_design='firwin', verbose=True)
+    assert len(h) == 6601
+
 
 def test_filter_auto():
     """Test filter auto parameters"""
