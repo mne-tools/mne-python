@@ -245,7 +245,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
 
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, show=True, linewidth=1.0):
+                       slices=None, show=True):
     """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
     import nibabel as nib
@@ -321,7 +321,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         for surf, color in surfs:
             ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
                           surf['tris'], surf['rr'][:, z],
-                          levels=[sl], colors=color, linewidths=linewidth,
+                          levels=[sl], colors=color, linewidths=1.0,
                           zorder=1)
 
         for sources in src_points:
