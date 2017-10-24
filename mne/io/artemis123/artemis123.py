@@ -150,7 +150,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     # build subject info must be an integer (as per FIFF)
     try:
         subject_info = {'id': int(header_info['Subject ID'])}
-    except:
+    except ValueError:
         subject_info = {'id': 0}
 
     # build description

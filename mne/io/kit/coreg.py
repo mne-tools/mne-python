@@ -49,7 +49,7 @@ def read_mrk(fname):
             food = pickle.load(fid)
         try:
             mrk_points = food['mrk']
-        except:
+        except Exception:
             err = ("%r does not contain marker points." % fname)
             raise ValueError(err)
     else:
