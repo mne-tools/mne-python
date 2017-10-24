@@ -21,6 +21,8 @@ Changelog
 
 - Add support for metadata in :class:`mne.Epochs` by `Chris Holdgraf`_, `Alex Gramfort`_, `Jona Sassenhagen`_, and `Eric Larson`_
 
+- Add support for plotting a dense head in :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
 Bug
 ~~~
 

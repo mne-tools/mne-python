@@ -202,8 +202,7 @@ def test_plot_alignment():
     sample_src[0]['coord_frame'] = 4  # hack for coverage
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
-                   surfaces=['head', 'brain', 'inner_skull', 'outer_skull'],
-                   src=sample_src)
+                   surfaces=['head', 'brain'], src=sample_src)
     plot_alignment(info, trans_fname, subject='sample', meg=[],
                    subjects_dir=subjects_dir, bem=bem_sol, eeg=True,
                    surfaces=['head', 'inflated', 'outer_skull', 'inner_skull'])
@@ -228,6 +227,12 @@ def test_plot_alignment():
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['white', 'pial'])
+    assert_raises(TypeError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=[1])
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=['foo'])
 
 
 @testing.requires_testing_data
