@@ -1804,8 +1804,6 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 filter_length = max(int(round(
                     _length_factors[fir_window] * sfreq * mult_fact /
                     float(min(h_check, l_check)))), 1)
-                logger.info('Filter length of %s samples (%0.3f sec) selected'
-                            % (filter_length, filter_length / sfreq))
             else:
                 err_msg = ('filter_length, if a string, must be a '
                            'human-readable time, e.g. "10s", or "auto", not '
@@ -1829,6 +1827,10 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                 else:
                     filter_length = max(int(np.ceil(filter_length * mult_fact *
                                                     sfreq)), 1)
+            if fir_design == 'firwin':
+                filter_length += (filter_length - 1) % 2
+            logger.info('Filter length of %s samples (%0.3f sec) selected'
+                        % (filter_length, filter_length / sfreq))
         elif not isinstance(filter_length, integer_types):
             raise ValueError('filter_length must be a str, int, or None, got '
                              '%s' % (type(filter_length),))
