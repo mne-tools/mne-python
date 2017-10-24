@@ -215,22 +215,22 @@ def test_label_addition():
     assert_labels_equal(l01 - l0, l1, comment=False, color=False)
     assert_labels_equal(l01 - l1, l0, comment=False, color=False)
 
-    # adding overlappig labels
-    l = l0 + l2
+    # adding overlapping labels
+    l02 = l0 + l2
     i0 = np.where(l0.vertices == 6)[0][0]
     i2 = np.where(l2.vertices == 6)[0][0]
-    i = np.where(l.vertices == 6)[0][0]
-    assert_equal(l.values[i], l0.values[i0] + l2.values[i2])
-    assert_equal(l.values[0], l0.values[0])
-    assert_array_equal(np.unique(l.vertices), np.unique(idx0 + idx2))
-    assert_equal(l.color, _blend_colors(l0.color, l2.color))
+    i = np.where(l02.vertices == 6)[0][0]
+    assert_equal(l02.values[i], l0.values[i0] + l2.values[i2])
+    assert_equal(l02.values[0], l0.values[0])
+    assert_array_equal(np.unique(l02.vertices), np.unique(idx0 + idx2))
+    assert_equal(l02.color, _blend_colors(l0.color, l2.color))
 
     # adding lh and rh
     l2.hemi = 'rh'
     bhl = l0 + l2
     assert_equal(bhl.hemi, 'both')
     assert_equal(len(bhl), len(l0) + len(l2))
-    assert_equal(bhl.color, l.color)
+    assert_equal(bhl.color, l02.color)
     assert_true('BiHemiLabel' in repr(bhl))
     # subtraction
     assert_labels_equal(bhl - l0, l2)

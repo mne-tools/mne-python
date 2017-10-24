@@ -160,7 +160,7 @@ class RtClient(object):
                     begin = time.time()
                 else:
                     time.sleep(0.1)
-            except:
+            except Exception:
                 pass
 
         return ''.join(buf)

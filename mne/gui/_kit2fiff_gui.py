@@ -348,7 +348,7 @@ class Kit2FiffModel(HasPrivateTraits):
                 picks = eval("r_[%s]" % self.stim_chs, vars(np))
                 if picks.dtype.kind != 'i':
                     raise TypeError("Need array of int")
-            except:
+            except Exception:
                 return None
 
         if self.stim_coding == '<':  # Big-endian

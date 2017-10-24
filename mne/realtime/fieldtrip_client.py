@@ -85,7 +85,7 @@ class FieldTripClient(object):
                 logger.info("FieldTripClient: Connected")
                 success = True
                 break
-            except:
+            except Exception:
                 current_time = time.time()
                 time.sleep(0.1)
 
