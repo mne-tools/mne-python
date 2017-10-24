@@ -1525,7 +1525,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         a string which will become the colorbar label, and the second one
         must indicate a colormap, e.g. ::
 
-            cmap=('conds', 'viridis'), cmap=dict(cond1=1 cond2=2, cond3=3),
+            cmap=('conds', 'viridis'), colors=dict(cond1=1 cond2=2, cond3=3),
 
     vlines : list of int
         A list of integers corresponding to the positions, in seconds,
