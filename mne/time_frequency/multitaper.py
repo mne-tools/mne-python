@@ -160,8 +160,9 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         d, e = dpss_windows(interp_from, half_nbw, Kmax, low_bias=False)
         for this_d in d:
             x = np.arange(this_d.shape[-1])
-            I = interpolate.interp1d(x, this_d, kind=interp_kind)
-            d_temp = I(np.linspace(0, this_d.shape[-1] - 1, N, endpoint=False))
+            tmp = interpolate.interp1d(x, this_d, kind=interp_kind)
+            d_temp = tmp(np.linspace(0, this_d.shape[-1] - 1, N,
+                                     endpoint=False))
 
             # Rescale:
             d_temp = d_temp / np.sqrt(sum_squared(d_temp))
