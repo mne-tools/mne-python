@@ -18,7 +18,7 @@ data_path = sample.data_path()
 
 # the raw file containing the channel location + types
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-# The paths to freesurfer reconstructions
+# The paths to Freesurfer reconstructions
 subjects_dir = data_path + '/subjects'
 subject = 'sample'
 
