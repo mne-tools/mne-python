@@ -106,6 +106,10 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
         return (('%s (click to magnify)' % ch_names[closest]) if
                 in_box else 'No channel here')
 
+    def format_coord_multiaxis(x, y, ch_name=None):
+        """Update status bar with channel name under cursor"""
+        return '%s (click to magnify)' % name
+
     fig.set_facecolor(fig_facecolor)
     if layout is None:
         layout = find_layout(info)
@@ -144,6 +148,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
             ax._mne_ch_name = name
             ax._mne_ch_idx = ch_idx
             ax._mne_ax_face_color = axis_facecolor
+            ax.format_coord = partial(format_coord_multiaxis, ch_name=name)
             yield ax, ch_idx
         else:
             ax = Bunch(ax=under_ax, pos=pos[idx], data_lines=list(),
