@@ -92,7 +92,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
         fig = plt.figure()
 
     def format_coord_unified(x, y, pos=None, ch_names=None):
-        """Update status bar with channel name under cursor"""
+        """Update status bar with channel name under cursor."""
         # find candidate channels (ones that are down and left from cursor)
         pdist = np.array([x, y]) - pos[:, :2]
         pind = np.where((pdist >= 0).all(axis=1))[0]
@@ -107,7 +107,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
                 in_box else 'No channel here')
 
     def format_coord_multiaxis(x, y, ch_name=None):
-        """Update status bar with channel name under cursor"""
+        """Update status bar with channel name under cursor."""
         return '%s (click to magnify)' % ch_name
 
     fig.set_facecolor(fig_facecolor)
