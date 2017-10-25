@@ -31,7 +31,12 @@ events = mne.read_events(event_fname)
 picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True, exclude='bads')
 
 ###############################################################################
-# Apply different EEG referencing schemes and plot the resulting evokeds.
+# Apply different EEG referencing schemes and plot the resulting evoked
+# potentials. Note that when we construct epochs with `mne.Epochs`, we specify
+# the `proj=True` argument. This means that any available projectors are
+# applied automatically. Specifically, if there is an average reference
+# projector set by `raw.set_eeg_reference('average', projection=True)`, MNE
+# applies this projector when creating epochs.
 
 reject = dict(eog=150e-6)
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
@@ -40,7 +45,8 @@ epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
 fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
 
 # No reference. This assumes that the EEG has already been referenced properly.
-# This explicitly prevents MNE from adding a default EEG reference.
+# This explicitly prevents MNE from adding a default EEG reference. Any average
+# reference projector is automatically removed.
 raw.set_eeg_reference([])
 evoked_no_ref = mne.Epochs(raw, **epochs_params).average()
 
