@@ -12,11 +12,11 @@ language, only easier. Here are a few great resources to get you started:
 
 * `SciPy lectures <http://scipy-lectures.github.io>`_
 * `Learn X in Y minutes: Python <https://learnxinyminutes.com/docs/python/>`_
-* `NumPy for MATLAB users <https://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_  # noqa
+* `NumPy for MATLAB users <https://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
 
 We highly recommend watching the SciPy videos and reading through these sites
 to get a sense of how scientific computing is done in Python.
-"""
+"""    # noqa
 ###############################################################################
 # Here are few important points to familiarize yourself with Python. First,
 # everything is dynamically typed. There is no need to declare and initialize
