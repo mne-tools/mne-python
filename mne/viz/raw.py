@@ -1014,6 +1014,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 line.set_xdata([])
                 line.set_ydata([])
 
+        # events are added first, so we remove events from the beginning
         for i in range(params['n_prev_events']):
             params['ax'].texts.pop(0)  # delete previous event texts
         # don't add event numbers for more than 50 visible events
@@ -1026,6 +1027,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             params['n_prev_events'] = len(event_times)
 
     if 'segments' in params:
+        # annotations are added last, so we remove events from the end
         while len(params['ax'].collections) > 0:  # delete previous annotations
             params['ax'].collections.pop(-1)
             params['ax'].texts.pop(-1)
