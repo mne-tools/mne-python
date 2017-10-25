@@ -91,6 +91,21 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
     if fig is None:
         fig = plt.figure()
 
+    def format_coord_unified(x, y, pos=None, ch_names=None):
+        """Update status bar with channel name under cursor"""
+        # find candidate channels (ones that are down and left from cursor)
+        pdist = np.array([x, y]) - pos[:, :2]
+        pind = np.where((pdist >= 0).all(axis=1))[0]
+        if len(pind) > 0:
+            # find the closest channel
+            closest = pind[np.sum(pdist[pind, :]**2, axis=1).argmin()]
+            # check whether we are inside its box
+            in_box = (pdist[closest, :] < pos[closest, 2:]).all()
+        else:
+            in_box = False
+        return (('%s (click to magnify)' % ch_names[closest]) if
+                in_box else 'No channel here')
+
     fig.set_facecolor(fig_facecolor)
     if layout is None:
         layout = find_layout(info)
@@ -111,7 +126,10 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
             under_ax.axis('off')
         else:
             under_ax = axes
+        under_ax.format_coord = partial(format_coord_unified, pos=pos,
+                                        ch_names=layout.names)
         under_ax.set(xlim=[0, 1], ylim=[0, 1])
+
         axs = list()
     for idx, name in iter_ch:
         ch_idx = ch_names.index(name)
