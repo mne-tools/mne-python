@@ -64,6 +64,4 @@ evoked_car.plot(axes=ax2, titles=dict(eeg='Average reference'), show=False)
 raw.set_eeg_reference(['EEG 001', 'EEG 002'])
 evoked_custom = mne.Epochs(raw, **epochs_params).average()
 
-evoked_custom.plot(axes=ax3, titles=dict(eeg='Custom reference'), show=False)
-
-fig.show()
+evoked_custom.plot(axes=ax3, titles=dict(eeg='Custom reference'))
