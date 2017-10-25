@@ -79,8 +79,11 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 
 info = mne.io.read_info(raw_fname)
+# Here we look at the dense head, which isn't used for BEM computations but
+# is useful for coregistration.
 mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
-                       meg=['helmet', 'sensors'], subjects_dir=subjects_dir)
+                       meg=['helmet', 'sensors'], subjects_dir=subjects_dir,
+                       surfaces='head-dense')
 
 ###############################################################################
 # Compute Source Space

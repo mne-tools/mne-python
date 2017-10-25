@@ -41,7 +41,8 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _ensure_int)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
                     tight_layout, figure_nobar)
-from ..bem import ConductorModel, _bem_find_surface, _surf_dict, _surf_name
+from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
+                   read_bem_surfaces)
 
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
@@ -418,7 +419,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 @verbose
 def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
-                   surfaces=('head',), coord_frame='head',
+                   surfaces='head', coord_frame='head',
                    meg=('helmet', 'sensors'), eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, verbose=None):
@@ -439,9 +440,16 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     surfaces : str | list
-        Surfaces to plot. Supported values: 'head', 'outer_skin',
-        'outer_skull', 'inner_skull', 'brain', 'pial', 'white', 'inflated'.
-        Defaults to ('head',).
+        Surfaces to plot. Supported values:
+
+        * scalp: one of 'head', 'outer_skin' (alias for 'head'),
+          'head-dense', or 'seghead' (alias for 'head-dense')
+        * skull: 'outer_skull', 'inner_skull', 'brain' (alias for
+          'inner_skull')
+        * brain: one of 'pial', 'white', 'inflated', or 'brain'
+          (alias for 'pial').
+
+        Defaults to 'head'.
 
         .. note:: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
@@ -530,40 +538,18 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         raise TypeError('info must be an instance of Info, got %s'
                         % type(info))
 
+    if isinstance(surfaces, string_types):
+        surfaces = [surfaces]
+    surfaces = list(surfaces)
+    if not all(isinstance(s, string_types) for s in surfaces):
+        raise TypeError('all entries in surfaces must be strings')
+
     is_sphere = False
     if isinstance(bem, ConductorModel) and bem['is_sphere']:
         if len(bem['layers']) != 4 and len(surfaces) > 1:
             raise ValueError('The sphere conductor model must have three '
                              'layers for plotting skull and head.')
         is_sphere = True
-
-    # Skull:
-    skull = list()
-    if 'outer_skull' in surfaces:
-        if isinstance(bem, ConductorModel) and not bem['is_sphere']:
-            skull.append(_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL))
-        else:
-            skull.append('outer_skull')
-    if 'inner_skull' in surfaces:
-        if isinstance(bem, ConductorModel) and not bem['is_sphere']:
-            skull.append(_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_BRAIN))
-        else:
-            skull.append('inner_skull')
-
-    surf_dict = _surf_dict.copy()
-    surf_dict['outer_skin'] = FIFF.FIFFV_BEM_SURF_ID_HEAD
-    if len(skull) > 0 and not isinstance(skull[0], dict):  # list of str
-        skull = sorted(skull)
-        # list of dict
-        if bem is not None and not isinstance(bem, ConductorModel):
-            for idx, surf_name in enumerate(skull):
-                for this_surf in bem:
-                    if this_surf['id'] == surf_dict[surf_name]:
-                        skull[idx] = this_surf
-                        break
-                else:
-                    raise ValueError('Could not find the surface for '
-                                     '%s.' % surf_name)
 
     valid_coords = ['head', 'meg', 'mri']
     if coord_frame not in valid_coords:
@@ -632,41 +618,100 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     surfs = dict()
 
     # Head:
-    head = any(['outer_skin' in surfaces, 'head' in surfaces])
-    if head:
-        head_surf = None
-        if bem is not None:
-            if isinstance(bem, ConductorModel):
-                if is_sphere:
-                    head_surf = _complete_sphere_surf(bem, 3, 4)
-                else:  # BEM solution
-                    head_surf = _bem_find_surface(bem,
-                                                  FIFF.FIFFV_BEM_SURF_ID_HEAD)
-                    complete_surface_info(head_surf, copy=False, verbose=False)
-            elif bem is not None:  # list of dict
-                for this_surf in bem:
-                    if this_surf['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD:
-                        head_surf = this_surf
+    head = False
+    for s in surfaces:
+        if s in ('head', 'outer_skin', 'head-dense', 'seghead'):
+            if head:
+                raise ValueError('Can only supply one head-like surface name')
+            surfaces.pop(surfaces.index(s))
+            head = True
+            head_surf = None
+            # Try the BEM if applicable
+            if s in ('head', 'outer_skin'):
+                if bem is not None:
+                    if isinstance(bem, ConductorModel):
+                        if is_sphere:
+                            head_surf = _complete_sphere_surf(bem, 3, 4)
+                        else:  # BEM solution
+                            head_surf = _bem_find_surface(
+                                bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                            complete_surface_info(head_surf, copy=False,
+                                                  verbose=False)
+                    elif bem is not None:  # list of dict
+                        for this_surf in bem:
+                            if this_surf['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD:
+                                head_surf = this_surf
+                                break
+                        else:
+                            raise ValueError('Could not find the surface for '
+                                             'head in the provided BEM model.')
+            if head_surf is None:
+                subject_dir = op.join(
+                    get_subjects_dir(subjects_dir, raise_error=True), subject)
+                if s in ('head-dense', 'seghead'):
+                    try_fnames = [
+                        op.join(subject_dir, 'bem', '%s-head-dense.fif'
+                                % subject),
+                        op.join(subject_dir, 'surf', 'lh.seghead'),
+                    ]
+                else:
+                    try_fnames = [
+                        op.join(subject_dir, 'bem', 'outer_skin.surf'),
+                        op.join(subject_dir, 'bem', 'flash',
+                                'outer_skin.surf'),
+                    ]
+                for fname in try_fnames:
+                    if op.exists(fname):
+                        logger.info('Using %s for head surface.'
+                                    % (op.basename(fname),))
+                        if op.splitext(fname)[-1] == '.fif':
+                            head_surf = read_bem_surfaces(fname)[0]
+                        else:
+                            head_surf = read_surface(
+                                fname, return_dict=True)[2]
+                            head_surf['rr'] /= 1000.
+                            head_surf.update(coord_frame=FIFF.FIFFV_COORD_MRI)
+                        complete_surface_info(head_surf, copy=False,
+                                              verbose=False)
                         break
                 else:
-                    raise ValueError('Could not find the surface for head.')
-        if head_surf is None:
-            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            surf_fname = op.join(subjects_dir, subject, 'bem', 'flash',
-                                 'outer_skin.surf')
-            if not op.exists(surf_fname):
-                surf_fname = op.join(subjects_dir, subject, 'bem',
-                                     'outer_skin.surf')
-                if not op.exists(surf_fname):
                     raise IOError('No head surface found for subject '
-                                  '%s.' % subject)
-            logger.info('Using outer_skin for head surface.')
-            rr, tris = read_surface(surf_fname)
-            head_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
-                             np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
-            complete_surface_info(head_surf, copy=False, verbose=False)
+                                  '%s after trying:\n%s'
+                                  % (subject, '\n'.join(try_fnames)))
+            surfs['head'] = head_surf
 
-        surfs['head'] = head_surf
+    # Skull:
+    skull = list()
+    for name, id_ in (('outer_skull', FIFF.FIFFV_BEM_SURF_ID_SKULL),
+                      ('inner_skull', FIFF.FIFFV_BEM_SURF_ID_BRAIN)):
+        if name in surfaces:
+            surfaces.pop(surfaces.index(name))
+            if bem is None:
+                fname = op.join(
+                    get_subjects_dir(subjects_dir, raise_error=True),
+                    subject, 'bem', name + '.surf')
+                if not op.isfile(fname):
+                    raise ValueError('bem is None and the the %s file cannot '
+                                     'be found:\n%s' % (name, fname))
+                surf = read_surface(fname, return_dict=True)[2]
+                surf.update(coord_frame=FIFF.FIFFV_COORD_MRI,
+                            id=_surf_dict[name])
+                complete_surface_info(surf, copy=False, verbose=False)
+                surf['rr'] /= 1000.
+                skull.append(surf)
+            elif isinstance(bem, ConductorModel):
+                if bem['is_sphere']:
+                    raise ValueError('Cannot plot surface %s when bem is a '
+                                     'sphere model' % (name,))
+                skull.append(_bem_find_surface(bem, id_))
+            else:  # BEM model
+                for this_surf in bem:
+                    if this_surf['id'] == _surf_dict[name]:
+                        skull.append(this_surf)
+                        break
+                else:
+                    raise ValueError('Could not find the surface for %s.'
+                                     % name)
 
     if mri_fiducials:
         if mri_fiducials is True:
@@ -689,19 +734,16 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
 
     # Brain:
-    brain = False
-    brain_surfs = np.intersect1d(surfaces, ['brain', 'pial', 'white',
-                                            'inflated'])
-    if len(brain_surfs) > 1:
+    brain = np.intersect1d(surfaces, ['brain', 'pial', 'white', 'inflated'])
+    if len(brain) > 1:
         raise ValueError('Only one brain surface can be plotted. '
-                         'Got %s.' % brain_surfs)
-    elif len(brain_surfs) == 1:
-        if brain_surfs[0] == 'brain':
-            brain = 'pial'
-        else:
-            brain = brain_surfs[0]
-
-    if brain:
+                         'Got %s.' % brain)
+    elif len(brain) == 0:
+        brain = False
+    else:  # exactly 1
+        brain = brain[0]
+        surfaces.pop(surfaces.index(brain))
+        brain = 'pial' if brain == 'brain' else brain
         if is_sphere:
             if len(bem['layers']) > 0:
                 surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # only plot 1
@@ -710,11 +752,15 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             for hemi in ['lh', 'rh']:
                 fname = op.join(subjects_dir, subject, 'surf',
                                 '%s.%s' % (hemi, brain))
-                rr, tris = read_surface(fname)
-                rr *= 1e-3
-                surfs[hemi] = dict(rr=rr, ntri=len(tris), np=len(rr),
-                                   coord_frame=FIFF.FIFFV_COORD_MRI, tris=tris)
+                surfs[hemi] = read_surface(fname, return_dict=True)[2]
+                surfs[hemi]['rr'] /= 1000.
+                surfs[hemi].update(coord_frame=FIFF.FIFFV_COORD_MRI)
                 complete_surface_info(surfs[hemi], copy=False, verbose=False)
+        brain = True
+
+    # we've looked through all of them, raise if some remain
+    if len(surfaces) > 0:
+        raise ValueError('Unknown surfaces types: %s' % (surfaces,))
 
     skull_alpha = dict()
     skull_colors = dict()
@@ -739,9 +785,9 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 raise IOError('No skull surface %s found for subject %s.'
                               % (this_skull, subject))
             logger.info('Using %s for head surface.' % skull_fname)
-            rr, tris = read_surface(skull_fname)
-            skull_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
-                              np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
+            skull_surf = read_surface(skull_fname, return_dict=True)[2]
+            skull_surf['rr'] /= 1000.
+            skull_surf['coord_frame'] = FIFF.FIFFV_COORD_MRI
             complete_surface_info(skull_surf, copy=False, verbose=False)
         skull_alpha[this_skull] = alphas[idx + 1]
         skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
