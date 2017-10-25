@@ -1913,6 +1913,8 @@ class Epochs(BaseEpochs):
         or 'USER' for user-defined reasons (see drop method).
     filename : str
         The filename of the object.
+    times :  ndarray
+        Time vector.
     verbose : bool, str, int, or None
         See above.
 

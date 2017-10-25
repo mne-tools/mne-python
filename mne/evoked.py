@@ -91,6 +91,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Array of time instants in seconds.
     data : array of shape (n_channels, n_times)
         Evoked response.
+    times :  ndarray
+        Time vector.
     verbose : bool, str, int, or None.
         See above.
 
