@@ -108,7 +108,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
 
     def format_coord_multiaxis(x, y, ch_name=None):
         """Update status bar with channel name under cursor"""
-        return '%s (click to magnify)' % name
+        return '%s (click to magnify)' % ch_name
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
