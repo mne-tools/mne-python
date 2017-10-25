@@ -224,8 +224,6 @@ def test_set_eeg_reference():
     assert_raises(ValueError, set_eeg_reference, raw, ['EEG 001'], True, True)
 
 
-
-
 @testing.requires_testing_data
 def test_set_bipolar_reference():
     """Test bipolar referencing."""
