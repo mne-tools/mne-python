@@ -1914,7 +1914,9 @@ class Epochs(BaseEpochs):
     filename : str
         The filename of the object.
     times :  ndarray
-        Time vector.
+        Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
+        between consecutive time samples is equal to the inverse of the
+        sampling frequency.
     verbose : bool, str, int, or None
         See above.
 
