@@ -3,7 +3,7 @@
 Re-referencing the EEG signal
 =============================
 
-Load raw data and apply some EEG referencing schemes.
+This example shows how to load raw data and apply some EEG referencing schemes.
 """
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -31,11 +31,11 @@ events = mne.read_events(event_fname)
 picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True, exclude='bads')
 
 ###############################################################################
-# Apply different EEG referencing schemes and plot the resulting evoked
-# potentials. Note that when we construct epochs with `mne.Epochs`, we specify
-# the `proj=True` argument. This means that any available projectors are
-# applied automatically. Specifically, if there is an average reference
-# projector set by `raw.set_eeg_reference('average', projection=True)`, MNE
+# We will now apply different EEG referencing schemes and plot the resulting
+# evoked potentials. Note that when we construct epochs with ``mne.Epochs``, we
+# supply the ``proj=True`` argument. This means that any available projectors
+# are applied automatically. Specifically, if there is an average reference
+# projector set by ``raw.set_eeg_reference('average', projection=True)``, MNE
 # applies this projector when creating epochs.
 
 reject = dict(eog=150e-6)
