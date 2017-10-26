@@ -131,6 +131,10 @@ def test_kit2fiff_gui():
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
     try:
+        from pyface.api import GUI
+        gui = GUI()
+        gui.process_events()
+
         ui, frame = mne.gui.kit2fiff()
         assert_false(frame.model.can_save)
         assert_equal(frame.model.stim_threshold, 1.)
@@ -138,6 +142,8 @@ def test_kit2fiff_gui():
         frame.model.stim_chs = 'save this!'
         frame.save_config(home_dir)
         ui.dispose()
+
+        gui.process_events()
 
         # test setting persistence
         ui, frame = mne.gui.kit2fiff()
@@ -149,6 +155,8 @@ def test_kit2fiff_gui():
         frame.marker_panel.mrk1_obj.label = True
         frame.marker_panel.mrk1_obj.label = False
         ui.dispose()
+
+        gui.process_events()
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
         del os.environ['_MNE_FAKE_HOME_DIR']
