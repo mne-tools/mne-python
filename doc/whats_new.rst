@@ -13,6 +13,16 @@ What's new
 
 .. _current:
 
+Version 0.15.1
+--------------
+
+BUG
+~~~
+
+- Fix bug in :meth:`mne.io.set_eeg_reference` to remove an average reference projector when setting the reference to ``[]`` (i.e. do not change the existing reference) by `Clemens Brunner`_
+
+.. _changes_0_15:
+
 Version 0.15
 ------------
 
