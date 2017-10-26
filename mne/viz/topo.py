@@ -91,6 +91,25 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
     if fig is None:
         fig = plt.figure()
 
+    def format_coord_unified(x, y, pos=None, ch_names=None):
+        """Update status bar with channel name under cursor."""
+        # find candidate channels (ones that are down and left from cursor)
+        pdist = np.array([x, y]) - pos[:, :2]
+        pind = np.where((pdist >= 0).all(axis=1))[0]
+        if len(pind) > 0:
+            # find the closest channel
+            closest = pind[np.sum(pdist[pind, :]**2, axis=1).argmin()]
+            # check whether we are inside its box
+            in_box = (pdist[closest, :] < pos[closest, 2:]).all()
+        else:
+            in_box = False
+        return (('%s (click to magnify)' % ch_names[closest]) if
+                in_box else 'No channel here')
+
+    def format_coord_multiaxis(x, y, ch_name=None):
+        """Update status bar with channel name under cursor."""
+        return '%s (click to magnify)' % ch_name
+
     fig.set_facecolor(fig_facecolor)
     if layout is None:
         layout = find_layout(info)
@@ -111,7 +130,10 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
             under_ax.axis('off')
         else:
             under_ax = axes
+        under_ax.format_coord = partial(format_coord_unified, pos=pos,
+                                        ch_names=layout.names)
         under_ax.set(xlim=[0, 1], ylim=[0, 1])
+
         axs = list()
     for idx, name in iter_ch:
         ch_idx = ch_names.index(name)
@@ -126,6 +148,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
             ax._mne_ch_name = name
             ax._mne_ch_idx = ch_idx
             ax._mne_ax_face_color = axis_facecolor
+            ax.format_coord = partial(format_coord_multiaxis, ch_name=name)
             yield ax, ch_idx
         else:
             ax = Bunch(ax=under_ax, pos=pos[idx], data_lines=list(),
@@ -467,7 +490,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     for data_, color_ in zip(data, color):
         data_lines.append(ax.plot(
             bn.x_t + bn.x_s * times, bn.y_t + bn.y_s * data_[ch_idx],
-            color=color_, clip_on=True, clip_box=pos)[0])
+            linewidth=0.5, color=color_, clip_on=True, clip_box=pos)[0])
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
         ax.vlines(vline, pos[1], pos[1] + pos[3], color=hvline_color,

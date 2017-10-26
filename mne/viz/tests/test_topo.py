@@ -128,6 +128,8 @@ def test_plot_topo():
     plt.close('all')
     for ax, idx in iter_topography(evoked.info):
         ax.plot(evoked.data[idx], color='red')
+        # test status bar message
+        assert_true(evoked.ch_names[idx] in ax.format_coord(.5, .5))
     plt.close('all')
 
 
@@ -136,6 +138,9 @@ def test_plot_topo_single_ch():
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     fig = plot_evoked_topo(evoked, background_color='w')
+    # test status bar message
+    ax = plt.gca()
+    assert_true('MEG 0113' in ax.format_coord(.065, .63))
     num_figures_before = len(plt.get_fignums())
     _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert_equal(num_figures_before + 1, len(plt.get_fignums()))

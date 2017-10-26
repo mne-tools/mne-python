@@ -305,6 +305,8 @@ API
 
 - Expose "rank" parameter in :func:`mne.viz.plot_evoked_white` to correct rank estimates on the spot during visualization by `Denis Engemann`_, `Eric Larson`_, `Alex Gramfort`_.
 
+- Show channel name under mouse cursor on topography plots by `Jussi Nurminen`_
+
 Authors
 ~~~~~~~
 
