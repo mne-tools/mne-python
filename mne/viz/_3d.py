@@ -701,9 +701,14 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 skull.append(surf)
             elif isinstance(bem, ConductorModel):
                 if bem['is_sphere']:
-                    raise ValueError('Cannot plot surface %s when bem is a '
-                                     'sphere model' % (name,))
-                skull.append(_bem_find_surface(bem, id_))
+                    if len(bem['layers']) != 4:
+                        raise ValueError('The sphere model must have three '
+                                         'layers for plotting %s' % (name,))
+                    this_idx = 1 if name == 'inner_skull' else 2
+                    skull.append(_complete_sphere_surf(bem, this_idx, 4))
+                    skull[-1]['id'] = _surf_dict[name]
+                else:
+                    skull.append(_bem_find_surface(bem, id_))
             else:  # BEM model
                 for this_surf in bem:
                     if this_surf['id'] == _surf_dict[name]:

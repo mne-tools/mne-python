@@ -200,6 +200,10 @@ def test_plot_alignment():
     bem_surfs = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
                                           'sample-1280-1280-1280-bem.fif'))
     sample_src[0]['coord_frame'] = 4  # hack for coverage
+    plot_alignment(info, subject='sample', eeg='projected',
+                   meg='helmet', bem=sphere, dig=True,
+                   surfaces=['brain', 'inner_skull', 'outer_skull',
+                             'outer_skin'])
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
                    surfaces=['head', 'brain'], src=sample_src)
@@ -233,6 +237,7 @@ def test_plot_alignment():
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['foo'])
+    mlab.close(all=True)
 
 
 @testing.requires_testing_data

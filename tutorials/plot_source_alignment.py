@@ -78,7 +78,7 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample', src=src,
 ###############################################################################
 # The previous is possible if you have the surfaces available from Freesurfer.
 # The function automatically searches for the correct surfaces from the
-# provided ``subjects_dir``. Otherwise it is possible to use the sphere
+# provided ``subjects_dir``. Otherwise, one option is to use a spherical
 # conductor model. It is passed through ``bem`` parameter.
 #
 # .. note:: ``bem`` also accepts bem solutions (:func:`mne.read_bem_solution`)
