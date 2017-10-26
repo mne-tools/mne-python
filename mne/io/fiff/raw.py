@@ -61,10 +61,15 @@ class Raw(BaseRaw):
         List of channels' names.
     n_times : int
         Total number of time points in the raw file.
+    times :  ndarray
+        Time vector in seconds. Starts from 0, independently of `first_samp`
+        value. Time interval between consecutive time samples is equal to the
+        inverse of the sampling frequency.
     preload : bool
         Indicates whether raw data are in memory.
     verbose : bool, str, int, or None
         See above.
+
     """
 
     @verbose
