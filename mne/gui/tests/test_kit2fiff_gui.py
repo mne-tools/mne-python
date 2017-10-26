@@ -27,9 +27,12 @@ warnings.simplefilter('always')
 
 
 def _check_ci():
-    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
-            sys.platform == 'darwin':
-        raise SkipTest('Skipping GUI tests on Travis OSX')
+    osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
+           sys.platform == 'darwin')
+    win = (os.getenv('APPVEYOR', 'false').lower() == 'true' and
+           sys.platform.startswith('win'))
+    if win or osx:
+        raise SkipTest('Skipping GUI tests on Travis OSX and AppVeyor')
 
 
 @requires_mayavi
