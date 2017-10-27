@@ -1791,11 +1791,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         color_conds = list(colors.keys())
         all_colors = [colors[cond] for cond in color_conds]
         n_colors = len(all_colors)
-        color_order = np.array(all_colors).argsort().argsort()
+        color_order = np.array(all_colors).argsort()
+        color_indices = color_order.argsort()
 
         the_colors = cmapper(np.linspace(0, 1, n_colors))
 
-        colors_ = {cond: ind for cond, ind in zip(color_conds, color_order)}
+        colors_ = {cond: ind for cond, ind in zip(color_conds, color_indices)}
         colors = dict()
         for cond in evokeds.keys():
             for cond_number, color in colors_.items():
