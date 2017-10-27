@@ -1792,7 +1792,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         all_colors = [colors[cond] for cond in color_conds]
         n_colors = len(all_colors)
         color_order = np.array(all_colors).argsort()
-        color_indices = color_order.argsort()[::-1]
+        color_indices = color_order.argsort()
 
         the_colors = cmapper(np.linspace(0, 1, n_colors))
 
