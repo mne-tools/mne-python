@@ -422,7 +422,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
                    meg=('helmet', 'sensors'), eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, verbose=None):
+                   bem=None, fig=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -481,6 +481,9 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
         `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
         the subjects bem and bem/flash folders are searched. Defaults to None.
+    fig : mayavi figure object | None
+        Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
+        If ``None``, creates a new 600x600 pixel figure with black background.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -878,7 +881,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                              for pick in ecog_picks])
 
     # initialize figure
-    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    if fig is None:
+        fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
     _toggle_mlab_render(fig, False)
 
     # plot surfaces

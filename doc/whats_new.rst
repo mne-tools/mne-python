@@ -23,6 +23,8 @@ Changelog
 
 - Add support for plotting a dense head in :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
+- Allow plotting in user-created mayavi Scene in :func:`mne.viz.plot_alignment` by `Daniel McCloy`_
+
 Bug
 ~~~
 
