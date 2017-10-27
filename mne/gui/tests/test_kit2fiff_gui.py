@@ -150,7 +150,6 @@ def test_kit2fiff_gui():
 
         # test setting persistence
         ui, frame = mne.gui.kit2fiff()
-        return
         assert_equal(frame.model.stim_threshold, 10.)
         assert_equal(frame.model.stim_chs, 'save this!')
 
