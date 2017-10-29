@@ -1607,7 +1607,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if self.annotations is not None:
             annotations = self.annotations
-            annotations.onset -= tmin
             BaseRaw.annotations.fset(self, annotations, emit_warning=False)
 
         return self

@@ -12,6 +12,7 @@ from numpy.testing import (assert_equal, assert_array_equal,
 
 import numpy as np
 
+import mne
 from mne import create_info, Epochs, read_annotations
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
@@ -89,8 +90,22 @@ def test_annotations():
     assert_array_equal(raw.annotations.description, ['x', 'x', 'x', 'x', 'x',
                                                      'x', 'y'])
 
-    # Test concatenating annotations with and without orig_time.
+    # Test cropping with annotations
     raw = read_raw_fif(fif_fname)
+    events = mne.find_events(raw)
+    onset = events[events[:, 2] == 1, 0] / raw.info['sfreq']
+    duration = np.ones_like(onset)  # 1s
+    description = ['bad %d' % k for k in range(len(onset))]
+    raw.annotations = mne.Annotations(onset, duration, description,
+                                      orig_time=raw.info['meas_date'])
+
+    raw_cropped = raw.copy().crop(raw.times[-1] / 2. + 2., None)
+    assert_array_equal(raw_cropped.annotations.description,
+                       raw.annotations.description[len(onset) // 2:])
+
+    raw.annotations = None  # undo
+
+    # Test concatenating annotations with and without orig_time.
     last_time = raw.last_samp / raw.info['sfreq']
     raw2 = raw.copy()
     raw.annotations = Annotations([45.], [3], 'test', raw.info['meas_date'])
