@@ -27,9 +27,12 @@ warnings.simplefilter('always')
 
 
 def _check_ci():
-    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
-            sys.platform == 'darwin':
-        raise SkipTest('Skipping GUI tests on Travis OSX')
+    osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
+           sys.platform == 'darwin')
+    win = (os.getenv('APPVEYOR', 'false').lower() == 'true' and
+           sys.platform.startswith('win'))
+    if win or osx:
+        raise SkipTest('Skipping GUI tests on Travis OSX and AppVeyor')
 
 
 @requires_mayavi
@@ -131,25 +134,31 @@ def test_kit2fiff_gui():
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
     try:
-        with warnings.catch_warnings(record=True):  # traits warnings
-            warnings.simplefilter('always')
-            ui, frame = mne.gui.kit2fiff()
-            assert_false(frame.model.can_save)
-            assert_equal(frame.model.stim_threshold, 1.)
-            frame.model.stim_threshold = 10.
-            frame.model.stim_chs = 'save this!'
-            frame.save_config(home_dir)
-            ui.dispose()
+        from pyface.api import GUI
+        gui = GUI()
+        gui.process_events()
 
-            # test setting persistence
-            ui, frame = mne.gui.kit2fiff()
-            assert_equal(frame.model.stim_threshold, 10.)
-            assert_equal(frame.model.stim_chs, 'save this!')
+        ui, frame = mne.gui.kit2fiff()
+        assert_false(frame.model.can_save)
+        assert_equal(frame.model.stim_threshold, 1.)
+        frame.model.stim_threshold = 10.
+        frame.model.stim_chs = 'save this!'
+        frame.save_config(home_dir)
+        ui.dispose()
 
-            frame.model.markers.mrk1.file = mrk_pre_path
-            frame.marker_panel.mrk1_obj.label = True
-            frame.marker_panel.mrk1_obj.label = False
-            ui.dispose()
+        gui.process_events()
+
+        # test setting persistence
+        ui, frame = mne.gui.kit2fiff()
+        assert_equal(frame.model.stim_threshold, 10.)
+        assert_equal(frame.model.stim_chs, 'save this!')
+
+        frame.model.markers.mrk1.file = mrk_pre_path
+        frame.marker_panel.mrk1_obj.label = True
+        frame.marker_panel.mrk1_obj.label = False
+        ui.dispose()
+
+        gui.process_events()
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
         del os.environ['_MNE_FAKE_HOME_DIR']
