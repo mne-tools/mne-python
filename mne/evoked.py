@@ -537,7 +537,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return out
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None,
-                 mode='abs', time_as_index=False, merge_grads=False):
+                 mode='abs', time_as_index=False, merge_grads=False,
+                 return_amplitude=False):
         """Get location and latency of peak amplitude.
 
         Parameters
@@ -561,6 +562,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Whether to return the time index instead of the latency in seconds.
         merge_grads : bool
             If True, compute peak from merged gradiometer data.
+        return_amplitude : bool
+            If True, return also the amplitude at the maximum response.
 
         Returns
         -------
@@ -569,6 +572,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         latency : float | int
             The time point of the maximum response, either latency in seconds
             or index.
+        amplitude : float
+            The amplitude of the maximum response. Only returned if
+            return_amplitude is True.
         """
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
                      'hbr', 'None')
@@ -630,10 +636,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             data = _merge_grad_data(data)
             ch_names = [ch_name[:-1] + 'X' for ch_name in ch_names[::2]]
 
-        ch_idx, time_idx = _get_peak(data, self.times, tmin,
-                                     tmax, mode)
-        return (ch_names[ch_idx],
-                time_idx if time_as_index else self.times[time_idx])
+        ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin,
+                                              tmax, mode)
+
+        out = (ch_names[ch_idx], time_idx if time_as_index else
+               self.times[time_idx])
+
+        if return_amplitude:
+            out += (max_amp,)
+
+        return out
 
 
 def _check_decim(info, decim, offset):
@@ -1252,6 +1264,8 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
         The index of the feature with the maximum value.
     max_time : int
         The time point of the maximum response, index.
+    max_amp : float
+        Amplitude of the maximum response.
     """
     modes = ('abs', 'neg', 'pos')
     if mode not in modes:
@@ -1293,4 +1307,4 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
 
     max_loc, max_time = np.unravel_index(maxfun(masked_index), data.shape)
 
-    return max_loc, max_time
+    return max_loc, max_time, data[max_loc, max_time]
