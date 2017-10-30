@@ -1556,7 +1556,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno,
                   None: np.concatenate(self.vertices)}[hemi]
 
-        vert_idx, time_idx = _get_peak(data, self.times, tmin, tmax, mode)
+        vert_idx, time_idx, _ = _get_peak(data, self.times, tmin, tmax, mode)
 
         return (vert_idx if vert_as_index else vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
