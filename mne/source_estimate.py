@@ -1848,8 +1848,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         latency : float
             The latency in seconds.
         """
-        vert_idx, time_idx = _get_peak(self.data, self.times, tmin, tmax,
-                                       mode)
+        vert_idx, time_idx, _ = _get_peak(self.data, self.times, tmin, tmax,
+                                          mode)
 
         return (vert_idx if vert_as_index else self.vertices[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
