@@ -334,10 +334,12 @@ def test_get_peak():
     assert_true(ch_name in evoked.ch_names)
     assert_true(time_idx in evoked.times)
 
-    ch_name, time_idx = evoked.get_peak(ch_type='mag',
-                                        time_as_index=True)
+    ch_name, time_idx, max_amp = evoked.get_peak(ch_type='mag',
+                                                 time_as_index=True,
+                                                 return_amplitude=True)
     assert_true(time_idx < len(evoked.times))
     assert_equal(ch_name, 'MEG 1421')
+    assert_allclose(max_amp, 7.17057e-13, rtol=1e-5)
 
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', merge_grads=True)
     ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
@@ -348,17 +350,20 @@ def test_get_peak():
 
     times = np.array([.1, .2, .3])
 
-    ch_idx, time_idx = _get_peak(data, times, mode='abs')
+    ch_idx, time_idx, max_amp = _get_peak(data, times, mode='abs')
     assert_equal(ch_idx, 1)
     assert_equal(time_idx, 1)
+    assert_allclose(max_amp, -3.)
 
-    ch_idx, time_idx = _get_peak(data * -1, times, mode='neg')
+    ch_idx, time_idx, max_amp = _get_peak(data * -1, times, mode='neg')
     assert_equal(ch_idx, 0)
     assert_equal(time_idx, 2)
+    assert_allclose(max_amp, -2.)
 
-    ch_idx, time_idx = _get_peak(data, times, mode='pos')
+    ch_idx, time_idx, max_amp = _get_peak(data, times, mode='pos')
     assert_equal(ch_idx, 0)
     assert_equal(time_idx, 2)
+    assert_allclose(max_amp, 2.)
 
     assert_raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
     assert_raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
