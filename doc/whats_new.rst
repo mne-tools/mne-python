@@ -307,6 +307,8 @@ API
 
 - Show channel name under mouse cursor on topography plots by `Jussi Nurminen`_
 
+- Return maximum response amplitude from :meth:`mne.Evoked.get_peak`
+
 Authors
 ~~~~~~~
 
