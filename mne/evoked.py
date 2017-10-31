@@ -565,7 +565,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return_amplitude : bool
             If True, return also the amplitude at the maximum response.
 
-        .. versionadded:: 0.16
+            .. versionadded:: 0.16
+            
         Returns
         -------
         ch_name : str
@@ -577,7 +578,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The amplitude of the maximum response. Only returned if
             return_amplitude is True.
         
-        .. versionadded:: 0.16
+            .. versionadded:: 0.16
         """
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
                      'hbr', 'None')
