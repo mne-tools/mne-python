@@ -1456,6 +1456,7 @@ def set_memmap_min_size(memmap_min_size):
 
 # List the known configuration values
 known_config_types = (
+    'FREESURFER_HOME',
     'MNE_BROWSE_RAW_SIZE',
     'MNE_CACHE_DIR',
     'MNE_COREG_COPY_ANNOT',

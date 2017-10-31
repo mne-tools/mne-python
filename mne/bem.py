@@ -27,7 +27,8 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
-from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn, _pl
+from .utils import (verbose, logger, run_subprocess, get_config,
+                    get_subjects_dir, warn, _pl)
 from .externals.six import string_types
 
 
@@ -1539,9 +1540,9 @@ def write_bem_solution(fname, bem):
 def _prepare_env(subject, subjects_dir, requires_freesurfer):
     """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
-    if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
-        raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
-                           'environment variable is not set.')
+    if requires_freesurfer and 'FREESURFER_HOME' not in env:
+        env['FREESURFER_HOME'] = get_config('FREESURFER_HOME',
+                                            raise_error=True)
 
     if not isinstance(subject, string_types):
         raise TypeError('The subject argument must be set')
