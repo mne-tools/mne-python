@@ -1916,7 +1916,7 @@ def _get_ps_kwargs(initial_time, require='0.6'):
         raise ImportError("This function requires PySurfer %s (you are "
                           "running version %s). You can update PySurfer "
                           "using:\n\n    $ pip install -U pysurfer" %
-                          require, surfer.__version__)
+                          (require, surfer.__version__))
 
     ad_kwargs = dict()
     sd_kwargs = dict()
