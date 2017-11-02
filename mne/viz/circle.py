@@ -134,8 +134,19 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              node_linewidth=2., show=True):
     """Visualize connectivity as a circular graph.
 
-    Note: This code is based on the circle graph example by Nicolas P. Rougier
+    Notes: 
+    
+    This code is based on the circle graph example by Nicolas P. Rougier
     http://www.labri.fr/perso/nrougier/coding/.
+    
+    By default, ``matplotlib`` does take ``facecolor`` into account, even if 
+    set when a figure is generated. This can be addressed via 
+    :func:`matplotlib.pyplot.savefig`, e.g.::
+    
+        >>> fig.savefig(fname_fig, facecolor='black'))
+        
+    If ``facecolor`` is not set via :func:`matplotlib.pyplot.savefig`, the 
+    figure labels, title, and legend may be cut off in the output figure.
 
     Parameters
     ----------
