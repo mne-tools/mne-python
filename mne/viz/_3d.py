@@ -484,6 +484,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     fig : mayavi figure object | None
         Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
+
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
