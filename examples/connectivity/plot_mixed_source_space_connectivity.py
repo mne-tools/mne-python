@@ -15,6 +15,7 @@ is ordered based on the locations of the regions.
 import os.path as op
 import numpy as np
 import mne
+import matplotlib.pyplot as plt
 
 from mne.datasets import sample
 from mne import setup_volume_source_space, setup_source_space
@@ -173,7 +174,22 @@ node_angles = circular_layout(label_names, node_order, start_pos=90,
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.
 conmat = con[:, :, 0]
+fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
 plot_connectivity_circle(conmat, label_names, n_lines=300,
                          node_angles=node_angles, node_colors=node_colors,
                          title='All-to-All Connectivity left-Auditory '
-                               'Condition (PLI)')
+                         'Condition (PLI)', fig=fig, interactive=False, 
+                         show=False)
+
+plt.show()
+
+###############################################################################
+# Save the figure (optional)
+# --------------------------
+#
+# By default matplotlib does not save using the facecolor, even though this was
+# set when the figure was generated. If not set via savefig, the labels, title,
+# and legend will be cut off from the output png file.
+
+#fname_fig = data_path + '/MEG/sample/plot_mixed_connect.png'
+#plt.savefig(fname_fig, facecolor='black')
