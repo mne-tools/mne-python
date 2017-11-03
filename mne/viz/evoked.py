@@ -1475,7 +1475,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         Power plotted.
     gfp : bool
         If True, the channel type wise GFP is plotted.
-        If ``picks`` is an empty list (default), this is set to True.
+        If `picks` is an empty list (default), this is set to True.
     colors : list | dict | None
         If a list, will be sequentially used for line colors.
         If a dict, can map evoked keys or '/'-separated (HED) tags to
@@ -1589,10 +1589,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if isinstance(evokeds, Evoked):
         evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
     elif not isinstance(evokeds, dict):  # it's assumed to be a list
-        if cmap is not None:
-            if colors is None:
-                colors = dict(
-                    (str(ii + 1), ii) for ii, evoked in enumerate(evokeds))
+        if (cmap is not None) and (colors is None):
+            colors = dict(
+                (str(ii + 1), ii) for ii, evoked in enumerate(evokeds))
         evokeds = dict((str(ii + 1), evoked)
                        for ii, evoked in enumerate(evokeds))
     for cond in evokeds.keys():

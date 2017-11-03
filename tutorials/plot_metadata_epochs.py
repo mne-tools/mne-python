@@ -1,4 +1,6 @@
 """
+.. _tut_metadata_epochs:
+
 ================================================
 Pandas querying and metadata with Epochs objects
 ================================================
@@ -70,12 +72,12 @@ epochs['cent'].average().plot(show=False)
 # it to generate averages for many subsets of trials.
 
 # Create two new metadata columns
-meta = epochs.metadata
-is_concrete = meta["Concreteness"] > meta["Concreteness"].median()
-meta["is_concrete"] = np.where(is_concrete, 'Concrete', 'Abstract')
-is_concrete = meta["NumberOfLetters"] > 5
-meta["is_long"] = np.where(is_concrete, 'Long', 'Short')
-epochs.metadata = meta
+metadata = epochs.metadata
+is_concrete = metadata["Concreteness"] > metadata["Concreteness"].median()
+metadata["is_concrete"] = np.where(is_concrete, 'Concrete', 'Abstract')
+is_concrete = metadata["NumberOfLetters"] > 5
+metadata["is_long"] = np.where(is_concrete, 'Long', 'Short')
+epochs.metadata = metadata
 
 ###############################################################################
 # Now we can quickly extract (and plot) subsets of the data. For example, to
@@ -108,12 +110,13 @@ plt.show()
 # To compare words which are 4, 5, 6, 7 or 8 letters long:
 
 evokeds = dict()
-for nlet in epochs.metadata["NumberOfLetters"].unique():
-    evokeds[str(nlet)] = epochs["NumberOfLetters == " + str(nlet)].average()
+for n_letters in epochs.metadata["NumberOfLetters"].unique():
+    n_letters = str(n_letters)
+    evokeds[n_letters] = epochs["NumberOfLetters == " + n_letters].average()
 
-style_plot["colors"] = {str(nlet): int(nlet) for nlet in
+style_plot["colors"] = {str(n_letters): int(n_letters) for n_letters in
                         epochs.metadata["NumberOfLetters"].unique()}
-style_plot["cmap"] = "summer_r"
+style_plot["cmap"] = ("Number of letters", "summer_r")
 del style_plot['linestyles']
 
 fig, ax = plt.subplots(figsize=(6, 4))
@@ -126,9 +129,9 @@ plt.show()
 evokeds = dict()
 query = "is_concrete == '{0}' & NumberOfLetters == {1}"
 for concreteness in ("Concrete", "Abstract"):
-    for nlet in epochs.metadata["NumberOfLetters"].unique():
-        subset = epochs[query.format(concreteness, nlet)]
-        evokeds["/".join((concreteness, str(nlet)))] = subset.average()
+    for n_letters in epochs.metadata["NumberOfLetters"].unique():
+        subset = epochs[query.format(concreteness, n_letters)]
+        evokeds["/".join((concreteness, str(n_letters)))] = subset.average()
 
 style_plot["linestyles"] = {"Concrete": "-", "Abstract": ":"}
 
