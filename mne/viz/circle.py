@@ -143,7 +143,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     if set when a figure is generated. This can be addressed via 
     :func:`matplotlib.pyplot.savefig`, e.g.::
     
-    >>> fig.savefig(fname_fig, facecolor='black')
+    >>> fig.savefig(fname_fig, facecolor='black') # doctest:+SKIP
         
     If ``facecolor`` is not set via :func:`matplotlib.pyplot.savefig`, the 
     figure labels, title, and legend may be cut off in the output figure.
