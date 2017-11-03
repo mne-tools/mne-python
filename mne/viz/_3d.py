@@ -422,7 +422,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, fig=None, verbose=None):
+                   bem=None, fig=None, interaction='terrain', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -486,6 +486,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.16
+    interaction : str
+        Can be "trackball" or "terrain" (default), i.e. a turntable-style
+        camera.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -513,6 +518,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils
     mlab = _import_mlab()
+    from tvtk.api import tvtk
 
     if eeg is False:
         eeg = list()
@@ -533,6 +539,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         meg = [meg]
     if isinstance(eeg, string_types):
         eeg = [eeg]
+
+    if not isinstance(interaction, string_types) or \
+            interaction not in ('trackball', 'terrain'):
+        raise ValueError('interaction must be "trackball" or "terrain", '
+                         'got "%s"' % (interaction,))
 
     for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
         if not isinstance(var, (list, tuple)) or \
@@ -630,7 +641,9 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     surfs = dict()
 
     # Head:
+    sphere_level = 4
     head = False
+    head_colors = head_lut = None
     for s in surfaces:
         if s in ('head', 'outer_skin', 'head-dense', 'seghead'):
             if head:
@@ -643,7 +656,20 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 if bem is not None:
                     if isinstance(bem, ConductorModel):
                         if is_sphere:
-                            head_surf = _complete_sphere_surf(bem, 3, 4)
+                            head_surf = _complete_sphere_surf(
+                                bem, 3, sphere_level)
+                            head_colors = np.zeros(len(head_surf['rr']))
+                            # leftward are slightly red
+                            head_colors.fill(1)
+                            # rightward are slightly blue
+                            head_colors[head_surf['rr'][:, 0] > 0] = 2
+                            # downward are gray
+                            head_colors[head_surf['rr'][:, 2] <= 0] = 0
+                            # Now we define colors 0->3
+                            head_lut = np.ones((256, 4))
+                            rgbs = head_lut[:4, :3]
+                            rgbs *= 0.6
+                            rgbs[1:3] = [(0.9, 0.2, 0.2), (0.2, 0.2, 0.9)]
                         else:  # BEM solution
                             head_surf = _bem_find_surface(
                                 bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
@@ -712,12 +738,13 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 surf['rr'] /= 1000.
                 skull.append(surf)
             elif isinstance(bem, ConductorModel):
-                if bem['is_sphere']:
+                if is_sphere:
                     if len(bem['layers']) != 4:
                         raise ValueError('The sphere model must have three '
                                          'layers for plotting %s' % (name,))
                     this_idx = 1 if name == 'inner_skull' else 2
-                    skull.append(_complete_sphere_surf(bem, this_idx, 4))
+                    skull.append(_complete_sphere_surf(
+                        bem, this_idx, sphere_level))
                     skull[-1]['id'] = _surf_dict[name]
                 else:
                     skull.append(_bem_find_surface(bem, id_))
@@ -749,6 +776,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     if 'helmet' in meg and len(meg_picks) > 0:
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
+        assert surfs['helmet']['coord_frame'] == FIFF.FIFFV_COORD_MRI
 
     # Brain:
     brain = np.intersect1d(surfaces, ['brain', 'pial', 'white', 'inflated'])
@@ -763,7 +791,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         brain = 'pial' if brain == 'brain' else brain
         if is_sphere:
             if len(bem['layers']) > 0:
-                surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # only plot 1
+                surfs['lh'] = _complete_sphere_surf(
+                    bem, 0, sphere_level)  # only plot 1
         else:
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             for hemi in ['lh', 'rh']:
@@ -791,7 +820,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             this_skull = _surf_name[skull_surf['id']]
         elif is_sphere:  # this_skull == str
             this_idx = 1 if this_skull == 'inner_skull' else 2
-            skull_surf = _complete_sphere_surf(bem, this_idx, 4)
+            skull_surf = _complete_sphere_surf(bem, this_idx, sphere_level)
         else:  # str
             skull_fname = op.join(subjects_dir, subject, 'bem', 'flash',
                                   '%s.surf' % this_skull)
@@ -816,7 +845,9 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         head_alpha = alphas[0]
 
     for key in surfs.keys():
-        surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
+        # Surfs can sometimes be in head coords (e.g., if coming from sphere)
+        surfs[key] = transform_surface_to(surfs[key], coord_frame,
+                                          [mri_trans, head_trans])
     if src is not None:
         if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
             src_rr = apply_trans(mri_trans, src_rr)
@@ -893,6 +924,9 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     # initialize figure
     if fig is None:
         fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    if interaction == 'terrain':
+        fig.scene.interactor.interactor_style = \
+            tvtk.InteractorStyleTerrain()
     _toggle_mlab_render(fig, False)
 
     # plot surfaces
@@ -903,10 +937,20 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     colors.update(skull_colors)
     for key, surf in surfs.items():
         # Make a solid surface
-        mesh = _create_mesh_surf(surf, fig)
-        with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(mesh, color=colors[key],
-                                            opacity=alphas[key], figure=fig)
+        if key in ('head', 'inner_skull', 'outer_skull', 'brain') and \
+                head_colors is not None:
+            mesh = _create_mesh_surf(surf, fig, head_colors)
+            with warnings.catch_warnings(record=True):  # traits
+                surface = mlab.pipeline.surface(
+                    mesh, vmin=0, vmax=255, opacity=alphas[key], figure=fig)
+            cmap = surface.module_manager.scalar_lut_manager
+            cmap.load_lut_from_list(head_lut)
+            # surface.actor
+        else:
+            mesh = _create_mesh_surf(surf, fig)
+            with warnings.catch_warnings(record=True):  # traits
+                surface = mlab.pipeline.surface(
+                    mesh, color=colors[key], opacity=alphas[key], figure=fig)
         if key != 'helmet':
             surface.actor.property.backface_culling = True
     if brain and 'lh' not in surfs:  # one layer sphere

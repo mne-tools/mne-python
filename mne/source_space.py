@@ -21,7 +21,7 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_sparse_rcs, write_string,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
-from .bem import read_bem_surfaces
+from .bem import read_bem_surfaces, ConductorModel
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
                       _normalize_vectors, _get_solids, _triangle_neighbors,
@@ -1461,7 +1461,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     sphere : array_like (length 4)
         Define spherical source space bounds using origin and radius given
         by (ox, oy, oz, rad) in mm. Only used if `bem` and `surface` are
-        both None.
+        both None. Can also be a spherical ConductorModel.
     bem : str | None
         Define source space bounds using a BEM file (specifically the inner
         skull surface).
@@ -1538,9 +1538,15 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                                  'check  freesurfer lookup table.'
                                  % (label, mri))
 
+    if isinstance(sphere, ConductorModel):
+        if not sphere['is_sphere']:
+            raise TypeError('sphere must be a spherical conductor model, '
+                            'not BEM')
+        sphere = tuple(1000 * sphere['r0']) + (1000 * sphere.radius,)
     sphere = np.asarray(sphere)
     if sphere.size != 4:
-        raise ValueError('"sphere" must be array_like with 4 elements')
+        raise ValueError('"sphere" must be array_like with 4 elements, got: %s'
+                         % (sphere,))
 
     # triage bounding argument
     if bem is not None:

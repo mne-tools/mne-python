@@ -4,8 +4,8 @@
 Source alignment
 ================
 
-The aim of this tutorial is to show how to visually assess that the data
-are well aligned in space for computing the forward solution.
+The aim of this tutorial is to show how to visually assess that the data are
+well aligned in space for computing the forward solution.
 """
 import os.path as op
 
@@ -84,10 +84,10 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample', src=src,
 # .. note:: ``bem`` also accepts bem solutions (:func:`mne.read_bem_solution`)
 #           or a list of bem surfaces (:func:`mne.read_bem_surfaces`).
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')
-mne.viz.plot_alignment(raw.info, subject='sample', eeg='projected',
-                       meg='helmet', bem=sphere, dig=True,
-                       surfaces=['brain', 'inner_skull', 'outer_skull',
-                                 'outer_skin'])
+src = mne.setup_volume_source_space(sphere=sphere, pos=10.)
+mne.viz.plot_alignment(
+    raw.info, eeg='projected', meg='helmet', bem=sphere, src=src, dig=True,
+    surfaces=['brain', 'inner_skull', 'outer_skull', 'outer_skin'])
 
 
 ###############################################################################

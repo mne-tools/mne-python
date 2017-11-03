@@ -533,8 +533,8 @@ def transform_surface_to(surf, dest, trans, copy=False):
     dest : 'meg' | 'mri' | 'head' | int
         Destination coordinate system. Can be an integer for using
         FIFF types.
-    trans : dict
-        Transformation.
+    trans : list of Transformation
+        Transformations to consider.
     copy : bool
         If False (default), operate in-place.
 
@@ -552,7 +552,23 @@ def transform_surface_to(surf, dest, trans, copy=False):
     if surf['coord_frame'] == dest:
         return surf
 
-    trans = _ensure_trans(trans, int(surf['coord_frame']), dest)
+    if not isinstance(trans, (list, tuple)):
+        trans = [trans]
+    for this_trans in trans:
+        try:
+            trans = _ensure_trans(this_trans, int(surf['coord_frame']), dest)
+        except ValueError:  # doesn't work
+            pass
+        else:
+            break
+    else:
+        input_trans = ', '.join(['%s<->%s' % (_frame_to_str[t['from']],
+                                              _frame_to_str[t['to']])
+                                 for t in trans])
+        raise ValueError('trans must be a Transform between %s<->%s, got %s'
+                         % (_frame_to_str[surf['coord_frame']],
+                            _frame_to_str[dest], input_trans))
+
     surf['coord_frame'] = dest
     surf['rr'] = apply_trans(trans, surf['rr'])
     surf['nn'] = apply_trans(trans, surf['nn'], move=False)
