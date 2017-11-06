@@ -1458,10 +1458,11 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
         using this interpolator. If pos is a dict, this can be None.
-    sphere : array_like (length 4)
+    sphere : ndarray, shape (4,) | ConductorModel
         Define spherical source space bounds using origin and radius given
-        by (ox, oy, oz, rad) in mm. Only used if `bem` and `surface` are
-        both None. Can also be a spherical ConductorModel.
+        by (ox, oy, oz, rad) in mm. Only used if ``bem`` and ``surface``
+        are both None. Can also be a spherical ConductorModel, which will
+        use the origin and radius.
     bem : str | None
         Define source space bounds using a BEM file (specifically the inner
         skull surface).
@@ -1539,11 +1540,13 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                                  % (label, mri))
 
     if isinstance(sphere, ConductorModel):
-        if not sphere['is_sphere']:
-            raise TypeError('sphere must be a spherical conductor model, '
-                            'not BEM')
-        sphere = tuple(1000 * sphere['r0']) + (1000 * sphere.radius,)
-    sphere = np.asarray(sphere)
+        if not sphere['is_sphere'] or len(sphere['layers']) == 0:
+            raise ValueError('sphere, if a ConductorModel, must be spherical '
+                             'with multiple layers, not a BEM or single-layer '
+                             'sphere (got %s)' % (sphere,))
+        sphere = tuple(1000 * sphere['r0']) + (1000 *
+                                               sphere['layers'][0]['rad'],)
+    sphere = np.asarray(sphere, dtype=float)
     if sphere.size != 4:
         raise ValueError('"sphere" must be array_like with 4 elements, got: %s'
                          % (sphere,))

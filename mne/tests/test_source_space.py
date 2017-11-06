@@ -13,7 +13,7 @@ from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
-                 morph_source_spaces, SourceEstimate)
+                 morph_source_spaces, SourceEstimate, make_sphere_model)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_version, run_tests_if_main)
@@ -236,6 +236,16 @@ def test_volume_source_space():
                   mri=fname_mri, subjects_dir=subjects_dir)
     assert_equal(repr(src), repr(src_new))
     assert_equal(src.kind, 'volume')
+    # Spheres
+    sphere = make_sphere_model(r0=(0., 0., 0.), head_radius=0.1,
+                               relative_radii=(0.9, 1.0), sigmas=(0.33, 1.0))
+    src = setup_volume_source_space(pos=10)
+    src_new = setup_volume_source_space(pos=10, sphere=sphere)
+    _compare_source_spaces(src, src_new, mode='exact')
+    assert_raises(ValueError, setup_volume_source_space, sphere='foo')
+    # Need a radius
+    sphere = make_sphere_model(head_radius=None)
+    assert_raises(ValueError, setup_volume_source_space, sphere=sphere)
 
 
 @testing.requires_testing_data

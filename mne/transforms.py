@@ -370,12 +370,22 @@ def _ensure_trans(trans, fro='mri', to='head'):
     del to
     err_str = ('trans must be a Transform between %s<->%s, got'
                % (from_str, to_str))
-    if not isinstance(trans, Transform):
-        raise ValueError('%s None' % err_str)
-    if set([trans['from'], trans['to']]) != set([from_const, to_const]):
-        raise ValueError('%s %s->%s' % (err_str,
-                                        _frame_to_str[trans['from']],
-                                        _frame_to_str[trans['to']]))
+    if not isinstance(trans, (list, tuple)):
+        trans = [trans]
+    # Ensure that we have exactly one match
+    idx = list()
+    for ti, this_trans in enumerate(trans):
+        if not isinstance(this_trans, Transform):
+            raise ValueError('%s None' % err_str)
+        if set([this_trans['from'],
+                this_trans['to']]) == set([from_const, to_const]):
+            idx.append(ti)
+        else:
+            misses = '%s->%s' % (_frame_to_str[this_trans['from']],
+                                 _frame_to_str[this_trans['to']])
+    if len(idx) != 1:
+        raise ValueError('%s %s' % (err_str, ', '.join(misses)))
+    trans = trans[idx[0]]
     if trans['from'] != from_const:
         trans = invert_transform(trans)
     return trans
@@ -533,8 +543,9 @@ def transform_surface_to(surf, dest, trans, copy=False):
     dest : 'meg' | 'mri' | 'head' | int
         Destination coordinate system. Can be an integer for using
         FIFF types.
-    trans : list of Transformation
-        Transformations to consider.
+    trans : dict | list of dict
+        Transformation to use (or a list of possible transformations to
+        check).
     copy : bool
         If False (default), operate in-place.
 
@@ -552,23 +563,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
     if surf['coord_frame'] == dest:
         return surf
 
-    if not isinstance(trans, (list, tuple)):
-        trans = [trans]
-    for this_trans in trans:
-        try:
-            trans = _ensure_trans(this_trans, int(surf['coord_frame']), dest)
-        except ValueError:  # doesn't work
-            pass
-        else:
-            break
-    else:
-        input_trans = ', '.join(['%s<->%s' % (_frame_to_str[t['from']],
-                                              _frame_to_str[t['to']])
-                                 for t in trans])
-        raise ValueError('trans must be a Transform between %s<->%s, got %s'
-                         % (_frame_to_str[surf['coord_frame']],
-                            _frame_to_str[dest], input_trans))
-
+    trans = _ensure_trans(trans, int(surf['coord_frame']), dest)
     surf['coord_frame'] = dest
     surf['rr'] = apply_trans(trans, surf['rr'])
     surf['nn'] = apply_trans(trans, surf['nn'], move=False)

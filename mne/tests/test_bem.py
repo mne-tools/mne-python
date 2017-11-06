@@ -114,6 +114,8 @@ def test_make_sphere_model():
     bem = make_sphere_model('auto', None, info)
     assert_true('no layers' in repr(bem))
     assert_true('Sphere ' in repr(bem))
+    assert_raises(ValueError, make_sphere_model, sigmas=(0.33,),
+                  relative_radii=(1.0,))
 
 
 @testing.requires_testing_data

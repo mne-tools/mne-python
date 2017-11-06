@@ -16,7 +16,7 @@ from numpy.testing import assert_raises, assert_equal
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
-                 make_sphere_model)
+                 make_sphere_model, setup_volume_source_space)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
@@ -217,6 +217,11 @@ def test_plot_alignment():
     plot_alignment(info, trans_fname, subject='sample', meg=False,
                    coord_frame='mri', subjects_dir=subjects_dir,
                    surfaces=['brain'], bem=sphere)
+    src = setup_volume_source_space(sphere=sphere)
+    plot_alignment(info, eeg='projected', meg='helmet', bem=sphere,
+                   src=src, dig=True, surfaces=['brain', 'inner_skull',
+                                                'outer_skull', 'outer_skin'])
+
     # one layer bem with skull surfaces:
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
