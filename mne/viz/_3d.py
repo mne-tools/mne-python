@@ -483,7 +483,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
         the subjects bem and bem/flash folders are searched. Defaults to None.
     show_axes : bool
-        If True, coordinate frame axis indicators will be shown:
+        If True (default False), coordinate frame axis indicators will be
+        shown:
 
         * head in pink
         * MRI in gray (if ``trans is not None``)
@@ -954,10 +955,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         for ax in axes:
             x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
             u, v, w = ax[0]['trans'][:3, :3]
-            mlab.points3d(x[0], y[0], z[0], color=ax[1], scale_factor=2e-3)
+            mlab.points3d(x[0], y[0], z[0], color=ax[1], scale_factor=3e-3)
             mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=2e-2,
                           color=ax[1], scale_mode='scalar', resolution=20,
-                          scalars=[0.2, 0.5, 1.0])
+                          scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1021,7 +1022,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         quiv.glyph.glyph_source.glyph_source.resolution = 20
         quiv.actor.property.backface_culling = True
     with SilenceStdout():
-        mlab.view(90, 90, figure=fig)
+        mlab.view(90, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
     _toggle_mlab_render(fig, True)
     return fig
 

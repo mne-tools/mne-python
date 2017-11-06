@@ -35,7 +35,8 @@ raw = mne.io.read_raw_fif(raw_fname)
 # Freesurfer surfaces from the subject's folder. Here we use trans=None, which
 # (incorrectly!) equates the MRI and head coordinate frames.
 mne.viz.plot_alignment(raw.info, trans=None, subject='sample',
-                       subjects_dir=subjects_dir, surfaces=['head', 'brain'])
+                       subjects_dir=subjects_dir, dig=True,
+                       surfaces=['head-dense', 'brain'], coord_frame='meg')
 
 
 ###############################################################################
@@ -79,7 +80,8 @@ trans = mne.read_trans(tr_fname)
 src = mne.read_source_spaces(op.join(data_path, 'MEG', 'sample',
                                      'sample_audvis-meg-oct-6-meg-inv.fif'))
 mne.viz.plot_alignment(raw.info, trans=trans, subject='sample', src=src,
-                       subjects_dir=subjects_dir, surfaces=['head', 'white'])
+                       subjects_dir=subjects_dir, dig=True,
+                       surfaces=['head-dense', 'white'], coord_frame='meg')
 
 ###############################################################################
 # Visualizing coordinate frames
@@ -125,9 +127,8 @@ print('Distance from head origin to MRI origin: %0.1f mm'
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')
 src = mne.setup_volume_source_space(sphere=sphere, pos=10.)
 mne.viz.plot_alignment(
-    raw.info, eeg='projected', meg='sensors', bem=sphere, src=src, dig=True,
-    surfaces=['brain', 'inner_skull', 'outer_skull', 'outer_skin'],
-    coord_frame='meg')
+    raw.info, eeg='projected', bem=sphere, src=src, dig=True,
+    surfaces=['brain', 'outer_skin'], coord_frame='meg', show_axes=True)
 
 ###############################################################################
 # It is also possible to use :func:`mne.gui.coregistration`
