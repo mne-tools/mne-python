@@ -9,6 +9,9 @@ well aligned in space for computing the forward solution.
 """
 import os.path as op
 
+import numpy as np
+from mayavi import mlab
+
 import mne
 from mne.datasets import sample
 
@@ -66,6 +69,10 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample',
 #   manually with the controls on the right side of the panel.
 # * Click ``Save As...`` (lower right corner of the panel), set the filename
 #   and read it with :func:`mne.read_trans`.
+#
+# For more information, see step by step instructions
+# `in these slides
+# <http://www.slideshare.net/mne-python/mnepython-coregistration>`_.
 
 # mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
 trans = mne.read_trans(tr_fname)
@@ -74,25 +81,56 @@ src = mne.read_source_spaces(op.join(data_path, 'MEG', 'sample',
 mne.viz.plot_alignment(raw.info, trans=trans, subject='sample', src=src,
                        subjects_dir=subjects_dir, surfaces=['head', 'white'])
 
+###############################################################################
+# Visualizing coordinate frames
+# -----------------------------
+# If you are curious about the origin and orientation of each of these
+# coordinate frames, you can use the ``show_axes`` argument to see how
+# each coordinate frame is aligned (shortest arrow is right/X,
+# medium is forward/anderior/Y, longest is up/superior/Z, i.e., RAS
+# coordinates).
+#
+# From this plot, where we have removed surfaces to more clearly see the
+# coordinate frame axes, you can see:
+#
+# 1. The Neuromage head coordinate frame that MNE uses (pink) is defined by
+#    the intersection of the line between the LPA and RPA, and the normal from
+#    that line to the Nasion.
+# 2. The MEG device coordinate frame (cyan) is somewhat centered on the
+#    sensors, and is aligned to the head coordinate frame during acquisition,
+#    where it is stored in ``raw.info['dev_head_t']`` as a
+#    :class:`mne.transforms.Transform`.
+# 3. The MRI coordinate frame (gray), which is defined by Freesurfer during
+#    reconstruction, is not the same as the head coordinate frame, and is
+#    aligned to the head coordinate frame by ``trans``.
+
+mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+                       subjects_dir=subjects_dir, surfaces='head-dense',
+                       show_axes=True, dig=True, eeg=[], meg='sensors',
+                       coord_frame='meg')
+mlab.view(45, 90, distance=0.6, focalpoint=(0., 0., 0.))
+print('Distance from head origin to MEG origin: %0.1f mm'
+      % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
+print('Distance from head origin to MRI origin: %0.1f mm'
+      % (1000 * np.linalg.norm(trans['trans'][:3, 3])))
 
 ###############################################################################
-# The previous is possible if you have the surfaces available from Freesurfer.
-# The function automatically searches for the correct surfaces from the
-# provided ``subjects_dir``. Otherwise, one option is to use a spherical
-# conductor model. It is passed through ``bem`` parameter.
-#
-# .. note:: ``bem`` also accepts bem solutions (:func:`mne.read_bem_solution`)
-#           or a list of bem surfaces (:func:`mne.read_bem_surfaces`).
+# Alignment without MRI
+# ---------------------
+# The surface alignments above are possible if you have the surfaces available
+# from Freesurfer. :func:`mne.viz.plot_alignment` automatically searches for
+# the correct surfaces from the provided ``subjects_dir``. Another option is
+# to use a spherical conductor model. It is passed through ``bem`` parameter.
+
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')
 src = mne.setup_volume_source_space(sphere=sphere, pos=10.)
 mne.viz.plot_alignment(
-    raw.info, eeg='projected', meg='helmet', bem=sphere, src=src, dig=True,
-    surfaces=['brain', 'inner_skull', 'outer_skull', 'outer_skin'])
-
+    raw.info, eeg='projected', meg='sensors', bem=sphere, src=src, dig=True,
+    surfaces=['brain', 'inner_skull', 'outer_skull', 'outer_skin'],
+    coord_frame='meg')
 
 ###############################################################################
-# For more information see step by step instructions
-# `for subjects with structural MRI
-# <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
-# subjects for which no MRI is available
+# It is also possible to use :func:`mne.gui.coregistration`
+# to warp a subject (usually ``fsaverage``) to subject digitization data, see
+# `these slides
 # <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.

@@ -213,14 +213,15 @@ def test_plot_alignment():
     plot_alignment(info, trans_fname, subject='sample',
                    meg=True, subjects_dir=subjects_dir,
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
-    sphere = make_sphere_model('auto', None, evoked.info)  # one layer
-    plot_alignment(info, trans_fname, subject='sample', meg=False,
-                   coord_frame='mri', subjects_dir=subjects_dir,
-                   surfaces=['brain'], bem=sphere)
+    sphere = make_sphere_model('auto', 'auto', evoked.info)
     src = setup_volume_source_space(sphere=sphere)
     plot_alignment(info, eeg='projected', meg='helmet', bem=sphere,
                    src=src, dig=True, surfaces=['brain', 'inner_skull',
                                                 'outer_skull', 'outer_skin'])
+    sphere = make_sphere_model('auto', None, evoked.info)  # one layer
+    plot_alignment(info, trans_fname, subject='sample', meg=False,
+                   coord_frame='mri', subjects_dir=subjects_dir,
+                   surfaces=['brain'], bem=sphere, show_axes=True)
 
     # one layer bem with skull surfaces:
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,

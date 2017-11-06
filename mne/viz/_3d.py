@@ -422,7 +422,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, fig=None, interaction='terrain', verbose=None):
+                   bem=None, show_axes=False, fig=None,
+                   interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -481,13 +482,21 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
         `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
         the subjects bem and bem/flash folders are searched. Defaults to None.
+    show_axes : bool
+        If True, coordinate frame axis indicators will be shown:
+
+        * head in pink
+        * MRI in gray (if ``trans is not None``)
+        * MEG in blue (if MEG sensors are present)
+
+        .. versionadded:: 0.16
     fig : mayavi figure object | None
         Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.16
     interaction : str
-        Can be "trackball" or "terrain" (default), i.e. a turntable-style
+        Can be "trackball" (default) or "terrain", i.e. a turntable-style
         camera.
 
         .. versionadded:: 0.16
@@ -643,7 +652,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     # Head:
     sphere_level = 4
     head = False
-    head_colors = head_lut = None
     for s in surfaces:
         if s in ('head', 'outer_skin', 'head-dense', 'seghead'):
             if head:
@@ -658,18 +666,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                         if is_sphere:
                             head_surf = _complete_sphere_surf(
                                 bem, 3, sphere_level)
-                            head_colors = np.zeros(len(head_surf['rr']))
-                            # leftward are slightly red
-                            head_colors.fill(1)
-                            # rightward are slightly blue
-                            head_colors[head_surf['rr'][:, 0] > 0] = 2
-                            # downward are gray
-                            head_colors[head_surf['rr'][:, 2] <= 0] = 0
-                            # Now we define colors 0->3
-                            head_lut = np.ones((256, 4))
-                            rgbs = head_lut[:4, :3]
-                            rgbs *= 0.6
-                            rgbs[1:3] = [(0.9, 0.2, 0.2), (0.2, 0.2, 0.9)]
                         else:  # BEM solution
                             head_surf = _bem_find_surface(
                                 bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
@@ -839,7 +835,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
         surfs[this_skull] = skull_surf
 
-    if src is None and brain is False and len(skull) == 0:
+    if src is None and brain is False and len(skull) == 0 and not show_axes:
         head_alpha = 1.0
     else:
         head_alpha = alphas[0]
@@ -923,34 +919,24 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     # initialize figure
     if fig is None:
-        fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+        fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(800, 800))
     if interaction == 'terrain' and fig.scene is not None:
         fig.scene.interactor.interactor_style = \
             tvtk.InteractorStyleTerrain()
     _toggle_mlab_render(fig, False)
 
     # plot surfaces
-    alphas = dict(head=head_alpha, helmet=0.5, lh=hemi_val, rh=hemi_val)
+    alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
     alphas.update(skull_alpha)
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
     colors.update(skull_colors)
     for key, surf in surfs.items():
         # Make a solid surface
-        if key in ('head', 'inner_skull', 'outer_skull', 'brain') and \
-                head_colors is not None:
-            mesh = _create_mesh_surf(surf, fig, head_colors)
-            with warnings.catch_warnings(record=True):  # traits
-                surface = mlab.pipeline.surface(
-                    mesh, vmin=0, vmax=255, opacity=alphas[key], figure=fig)
-            cmap = surface.module_manager.scalar_lut_manager
-            cmap.load_lut_from_list(head_lut)
-            # surface.actor
-        else:
-            mesh = _create_mesh_surf(surf, fig)
-            with warnings.catch_warnings(record=True):  # traits
-                surface = mlab.pipeline.surface(
-                    mesh, color=colors[key], opacity=alphas[key], figure=fig)
+        mesh = _create_mesh_surf(surf, fig)
+        with warnings.catch_warnings(record=True):  # traits
+            surface = mlab.pipeline.surface(
+                mesh, color=colors[key], opacity=alphas[key], figure=fig)
         if key != 'helmet':
             surface.actor.property.backface_culling = True
     if brain and 'lh' not in surfs:  # one layer sphere
@@ -959,6 +945,19 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         center = apply_trans(head_trans, center)
         mlab.points3d(*center, scale_factor=0.01, color=colors['lh'],
                       opacity=alphas['lh'])
+    if show_axes:
+        axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
+        if not np.allclose(mri_trans['trans'], np.eye(4)):  # Show MRI
+            axes.append((mri_trans, (0.6, 0.6, 0.6)))
+        if len(meg_picks) > 0:  # Show MEG
+            axes.append((meg_trans, (0., 0.6, 0.6)))
+        for ax in axes:
+            x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
+            u, v, w = ax[0]['trans'][:3, :3]
+            mlab.points3d(x[0], y[0], z[0], color=ax[1], scale_factor=2e-3)
+            mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=2e-2,
+                          color=ax[1], scale_mode='scalar', resolution=20,
+                          scalars=[0.2, 0.5, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1010,7 +1009,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         with warnings.catch_warnings(record=True):  # traits
             surface = mlab.pipeline.surface(mesh, color=color,
                                             opacity=alpha, figure=fig)
-        # Don't cull these backfaces
+        surface.actor.property.backface_culling = True
     if len(src_rr) > 0:
         with warnings.catch_warnings(record=True):  # traits
             quiv = mlab.quiver3d(
@@ -1055,7 +1054,7 @@ def _sensor_shape(coil):
             [-long_side / 2., long_side / 2.],
             [-offset, long_side / 2.]])
         tris = np.concatenate((_make_tris_fan(4),
-                               _make_tris_fan(4) + 4), axis=0)
+                               _make_tris_fan(4)[:, ::-1] + 4), axis=0)
     elif id_ in (2000, 3022, 3023, 3024):
         # square magnetometer (potentially point-type)
         size = 0.001 if id_ == 2000 else (coil['size'] / 2.)
