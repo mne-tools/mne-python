@@ -1017,7 +1017,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
     cluster_pv : array
         P-value for each cluster
     H0 : array, shape (n_permutations,)
-        Max cluster level stats observed under permutation.^
+        Max cluster level stats observed under permutation.
 
     References
     ----------
