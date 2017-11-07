@@ -555,7 +555,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         ch_type = set(channel_type(pos, idx)
                       for idx, _ in enumerate(pos["chs"]))
         info_help = ("Pick Info with e.g. mne.pick_info and "
-                     "mne.channels.channel_indices_by_type.")
+                     "mne.io.pick.channel_indices_by_type.")
         if len(ch_type) > 1:
             raise ValueError("Multiple channel types in Info structure. " +
                              info_help)
