@@ -243,14 +243,14 @@ def read_events(filename, include=None, exclude=None, mask=None,
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
-        try:
-            event_list, _ = _read_events_fif(fid, tree)
-        finally:
-            fid.close()
+        with fid as f:
+            event_list, _ = _read_events_fif(f, tree)
+        # hack fix for windows to avoid bincount problems
+        event_list = event_list.astype(int)
     else:
         #  Have to read this in as float64 then convert because old style
         #  eve/lst files had a second float column that will raise errors
-        lines = np.loadtxt(filename, dtype=np.float64).astype(np.uint32)
+        lines = np.loadtxt(filename, dtype=np.float64).astype(int)
         if len(lines) == 0:
             raise ValueError('No text lines found')
 
