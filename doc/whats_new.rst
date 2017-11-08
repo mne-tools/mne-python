@@ -25,6 +25,8 @@ Changelog
 
 - Allow plotting in user-created mayavi Scene in :func:`mne.viz.plot_alignment` by `Daniel McCloy`_
 
+- Reduce memory consumption and do not require data to be loaded in :meth:`mne.Epochs.apply_baseline` by `Eric Larson`_
+
 Bug
 ~~~
 

@@ -322,7 +322,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if tmin > tmax:
             raise ValueError('tmin has to be less than or equal to tmax')
         _check_baseline(baseline, tmin, tmax, info['sfreq'])
-        _log_rescale(baseline)
+        logger.info(_log_rescale(baseline))
         self.baseline = baseline
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
@@ -545,22 +545,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         .. versionadded:: 0.10.0
         """
-        if not self.preload:
-            # Eventually we can relax this restriction, but it will require
-            # more careful checking of baseline (e.g., refactor with the
-            # BaseEpochs.__init__ checks)
-            raise RuntimeError('Data must be loaded to apply a new baseline')
         _check_baseline(baseline, self.tmin, self.tmax, self.info['sfreq'])
-
-        picks = _pick_data_channels(self.info, exclude=[], with_ref_meg=True)
-        picks_aux = _pick_aux_channels(self.info, exclude=[])
-        picks = np.sort(np.concatenate((picks, picks_aux)))
-
-        data = self._data
-        data[:, picks, :] = rescale(data[:, picks, :], self.times, baseline,
-                                    copy=False)
+        if self.preload:
+            picks = _pick_data_channels(self.info, exclude=[],
+                                        with_ref_meg=True)
+            picks_aux = _pick_aux_channels(self.info, exclude=[])
+            picks = np.sort(np.concatenate((picks, picks_aux)))
+            rescale(self._data, self.times, baseline, copy=False, picks=picks)
+        else:  # logging happens in "rescale" in "if" branch
+            logger.info(_log_rescale(baseline))
         self.baseline = baseline
-
         return self
 
     def _reject_setup(self, reject, flat):
@@ -1728,8 +1722,8 @@ def _check_baseline(baseline, tmin, tmax, sfreq):
     """Check for a valid baseline."""
     if baseline is not None:
         if not isinstance(baseline, tuple) or len(baseline) != 2:
-            raise ValueError('`baseline=%s` is an invalid argument.'
-                             % str(baseline))
+            raise ValueError('`baseline=%s` is an invalid argument, must be '
+                             'a tuple of length 2 or None' % str(baseline))
         baseline_tmin, baseline_tmax = baseline
         tstep = 1. / float(sfreq)
         if baseline_tmin is None:
@@ -1750,7 +1744,6 @@ def _check_baseline(baseline, tmin, tmax, sfreq):
             raise ValueError(
                 "Baseline min (%s) must be less than baseline max (%s)"
                 % (baseline_tmin, baseline_tmax))
-        del baseline_tmin, baseline_tmax
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):

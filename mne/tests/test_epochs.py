@@ -7,6 +7,7 @@
 import os.path as op
 from copy import deepcopy
 from distutils.version import LooseVersion
+from functools import partial
 
 import pytest
 from nose.tools import (assert_true, assert_equal, assert_raises,
@@ -513,6 +514,51 @@ def test_event_ordering():
                  1)
 
 
+def test_rescale():
+    """Test rescale."""
+    data = np.array([2, 3, 4, 5], float)
+    times = np.array([0, 1, 2, 3], float)
+    baseline = (0, 2)
+    tester = partial(rescale, data=data, times=times, baseline=baseline)
+    assert_allclose(tester(mode='mean'), [-1, 0, 1, 2])
+    assert_allclose(tester(mode='ratio'), data / 3.)
+    assert_allclose(tester(mode='logratio'), np.log10(data / 3.))
+    assert_allclose(tester(mode='percent'), (data - 3) / 3.)
+    assert_allclose(tester(mode='zscore'), (data - 3) / np.std([2, 3, 4]))
+    x = data / 3.
+    x = np.log10(x)
+    s = np.std(x[:3])
+    assert_allclose(tester(mode='zlogratio'), x / s)
+
+
+def test_epochs_baseline():
+    """Test baseline and rescaling modes with and without preloading."""
+    data = np.array([[2, 3], [2, 3]], float)
+    info = create_info(2, 1000., ('eeg', 'misc'))
+    raw = RawArray(data, info)
+    events = np.array([[0, 0, 1]])
+    for preload in (False, True):
+        epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None,
+                            preload=preload)
+        epochs.drop_bad()
+        epochs_data = epochs.get_data()
+        assert epochs_data.shape == (1, 2, 2)
+        expected = data.copy()
+        assert_array_equal(epochs_data[0], expected)
+        # the baseline period (1 sample here)
+        epochs.apply_baseline((None, 0))
+        expected[0] = [0, 1]
+        if preload:
+            assert_allclose(epochs_data[0][0], expected[0])
+        else:
+            assert_allclose(epochs_data[0][0], expected[1])
+        assert_allclose(epochs.get_data()[0], expected, atol=1e-7)
+        # entire interval
+        epochs.apply_baseline((None, None))
+        expected[0] = [-0.5, 0.5]
+        assert_allclose(epochs.get_data()[0], expected)
+
+
 def test_epochs_bad_baseline():
     """Test Epochs initialization with bad baseline parameters."""
     raw, events = _get_data()[:2]
@@ -522,7 +568,6 @@ def test_epochs_bad_baseline():
     assert_raises(ValueError, Epochs, raw, events, None, 0.1, 0.3, (None, 0))
     assert_raises(ValueError, Epochs, raw, events, None, -0.3, -0.1, (0, None))
     epochs = Epochs(raw, events, None, 0.1, 0.3, baseline=None)
-    assert_raises(RuntimeError, epochs.apply_baseline, (0.1, 0.2))
     epochs.load_data()
     assert_raises(ValueError, epochs.apply_baseline, (None, 0))
     assert_raises(ValueError, epochs.apply_baseline, (0, None))
