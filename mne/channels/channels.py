@@ -134,7 +134,7 @@ def equalize_channels(candidates, verbose=None):
 
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
-    logger.info('Identiying common channels ...')
+    logger.info('Identifying common channels ...')
     channels = [set(c.ch_names) for c in candidates]
     common_channels = set(chan_template).intersection(*channels)
     dropped = list()
