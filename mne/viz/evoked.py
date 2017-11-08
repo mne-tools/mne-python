@@ -1441,7 +1441,7 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 
 def _check_loc_legal(loc, what):
-    """Check if a loc is a legal for MPL"""
+    """Check if a loc is a legal for MPL."""
     str_locs = ["best", "right", "center", "upper right", "upper left",
                 "lower right", "lower left", "center right", "center left",
                 "upper center", "lower center"]
@@ -1782,8 +1782,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 legend_labels.append(color)
         if len(list(linestyles)) > 1:  # ... one set for the linestyle
             for style, s in linestyles.items():
-                l = mlines.Line2D([], [], color='k', linestyle=s)
-                legend_lines.append(l)
+                line = mlines.Line2D([], [], color='k', linestyle=s)
+                legend_lines.append(line)
                 legend_labels.append(style)
 
     # dealing with continuous colors
@@ -1793,8 +1793,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                 float(color_value)
             except ValueError:
                 raise TypeError("If ``cmap`` is not None, the values of "
-                                 "``colors`` must be numeric. Got " +
-                                 str(type(color_value)))
+                                "``colors`` must be numeric. Got " +
+                                str(type(color_value)))
         cmapper = getattr(plt.cm, cmap, cmap)
         color_conds = list(colors.keys())
         all_colors = [colors[cond] for cond in color_conds]
