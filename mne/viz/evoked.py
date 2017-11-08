@@ -1484,8 +1484,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         "Vis/L", "Vis/R", `colors` can be `dict(Aud='r', Vis='b')` to map both
         Aud/L and Aud/R to the color red and both Visual conditions to blue.
         If None (default), a sequence of desaturated colors is used.
-        If `cmap` is None, `colors` will indicate how each condition will be
-        colored with reference to its position on the colormap - see `colormap`
+        If `cmap` is None, `colors` will indicate how each condition is
+        colored with reference to its position on the colormap - see `cmap`
         below.
     linestyles : list | dict
         If a list, will be sequentially and repeatedly used for evoked plot
@@ -1555,13 +1555,13 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     invert_y : bool
         If True, negative values are plotted up (as is sometimes done
         for ERPs out of tradition). Defaults to False.
-    show_sensors: bool | int | None
+    show_sensors: bool | int | str | None
         If not False, channel locations are plotted on a small head circle.
-        If an int, the position of the axes (forwarded to
+        If int or str, the position of the axes (forwarded to
         ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
         If None, defaults to True if ``gfp`` is False, else to False.
-    show_legend : bool | int
-        If not False, show a legend. If int, the position of the axes
+    show_legend : bool | str | int
+        If not False, show a legend. If int or str, the position of the axes
         (forwarded to ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
     split_legend : bool
         If True, the legend shows color and linestyle separately; `colors` must
@@ -1614,13 +1614,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if isinstance(picks, Integral):
         picks = [picks]
     elif len(picks) == 0:
-        warn("No picks, plotting the GFP ...")
         gfp = True
         picks = _pick_data_channels(example.info)
-
         if len(picks) == 0:
             raise ValueError("No valid channels were found to plot the GFP. " +
                              "Use 'picks' instead to select them manually.")
+        warn("No picks, plotting the GFP ...")
 
     if ylim is None:
         ylim = dict()
@@ -1635,7 +1634,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     else:
         if not isinstance(picks[0], (int, np.integer)):
             msg = "'picks' must be int or a list of int, not {0}."
-            raise ValueError(msg.format(type(picks)))
+            raise TypeError(msg.format(type(picks)))
         show_sensors = True if show_sensors is None else show_sensors
         ch_names = [example.ch_names[pick] for pick in picks]
     ch_types = list(set(channel_type(example.info, pick_)
@@ -1783,8 +1782,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             try:
                 float(color_value)
             except ValueError:
-                raise ValueError("If ``cmap`` is not None, the values of "
-                                 "``colors`` need to be numeric. Got " +
+                raise TypeError("If ``cmap`` is not None, the values of "
+                                 "``colors`` must be numeric. Got " +
                                  str(type(color_value)))
         cmapper = getattr(plt.cm, cmap, cmap)
         color_conds = list(colors.keys())
@@ -1911,9 +1910,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         else:
             head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
             pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
-            if not isinstance(show_sensors, (np.int, bool)):
-                raise ValueError("show_sensors must be numeric or bool, not" +
-                                 str(type(show_sensors)))
+            if not isinstance(show_sensors, (np.int, bool, str)):
+                raise TypeError("show_sensors must be numeric, str or bool, "
+                                 "not " + str(type(show_sensors)))
             if show_sensors is True:
                 show_sensors = 2
             _plot_legend(pos, ["k" for pick in picks], axes, list(), outlines,

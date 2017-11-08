@@ -109,7 +109,10 @@ plt.show()
 ###############################################################################
 # To compare words which are 4, 5, 6, 7 or 8 letters long:
 
+letters = epochs.metadata["NumberOfLetters"].unique().astype(str)
+
 evokeds = dict()
+<<<<<<< HEAD
 for n_letters in epochs.metadata["NumberOfLetters"].unique():
     n_letters = str(n_letters)
     evokeds[n_letters] = epochs["NumberOfLetters == " + n_letters].average()
@@ -117,6 +120,14 @@ for n_letters in epochs.metadata["NumberOfLetters"].unique():
 style_plot["colors"] = {str(n_letters): int(n_letters) for n_letters in
                         epochs.metadata["NumberOfLetters"].unique()}
 style_plot["cmap"] = ("Number of letters", "summer_r")
+=======
+for n_letters in letters:
+    evokeds[n_letters] = epochs["NumberOfLetters == " + n_letters].average()
+
+style_plot["colors"] = {n_letters: int(float(n_letters))
+                        for n_letters in letters}
+style_plot["cmap"] = "summer_r"
+>>>>>>> address mikolajs comments
 del style_plot['linestyles']
 
 fig, ax = plt.subplots(figsize=(6, 4))
@@ -129,9 +140,9 @@ plt.show()
 evokeds = dict()
 query = "is_concrete == '{0}' & NumberOfLetters == {1}"
 for concreteness in ("Concrete", "Abstract"):
-    for n_letters in epochs.metadata["NumberOfLetters"].unique():
+    for n_letters in letters:
         subset = epochs[query.format(concreteness, n_letters)]
-        evokeds["/".join((concreteness, str(n_letters)))] = subset.average()
+        evokeds["/".join((concreteness, n_letters))] = subset.average()
 
 style_plot["linestyles"] = {"Concrete": "-", "Abstract": ":"}
 
