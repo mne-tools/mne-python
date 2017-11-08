@@ -1664,8 +1664,13 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             for condition in conditions:
                 # this will fail if evokeds do not have the same structure
                 # (e.g. channel count)
-                data = np.asarray([evoked_.data[picks, :].mean(0)
-                                   for evoked_ in evokeds[condition]])
+                if ch_type == 'grad':
+                    data = [(_merge_grad_data(evoked_.data[picks, :])).
+                            mean(0) for evoked_ in evokeds[condition]]
+                    data = np.asarray(data)
+                else:
+                    data = np.asarray([evoked_.data[picks, :].mean(0)
+                                       for evoked_ in evokeds[condition]])
                 ci_array[condition] = _ci_fun(data) * scaling
 
         # get the grand mean
