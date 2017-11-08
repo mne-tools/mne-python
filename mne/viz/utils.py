@@ -1877,8 +1877,9 @@ def _annotations_closed(event, params):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
-    params['ax'].selector.disconnect_events()
-    params['ax'].selector = None
+    if params['ax'].selector is not None:
+        params['ax'].selector.disconnect_events()
+        params['ax'].selector = None
     params['fig_annotation'] = None
     if params['segment_line'] is not None:
         params['segment_line'].remove()
