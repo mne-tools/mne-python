@@ -1033,6 +1033,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         threshold = ppf(1. - p_thresh, *n_samples_per_group)
         if np.sign(tail) < 0:
             threshold = -threshold
+        logger.info("Using a threshold of {:.6f}".format(threshold))
 
     return _permutation_cluster_test(X=X, threshold=threshold,
                                      n_permutations=n_permutations,
@@ -1170,6 +1171,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         threshold = -ppf(p_thresh, n_samples - 1)
         if np.sign(tail) < 0:
             threshold = -threshold
+        logger.info("Using a threshold of {:.6f}".format(threshold))
 
     X = [X]  # for one sample only one data array
     return _permutation_cluster_test(X=X,
