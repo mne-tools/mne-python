@@ -15,7 +15,7 @@ This toy dataset consists of a 40 x 40 square with a "signal"
 present in the center (at pixel [20, 20]) with white noise
 added and a 5-pixel-SD normal smoothing kernel applied.
 
-In the top row plot the T statistic over space, peaking toward the
+In the top row plot the t statistic over space, peaking toward the
 center. Note that it has peaky edges. Second, with the "hat" variance
 correction/regularization, the peak becomes correctly centered. Third,
 the TFCE approach also corrects for these edge artifacts. Fourth, the
@@ -74,7 +74,6 @@ noise_sd = 0.01
 gaussian_sd = 5
 sigma = 1e-3  # sigma for the "hat" method
 threshold = -stats.distributions.t.ppf(0.05, n_subjects - 1)
-threshold_tfce = dict(start=0, step=0.2)
 n_permutations = 1024  # number of clustering permutations (1024 for exact)
 
 ###############################################################################
@@ -109,7 +108,14 @@ for si in range(X.shape[0]):
 X = X.reshape((n_subjects, 1, n_src))
 
 ###############################################################################
-# Now let's do some clustering using the standard method.
+# Bonferroni correction
+# ^^^^^^^^^^^^^^^^^^^^^
+p = stats.ttest_1samp(X, 0)[1]
+p_bon = -np.log10(bonferroni_correction(p)[1])
+
+###############################################################################
+# Clustering
+# ^^^^^^^^^^
 #
 # .. note::
 #     Not specifying a connectivity matrix implies grid-like connectivity,
@@ -126,11 +132,9 @@ for cl, p in zip(clusters, p_values):
 ps = ps.reshape((width, width))
 T_obs = T_obs.reshape((width, width))
 
-#     To do a Bonferroni correction on these data is simple:
-p = stats.distributions.t.sf(T_obs, n_subjects - 1)
-p_bon = -np.log10(bonferroni_correction(p)[1])
-
-#    Now let's do some clustering using the standard method with "hat":
+###############################################################################
+# "hat" variance correction
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
 stat_fun = partial(ttest_1samp_no_p, sigma=sigma)
 T_obs_hat, clusters, p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold,
@@ -145,7 +149,19 @@ for cl, p in zip(clusters, p_values):
 ps_hat = ps_hat.reshape((width, width))
 T_obs_hat = T_obs_hat.reshape((width, width))
 
-#    Now the threshold-free cluster enhancement method (TFCE):
+###############################################################################
+# .. _tfce_example:
+#
+# TFCE
+# ^^^^
+# For TFCE, we need to specify how we want to approximate a continuous
+# integration across threshold values. This is done using a standard
+# `Riemann sum <https://en.wikipedia.org/wiki/Riemann_sum>`_ technique.
+# For this, a starting threshold ``'start'`` and a step size ``'step'``
+# must be provided in a dict (the smaller the step and lower the starting
+# value, the better the approximation, but the longer it takes):
+
+threshold_tfce = dict(start=0, step=0.2)
 T_obs_tfce, clusters, p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold_tfce,
                                        connectivity=connectivity,
@@ -153,7 +169,9 @@ T_obs_tfce, clusters, p_values, H0 = \
 T_obs_tfce = T_obs_tfce.reshape((width, width))
 ps_tfce = -np.log10(p_values.reshape((width, width)))
 
-#    Now the TFCE with "hat" variance correction:
+###############################################################################
+# TFCE with "hat" variance correction
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 T_obs_tfce_hat, clusters, p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold_tfce,
                                        connectivity=connectivity,

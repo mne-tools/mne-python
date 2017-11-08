@@ -945,20 +945,24 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         2 groups with respectively 20 and 17 observations in each.
         Each data point is of shape (50, 4).
     threshold : float | dict | None
-        If threshold is None, it will choose a t-threshold equivalent to
-        p < 0.05 for the given number of (within-subject) observations.
+        If threshold is None, it will choose a f-threshold equivalent to
+        p < 0.05 for the given number of observations (only valid when
+        using an f-statistic).
         If a dict is used, then threshold-free cluster enhancement (TFCE)
-        will be used.
+        will be used, and it must have keys ``'start'`` and ``'step'``
+        to specify the integration parameters,
+        see the :ref:`TFCE example <tfce_example>`.
     n_permutations : int
         The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
-        If tail is 1, the statistic is thresholded above threshold.
-        If tail is -1, the statistic is thresholded below threshold.
         If tail is 0, the statistic is thresholded on both sides of
         the distribution.
+        If tail is 1, the statistic is thresholded above threshold.
+        If tail is -1, the statistic is thresholded below threshold, and
+        the values in ``threshold`` must correspondingly be negative.
     stat_fun : callable
         function called to calculate statistics, must accept 1d-arrays as
-        arguments (default: scipy.stats.f_oneway).
+        arguments (default: :func:`scipy.stats.f_oneway`).
     connectivity : sparse matrix.
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
@@ -1011,8 +1015,8 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
 
     Returns
     -------
-    T_obs : array, shape (n_tests,)
-        T-statistic observed for all variables.
+    f_obs : array, shape (n_tests,)
+        Statistic (f by default) observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
