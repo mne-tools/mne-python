@@ -516,4 +516,11 @@ def test_permutation_test_H0():
         assert_equal(len(h0), 2 ** (7 - (tail == 0)))  # exact test
 
 
+def test_tfce_thresholds():
+    rng = np.random.RandomState(0)
+    data = rng.rand(7, 10, 1) - 0.5
+    assert_raises(ValueError, permutation_cluster_test, data, tail=-1,
+                  threshold=dict(start=0, step=0.1))
+
+
 run_tests_if_main()
