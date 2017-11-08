@@ -523,7 +523,7 @@ def test_tfce_thresholds():
     # if tail==-1, step must also be negative
     assert_raises(ValueError, permutation_cluster_test, data, tail=-1,
                   threshold=dict(start=0, step=0.1))
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         # this works (smoke test)
         permutation_cluster_test(data, tail=-1,
                                  threshold=dict(start=0, step=-0.1))
