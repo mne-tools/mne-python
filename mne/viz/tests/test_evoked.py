@@ -165,11 +165,13 @@ def test_plot_evoked():
                              styles={"red/stim": {"linewidth": 1}},
                              show_sensors=True)
         # various bad styles
-        params = [dict(picks='str'), dict(picks=3, colors=dict(fake=1)),
+        params = [dict(picks=3, colors=dict(fake=1)),
                   dict(picks=3, styles=dict(fake=1)), dict(picks=3, gfp=True),
                   dict(picks=3, show_sensors="a")]
         for param in params:
+            print(params)
             assert_raises(ValueError, plot_compare_evokeds, evoked, **param)
+        assert_raises(TypeError, plot_compare_evokeds, evoked, picks='str')
         plt.close('all')
         # `evoked` must contain Evokeds
         assert_raises(ValueError, plot_compare_evokeds, [[1, 2], [3, 4]])

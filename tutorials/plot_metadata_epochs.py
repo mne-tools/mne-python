@@ -96,8 +96,8 @@ style_plot = dict(
     linestyles={"Concrete": "-", "Abstract": ":"},
     split_legend=True,
     ci=.68,
-    show_sensors=4,
-    show_legend=3,
+    show_sensors='upper right',
+    show_legend='lower left',
     truncate_yaxis="max_ticks",
     picks=epochs.ch_names.index("Pz"),
 )

@@ -1440,6 +1440,16 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
     return ymin_bound, ymax_bound
 
 
+def _check_loc_legal(loc, what):
+    """Check if a loc is a legal for MPL"""
+    str_locs = ["best", "right", "center", "upper right", "upper left",
+                "lower right", "lower left", "center right", "center left",
+                "upper center", "lower center"]
+    if not (loc is True or loc in range(1, 11) or loc in str_locs):
+        raise ValueError(str(loc) + " is not a legal MPL loc, please supply"
+                         "another value for " + what + ".")
+
+
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                          linestyles=['-'], styles=None, cmap=None,
                          vlines=list((0.,)), ci=0.95, truncate_yaxis=False,
@@ -1915,13 +1925,15 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                                  "not " + str(type(show_sensors)))
             if show_sensors is True:
                 show_sensors = 2
+            _check_loc_legal(show_sensors, "show_sensors")
             _plot_legend(pos, ["k" for pick in picks], axes, list(), outlines,
                          show_sensors, size=20)
 
     # the condition legend
-    if len(conditions) > 1:
+    if len(conditions) > 1 and show_legend is not False:
         if show_legend is True:
             show_legend = 'best'
+        _check_loc_legal(show_legend, "show_legend")
         legend_params = dict(loc=show_legend, frameon=True)
         if split_legend:
             if len(legend_lines) > 1:
