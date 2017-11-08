@@ -332,9 +332,10 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     if include is None:
         include = np.ones(x.shape, dtype=bool)
 
-    if not np.all(np.diff(thresholds) > 0):
-        raise RuntimeError('Threshold misconfiguration, must be monotonically'
-                           ' increasing')
+    if tail in [0, 1] and not np.all(np.diff(thresholds) > 0):
+        raise ValueError('Thresholds must be monotonically increasing')
+    if tail == -1 and not np.all(np.diff(thresholds) < 0):
+        raise ValueError('Thresholds must be monotonically decreasing')
 
     # set these here just in case thresholds == []
     clusters = list()
