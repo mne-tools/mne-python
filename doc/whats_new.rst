@@ -34,6 +34,8 @@ Bug
 
 - Fix bug in threshold-free cluster enhancement parameter validation (:func:`mne.stats.permutation_cluster_1samp_test` and :func:`mne.stats.permutation_cluster_test`) by `Clemens Brunner`_
 
+- Fix bug in :meth:`mne.io.Raw.plot` to correctly display event types when annotations are present by `Clemens Brunner`_
+
 API
 ~~~
 
