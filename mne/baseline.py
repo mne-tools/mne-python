@@ -23,7 +23,8 @@ def _log_rescale(baseline, mode='mean'):
 
 
 @verbose
-def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
+def rescale(data, times, baseline, mode='mean', copy=True, picks=None,
+            verbose=None):
     """Rescale (baseline correct) data.
 
     Parameters
@@ -41,22 +42,25 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         and if ``bmax is None`` then ``bmax`` is set to the end of the
         interval. If baseline is ``(None, None)`` the entire time
         interval is used. If baseline is None, no correction is applied.
-    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
         Perform baseline correction by
 
-          - subtracting the mean baseline power ('mean')
-          - dividing by the mean baseline power ('ratio')
-          - dividing by the mean baseline power and taking the log ('logratio')
-          - subtracting the mean baseline power followed by dividing by the
-            mean baseline power ('percent')
-          - subtracting the mean baseline power and dividing by the standard
-            deviation of the baseline power ('zscore')
-          - dividing by the mean baseline power, taking the log, and dividing
-            by the standard deviation of the baseline power ('zlogratio')
+        - subtracting the mean of baseline values ('mean')
+        - dividing by the mean of baseline values ('ratio')
+        - dividing by the mean of baseline values and taking the log
+          ('logratio')
+        - subtracting the mean of baseline values followed by dividing by
+          the mean of baseline values ('percent')
+        - subtracting the mean of baseline values and dividing by the
+          standard deviation of baseline values ('zscore')
+        - dividing by the mean of baseline values, taking the log, and
+          dividing by the standard deviation of log baseline values
+          ('zlogratio')
 
-        If None no baseline correction is applied.
     copy : bool
         Whether to return a new instance or modify in place.
+    picks : list of int | None
+        Data to process along the axis=-2 (None, default, processes all).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -65,11 +69,11 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
     -------
     data_scaled: array
         Array of same shape as data after rescaling.
-    """  # noqa: E501
+    """
     data = data.copy() if copy else data
     msg = _log_rescale(baseline, mode)
     logger.info(msg)
-    if baseline is None:
+    if baseline is None or data.shape[-1] == 0:
         return data
 
     bmin, bmax = baseline
@@ -93,29 +97,37 @@ def rescale(data, times, baseline, mode='mean', copy=True, verbose=None):
         raise ValueError('Bad rescaling slice (%s:%s) from time values %s, %s'
                          % (imin, imax, bmin, bmax))
 
-    # avoid potential "empty slice" warning
-    if data.shape[-1] > 0:
-        mean = np.mean(data[..., imin:imax], axis=-1)[..., None]
-    else:
-        mean = 0  # otherwise we get an ugly nan
-    if mode == 'mean':
-        data -= mean
-    elif mode == 'ratio':
-        data /= mean
-    elif mode == 'logratio':
-        data /= mean
-        data = np.log10(data)
-    elif mode == 'percent':
-        data -= mean
-        data /= mean
-    elif mode == 'zscore':
-        std = np.std(data[..., imin:imax], axis=-1)[..., None]
-        data -= mean
-        data /= std
-    elif mode == 'zlogratio':
-        data /= mean
-        data = np.log10(data)
-        std = np.std(data[..., imin:imax], axis=-1)[..., None]
-        data /= std
+    # technically this is inefficient when `picks` is given, but assuming
+    # that we generally pick most channels for rescaling, it's not so bad
+    mean = np.mean(data[..., imin:imax], axis=-1, keepdims=True)
 
+    if mode == 'mean':
+        def fun(d, m):
+            d -= m
+    elif mode == 'ratio':
+        def fun(d, m):
+            d /= m
+    elif mode == 'logratio':
+        def fun(d, m):
+            d /= m
+            np.log10(d, out=d)
+    elif mode == 'percent':
+        def fun(d, m):
+            d -= m
+            d /= m
+    elif mode == 'zscore':
+        def fun(d, m):
+            d -= m
+            d /= np.std(d[..., imin:imax], axis=-1, keepdims=True)
+    elif mode == 'zlogratio':
+        def fun(d, m):
+            d /= m
+            np.log10(d, out=d)
+            d /= np.std(d[..., imin:imax], axis=-1, keepdims=True)
+
+    if picks is None:
+        fun(data, mean)
+    else:
+        for pi in picks:
+            fun(data[..., pi, :], mean[..., pi, :])
     return data

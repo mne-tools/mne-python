@@ -516,4 +516,20 @@ def test_permutation_test_H0():
         assert_equal(len(h0), 2 ** (7 - (tail == 0)))  # exact test
 
 
+def test_tfce_thresholds():
+    rng = np.random.RandomState(0)
+    data = rng.randn(7, 10, 1) - 0.5
+
+    # if tail==-1, step must also be negative
+    assert_raises(ValueError, permutation_cluster_1samp_test, data, tail=-1,
+                  threshold=dict(start=0, step=0.1))
+    # this works (smoke test)
+    permutation_cluster_1samp_test(data, tail=-1,
+                                   threshold=dict(start=0, step=-0.1))
+
+    # thresholds must be monotonically increasing
+    assert_raises(ValueError, permutation_cluster_1samp_test, data, tail=1,
+                  threshold=dict(start=1, step=-0.5))
+
+
 run_tests_if_main()
