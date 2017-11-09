@@ -1922,7 +1922,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
             if not isinstance(show_sensors, (np.int, bool, str)):
                 raise TypeError("show_sensors must be numeric, str or bool, "
-                                 "not " + str(type(show_sensors)))
+                                "not " + str(type(show_sensors)))
             if show_sensors is True:
                 show_sensors = 2
             _check_loc_legal(show_sensors, "show_sensors")
