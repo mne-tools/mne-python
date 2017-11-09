@@ -915,7 +915,6 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     # default key to close window
     params['close_key'] = 'escape'
-    params['n_prev_events'] = 0  # number of previously drawn events
 
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
@@ -1014,23 +1013,17 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 line.set_xdata([])
                 line.set_ydata([])
 
-        # events are added first, so we remove events from the beginning
-        for i in range(params['n_prev_events']):
-            params['ax'].texts.pop(0)  # delete previous event texts
+        params['ax'].texts = []   # delete event and annotation texts
         # don't add event numbers for more than 50 visible events
         if len(event_times) <= 50:
             for ev_time, ev_num in zip(event_times, event_nums):
                 if -1 in event_color or ev_num in event_color:
                     params['ax'].text(ev_time, -0.05, ev_num, fontsize=8,
                                       ha='center')
-            # number of event texts to be deleted next time
-            params['n_prev_events'] = len(event_times)
 
     if 'segments' in params:
-        # annotations are added last, so we remove events from the end
         while len(params['ax'].collections) > 0:  # delete previous annotations
             params['ax'].collections.pop(-1)
-            params['ax'].texts.pop(-1)
         segments = params['segments']
         times = params['times']
         ylim = params['ax'].get_ylim()
