@@ -287,6 +287,7 @@ intersphinx_mapping = {
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
+    'statsmodels': ('http://www.statsmodels.org/stable/', None),
 }
 
 examples_dirs = ['../examples', '../tutorials']

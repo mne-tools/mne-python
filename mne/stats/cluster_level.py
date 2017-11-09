@@ -903,7 +903,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     To use the "hat" adjustment method [1]_, a value of ``sigma=1e-3`` may be a
     reasonable choice.
 
-    You can use the conversion from :func:`scipy.stats.distributions.t.ppf`::
+    You can use the conversion from ``scipy.stats.distributions.t.ppf``::
 
         thresh = -scipy.stats.distributions.t.ppf(p_thresh, n_samples - 1) / 2.
 

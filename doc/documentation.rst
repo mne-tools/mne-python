@@ -142,6 +142,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_modifying_data_inplace.rst
     auto_tutorials/plot_ecog.rst
     manual/memory.rst
+    manual/migrating.rst
 
 .. raw:: html
 
@@ -476,14 +477,13 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    manual/statistics.rst
+    auto_tutorials/plot_background_statistics.rst
 
 **Sensor Space**
 
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_stats_cluster_methods.rst
     auto_tutorials/plot_stats_spatio_temporal_cluster_sensors.rst
     auto_tutorials/plot_stats_cluster_1samp_test_time_frequency.rst
     auto_tutorials/plot_stats_cluster_time_frequency.rst
@@ -670,6 +670,9 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     manual/gui/browse.rst
     manual/appendix/bem_model.rst
     manual/appendix/c_misc.rst
+    manual/appendix/c_release_notes.rst
+    manual/appendix/c_EULA.rst
+    manual/appendix/martinos.rst
 
 **MNE-MATLAB**
 
