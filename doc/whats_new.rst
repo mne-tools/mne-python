@@ -29,6 +29,7 @@ Bug
 ~~~
 
 - Fix bug in :meth:`mne.io.set_eeg_reference` to remove an average reference projector when setting the reference to ``[]`` (i.e. do not change the existing reference) by `Clemens Brunner`_
+
 - Fix bug in threshold-free cluster enhancement parameter validation (:func:`mne.stats.permutation_cluster_1samp_test` and :func:`mne.stats.permutation_cluster_test`) by `Clemens Brunner`_
 
 API
