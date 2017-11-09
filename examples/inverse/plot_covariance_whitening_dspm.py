@@ -1,4 +1,3 @@
-# doc:slow-example
 """
 ===================================================
 Demonstrate impact of whitening on source estimates

@@ -1,4 +1,3 @@
-# doc:slow-example
 """
 .. _tut_stats_cluster_methods:
 
@@ -9,63 +8,33 @@ Permutation t-test on toy data with spatial clustering
 Following the illustrative example of Ridgway et al. 2012 [1]_,
 this demonstrates some basic ideas behind both the "hat"
 variance adjustment method, as well as threshold-free
-cluster enhancement (TFCE) [2]_ methods in mne-python.
-
-This toy dataset consists of a 40 x 40 square with a "signal"
-present in the center (at pixel [20, 20]) with white noise
-added and a 5-pixel-SD normal smoothing kernel applied.
-
-In the top row plot the t statistic over space, peaking toward the
-center. Note that it has peaky edges. Second, with the "hat" variance
-correction/regularization, the peak becomes correctly centered. Third,
-the TFCE approach also corrects for these edge artifacts. Fourth, the
-the two methods combined provide a tighter estimate, for better or
-worse.
-
-Now considering multiple-comparisons corrected statistics on these
-variables, note that a non-cluster test (e.g., FDR or Bonferroni) would
-mis-localize the peak due to sharpness in the T statistic driven by
-low-variance pixels toward the edge of the plateau. Standard clustering
-(first plot in the second row) identifies the correct region, but the
-whole area must be declared significant, so no peak analysis can be done.
-Also, the peak is broad. In this method, all significances are
-family-wise error rate (FWER) corrected, and the method is
-non-parametric so assumptions of Gaussian data distributions (which do
-actually hold for this example) don't need to be satisfied. Adding the
-"hat" technique tightens the estimate of significant activity (second
-plot). The TFCE approach (third plot) allows analyzing each significant
-point independently, but still has a broadened estimate. Note that
-this is also FWER corrected. Finally, combining the TFCE and "hat"
-methods tightens the area declared significant (again FWER corrected),
-and allows for evaluation of each point independently instead of as
-a single, broad cluster.
+cluster enhancement (TFCE) [2]_ methods.
 
 .. note:: This example does quite a bit of processing, so even on a
           fast machine it can take a few minutes to complete.
+
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
+from functools import partial
+
 import numpy as np
 from scipy import stats
-from functools import partial
 import matplotlib.pyplot as plt
-# this changes hidden MPL vars:
-from mpl_toolkits.mplot3d import Axes3D  # noqa
+from mpl_toolkits.mplot3d import Axes3D  # noqa, analysis:ignore
 
-from mne.stats import (spatio_temporal_cluster_1samp_test,
+from mne.stats import (spatio_temporal_cluster_1samp_test, fdr_correction,
                        bonferroni_correction, ttest_1samp_no_p)
-
-try:
-    from sklearn.feature_extraction.image import grid_to_graph
-except ImportError:
-    from scikits.learn.feature_extraction.image import grid_to_graph
 
 print(__doc__)
 
 ###############################################################################
 # Set parameters
 # --------------
+# This toy dataset consists of a 40 x 40 square with a "signal"
+# present in the center (at pixel [20, 20]) with white noise
+# added and a 5-pixel-SD normal smoothing kernel applied.
 width = 40
 n_subjects = 10
 signal_mean = 100
@@ -79,10 +48,7 @@ n_permutations = 1024  # number of clustering permutations (1024 for exact)
 ###############################################################################
 # Construct simulated data
 # ------------------------
-#
-# Make the connectivity matrix just next-neighbor spatially
 n_src = width * width
-connectivity = grid_to_graph(width, width)
 
 #    For each "subject", make a smoothed noisy signal with a centered peak
 rng = np.random.RandomState(42)
@@ -101,59 +67,76 @@ for si in range(X.shape[0]):
 ###############################################################################
 # Do some statistics
 # ------------------
+# Let's start with a standard 1-sample t-test.
 #
 # .. note::
 #     X needs to be a multi-dimensional array of shape
 #     samples (subjects) x time x space, so we permute dimensions:
 X = X.reshape((n_subjects, 1, n_src))
+t_uncorrected, p_uncorrected = stats.ttest_1samp(X, 0)
+
+# Hat correction
+# ^^^^^^^^^^^^^^
+# The "hat" correction can be used to deal with implausibly small variances.
+t_uncorrected_hat = ttest_1samp_no_p(X, sigma=sigma)
+p_uncorrected_hat = stats.distributions.t.sf(
+    np.abs(t_uncorrected_hat), len(X) - 1) * 2
 
 ###############################################################################
 # Bonferroni correction
 # ^^^^^^^^^^^^^^^^^^^^^
-p = stats.ttest_1samp(X, 0)[1]
-p_bon = -np.log10(bonferroni_correction(p)[1])
+# Perhaps the simplest multiple comparison correction, Bonferroni, multiplies
+# the p-values by the number of comparisons.
+p_bon = bonferroni_correction(p_uncorrected)[1]
+
+###############################################################################
+# FDR correction
+# ^^^^^^^^^^^^^^
+# A less restrictive correction that controls for the false-discovery rate
+# (FDR) is the Benjamini-Hochberg procedure:
+p_fdr = fdr_correction(p_uncorrected)[1]
 
 ###############################################################################
 # Clustering
 # ^^^^^^^^^^
+# We can also use non-parametric clustering to correct for multiple comparisons
+# and control the familywise error rate (FWER).
 #
 # .. note::
-#     Not specifying a connectivity matrix implies grid-like connectivity,
-#     which we want here:
-T_obs, clusters, p_values, H0 = \
+#     Using connectivity=None implies grid-like connectivity,
+#     which is correct for our grid-like data here.
+t_clust, clusters, p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold,
-                                       connectivity=connectivity,
-                                       tail=1, n_permutations=n_permutations)
+                                       connectivity=None, tail=1,
+                                       n_permutations=n_permutations)
 
 #    Let's put the cluster data in a readable format
-ps = np.zeros(width * width)
+p_clust = np.zeros(width * width)
 for cl, p in zip(clusters, p_values):
-    ps[cl[1]] = -np.log10(p)
-ps = ps.reshape((width, width))
-T_obs = T_obs.reshape((width, width))
+    p_clust[cl[1]] = p
 
 ###############################################################################
 # "hat" variance correction
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
+# We can correct for implausibly small variances by using the "hat"
+# correction [1]_:
 stat_fun = partial(ttest_1samp_no_p, sigma=sigma)
-T_obs_hat, clusters, p_values, H0 = \
+t_hat, clusters, p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold,
-                                       connectivity=connectivity,
-                                       tail=1, n_permutations=n_permutations,
+                                       connectivity=None, tail=1,
+                                       n_permutations=n_permutations,
                                        stat_fun=stat_fun, buffer_size=None)
 
 #    Let's put the cluster data in a readable format
-ps_hat = np.zeros(width * width)
+p_hat = np.zeros(width * width)
 for cl, p in zip(clusters, p_values):
-    ps_hat[cl[1]] = -np.log10(p)
-ps_hat = ps_hat.reshape((width, width))
-T_obs_hat = T_obs_hat.reshape((width, width))
+    p_hat[cl[1]] = p
 
 ###############################################################################
 # .. _tfce_example:
 #
-# TFCE
-# ^^^^
+# Threshold-free cluster enhancemnet (TFCE)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # For TFCE, we need to specify how we want to approximate a continuous
 # integration across threshold values. This is done using a standard
 # `Riemann sum <https://en.wikipedia.org/wiki/Riemann_sum>`_ technique.
@@ -162,62 +145,98 @@ T_obs_hat = T_obs_hat.reshape((width, width))
 # value, the better the approximation, but the longer it takes):
 
 threshold_tfce = dict(start=0, step=0.2)
-T_obs_tfce, clusters, p_values, H0 = \
+t_tfce, clusters, p_tfce, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold_tfce,
-                                       connectivity=connectivity,
+                                       connectivity=None,
                                        tail=1, n_permutations=n_permutations)
-T_obs_tfce = T_obs_tfce.reshape((width, width))
-ps_tfce = -np.log10(p_values.reshape((width, width)))
 
 ###############################################################################
 # TFCE with "hat" variance correction
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-T_obs_tfce_hat, clusters, p_values, H0 = \
+# We can also combine TFCE and the "hat" correction:
+t_tfce_hat, clusters, p_tfce_hat, H0 = \
     spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold_tfce,
-                                       connectivity=connectivity,
-                                       tail=1, n_permutations=n_permutations,
+                                       connectivity=None, tail=1,
+                                       n_permutations=n_permutations,
                                        stat_fun=stat_fun, buffer_size=None)
-T_obs_tfce_hat = T_obs_tfce_hat.reshape((width, width))
-ps_tfce_hat = -np.log10(p_values.reshape((width, width)))
 
 ###############################################################################
 # Visualize results
 # -----------------
-fig = plt.figure(facecolor='w')
+# The top row shows t statistics, and the bottom shows p values for various
+# statistical tests.
+#
+# Mass-univariate methods (parametric)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# The first three columns show mass-univariate statistics, including:
+#
+# - The 1-sample t test with no correction. Note that it has peaky edges.
+# - Bonferroni-corrected p-values.
+# - FDR-corrected p-values.
+#
+# All of these mis-localize the peak due to sharpness in the t statistic
+# driven by low-variance pixels toward the edge of the plateau. They also
+# over-correct for multiple comparisons because neighboring voxels are
+# correlated.
+#
+# Clustering (non-parametric)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Standard non-parametric, resampling-based clustering identifies the correct
+# region. However, the whole area must be declared significant, so no peak
+# analysis can be done. Also, the peak is broad. In this method, there are no
+# assumptions of Gaussianity (which do hold for this example but do not in
+# general).
+#
+# Clustering with "hat"
+# ^^^^^^^^^^^^^^^^^^^^^
+# Adding the "hat" technique tightens the estimate of significant activity.
+#
+# Clustering with TFCE
+# ^^^^^^^^^^^^^^^^^^^^
+# The TFCE approach allows analyzing each significant point independently,
+# but still has a broadened estimate.
+#
+# Clustering with TFCE and "hat"
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Finally, combining the TFCE and "hat" methods tightens the area declared
+# significant (again FWER corrected), and allows for evaluation of each point
+# independently instead of as a single, broad cluster.
+
+fig = plt.figure(facecolor='w', figsize=(10, 3))
 
 x, y = np.mgrid[0:width, 0:width]
-kwargs = dict(rstride=1, cstride=1, linewidth=0, cmap='Greens')
+cmap = 'YlGnBu'
+kwargs = dict(rstride=1, cstride=1, linewidth=0, cmap=cmap)
 
-Ts = [T_obs, T_obs_hat, T_obs_tfce, T_obs_tfce_hat]
-titles = ['T statistic', 'T with "hat"', 'TFCE statistic', 'TFCE w/"hat" stat']
-for ii, (t, title) in enumerate(zip(Ts, titles)):
-    ax = fig.add_subplot(2, 4, ii + 1, projection='3d')
-    ax.plot_surface(x, y, t, **kwargs)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_title(title)
+ts = [t_uncorrected, t_uncorrected_hat, None, None,
+      t_clust, t_hat, t_tfce, t_tfce_hat]
+titles = ['t statistic', '$\hat{\mathrm{t}}$', 'Bonferroni', 'FDR',
+          'Clustering', r'$\hat{\mathrm{C}}$',
+          r'$\mathrm{C}_{\mathrm{TFCE}}$',
+          r'$\hat{\mathrm{C}}_{\mathrm{TFCE}}$']
+for ii, (t, title) in enumerate(zip(ts, titles)):
+    ax = fig.add_subplot(2, 8, ii + 1, projection='3d')
+    if t is None:
+        fig.delaxes(ax)
+    else:
+        ax.plot_surface(x, y, np.reshape(t, (width, width)), **kwargs)
+        ax.set(xticks=[], yticks=[], zticks=[])
 
-p_lims = [1.3, -np.log10(1.0 / n_permutations)]
-pvals = [ps, ps_hat, ps_tfce, ps_tfce_hat]
-titles = ['Standard clustering', 'Clust. w/"hat"',
-          'Clust. w/TFCE', 'Clust. w/TFCE+"hat"']
-axs = []
-for ii, (p, title) in enumerate(zip(pvals, titles)):
-    ax = fig.add_subplot(2, 4, 5 + ii)
-    plt.imshow(p, cmap='Purples', vmin=p_lims[0], vmax=p_lims[1])
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_title(title)
-    axs.append(ax)
-
-plt.tight_layout()
-for ax in axs:
+p_lims = [-np.log10(0.05), -np.log10(0.001)]
+ps = [p_uncorrected, p_uncorrected_hat, p_bon, p_fdr,
+      p_clust, p_hat, p_tfce, p_tfce_hat]
+for ii, (p, title) in enumerate(zip(ps, titles)):
+    ax = fig.add_subplot(2, 8, 9 + ii)
+    img = ax.imshow(-np.log10(np.reshape(p, (width, width))), cmap=cmap,
+                    vmin=p_lims[0], vmax=p_lims[1], interpolation='bilinear')
+    ax.set(xticks=[], yticks=[], title=title)
     cbar = plt.colorbar(ax=ax, shrink=0.75, orientation='horizontal',
-                        fraction=0.1, pad=0.025)
+                        fraction=0.1, pad=0.025, mappable=img)
     cbar.set_label('-log10(p)')
     cbar.set_ticks(p_lims)
     cbar.set_ticklabels(['%0.1f' % p for p in p_lims])
 
+fig.tight_layout()
 plt.show()
 
 ###############################################################################

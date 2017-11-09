@@ -152,6 +152,15 @@ def test_cluster_permutation_test():
                                      n_jobs=2, buffer_size=buffer_size)
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
+    def stat_fun(X, Y):
+        return stats.f_oneway(X, Y)[0]
+
+    with warnings.catch_warnings(record=True) as w:
+        permutation_cluster_test([condition1, condition2], n_permutations=1,
+                                 stat_fun=stat_fun)
+    assert_equal(len(w), 1)
+    assert 'is only valid' in str(w[0].message)
+
 
 def test_cluster_permutation_t_test():
     """Test cluster level permutations T-test."""

@@ -1,4 +1,3 @@
-# doc:slow-example
 """
 ================================
 Compute ICA components on epochs

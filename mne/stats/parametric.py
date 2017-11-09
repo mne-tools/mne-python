@@ -15,24 +15,25 @@ from ..externals.six import string_types
 # copy the data while keeping the inputs unchanged.
 
 
-def _f_oneway(*args):
+def f_oneway(*args):
     """Perform a 1-way ANOVA.
 
     The one-way ANOVA tests the null hypothesis that 2 or more groups have
     the same population mean. The test is applied to samples from two or
     more groups, possibly with differing sizes.
 
+    This is a modified version of :func:`scipy.stats.f_oneway` that avoids
+    computing the associated p-value.
+
     Parameters
     ----------
-    sample1, sample2, ... : array_like
+    *args : array_like
         The sample measurements should be given as arguments.
 
     Returns
     -------
     F-value : float
-        The computed F-value of the test
-    p-value : float
-        The associated p-value from the F-distribution
+        The computed F-value of the test.
 
     Notes
     -----
@@ -50,9 +51,6 @@ def _f_oneway(*args):
 
     The algorithm is from Heiman[2], pp.394-7.
 
-    See scipy.stats.f_oneway that should give the same results while
-    being less efficient
-
     References
     ----------
     .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
@@ -62,8 +60,6 @@ def _f_oneway(*args):
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
 
     """
-    from scipy import stats
-    sf = stats.f.sf
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
@@ -83,13 +79,7 @@ def _f_oneway(*args):
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
     f = msb / msw
-    prob = sf(dfbn, dfwn, f)
-    return f, prob
-
-
-def f_oneway(*args):
-    """Call scipy.stats.f_oneway, but return only f-value."""
-    return _f_oneway(*args)[0]
+    return f
 
 
 def _map_effects(n_factors, effects):
