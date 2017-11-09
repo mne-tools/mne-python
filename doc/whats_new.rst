@@ -13,6 +13,19 @@ What's new
 
 .. _current:
 
+.. _changes_0_15_2:
+
+Version 0.15.2
+--------------
+
+BUG
+~~~
+
+- Fix bug in :meth:`mne.io.Raw.plot` to correctly display event types when annotations are present by `Clemens Brunner`_
+
+
+.. _changes_0_15_1:
+
 Version 0.15.1
 --------------
 

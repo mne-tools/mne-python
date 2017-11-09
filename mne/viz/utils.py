@@ -1829,7 +1829,6 @@ def _plot_annotations(raw, params):
 
     while len(params['ax_hscroll'].collections) > 0:
         params['ax_hscroll'].collections.pop()
-
     segments = list()
     # sort the segments by start time
     ann_order = raw.annotations.onset.argsort(axis=0)
