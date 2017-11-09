@@ -24,19 +24,47 @@ from ..externals import six
 from ..channels.channels import _contains_ch_type
 
 
-def _reg_pinv(x, reg):
-    """Compute a regularized pseudoinverse of a square array."""
-    if reg == 0:
-        covrank = estimate_rank(x, tol='auto', norm=False,
-                                return_singular=False)
-        if covrank < x.shape[0]:
-            warn('Covariance matrix is rank-deficient, but no regularization '
+def _reg_pinv(x, reg, rcond=1e-15):
+    """Compute a regularized pseudoinverse of a square array.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n, n)
+        Square array to invert.
+    reg : float
+        Regularization parameter.
+    rcond : float | 'auto'
+        Cutoff for small singular values. Singular values smaller (in modulus)
+        than `rcond` * largest_singular_value (again, in modulus) are set to
+        zero. Use 'auto' to attempt to automatically set a sane value. Defaults
+        to 1e-15.
+    """
+    covrank, s = estimate_rank(x, tol='auto', norm=False, return_singular=True)
+
+    # This adds the regularization without using np.eye
+    d = reg * np.trace(x) / len(x)
+    x = x.copy()
+    x.flat[::x.shape[0] + 1] += d
+
+    if covrank < len(x):
+        if reg == 0:
+            warn('Covariance matrix is rank-deficient and no regularization '
                  'is done.')
 
-    # This adds it to the diagonal without using np.eye
-    d = reg * np.trace(x) / len(x)
-    x.flat[::x.shape[0] + 1] += d
-    return linalg.pinv(x), d
+        if rcond == 'auto':
+            # Reduce the toleration of the pseudo-inverse to force a solution
+            s = linalg.svd(x, compute_uv=False)
+            tol = s[covrank - 1:covrank + 1].mean()
+            tol = max(
+                tol,
+                len(x) * linalg.norm(x) * np.finfo(float).eps
+            )
+            rcond = tol / s.max()
+
+    if rcond == 'auto':
+        rcond = 1e-15
+
+    return linalg.pinv(x, rcond=rcond), d
 
 
 def _eig_inv(x, rank):

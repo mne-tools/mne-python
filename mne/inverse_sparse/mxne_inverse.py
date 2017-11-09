@@ -4,7 +4,7 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import linalg, signal
+from scipy import linalg
 
 from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                _BaseSourceEstimate)
@@ -484,6 +484,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
 def _window_evoked(evoked, size):
     """Window evoked (size in seconds)."""
+    from scipy import signal  # Local import to keep "import mne" fast
     if isinstance(size, (float, int)):
         lsize = rsize = float(size)
     else:

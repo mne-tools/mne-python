@@ -234,6 +234,7 @@ Visualization
    plot_bem
    plot_connectivity_circle
    plot_cov
+   plot_csd
    plot_dipole_amplitudes
    plot_dipole_locations
    plot_drop_log
@@ -707,12 +708,10 @@ Inverse Solutions
    apply_lcmv
    apply_lcmv_epochs
    apply_lcmv_raw
-   dics
-   dics_epochs
    make_dics
    apply_dics
    apply_dics_epochs
-   dics_source_power
+   apply_dics_csd
    rap_music
    tf_dics
    tf_lcmv
@@ -805,6 +804,7 @@ Time-Frequency
 
    AverageTFR
    EpochsTFR
+   CrossSpectralDensity
 
 Functions that operate on mne-python objects:
 
@@ -812,7 +812,6 @@ Functions that operate on mne-python objects:
    :toctree: generated/
    :template: function.rst
 
-   csd_epochs
    psd_welch
    psd_multitaper
    fit_iir_model_raw
@@ -824,6 +823,9 @@ Functions that operate on mne-python objects:
    tfr_array_stockwell
    read_tfrs
    write_tfrs
+   csd_epochs
+   pick_channels_csd
+   read_csd
 
 Functions that operate on ``np.ndarray`` objects:
 
@@ -831,7 +833,6 @@ Functions that operate on ``np.ndarray`` objects:
    :toctree: generated/
    :template: function.rst
 
-   csd_array
    dpss_windows
    morlet
    stft
@@ -839,6 +840,7 @@ Functions that operate on ``np.ndarray`` objects:
    stftfreq
    psd_array_multitaper
    psd_array_welch
+   csd_array
 
 
 :py:mod:`mne.time_frequency.tfr`:

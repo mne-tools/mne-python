@@ -431,8 +431,6 @@ People who contributed to this release  (in alphabetical order):
 * Teon Brooks
 * Yousra Bekhti
 
-    - Add :func:`mne.beamformer.make_dics` and :func:`mne.beamformer.apply_dics` as well as :func:`mne.beamformer.apply_dics_epochs` to enable the separate computation and application of DICS beamformer weights by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
-
 .. _changes_0_14:
 
 Version 0.14

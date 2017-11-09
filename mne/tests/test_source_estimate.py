@@ -266,9 +266,10 @@ def test_stc_attributes():
 def test_io_stc():
     """Test IO for STC files."""
     tempdir = _TempDir()
+    fname = op.join(tempdir, 'tmp.stc')
     stc = _fake_stc()
-    stc.save(op.join(tempdir, "tmp.stc"))
-    stc2 = read_source_estimate(op.join(tempdir, "tmp.stc"))
+    stc.save(fname)
+    stc2 = read_source_estimate(fname)
 
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.tmin, stc2.tmin)
@@ -276,6 +277,14 @@ def test_io_stc():
     for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+
+    # Cannot save complex data
+    stc._data = stc._data + 1j
+    assert_raises(RuntimeError, stc.save, fname)
+
+    # But we can save real data in a complex container
+    stc._data = stc._data.real.astype(np.complex128)
+    stc.save(fname)
 
 
 @requires_h5py
