@@ -9,8 +9,8 @@ machine:
 # https://gist.github.com/amacneil/f14db753919e0af2d7d2f5a8da7fce65
 checkout:
   post:
-    - echo $(git log -1 --pretty=%B) > gitlog.txt
-    - echo ${CI_PULL_REQUEST//*pull\//} > merge.txt
+    - echo $(git log -1 --pretty=%B) | tee gitlog.txt
+    - echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
     - if [[ $(cat merge.txt) != "" ]]; then
         echo "Merging $(cat merge.txt)";
         git pull --ff-only origin "refs/pull/$(cat merge.txt)/merge";
@@ -54,8 +54,6 @@ dependencies:
         conda update --yes --quiet conda;
         conda env create -f environment2.yml;
         pip uninstall --yes mne sphinx-gallery;
-        conda remove mayavi;
-        conda install -y numpy scipy matplotlib vtk scikit-learn pandas;
       else
         echo "Conda env already set up.";
       fi;

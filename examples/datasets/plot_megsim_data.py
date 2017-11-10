@@ -31,7 +31,7 @@ raw_fnames = load_data(condition=condition, data_format='raw',
 evoked_fnames = load_data(condition=condition, data_format='evoked',
                           data_type='simulation', verbose=True)
 
-raw = mne.io.read_raw_fif(raw_fnames[0])
+raw = mne.io.read_raw_fif(raw_fnames[0], verbose='error')  # Bad naming
 events = find_events(raw, stim_channel="STI 014", shortest_event=1)
 
 # Visualize raw file

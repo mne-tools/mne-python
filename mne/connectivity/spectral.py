@@ -991,14 +991,18 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
         raise ValueError('mode has an invalid value')
 
     # check that fmin corresponds to at least 5 cycles
-    five_cycle_freq = 5. * sfreq / float(n_times)
+    dur = float(n_times) / sfreq
+    five_cycle_freq = 5. / dur
     if len(fmin) == 1 and fmin[0] == -np.inf:
         # we use the 5 cycle freq. as default
-        fmin = [five_cycle_freq]
+        fmin = five_cycle_freq
     else:
-        if any(fmin < five_cycle_freq):
-            warn('fmin corresponds to less than 5 cycles, '
-                 'spectrum estimate will be unreliable')
+        if fmin < five_cycle_freq:
+            warn('fmin=%0.3f Hz corresponds to %0.3f < 5 cycles '
+                 'based on the epoch length %0.3f sec, need at least %0.3f '
+                 'sec epochs or fmin=%0.3f. Spectrum estimate will be '
+                 'unreliable.' % (fmin, dur * fmin, dur,
+                                  5. / fmin, five_cycle_freq))
 
     # create a frequency mask for all bands
     freq_mask = np.zeros(len(freqs_all), dtype=np.bool)
