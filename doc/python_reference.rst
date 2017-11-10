@@ -884,26 +884,43 @@ Statistics
 
 .. currentmodule:: mne.stats
 
+Parametric statistics (see :mod:`scipy.stats` and :mod:`statsmodels` for more
+options):
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   ttest_1samp_no_p
+   f_oneway
+   f_mway_rm
+   f_threshold_mway_rm
+   linear_regression
+   linear_regression_raw
+
+Mass-univariate multiple comparison correction:
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
    bonferroni_correction
    fdr_correction
+
+Non-parametric (clustering) resampling methods:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
    permutation_cluster_test
    permutation_cluster_1samp_test
    permutation_t_test
    spatio_temporal_cluster_test
    spatio_temporal_cluster_1samp_test
-   ttest_1samp_no_p
-   linear_regression
-   linear_regression_raw
-   f_oneway
-   f_mway_rm
-   f_threshold_mway_rm
    summarize_clusters_stc
 
-Functions to compute neighbor/adjacency matrices for cluster-level statistics:
+Compute ``connectivity`` matrices for cluster-level statistics:
 
 .. currentmodule:: mne
 
@@ -911,6 +928,8 @@ Functions to compute neighbor/adjacency matrices for cluster-level statistics:
    :toctree: generated/
    :template: function.rst
 
+   channels.find_ch_connectivity
+   channels.read_ch_connectivity
    spatial_dist_connectivity
    spatial_src_connectivity
    spatial_tris_connectivity

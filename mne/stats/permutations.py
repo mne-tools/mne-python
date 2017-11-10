@@ -68,7 +68,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     adjusts p-values in a way that controls the family-wise error rate.
     However, the permutation method will be more
     powerful than Bonferroni correction when different variables in the test
-    are correlated.
+    are correlated (see [1]_).
 
     Parameters
     ----------
@@ -104,15 +104,11 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
         T-statistic obtained by permutations and t-max trick for multiple
         comparison.
 
-    Notes
-    -----
-    A reference (among many) in field of neuroimaging:
-    Nichols, T. E. & Holmes, A. P. (2002). Nonparametric permutation tests
-    for functional neuroimaging: a primer with examples.
-    Human Brain Mapping, 15, 1-25.
-    Overview of standard nonparametric randomization and permutation
-    testing applied to neuroimaging data (e.g. fMRI)
-    DOI: http://dx.doi.org/10.1002/hbm.1058
+    References
+    ----------
+    .. [1] Nichols, T. E. & Holmes, A. P. (2002). Nonparametric permutation
+       tests for functional neuroimaging: a primer with examples.
+       Human Brain Mapping, 15, 1-25.
     """
     n_samples, n_tests = X.shape
 

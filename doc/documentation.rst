@@ -465,7 +465,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse_statistics">Statistics in sensor- and source-space</a>
+            <a data-toggle="collapse" href="#collapse_statistics">Statistics</a>
           </h4>
         </div>
         <div id="collapse_statistics" class="panel-collapse collapse">
