@@ -658,7 +658,7 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
     return max_cluster_sums
 
 
-def _bin_perm_rep(ndim, a=0, b=1):
+def bin_perm_rep(ndim, a=0, b=1):
     """Ndim permutations with repetitions of (a,b).
 
     Returns an array with all the possible permutations with repetitions of
@@ -707,7 +707,7 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
         # omit first perm b/c accounted for in H0.append() later;
         # convert to binary array representation
         extra = ' (exact test)'
-        orders = _bin_perm_rep(n_samples)[1:max_perms + 1]
+        orders = bin_perm_rep(n_samples)[1:max_perms + 1]
     elif n_samples <= 20:  # fast way to do it for small(ish) n_samples
         orders = rng.choice(max_perms, n_permutations - 1, replace=False)
         orders = [np.fromiter(np.binary_repr(s + 1, n_samples), dtype=int)
