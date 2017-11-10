@@ -38,6 +38,8 @@ Bug
 
 - Fix bug in :meth:`mne.io.Raw.plot` to correctly display event types when annotations are present by `Clemens Brunner`_
 
+- Fix bug in :func:`mne.stats.spatio_temporal_cluster_test` default value for ``threshold`` is now calculated based on the array sizes in ``X``, by `Eric Larson`_
+
 API
 ~~~
 

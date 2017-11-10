@@ -22,9 +22,8 @@ from scipy import stats
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa, analysis:ignore
 
-from mne.stats import (spatio_temporal_cluster_1samp_test, fdr_correction,
-                       bonferroni_correction, ttest_1samp_no_p,
-                       permutation_t_test)
+from mne.stats import (ttest_1samp_no_p, bonferroni_correction, fdr_correction,
+                       permutation_t_test, permutation_cluster_1samp_test)
 
 print(__doc__)
 
@@ -40,10 +39,10 @@ print(__doc__)
 #     association among groups.
 #
 # We typically want to reject a **null hypothesis** with
-# at some probability level (e.g., p < 0.05).
+# some probability level (e.g., p < 0.05).
 # To think about what this means, let's follow the illustrative example from
-# [1]_ and construct a toy dataset consists of a 40 x 40 square with a "signal"
-# present in the center (at pixel [20, 20]) with white noise
+# [1]_ and construct a toy dataset consisting of a 40 x 40 square with a
+# "signal" present in the center (at pixel [20, 20]) with white noise
 # added and a 5-pixel-SD normal smoothing kernel applied.
 width = 40
 n_subjects = 10
@@ -53,7 +52,7 @@ noise_sd = 0.01
 gaussian_sd = 5
 sigma = 1e-3  # sigma for the "hat" method
 threshold = -stats.distributions.t.ppf(0.05, n_subjects - 1)
-n_permutations = 1024  # number of clustering permutations (1024 for exact)
+n_permutations = 'all'  # run an exact test
 n_src = width * width
 
 # For each "subject", make a smoothed noisy signal with a centered peak
@@ -71,14 +70,14 @@ for si in range(X.shape[0]):
         X[si, :, ci] = np.convolve(X[si, :, ci], gaussian, 'same')
 
 ###############################################################################
-# In this case, a null hypothesis we could test is for each voxel is:
+# In this case, a null hypothesis we could test for each voxel is:
 #
 #     There is no difference between the mean value and zero
 #     (:math:`H_0: \mu = 0`).
 #
 # The alternative hypothesis, then, is that the voxel has a non-zero mean.
-# This is a *two-tailed test* because this means the mean could be less than
-# or greater-than zero (whereas a *one-tailed test* would test only one of
+# This is a *two-tailed test* because the mean could be less than
+# or greater than zero (whereas a *one-tailed test* would test only one of
 # these possibilities, i.e. :math:`H_0: \mu \geq 0` or
 # :math:`H_0: \mu \leq 0`).
 #
@@ -91,11 +90,9 @@ for si in range(X.shape[0]):
 # but is not always satisfied for neuroimaging data.)
 #
 # In the context of our toy dataset, which has many voxels, applying the
-# 1-sample t test is called a *mass-univariate* approach as it treats
+# 1-sample t-test is called a *mass-univariate* approach as it treats
 # each voxel independently.
 
-# X needs to be a multi-dimensional array of shape (n_samples, n_time, n_space)
-# (where samples here are subjects) so we permute dimensions:
 t_uncorrected, p_uncorrected = stats.ttest_1samp(X, 0, axis=0)
 
 ###############################################################################
@@ -111,29 +108,39 @@ p_uncorrected_hat = stats.distributions.t.sf(
 # Non-parametric tests
 # ^^^^^^^^^^^^^^^^^^^^
 # Instead of assuming an underlying Gaussian distribution, we could instead
-# use a **non-parametric permutation** method. Under the null hypothesis,
-# we have the princple of **exchangability**, which means that, if the null
+# use a **non-parametric resampling** method. Under the null hypothesis,
+# we have the princple of **exchangeability**, which means that, if the null
 # is true, we should be able to exchange conditions and not change the
 # distribution of the test statistic.
 #
-# In the case of a paired t test against 0 (or between two conditions where
-# you have already subtracted them), exchangeability means that we can flip
-# the signs of our data. Therefor we can bootstrap the **null distribution**
+# In the case of a 2-tailed paired t-test against 0 (or between two conditions
+# where you have already subtracted them), exchangeability means that we can
+# flip the signs of our data. Therefore, we can
+# construct the **null distribution**
 # values by taking random subsets of samples (subjects), flipping the sign
-# of their data, and recording the resulting statistic value. The value from
-# the statistic evaluateid on the veridical data can then be compared to this
-# distrubiton, and the p value is simply the proportion of null distrtibution
-# values that were smaller.
+# of their data, and recording the resulting statistic absolute value. The
+# absolute value of the statistic evaluated on the veridical data can then be
+# compared to this distribution, and the p-value is simply the proportion of
+# null distribution values that were smaller.
+#
+# .. note:: In the case where ``n_permutations`` is large enough (or "all") so
+#           that the complete set of unique resampling exchanges can be done
+#           (which is :math:`2^{N_{samp}}-1=1023` for the one-tailed paired
+#           test here, not counting the veridical distribution),
+#           instead of randomly exchanging conditions the null is formed
+#           from using all possible exchanges. This is known as a permutation
+#           test (or exact test) form of a non-parametric resampling test.
 
 # Here we have to do a bit of gymnastics to get our function to do
 # a permutation test without correcting for multiple comparisons:
 
+# Let's flatten the array for simplicity
 X.shape = (n_subjects, n_src)
 t_uncorrected_perm = np.zeros(width * width)
 p_uncorrected_perm = np.zeros(width * width)
 for ii in range(n_src):
     t_uncorrected_perm[ii], p_uncorrected_perm[ii] = \
-        permutation_t_test(X[:, [ii]])[:2]
+        permutation_t_test(X[:, [ii]], verbose=True if ii == 0 else False)[:2]
 
 ###############################################################################
 # Multiple comparisons
@@ -143,7 +150,7 @@ for ii in range(n_src):
 # :math:`40 \times 40 = 1600` tests being performed. If we just use
 # a threshold ``p < 0.05`` for all of our tests, we would expect many
 # voxels to be declared significant even if there were no true effect.
-# In other words, we would make many **Type I errors** (adapted from
+# In other words, we would make many **type I errors** (adapted from
 # `Wikipedia <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`_):
 #
 # .. rst-class:: skinnytable
@@ -164,7 +171,7 @@ for ii in range(n_src):
 # provide control over either the:
 #
 # 1. `Familywise error rate (FWER) <fwer>`_
-#      The probability of making one or more Type I error:
+#      The probability of making one or more type I error:
 #      :math:`p(N_{\mathrm{Type\ I}} >= 1)`.
 # 2. `False discovery rate (FDR) <fdr>`_
 #      The expected proportion of rejected null hypotheses that are false:
@@ -174,9 +181,9 @@ for ii in range(n_src):
 #
 # Bonferroni correction
 # ^^^^^^^^^^^^^^^^^^^^^
-# Perhaps the simplest way to deal with multiple comparisons,
-# `Bonferroni <https://en.wikipedia.org/wiki/Bonferroni_correction>`_
-# correction multiplies the p-values by the number of comparisons to
+# Perhaps the simplest way to deal with multiple comparisons, `Bonferroni
+# correction<https://en.wikipedia.org/wiki/Bonferroni_correction>`_
+# conservatively multiplies the p-values by the number of comparisons to
 # control the FWER.
 
 p_bon = bonferroni_correction(p_uncorrected)[1]
@@ -186,27 +193,27 @@ p_bon = bonferroni_correction(p_uncorrected)[1]
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Typically FDR is performed with the Benjamini/Hochberg procedure, which
 # is less restrictive than Bonferroni correction for large numbers of
-# comparisons (fewer Type II errors) but provides less strict control of
-# errors (more Type I errors).
+# comparisons (fewer type II errors) but provides less strict control of
+# errors (more type I errors).
 
 p_fdr = fdr_correction(p_uncorrected)[1]
 
 ###############################################################################
-# Non-parametric permutation test with a maximal statistic
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# **Non-parametric permutation tests** can also be used to correct for multiple
+# Non-parametric resampling test with a maximum statistic
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# **Non-parametric resampling tests** can also be used to correct for multiple
 # comparisons. In its simplest form, we again do permutations using
 # exchangeability under the null hypothesis, but this time we take the
 # *maximum statistic across all tests* in each permutation to form the
 # null distribution. The p-value for each vertex from the veridical data
-# then given by the proportion of null distrubtion values
-# that were smaller than.
+# is then given by the proportion of null distrubtion values
+# that were smaller.
 #
 # This method has two important features:
 #
 # 1. It controls FWER.
 # 2. It is non-parametric. Even though our initial test statistic
-#    (here a 1-sample t-test) for clustering parametric, the null
+#    (here a 1-sample t-test) for clustering is parametric, the null
 #    distribution for the null hypothesis rejection (cluster size
 #    distribution is indistinguishable from zero) is obtained by
 #    permutations. This means that it makes no assumptions of Gaussianity
@@ -236,7 +243,7 @@ t_perm, p_perm = permutation_t_test(X)[:2]
 #     The distribution of spatial cluster sizes is independent of the sign
 #     of the data.
 #
-# In this case, we again do a permutations with a maximal statistic, but, under
+# In this case, we again do permutations with a maximum statistic, but, under
 # each permutation, we:
 #
 # 1. Threshold the computed statistic with some **initial**
@@ -244,10 +251,10 @@ t_perm, p_perm = permutation_t_test(X)[:2]
 # 2. Cluster points that exceed this threshold (with the same sign)
 #    based on adjacency.
 # 3. Record the *size* of each cluster (measured, e.g., by a simple vertex
-#    count or the sum of voxel t values within the cluster).
+#    count or the sum of voxel t-values within the cluster).
 #
 # After doing these permutations, the cluster sizes in our veridical data
-# are compared to this null distribution. The p value associated with each
+# are compared to this null distribution. The p-value associated with each
 # cluster is again given by the proportion of smaller null distribution
 # values. This can then be subjected to a standard p-value threshold
 # (e.g., ``p < 0.05``) to reject the null hypothesis (i.e., find an effect
@@ -270,15 +277,16 @@ t_perm, p_perm = permutation_t_test(X)[:2]
 # We need to define our connectivity/neighbor/adjacency matrix, which we know
 # is just a grid. Using ``connectivity=None`` is highly optimized for this
 # case.
+
+# Reshape to what is equivalent to (n_samples, n_space, n_time)
 X.shape = (n_subjects, width, width)
-t_clust, clusters, p_values, H0 = \
-    spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold,
-                                       connectivity=None, tail=1,
-                                       n_permutations=n_permutations)
+t_clust, clusters, p_values, H0 = permutation_cluster_1samp_test(
+    X, n_jobs=1, threshold=threshold, connectivity=None, tail=1,
+    n_permutations=n_permutations)
 # Put the cluster data in a viewable format
 p_clust = np.ones((width, width))
 for cl, p in zip(clusters, p_values):
-    p_clust[cl[0], cl[1]] = p
+    p_clust[cl] = p
 
 ###############################################################################
 # "hat" variance adjustment
@@ -286,14 +294,12 @@ for cl, p in zip(clusters, p_values):
 # This method can also be used in this context to correct for small
 # variances [1]_:
 stat_fun_hat = partial(ttest_1samp_no_p, sigma=sigma)
-t_hat, clusters, p_values, H0 = \
-    spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold,
-                                       connectivity=None, tail=1,
-                                       n_permutations=n_permutations,
-                                       stat_fun=stat_fun_hat, buffer_size=None)
+t_hat, clusters, p_values, H0 = permutation_cluster_1samp_test(
+    X, n_jobs=1, threshold=threshold, connectivity=None, tail=1,
+    n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
 p_hat = np.ones((width, width))
 for cl, p in zip(clusters, p_values):
-    p_hat[cl[0], cl[1]] = p
+    p_hat[cl] = p
 
 ###############################################################################
 # .. _tfce_example:
@@ -306,7 +312,7 @@ for cl, p in zip(clusters, p_values):
 # `Riemann sum <https://en.wikipedia.org/wiki/Riemann_sum>`_ [2]_.
 # This requires giving a starting threshold ``'start'`` and a step
 # size ``'step'``, which in MNE is supplied as a dict.
-# The smaller the ``'step'`` and lower closer to 0 the ``'start'`` value,
+# The smaller the ``'step'`` and closer to 0 the ``'start'`` value,
 # the better the approximation, but the longer it takes).
 #
 # A significant advantage of TFCE is that, rather than modifying the
@@ -316,24 +322,21 @@ for cl, p in zip(clusters, p_values):
 # independently for significance rather than only as cluster groups.
 
 threshold_tfce = dict(start=0, step=0.2)
-t_tfce, _, p_tfce, H0 = \
-    spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold_tfce,
-                                       connectivity=None,
-                                       tail=1, n_permutations=n_permutations)
+t_tfce, _, p_tfce, H0 = permutation_cluster_1samp_test(
+    X, n_jobs=1, threshold=threshold_tfce, connectivity=None, tail=1,
+    n_permutations=n_permutations)
 
 ###############################################################################
 # We can also combine TFCE and the "hat" correction:
-t_tfce_hat, _, p_tfce_hat, H0 = \
-    spatio_temporal_cluster_1samp_test(X, n_jobs=1, threshold=threshold_tfce,
-                                       connectivity=None, tail=1,
-                                       n_permutations=n_permutations,
-                                       stat_fun=stat_fun_hat, buffer_size=None)
+t_tfce_hat, _, p_tfce_hat, H0 = permutation_cluster_1samp_test(
+    X, n_jobs=1, threshold=threshold_tfce, connectivity=None, tail=1,
+    n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
 
 ###############################################################################
 # Visualize and compare methods
 # -----------------------------
 # Let's take a look at these statistics. The top row shows each test statistic,
-# and the bottom shows p values for various statistical tests, with the ones
+# and the bottom shows p-values for various statistical tests, with the ones
 # with proper control over FWER or FDR with bold titles.
 
 fig = plt.figure(facecolor='w', figsize=(12, 3))
@@ -348,7 +351,7 @@ mccs = [False, False, False,
 ts = [t_uncorrected, t_uncorrected_hat, t_uncorrected_perm,
       None, None, t_perm,
       t_clust, t_hat, t_tfce, t_tfce_hat]
-titles = ['t statistic', '$\mathrm{t_{hat}}$', 'Permutation',
+titles = ['t-statistic', '$\mathrm{t_{hat}}$', 'Permutation',
           'Bonferroni', 'FDR', '$\mathbf{Perm_{max}}$',
           'Clustering', r'$\mathbf{C_{hat}}$',
           r'$\mathbf{C_{TFCE}}$',
@@ -386,10 +389,10 @@ plt.show()
 # The first three columns show the parametric and non-parametric statistics
 # that are not corrected for multiple comparisons:
 #
-# - **t test** has peaky edges.
-# - **"hat" variance correction** of the t test has reduced peaky edges,
+# - **t-test** has jagged edges.
+# - **"hat" variance correction** of the t-test has reduced peaky edges,
 #   correcting for sharpness in the statistic driven by low-variance voxels.
-# - **non-parametric permutation test** is very similar to the t test, as
+# - **non-parametric resampling test** is very similar to the t-test, as
 #   the data are parametric.
 #
 # The next three columns show multiple comparison corrections of the
@@ -399,11 +402,11 @@ plt.show()
 #
 # - **Bonferroni correction** eliminates any significant activity.
 # - **FDR correction** is less conservative than Bonferroni.
-# - **Permutation test with a maximal statistic** also eliminates any
+# - **Permutation test with a maximum statistic** also eliminates any
 #   significant activity.
 #
-# The final four columns show the non-parametric, cluster-based permuatation
-# tests with a maximal statistic:
+# The final four columns show the non-parametric, cluster-based permutation
+# tests with a maximum statistic:
 #
 # - **Standard clustering** identifies the correct region. However, the whole
 #   area must be declared significant, so no peak analysis can be done.
@@ -427,7 +430,7 @@ plt.show()
 # To use these functions in clustering:
 #
 # 1. Determine which statistical test you would use in a univariate context
-#    (e.g., to compute your contrast of interest if there only a single
+#    (e.g., to compute your contrast of interest if there is only a single
 #    output, like reaction times).
 # 2. Wrap the call to that function within a function that takes an input of
 #    the same shape that is expected by your clustering function,
@@ -443,7 +446,7 @@ plt.show()
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # - :func:`mne.stats.ttest_1samp_no_p`
-#     Paired t test, optionally with hat adjustment.
+#     Paired t-test, optionally with hat adjustment.
 #     This is used by default for contrast enhancement in paired cluster tests.
 #
 # - :func:`mne.stats.f_oneway`
@@ -453,22 +456,22 @@ plt.show()
 #
 # - :func:`mne.stats.f_mway_rm`
 #     M-way ANOVA for repeated measures and balanced designs.
-#     This returns F-statistics and p-valus. The associated helper function
+#     This returns F-statistics and p-values. The associated helper function
 #     :func:`mne.stats.f_threshold_mway_rm` can be used to determine the
-#     F-threshold at a given significance level and set of degrees of freedom.
+#     F-threshold at a given significance level.
 #
 # - :func:`mne.stats.linear_regression`
 #     Compute ordinary least square regressions on multiple targets, e.g.,
 #     sensors, time points across trials (samples).
-#     For each regressor it returns the beta values, t-staistics, and
-#     uncorrected significance values. While it can be used as a test it is
+#     For each regressor it returns the beta value, t-statistic, and
+#     uncorrected p-value. While it can be used as a test it is
 #     particularly useful to compute weighted averages.
 #
 # Non-parametric methods
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
 # - :func:`mne.stats.permutation_cluster_test`
-#     Unpaired contrasts with spatial connectivity.
+#     Unpaired contrasts with connectivity.
 #
 # - :func:`mne.stats.spatio_temporal_cluster_test`
 #     Unpaired contrasts with spatio-temporal connectivity.
@@ -477,10 +480,19 @@ plt.show()
 #     Paired contrast with no connectivity.
 #
 # - :func:`mne.stats.permutation_cluster_1samp_test`
-#     Paired contrasts with spatial connectivity.
+#     Paired contrasts with connectivity.
 #
 # - :func:`mne.stats.spatio_temporal_cluster_1samp_test`
 #     Paired contrasts with spatio-temporal connectivity.
+#
+# .. warning:: In most MNE functions, data has shape
+#              ``(..., n_space, n_time)``, where the spatial dimension can
+#              be e.g. sensors or source vertices. But for our spatio-temporal
+#              clustering functions, the spatial dimensions need to be **last**
+#              for computational efficiency reasons. For example, for
+#              :func:`mne.stats.spatio_temporal_cluster_1samp_test`, ``X``
+#              needs to be of shape ``(n_samples, n_time, n_space)``. You can
+#              use :func:`numpy.transpose` to transpose axes if necessary.
 #
 # References
 # ----------

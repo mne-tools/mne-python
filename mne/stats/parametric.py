@@ -15,12 +15,65 @@ from ..externals.six import string_types
 # copy the data while keeping the inputs unchanged.
 
 
+def ttest_1samp_no_p(X, sigma=0, method='relative'):
+    """Perform one-sample t-test.
+
+    This is a modified version of :func:`scipy.stats.ttest_1samp` that avoids
+    a (relatively) time-consuming p-value calculation, and can adjust
+    for implausibly small variance values [1]_.
+
+    Parameters
+    ----------
+    X : array
+        Array to return t-values for.
+    sigma : float
+        The variance estate will be given by "var + sigma * max(var)" or
+        "var + sigma", depending on "method". By default this is 0 (no
+        adjustment). See Notes for details.
+    method : str
+        If 'relative', the minimum variance estimate will be sigma * max(var),
+        if 'absolute' the minimum variance estimate will be sigma.
+
+    Returns
+    -------
+    t : array
+        t-values, potentially adjusted using the hat method.
+
+    Notes
+    -----
+    To use the "hat" adjustment method [1]_, a value of ``sigma=1e-3`` may be a
+    reasonable choice.
+
+    You can use the conversion from ``scipy.stats.distributions.t.ppf``::
+
+        thresh = -scipy.stats.distributions.t.ppf(p_thresh, n_samples - 1) / 2.
+
+    to convert a desired p-value threshold to 2-tailed t-value threshold.
+    For one-tailed tests, ``thresh`` in the above should be multiplied by 2
+    (and for ``tail=-1``, multiplied by ``-1``).
+
+    References
+    ----------
+    .. [1] Ridgway et al. 2012 "The problem of low variance voxels in
+       statistical parametric mapping; a new hat avoids a 'haircut'",
+       NeuroImage. 2012 Feb 1;59(3):2131-41.
+    """
+    if method not in ['absolute', 'relative']:
+        raise ValueError('method must be "absolute" or "relative", not %s'
+                         % method)
+    var = np.var(X, axis=0, ddof=1)
+    if sigma > 0:
+        limit = sigma * np.max(var) if method == 'relative' else sigma
+        var += limit
+    return np.mean(X, axis=0) / np.sqrt(var / X.shape[0])
+
+
 def f_oneway(*args):
     """Perform a 1-way ANOVA.
 
     The one-way ANOVA tests the null hypothesis that 2 or more groups have
     the same population mean. The test is applied to samples from two or
-    more groups, possibly with differing sizes.
+    more groups, possibly with differing sizes [1]_.
 
     This is a modified version of :func:`scipy.stats.f_oneway` that avoids
     computing the associated p-value.
@@ -49,14 +102,13 @@ def f_oneway(*args):
     possible to use the Kruskal-Wallis H-test (:func:`scipy.stats.kruskal`)
     although with some loss of power
 
-    The algorithm is from Heiman[2], pp.394-7.
+    The algorithm is from Heiman [2]_, pp.394-7.
 
     References
     ----------
     .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
            Statistics". Chapter 14.
            http://faculty.vassar.edu/lowry/ch14pt1.html
-
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
 
     """
@@ -175,7 +227,7 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
 
 def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
                         pvalue=0.05):
-    """Compute f-value thesholds for a two-way ANOVA.
+    """Compute F-value thesholds for a two-way ANOVA.
 
     Parameters
     ----------
@@ -198,8 +250,8 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
 
     Returns
     -------
-    f_threshold : list | float
-        list of f-values for each effect if the number of effects
+    F_threshold : list | float
+        list of F-values for each effect if the number of effects
         requested > 2, else float.
 
     See Also
@@ -214,12 +266,12 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     from scipy.stats import f
     effect_picks, _ = _map_effects(len(factor_levels), effects)
 
-    f_threshold = []
+    F_threshold = []
     for _, df1, df2 in _iter_contrasts(n_subjects, factor_levels,
                                        effect_picks):
-        f_threshold.append(f(df1, df2).isf(pvalue))
+        F_threshold.append(f(df1, df2).isf(pvalue))
 
-    return f_threshold if len(f_threshold) > 1 else f_threshold[0]
+    return F_threshold if len(F_threshold) > 1 else F_threshold[0]
 
 
 def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
@@ -261,12 +313,12 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
         levels. If True, sphericity correction using the Greenhouse-Geisser
         method will be applied.
     return_pvals : bool
-        If True, return p values corresponding to f values.
+        If True, return p-values corresponding to F-values.
 
     Returns
     -------
-    f_vals : ndarray
-        An array of f values with length corresponding to the number
+    F_vals : ndarray
+        An array of F-statistics with length corresponding to the number
         of effects estimated. The shape depends on the number of effects
         estimated.
     p_vals : ndarray
