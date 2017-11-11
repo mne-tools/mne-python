@@ -36,7 +36,7 @@ ch_names = ['SIM0001', 'SIM0002']
 ch_types = ['grad', 'grad']
 info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
-n_times = int(sfreq)  # 1 second long epochs
+n_times = 1024  # Just over 1 second epochs
 n_epochs = 40
 seed = 42
 rng = np.random.RandomState(seed)

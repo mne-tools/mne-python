@@ -27,6 +27,8 @@ Changelog
 
 - Reduce memory consumption and do not require data to be loaded in :meth:`mne.Epochs.apply_baseline` by `Eric Larson`_
 
+- Add option ``render_bem`` to :meth:`mne.Report.parse_folder` by `Eric Larson`_
+
 Bug
 ~~~
 

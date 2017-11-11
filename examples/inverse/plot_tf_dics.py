@@ -56,7 +56,7 @@ raw.info.normalize_proj()
 # beamforming will be performed for a wider range of time points than will
 # later be displayed on the final spectrogram. This ensures that all time bins
 # displayed represent an average of an equal number of time windows.
-tmin, tmax, tstep = -0.55, 0.75, 0.05  # s
+tmin, tmax, tstep = -0.5, 0.75, 0.05  # s
 tmin_plot, tmax_plot = -0.3, 0.5  # s
 
 # Read epochs

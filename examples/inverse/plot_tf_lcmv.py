@@ -57,7 +57,7 @@ raw.info.normalize_proj()
 # points than will later be displayed on the final spectrogram. This ensures
 # that all time bins displayed represent an average of an equal number of time
 # windows.
-tmin, tmax = -0.55, 0.75  # s
+tmin, tmax = -0.5, 0.75  # s
 tmin_plot, tmax_plot = -0.3, 0.5  # s
 
 # Read epochs. Note that preload is set to False to enable tf_lcmv to read the

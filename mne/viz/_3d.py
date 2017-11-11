@@ -420,7 +420,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
-                   meg=('helmet', 'sensors'), eeg='original',
+                   meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, fig=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
@@ -454,10 +454,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         .. note:: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
-    meg : str | list | bool
+    meg : str | list | bool | None
         Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
         reference sensors respectively, or a combination like
-        ``['helmet', 'sensors']``. True translates to
+        ``('helmet', 'sensors')`` (same as None, default). True translates to
         ``('helmet', 'sensors', 'ref')``.
     eeg : bool | str | list
         Can be "original" (default; equivalent to True) or "projected" to
@@ -518,6 +518,13 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         eeg = list()
     elif eeg is True:
         eeg = 'original'
+    if meg is None:
+        meg = ('helmet', 'sensors')
+        # only consider warning if the value is explicit
+        warn_meg = False
+    else:
+        warn_meg = True
+
     if meg is True:
         meg = ('helmet', 'sensors', 'ref')
     elif meg is False:
@@ -851,7 +858,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             meg_tris.append(tris + offset)
             offset += len(meg_rrs[-1])
         if len(meg_rrs) == 0:
-            warn('MEG electrodes not found. Cannot plot MEG locations.')
+            if warn_meg:
+                warn('MEG sensors not found. Cannot plot MEG locations.')
         else:
             meg_rrs = apply_trans(meg_trans, np.concatenate(meg_rrs, axis=0))
             meg_tris = np.concatenate(meg_tris, axis=0)

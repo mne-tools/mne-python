@@ -45,7 +45,7 @@ def _log_ch(start, info, ch):
 def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
-                 random_state=None, use_cps=None, verbose=None):
+                 random_state=None, use_cps=True, verbose=None):
     u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
@@ -109,7 +109,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     random_state : None | int | np.random.RandomState
         The random generator state used for blink, ECG, and sensor
         noise randomization.
-    use_cps : None | bool (default None)
+    use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
     verbose : bool, str, int, or None

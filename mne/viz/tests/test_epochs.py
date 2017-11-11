@@ -143,7 +143,7 @@ def test_plot_epochs_image():
         assert_raises(ValueError, epochs.plot_image, combine='error',
                       ts_args=ts_args)
         warnings.simplefilter('always')
-    assert_equal(len(w), 4)
+    assert_equal(len(w), 1)
 
     plt.close('all')
 

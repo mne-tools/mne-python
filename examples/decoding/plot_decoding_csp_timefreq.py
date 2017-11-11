@@ -103,7 +103,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 ###############################################################################
 # Plot frequency results
 
-plt.bar(left=freqs[:-1], height=freq_scores, width=np.diff(freqs)[0],
+plt.bar(freqs[:-1], freq_scores, width=np.diff(freqs)[0],
         align='edge', edgecolor='black')
 plt.xticks(freqs)
 plt.ylim([0, 1])

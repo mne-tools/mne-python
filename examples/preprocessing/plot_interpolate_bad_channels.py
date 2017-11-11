@@ -37,7 +37,7 @@ evoked = mne.read_evokeds(fname, condition='Left Auditory',
 evoked.plot(exclude=[])
 
 # compute interpolation (also works with Raw and Epochs objects)
-evoked.interpolate_bads(reset_bads=False)
+evoked.interpolate_bads(reset_bads=False, verbose=False)
 
 # plot interpolated (previous bads)
 evoked.plot(exclude=[])

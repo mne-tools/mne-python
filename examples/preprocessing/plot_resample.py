@@ -71,8 +71,8 @@ raw_resampled = raw.copy().resample(300, npad='auto')
 # events on the original data before downsampling.
 print('Number of events before resampling:', len(mne.find_events(raw)))
 
-# Resample to 100 Hz (generates warning)
-raw_resampled = raw.copy().resample(100, npad='auto')
+# Resample to 100 Hz (suppress the warning that would be emitted)
+raw_resampled = raw.copy().resample(100, npad='auto', verbose='error')
 print('Number of events after resampling:',
       len(mne.find_events(raw_resampled)))
 

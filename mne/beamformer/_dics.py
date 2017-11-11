@@ -545,8 +545,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             # If in the last step the last time point was not covered in
             # previous steps and will not be covered now, a solution needs to
             # be calculated for an additional time window
-            if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and\
-               win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
+            if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and \
+                    win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
                 warn('Adding a time window to cover last time points')
                 win_tmin = tmax - win_length
                 win_tmax = tmax
