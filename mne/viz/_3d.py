@@ -859,7 +859,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             offset += len(meg_rrs[-1])
         if len(meg_rrs) == 0:
             if warn_meg:
-                warn('MEG electrodes not found. Cannot plot MEG locations.')
+                warn('MEG sensors not found. Cannot plot MEG locations.')
         else:
             meg_rrs = apply_trans(meg_trans, np.concatenate(meg_rrs, axis=0))
             meg_tris = np.concatenate(meg_tris, axis=0)
