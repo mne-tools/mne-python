@@ -5,6 +5,7 @@ Rejecting bad data (channels and segments)
 ==========================================
 
 """
+# sphinx_gallery_thumbnail_number = 3
 
 import numpy as np
 import mne

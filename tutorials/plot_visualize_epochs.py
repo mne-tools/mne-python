@@ -5,6 +5,8 @@ Visualize Epochs data
 =====================
 
 """
+# sphinx_gallery_thumbnail_number = 7
+
 import os.path as op
 
 import mne
