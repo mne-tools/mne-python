@@ -754,8 +754,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     if fmin is None:
         fmin = -np.inf  # set it to -inf, so we can adjust it later
 
-    fmin = np.asarray((fmin,)).ravel()
-    fmax = np.asarray((fmax,)).ravel()
+    fmin = np.array((fmin,), dtype=float).ravel()
+    fmax = np.array((fmax,), dtype=float).ravel()
     if len(fmin) != len(fmax):
         raise ValueError('fmin and fmax must have the same length')
     if np.any(fmin > fmax):
@@ -995,14 +995,14 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
     five_cycle_freq = 5. / dur
     if len(fmin) == 1 and fmin[0] == -np.inf:
         # we use the 5 cycle freq. as default
-        fmin = five_cycle_freq
+        fmin = np.array([five_cycle_freq])
     else:
-        if fmin < five_cycle_freq:
+        if np.any(fmin < five_cycle_freq):
             warn('fmin=%0.3f Hz corresponds to %0.3f < 5 cycles '
                  'based on the epoch length %0.3f sec, need at least %0.3f '
                  'sec epochs or fmin=%0.3f. Spectrum estimate will be '
-                 'unreliable.' % (fmin, dur * fmin, dur,
-                                  5. / fmin, five_cycle_freq))
+                 'unreliable.' % (np.min(fmin), dur * np.min(fmin), dur,
+                                  5. / np.min(fmin), five_cycle_freq))
 
     # create a frequency mask for all bands
     freq_mask = np.zeros(len(freqs_all), dtype=np.bool)
@@ -1088,7 +1088,7 @@ def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,
 
         # reformat cwt_n_cycles if we have removed some frequencies
         # using fmin, fmax, fskip
-        cwt_n_cycles = np.asarray((cwt_n_cycles,)).ravel()
+        cwt_n_cycles = np.array((cwt_n_cycles,), dtype=float).ravel()
         if len(cwt_n_cycles) > 1:
             if len(cwt_n_cycles) != len(cwt_freqs):
                 raise ValueError('cwt_n_cycles must be float or an '
