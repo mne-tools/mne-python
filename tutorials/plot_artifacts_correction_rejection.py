@@ -89,7 +89,7 @@ print(evoked.info['bads'])
 
 ###############################################################################
 # Let's now interpolate the bad channels (displayed in red above)
-evoked.interpolate_bads(reset_bads=False)
+evoked.interpolate_bads(reset_bads=False, verbose=False)
 
 ###############################################################################
 # Let's plot the cleaned data

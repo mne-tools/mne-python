@@ -64,7 +64,7 @@ stc = simulate_sparse_stc(src, n_dipoles=n_dipoles, times=times,
 fig, ax = plt.subplots(1)
 ax.plot(times, 1e9 * stc.data.T)
 ax.set(ylabel='Amplitude (nAm)', xlabel='Time (sec)')
-fig.show()
+mne.viz.utils.plt_show()
 
 ##############################################################################
 # Simulate raw data

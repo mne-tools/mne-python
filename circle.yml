@@ -170,7 +170,7 @@ test:
     # what immediately precedes the "Build finished." line.
     - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot | tee $CIRCLE_ARTIFACTS/log.txt; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern | tee $CIRCLE_ARTIFACTS/log.txt; else make test-doc; cd doc; make $(cat ../build.txt) | tee $CIRCLE_ARTIFACTS/log.txt; fi:
           timeout: 1500
-    - tail $CIRCLE_ARTIFACTS/log.txt | grep -E "auto_tutorials\s*\[100%\]\s*plot_|Build finished"
+    - tail $CIRCLE_ARTIFACTS/log.txt | tee /dev/tty | grep -E "auto_tutorials\s*\[100%\]\s*plot_|Build finished"
   post:
     - if [[ $(cat build.txt) == "html" ]]; then
         cp -a doc/_build/html_stable $CIRCLE_ARTIFACTS/;
