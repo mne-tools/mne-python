@@ -1259,8 +1259,9 @@ def label_sign_flip(label, src):
     return flip
 
 
+@verbose
 def stc_to_label(stc, src=None, smooth=True, connected=False,
-                 subjects_dir=None):
+                 subjects_dir=None, verbose=None):
     """Compute a label from the non-zero sources in an stc object.
 
     Parameters
@@ -1281,6 +1282,9 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
         of the maximum value in the stc.
     subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
