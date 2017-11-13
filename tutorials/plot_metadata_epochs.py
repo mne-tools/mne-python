@@ -117,7 +117,7 @@ for n_letters in letters:
 
 style_plot["colors"] = {n_letters: int(float(n_letters))
                         for n_letters in letters}
-style_plot["cmap"] = ("Number of Letters", "viridis_r")
+style_plot["cmap"] = ("# of Letters", "viridis_r")
 del style_plot['linestyles']
 
 fig, ax = plt.subplots(figsize=(6, 4))

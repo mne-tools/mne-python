@@ -1930,16 +1930,12 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             if not isinstance(show_sensors, (np.int, bool, str)):
                 raise TypeError("show_sensors must be numeric, str or bool, "
                                 "not " + str(type(show_sensors)))
-#            if show_sensors is True:
-#                show_sensors = 2
             show_sensors = _check_loc_legal(show_sensors, "show_sensors")
             _plot_legend(pos, ["k" for pick in picks], axes, list(), outlines,
                          show_sensors, size=20)
 
     # the condition legend
     if len(conditions) > 1 and show_legend is not False:
-        if show_legend is True:
-            show_legend = 'best'
         show_legend = _check_loc_legal(show_legend, "show_legend")
         legend_params = dict(loc=show_legend, frameon=True)
         if split_legend:
