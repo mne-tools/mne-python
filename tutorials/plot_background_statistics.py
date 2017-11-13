@@ -134,7 +134,7 @@ def plot_t_p(t, p, title, mcc, axes=None):
     # p plot
     use_p = -np.log10(np.reshape(np.maximum(p, 1e-5), (width, width)))
     img = axes[1].imshow(use_p, cmap='inferno', vmin=p_lims[0], vmax=p_lims[1],
-                         interpolation='bilinear')
+                         interpolation='nearest')
     axes[1].set(xticks=[], yticks=[])
     cbar = plt.colorbar(ax=axes[1], shrink=0.75, orientation='horizontal',
                         fraction=0.1, pad=0.025, mappable=img)
