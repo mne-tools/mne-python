@@ -112,22 +112,12 @@ plt.show()
 letters = epochs.metadata["NumberOfLetters"].unique().astype(str)
 
 evokeds = dict()
-<<<<<<< HEAD
-for n_letters in epochs.metadata["NumberOfLetters"].unique():
-    n_letters = str(n_letters)
-    evokeds[n_letters] = epochs["NumberOfLetters == " + n_letters].average()
-
-style_plot["colors"] = {str(n_letters): int(n_letters) for n_letters in
-                        epochs.metadata["NumberOfLetters"].unique()}
-style_plot["cmap"] = ("Number of letters", "summer_r")
-=======
 for n_letters in letters:
     evokeds[n_letters] = epochs["NumberOfLetters == " + n_letters].average()
 
 style_plot["colors"] = {n_letters: int(float(n_letters))
                         for n_letters in letters}
-style_plot["cmap"] = "summer_r"
->>>>>>> address mikolajs comments
+style_plot["cmap"] = ("Number of Letters", "viridis")
 del style_plot['linestyles']
 
 fig, ax = plt.subplots(figsize=(6, 4))
