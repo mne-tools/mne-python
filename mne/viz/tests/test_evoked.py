@@ -155,7 +155,7 @@ def test_plot_evoked():
         # test a bunch of params at once
         for evokeds_ in (evoked.copy().pick_types(meg='mag'), contrast,
                          [red, blue], [[red, evoked], [blue, evoked]]):
-            plot_compare_evokeds(evokeds_, picks=0)  # also tests CI
+            plot_compare_evokeds(evokeds_, picks=0, ci=True)  # also tests CI
         plt.close('all')
         # test styling +  a bunch of other params at once
         colors, linestyles = dict(red='r', blue='b'), dict(red='--', blue='-')
@@ -169,7 +169,6 @@ def test_plot_evoked():
                   dict(picks=3, styles=dict(fake=1)), dict(picks=3, gfp=True),
                   dict(picks=3, show_sensors="a")]
         for param in params:
-            print(params)
             assert_raises(ValueError, plot_compare_evokeds, evoked, **param)
         assert_raises(TypeError, plot_compare_evokeds, evoked, picks='str')
         plt.close('all')
@@ -177,7 +176,7 @@ def test_plot_evoked():
         assert_raises(ValueError, plot_compare_evokeds, [[1, 2], [3, 4]])
         # `ci` must be float or None
         assert_raises(TypeError, plot_compare_evokeds, contrast, ci='err')
-        # all-positive ylim
+        # test all-positive ylim
         contrast["red/stim"], contrast["blue/stim"] = red, blue
         plot_compare_evokeds(contrast, picks=[0], colors=['r', 'b'],
                              ylim=dict(mag=(1, 10)), ci=_parametric_ci,
@@ -194,7 +193,7 @@ def test_plot_evoked():
             for linestyles in (["-"], {"b": "-", "c": ":"}):
                 plot_compare_evokeds(contrasts, colors=colors, picks=[0],
                                      cmap='Reds', split_legend=split,
-                                     linestyles=linestyles)
+                                     linestyles=linestyles, ci=False)
         red.info["chs"][0]["loc"][:2] = 0  # test plotting channel at zero
         plot_compare_evokeds(red, picks=[0], ci=lambda x: x.std(1))
         plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,

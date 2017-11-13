@@ -1540,7 +1540,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     vlines : list of int
         A list of integers corresponding to the positions, in seconds,
         at which to plot dashed vertical lines.
-    ci : float | callable | None
+    ci : float | callable | None | bool
         If not None and ``evokeds`` is a [list/dict] of lists, a shaded
         confidence interval is drawn around the individual time series. If
         float, a percentile bootstrap method is used to estimate the confidence
@@ -1548,7 +1548,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         .95 (the default), the 95% confidence interval is drawn. If a callable,
         it must take as its single argument an array (observations x times) and
         return the upper and lower confidence bands.
-        If None, no confidence band is plotted.
+        If None or False, no confidence band is plotted.
+        If True, the 95% confidence interval is drawn.
     truncate_yaxis : bool | str
         If True, the left y axis spine is truncated to reduce visual clutter.
         If 'max_ticks', the spine is truncated at the minimum and maximum
@@ -1678,7 +1679,11 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ymin, ymax = ylim.get(ch_type, [None, None])
 
     # deal with dict/list of lists and the CI
-    if ci is not None and not (isinstance(ci, np.float) or callable(ci)):
+    if ci is None:
+        ci = False
+    if ci is True:
+        ci = .95
+    elif ci is not False and not (isinstance(ci, np.float) or callable(ci)):
         raise TypeError('ci must be float or callable, got ' + str(type(ci)))
 
     scaling = _handle_default("scalings")[ch_type]
@@ -1695,8 +1700,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
 
     # if we have a dict/list of lists, we compute the grand average and the CI
-    if ci is None:
-        ci = False
     if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
         if ci is not False:
             if callable(ci):
