@@ -136,7 +136,7 @@ def test_plot_evoked():
         # plot_compare_evokeds: test condition contrast, CI, color assignment
         plot_compare_evokeds(evoked.copy().pick_types(meg='mag'))
         plot_compare_evokeds(
-            evoked.copy().pick_types(meg='grad'), picks=[1, 2], 
+            evoked.copy().pick_types(meg='grad'), picks=[1, 2],
             show_sensors="upper right", show_legend="upper left")
         evoked.rename_channels({'MEG 2142': "MEG 1642"})
         assert len(plot_compare_evokeds(evoked)) == 2
@@ -195,7 +195,7 @@ def test_plot_evoked():
                 plot_compare_evokeds(
                     contrasts, colors=colors, picks=[0], cmap='Reds',
                     split_legend=split, linestyles=linestyles,
-                     ci=False, show_sensors=False)
+                    ci=False, show_sensors=False)
         red.info["chs"][0]["loc"][:2] = 0  # test plotting channel at zero
         plot_compare_evokeds(red, picks=[0], ci=lambda x: x.std(1))
         plot_compare_evokeds([red, blue], picks=[0], cmap="summer", ci=None,
