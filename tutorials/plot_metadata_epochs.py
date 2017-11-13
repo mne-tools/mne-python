@@ -96,7 +96,7 @@ style_plot = dict(
     linestyles={"Concrete": "-", "Abstract": ":"},
     split_legend=True,
     ci=.68,
-    show_sensors='upper right',
+    show_sensors='lower right',
     show_legend='lower left',
     truncate_yaxis="max_ticks",
     picks=epochs.ch_names.index("Pz"),
@@ -117,7 +117,7 @@ for n_letters in letters:
 
 style_plot["colors"] = {n_letters: int(float(n_letters))
                         for n_letters in letters}
-style_plot["cmap"] = ("Number of Letters", "viridis")
+style_plot["cmap"] = ("Number of Letters", "viridis_r")
 del style_plot['linestyles']
 
 fig, ax = plt.subplots(figsize=(6, 4))

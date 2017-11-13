@@ -1440,14 +1440,18 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
     return ymin_bound, ymax_bound
 
 
-def _check_loc_legal(loc, what):
+def _check_loc_legal(loc, what='your choice'):
     """Check if a loc is a legal for MPL."""
-    str_locs = ["best", "right", "center", "upper right", "upper left",
-                "lower right", "lower left", "center right", "center left",
-                "upper center", "lower center"]
-    if not (loc is True or loc in range(1, 11) or loc in str_locs):
+    true_default = {"show_legend": 3, "show_sensors": 4}.get(what, 1)
+    loc_dict = {'upper right': 1, 'upper left': 2, 'lower left': 3,
+                'lower right': 4, 'right': 5, 'center left': 6,
+                'center right': 7, 'lower center': 8, 'upper center': 9,
+                'center': 10, True: true_default}
+    loc_ = loc_dict.get(loc, loc)
+    if loc_ not in range(11):
         raise ValueError(str(loc) + " is not a legal MPL loc, please supply"
                          "another value for " + what + ".")
+    return loc_
 
 
 def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
@@ -1926,9 +1930,9 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
             if not isinstance(show_sensors, (np.int, bool, str)):
                 raise TypeError("show_sensors must be numeric, str or bool, "
                                 "not " + str(type(show_sensors)))
-            if show_sensors is True:
-                show_sensors = 2
-            _check_loc_legal(show_sensors, "show_sensors")
+#            if show_sensors is True:
+#                show_sensors = 2
+            show_sensors = _check_loc_legal(show_sensors, "show_sensors")
             _plot_legend(pos, ["k" for pick in picks], axes, list(), outlines,
                          show_sensors, size=20)
 
@@ -1936,7 +1940,7 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if len(conditions) > 1 and show_legend is not False:
         if show_legend is True:
             show_legend = 'best'
-        _check_loc_legal(show_legend, "show_legend")
+        show_legend = _check_loc_legal(show_legend, "show_legend")
         legend_params = dict(loc=show_legend, frameon=True)
         if split_legend:
             if len(legend_lines) > 1:
