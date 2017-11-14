@@ -204,4 +204,4 @@ mne.viz.plot_alignment(
 # `these slides
 # <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
 #
-# .. _trans_matrices: https://en.wikipedia.org/wiki/False_discovery_rate
+# .. _trans_matrices: https://en.wikipedia.org/wiki/Transformation_matrix
