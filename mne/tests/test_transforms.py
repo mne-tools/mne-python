@@ -61,9 +61,7 @@ def test_get_trans():
     trans = read_trans(fname)
     trans = invert_transform(trans)  # starts out as head->MRI, so invert
     trans_2 = _get_trans(fname_trans)[0]
-    assert_equal(trans['from'], trans_2['from'])
-    assert_equal(trans['to'], trans_2['to'])
-    assert_allclose(trans['trans'], trans_2['trans'], rtol=1e-5, atol=1e-5)
+    assert trans.__eq__(trans_2, atol=1e-5)
 
 
 @testing.requires_testing_data
@@ -79,9 +77,7 @@ def test_io_trans():
     trans1 = read_trans(fname1)
 
     # check all properties
-    assert_true(trans0['from'] == trans1['from'])
-    assert_true(trans0['to'] == trans1['to'])
-    assert_array_equal(trans0['trans'], trans1['trans'])
+    assert trans0 == trans1
 
     # check reading non -trans.fif files
     assert_raises(IOError, read_trans, fname_eve)
