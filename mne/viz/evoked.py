@@ -1689,7 +1689,8 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     if ci is True:
         ci = .95
     elif ci is not False and not (isinstance(ci, np.float) or callable(ci)):
-        raise TypeError('ci must be float or callable, got ' + str(type(ci)))
+        raise TypeError('ci must be None, bool, float or callable, got ' +
+                        str(type(ci)))
 
     scaling = _handle_default("scalings")[ch_type]
     unit = _handle_default("units")[ch_type]
