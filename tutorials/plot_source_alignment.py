@@ -1,11 +1,17 @@
+# -*- coding: utf-8 -*-
 """
-.. _tut_source_alignment:
-
-Source alignment
-================
+Source alignment and coordinate frames
+======================================
 
 The aim of this tutorial is to show how to visually assess that the data are
-well aligned in space for computing the forward solution.
+well aligned in space for computing the forward solution, and understand
+the different coordinate frames involved in this process.
+
+.. contents:: Topics
+   :local:
+   :depth: 2
+
+Let's start out by loading some data.
 """
 import os.path as op
 
@@ -17,37 +23,137 @@ from mne.datasets import sample
 
 print(__doc__)
 
-
-###############################################################################
-# Set parameters
-# --------------
 data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-tr_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
+trans_fname = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_raw-trans.fif')
 raw = mne.io.read_raw_fif(raw_fname)
-
-
-###############################################################################
-# :func:`mne.viz.plot_alignment` is a very useful function for inspecting
-# the surface alignment before source analysis. If the ``subjects_dir`` and
-# ``subject`` parameters are provided, the function automatically looks for the
-# Freesurfer surfaces from the subject's folder. Here we use trans=None, which
-# (incorrectly!) equates the MRI and head coordinate frames.
-mne.viz.plot_alignment(raw.info, trans=None, subject='sample',
-                       subjects_dir=subjects_dir, dig=True,
-                       surfaces=['head-dense', 'brain'], coord_frame='meg')
-
+trans = mne.read_trans(trans_fname)
+src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
+                                     'sample-oct-6-src.fif'))
 
 ###############################################################################
-# It is quite clear that things are not well aligned for estimating the
-# sources. We need to provide the function with a transformation that aligns
-# the MRI with the MEG data. Here we use a precomputed matrix, but you can try
-# creating it yourself using :func:`mne.gui.coregistration`.
+# Understanding coordinate frames
+# -------------------------------
+# For M/EEG source imaging, there are three **coordinate frames** that we must
+# bring into alignment using two 3D `transformation matrices <trans_matrices>`_
+# that define how to rotate and translate points in one coordinate frame
+# to their equivalent locations in another.
 #
-# Aligning the data using GUI
-# ---------------------------
-# Uncomment the following line to align the data yourself.
+# :func:`mne.viz.plot_alignment` is a very useful function for inspecting
+# these transformations, and the resulting alignment of EEG sensors, MEG
+# sensors, brain sources, and conductor models. If the ``subjects_dir`` and
+# ``subject`` parameters are provided, the function automatically looks for the
+# Freesurfer MRI surfaces to show from the subject's folder.
+#
+# We can use the ``show_axes`` argument to see the various coordinate frames
+# given our transformation matrices. These are shown by axis arrows for each
+# coordinate frame:
+#
+# * shortest arrow is (**R**)ight/X
+# * medium is forward/(**A**)nterior/Y
+# * longest is up/(**S**)uperior/Z
+#
+# i.e., a **RAS** coordinate system in each case. We can also set
+# the ``coord_frame`` argument to choose which coordinate
+# frame the camera should initially be aligned with.
+#
+# Let's take a look:
+
+mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+                       subjects_dir=subjects_dir, surfaces='head-dense',
+                       show_axes=True, dig=True, eeg=[], meg='sensors',
+                       coord_frame='meg')
+mlab.view(45, 90, distance=0.6, focalpoint=(0., 0., 0.))
+print('Distance from head origin to MEG origin: %0.1f mm'
+      % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
+print('Distance from head origin to MRI origin: %0.1f mm'
+      % (1000 * np.linalg.norm(trans['trans'][:3, 3])))
+
+###############################################################################
+# Coordinate frame definitions
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# .. raw:: html
+#
+#    <style>
+#    .pink {color:DarkSalmon; font-weight:bold}
+#    .blue {color:DeepSkyBlue; font-weight:bold}
+#    .gray {color:Gray; font-weight:bold}
+#    .magenta {color:Magenta; font-weight:bold}
+#    .purple {color:Indigo; font-weight:bold}
+#    .green {color:LimeGreen; font-weight:bold}
+#    .red {color:Red; font-weight:bold}
+#    </style>
+#
+# .. role:: pink
+# .. role:: blue
+# .. role:: gray
+# .. role:: magenta
+# .. role:: purple
+# .. role:: green
+# .. role:: red
+#
+# 1. Neuromag head coordinate frame ("head", :pink:`pink axes`)
+#      Defined by the intersection of 1) the line between the LPA
+#      (:red:`red sphere`) and RPA (:purple:`purple sphere`), and
+#      2) the line perpendicular to this LPA-RPA line one that goes through
+#      the Nasion (:green:`green sphere`).
+#      The axes are oriented as **X** origin→RPA, **Y** origin→Nasion,
+#      **Z** origin→upward (orthogonal to X and Y).
+#
+#      .. note:: This gets defined during the head digitization stage during
+#                acquisition, often by use of a Polhemus or other digitizer.
+#
+# 2. MEG device coordinate frame ("meg", :blue:`blue axes`)
+#      This is defined by the MEG manufacturers. From the Elekta user manual:
+#
+#          The origin of the device coordinate system is located at the center
+#          of the posterior spherical section of the helmet with axis going
+#          from left to right and axis pointing front. The axis is, again
+#          normal to the plane with positive direction up.
+#
+#      .. note:: The device is coregistered with the head coordinate frame
+#                during acquisition via emission of sinusoidal currents in
+#                head position indicator (HPI) coils
+#                (:magenta:`magenta spheres`) at the beginning of the
+#                recording. This is stored in ``raw.info['dev_head_t']``.
+#
+# 3. MRI coordinate frame ("mri", :gray:`gray axes`)
+#      Defined by Freesurfer, the MRI (surface RAS) origin is at the
+#      center of a 256×256×256 1mm anisotropic volume (may not be in the center
+#      of the head).
+#
+#      .. note:: This is aligned to the head coordinate frame that we
+#                typically refer to in MNE as ``trans``.
+#
+# A bad example
+# -------------
+# Let's try using ``trans=None``, which (incorrectly!) equates the MRI
+# and head coordinate frames.
+
+mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
+                       subjects_dir=subjects_dir, dig=True,
+                       surfaces=['head-dense', 'white'], coord_frame='meg')
+
+###############################################################################
+# It is quite clear that the MRI surfaces (head, brain) are not well aligned
+# to the head digitization points (dots).
+#
+# A good example
+# --------------
+# Here is the same plot, this time with the ``trans`` properly defined
+# (using a precomputed matrix).
+
+mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
+                       src=src, subjects_dir=subjects_dir, dig=True,
+                       surfaces=['head-dense', 'white'], coord_frame='meg')
+
+###############################################################################
+# Defining the head↔MRI ``trans`` using the GUI
+# ---------------------------------------------
+# You can try creating the head↔MRI transform yourself using
+# :func:`mne.gui.coregistration`.
 #
 # * First you must load the digitization data from the raw file
 #   (``Head Shape Source``). The MRI data is already loaded if you provide the
@@ -74,47 +180,9 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample',
 # For more information, see step by step instructions
 # `in these slides
 # <http://www.slideshare.net/mne-python/mnepython-coregistration>`_.
+# Uncomment the following line to align the data yourself.
 
 # mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
-trans = mne.read_trans(tr_fname)
-src = mne.read_source_spaces(op.join(data_path, 'MEG', 'sample',
-                                     'sample_audvis-meg-oct-6-meg-inv.fif'))
-mne.viz.plot_alignment(raw.info, trans=trans, subject='sample', src=src,
-                       subjects_dir=subjects_dir, dig=True,
-                       surfaces=['head-dense', 'white'], coord_frame='meg')
-
-###############################################################################
-# Visualizing coordinate frames
-# -----------------------------
-# If you are curious about the origin and orientation of each of these
-# coordinate frames, you can use the ``show_axes`` argument to see how
-# each coordinate frame is aligned (shortest arrow is right/X,
-# medium is forward/anderior/Y, longest is up/superior/Z, i.e., RAS
-# coordinates).
-#
-# From this plot, where we have removed surfaces to more clearly see the
-# coordinate frame axes, you can see:
-#
-# 1. The Neuromage head coordinate frame that MNE uses (pink) is defined by
-#    the intersection of the line between the LPA and RPA, and the normal from
-#    that line to the Nasion.
-# 2. The MEG device coordinate frame (cyan) is somewhat centered on the
-#    sensors, and is aligned to the head coordinate frame during acquisition,
-#    where it is stored in ``raw.info['dev_head_t']`` as a
-#    :class:`mne.transforms.Transform`.
-# 3. The MRI coordinate frame (gray), which is defined by Freesurfer during
-#    reconstruction, is not the same as the head coordinate frame, and is
-#    aligned to the head coordinate frame by ``trans``.
-
-mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
-                       subjects_dir=subjects_dir, surfaces='head-dense',
-                       show_axes=True, dig=True, eeg=[], meg='sensors',
-                       coord_frame='meg')
-mlab.view(45, 90, distance=0.6, focalpoint=(0., 0., 0.))
-print('Distance from head origin to MEG origin: %0.1f mm'
-      % (1000 * np.linalg.norm(raw.info['dev_head_t']['trans'][:3, 3])))
-print('Distance from head origin to MRI origin: %0.1f mm'
-      % (1000 * np.linalg.norm(trans['trans'][:3, 3])))
 
 ###############################################################################
 # Alignment without MRI
@@ -135,3 +203,5 @@ mne.viz.plot_alignment(
 # to warp a subject (usually ``fsaverage``) to subject digitization data, see
 # `these slides
 # <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
+#
+# .. _trans_matrices: https://en.wikipedia.org/wiki/False_discovery_rate
