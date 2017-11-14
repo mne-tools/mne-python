@@ -17,7 +17,8 @@ from numbers import Integral
 import numpy as np
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
-                       _pick_data_channels, _VALID_CHANNEL_TYPES)
+                       _pick_data_channels, _VALID_CHANNEL_TYPES,
+                       channel_indices_by_type)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -1440,12 +1441,32 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
     return ymin_bound, ymax_bound
 
 
-def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
-                         linestyles=['-'], styles=None, vlines=list((0.,)),
+def _combine_grad(evoked, picks):
+    """Creates a new instance of Evoked with combined gradiometers (RMSE)"""
+    def pair_and_combine(data):
+        data = data ** 2
+        data = (data[::2, :] + data[1::2, :]) / 2
+        return np.sqrt(data)
+    picks, ch_names = _grad_pair_pick_and_name(evoked.info, picks)
+    this_data = pair_and_combine(evoked.data[picks, :])
+    ch_names = ch_names[::2]
+    evoked = evoked.copy().pick_channels(ch_names)
+    combined_ch_names = [ch_name[:-1] + "X" for ch_name in ch_names]
+    evoked.rename_channels({c_old: c_new for c_old, c_new
+                            in zip(evoked.ch_names, combined_ch_names)})
+    evoked.data = this_data
+    return evoked
+
+
+def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
+                         linestyles=['-'], styles=None, vlines="auto",
                          ci=0.95, truncate_yaxis=False, truncate_xaxis=True,
                          ylim=dict(), invert_y=False, show_sensors=None,
                          show_legend=True, axes=None, title=None, show=True):
     """Plot evoked time courses for one or multiple channels and conditions.
+
+    When multiple channels are passed, this function combines them all, to
+    get one time course for condition.
 
     This function is useful for comparing ER[P/F]s at a specific location. It
     plots Evoked data or, if supplied with a list/dict of lists of evoked
@@ -1463,15 +1484,14 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         area. All instances must have the same shape - channel numbers, time
         points etc.
         If dict, keys must be of type str.
-    picks : int | list of int
+    picks : None | int | list of int
         If int or list of int, the indices of the sensors to average and plot.
-        Must all be of the same channel type.
-        If the selected channels are gradiometers, the corresponding pairs
-        will be selected.
         If multiple channel types are selected, one figure will be returned for
         each channel type.
-        If an empty list, `gfp` will be set to True, and the Global Field
-        Power plotted.
+        If the selected channels are gradiometers, the signal coming from
+        gradiometer corresponding pairs with be combined.
+        If None, it defaults to all data channels, in which case the global
+        field power will be plotted for all channel type available.
     gfp : bool
         If True, the channel type wise GFP is plotted.
         If `picks` is an empty list (default), this is set to True.
@@ -1501,9 +1521,10 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         "Vis/L", "Vis/R", `styles` can be `{"Aud/L":{"linewidth":1}}` to set
         the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
         not supported.
-    vlines : list of int
-        A list of integers corresponding to the positions, in seconds,
-        at which to plot dashed vertical lines.
+    vlines : "auto" | list of float
+        A list in seconds at which to plot dashed vertical lines.
+        If "auto" and 0. is in the time interval of interest, it is set to [0.]
+        so a vertical bar is plotted at time 0.
     ci : float | callable | None
         If not None and ``evokeds`` is a [list/dict] of lists, a shaded
         confidence interval is drawn around the individual time series. If
@@ -1550,12 +1571,13 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     Returns
     -------
     fig : Figure | list of Figures
-        The figure(s) in which the plot is drawn.
+        The figure(s) in which the plot is drawn. A list of figures
+        is returned only one multiple channel types are plotted.
     """
     import matplotlib.pyplot as plt
-    from ..evoked import Evoked, combine_evoked
+    from ..evoked import Evoked, _check_evokeds_ch_names_times
 
-    # set up labels and instances
+    # set up labels and instances to have evokeds as a dict
     if isinstance(evokeds, Evoked):
         evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
     elif not isinstance(evokeds, dict):
@@ -1565,86 +1587,120 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         if not isinstance(cond, string_types):
             raise TypeError('Conditions must be str, not %s' % (type(cond),))
     conditions = sorted(list(evokeds.keys()))
+    # Now make sure all values are list of Evoked objects
+    evokeds = {condition: [v] if isinstance(v, Evoked) else v
+               for condition, v in evokeds.items()}
+
+    # Check that all elements are of type evoked
+    for this_evoked in evokeds.values():
+        for ev in this_evoked:
+            if not isinstance(ev, Evoked):
+                raise ValueError("Not all elements are Evoked "
+                                 "object. Got %s" % type(this_evoked))
+
+    # Check that all evoked objects have the same time axis and channels
+    all_evoked = sum(evokeds.values(), [])
+    _check_evokeds_ch_names_times(all_evoked)
+
+    # check ci parameter
+    if ci is not None and not (isinstance(ci, np.float) or callable(ci)):
+        raise TypeError('ci must be float or callable, got %s' % type(ci))
 
     # get and set a few limits and variables (times, channels, units)
-    example = (evokeds[conditions[0]]
-               if isinstance(evokeds[conditions[0]], Evoked)
-               else evokeds[conditions[0]][0])
-    if not isinstance(example, Evoked):
+    one_evoked = evokeds[conditions[0]][0]
+    if not isinstance(one_evoked, Evoked):
         raise ValueError("evokeds must be an instance of mne.Evoked "
                          "or a collection of mne.Evoked's")
-    times = example.times
+    times = one_evoked.times
+    info = one_evoked.info
+    ch_names = one_evoked.ch_names
     tmin, tmax = times[0], times[-1]
-    if (tmin >= 0 or tmax <= 0) and vlines == [0.]:
-        vlines = list()
+    if vlines is "auto" and (tmin < 0 and tmax > 0):
+        vlines = [0.]
+    assert isinstance(vlines, list)
 
     if isinstance(picks, Integral):
         picks = [picks]
-    elif len(picks) == 0:
-        warn("No picks, plotting the GFP ...")
+    elif picks is None:
+        logger.info("No picks, plotting the GFP ...")
         gfp = True
-        picks = _pick_data_channels(example.info)
+        picks = _pick_data_channels(info)
 
         if len(picks) == 0:
             raise ValueError("No valid channels were found to plot the GFP. " +
                              "Use 'picks' instead to select them manually.")
+
+    if not isinstance(picks, (list, np.ndarray)):
+        raise ValueError("picks should be a list or np.array of integers. "
+                         "Got %s." % type(picks))
 
     if ylim is None:
         ylim = dict()
 
     # deal with picks: infer indices and names
     if gfp is True:
-        show_sensors = False if show_sensors is None else show_sensors
+        if show_sensors is None:
+            show_sensors = False  # don't show sensors for GFP
         ch_names = ['Global Field Power']
         if len(picks) < 2:
             raise ValueError("A GFP with less than 2 channels doesn't work, "
-                             "please pick more channels.")
+                             "please pick more than %d channels." % len(picks))
     else:
-        if not isinstance(picks[0], (int, np.integer)):
-            msg = "'picks' must be int or a list of int, not {0}."
-            raise ValueError(msg.format(type(picks)))
-        show_sensors = True if show_sensors is None else show_sensors
-        ch_names = [example.ch_names[pick] for pick in picks]
-    ch_types = list(set(channel_type(example.info, pick_)
-                    for pick_ in picks))
-    # XXX: could possibly be refactored; plot_joint is doing a similar thing
-    if any([type_ not in _VALID_CHANNEL_TYPES for type_ in ch_types]):
-        raise ValueError("Non-data channel picked.")
-    if len(ch_types) > 1:
-        warn("Multiple channel types selected, returning one figure per type.")
-        if axes is not None:
-            from .utils import _validate_if_list_of_axes
-            _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
-        figs = list()
-        for ii, t in enumerate(ch_types):
-            picks_ = [idx for idx in picks
-                      if channel_type(example.info, idx) == t]
-            title_ = "GFP, " + t if not title and gfp is True else title
-            ax_ = axes[ii] if axes is not None else None
-            figs.append(
-                plot_compare_evokeds(
-                    evokeds, picks=picks_, gfp=gfp, colors=colors,
-                    linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
-                    truncate_yaxis=truncate_yaxis, ylim=ylim,
-                    invert_y=invert_y, axes=ax_, title=title_, show=show))
-        return figs
-    else:
-        ch_type = ch_types[0]
-        ymin, ymax = ylim.get(ch_type, [None, None])
+        if show_sensors is None:
+            show_sensors = True  # show sensors when not doing GFP
+        ch_names = [one_evoked.ch_names[pick] for pick in picks]
+    picks_by_types = channel_indices_by_type(info, picks)
+    ch_types = [t for t in picks_by_types if len(picks_by_types[t]) > 0]
 
-    # deal with dict/list of lists and the CI
-    if ci is not None and not (isinstance(ci, np.float) or callable(ci)):
-        raise TypeError('ci must be float or callable, got ' + str(type(ci)))
+    if axes is not None:
+        if not isinstance(axes, list):
+            axes = [axes]
+        from .utils import _validate_if_list_of_axes
+        _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
+
+    # let's take care of axis and figs
+    if axes is None:
+        axes = []
+        for _ in range(len(ch_types)):
+            _, ax = plt.subplots(1, 1, figsize=(8, 6))
+            axes.append(ax)
+    else:
+        if not isinstance(axes, list):
+            axes = [axes]
+
+    # XXX: could possibly be refactored; plot_joint is doing a similar thing
+    if len(ch_types) > 1:
+        logger.info("Multiple channel types selected, returning one figure "
+                    "per type.")
+        figs = []
+        for ii, t in enumerate(ch_types):
+            picks_ = picks_by_types[t]
+            title_ = "GFP, " + t if (title is None and gfp is True) else title
+            figs.append(plot_compare_evokeds(
+                evokeds, picks=picks_, gfp=gfp, colors=colors,
+                linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
+                truncate_yaxis=truncate_yaxis, ylim=ylim,
+                invert_y=invert_y, axes=axes[ii], title=title_, show=show))
+        return figs
+
+    assert len(ch_types) == 1
+    ch_type = ch_types[0]
+
+    all_positive = gfp  # True if not gfp, False if gfp
+    if ch_type == "grad" and len(picks) > 1:
+        logger.info('Combining all planar gradiometers with RMSE')
+        all_positive = True
+        for cond, this_evokeds in evokeds.items():
+            evokeds[cond] = [_combine_grad(e, picks) for e in this_evokeds]
+        ch_names = evokeds[cond][0].ch_names
+        picks = range(len(ch_names))
+
+    del info
+
+    ymin, ymax = ylim.get(ch_type, [None, None])
 
     scaling = _handle_default("scalings")[ch_type]
     unit = _handle_default("units")[ch_type]
-
-    all_positive = gfp  # True if not gfp, False if gfp
-    if ch_type == 'grad' and len(picks) > 1:  # deal with grad pairs
-        from ..channels.layout import _merge_grad_data
-        all_positive = True
-        if gfp is not True:
-            picks, ch_names = _grad_pair_pick_and_name(example.info, picks)
 
     if (ymin is None) and all_positive:
         ymin = 0.  # 'grad' and GFP are plotted as all-positive
@@ -1652,44 +1708,36 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # if we have a dict/list of lists, we compute the grand average and the CI
     if ci is None:
         ci = False
-    if not all([isinstance(evoked_, Evoked) for evoked_ in evokeds.values()]):
-        if ci is not False:
-            if callable(ci):
-                _ci_fun = ci
-            else:
-                from ..stats import _ci
-                _ci_fun = partial(_ci, ci=ci, method="bootstrap")
-            # calculate the CI
-            ci_array = dict()
-            for condition in conditions:
-                # this will fail if evokeds do not have the same structure
-                # (e.g. channel count)
-                if ch_type == 'grad':
-                    data = [(_merge_grad_data(evoked_.data[picks, :])).
-                            mean(0) for evoked_ in evokeds[condition]]
-                    data = np.asarray(data)
-                    plot_this = data.mean(0)
-                else:
-                    data = np.asarray([evoked_.data[picks, :].mean(0)
-                                       for evoked_ in evokeds[condition]])
-                ci_array[condition] = _ci_fun(data) * scaling
 
-        evokeds = dict((cond, combine_evoked(evokeds[cond], weights='equal'))
-                       for cond in conditions)
-    else:
-        ci = False
+    if ci is not False:
+        _ci_fun = None
+        if callable(ci):
+            _ci_fun = ci
+        else:
+            from ..stats import _ci
+            _ci_fun = partial(_ci, ci=ci, method="bootstrap")
 
-    if ci is False:
-        # check if they are compatible (XXX there should be a cleaner way)
-        combine_evoked(list(evokeds.values()), weights='nave')
+    # calculate the CI
+    ci_dict = dict()
+    data_dict = dict()
+    for cond, this_evokeds in evokeds.items():
+        # this will fail if evokeds do not have the same structure
+        # (e.g. channel count)
+        data = [e.data[picks, :] * scaling for e in this_evokeds]
+        data = np.array(data)
+        if gfp:
+            data = np.sqrt(np.mean(data * data, axis=1))
+        else:
+            data = np.mean(data, axis=1)
+        if _ci_fun is not None:  # compute CI if requested:
+            ci_dict[cond] = _ci_fun(data)
+        # average across conditions:
+        data_dict[cond] = np.mean(data, axis=0)
+
+    del evokeds
+
     # we now have dicts for data ('evokeds' - grand averaged Evoked's)
-    # and the CI ('sem_array') with cond name labels
-
-    # let's plot!
-    if axes is None:
-        fig, axes = plt.subplots(1, 1, figsize=(8, 6))
-    else:
-        fig = axes.figure
+    # and the CI ('ci_array') with cond name labels
 
     # style the individual condition time series
     # Styles (especially color and linestyle) are pulled from a dict 'styles'.
@@ -1748,74 +1796,70 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
     # We now have a 'styles' dict with one entry per condition, specifying at
     # least color and linestyles.
 
+    ax, = axes
+    del axes
+
     # the actual plot
     any_negative, any_positive = False, False
     for condition in conditions:
         # plot the actual data ('d') as a line
-        if ch_type == 'grad' and len(picks) > 1 and gfp is False:
-            d = plot_this * scaling
-        else:
-            d = evokeds[condition].data[picks, :].T * scaling
-            if gfp is True:
-                d = np.sqrt((d * d).mean(axis=-1))
-            else:
-                d = d.mean(-1)
-        axes.plot(times, d, zorder=1000, label=condition, **styles[condition])
-        if any(d > 0) or all_positive:
+        d = data_dict[condition].T
+        ax.plot(times, d, zorder=1000, label=condition, **styles[condition])
+        if np.any(d > 0) or all_positive:
             any_positive = True
         if np.any(d < 0):
             any_negative = True
 
-        # plot the confidence interval
-        if ci and (gfp is not True):
-            ci_ = ci_array[condition]
-            axes.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
-                              zorder=9, color=styles[condition]['c'], alpha=.3)
+        # plot the confidence interval is available
+        if _ci_fun is not None:
+            ci_ = ci_dict[condition]
+            ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
+                            zorder=9, color=styles[condition]['c'], alpha=.3)
 
     # truncate the y axis
-    orig_ymin, orig_ymax = axes.get_ylim()
+    orig_ymin, orig_ymax = ax.get_ylim()
     if not any_positive:
         orig_ymax = 0
     if not any_negative:
         orig_ymin = 0
 
-    axes.set_ylim(orig_ymin if ymin is None else ymin,
-                  orig_ymax if ymax is None else ymax)
+    ax.set_ylim(orig_ymin if ymin is None else ymin,
+                orig_ymax if ymax is None else ymax)
 
-    fraction = 2 if axes.get_ylim()[0] >= 0 else 3
+    fraction = 2 if ax.get_ylim()[0] >= 0 else 3
 
     if truncate_yaxis is not False:
         _, ymax_bound = _truncate_yaxis(
-            axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
+            ax, ymin, ymax, orig_ymin, orig_ymax, fraction,
             any_positive, any_negative, truncate_yaxis)
     else:
         if truncate_yaxis is True and ymin is not None and ymin > 0:
             warn("ymin is all-positive, not truncating yaxis")
-        ymax_bound = axes.get_ylim()[-1]
+        ymax_bound = ax.get_ylim()[-1]
 
     title = ", ".join(ch_names[:6]) if title is None else title
     if len(ch_names) > 6 and gfp is False:
         warn("More than 6 channels, truncating title ...")
         title += ", ..."
-    axes.set_title(title)
+    ax.set_title(title)
 
-    current_ymin = axes.get_ylim()[0]
+    current_ymin = ax.get_ylim()[0]
 
     # plot v lines
     if invert_y is True and current_ymin < 0:
-        upper_v, lower_v = -ymax_bound, axes.get_ylim()[-1]
+        upper_v, lower_v = -ymax_bound, ax.get_ylim()[-1]
     else:
-        upper_v, lower_v = axes.get_ylim()[0], ymax_bound
-    axes.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
-                linewidth=1., zorder=1)
+        upper_v, lower_v = ax.get_ylim()[0], ymax_bound
+    ax.vlines(vlines, upper_v, lower_v, linestyles='--', colors='k',
+              linewidth=1., zorder=1)
 
-    _setup_ax_spines(axes, vlines, tmin, tmax, invert_y, ymax_bound, unit,
+    _setup_ax_spines(ax, vlines, tmin, tmax, invert_y, ymax_bound, unit,
                      truncate_xaxis)
 
     if show_sensors:
         try:
             pos = _auto_topomap_coords(
-                example.info, picks, ignore_overlap=True, to_sphere=True)
+                one_evoked.info, picks, ignore_overlap=True, to_sphere=True)
         except ValueError:
             warn("Cannot find channel coordinates in the supplied Evokeds. "
                  "Not showing channel locations.")
@@ -1827,14 +1871,14 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
                                 str(type(show_sensors)))
             if show_sensors is True:
                 show_sensors = 2
-            _plot_legend(pos, ["k" for pick in picks], axes, list(), outlines,
+            _plot_legend(pos, ["k" for pick in picks], ax, list(), outlines,
                          show_sensors, size=20)
 
     if show_legend and len(conditions) > 1:
         if show_legend is True:
             show_legend = 'best'
-        axes.legend(loc=show_legend, ncol=1 + (len(conditions) // 5),
-                    frameon=True)
+        ax.legend(loc=show_legend, ncol=1 + (len(conditions) // 5),
+                  frameon=True)
 
     plt_show(show)
-    return fig
+    return ax.figure

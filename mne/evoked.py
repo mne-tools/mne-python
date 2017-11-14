@@ -854,6 +854,19 @@ def grand_average(all_evoked, interpolate_bads=True):
     return grand_average
 
 
+def _check_evokeds_ch_names_times(all_evoked):
+    evoked = all_evoked[0]
+    ch_names = evoked.ch_names
+    for e in all_evoked[1:]:
+        assert e.ch_names == ch_names, ValueError("%s and %s do not contain "
+                                                  "the same channels"
+                                                  % (evoked, e))
+        assert np.max(np.abs(e.times - evoked.times)) < 1e-7, \
+            ValueError("%s and %s do not contain the same time instants"
+                       % (evoked, e))
+
+
+
 def combine_evoked(all_evoked, weights):
     """Merge evoked data by weighted addition or subtraction.
 
@@ -892,14 +905,7 @@ def combine_evoked(all_evoked, weights):
     if weights.ndim != 1 or weights.size != len(all_evoked):
         raise ValueError('weights must be the same size as all_evoked')
 
-    ch_names = evoked.ch_names
-    for e in all_evoked[1:]:
-        assert e.ch_names == ch_names, ValueError("%s and %s do not contain "
-                                                  "the same channels"
-                                                  % (evoked, e))
-        assert np.max(np.abs(e.times - evoked.times)) < 1e-7, \
-            ValueError("%s and %s do not contain the same time instants"
-                       % (evoked, e))
+    _check_evokeds_ch_names_times(all_evoked)
 
     # use union of bad channels
     bads = list(set(evoked.info['bads']).union(*(ev.info['bads']
