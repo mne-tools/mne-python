@@ -21,6 +21,8 @@ BUG
 
 - Fix bug in :meth:`mne.io.set_eeg_reference` to remove an average reference projector when setting the reference to ``[]`` (i.e. do not change the existing reference) by `Clemens Brunner`_
 
+- Fix bug in :func:`mne.simulation.simulate_raw` where 1- and 3-layer BEMs were not properly transformed using ``trans`` by `Eric Larson`_
+
 .. _changes_0_15:
 
 Version 0.15

@@ -25,7 +25,8 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _prepare_for_forward, _transform_orig_meg_coils,
                        _compute_forwards, _to_forward_dict)
 from ..transforms import _get_trans, transform_surface_to
-from ..source_space import _ensure_src, _points_outside_surface
+from ..source_space import (_ensure_src, _points_outside_surface,
+                            _adjust_patch_info)
 from ..source_estimate import _BaseSourceEstimate
 from ..utils import logger, verbose, check_random_state, warn, _pl
 from ..parallel import check_n_jobs
@@ -365,7 +366,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
         # XXX eventually we could speed this up by allowing the forward
         # solution code to only compute the normal direction
         fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
-                                       verbose=False, use_cps=use_cps)
+                                       use_cps=use_cps, verbose=False)
         if blink:
             fwd_blink = fwd_blink['sol']['data']
             for ii in range(len(blink_rrs)):
@@ -479,8 +480,9 @@ def _iter_forward_solutions(info, trans, src, bem, exg_bem, dev_head_ts,
         idx = np.where(np.array([s['id'] for s in bem['surfs']]) ==
                        FIFF.FIFFV_BEM_SURF_ID_BRAIN)[0]
         assert len(idx) == 1
+        # make a copy so it isn't mangled in use
         bem_surf = transform_surface_to(bem['surfs'][idx[0]], coord_frame,
-                                        mri_head_t)
+                                        mri_head_t, copy=True)
     for ti, dev_head_t in enumerate(dev_head_ts):
         # Could be *slightly* more efficient not to do this N times,
         # but the cost here is tiny compared to actual fwd calculation
@@ -538,7 +540,9 @@ def _restrict_source_space_to(src, vertices):
         s['nuse'] = len(v)
         s['vertno'] = v
         s['inuse'][s['vertno']] = 1
-        for key in ('pinfo', 'nuse_tri', 'use_tris', 'patch_inds'):
+        for key in ('nuse_tri', 'use_tris'):
             if key in s:
                 del s[key]
+        # This will fix 'patch_info' and 'pinfo'
+        _adjust_patch_info(s, verbose=False)
     return src

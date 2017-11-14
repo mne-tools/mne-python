@@ -104,6 +104,48 @@ class Transform(dict):
                 % (_coord_frame_name(self['from']),
                    _coord_frame_name(self['to']), self['trans']))
 
+    def __eq__(self, other, rtol=0., atol=0.):
+        """Check for equality.
+
+        Parameter
+        ---------
+        other : instance of Transform
+            The other transform.
+        rtol : float
+            Relative tolerance.
+        atol : float
+            Absolute tolerance.
+
+        Returns
+        -------
+        eq : bool
+            True if the transforms are equal.
+        """
+        return (isinstance(other, Transform) and
+                self['from'] == other['from'] and
+                self['to'] == other['to'] and
+                np.allclose(self['trans'], other['trans'], rtol=rtol,
+                            atol=atol))
+
+    def __ne__(self, other, rtol=0., atol=0.):
+        """Check for inequality.
+
+        Parameter
+        ---------
+        other : instance of Transform
+            The other transform.
+        rtol : float
+            Relative tolerance.
+        atol : float
+            Absolute tolerance.
+
+        Returns
+        -------
+        eq : bool
+            True if the transforms are not equal.
+        """
+        return not self == other
+
     @property
     def from_str(self):
         """The "from" frame as a string."""
@@ -396,9 +438,9 @@ def _get_trans(trans, fro='mri', to='head'):
                 raise RuntimeError('File "%s" did not have 4x4 entries'
                                    % trans)
             fro_to_t = Transform(to, fro, t)
-    elif isinstance(trans, dict):
+    elif isinstance(trans, Transform):
         fro_to_t = trans
-        trans = 'dict'
+        trans = 'instance of Transform'
     elif trans is None:
         fro_to_t = Transform(fro, to)
         trans = 'identity'

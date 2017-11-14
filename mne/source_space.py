@@ -2171,14 +2171,21 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
             logger.info('%d source space point%s omitted because of the '
                         '%6.1f-mm distance limit.' % tuple(extras))
         # Adjust the patch inds as well if necessary
-        if omit + omit_outside > 0 and s.get('patch_inds') is not None:
-            if s['nearest'] is None:
-                # This shouldn't happen, but if it does, we can probably come
-                # up with a more clever solution
-                raise RuntimeError('Cannot adjust patch information properly, '
-                                   'please contact the mne-python developers')
-            _add_patch_info(s)
+        if omit + omit_outside > 0:
+            _adjust_patch_info(s)
     logger.info('Thank you for waiting.')
+
+
+@verbose
+def _adjust_patch_info(s, verbose=None):
+    """Adjust patch information in place after vertex omission."""
+    if s.get('patch_inds') is not None:
+        if s['nearest'] is None:
+            # This shouldn't happen, but if it does, we can probably come
+            # up with a more clever solution
+            raise RuntimeError('Cannot adjust patch information properly, '
+                               'please contact the mne-python developers')
+        _add_patch_info(s)
 
 
 @verbose
