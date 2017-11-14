@@ -127,8 +127,24 @@ class Transform(dict):
                 np.allclose(self['trans'], other['trans'], rtol=rtol,
                             atol=atol))
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    def __ne__(self, other, rtol=0., atol=0.):
+        """Check for inequality.
+
+        Parameter
+        ---------
+        other : instance of Transform
+            The other transform.
+        rtol : float
+            Relative tolerance.
+        atol : float
+            Absolute tolerance.
+
+        Returns
+        -------
+        eq : bool
+            True if the transforms are not equal.
+        """
+        return not self == other
 
     @property
     def from_str(self):
