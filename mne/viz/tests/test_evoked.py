@@ -203,6 +203,8 @@ def test_plot_evoked():
                              split_legend=None)
         plot_compare_evokeds([red, blue], cmap=None, split_legend=True)
         assert_raises(ValueError, plot_compare_evokeds, [red] * 20)
+        assert_raises(ValueError, plot_compare_evokeds, contrasts,
+                      cmap='summer')
 
         plt.close('all')
 

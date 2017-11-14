@@ -1484,6 +1484,13 @@ def _format_evokeds_colors(evokeds, cmap, colors):
             colors = dict((str(ii + 1), ii) for ii, _ in enumerate(evokeds))
         evokeds = dict((str(ii + 1), evoked)
                        for ii, evoked in enumerate(evokeds))
+    else:
+        assert isinstance(evokeds, dict)
+        if (colors is None) and cmap is not None:
+            raise ValueError('If evokeds is a dict and a cmap is passed, '
+                             'you must specify the colors.')
+            # XXX : I am a bit concerned about the duplication of
+            # the colors and cmap parameters.
     for cond in evokeds.keys():
         if not isinstance(cond, string_types):
             raise TypeError('Conditions must be str, not %s' % (type(cond),))

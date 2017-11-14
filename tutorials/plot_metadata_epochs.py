@@ -108,13 +108,14 @@ plt.show()
 ###############################################################################
 # To compare words which are 4, 5, 6, 7 or 8 letters long:
 
-letters = epochs.metadata["NumberOfLetters"].unique().astype(str)
+letters = epochs.metadata["NumberOfLetters"].unique().astype(int).astype(str)
 
 evokeds = dict()
 for n_letters in letters:
     evokeds[n_letters] = epochs["NumberOfLetters == " + n_letters].average()
 
-style_plot["colors"] = {n_letters: int(n_letters) for n_letters in letters}
+style_plot["colors"] = {n_letters: int(n_letters)
+                        for n_letters in letters}
 style_plot["cmap"] = ("# of Letters", "viridis_r")
 del style_plot['linestyles']
 
