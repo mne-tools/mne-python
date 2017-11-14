@@ -1375,7 +1375,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     return fig
 
 
-def _setup_styles(conditions, style_dict, style, default):
+def _aux_setup_styles(conditions, style_dict, style, default):
     """Set linestyles and colors for plot_compare_evokeds."""
     # check user-supplied style to condition matching
     tags = set([tag for cond in conditions for tag in cond.split("/")])
@@ -1471,6 +1471,103 @@ def _check_loc_legal(loc, what='your choice'):
         raise ValueError(str(loc) + " is not a legal MPL loc, please supply"
                          "another value for " + what + ".")
     return loc_
+
+
+def _format_evokeds_colors(evokeds, cmap, colors):
+    # set up labels and instances to have evokeds as a dict
+    from ..evoked import Evoked, _check_evokeds_ch_names_times
+
+    if isinstance(evokeds, Evoked):
+        evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
+    elif not isinstance(evokeds, dict):  # it's assumed to be a list
+        if (cmap is not None) and (colors is None):
+            colors = dict((str(ii + 1), ii) for ii, _ in enumerate(evokeds))
+        evokeds = dict((str(ii + 1), evoked)
+                       for ii, evoked in enumerate(evokeds))
+    for cond in evokeds.keys():
+        if not isinstance(cond, string_types):
+            raise TypeError('Conditions must be str, not %s' % (type(cond),))
+    # Now make sure all values are list of Evoked objects
+    evokeds = {condition: [v] if isinstance(v, Evoked) else v
+               for condition, v in evokeds.items()}
+
+    # Check that all elements are of type evoked
+    for this_evoked in evokeds.values():
+        for ev in this_evoked:
+            if not isinstance(ev, Evoked):
+                raise ValueError("Not all elements are Evoked "
+                                 "object. Got %s" % type(this_evoked))
+
+    # Check that all evoked objects have the same time axis and channels
+    all_evoked = sum(evokeds.values(), [])
+    _check_evokeds_ch_names_times(all_evoked)
+
+    return evokeds, colors
+
+
+def _setup_styles(conditions, styles, cmap, colors, linestyles):
+    import matplotlib.pyplot as plt
+    # dealing with continuous colors
+    the_colors = None
+    color_conds = None
+    color_order = None
+    if cmap is not None:
+        for color_value in colors.values():
+            try:
+                float(color_value)
+            except ValueError:
+                raise TypeError("If ``cmap`` is not None, the values of "
+                                "``colors`` must be numeric. Got %s" %
+                                type(color_value))
+        cmapper = getattr(plt.cm, cmap, cmap)
+        color_conds = list(colors.keys())
+        all_colors = [colors[cond] for cond in color_conds]
+        n_colors = len(all_colors)
+        color_order = np.array(all_colors).argsort()
+        color_indices = color_order.argsort()
+
+        the_colors = cmapper(np.linspace(0, 1, n_colors))
+
+        colors_ = {cond: ind for cond, ind in zip(color_conds, color_indices)}
+        colors = dict()
+        for cond in conditions:
+            for cond_number, color in colors_.items():
+                if cond_number in cond:
+                    colors[cond] = the_colors[color]
+                    continue
+
+    if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
+        # XXX should put a good list of default colors into defaults.py
+        colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+                   '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
+        if len(conditions) > len(colors_):
+            msg = ("Trying to plot more than {0} conditions. We provide"
+                   "only {0} default colors. Please supply colors manually.")
+            raise ValueError(msg.format(len(colors_)))
+        colors = dict((condition, color) for condition, color
+                      in zip(conditions, colors_))
+    else:
+        colors = _aux_setup_styles(conditions, colors, "color", "grey")
+
+    # fourth, linestyles
+    if not isinstance(linestyles, dict):
+        linestyles = dict((condition, linestyle) for condition, linestyle in
+                          zip(conditions, ['-'] * len(conditions)))
+    else:
+        linestyles = _aux_setup_styles(conditions, linestyles,
+                                       "linestyle", "-")
+
+    # fifth, put it all together
+    if styles is None:
+        styles = dict()
+
+    for condition, color, linestyle in zip(conditions, colors, linestyles):
+        styles[condition] = styles.get(condition, dict())
+        styles[condition]['c'] = styles[condition].get('c', colors[condition])
+        styles[condition]['linestyle'] = styles[condition].get(
+            'linestyle', linestyles[condition])
+
+    return styles, the_colors, color_conds, color_order
 
 
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
@@ -1634,35 +1731,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         is returned only one multiple channel types are plotted.
     """
     import matplotlib.pyplot as plt
-    from ..evoked import Evoked, _check_evokeds_ch_names_times
 
-    # set up labels and instances to have evokeds as a dict
-    if isinstance(evokeds, Evoked):
-        evokeds = dict(Evoked=evokeds)  # title becomes 'Evoked'
-    elif not isinstance(evokeds, dict):  # it's assumed to be a list
-        if (cmap is not None) and (colors is None):
-            colors = dict(
-                (str(ii + 1), ii) for ii, evoked in enumerate(evokeds))
-        evokeds = dict((str(ii + 1), evoked)
-                       for ii, evoked in enumerate(evokeds))
-    for cond in evokeds.keys():
-        if not isinstance(cond, string_types):
-            raise TypeError('Conditions must be str, not %s' % (type(cond),))
+    evokeds, colors = _format_evokeds_colors(evokeds, cmap, colors)
     conditions = sorted(list(evokeds.keys()))
-    # Now make sure all values are list of Evoked objects
-    evokeds = {condition: [v] if isinstance(v, Evoked) else v
-               for condition, v in evokeds.items()}
-
-    # Check that all elements are of type evoked
-    for this_evoked in evokeds.values():
-        for ev in this_evoked:
-            if not isinstance(ev, Evoked):
-                raise ValueError("Not all elements are Evoked "
-                                 "object. Got %s" % type(this_evoked))
-
-    # Check that all evoked objects have the same time axis and channels
-    all_evoked = sum(evokeds.values(), [])
-    _check_evokeds_ch_names_times(all_evoked)
 
     # check ci parameter
     if ci is None:
@@ -1674,13 +1745,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     # get and set a few limits and variables (times, channels, units)
     one_evoked = evokeds[conditions[0]][0]
-    if not isinstance(one_evoked, Evoked):
-        raise ValueError("evokeds must be an instance of mne.Evoked "
-                         "or a collection of mne.Evoked's")
     times = one_evoked.times
     info = one_evoked.info
     ch_names = one_evoked.ch_names
     tmin, tmax = times[0], times[-1]
+
     if vlines is "auto" and (tmin < 0 and tmax > 0):
         vlines = [0.]
     assert isinstance(vlines, list)
@@ -1715,24 +1784,22 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         if show_sensors is None:
             show_sensors = True  # show sensors when not doing GFP
         ch_names = [one_evoked.ch_names[pick] for pick in picks]
+
     picks_by_types = channel_indices_by_type(info, picks)
+    # keep only channel types for which there is a channel:
     ch_types = [t for t in picks_by_types if len(picks_by_types[t]) > 0]
 
+    # let's take care of axis and figs
     if axes is not None:
         if not isinstance(axes, list):
             axes = [axes]
         from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
-
-    # let's take care of axis and figs
-    if axes is None:
+    else:
         axes = []
         for _ in range(len(ch_types)):
             _, ax = plt.subplots(1, 1, figsize=(8, 6))
             axes.append(ax)
-    else:
-        if not isinstance(axes, list):
-            axes = [axes]
 
     if len(ch_types) > 1:
         logger.info("Multiple channel types selected, returning one figure "
@@ -1748,12 +1815,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 invert_y=invert_y, axes=axes[ii], title=title_, show=show))
         return figs
 
+    # From now on there is only 1 channel type
     assert len(ch_types) == 1
     ch_type = ch_types[0]
 
     all_positive = gfp  # True if not gfp, False if gfp
+    pos_picks = picks  # keep locations to pick for plotting
     if ch_type == "grad" and len(picks) > 1:
         logger.info('Combining all planar gradiometers with RMSE')
+        pos_picks, _ = _grad_pair_pick_and_name(one_evoked.info, picks)
+        pos_picks = pos_picks[::2]
         all_positive = True
         for cond, this_evokeds in evokeds.items():
             evokeds[cond] = [_combine_grad(e, picks) for e in this_evokeds]
@@ -1855,60 +1926,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 legend_lines.append(line)
                 legend_labels.append(style)
 
-    # dealing with continuous colors
-    if cmap is not None:
-        for color_value in colors.values():
-            try:
-                float(color_value)
-            except ValueError:
-                raise TypeError("If ``cmap`` is not None, the values of "
-                                "``colors`` must be numeric. Got %s" %
-                                type(color_value))
-        cmapper = getattr(plt.cm, cmap, cmap)
-        color_conds = list(colors.keys())
-        all_colors = [colors[cond] for cond in color_conds]
-        n_colors = len(all_colors)
-        color_order = np.array(all_colors).argsort()
-        color_indices = color_order.argsort()
+    styles, the_colors, color_conds, color_order =\
+        _setup_styles(data_dict.keys(), styles, cmap, colors, linestyles)
 
-        the_colors = cmapper(np.linspace(0, 1, n_colors))
-
-        colors_ = {cond: ind for cond, ind in zip(color_conds, color_indices)}
-        colors = dict()
-        for cond in data_dict.keys():
-            for cond_number, color in colors_.items():
-                if cond_number in cond:
-                    colors[cond] = the_colors[color]
-                    continue
-
-    if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
-        # XXX should put a good list of default colors into defaults.py
-        colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
-                   '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
-        if len(conditions) > len(colors_):
-            msg = ("Trying to plot more than {0} conditions. We provide"
-                   "only {0} default colors. Please supply colors manually.")
-            raise ValueError(msg.format(len(colors_)))
-        colors = dict((condition, color) for condition, color
-                      in zip(conditions, colors_))
-    else:
-        colors = _setup_styles(conditions, colors, "color", "grey")
-
-    # fourth, linestyles
-    if not isinstance(linestyles, dict):
-        linestyles = dict((condition, linestyle) for condition, linestyle in
-                          zip(conditions, ['-'] * len(conditions)))
-    else:
-        linestyles = _setup_styles(conditions, linestyles, "linestyle", "-")
-
-    # fifth, put it all together
-    if styles is None:
-        styles = dict()
-    for condition, color, linestyle in zip(conditions, colors, linestyles):
-        styles[condition] = styles.get(condition, dict())
-        styles[condition]['c'] = styles[condition].get('c', colors[condition])
-        styles[condition]['linestyle'] = styles[condition].get(
-            'linestyle', linestyles[condition])
     # We now have a 'styles' dict with one entry per condition, specifying at
     # least color and linestyles.
 
@@ -1976,8 +1996,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # a head plot showing the sensors that are being plotted
     if show_sensors:
         try:
-            pos = _auto_topomap_coords(
-                one_evoked.info, picks, ignore_overlap=True, to_sphere=True)
+            pos = _auto_topomap_coords(one_evoked.info, pos_picks,
+                                       ignore_overlap=True, to_sphere=True)
         except ValueError:
             warn("Cannot find channel coordinates in the supplied Evokeds. "
                  "Not showing channel locations.")
