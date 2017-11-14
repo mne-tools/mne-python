@@ -396,9 +396,9 @@ def _get_trans(trans, fro='mri', to='head'):
                 raise RuntimeError('File "%s" did not have 4x4 entries'
                                    % trans)
             fro_to_t = Transform(to, fro, t)
-    elif isinstance(trans, dict):
+    elif isinstance(trans, Transform):
         fro_to_t = trans
-        trans = 'dict'
+        trans = 'instance of Transform'
     elif trans is None:
         fro_to_t = Transform(fro, to)
         trans = 'identity'
