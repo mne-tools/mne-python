@@ -1158,7 +1158,7 @@ def _check_stim_channel(stim_channel, ch_names, include):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=True, annot=None, annotmap=None, exclude=(),
+                 stim_channel='auto', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
@@ -1178,10 +1178,12 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | None
-        The channel name or channel index (starting at 0).
-        -1 corresponds to the last channel (default).
-        If None, there will be no stim channel added.
+    stim_channel : str | int | 'auto' | None
+        The channel name or channel index (starting at 0). -1 corresponds to
+        the last channel. If None, there will be no stim channel added. If
+        'auto' (default), the stim channel will be added as the last channel if
+        the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
+        channel will not be added).
     annot : str | None
         Path to annotation file.
         If None, no derived stim channel will be added (for files requiring
