@@ -1,5 +1,4 @@
 """
-.. _tut_metadata_epochs:
 
 ================================================
 Pandas querying and metadata with Epochs objects

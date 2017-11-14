@@ -15,6 +15,7 @@ from copy import deepcopy
 from numbers import Integral
 
 import numpy as np
+import matplotlib.lines as mlines
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
                        _pick_data_channels, _VALID_CHANNEL_TYPES)
@@ -1777,7 +1778,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         if colors is None:
             raise ValueError(
                 "If `split_legend` is True, `colors` must not be None.")
-        import matplotlib.lines as mlines
         # mpl 1.3 requires us to split it like this. with recent mpl,
         # we could use the label parameter of the Line2D
         legend_lines, legend_labels = list(), list()
@@ -1957,8 +1957,6 @@ def plot_compare_evokeds(evokeds, picks=list(), gfp=False, colors=None,
         ax_cb.yaxis.tick_right()
         ax_cb.set_xticks(())
         ax_cb.set_ylabel(cmap_label)
-        fig.cbar = ax_cb
-    fig.ts_ax = axes
 
     plt_show(show)
     return fig
