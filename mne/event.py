@@ -444,8 +444,13 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         data = np.abs(data)  # make sure trig channel is positive
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
-    if initial_event and data[0, 0] != 0:
-        events = np.insert(events, 0, [0, 0, data[0, 0]], axis=0)
+    if data[0, 0] != 0:
+        if initial_event:
+            events = np.insert(events, 0, [0, 0, data[0, 0]], axis=0)
+        else:
+            warn('Trigger channel has a non-zero initial value (consider using'
+                 ' initial_event=True to detect this event)')
+
     events = _mask_trigs(events, mask, mask_type)
 
     # Determine event onsets and offsets
