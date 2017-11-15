@@ -152,15 +152,15 @@ class RawEDF(BaseRaw):
     def __init__(self, input_fname, montage, eog=None, misc=None,
                  stim_channel='auto', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
-        logger.info('Extracting EDF Parameters from %s...' % input_fname)
+        logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,
                                    annotmap, eog, misc, exclude, preload)
-        logger.info('Created Raw.info structure...')
+        logger.info('Creating raw.info structure...')
         _check_update_montage(info, montage)
 
         if bool(annot) != bool(annotmap):
-            warn("Stimulus Channel will not be annotated. Both 'annot' and "
+            warn("Stimulus channel will not be annotated. Both 'annot' and "
                  "'annotmap' must be specified.")
 
         # Raw attributes
@@ -168,8 +168,6 @@ class RawEDF(BaseRaw):
         super(RawEDF, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[edf_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
-
-        logger.info('Ready.')
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

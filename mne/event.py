@@ -495,7 +495,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         raise ValueError("Invalid output parameter %r" % output)
 
     logger.info("%s events found" % len(events))
-    logger.info("Events id: %s" % np.unique(events[:, 2]))
+    logger.info("Event IDs: %s" % np.unique(events[:, 2]))
 
     return events
 
