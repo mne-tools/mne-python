@@ -179,13 +179,12 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #
 # In the case of a 2-tailed paired t-test against 0 (or between two conditions
 # where you have already subtracted them), exchangeability means that we can
-# flip the signs of our data. Therefore, we can
-# construct the **null distribution**
-# values by taking random subsets of samples (subjects), flipping the sign
-# of their data, and recording the resulting statistic absolute value. The
-# absolute value of the statistic evaluated on the veridical data can then be
-# compared to this distribution, and the p-value is simply the proportion of
-# null distribution values that were smaller.
+# flip the signs of our data. Therefore, we can construct the
+# **null distribution** values by taking random subsets of samples (subjects),
+# flipping the sign of their data, and recording the resulting statistic
+# absolute value. The absolute value of the statistic evaluated on the
+# veridical data can then be compared to this distribution, and the p-value
+# is simply the proportion of null distribution values that were smaller.
 #
 # .. note:: In the case where ``n_permutations`` is large enough (or "all") so
 #           that the complete set of unique resampling exchanges can be done
