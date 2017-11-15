@@ -16,11 +16,14 @@ import pytest
 from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  make_sphere_model, create_info, setup_volume_source_space,
                  find_events, Epochs, fit_dipole, transform_surface_to,
-                 make_ad_hoc_cov, SourceEstimate, setup_source_space)
+                 make_ad_hoc_cov, SourceEstimate, setup_source_space,
+                 read_bem_solution, make_forward_solution,
+                 convert_forward_solution)
 from mne.chpi import _calculate_chpi_positions, read_head_pos, _get_hpi_info
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_raw
+from mne.source_space import _compare_source_spaces
 from mne.io import read_raw_fif, RawArray
 from mne.time_frequency import psd_welch
 from mne.utils import _TempDir, run_tests_if_main
@@ -38,6 +41,7 @@ subjects_dir = op.join(data_path, 'subjects')
 bem_path = op.join(subjects_dir, 'sample', 'bem')
 src_fname = op.join(bem_path, 'sample-oct-2-src.fif')
 bem_fname = op.join(bem_path, 'sample-320-320-320-bem-sol.fif')
+bem_1_fname = op.join(bem_path, 'sample-320-bem-sol.fif')
 
 raw_chpi_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_subsampled.pos')
@@ -247,6 +251,44 @@ def test_simulate_raw_bem():
         diffs = np.sqrt(np.sum((locs - fits) ** 2, axis=-1)) * 1000
         med_diff = np.median(diffs)
         assert_true(med_diff < tol, msg='%s: %s' % (bem, med_diff))
+
+
+@testing.requires_testing_data
+def test_simulate_round_trip():
+    """Test simulate_raw round trip calculations."""
+    # Check a diagonal round-trip
+    raw, src, stc, trans, sphere = _get_data()
+    raw.pick_types(meg=True, stim=True)
+    bem = read_bem_solution(bem_1_fname)
+    old_bem = bem.copy()
+    old_src = src.copy()
+    old_trans = trans.copy()
+    fwd = make_forward_solution(raw.info, trans, src, bem)
+    # no omissions
+    assert (sum(len(s['vertno']) for s in src) ==
+            sum(len(s['vertno']) for s in fwd['src']) ==
+            36)
+    # make sure things were not modified
+    assert (old_bem['surfs'][0]['coord_frame'] ==
+            bem['surfs'][0]['coord_frame'])
+    assert trans == old_trans
+    _compare_source_spaces(src, old_src)
+    data = np.eye(fwd['nsource'])
+    raw.crop(0, (len(data) - 1) / raw.info['sfreq'])
+    stc = SourceEstimate(data, [s['vertno'] for s in fwd['src']],
+                         0, 1. / raw.info['sfreq'])
+    for use_cps in (False, True):
+        this_raw = simulate_raw(raw, stc, trans, src, bem, cov=None,
+                                use_cps=use_cps)
+        this_raw.pick_types(meg=True, eeg=True)
+        assert (old_bem['surfs'][0]['coord_frame'] ==
+                bem['surfs'][0]['coord_frame'])
+        assert trans == old_trans
+        _compare_source_spaces(src, old_src)
+        this_fwd = convert_forward_solution(fwd, force_fixed=True,
+                                            use_cps=use_cps)
+        assert_allclose(this_raw[:][0], this_fwd['sol']['data'],
+                        atol=1e-12, rtol=1e-6)
 
 
 @pytest.mark.slowtest
