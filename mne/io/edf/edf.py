@@ -152,7 +152,7 @@ class RawEDF(BaseRaw):
     def __init__(self, input_fname, montage, eog=None, misc=None,
                  stim_channel='auto', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
-        logger.info('Extracting edf Parameters from %s...' % input_fname)
+        logger.info('Extracting EDF Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,
                                    annotmap, eog, misc, exclude, preload)
@@ -438,6 +438,9 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     tal_ch_name = 'EDF Annotations'
     tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
     if len(tal_chs) > 0:
+        logger.info('EDF annotations detected (consider using '
+                    'raw.find_edf_events() to extract events from these '
+                    'annotations)')
         if len(tal_chs) > 1:
             warn('Channel names are not unique, found duplicates for: %s. '
                  'Adding running numbers to duplicate channel names.'
