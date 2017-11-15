@@ -160,6 +160,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         group_by = "type"
         combine = "gfp"
 
+    if combine is not None:
+        ts_args["show_sensors"] = False
+
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
