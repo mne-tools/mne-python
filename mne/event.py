@@ -422,7 +422,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=None,
-                 uint_cast=False, mask_type='and'):
+                 uint_cast=False, mask_type='and', initial_event=False):
     """Help find events."""
     assert data.shape[0] == 1  # data should be only a row vector
 
@@ -444,6 +444,8 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         data = np.abs(data)  # make sure trig channel is positive
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
+    if initial_event and data[0, 0] != 0:
+        events = np.insert(events, 0, [0, 0, data[0, 0]], axis=0)
     events = _mask_trigs(events, mask, mask_type)
 
     # Determine event onsets and offsets
@@ -509,7 +511,7 @@ def _find_unique_events(events):
 def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=None, uint_cast=False,
-                mask_type='and', verbose=None):
+                mask_type='and', initial_event=False, verbose=None):
     """Find events from raw file.
 
     See :ref:`tut_epoching_and_averaging` as well as :ref:`ex_read_events`
@@ -552,6 +554,12 @@ def find_events(raw, stim_channel=None, output='onset',
         Neuromag acquisition setups that use channel STI016 (channel 16
         turns data into e.g. -32768), similar to ``mne_fix_stim14 --32``
         in MNE-C.
+
+        .. versionadded:: 0.16
+    initial_event : bool
+        If True (default False), an event is created if the stim channel has a
+        value different from 0 as its first sample. This is useful if an event
+        at t=0s is present.
 
         .. versionadded:: 0.12
     mask_type: 'and' | 'not_and'
@@ -675,7 +683,7 @@ def find_events(raw, stim_channel=None, output='onset',
                               verbose=verbose, output=output,
                               consecutive=consecutive, min_samples=min_samples,
                               mask=mask, uint_cast=uint_cast,
-                              mask_type=mask_type)
+                              mask_type=mask_type, initial_event=initial_event)
         # add safety check for spurious events (for ex. from neuromag syst.) by
         # checking the number of low sample events
         n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
