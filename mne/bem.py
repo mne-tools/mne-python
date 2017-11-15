@@ -753,9 +753,9 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         raise ValueError('relative_radii length (%s) must match that of '
                          'sigmas (%s)' % (len(relative_radii),
                                           len(sigmas)))
-    if len(sigmas) == 0 and head_radius is not None:
-            raise ValueError('sigmas must be supplied if head_radius is not '
-                             'None')
+    if len(sigmas) <= 1 and head_radius is not None:
+        raise ValueError('at least 2 sigmas must be supplied if '
+                         'head_radius is not None, got %s' % (len(sigmas),))
     if (isinstance(r0, string_types) and r0 == 'auto') or \
        (isinstance(head_radius, string_types) and head_radius == 'auto'):
         if info is None:

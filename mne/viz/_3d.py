@@ -422,7 +422,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, fig=None, verbose=None):
+                   bem=None, show_axes=False, fig=None,
+                   interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -481,9 +482,23 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
         `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
         the subjects bem and bem/flash folders are searched. Defaults to None.
+    show_axes : bool
+        If True (default False), coordinate frame axis indicators will be
+        shown:
+
+        * head in pink
+        * MRI in gray (if ``trans is not None``)
+        * MEG in blue (if MEG sensors are present)
+
+        .. versionadded:: 0.16
     fig : mayavi figure object | None
         Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
+
+        .. versionadded:: 0.16
+    interaction : str
+        Can be "trackball" (default) or "terrain", i.e. a turntable-style
+        camera.
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
@@ -513,6 +528,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils
     mlab = _import_mlab()
+    from tvtk.api import tvtk
 
     if eeg is False:
         eeg = list()
@@ -533,6 +549,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         meg = [meg]
     if isinstance(eeg, string_types):
         eeg = [eeg]
+
+    if not isinstance(interaction, string_types) or \
+            interaction not in ('trackball', 'terrain'):
+        raise ValueError('interaction must be "trackball" or "terrain", '
+                         'got "%s"' % (interaction,))
 
     for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
         if not isinstance(var, (list, tuple)) or \
@@ -630,6 +651,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     surfs = dict()
 
     # Head:
+    sphere_level = 4
     head = False
     for s in surfaces:
         if s in ('head', 'outer_skin', 'head-dense', 'seghead'):
@@ -643,7 +665,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 if bem is not None:
                     if isinstance(bem, ConductorModel):
                         if is_sphere:
-                            head_surf = _complete_sphere_surf(bem, 3, 4)
+                            head_surf = _complete_sphere_surf(
+                                bem, 3, sphere_level)
                         else:  # BEM solution
                             head_surf = _bem_find_surface(
                                 bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
@@ -712,12 +735,13 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 surf['rr'] /= 1000.
                 skull.append(surf)
             elif isinstance(bem, ConductorModel):
-                if bem['is_sphere']:
+                if is_sphere:
                     if len(bem['layers']) != 4:
                         raise ValueError('The sphere model must have three '
                                          'layers for plotting %s' % (name,))
                     this_idx = 1 if name == 'inner_skull' else 2
-                    skull.append(_complete_sphere_surf(bem, this_idx, 4))
+                    skull.append(_complete_sphere_surf(
+                        bem, this_idx, sphere_level))
                     skull[-1]['id'] = _surf_dict[name]
                 else:
                     skull.append(_bem_find_surface(bem, id_))
@@ -749,6 +773,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     if 'helmet' in meg and len(meg_picks) > 0:
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
+        assert surfs['helmet']['coord_frame'] == FIFF.FIFFV_COORD_MRI
 
     # Brain:
     brain = np.intersect1d(surfaces, ['brain', 'pial', 'white', 'inflated'])
@@ -763,7 +788,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         brain = 'pial' if brain == 'brain' else brain
         if is_sphere:
             if len(bem['layers']) > 0:
-                surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # only plot 1
+                surfs['lh'] = _complete_sphere_surf(
+                    bem, 0, sphere_level)  # only plot 1
         else:
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             for hemi in ['lh', 'rh']:
@@ -791,7 +817,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             this_skull = _surf_name[skull_surf['id']]
         elif is_sphere:  # this_skull == str
             this_idx = 1 if this_skull == 'inner_skull' else 2
-            skull_surf = _complete_sphere_surf(bem, this_idx, 4)
+            skull_surf = _complete_sphere_surf(bem, this_idx, sphere_level)
         else:  # str
             skull_fname = op.join(subjects_dir, subject, 'bem', 'flash',
                                   '%s.surf' % this_skull)
@@ -810,13 +836,15 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
         surfs[this_skull] = skull_surf
 
-    if src is None and brain is False and len(skull) == 0:
+    if src is None and brain is False and len(skull) == 0 and not show_axes:
         head_alpha = 1.0
     else:
         head_alpha = alphas[0]
 
     for key in surfs.keys():
-        surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
+        # Surfs can sometimes be in head coords (e.g., if coming from sphere)
+        surfs[key] = transform_surface_to(surfs[key], coord_frame,
+                                          [mri_trans, head_trans])
     if src is not None:
         if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
             src_rr = apply_trans(mri_trans, src_rr)
@@ -892,11 +920,14 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     # initialize figure
     if fig is None:
-        fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+        fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(800, 800))
+    if interaction == 'terrain' and fig.scene is not None:
+        fig.scene.interactor.interactor_style = \
+            tvtk.InteractorStyleTerrain()
     _toggle_mlab_render(fig, False)
 
     # plot surfaces
-    alphas = dict(head=head_alpha, helmet=0.5, lh=hemi_val, rh=hemi_val)
+    alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
     alphas.update(skull_alpha)
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
@@ -905,8 +936,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         # Make a solid surface
         mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(mesh, color=colors[key],
-                                            opacity=alphas[key], figure=fig)
+            surface = mlab.pipeline.surface(
+                mesh, color=colors[key], opacity=alphas[key], figure=fig)
         if key != 'helmet':
             surface.actor.property.backface_culling = True
     if brain and 'lh' not in surfs:  # one layer sphere
@@ -915,6 +946,19 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         center = apply_trans(head_trans, center)
         mlab.points3d(*center, scale_factor=0.01, color=colors['lh'],
                       opacity=alphas['lh'])
+    if show_axes:
+        axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
+        if not np.allclose(mri_trans['trans'], np.eye(4)):  # Show MRI
+            axes.append((mri_trans, (0.6, 0.6, 0.6)))
+        if len(meg_picks) > 0:  # Show MEG
+            axes.append((meg_trans, (0., 0.6, 0.6)))
+        for ax in axes:
+            x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
+            u, v, w = ax[0]['trans'][:3, :3]
+            mlab.points3d(x[0], y[0], z[0], color=ax[1], scale_factor=3e-3)
+            mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=2e-2,
+                          color=ax[1], scale_mode='scalar', resolution=20,
+                          scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -966,7 +1010,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         with warnings.catch_warnings(record=True):  # traits
             surface = mlab.pipeline.surface(mesh, color=color,
                                             opacity=alpha, figure=fig)
-        # Don't cull these backfaces
+        surface.actor.property.backface_culling = True
     if len(src_rr) > 0:
         with warnings.catch_warnings(record=True):  # traits
             quiv = mlab.quiver3d(
@@ -978,7 +1022,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         quiv.glyph.glyph_source.glyph_source.resolution = 20
         quiv.actor.property.backface_culling = True
     with SilenceStdout():
-        mlab.view(90, 90, figure=fig)
+        mlab.view(90, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
     _toggle_mlab_render(fig, True)
     return fig
 
@@ -1011,7 +1055,7 @@ def _sensor_shape(coil):
             [-long_side / 2., long_side / 2.],
             [-offset, long_side / 2.]])
         tris = np.concatenate((_make_tris_fan(4),
-                               _make_tris_fan(4) + 4), axis=0)
+                               _make_tris_fan(4)[:, ::-1] + 4), axis=0)
     elif id_ in (2000, 3022, 3023, 3024):
         # square magnetometer (potentially point-type)
         size = 0.001 if id_ == 2000 else (coil['size'] / 2.)
