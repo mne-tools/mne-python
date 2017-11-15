@@ -437,8 +437,7 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
     if len(tal_chs) > 0:
         logger.info('EDF annotations detected (consider using '
-                    'raw.find_edf_events() to extract events from these '
-                    'annotations)')
+                    'raw.find_edf_events() to extract them)')
         if len(tal_chs) > 1:
             warn('Channel names are not unique, found duplicates for: %s. '
                  'Adding running numbers to duplicate channel names.'

@@ -444,12 +444,14 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         data = np.abs(data)  # make sure trig channel is positive
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
-    if data[0, 0] != 0:
+    initial_value = data[0, 0]
+    if initial_value != 0:
         if initial_event:
-            events = np.insert(events, 0, [0, 0, data[0, 0]], axis=0)
+            events = np.insert(events, 0, [0, 0, initial_value], axis=0)
         else:
-            warn('Trigger channel has a non-zero initial value (consider using'
-                 ' initial_event=True to detect this event)')
+            logger.info('Trigger channel has a non-zero initial value of {} '
+                        '(consider using initial_event=True to detect this '
+                        'event)'.format(initial_value))
 
     events = _mask_trigs(events, mask, mask_type)
 
@@ -560,13 +562,13 @@ def find_events(raw, stim_channel=None, output='onset',
         turns data into e.g. -32768), similar to ``mne_fix_stim14 --32``
         in MNE-C.
 
-        .. versionadded:: 0.16
+        .. versionadded:: 0.12
     initial_event : bool
         If True (default False), an event is created if the stim channel has a
         value different from 0 as its first sample. This is useful if an event
         at t=0s is present.
 
-        .. versionadded:: 0.12
+        .. versionadded:: 0.16
     mask_type: 'and' | 'not_and'
         The type of operation between the mask and the trigger.
         Choose 'and' (default) for MNE-C masking behavior.
