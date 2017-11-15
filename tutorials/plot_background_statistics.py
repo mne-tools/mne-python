@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 =====================
 Statistical inference
@@ -244,8 +245,8 @@ alpha = 0.05
 p_type_I = 1 - (1 - alpha) ** N
 fig, ax = plt.subplots(figsize=(4, 3))
 ax.scatter(N, p_type_I, 3)
-ax.set(xlabel='$N_{\mathrm{test}}$', ylabel='Probability of ≥ 1\ntype I error',
-       xlim=N[[0, -1]], ylim=[0, 1])
+ax.set(xlim=N[[0, -1]], ylim=[0, 1], xlabel='$N_{\mathrm{test}}$',
+       ylabel=u'Probability of ≥ 1\ntype I error')
 ax.grid(True)
 fig.tight_layout()
 mne.viz.utils.plt_show()
