@@ -82,6 +82,11 @@ for si in range(X.shape[0]):
 # these possibilities, i.e. :math:`H_0: \mu \geq 0` or
 # :math:`H_0: \mu \leq 0`).
 #
+# .. note:: Here we will refer to each spatial location as a "voxel".
+#           In general, though, it could be any sort of data value
+#           (e.g., cortical vertex at a specific time, pixel in a
+#           time-frequency decomposition, etc.).
+#
 # Parametric tests
 # ^^^^^^^^^^^^^^^^
 # Let's start with a **1-sample t-test**, which is a standard test
@@ -213,7 +218,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # a threshold ``p < 0.05`` for all of our tests, we would expect many
 # voxels to be declared significant even if there were no true effect.
 # In other words, we would make many **type I errors** (adapted from
-# `Wikipedia <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`_):
+# `here <https://en.wikipedia.org/wiki/Type_I_and_type_II_errors>`_):
 #
 # .. rst-class:: skinnytable
 #
@@ -229,22 +234,48 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #   |          | No     |   True Negative  |   False negative |
 #   +----------+--------+------------------+------------------+
 #
+# To see why, consider a standard :math:`\alpha = 0.05`.
+# For a single test, our probability of making a type I error is 0.05.
+# The probability of making at least one type I error in
+# :math:`N_{\mathrm{test}}` independent tests is then given by
+# :math:`1 - (1 - \alpha)^{N_{\mathrm{test}}}`:
+
+N = np.arange(1, 80)
+alpha = 0.05
+p_type_I = 1 - (1 - alpha) ** N
+fig, ax = plt.subplots(figsize=(4, 3))
+ax.scatter(N, p_type_I, 3)
+ax.set(xlabel='$N_{\mathrm{test}}$', ylabel='Probability of ≥ 1\ntype I error',
+       xlim=N[[0, -1]], ylim=[0, 1])
+ax.grid(True)
+fig.tight_layout()
+mne.viz.utils.plt_show()
+
+###############################################################################
 # To combat this problem, multiple methods exist. Typically these
 # provide control over either the:
 #
 # 1. `Familywise error rate (FWER) <fwer>`_
-#      The probability of making one or more type I error:
-#      :math:`p(N_{\mathrm{Type\ I}} >= 1)`.
+#      The probability of making one or more type I errors:
+#
+#      .. math::
+#        \mathrm{P}(N_{\mathrm{type\ I}} >= 1 | H_0)
+#
 # 2. `False discovery rate (FDR) <fdr>`_
-#      The expected proportion of rejected null hypotheses that are false:
-#      :math:`N_{\mathrm{Type\ I}} / N_{\mathrm{reject}}`.
+#      The expected proportion of rejected null hypotheses that are
+#      actually true:
+#
+#      .. math::
+#        \mathrm{E}(N_{\mathrm{type\ I}} / N_{\mathrm{reject}}
+#        | N_{\mathrm{reject}} > 0)
+#        \mathrm{P}(N_{\mathrm{reject}} > 0 | H_0)
 #
 # We cover some techniques that control FWER and FDR below.
 #
 # Bonferroni correction
 # ^^^^^^^^^^^^^^^^^^^^^
 # Perhaps the simplest way to deal with multiple comparisons, `Bonferroni
-# correction<https://en.wikipedia.org/wiki/Bonferroni_correction>`_
+# correction <https://en.wikipedia.org/wiki/Bonferroni_correction>`_
 # conservatively multiplies the p-values by the number of comparisons to
 # control the FWER.
 
@@ -275,8 +306,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # comparisons. In its simplest form, we again do permutations using
 # exchangeability under the null hypothesis, but this time we take the
 # *maximum statistic across all tests* in each permutation to form the
-# null distribution. The p-value for each vertex from the veridical data
-# is then given by the proportion of null distrubtion values
+# null distribution. The p-value for each voxel from the veridical data
+# is then given by the proportion of null distribtion values
 # that were smaller.
 #
 # This method has two important features:
@@ -287,7 +318,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #    distribution for the null hypothesis rejection (cluster size
 #    distribution is indistinguishable from zero) is obtained by
 #    permutations. This means that it makes no assumptions of Gaussianity
-#    (which do hold for this example but do not in general).
+#    (which do hold for this example but do not in general for some types
+#    of processed neuroimaging data).
 
 titles.append('$\mathbf{Perm_{max}}$')
 out = permutation_t_test(X)[:2]
@@ -305,9 +337,9 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # in our data, we can use **clustering** to compensate.
 #
 # To use this, we need to rethink our null hypothesis. Instead
-# of thinking about a null hypothesis about means per voxel, we consider a
-# null hypothesis about sizes of clusters in our data, which could be stated
-# like:
+# of thinking about a null hypothesis about means per voxel (with one
+# independent test per voxel), we consider a null hypothesis about sizes
+# of clusters in our data, which could be stated like:
 #
 #     The distribution of spatial cluster sizes observed in two experimental
 #     conditions are drawn from the same probability distribution.
@@ -325,8 +357,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #    ``threshold`` value.
 # 2. Cluster points that exceed this threshold (with the same sign)
 #    based on adjacency.
-# 3. Record the *size* of each cluster (measured, e.g., by a simple vertex
-#    count or the sum of voxel t-values within the cluster).
+# 3. Record the *size* of each cluster (measured, e.g., by a simple voxel
+#    count, or by the sum of voxel t-values within the cluster).
 #
 # After doing these permutations, the cluster sizes in our veridical data
 # are compared to this null distribution. The p-value associated with each
@@ -348,12 +380,47 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # However, there is a drawback. If a cluster significantly deviates from
 # the null, no further inference on the cluster (e.g., peak location) can be
 # made, as the entire cluster as a whole is used to reject the null.
+# Moreover, because the test statistic concerns the full data, the null
+# hypothesis (and our rejection of it) refers to the structure of the full
+# data. For more information, see also the
+# `excellent FieldTrip cluster interpretation tutorial <ft_cluster>`_.
+#
+# Defining the connectivity/neighbor/adjacency matrix
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# First we need to define our connectivity/neighbor/adjacency matrix.
+# This is a square array (or sparse matrix) of shape ``(n_src, n_src)`` that
+# contains zeros and ones to define which spatial points. In our case this
+# is quite simple, as our data are aligned on a grid.
+#
+# Let's pretend that our data were on a 3x3 grid. Thinking about each voxel
+# as being connected to the other voxels it touches, we would need a 9x9
+# connectivity matrix. The first row should contain the elements in the
+# ``.ravel()``'ed data that it touches. Since it touches the second element
+# in the first row and the first element in the second row (and is also
+# a neighbor to itself), this would be::
+#
+#     [1, 1, 0, 1, 0, 0, 0, 0, 0]
+#
+# :mod:`sklearn.feature_extraction` provides a convenient function for this:
 
-# We need to define our connectivity/neighbor/adjacency matrix, which we know
-# is just a grid. Using ``connectivity=None`` is highly optimized for this
-# case.
+from sklearn.feature_extraction.image import grid_to_graph  # noqa: E402
+mini_connectivity = grid_to_graph(3, 3).toarray()
+assert mini_connectivity.shape == (9, 9)
+print(mini_connectivity[0])
+del mini_connectivity
 
-# Reshape to what is equivalent to (n_samples, n_space, n_time)
+###############################################################################
+# In general the connectivity betwene voxels can be more complex.
+# MNE provides several convenience functions for computing
+# connectivity/neighbor/adjacency matrices, see the
+# :ref:`Statistics API <api_reference_statistics>`.
+#
+# Standard clustering
+# ~~~~~~~~~~~~~~~~~~~
+# Here, since our data are on a grid, we can use ``connectivity=None`` to
+# trigger optimized grid-based code, and run the clustering algorithm.
+
+# Reshape data to what is equivalent to (n_samples, n_space, n_time)
 titles.append('Clustering')
 X.shape = (n_subjects, width, width)
 t_clust, clusters, p_values, H0 = permutation_cluster_1samp_test(
@@ -401,9 +468,11 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # the better the approximation, but the longer it takes).
 #
 # A significant advantage of TFCE is that, rather than modifying the
-# statistical test, it modifies the data itself (while still controlling
-# for multiple comparisons). The statistical test is then done at the level
-# of voxels rather than clusters. This allows for evaluation of each point
+# statistical null hypothesis under test (from one about individual voxels
+# to one about the distribution of clusters in the data), it modifies the *data
+# under test* while still controlling for multiple comparisons.
+# The statistical test is then done at the level of individual voxels rather
+# than clusters. This allows for evaluation of each point
 # independently for significance rather than only as cluster groups.
 
 titles.append(r'$\mathbf{C_{TFCE}}$')
@@ -450,8 +519,9 @@ plt.show()
 # - **t-test** has jagged edges.
 # - **"hat" variance correction** of the t-test has reduced peaky edges,
 #   correcting for sharpness in the statistic driven by low-variance voxels.
-# - **non-parametric resampling test** is very similar to the t-test, as
-#   the data are parametric.
+# - **non-parametric resampling test** is very similar to the t-test. This
+#   is to be expected: the data are drawn from a Gaussian distribution, and
+#   thus satisfy parametric assumptions.
 #
 # The next three columns show multiple comparison corrections of the
 # mass univariate tests (parametric and non-parametric). These
@@ -477,6 +547,10 @@ plt.show()
 #
 # Statistical functions in MNE
 # ----------------------------
+# The complete listing of statistical functions provided by MNE are in
+# the :ref:`Statistics API list <api_reference_statistics>`, but we will give
+# a brief overview here.
+#
 # MNE provides several convenience parametric testing functions that can be
 # used in conjunction with the non-parametric clustering methods. However,
 # the set of functions we provide is not meant to be exhaustive.
@@ -487,9 +561,10 @@ plt.show()
 # statistical contrasts, e.g., :func:`statsmodels.stats.anova.anova_lm`.
 # To use these functions in clustering:
 #
-# 1. Determine which statistical test you would use in a univariate context
-#    (e.g., to compute your contrast of interest if there is only a single
-#    output, like reaction times).
+# 1. Determine which test statistic (e.g., t-value, F-value) you would compute
+#    in a univariate context to compute your contrast of interest. In other
+#    words, if there were only a single output such as reaction times, what
+#    test statistic might you compute on the data?
 # 2. Wrap the call to that function within a function that takes an input of
 #    the same shape that is expected by your clustering function,
 #    and returns an array of the same shape without the "samples" dimension
@@ -564,3 +639,4 @@ plt.show()
 #
 # .. _fwer: https://en.wikipedia.org/wiki/Family-wise_error_rate
 # .. _fdr: https://en.wikipedia.org/wiki/False_discovery_rate
+# .. _ft_cluster: http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test  # noqa

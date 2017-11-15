@@ -873,6 +873,8 @@ Connectivity Estimation
    phase_slope_index
 
 
+.. _api_reference_statistics:
+
 Statistics
 ==========
 
