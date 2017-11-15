@@ -333,8 +333,9 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # ^^^^^^^^^^
 # Each of the aforementioned multiple comparisons corrections have the
 # disadvantage of not fully incorporating the correlation structure of the
-# data. However, by defining the connectivity/adjacency/neighbor structure
-# in our data, we can use **clustering** to compensate.
+# data, i.e., that points close to one another (e.g., in space or time) tend
+# to be correlated. However, by defining the connectivity/adjacency/neighbor
+# structure in our data, we can use **clustering** to compensate.
 #
 # To use this, we need to rethink our null hypothesis. Instead
 # of thinking about a null hypothesis about means per voxel (with one
@@ -389,15 +390,16 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # First we need to define our connectivity/neighbor/adjacency matrix.
 # This is a square array (or sparse matrix) of shape ``(n_src, n_src)`` that
-# contains zeros and ones to define which spatial points. In our case this
-# is quite simple, as our data are aligned on a grid.
+# contains zeros and ones to define which spatial points are connected, i.e.,
+# which voxels are adjacent to each other. In our case this
+# is quite simple, as our data are aligned on a rectangular grid.
 #
-# Let's pretend that our data were on a 3x3 grid. Thinking about each voxel
-# as being connected to the other voxels it touches, we would need a 9x9
-# connectivity matrix. The first row should contain the elements in the
-# ``.ravel()``'ed data that it touches. Since it touches the second element
-# in the first row and the first element in the second row (and is also
-# a neighbor to itself), this would be::
+# Let's pretend that our data were smaller -- a 3x3 grid. Thinking about
+# each voxel as being connected to the other voxels it touches, we would
+# need a 9x9 connectivity matrix. The first row should contain the elements
+# in the ``.ravel()``'ed data that it touches. Since it touches the
+# second element in the first row and the first element in the second row
+# (and is also a neighbor to itself), this would be::
 #
 #     [1, 1, 0, 1, 0, 0, 0, 0, 0]
 #
@@ -410,9 +412,10 @@ print(mini_connectivity[0])
 del mini_connectivity
 
 ###############################################################################
-# In general the connectivity betwene voxels can be more complex.
-# MNE provides several convenience functions for computing
-# connectivity/neighbor/adjacency matrices, see the
+# In general the connectivity between voxels can be more complex, such as
+# those between sensors in 3D space, or time-varying activation at brain
+# vertices on a cortical surface. MNE provides several convenience functions
+# for computing connectivity/neighbor/adjacency matrices, see the
 # :ref:`Statistics API <api_reference_statistics>`.
 #
 # Standard clustering
@@ -597,8 +600,9 @@ plt.show()
 #     Compute ordinary least square regressions on multiple targets, e.g.,
 #     sensors, time points across trials (samples).
 #     For each regressor it returns the beta value, t-statistic, and
-#     uncorrected p-value. While it can be used as a test it is
-#     particularly useful to compute weighted averages.
+#     uncorrected p-value. While it can be used as a test, it is
+#     particularly useful to compute weighted averages or deal with
+#     continuous predictors.
 #
 # Non-parametric methods
 # ^^^^^^^^^^^^^^^^^^^^^^
