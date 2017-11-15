@@ -392,7 +392,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
     cv : int | sklearn model_selection object (default 3)
         The cross validation method. Defaults to 3, which will
-        internally trigger a default 3-fold shuffle split.
+        internally trigger by default :class:`sklearn.model_selection.KFold`
+        with 3 splits.
 
         .. versionadded:: 0.12
 
@@ -596,7 +597,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     cv : int | sklearn model_selection object (default 3)
         The cross validation method. Defaults to 3, which will
-        internally trigger a default 3-fold shuffle split.
+        internally trigger by default :class:`sklearn.model_selection.KFold`
+        with 3 splits.
     scalings : dict | None (default None)
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale magnetometers and gradiometers
