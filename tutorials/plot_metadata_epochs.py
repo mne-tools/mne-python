@@ -74,8 +74,8 @@ epochs['cent'].average().plot(show=False)
 metadata = epochs.metadata
 is_concrete = metadata["Concreteness"] > metadata["Concreteness"].median()
 metadata["is_concrete"] = np.where(is_concrete, 'Concrete', 'Abstract')
-is_concrete = metadata["NumberOfLetters"] > 5
-metadata["is_long"] = np.where(is_concrete, 'Long', 'Short')
+is_long = metadata["NumberOfLetters"] > 5
+metadata["is_long"] = np.where(is_long, 'Long', 'Short')
 epochs.metadata = metadata
 
 ###############################################################################

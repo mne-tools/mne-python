@@ -1460,7 +1460,7 @@ def _combine_grad(evoked, picks):
 
 
 def _check_loc_legal(loc, what='your choice'):
-    """Check if a loc is a legal for MPL."""
+    """Check if loc is a legal location for MPL subordinate axes."""
     true_default = {"show_legend": 3, "show_sensors": 4}.get(what, 1)
     loc_dict = {'upper right': 1, 'upper left': 2, 'lower left': 3,
                 'lower right': 4, 'right': 5, 'center left': 6,
@@ -1474,7 +1474,7 @@ def _check_loc_legal(loc, what='your choice'):
 
 
 def _format_evokeds_colors(evokeds, cmap, colors):
-    # set up labels and instances to have evokeds as a dict
+    """Set up to have evokeds as a dict as well as colors."""
     from ..evoked import Evoked, _check_evokeds_ch_names_times
 
     if isinstance(evokeds, Evoked):
@@ -1513,11 +1513,10 @@ def _format_evokeds_colors(evokeds, cmap, colors):
 
 
 def _setup_styles(conditions, styles, cmap, colors, linestyles):
+    """Set up plotting styles for each condition."""
     import matplotlib.pyplot as plt
     # dealing with continuous colors
-    the_colors = None
-    color_conds = None
-    color_order = None
+    the_colors, color_conds, color_order = None, None, None
     if cmap is not None:
         for color_value in colors.values():
             try:
@@ -1590,17 +1589,24 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     channels using global field power (GFP) computation, else it is taking
     a plain mean.
 
-    This function is useful for comparing ER[P/F]s at a specific location.
+    This function is useful for comparing multiple ER[P/F]s - e.g., for
+    multiple conditions - at a specific location.
 
-    It can plot a simple Evoked object or if supplied with a list or a dict
-    of lists of evoked instances, it will compute the average of the mean or
-    GFP across datasets. It can also compute some confidence intervals
-    using for example bootstrap estimates.
+    It can plot:
 
-    When passed with more than one planar gradiometers, the planar
-    gradiometers are combined with RMSE. It means for example that for
-    a vectorview system with 204 gradiometers it will be transformed to
-    a 102 channels helmet.
+        - a simple :class:`mne.Evoked` object,
+        - a list or dict of :class:`mne.Evoked` objects (e.g., for multiple
+          conditions),
+        - a list or dict of lists of :class:`mne.Evoked` (e.g., for multiple
+          subjects in multiple conditions).
+
+    In the last case, it can show a confidence interval (across e.g. subjects)
+    using parametric or bootstrap estimation.
+
+    When ``picks`` includes more than one planar gradiometer, the planar
+    gradiometers are combined with RMSE. For example data from a
+    VectorView system with 204 gradiometers will be transformed to
+    102 channels.
 
     Parameters
     ----------
@@ -1618,8 +1624,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         If int or list of int, the indices of the sensors to average and plot.
         If multiple channel types are selected, one figure will be returned for
         each channel type.
-        If the selected channels are gradiometers, the signal coming from
-        gradiometer corresponding pairs with be combined.
+        If the selected channels are gradiometers, the signal from
+        corresponding (gradiometer) pairs will be combined.
         If None, it defaults to all data channels, in which case the global
         field power will be plotted for all channel type available.
     gfp : bool
@@ -1656,8 +1662,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         not supported.
     vlines : "auto" | list of float
         A list in seconds at which to plot dashed vertical lines.
-        If "auto" and 0. is in the time interval of interest, it is set to [0.]
-        so a vertical bar is plotted at time 0.
+        If "auto" and 0. ms is the time point of interest, it is set to [0.]
+        and a vertical bar is plotted at time 0.
     cmap : None | str | tuple
         If not None, plot evoked activity with colors from a color gradient
         (indicated by a str referencing a matplotlib colormap - e.g., "viridis"
@@ -1715,8 +1721,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
         If None, defaults to True if ``gfp`` is False, else to False.
     show_legend : bool | str | int
-        If not False, show a legend. If int or str, the position of the axes
-        (forwarded to ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
+        If not False, show a legend. If int or str, it is the position of the
+        legend axes (forwarded to
+        ``mpl_toolkits.axes_grid1.inset_locator.inset_axes``).
     split_legend : bool
         If True, the legend shows color and linestyle separately; `colors` must
         not be None. Defaults to True if ``cmap`` is not None, else defaults to
@@ -1734,8 +1741,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     Returns
     -------
     fig : Figure | list of Figures
-        The figure(s) in which the plot is drawn. A list of figures
-        is returned only one multiple channel types are plotted.
+        The figure(s) in which the plot is drawn. When plotting multiple
+        channel types, a list of figures, one for each channel type is returned.
     """
     import matplotlib.pyplot as plt
 
@@ -1748,7 +1755,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if ci is True:
         ci = .95
     elif ci is not False and not (isinstance(ci, np.float) or callable(ci)):
-        raise TypeError('ci must be float or callable, got ' + str(type(ci)))
+        raise TypeError('ci must be None, bool, float or callable, got %s' %
+                        type(ci))
 
     # get and set a few limits and variables (times, channels, units)
     one_evoked = evokeds[conditions[0]][0]
