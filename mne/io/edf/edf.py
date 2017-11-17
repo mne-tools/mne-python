@@ -708,7 +708,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
         if edf_info['number'] < 1.9:
 
             # patient ID
-            pid = fid.read(80).decode()
+            pid = fid.read(80).decode('latin-1')
             pid = pid.split(' ', 2)
             patient = {}
             if len(pid) >= 2:
@@ -746,10 +746,10 @@ def _read_gdf_header(fname, stim_channel, exclude):
                      'Default record length set to 1.')
             nchan = np.fromfile(fid, np.uint32, 1)[0]
             channels = list(range(nchan))
-            ch_names = [fid.read(16).decode().strip(' \x00')
+            ch_names = [fid.read(16).decode('latin-1').strip(' \x00')
                         for ch in channels]
             fid.seek(80 * len(channels), 1)  # transducer
-            units = [fid.read(8).decode().strip(' \x00') for ch in channels]
+            units = [fid.read(8).decode('latin-1').strip(' \x00') for ch in channels]
 
             exclude = [ch_names.index(idx) for idx in exclude]
             include = list()
