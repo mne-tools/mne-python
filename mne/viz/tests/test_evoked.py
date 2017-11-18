@@ -12,7 +12,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_allclose
 from nose.tools import assert_true
 import pytest
 
@@ -30,6 +30,7 @@ matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
+rng = np.random.RandomState(0)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -138,6 +139,26 @@ def test_plot_evoked():
         plot_compare_evokeds(
             evoked.copy().pick_types(meg='grad'), picks=[1, 2],
             show_sensors="upper right", show_legend="upper left")
+        evokeds = [evoked.copy() for _ in range(10)]
+        for evoked in evokeds:
+            evoked.data += (rng.randn(*evoked.data.shape) *
+                            np.std(evoked.data, axis=-1, keepdims=True))
+        for picks in ([0], [1], [2], [0, 2], [1, 2], [0, 1, 2],):
+            figs = plot_compare_evokeds([evokeds], picks=picks, ci=0.95)
+            if not isinstance(figs, list):
+                figs = [figs]
+            for fig in figs:
+                ext = fig.axes[0].collections[0].get_paths()[0].get_extents()
+                xs, ylim = ext.get_points().T
+                assert_allclose(xs, evoked.times[[0, -1]])
+                line = fig.axes[0].lines[0]
+                xs = line.get_xdata()
+                assert_allclose(xs, evoked.times)
+                ys = line.get_ydata()
+                assert (ys < ylim[1]).all()
+                assert (ys > ylim[0]).all()
+            plt.close('all')
+
         evoked.rename_channels({'MEG 2142': "MEG 1642"})
         assert len(plot_compare_evokeds(evoked)) == 2
         colors = dict(red='r', blue='b')
