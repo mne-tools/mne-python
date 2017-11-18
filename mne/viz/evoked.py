@@ -1515,7 +1515,7 @@ def _format_evokeds_colors(evokeds, cmap, colors):
 def _setup_styles(conditions, styles, cmap, colors, linestyles):
     """Set up plotting styles for each condition."""
     import matplotlib.pyplot as plt
-    # dealing with continuous colors
+    # continuous colors
     the_colors, color_conds, color_order = None, None, None
     if cmap is not None:
         for color_value in colors.values():
@@ -1542,6 +1542,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
                     colors[cond] = the_colors[color]
                     continue
 
+    # categorical colors
     if not isinstance(colors, dict):  # default colors from M Waskom's Seaborn
         # XXX should put a good list of default colors into defaults.py
         colors_ = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
@@ -1555,7 +1556,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
     else:
         colors = _aux_setup_styles(conditions, colors, "color", "grey")
 
-    # fourth, linestyles
+    # linestyles
     if not isinstance(linestyles, dict):
         linestyles = dict((condition, linestyle) for condition, linestyle in
                           zip(conditions, ['-'] * len(conditions)))
@@ -1563,7 +1564,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
         linestyles = _aux_setup_styles(conditions, linestyles,
                                        "linestyle", "-")
 
-    # fifth, put it all together
+    # finally, put it all together
     if styles is None:
         styles = dict()
 
@@ -1582,31 +1583,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          truncate_xaxis=True, ylim=dict(), invert_y=False,
                          show_sensors=None, show_legend=True,
                          split_legend=False, axes=None, title=None, show=True):
-    """Plot evoked time courses for one or multiple channels and conditions.
-
-    When multiple channels are passed, this function combines them all, to
-    get one time course for each condition. If gfp is True it combines
-    channels using global field power (GFP) computation, else it is taking
-    a plain mean.
-
-    This function is useful for comparing multiple ER[P/F]s - e.g., for
-    multiple conditions - at a specific location.
-
-    It can plot:
-
-        - a simple :class:`mne.Evoked` object,
-        - a list or dict of :class:`mne.Evoked` objects (e.g., for multiple
-          conditions),
-        - a list or dict of lists of :class:`mne.Evoked` (e.g., for multiple
-          subjects in multiple conditions).
-
-    In the last case, it can show a confidence interval (across e.g. subjects)
-    using parametric or bootstrap estimation.
-
-    When ``picks`` includes more than one planar gradiometer, the planar
-    gradiometers are combined with RMSE. For example data from a
-    VectorView system with 204 gradiometers will be transformed to
-    102 channels.
+    """Plot evoked time courses for one or multiple channels and one or
+    multiple conditions.
 
     Parameters
     ----------
@@ -1660,10 +1638,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         "Vis/L", "Vis/R", `styles` can be `{"Aud/L": {"linewidth": 1}}` to set
         the linewidth for "Aud/L" to 1. Note that HED ('/'-separated) tags are
         not supported.
-    vlines : "auto" | list of float
-        A list in seconds at which to plot dashed vertical lines.
-        If "auto" and 0. ms is the time point of interest, it is set to [0.]
-        and a vertical bar is plotted at time 0.
     cmap : None | str | tuple
         If not None, plot evoked activity with colors from a color gradient
         (indicated by a str referencing a matplotlib colormap - e.g., "viridis"
@@ -1686,9 +1660,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
             cmap=('conds', 'viridis'), colors=dict(cond1=1 cond2=2, cond3=3),
 
-    vlines : list of int
-        A list of integers corresponding to the positions, in seconds,
-        at which to plot dashed vertical lines.
+    vlines : "auto" | list of float
+        A list in seconds at which to plot dashed vertical lines.
+        If "auto" and the supplied data includes 0, it is set to [0.]
+        and a vertical bar is plotted at time 0.
     ci : float | callable | None | bool
         If not None and ``evokeds`` is a [list/dict] of lists, a shaded
         confidence interval is drawn around the individual time series. If
@@ -1743,6 +1718,32 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     fig : Figure | list of Figures
         The figure(s) in which the plot is drawn. When plotting multiple
         channel types, a list of figures, one for each channel type is returned.
+
+    Notes
+    -----
+    When multiple channels are passed, this function combines them all, to
+    get one time course for each condition. If gfp is True it combines
+    channels using global field power (GFP) computation, else it is taking
+    a plain mean.
+
+    This function is useful for comparing multiple ER[P/F]s - e.g., for
+    multiple conditions - at a specific location.
+
+    It can plot:
+
+        - a simple :class:`mne.Evoked` object,
+        - a list or dict of :class:`mne.Evoked` objects (e.g., for multiple
+          conditions),
+        - a list or dict of lists of :class:`mne.Evoked` (e.g., for multiple
+          subjects in multiple conditions).
+
+    In the last case, it can show a confidence interval (across e.g. subjects)
+    using parametric or bootstrap estimation.
+
+    When ``picks`` includes more than one planar gradiometer, the planar
+    gradiometers are combined with RMSE. For example data from a
+    VectorView system with 204 gradiometers will be transformed to
+    102 channels.
     """
     import matplotlib.pyplot as plt
 

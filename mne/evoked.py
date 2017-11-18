@@ -858,9 +858,8 @@ def _check_evokeds_ch_names_times(all_evoked):
     evoked = all_evoked[0]
     ch_names = evoked.ch_names
     for ev in all_evoked[1:]:
-        assert ev.ch_names == ch_names, ValueError("%s and %s do not contain "
-                                                   "the same channels"
-                                                   % (evoked, ev))
+        assert ev.ch_names == ch_names, ValueError(
+            "%s and %s do not contain " "the same channels" % (evoked, ev))
         assert np.max(np.abs(ev.times - evoked.times)) < 1e-7, \
             ValueError("%s and %s do not contain the same time instants"
                        % (evoked, ev))
