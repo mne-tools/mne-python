@@ -5,10 +5,10 @@ Sensor space least squares regression
 
 Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint
-individually, resulting in an Evoked object which contains the
-regression coefficient (beta value) for each combination of sensor
-and timepoint. Example also shows the T statistics and the associated
-p-values.
+individually, resulting in an Evoked object which contains the regression
+coefficient (beta value) for each combination of sensor and timepoint. Example
+shows the regression coefficient; the t and p values are also calculated
+automatically.
 
 Here, we repeat a few of the analyses from Dufau et al. (2014) by accessing
 the metadata object, which contains word-level information about various
