@@ -17,7 +17,7 @@ activity.
 
 For the general methodology, see e.g. Hauk et al. (2006). The time course of 
 visual word recognition as revealed by linear regression analysis of ERP data. 
-Neuroimage.)
+Neuroimage.
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
@@ -44,4 +44,4 @@ names = ["Intercept", "Concreteness", "BigramFrequency"]
 res = linear_regression(epochs, epochs.metadata[names], names=names)
 
 for cond in names:
-    res[cond].beta.plot_image(titles=cond)
+    res[cond].beta.plot_joint(title=cond)
