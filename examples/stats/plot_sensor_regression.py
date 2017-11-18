@@ -15,8 +15,8 @@ the metadata object, which contains word-level information about various
 psycholinguistically relevant features of the words for which we have EEG
 activity.
 
-For the general methodology, see e.g. Hauk et al. (2006). The time course of 
-visual word recognition as revealed by linear regression analysis of ERP data. 
+For the general methodology, see e.g. Hauk et al. (2006). The time course of
+visual word recognition as revealed by linear regression analysis of ERP data.
 Neuroimage.
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
