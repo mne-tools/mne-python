@@ -1443,7 +1443,7 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
 
 
 def _combine_grad(evoked, picks):
-    """Creates a new instance of Evoked with combined gradiometers (RMSE)"""
+    """Create a new instance of Evoked with combined gradiometers (RMSE)."""
     def pair_and_combine(data):
         data = data ** 2
         data = (data[::2, :] + data[1::2, :]) / 2
@@ -1583,8 +1583,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          truncate_xaxis=True, ylim=dict(), invert_y=False,
                          show_sensors=None, show_legend=True,
                          split_legend=False, axes=None, title=None, show=True):
-    """Plot evoked time courses for one or multiple channels and one or
-    multiple conditions.
+    """Plot evoked time courses for one or multiple conditions channels.
 
     Parameters
     ----------
@@ -1717,7 +1716,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     -------
     fig : Figure | list of Figures
         The figure(s) in which the plot is drawn. When plotting multiple
-        channel types, a list of figures, one for each channel type is returned.
+        channel types, a list of figures, one for each channel type is
+        returned.
 
     Notes
     -----
@@ -1838,7 +1838,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     all_positive = gfp  # True if not gfp, False if gfp
     pos_picks = picks  # keep locations to pick for plotting
     if ch_type == "grad" and len(picks) > 1:
-        logger.info('Combining all planar gradiometers with RMSE')
+        logger.info('Combining all planar gradiometers with RMSE.')
         pos_picks, _ = _grad_pair_pick_and_name(one_evoked.info, picks)
         pos_picks = pos_picks[::2]
         all_positive = True
