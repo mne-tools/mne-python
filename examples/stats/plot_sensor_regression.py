@@ -37,7 +37,7 @@ print(epochs.metadata.head())
 
 # Add intercept column
 df = pd.DataFrame(epochs.metadata)
-epochs.metadata = df.assign(Intercept=np.ones(len(epochs.events)))
+epochs.metadata = df.assign(Intercept=[1 for _ in epochs.events])
 
 # Run and visualize the regression
 names = ["Intercept", "Concreteness", "BigramFrequency"]
