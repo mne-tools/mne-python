@@ -1583,7 +1583,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                          truncate_xaxis=True, ylim=dict(), invert_y=False,
                          show_sensors=None, show_legend=True,
                          split_legend=False, axes=None, title=None, show=True):
-    """Plot evoked time courses for one or multiple conditions channels.
+    """Plot evoked time courses for one or more conditions and/or channels.
 
     Parameters
     ----------
