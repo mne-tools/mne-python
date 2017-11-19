@@ -5,19 +5,26 @@ Sensor space least squares regression
 
 Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint
-individually, resulting in an Evoked object which contains the regression
-coefficient (beta value) for each combination of sensor and timepoint. Example
-shows the regression coefficient; the t and p values are also calculated
-automatically.
+individually, resulting in an :class:`mne.Evoked` object which contains the
+regression coefficient (beta value) for each combination of sensor and
+timepoint. Example shows the regression coefficient; the t and p values are
+also calculated automatically.
 
-Here, we repeat a few of the analyses from Dufau et al. (2014) by accessing
-the metadata object, which contains word-level information about various
+Here, we repeat a few of the analyses from [1]_ by accessing the metadata
+object, which contains word-level information about various
 psycholinguistically relevant features of the words for which we have EEG
 activity.
 
-For the general methodology, see e.g. Hauk et al. (2006). The time course of
-visual word recognition as revealed by linear regression analysis of ERP data.
-Neuroimage.
+For the general methodology, see e.g. [2]_
+
+
+References
+----------
+.. [1]  Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand
+   words are worth a picture: Snapshots of printed-word processing in an
+   event-related potential megastudy. Psychological Science, 2015
+.. [2]  Hauk et al. The time course of visual word recognition as revealed by
+   linear regression analysis of ERP data. Neuroimage, 2006
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
