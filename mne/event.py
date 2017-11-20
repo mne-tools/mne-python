@@ -563,17 +563,17 @@ def find_events(raw, stim_channel=None, output='onset',
         in MNE-C.
 
         .. versionadded:: 0.12
+    mask_type: 'and' | 'not_and'
+        The type of operation between the mask and the trigger.
+        Choose 'and' (default) for MNE-C masking behavior.
+
+        .. versionadded:: 0.13
     initial_event : bool
         If True (default False), an event is created if the stim channel has a
         value different from 0 as its first sample. This is useful if an event
         at t=0s is present.
 
         .. versionadded:: 0.16
-    mask_type: 'and' | 'not_and'
-        The type of operation between the mask and the trigger.
-        Choose 'and' (default) for MNE-C masking behavior.
-
-        .. versionadded:: 0.13
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
