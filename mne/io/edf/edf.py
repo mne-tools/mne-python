@@ -704,11 +704,11 @@ def _read_gdf_header(fname, stim_channel, exclude):
         edf_info['number'] = float(version[4:])
 
         # GDF 1.x
-        # ----------------------------------------------------------------------
+        # ---------------------------------------------------------------------
         if edf_info['number'] < 1.9:
 
             # patient ID
-            pid = fid.read(80).decode()
+            pid = fid.read(80).decode('latin-1')
             pid = pid.split(' ', 2)
             patient = {}
             if len(pid) >= 2:
@@ -746,10 +746,11 @@ def _read_gdf_header(fname, stim_channel, exclude):
                      'Default record length set to 1.')
             nchan = np.fromfile(fid, np.uint32, 1)[0]
             channels = list(range(nchan))
-            ch_names = [fid.read(16).decode().strip(' \x00')
+            ch_names = [fid.read(16).decode('latin-1').strip(' \x00')
                         for ch in channels]
             fid.seek(80 * len(channels), 1)  # transducer
-            units = [fid.read(8).decode().strip(' \x00') for ch in channels]
+            units = [fid.read(8).decode('latin-1').strip(' \x00')
+                     for ch in channels]
 
             exclude = [ch_names.index(idx) for idx in exclude]
             include = list()
@@ -800,7 +801,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             assert fid.tell() == header_nbytes
 
             # Event table
-            # ------------------------------------------------------------------
+            # -----------------------------------------------------------------
             etp = header_nbytes + n_records * edf_info['bytes_tot']
             # skip data to go to event table
             fid.seek(etp)
@@ -824,7 +825,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 events = [n_events, pos, typ, chn, dur]
 
         # GDF 2.x
-        # ----------------------------------------------------------------------
+        # ---------------------------------------------------------------------
         else:
             # FIXED HEADER
             handedness = ('Unknown', 'Right', 'Left', 'Equal')
@@ -1020,7 +1021,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 record_length=record_length, ref=ref, units=units)
 
             # EVENT TABLE
-            # ------------------------------------------------------------------
+            # -----------------------------------------------------------------
             etp = edf_info['data_offset'] + edf_info['n_records'] * \
                 edf_info['bytes_tot']
             fid.seek(etp)  # skip data to go to event table
