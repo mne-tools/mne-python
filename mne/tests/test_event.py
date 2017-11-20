@@ -9,8 +9,8 @@ import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, pick_channels,
-                 read_evokeds, Epochs)
-from mne.io import read_raw_fif
+                 read_evokeds, Epochs, create_info)
+from mne.io import read_raw_fif, RawArray
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
 from mne.event import define_target_events, merge_events, AcqParserFIF
@@ -358,6 +358,16 @@ def test_find_events():
     events = find_events(raw, stim_channel=['STI 014', stim_channel2])
     assert_array_equal(events[::2], events2)
     assert_array_equal(events[1::2], events1)
+
+    # test initial_event argument
+    info = create_info(['MYSTI'], 1000, 'stim')
+    data = np.zeros((1, 1000))
+    raw = RawArray(data, info)
+    data[0, :10] = 100
+    data[0, 30:40] = 200
+    assert_array_equal(find_events(raw, 'MYSTI'), [[30, 0, 200]])
+    assert_array_equal(find_events(raw, 'MYSTI', initial_event=True),
+                       [[0, 0, 100], [30, 0, 200]])
 
 
 def test_pick_events():

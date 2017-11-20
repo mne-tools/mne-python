@@ -31,6 +31,8 @@ Changelog
 
 - Add to :func:`mne.viz.plot_alignment` plotting of coordinate frame axes via ``show_axes`` and terrain-style interaction via ``interaction``, by `Eric Larson`_
 
+- Add option ``initial_event`` to :func:`mne.find_events` by `Clemens Brunner`_
+
 Bug
 ~~~
 
