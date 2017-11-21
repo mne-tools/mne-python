@@ -15,7 +15,6 @@ from copy import deepcopy
 from numbers import Integral
 
 import numpy as np
-import matplotlib.lines as mlines
 
 from ..io.pick import (channel_type, pick_types, _picks_by_type,
                        _pick_data_channels, _VALID_CHANNEL_TYPES,
@@ -1489,8 +1488,6 @@ def _format_evokeds_colors(evokeds, cmap, colors):
         if (colors is None) and cmap is not None:
             raise ValueError('If evokeds is a dict and a cmap is passed, '
                              'you must specify the colors.')
-            # XXX : I am a bit concerned about the duplication of
-            # the colors and cmap parameters.
     for cond in evokeds.keys():
         if not isinstance(cond, string_types):
             raise TypeError('Conditions must be str, not %s' % (type(cond),))
@@ -1731,11 +1728,11 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
 
     It can plot:
 
-        - a simple :class:`mne.Evoked` object,
-        - a list or dict of :class:`mne.Evoked` objects (e.g., for multiple
-          conditions),
-        - a list or dict of lists of :class:`mne.Evoked` (e.g., for multiple
-          subjects in multiple conditions).
+    - a simple :class:`mne.Evoked` object,
+    - a list or dict of :class:`mne.Evoked` objects (e.g., for multiple
+      conditions),
+    - a list or dict of lists of :class:`mne.Evoked` (e.g., for multiple
+      subjects in multiple conditions).
 
     In the last case, it can show a confidence interval (across e.g. subjects)
     using parametric or bootstrap estimation.
@@ -1746,6 +1743,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     102 channels.
     """
     import matplotlib.pyplot as plt
+    import matplotlib.lines as mlines
 
     evokeds, colors = _format_evokeds_colors(evokeds, cmap, colors)
     conditions = sorted(list(evokeds.keys()))
@@ -1766,9 +1764,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     ch_names = one_evoked.ch_names
     tmin, tmax = times[0], times[-1]
 
-    if vlines is "auto" and (tmin < 0 and tmax > 0):
+    if vlines == "auto" and (tmin < 0 and tmax > 0):
         vlines = [0.]
-    assert isinstance(vlines, list)
+    if not isinstance(vlines, (list, tuple)):
+        raise TypeError("vlines must be a list or tuple, not " + type(vlines))
 
     if isinstance(picks, Integral):
         picks = [picks]
@@ -1812,10 +1811,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
     else:
-        axes = []
-        for _ in range(len(ch_types)):
-            _, ax = plt.subplots(1, 1, figsize=(8, 6))
-            axes.append(ax)
+        axes = [plt.subplots(figsize=(8, 6))[1] for _ in range(len(ch_types))]
 
     if len(ch_types) > 1:
         logger.info("Multiple channel types selected, returning one figure "
@@ -1867,9 +1863,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             _ci_fun = partial(_ci, ci=ci, method="bootstrap")
 
     # calculate the CI
-    ci_dict = dict()
-    data_dict = dict()
-    for cond, this_evokeds in evokeds.items():
+    ci_dict, data_dict = dict(), dict()
+    for cond in conditions:
+        this_evokeds = evokeds[cond]
         # this will fail if evokeds do not have the same structure
         # (e.g. channel count)
         data = [e.data[picks, :] * scaling for e in this_evokeds]

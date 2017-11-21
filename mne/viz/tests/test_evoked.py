@@ -30,8 +30,6 @@ matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-rng = np.random.RandomState(0)
-
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -78,6 +76,7 @@ def _get_epochs_delayed_ssp():
 def test_plot_evoked():
     """Test plotting of evoked."""
     import matplotlib.pyplot as plt
+    rng = np.random.RandomState(0)
     evoked = _get_epochs().average()
     with warnings.catch_warnings(record=True):
         fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo')
