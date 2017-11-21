@@ -36,7 +36,7 @@ and statistics.
 Documentation
 ^^^^^^^^^^^^^
 
-Documentation for MNE-Python is available at
+Documentation for MNE-Python is available at the
 `MNE homepage <http://mne-tools.github.io/>`_.
 
 
@@ -47,7 +47,7 @@ To get the latest code using `git <https://git-scm.com/>`_, open a terminal and 
 
 .. code-block:: bash
 
-    $ git clone git://github.com/mne-tools/mne-python.git
+    git clone git://github.com/mne-tools/mne-python.git
 
 Alternatively, you can also download a
 `zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`_.
@@ -60,12 +60,11 @@ To install the latest stable version of MNE-Python, you can use `pip <https://pi
 
 .. code-block:: bash
 
-    $ pip install mne
+    pip install mne
 
 For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the
-`getting started page <http://mne-tools.github.io/stable/getting_started.html>`_
-page.
+`getting started page <http://mne-tools.github.io/stable/getting_started.html>`_.
 
 
 Dependencies
@@ -76,13 +75,13 @@ The minimum required dependencies to run MNE-Python are:
 - Python >= 2.7
 - NumPy >= 1.8
 - SciPy >= 0.12
-- matplotlib >= 1.3
+- Matplotlib >= 1.3
 
 For full functionality, some functions require:
 
-- scikit-learn >= 0.18
-- nibabel >= 2.1.0
-- pandas >= 0.13
+- Scikit-learn >= 0.18
+- NiBabel >= 2.1.0
+- Pandas >= 0.13
 
 To use `NVIDIA CUDA <https://developer.nvidia.com/cuda-zone>`_ for resampling
 and FFT FIR filtering, you will also need to install the NVIDIA CUDA SDK,
@@ -94,7 +93,7 @@ for more information).
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Please see the documentation on the MNE-^ython homepage:
+Please see the documentation on the MNE-Python homepage:
 
 http://martinos.org/mne/contributing.html
 
