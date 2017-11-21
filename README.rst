@@ -20,11 +20,11 @@
 .. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
 .. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
 
-.. |MNE| image:: http://mne-tools.github.io/dev/_static/mne_logo.png
-.. _MNE: https://mne-tools.github.io
+.. |MNE| image:: https://martinos.org/mne/stable/_static/mne_logo.png
+.. _MNE: https://martinos.org/mne
 
-`MNE-Python <http://mne-tools.github.io/>`_
-===========================================
+`MNE-Python <https://martinos.org/mne>`_
+========================================
 
 MNE-Python is an open-source Python package for exploring, visualizing, and
 analyzing human neurophysiological data such as MEG, EEG, sEEG, ECoG, and more.
@@ -37,7 +37,7 @@ Documentation
 ^^^^^^^^^^^^^
 
 Documentation for MNE-Python is available at the
-`MNE homepage <http://mne-tools.github.io/>`_.
+`MNE homepage <https://martinos.org/mne>`_.
 
 
 Get the latest code
@@ -60,11 +60,11 @@ To install the latest stable version of MNE-Python, you can use `pip <https://pi
 
 .. code-block:: bash
 
-    pip install mne
+    pip install -U mne
 
 For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the
-`getting started page <http://mne-tools.github.io/stable/getting_started.html>`_.
+`getting started page <https://martinos.org/mne/getting_started.html>`_.
 
 
 Dependencies
@@ -86,7 +86,7 @@ For full functionality, some functions require:
 To use `NVIDIA CUDA <https://developer.nvidia.com/cuda-zone>`_ for resampling
 and FFT FIR filtering, you will also need to install the NVIDIA CUDA SDK,
 pycuda, and scikit-cuda (see the
-`getting started page <http://mne-tools.github.io/stable/getting_started.html>`_
+`getting started page <https://martinos.org/mne/getting_started.html>`_
 for more information).
 
 
@@ -95,7 +95,7 @@ Contributing to MNE-Python
 
 Please see the documentation on the MNE-Python homepage:
 
-http://martinos.org/mne/contributing.html
+https://martinos.org/mne/contributing.html
 
 
 Mailing list
@@ -112,7 +112,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
 
-    Copyright (c) 2011, authors of MNE-Python.
+    Copyright (c) 2011-2017, authors of MNE-Python.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
