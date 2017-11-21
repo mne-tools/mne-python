@@ -23,7 +23,8 @@ from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
-                    _setup_vmin_vmax, _grad_pair_pick_and_name)
+                    _setup_vmin_vmax, _grad_pair_pick_and_name,
+                    _validate_if_list_of_axes)
 from ..utils import logger, _clean_names, warn, _pl, verbose
 from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
 from ..io.proc_history import _get_rank_sss
@@ -1767,7 +1768,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if vlines == "auto" and (tmin < 0 and tmax > 0):
         vlines = [0.]
     if not isinstance(vlines, (list, tuple)):
-        raise TypeError("vlines must be a list or tuple, not " + type(vlines))
+        raise TypeError(
+            "vlines must be a list or tuple, not %s" % type(vlines))
 
     if isinstance(picks, Integral):
         picks = [picks]
@@ -1808,7 +1810,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if axes is not None:
         if not isinstance(axes, list):
             axes = [axes]
-        from .utils import _validate_if_list_of_axes
         _validate_if_list_of_axes(axes, obligatory_len=len(ch_types))
     else:
         axes = [plt.subplots(figsize=(8, 6))[1] for _ in range(len(ch_types))]

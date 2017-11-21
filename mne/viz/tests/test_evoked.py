@@ -192,6 +192,7 @@ def test_plot_evoked():
         for param in params:
             assert_raises(ValueError, plot_compare_evokeds, evoked, **param)
         assert_raises(TypeError, plot_compare_evokeds, evoked, picks='str')
+        assert_raises(TypeError, plot_compare_evokeds, evoked, vlines='x')
         plt.close('all')
         # `evoked` must contain Evokeds
         assert_raises(ValueError, plot_compare_evokeds, [[1, 2], [3, 4]])
