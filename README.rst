@@ -24,79 +24,86 @@
 .. _MNE: https://mne-tools.github.io
 
 `MNE-Python <http://mne-tools.github.io/>`_
-=======================================================
+===========================================
 
-This package is designed for sensor- and source-space analysis of [M/E]EG
-data, including frequency-domain and time-frequency analyses, MVPA/decoding
-and non-parametric statistics. This package generally evolves quickly and
-user contributions can easily be incorporated thanks to the open
-development environment .
+MNE-Python is an open-source Python package for exploring, visualizing, and
+analyzing human neurophysiological data such as MEG, EEG, sEEG, ECoG, and more.
+It includes modules for data input/output, preprocessing, visualization, source
+estimation, time-frequency analysis, connectivity analysis, machine learning,
+and statistics.
 
-Get more information
-^^^^^^^^^^^^^^^^^^^^
 
-If you're unfamiliar with MNE, you can visit the
-`MNE homepage <http://mne-tools.github.io/>`_ for full user documentation.
+Documentation
+^^^^^^^^^^^^^
+
+Documentation for MNE-Python is available at
+`MNE homepage <http://mne-tools.github.io/>`_.
+
 
 Get the latest code
 ^^^^^^^^^^^^^^^^^^^
 
-To get the latest code using `git <https://git-scm.com/>`_, simply type:
+To get the latest code using `git <https://git-scm.com/>`_, open a terminal and type:
 
 .. code-block:: bash
 
     $ git clone git://github.com/mne-tools/mne-python.git
 
-If you don't have git installed, you can download a
-`zip of the latest code <https://github.com/mne-tools/mne-python/archive/master.zip>`_.
+Alternatively, you can also download a
+`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`_.
 
-Install MNE-python
-^^^^^^^^^^^^^^^^^^
 
-As with most Python packages, to install the latest stable version of
-MNE-Python, you can do:
+Installing MNE-Python
+^^^^^^^^^^^^^^^^^^^^
+
+To install the latest stable version of MNE-Python, you can use `pip <https://pip.pypa.io/en/stable/>`_ in a terminal:
 
 .. code-block:: bash
 
     $ pip install mne
 
-For more complete instructions and more advanced install methods (e.g. for
+For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the
 `getting started page <http://mne-tools.github.io/stable/getting_started.html>`_
 page.
 
+
 Dependencies
 ^^^^^^^^^^^^
 
-The minimum required dependencies to run the software are:
+The minimum required dependencies to run MNE-Python are:
 
-  - Python >= 2.7
-  - NumPy >= 1.8
-  - SciPy >= 0.12
-  - matplotlib >= 1.3
+- Python >= 2.7
+- NumPy >= 1.8
+- SciPy >= 0.12
+- matplotlib >= 1.3
 
 For full functionality, some functions require:
 
-  - scikit-learn >= 0.18
-  - nibabel >= 2.1.0
-  - pandas >= 0.13
+- scikit-learn >= 0.18
+- nibabel >= 2.1.0
+- pandas >= 0.13
 
-To use NVIDIA CUDA for resampling and FFT FIR filtering, you will also need
-to install the NVIDIA CUDA SDK, pycuda, and scikits.cuda. See the
+To use `NVIDIA CUDA <https://developer.nvidia.com/cuda-zone>`_ for resampling
+and FFT FIR filtering, you will also need to install the NVIDIA CUDA SDK,
+pycuda, and scikit-cuda (see the
 `getting started page <http://mne-tools.github.io/stable/getting_started.html>`_
-for more information.
+for more information).
 
-Contribute to MNE-python
-^^^^^^^^^^^^^^^^^^^^^^^^
 
-Please see the documentation on the MNE-python homepage:
+Contributing to MNE-Python
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Please see the documentation on the MNE-^ython homepage:
 
 http://martinos.org/mne/contributing.html
+
 
 Mailing list
 ^^^^^^^^^^^^
 
 http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
+
 
 Licensing
 ^^^^^^^^^
@@ -106,7 +113,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
 
-    Copyright (c) 2011, authors of MNE-Python
+    Copyright (c) 2011, authors of MNE-Python.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
