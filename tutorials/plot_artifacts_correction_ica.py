@@ -111,7 +111,7 @@ ica.plot_properties(raw, picks=[1, 2], psd_args={'fmax': 35.})
 # also pass an instance of Raw or Epochs in ``inst`` argument to
 # ``ica.plot_components``. This would allow us to open component properties
 # interactively by clicking on individual component topomaps. In the notebook
-# this woks only when running matplotlib in interactive mode (``%matplotlib``).
+# this works only when running matplotlib in interactive mode (``%matplotlib``).
 
 # uncomment the code below to test the inteactive mode of plot_components:
 # ica.plot_components(picks=range(10), inst=raw)
