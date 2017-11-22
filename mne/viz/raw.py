@@ -213,11 +213,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     The arrow keys (up/down/left/right) can typically be used to navigate
     between channels and time ranges, but this depends on the backend
     matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
-    scaling can be adjusted with - and + (or =) keys. The viewport dimensions
-    can be adjusted with page up/page down and home/end keys. Full screen mode
-    can be to toggled with f11 key. To mark or un-mark a channel as bad, click
-    on the rather flat segments of a channel's time series. The changes will be
-    reflected immediately in the raw object's ``raw.info['bads']`` entry.
+    left/right arrows will scroll by 25% of ``duration`, whereas
+    shift+left/shift+right will scroll by 100% of ``duration``. The scaling can
+    be adjusted with - and + (or =) keys. The viewport dimensions can be
+    adjusted with page up/page down and home/end keys. Full screen mode can be
+    toggled with the F11 key. To mark or un-mark a channel as bad, click on a
+    channel label or a channel trace. The changes will be reflected immediately
+    in the raw object's ``raw.info['bads']`` entry.
 
     If projectors are present, a button labelled "Proj" in the lower right
     corner of the plot window opens a secondary control window, which allows
