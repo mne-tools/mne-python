@@ -1829,7 +1829,6 @@ def _plot_annotations(raw, params):
 
     while len(params['ax_hscroll'].collections) > 0:
         params['ax_hscroll'].collections.pop()
-
     segments = list()
     # sort the segments by start time
     ann_order = raw.annotations.onset.argsort(axis=0)
@@ -1877,8 +1876,9 @@ def _annotations_closed(event, params):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
-    params['ax'].selector.disconnect_events()
-    params['ax'].selector = None
+    if params['ax'].selector is not None:
+        params['ax'].selector.disconnect_events()
+        params['ax'].selector = None
     params['fig_annotation'] = None
     if params['segment_line'] is not None:
         params['segment_line'].remove()

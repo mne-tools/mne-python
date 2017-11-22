@@ -70,7 +70,8 @@ noise_cov = mne.compute_raw_covariance(
 # just to be sure, we define it here manually.
 events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
-                    baseline=(-0.2, 0.0), decim=3)  # we'll decimate for speed
+                    baseline=(-0.2, 0.0), decim=3,  # we'll decimate for speed
+                    verbose='error')  # and ignore the warning about aliasing
 
 ###############################################################################
 # Note that this method also attenuates any activity in your

@@ -22,8 +22,8 @@ from mne.datasets import sample
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+# these data already have an EEG average reference
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 
 ###############################################################################
 # Let's restrict the data to the EEG channels
@@ -111,6 +111,7 @@ evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title)
 ###############################################################################
 # **Average reference**: This is normally added by default, but can also
 # be added explicitly.
+raw.del_proj()
 raw_car, _ = mne.set_eeg_reference(raw, 'average', projection=True)
 evoked_car = mne.Epochs(raw_car, **epochs_params).average()
 del raw_car  # save memory

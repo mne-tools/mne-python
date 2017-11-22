@@ -615,8 +615,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     if surf_ori:
         if use_cps is True:
-            if ('patch_inds' in fwd['src'][0] and
-                    fwd['src'][0]['patch_inds'] is not None):
+            if fwd['src'][0].get('patch_inds') is not None:
                 use_ave_nn = True
                 logger.info('    Average patch normals will be employed in '
                             'the rotation to the local surface coordinates..'

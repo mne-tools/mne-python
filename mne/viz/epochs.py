@@ -160,6 +160,9 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         group_by = "type"
         combine = "gfp"
 
+    if combine is not None:
+        ts_args["show_sensors"] = False
+
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
@@ -374,9 +377,8 @@ def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
             this_data = combine(
                 data[:, picks_, :])[:, np.newaxis, :]
         info = pick_info(epochs.info, [picks_[0]], copy=True)
+        info['projs'] = []
         these_epochs = EpochsArray(this_data.copy(), info, tmin=tmin)
-        d = these_epochs.get_data()  # Why is this necessary?
-        d[:] = this_data  # Without this, the data is all-zeros!
         to_plot_list.append([these_epochs, ch_type, name,
                              type2name.get(name, name) + combine_title])
 

@@ -5,6 +5,7 @@ Rejecting bad data (channels and segments)
 ==========================================
 
 """
+# sphinx_gallery_thumbnail_number = 3
 
 import numpy as np
 import mne
@@ -12,8 +13,7 @@ from mne.datasets import sample
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.io.read_raw_fif(raw_fname)
-raw.set_eeg_reference('average', projection=True)
+raw = mne.io.read_raw_fif(raw_fname)  # already has an EEG ref
 
 ###############################################################################
 # .. _marking_bad_channels:
@@ -90,7 +90,7 @@ print(evoked.info['bads'])
 
 ###############################################################################
 # Let's now interpolate the bad channels (displayed in red above)
-evoked.interpolate_bads(reset_bads=False)
+evoked.interpolate_bads(reset_bads=False, verbose=False)
 
 ###############################################################################
 # Let's plot the cleaned data

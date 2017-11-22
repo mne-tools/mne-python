@@ -583,17 +583,33 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
     return pick_channels_forward(orig, include_ch_names)
 
 
-def channel_indices_by_type(info):
-    """Get indices of channels by type."""
-    idx = dict((key, list()) for key in _PICK_TYPES_KEYS if
-               key not in ('meg', 'fnirs'))
-    idx.update(mag=list(), grad=list(), hbo=list(), hbr=list())
-    for k, ch in enumerate(info['chs']):
-        for key in idx.keys():
-            if channel_type(info, k) == key:
-                idx[key].append(k)
+def channel_indices_by_type(info, picks=None):
+    """Get indices of channels by type.
 
-    return idx
+    Parameters
+    ----------
+    info : instance of mne.measuerment_info.Info
+        The info.
+    picks : None | list of int
+        The indices of channels from which to get the type
+
+    Returns
+    -------
+    idx_by_type : dict
+        The dictionary that maps each channel type to the list of
+        channel indidces.
+    """
+    idx_by_type = dict((key, list()) for key in _PICK_TYPES_KEYS if
+                       key not in ('meg', 'fnirs'))
+    idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list())
+    if picks is None:
+        picks = range(len(info["chs"]))
+    for k in picks:
+        ch_type = channel_type(info, k)
+        for key in idx_by_type.keys():
+            if ch_type == key:
+                idx_by_type[key].append(k)
+    return idx_by_type
 
 
 def pick_channels_cov(orig, include=[], exclude='bads'):

@@ -25,10 +25,28 @@ Changelog
 
 - Allow plotting in user-created mayavi Scene in :func:`mne.viz.plot_alignment` by `Daniel McCloy`_
 
+- Reduce memory consumption and do not require data to be loaded in :meth:`mne.Epochs.apply_baseline` by `Eric Larson`_
+
+- Add option ``render_bem`` to :meth:`mne.Report.parse_folder` by `Eric Larson`_
+
+- Add to :func:`mne.viz.plot_alignment` plotting of coordinate frame axes via ``show_axes`` and terrain-style interaction via ``interaction``, by `Eric Larson`_
+
+- Add option ``initial_event`` to :func:`mne.find_events` by `Clemens Brunner`_
+
 Bug
 ~~~
 
-- Fix bug in :meth:`mne.io.set_eeg_reference` to remove an average reference projector when setting the reference to ``[]`` (i.e. do not change the existing reference) by `Clemens Brunner`_
+- Fix bug in :func:`mne.set_eeg_reference` to remove an average reference projector when setting the reference to ``[]`` (i.e. do not change the existing reference) by `Clemens Brunner`_
+
+- Fix bug in threshold-free cluster enhancement parameter validation (:func:`mne.stats.permutation_cluster_1samp_test` and :func:`mne.stats.permutation_cluster_test`) by `Clemens Brunner`_
+
+- Fix bug in :meth:`mne.io.Raw.plot` to correctly display event types when annotations are present by `Clemens Brunner`_
+
+- Fix bug in :func:`mne.stats.spatio_temporal_cluster_test` default value for ``threshold`` is now calculated based on the array sizes in ``X``, by `Eric Larson`_
+
+- Fix bug in :func:`mne.simulation.simulate_raw` with ``use_cps=True`` where CPS was not actually used by `Eric Larson`_
+
+- Fix bug in :func:`mne.simulation.simulate_raw` where 1- and 3-layer BEMs were not properly transformed using ``trans`` by `Eric Larson`_
 
 API
 ~~~

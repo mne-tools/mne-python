@@ -44,12 +44,12 @@ fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
 label_names = 'Aud-rh', 'Vis-rh'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 
-tmin, tmax = -0.2, 0.5
+tmin, tmax = -0.2, 0.8
 event_id = dict(aud_r=2, vis_r=4)  # load contra-lateral conditions
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(0.1, None, fir_design='firwin')
+raw.filter(None, 10., fir_design='firwin')
 events = mne.read_events(event_fname)
 
 # Set up pick list: MEG - bad channels (modify to your needs)
@@ -59,7 +59,7 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=None, preload=True,
+                    picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6),
                     decim=5)  # decimate to save memory and increase speed
 

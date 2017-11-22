@@ -26,6 +26,11 @@ def test_psd_nan():
         x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
     assert_allclose(freqs, freqs_2)
     assert_allclose(psds, psds_2)
+    # 1-d
+    psds_2, freqs_2 = psd_array_welch(
+        x[0], float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    assert_allclose(freqs, freqs_2)
+    assert_allclose(psds[0], psds_2)
 
 
 def test_psd():

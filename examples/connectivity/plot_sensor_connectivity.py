@@ -40,7 +40,7 @@ picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                        exclude='bads')
 
 # Create epochs for the visual condition
-event_id, tmin, tmax = 3, -0.2, 0.5
+event_id, tmin, tmax = 3, -0.2, 1.5  # need a long enough epoch for 5 cycles
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
 

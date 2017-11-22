@@ -1222,7 +1222,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
                           fixed='auto', limit_depth_chs=True, rank=None,
-                          use_cps=None, verbose=None):
+                          use_cps=True, verbose=None):
     """Assemble inverse operator.
 
     Parameters
@@ -1258,7 +1258,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
-    use_cps : None | bool (default None)
+    use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when converting to surface orientation
         (i.e., for surface source spaces and ``loose < 1``).
