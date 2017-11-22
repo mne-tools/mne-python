@@ -726,11 +726,21 @@ def _plot_raw_onkey(event, params):
         params['ch_start'] -= params['n_channels']
         _channels_changed(params, len(params['inds']))
     elif event.key == 'right':
+        value = params['t_start'] + params['duration'] / 4
+        _plot_raw_time(value, params)
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 'shift+right':
         value = params['t_start'] + params['duration']
         _plot_raw_time(value, params)
         params['update_fun']()
         params['plot_fun']()
     elif event.key == 'left':
+        value = params['t_start'] - params['duration'] / 4
+        _plot_raw_time(value, params)
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 'shift+left':
         value = params['t_start'] - params['duration']
         _plot_raw_time(value, params)
         params['update_fun']()
