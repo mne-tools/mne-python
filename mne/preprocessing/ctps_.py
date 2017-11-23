@@ -151,9 +151,9 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     j2 = (np.arange(n_points) + 1) ** 2
     j2 = j2.repeat(n_time_slices).reshape(n_points, n_time_slices)
     fact = 4. * j2 * l2 - 1.
-    expo = np.exp(-2. * j2 * l2)
+    expo = np.exp(-2. * j2 * l2, dtype='float128')
     term = 2. * fact * expo
-    pk = term.sum(axis=0, dtype=dtype)
+    pk = term.sum(axis=0)
 
     # Normalized pK to range [0,1]
     pk_norm = np.zeros(n_time_slices)  # init pk_norm
@@ -166,4 +166,4 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     # check for round off errors
     pk_norm = np.where(pk_norm > 1.0, 1.0, pk_norm)
 
-    return pk_norm
+    return pk_norm.astype(dtype)
