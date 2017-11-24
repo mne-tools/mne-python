@@ -1535,6 +1535,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
             n_colors = len(all_colors)
             colors_ = {cond: ind for cond, ind in
                        zip(color_conds, color_indices)}
+
             def convert_colors(color):
                 return colors_[color]
         else:
@@ -1545,6 +1546,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
             msg = "Float colors detected, mapping to percentiles ..."
             n_colors = 101  # percentiles plus 1 if we have 1.0s
             colors_old = colors.copy()
+
             def convert_colors(color):
                 return int(colors_old[color] * 100)
             colors_are_float = True
