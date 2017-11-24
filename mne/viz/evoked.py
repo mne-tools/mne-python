@@ -1515,6 +1515,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
     import matplotlib.pyplot as plt
     # continuous colors
     the_colors, color_conds, color_order = None, None, None
+    colors_are_float = False
     if cmap is not None:
         for color_value in colors.values():
             try:
@@ -1526,18 +1527,33 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
         cmapper = getattr(plt.cm, cmap, cmap)
         color_conds = list(colors.keys())
         all_colors = [colors[cond] for cond in color_conds]
-        n_colors = len(all_colors)
         color_order = np.array(all_colors).argsort()
         color_indices = color_order.argsort()
 
+        if all([isinstance(color, Integral) for color in all_colors]):
+            msg = "Integer colors detected, mapping to rank positions ..."
+            n_colors = len(all_colors)
+            colors_ = {cond: ind for cond, ind in zip(color_conds, color_indices)}
+            convert_colors = lambda color: colors_[color]
+        else:
+            for color in all_colors:
+                if not 0 <= color <= 1:
+                    raise ValueError("Values of colors must be all-integer or "
+                                     "floats between 0 and 1, got %s." % color)
+            msg = "Float colors detected, mapping to percentiles ..."
+            n_colors = 101  # percentiles plus 1 if we have 1.0s
+            colors_old = colors.copy()
+            convert_colors = lambda color: int(colors_old[color] * 100)
+            colors_are_float = True
+        logger.info(msg)
         the_colors = cmapper(np.linspace(0, 1, n_colors))
-
-        colors_ = {cond: ind for cond, ind in zip(color_conds, color_indices)}
+        
         colors = dict()
         for cond in conditions:
-            for cond_number, color in colors_.items():
-                if cond_number in cond:
-                    colors[cond] = the_colors[color]
+            cond_ = cond.split("/")
+            for color in color_conds:
+                if color in cond_:
+                    colors[cond] = the_colors[convert_colors(color)]
                     continue
 
     # categorical colors
@@ -1572,7 +1588,7 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
         styles[condition]['linestyle'] = styles[condition].get(
             'linestyle', linestyles[condition])
 
-    return styles, the_colors, color_conds, color_order
+    return styles, the_colors, color_conds, color_order, colors_are_float
 
 
 def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
@@ -1616,7 +1632,10 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         If None (default), a sequence of desaturated colors is used.
         If `cmap` is None, `colors` will indicate how each condition is
         colored with reference to its position on the colormap - see `cmap`
-        below.
+        below. In that case, the values of colors must be either integers,
+        in which case they will be mapped to colors in rank order; or floats
+        between 0 and 1, in which case they will be mapped to percentiles of
+        the colormap.
     linestyles : list | dict
         If a list, will be sequentially and repeatedly used for evoked plot
         linestyles.
@@ -1645,7 +1664,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         value corresponds to the position on the colorbar.
         If ``evokeds`` is a dict, ``colors`` should be a dict mapping from
         (potentially HED-style) condition tags to numbers corresponding to
-        rank order positions on the colorbar. E.g., ::
+        positions on the colorbar - rank order for integers, or floats for
+        percentiles. E.g., ::
 
             evokeds={"cond1/A": ev1, "cond2/A": ev2, "cond3/A": ev3, "B": ev4},
             cmap='viridis', colors=dict(cond1=1 cond2=2, cond3=3),
@@ -1939,7 +1959,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 legend_lines.append(line)
                 legend_labels.append(style)
 
-    styles, the_colors, color_conds, color_order =\
+    styles, the_colors, color_conds, color_order, colors_are_float =\
         _setup_styles(data_dict.keys(), styles, cmap, colors, linestyles)
 
     # We now have a 'styles' dict with one entry per condition, specifying at
@@ -2042,9 +2062,16 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         divider = make_axes_locatable(ax)
         ax_cb = divider.append_axes("right", size="5%", pad=0.05)
-        ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none')
-        ax_cb.set_yticks(np.arange(len(the_colors)))
-        ax_cb.set_yticklabels(np.array(color_conds)[color_order])
+        if colors_are_float:
+            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none',
+                         aspect=.05)
+            color_ticks = np.array(list(set(colors.values()))) * 100
+            ax_cb.set_yticks(color_ticks)
+            ax_cb.set_yticklabels(color_ticks)
+        else:
+            ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none')
+            ax_cb.set_yticks(np.arange(len(the_colors)))
+            ax_cb.set_yticklabels(np.array(color_conds)[color_order])            
         ax_cb.yaxis.tick_right()
         ax_cb.set_xticks(())
         ax_cb.set_ylabel(cmap_label)

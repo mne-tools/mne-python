@@ -114,7 +114,7 @@ evokeds = dict()
 for n_letters in letters:
     evokeds[n_letters] = epochs["NumberOfLetters == " + n_letters].average()
 
-style_plot["colors"] = {n_letters: int(n_letters)
+style_plot["colors"] = {n_letters: int(n_letters) / 8
                         for n_letters in letters}
 style_plot["cmap"] = ("# of Letters", "viridis_r")
 del style_plot['linestyles']
