@@ -213,7 +213,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     The arrow keys (up/down/left/right) can typically be used to navigate
     between channels and time ranges, but this depends on the backend
     matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
-    left/right arrows will scroll by 25% of ``duration`, whereas
+    left/right arrows will scroll by 25% of ``duration``, whereas
     shift+left/shift+right will scroll by 100% of ``duration``. The scaling can
     be adjusted with - and + (or =) keys. The viewport dimensions can be
     adjusted with page up/page down and home/end keys. Full screen mode can be
