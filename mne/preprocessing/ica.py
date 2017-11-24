@@ -46,10 +46,6 @@ from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
-<<<<<<< HEAD
-                     _get_fast_dot, compute_corr, _get_inst_data,
-                     copy_function_doc_to_method_doc, _pl, warn)
-=======
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn)
 
