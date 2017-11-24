@@ -9,13 +9,14 @@ import matplotlib
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_equal, assert_raises, assert_true
+import pytest
 
 from mne import find_events, Epochs, pick_types, channels
 from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import slow_test, requires_version, run_tests_if_main
+from mne.utils import requires_version, run_tests_if_main
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -25,7 +26,19 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
 
 
-@slow_test
+def test_long_names():
+    """Test long name support."""
+    info = create_info(['a' * 15 + 'b', 'a' * 16], 1000., verbose='error')
+    data = np.empty((2, 1000))
+    raw = RawArray(data, info)
+    assert raw.ch_names == ['a' * 13 + '-0', 'a' * 13 + '-1']
+    info = create_info(['a' * 16] * 11, 1000., verbose='error')
+    data = np.empty((11, 1000))
+    raw = RawArray(data, info)
+    assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
+
+
+@pytest.mark.slowtest
 @requires_version('scipy', '0.12')
 def test_array_raw():
     """Test creating raw from array."""
@@ -123,5 +136,6 @@ def test_array_raw():
     raw = RawArray(electrode, info)
     raw.plot_psd(average=False)  # looking for inexistent layout
     raw.plot_psd_topo()
+
 
 run_tests_if_main()

@@ -2,8 +2,9 @@ from __future__ import print_function
 
 import os
 import os.path as op
+from unittest import SkipTest
 from nose.tools import assert_true, assert_raises
-from nose.plugins.skip import SkipTest
+import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import warnings
@@ -12,9 +13,9 @@ from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
-                 morph_source_spaces, SourceEstimate)
+                 morph_source_spaces, SourceEstimate, make_sphere_model)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
-                       requires_freesurfer, run_subprocess, slow_test,
+                       requires_freesurfer, run_subprocess,
                        requires_mne, requires_version, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mri_header, _get_mgz_header
@@ -125,7 +126,7 @@ def test_add_source_space_distances_limited():
         assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-6)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_version('scipy', '0.11')
 def test_add_source_space_distances():
@@ -210,7 +211,7 @@ def test_discrete_source_space():
             os.remove(temp_name)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_source_space():
     """Test setting up volume source spaces."""
@@ -235,6 +236,16 @@ def test_volume_source_space():
                   mri=fname_mri, subjects_dir=subjects_dir)
     assert_equal(repr(src), repr(src_new))
     assert_equal(src.kind, 'volume')
+    # Spheres
+    sphere = make_sphere_model(r0=(0., 0., 0.), head_radius=0.1,
+                               relative_radii=(0.9, 1.0), sigmas=(0.33, 1.0))
+    src = setup_volume_source_space(pos=10)
+    src_new = setup_volume_source_space(pos=10, sphere=sphere)
+    _compare_source_spaces(src, src_new, mode='exact')
+    assert_raises(ValueError, setup_volume_source_space, sphere='foo')
+    # Need a radius
+    sphere = make_sphere_model(head_radius=None)
+    assert_raises(ValueError, setup_volume_source_space, sphere=sphere)
 
 
 @testing.requires_testing_data
@@ -324,7 +335,7 @@ def test_accumulate_normals():
     assert_allclose(nn, this['nn'], rtol=1e-7, atol=1e-7)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_setup_source_space():
     """Test setting up ico, oct, and all source spaces."""
@@ -401,7 +412,7 @@ def test_read_source_spaces():
     assert_true(rh_use_faces.max() <= rh_points.shape[0] - 1)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_write_source_space():
     """Test reading and writing of source spaces."""
@@ -614,7 +625,7 @@ def test_morph_source_spaces():
     _compare_source_spaces(src_morph, src_morph_py, mode='approx')
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morphed_source_space_return():
     """Test returning a morphed source space to the original subject."""
@@ -659,6 +670,14 @@ def test_morphed_source_space_return():
                        stc_morph_morph.data[:, 0])[0, 1]
     assert_true(corr > 0.99, corr)
 
+    # Explicitly test having two vertices map to the same target vertex. We
+    # simulate this by having two vertices be at the same position.
+    src_fs2 = src_fs.copy()
+    vert1, vert2 = src_fs2[0]['vertno'][:2]
+    src_fs2[0]['rr'][vert1] = src_fs2[0]['rr'][vert2]
+    stc_morph_return = stc_morph.to_original_src(
+        src_fs2, subjects_dir=subjects_dir)
+
     # Degenerate cases
     stc_morph.subject = None  # no .subject provided
     assert_raises(ValueError, stc_morph.to_original_src,
@@ -674,6 +693,7 @@ def test_morphed_source_space_return():
     src = read_source_spaces(fname)  # wrong source space
     assert_raises(RuntimeError, stc_morph.to_original_src,
                   src, subjects_dir=subjects_dir)
+
 
 run_tests_if_main()
 

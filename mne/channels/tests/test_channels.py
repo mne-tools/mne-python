@@ -45,6 +45,11 @@ def test_rename_channels():
     assert_raises(ValueError, rename_channels, info, mapping)
     # Test bad input
     assert_raises(ValueError, rename_channels, info, 1.)
+    assert_raises(ValueError, rename_channels, info, 1.)
+    # Test name too long (channel names must be less than 15 characters)
+    A16 = 'A' * 16
+    mapping = {'MEG 2641': A16}
+    assert_raises(ValueError, rename_channels, info, mapping)
 
     # Test successful changes
     # Test ch_name and ch_names are changed

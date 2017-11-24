@@ -5,6 +5,7 @@
 import numpy as np
 import os.path as op
 import warnings
+import itertools
 
 from numpy.testing import assert_raises, assert_equal
 
@@ -201,17 +202,20 @@ def test_plot_ref_meg():
     raw_ctf = read_raw_ctf(ctf_fname_continuous).crop(0, 1).load_data()
     raw_ctf.plot()
     plt.close('all')
-    assert_raises(ValueError, raw_ctf.plot, order='selection')
+    assert_raises(ValueError, raw_ctf.plot, group_by='selection')
 
 
 def test_plot_annotations():
     """Test annotation mode of the plotter."""
     raw = _get_raw()
     raw.info['lowpass'] = 10.
-    _annotation_helper(raw)
+    with warnings.catch_warnings(record=True):  # matplotlib
+        _annotation_helper(raw)
 
-    raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])
-    _annotation_helper(raw)
+    with warnings.catch_warnings(record=True):  # cut off
+        raw.annotations = Annotations([42], [1], 'test', raw.info['meas_date'])
+    with warnings.catch_warnings(record=True):  # matplotlib
+        _annotation_helper(raw)
 
 
 @requires_version('scipy', '0.10')
@@ -234,7 +238,7 @@ def test_plot_raw_psd():
     import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
-    raw.plot_psd()
+    raw.plot_psd(average=False)
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=np.inf, picks=picks, area_mode='range', average=False,
@@ -244,14 +248,15 @@ def test_plot_raw_psd():
     plt.close('all')
     ax = plt.axes()
     # if ax is supplied:
-    assert_raises(ValueError, raw.plot_psd, ax=ax)
+    assert_raises(ValueError, raw.plot_psd, ax=ax, average=True)
     assert_raises(ValueError, raw.plot_psd, average=True, spatial_colors=True)
-    raw.plot_psd(tmax=np.inf, picks=picks, ax=ax)
+    raw.plot_psd(tmax=np.inf, picks=picks, ax=ax, average=True)
     plt.close('all')
     ax = plt.axes()
-    assert_raises(ValueError, raw.plot_psd, ax=ax)
-    ax = [ax, plt.axes()]
-    raw.plot_psd(tmax=np.inf, ax=ax)
+    assert_raises(ValueError, raw.plot_psd, ax=ax, average=True)
+    plt.close('all')
+    ax = plt.subplots(2)[1]
+    raw.plot_psd(tmax=np.inf, ax=ax, average=True)
     plt.close('all')
     # topo psd
     ax = plt.subplot()
@@ -264,7 +269,11 @@ def test_plot_raw_psd():
         raw.plot_psd(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0
-    assert_raises(ValueError, raw.plot_psd)
+    with warnings.catch_warnings(record=True) as w:
+        for dB, estimate in itertools.product((True, False),
+                                              ('power', 'amplitude')):
+            raw.plot_psd(average=True, dB=dB, estimate=estimate)
+    assert_equal(len(w), 4)
 
 
 def test_plot_sensors():
@@ -275,6 +284,7 @@ def test_plot_sensors():
     _fake_click(fig, fig.gca(), (-0.08, 0.67))
     raw.plot_sensors('topomap', ch_type='mag',
                      show_names=['MEG 0111', 'MEG 0131'])
+    plt.close('all')
     ax = plt.subplot(111)
     raw.plot_sensors(ch_groups='position', axes=ax)
     raw.plot_sensors(ch_groups='selection', to_sphere=False)

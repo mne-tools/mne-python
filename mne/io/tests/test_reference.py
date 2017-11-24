@@ -197,8 +197,14 @@ def test_set_eeg_reference():
     assert_equal(reref.info['custom_ref_applied'], True)
 
     # Test that disabling the reference does not change anything
-    reref, ref_data = set_eeg_reference(raw, [])
+    reref, _ = set_eeg_reference(raw, [])
     assert_array_equal(raw._data, reref._data)
+
+    # make sure ref_channels=[] removes average reference projectors
+    reref, _ = set_eeg_reference(raw, 'average', projection=True)
+    assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
+    reref, _ = set_eeg_reference(reref, [])
+    assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
 
     # Test that average reference gives identical results when calculated
     # via SSP projection (projection=True) or directly (projection=False)
@@ -283,9 +289,10 @@ def test_set_bipolar_reference():
     # Test creating a bipolar reference that doesn't involve EEG channels:
     # it should not set the custom_ref_applied flag
     reref = set_bipolar_reference(raw, 'MEG 0111', 'MEG 0112',
-                                  ch_info={'kind': FIFF.FIFFV_MEG_CH})
+                                  ch_info={'kind': FIFF.FIFFV_MEG_CH},
+                                  verbose='error')
     assert_true(not reref.info['custom_ref_applied'])
-    assert_true('MEG 0111-MEG 0112' in reref.ch_names)
+    assert_true('MEG 0111-MEG 0112'[:15] in reref.ch_names)
 
     # Test a battery of invalid inputs
     assert_raises(ValueError, set_bipolar_reference, raw,
@@ -465,5 +472,6 @@ def test_add_reference():
     raw_np = read_raw_fif(fif_fname, preload=False)
     assert_raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
     assert_raises(ValueError, add_reference_channels, raw, 1)
+
 
 run_tests_if_main()

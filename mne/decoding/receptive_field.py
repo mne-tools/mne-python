@@ -7,26 +7,27 @@
 import numbers
 
 import numpy as np
+from scipy import linalg
 
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
+from ..fixes import is_regressor
 from ..externals.six import string_types
 
 
 class ReceptiveField(BaseEstimator):
     """Fit a receptive field model.
 
-    This allows you to fit a model using time-lagged input features. For
-    example, a spectro- or spatio-temporal receptive field (STRF).
+    This allows you to fit an encoding model (stimulus to brain) or a decoding
+    model (brain to stimulus) using time-lagged input features (for example, a
+    spectro- or spatio-temporal receptive field, or STRF).
 
     Parameters
     ----------
     tmin : float
         The starting lag, in seconds (or samples if ``sfreq`` == 1).
-        Negative values correspond to times in the past.
     tmax : float
         The ending lag, in seconds (or samples if ``sfreq`` == 1).
-        Positive values correspond to times in the future.
         Must be >= tmin.
     sfreq : float
         The sampling frequency used to convert times into samples.
@@ -47,6 +48,10 @@ class ReceptiveField(BaseEstimator):
         Defines how predictions will be scored. Currently must be one of
         'r2' (coefficient of determination) or 'corrcoef' (the correlation
         coefficient).
+    patterns : bool
+        If True, inverse coefficients will be computed upon fitting using the
+        covariance matrix of the inputs, and the cross-covariance of the
+        inputs/outputs, according to [5]_. Defaults to False.
 
     Attributes
     ----------
@@ -54,6 +59,8 @@ class ReceptiveField(BaseEstimator):
         The coefficients from the model fit, reshaped for easy visualization.
         During :meth:`mne.decoding.ReceptiveField.fit`, if ``y`` has one
         dimension (time), the ``n_outputs`` dimension here is omitted.
+    ``patterns_`` : array, shape ([n_outputs, ]n_features, n_delays)
+        If fit, the inverted coefficients from the model.
     ``delays_``: array, shape (n_delays,), dtype int
         The delays used to fit the model, in indices. To return the delays
         in seconds, use ``self.delays_ / self.sfreq``
@@ -66,6 +73,14 @@ class ReceptiveField(BaseEstimator):
     See Also
     --------
     mne.decoding.TimeDelayingRidge
+
+    Notes
+    -----
+    For a causal system, the encoding model will have significant
+    non-zero values only at positive lags. In other words, lags point
+    backward in time relative to the input, so positive lags correspond
+    to previous input time samples, while negative lags correspond to
+    future input time samples.
 
     References
     ----------
@@ -86,10 +101,16 @@ class ReceptiveField(BaseEstimator):
     .. [4] Holdgraf, C. R. et al. Rapid tuning shifts in human auditory cortex
            enhance speech intelligibility. Nature Communications,
            7, 13654 (2016). doi:10.1038/ncomms13654
+
+    .. [5] Haufe, S., Meinecke, F., Goergen, K., Daehne, S., Haynes, J.-D.,
+           Blankertz, B., & Biessmann, F. (2014). On the interpretation of
+           weight vectors of linear models in multivariate neuroimaging.
+           NeuroImage, 87, 96-110. doi:10.1016/j.neuroimage.2013.10.067
     """
 
     def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
-                 fit_intercept=None, scoring='r2'):  # noqa: D102
+                 fit_intercept=None, scoring='r2',
+                 patterns=False):  # noqa: D102
         self.feature_names = feature_names
         self.sfreq = float(sfreq)
         self.tmin = tmin
@@ -97,6 +118,7 @@ class ReceptiveField(BaseEstimator):
         self.estimator = 0. if estimator is None else estimator
         self.fit_intercept = fit_intercept
         self.scoring = scoring
+        self.patterns = patterns
 
     def __repr__(self):  # noqa: D105
         s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
@@ -121,17 +143,13 @@ class ReceptiveField(BaseEstimator):
         """Delay and reshape the variables."""
         if not isinstance(self.estimator_, TimeDelayingRidge):
             # X is now shape (n_times, n_epochs, n_feats, n_delays)
-            X_del = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
-                                       newaxis=X.ndim,
-                                       fill_mean=self.fit_intercept)
-        else:
-            X_del = X[..., np.newaxis]
-
-        X_del = _reshape_for_est(X_del)
-        # Concat times + epochs
-        if y is not None:
-            y = y.reshape(-1, y.shape[-1], order='F')
-        return X_del, y
+            X = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
+                                   fill_mean=self.fit_intercept)
+            X = _reshape_for_est(X)
+            # Concat times + epochs
+            if y is not None:
+                y = y.reshape(-1, y.shape[-1], order='F')
+        return X, y
 
     def fit(self, X, y):
         """Fit a receptive field model.
@@ -151,9 +169,12 @@ class ReceptiveField(BaseEstimator):
         if self.scoring not in _SCORERS.keys():
             raise ValueError('scoring must be one of %s, got'
                              '%s ' % (sorted(_SCORERS.keys()), self.scoring))
-        from sklearn.base import is_regressor, clone
+        from sklearn.base import clone
         X, y, _, self._y_dim = self._check_dimensions(X, y)
 
+        if self.tmin > self.tmax:
+            raise ValueError('tmin (%s) must be at most tmax (%s)'
+                             % (self.tmin, self.tmax))
         # Initialize delays
         self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
 
@@ -186,6 +207,8 @@ class ReceptiveField(BaseEstimator):
 
         # Create input features
         n_times, n_epochs, n_feats = X.shape
+        n_outputs = y.shape[-1]
+        n_delays = len(self.delays_)
 
         # Update feature names if we have none
         if self.feature_names is None:
@@ -195,24 +218,39 @@ class ReceptiveField(BaseEstimator):
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 
         # Create input features
-        # (eventually the FFT-based method could be made more memory efficient
-        # by moving the padding to TimeDelayingRidge, which would need to be
-        # made epochs-aware)
-
-        # zero-pad if necessary
-        if isinstance(self.estimator, TimeDelayingRidge):
-            X = _pad_time_series(X, n_delays=len(self.delays_),
-                                 fill_mean=self.fit_intercept)
-            y = _pad_time_series(y, n_delays=len(self.delays_),
-                                 fill_mean=self.fit_intercept)
-        # convert to sklearn and back
         X, y = self._delay_and_reshape(X, y)
+
         self.estimator_.fit(X, y)
-        del X, y
         coef = get_coef(self.estimator_, 'coef_')  # (n_targets, n_features)
-        shape = [n_feats, len(self.delays_)]
-        shape = ([-1] if self._y_dim > 1 else []) + shape
+        shape = [n_feats, n_delays]
+        if self._y_dim > 1:
+            shape.insert(0, -1)
         self.coef_ = coef.reshape(shape)
+
+        # Inverse-transform model weights
+        if self.patterns:
+            if isinstance(self.estimator_, TimeDelayingRidge):
+                cov_ = self.estimator_.cov_ / float(n_times * n_epochs - 1)
+                y = y.reshape(-1, y.shape[-1], order='F')
+            else:
+                X = X - X.mean(0, keepdims=True)
+                cov_ = np.cov(X.T)
+            del X
+
+            # Inverse output covariance
+            if y.ndim == 2 and y.shape[1] != 1:
+                y = y - y.mean(0, keepdims=True)
+                inv_Y = linalg.pinv(np.cov(y.T))
+            else:
+                inv_Y = 1. / float(n_times * n_epochs - 1)
+            del y
+
+            # Inverse coef according to Haufe's method
+            # patterns has shape (n_feats * n_delays, n_outputs)
+            coef = np.reshape(self.coef_, (n_feats * n_delays, n_outputs))
+            patterns = cov_.dot(coef.dot(inv_Y))
+            self.patterns_ = patterns.reshape(shape)
+
         return self
 
     def predict(self, X):
@@ -234,10 +272,6 @@ class ReceptiveField(BaseEstimator):
             raise ValueError('Estimator has not been fit yet.')
         X, _, X_dim = self._check_dimensions(X, None, predict=True)[:3]
         del _
-        # zero-pad if necessary
-        if isinstance(self.estimator, TimeDelayingRidge):
-            X = _pad_time_series(X, n_delays=len(self.delays_),
-                                 fill_mean=self.fit_intercept)
         # convert to sklearn and back
         pred_shape = X.shape[:-1]
         if self._y_dim > 1:
@@ -245,9 +279,6 @@ class ReceptiveField(BaseEstimator):
         X, _ = self._delay_and_reshape(X)
         y_pred = self.estimator_.predict(X)
         y_pred = y_pred.reshape(pred_shape, order='F')
-        # undo padding
-        if isinstance(self.estimator, TimeDelayingRidge):
-            y_pred = y_pred[:-(len(self.delays_) - 1)]
         shape = list(y_pred.shape)
         if X_dim <= 2:
             shape.pop(1)  # epochs
@@ -332,100 +363,68 @@ class ReceptiveField(BaseEstimator):
         return X, y, X_dim, y_dim
 
 
-def _pad_time_series(X, n_delays, fill_mean=True):
-    """Return a zero- or mean-padded input time series.
-
-    Parameters
-    ----------
-    X : array, shape (n_times[, n_epochs], n_features)
-        The time series to pad.
-    n_delays : int
-        The number of delays.
-    fill_mean : bool
-        If True, the fill value will be the mean along the time dimension
-        of the feature. If False, the fill value will be zero.
-
-    Returns
-    -------
-    padded : array, shape(n_padded[, n_epochs], n_features)
-        The padded data, where ``n_padded = n_times + n_delays - 1``.
-    """
-    fill_value = 0
-    if fill_mean:
-        fill_value = np.mean(X, axis=0, keepdims=True)
-        if X.ndim == 3:
-            fill_value = np.mean(fill_value, axis=1, keepdims=True)
-    X = np.pad(X, ((0, n_delays - 1),) + ((0, 0),) * (X.ndim - 1), 'constant')
-    X[-(n_delays - 1):] = fill_value
-    return X
-
-
-def _delay_time_series(X, tmin, tmax, sfreq, newaxis=0, axis=0,
-                       epoch_axis=1, fill_mean=False):
+def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
     """Return a time-lagged input time series.
 
     Parameters
     ----------
     X : array, shape (n_times[, n_epochs], n_features)
-        The time series to delay.
+        The time series to delay. Must be 2D or 3D.
     tmin : int | float
-        The starting lag. Negative values correspond to times in the past.
+        The starting lag.
     tmax : int | float
-        The ending lag. Positive values correspond to times in the future.
+        The ending lag.
         Must be >= tmin.
     sfreq : int | float
         The sampling frequency of the series. Defaults to 1.0.
-    newaxis : int
-        The axis in the output array that corresponds to time delays.
-        Defaults to 0, for the first axis.
     fill_mean : bool
         If True, the fill value will be the mean along the time dimension
-        of the feature. If False, the fill value will be zero.
-    axis : int
-        The axis corresponding to the time dimension.
+        of the feature, and each cropped and delayed segment of data
+        will be shifted to have the same mean value (ensuring that mean
+        subtraction works properly). If False, the fill value will be zero.
 
     Returns
     -------
-    delayed : array, shape(..., n_delays, ...)
+    delayed : array, shape(n_times[, n_epochs][, n_features], n_delays)
         The delayed data. It has the same shape as X, with an extra dimension
-        created at ``newaxis`` that corresponds to each delay.
+        appended to the end.
 
     Examples
     --------
-    >>> tmin, tmax = -0.2, 0.1
+    >>> tmin, tmax = -0.1, 0.2
     >>> sfreq = 10.
     >>> x = np.arange(1, 6)
     >>> x_del = _delay_time_series(x, tmin, tmax, sfreq)
     >>> print(x_del)
-    [[ 0.  0.  1.  2.  3.]
-     [ 0.  1.  2.  3.  4.]
-     [ 1.  2.  3.  4.  5.]
-     [ 2.  3.  4.  5.  0.]]
+    [[ 2.  1.  0.  0.]
+     [ 3.  2.  1.  0.]
+     [ 4.  3.  2.  1.]
+     [ 5.  4.  3.  2.]
+     [ 0.  5.  4.  3.]]
     """
     _check_delayer_params(tmin, tmax, sfreq)
     delays = _times_to_delays(tmin, tmax, sfreq)
-    # XXX : add Vectorize=True parameter to switch on/off 2D output
     # Iterate through indices and append
-    delayed = np.zeros((len(delays),) + X.shape)
+    delayed = np.zeros(X.shape + (len(delays),))
     if fill_mean:
-        fill_value = X.mean(axis=axis, keepdims=True)
-        if epoch_axis is not None:
-            fill_value = np.mean(fill_value, axis=epoch_axis, keepdims=True)
-            delayed[...] = fill_value
+        mean_value = X.mean(axis=0)
+        if X.ndim == 3:
+            mean_value = np.mean(mean_value, axis=0)
+        delayed[:] = mean_value[:, np.newaxis]
     for ii, ix_delay in enumerate(delays):
-        take = [slice(None)] * X.ndim
-        put = [slice(None)] * X.ndim
         # Create zeros to populate w/ delays
         if ix_delay < 0:
-            take[axis] = slice(None, ix_delay)
-            put[axis] = slice(-ix_delay, None)
+            out = delayed[:ix_delay, ..., ii]
+            use_X = X[-ix_delay:]
         elif ix_delay > 0:
-            take[axis] = slice(ix_delay, None)
-            put[axis] = slice(None, -ix_delay)
-        delayed[ii][put] = X[take]
-
-    # Now swapaxes so that the new axis is in the right place
-    delayed = np.rollaxis(delayed, 0, newaxis + 1)
+            out = delayed[ix_delay:, ..., ii]
+            use_X = X[:-ix_delay]
+        else:  # == 0
+            out = delayed[..., ii]
+            use_X = X
+        out[:] = use_X
+        if fill_mean:
+            out[:] += (mean_value - use_X.mean(axis=0))
     return delayed
 
 
@@ -439,12 +438,10 @@ def _times_to_delays(tmin, tmax, sfreq):
 
 def _delays_to_slice(delays):
     """Find the slice to be taken in order to remove missing values."""
-    # Negative values == cut off rows at the beginning
-    min_delay = np.clip(delays.min(), None, 0)
-    min_delay = None if min_delay >= 0 else -1 * min_delay
+    # Negative values == cut off rows at the end
+    min_delay = None if delays[-1] <= 0 else delays[-1]
     # Positive values == cut off rows at the end
-    max_delay = np.clip(delays.max(), 0, None)
-    max_delay = None if max_delay <= 0 else -1 * max_delay
+    max_delay = None if delays[0] >= 0 else delays[0]
     return slice(min_delay, max_delay)
 
 
@@ -472,15 +469,18 @@ def _reshape_for_est(X_del):
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
     from scipy.stats import pearsonr
+    assert multioutput == 'raw_values'
     for this_y in (y_true, y):
         if this_y.ndim != 2:
             raise ValueError('inputs must shape (samples, outputs), got %s'
                              % (this_y.shape,))
-    return [pearsonr(y_true[:, ii], y[:, ii])[0] for ii in range(y.shape[-1])]
+    return np.array([pearsonr(y_true[:, ii], y[:, ii])[0]
+                     for ii in range(y.shape[-1])])
 
 
 def _r2_score(y_true, y, multioutput=None):
     from sklearn.metrics import r2_score
-    return r2_score(y_true, y)
+    return r2_score(y_true, y, multioutput=multioutput)
+
 
 _SCORERS = {'r2': _r2_score, 'corrcoef': _corr_score}

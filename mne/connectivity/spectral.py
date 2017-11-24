@@ -7,7 +7,6 @@ from functools import partial
 from inspect import getmembers
 
 import numpy as np
-from scipy.fftpack import fftfreq
 
 from .utils import check_indices
 from ..fixes import _get_args
@@ -561,7 +560,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mode='multitaper', fmin=None, fmax=np.inf,
                           fskip=0, faverage=False, tmin=None, tmax=None,
                           mt_bandwidth=None, mt_adaptive=False,
-                          mt_low_bias=True, cwt_frequencies=None,
+                          mt_low_bias=True, cwt_freqs=None,
                           cwt_n_cycles=7, block_size=1000, n_jobs=1,
                           verbose=None):
     """Compute frequency- and time-frequency-domain connectivity measures.
@@ -693,7 +692,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     mt_low_bias : bool
         Only use tapers with more than 90% spectral concentration within
         bandwidth. Only used in 'multitaper' mode.
-    cwt_frequencies : array
+    cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
     cwt_n_cycles: float | array of float
         Number of cycles. Fixed number or one per frequency. Only used in
@@ -711,11 +710,11 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     -------
     con : array | list of arrays
         Computed connectivity measure(s). The shape of each array is either
-        (n_signals, n_signals, n_frequencies) mode: 'multitaper' or 'fourier'
-        (n_signals, n_signals, n_frequencies, n_times) mode: 'cwt_morlet'
+        (n_signals, n_signals, n_freqs) mode: 'multitaper' or 'fourier'
+        (n_signals, n_signals, n_freqs, n_times) mode: 'cwt_morlet'
         when "indices" is None, or
-        (n_con, n_frequencies) mode: 'multitaper' or 'fourier'
-        (n_con, n_frequencies, n_times) mode: 'cwt_morlet'
+        (n_con, n_freqs) mode: 'multitaper' or 'fourier'
+        (n_con, n_freqs, n_times) mode: 'cwt_morlet'
         when "indices" is specified and "n_con = len(indices[0])".
     freqs : array
         Frequency points at which the connectivity was computed.
@@ -732,19 +731,15 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     .. [1] Nolte et al. "Identifying true brain interaction from EEG data using
            the imaginary part of coherency" Clinical neurophysiology, vol. 115,
            no. 10, pp. 2292-2307, Oct. 2004.
-
     .. [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human
            brain mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
-
     .. [3] Vinck et al. "The pairwise phase consistency: a bias-free measure of
            rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
            pp. 112-122, May 2010.
-
     .. [4] Stam et al. "Phase lag index: assessment of functional connectivity
            from multi channel EEG and MEG with diminished bias from common
            sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
            Nov. 2007.
-
     .. [5] Vinck et al. "An improved index of phase-synchronization for
            electro-physiological data in the presence of volume-conduction,
            noise and sample-size bias" NeuroImage, vol. 55, no. 4,
@@ -759,8 +754,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     if fmin is None:
         fmin = -np.inf  # set it to -inf, so we can adjust it later
 
-    fmin = np.asarray((fmin,)).ravel()
-    fmax = np.asarray((fmax,)).ravel()
+    fmin = np.array((fmin,), dtype=float).ravel()
+    fmax = np.array((fmax,), dtype=float).ravel()
     if len(fmin) != len(fmax):
         raise ValueError('fmin and fmax must have the same length')
     if np.any(fmin > fmax):
@@ -793,7 +788,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 epoch_block=epoch_block, tmin=tmin, tmax=tmax, fmin=fmin,
                 fmax=fmax, sfreq=sfreq, indices=indices, mode=mode,
                 fskip=fskip, n_bands=n_bands,
-                cwt_frequencies=cwt_frequencies, faverage=faverage)
+                cwt_freqs=cwt_freqs, faverage=faverage)
 
             # get the window function, wavelets, etc for different modes
             (spectral_params, mt_adaptive, n_times_spectrum,
@@ -801,8 +796,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 mode=mode, n_times=n_times, mt_adaptive=mt_adaptive,
                 mt_bandwidth=mt_bandwidth, sfreq=sfreq,
                 mt_low_bias=mt_low_bias, cwt_n_cycles=cwt_n_cycles,
-                cwt_frequencies=cwt_frequencies,
-                freqs=freqs, freq_mask=freq_mask)
+                cwt_freqs=cwt_freqs, freqs=freqs, freq_mask=freq_mask)
 
             # unique signals for which we actually need to compute PSD etc.
             sig_idx = np.unique(np.r_[indices_use[0], indices_use[1]])
@@ -940,7 +934,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
 def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
                           mode, fskip, n_bands,
-                          cwt_frequencies, faverage):
+                          cwt_freqs, faverage):
     """Check and precompute dimensions of results data."""
     first_epoch = epoch_block[0]
 
@@ -981,31 +975,34 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
     if mode in ('multitaper', 'fourier'):
         # fmin fmax etc is only supported for these modes
         # decide which frequencies to keep
-        freqs_all = fftfreq(n_times, 1. / sfreq)
-        freqs_all = freqs_all[freqs_all >= 0]
+        freqs_all = np.fft.rfftfreq(n_times, 1. / sfreq)
     elif mode == 'cwt_morlet':
         # cwt_morlet mode
-        if cwt_frequencies is None:
+        if cwt_freqs is None:
             raise ValueError('define frequencies of interest using '
-                             'cwt_frequencies')
+                             'cwt_freqs')
         else:
-            cwt_frequencies = cwt_frequencies.astype(np.float)
-        if any(cwt_frequencies > (sfreq / 2.)):
-            raise ValueError('entries in cwt_frequencies cannot be '
+            cwt_freqs = cwt_freqs.astype(np.float)
+        if any(cwt_freqs > (sfreq / 2.)):
+            raise ValueError('entries in cwt_freqs cannot be '
                              'larger than Nyquist (sfreq / 2)')
-        freqs_all = cwt_frequencies
+        freqs_all = cwt_freqs
     else:
         raise ValueError('mode has an invalid value')
 
     # check that fmin corresponds to at least 5 cycles
-    five_cycle_freq = 5. * sfreq / float(n_times)
+    dur = float(n_times) / sfreq
+    five_cycle_freq = 5. / dur
     if len(fmin) == 1 and fmin[0] == -np.inf:
         # we use the 5 cycle freq. as default
-        fmin = [five_cycle_freq]
+        fmin = np.array([five_cycle_freq])
     else:
-        if any(fmin < five_cycle_freq):
-            warn('fmin corresponds to less than 5 cycles, '
-                 'spectrum estimate will be unreliable')
+        if np.any(fmin < five_cycle_freq):
+            warn('fmin=%0.3f Hz corresponds to %0.3f < 5 cycles '
+                 'based on the epoch length %0.3f sec, need at least %0.3f '
+                 'sec epochs or fmin=%0.3f. Spectrum estimate will be '
+                 'unreliable.' % (np.min(fmin), dur * np.min(fmin), dur,
+                                  5. / np.min(fmin), five_cycle_freq))
 
     # create a frequency mask for all bands
     freq_mask = np.zeros(len(freqs_all), dtype=np.bool)
@@ -1053,8 +1050,8 @@ def _prepare_connectivity(epoch_block, tmin, tmax, fmin, fmax, sfreq, indices,
 
 
 def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,
-                              mt_low_bias,
-                              cwt_n_cycles, cwt_frequencies, freqs, freq_mask):
+                              mt_low_bias, cwt_n_cycles, cwt_freqs,
+                              freqs, freq_mask):
     """Prepare time-frequency decomposition."""
     spectral_params = dict(
         eigvals=None, window_fun=None, wavelets=None)
@@ -1091,12 +1088,11 @@ def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,
 
         # reformat cwt_n_cycles if we have removed some frequencies
         # using fmin, fmax, fskip
-        cwt_n_cycles = np.asarray((cwt_n_cycles,)).ravel()
+        cwt_n_cycles = np.array((cwt_n_cycles,), dtype=float).ravel()
         if len(cwt_n_cycles) > 1:
-            if len(cwt_n_cycles) != len(cwt_frequencies):
+            if len(cwt_n_cycles) != len(cwt_freqs):
                 raise ValueError('cwt_n_cycles must be float or an '
-                                 'array with the same size as '
-                                 'cwt_frequencies')
+                                 'array with the same size as cwt_freqs')
             cwt_n_cycles = cwt_n_cycles[freq_mask]
 
         # get the Morlet wavelets

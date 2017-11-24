@@ -3,7 +3,7 @@
 Compute Phase Slope Index (PSI) in source space for a visual stimulus
 =====================================================================
 
-This example demonstrates how the Phase Slope Index (PSI) [1] can be computed
+This example demonstrates how the Phase Slope Index (PSI) [1]_ can be computed
 in source space based on single trial dSPM source estimates. In addition,
 the example shows advanced usage of the connectivity estimation routines
 by first extracting a label time course for each epoch and then combining
@@ -15,9 +15,9 @@ widespread activity (a postivive PSI means the label time course is leading).
 
 References
 ----------
-[1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
-Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
-pp. 1-4, Jun. 2008.
+.. [1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
+       Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
+       pp. 1-4, Jun. 2008.
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -40,12 +40,12 @@ fname_raw = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 fname_label = data_path + '/MEG/sample/labels/Vis-lh.label'
 
-event_id, tmin, tmax = 4, -0.2, 0.3
+event_id, tmin, tmax = 4, -0.2, 0.5
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
-raw = mne.io.read_raw_fif(fname_raw)
+raw = mne.io.read_raw_fif(fname_raw, preload=True)
 events = mne.read_events(fname_event)
 
 # pick MEG channels
@@ -64,19 +64,22 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 snr = 1.0  # use lower SNR for single epochs
 lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
-                            pick_ori="normal", return_generator=False)
+                            pick_ori="normal", return_generator=True)
 
 # Now, we generate seed time series by averaging the activity in the left
 # visual corex
 label = mne.read_label(fname_label)
 src = inverse_operator['src']  # the source space used
-seed_ts = mne.extract_label_time_course(stcs, label, src, mode='mean_flip')
+seed_ts = mne.extract_label_time_course(stcs, label, src, mode='mean_flip',
+                                        verbose='error')
 
 # Combine the seed time course with the source estimates. There will be a total
 # of 7500 signals:
 # index 0: time course extracted from label
 # index 1..7499: dSPM source space time courses
-comb_ts = zip(seed_ts, stcs)
+stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
+                            pick_ori="normal", return_generator=True)
+comb_ts = list(zip(seed_ts, stcs))
 
 # Construct indices to estimate connectivity between the label time course
 # and all source space time courses
@@ -85,12 +88,12 @@ n_signals_tot = 1 + len(vertices[0]) + len(vertices[1])
 
 indices = seed_target_indices([0], np.arange(1, n_signals_tot))
 
-# Compute the PSI in the frequency range 8Hz..30Hz. We exclude the baseline
-# period from the connectivity estimation
-fmin = 8.
-fmax = 30.
+# Compute the PSI in the frequency range 10Hz-20Hz. We exclude the baseline
+# period from the connectivity estimation.
+fmin = 10.
+fmax = 20.
 tmin_con = 0.
-sfreq = raw.info['sfreq']  # the sampling frequency
+sfreq = epochs.info['sfreq']  # the sampling frequency
 
 psi, freqs, times, n_epochs, _ = phase_slope_index(
     comb_ts, mode='multitaper', indices=indices, sfreq=sfreq,

@@ -24,7 +24,7 @@ from mne.externals.six import iterbytes
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.edf.edf import _parse_tal_channel, get_edf_events
+from mne.io.edf.edf import _parse_tal_channel, find_edf_events
 from mne.event import find_events
 
 warnings.simplefilter('always')
@@ -88,13 +88,15 @@ def test_edf_overlapping_annotations():
 @testing.requires_testing_data
 def test_edf_reduced():
     """Test EDF with various sampling rates."""
-    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, stim_channel=None)
+    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, stim_channel=None,
+                     verbose='error')
 
 
 def test_edf_data():
     """Test edf files."""
     raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
-                           stim_channel=None, exclude=['Ergo-Left', 'H10'])
+                           stim_channel=None, exclude=['Ergo-Left', 'H10'],
+                           verbose='error')
     raw_py = read_raw_edf(edf_path, stim_channel='auto', preload=True)
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
     # Test saving and loading when annotations were parsed.
@@ -159,7 +161,7 @@ def test_stim_channel():
     data_eeglab = raw_eeglab[picks]
 
     assert_array_almost_equal(data_py, data_eeglab, 10)
-    events = get_edf_events(raw_py)
+    events = find_edf_events(raw_py)
     assert_true(len(events) - 1 == len(find_events(raw_py)))  # start not found
 
     # Test uneven sampling
@@ -181,14 +183,15 @@ def test_stim_channel():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw = read_raw_edf(edf_stim_resamp_path, verbose=True, stim_channel=-1)
-    assert_equal(len(w), 1)
-    assert_true('Events may jitter' in str(w[0].message))
+    assert_equal(len(w), 2)
+    assert_true(any('Events may jitter' in str(ww.message) for ww in w))
+    assert_true(any('truncated' in str(ww.message) for ww in w))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw[:]
     assert_equal(len(w), 0)
 
-    events = raw_py.get_edf_events()
+    events = raw_py.find_edf_events()
     assert_true(len(events) == 0)
 
 
@@ -260,7 +263,8 @@ def test_edf_stim_channel():
 def test_to_data_frame():
     """Test edf Raw Pandas exporter."""
     for path in [edf_path, bdf_path]:
-        raw = read_raw_edf(path, stim_channel=None, preload=True)
+        raw = read_raw_edf(path, stim_channel=None, preload=True,
+                           verbose='error')
         _, times = raw[0, :10]
         df = raw.to_data_frame()
         assert_true((df.columns == raw.ch_names).all())

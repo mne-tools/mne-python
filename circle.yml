@@ -1,7 +1,7 @@
 machine:
   environment:
     # We need to set this variable to let Anaconda take precedence
-    PATH: "/home/ubuntu/miniconda/envs/circleenv/bin:/home/ubuntu/miniconda/bin:$PATH"
+    PATH: "/home/ubuntu/miniconda/envs/mne27/bin:/home/ubuntu/miniconda/bin:$PATH"
     DISPLAY: ":99.0"
 
 # We should really build merged versions like on Travis, not the individual branches
@@ -9,7 +9,8 @@ machine:
 # https://gist.github.com/amacneil/f14db753919e0af2d7d2f5a8da7fce65
 checkout:
   post:
-    - echo ${CI_PULL_REQUEST//*pull\//} > merge.txt
+    - echo $(git log -1 --pretty=%B) | tee gitlog.txt
+    - echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
     - if [[ $(cat merge.txt) != "" ]]; then
         echo "Merging $(cat merge.txt)";
         git pull --ff-only origin "refs/pull/$(cat merge.txt)/merge";
@@ -19,12 +20,14 @@ dependencies:
   cache_directories:
     - "~/miniconda"
     - "~/.mne"
+    - "~/mne_data/HF_SEF"
     - "~/mne_data/MNE-sample-data"
     - "~/mne_data/MNE-testing-data"
     - "~/mne_data/MNE-misc-data"
     - "~/mne_data/MNE-spm-face"
     - "~/mne_data/MNE-somato-data"
     - "~/mne_data/MNE-brainstorm-data"
+    - "~/mne_data/MNE-kiloword-data"
     - "~/mne_data/MEGSIM"
     - "~/mne_data/MNE-eegbci-data"
     - "~/mne_data/mTRF_1.5"
@@ -44,28 +47,24 @@ dependencies:
         wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
         chmod +x ~/miniconda.sh;
         ~/miniconda.sh -b -p /home/ubuntu/miniconda;
-        conda update --yes --quiet conda;
       else
         echo "Conda already set up.";
       fi
-    - if ! conda env list | grep circleenv; then
-        conda create -n circleenv --yes pip python=2.7 pip;
-        sed -i "s/ENABLE_USER_SITE = .*/ENABLE_USER_SITE = False/g" /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py;
+    - if ! conda env list | grep mne27; then
+        conda update --yes --quiet conda;
+        conda env create -f environment2.yml;
+        pip uninstall --yes mne sphinx-gallery;
       else
         echo "Conda env already set up.";
       fi;
-    - conda install -n circleenv --yes numpy scipy scikit-learn matplotlib sphinx pillow six IPython pandas mayavi nose;
     - ls -al /home/ubuntu/miniconda;
     - ls -al /home/ubuntu/miniconda/bin;
     - echo $PATH;
     - echo $CIRCLE_BRANCH
     - which python;
     - which pip;
-    - cat /home/ubuntu/miniconda/envs/circleenv/lib/python2.7/site.py | grep "ENABLE_USER_SITE"
-    - pip install --upgrade pyface;
-    - git clone https://github.com/sphinx-gallery/sphinx-gallery.git;
-    - cd sphinx-gallery && pip install -r requirements.txt && python setup.py develop;
-    - pip install sphinx_bootstrap_theme git+git://github.com/nipy/PySurfer.git nilearn neo numpydoc;
+    - pip install --upgrade --no-deps git+https://github.com/sphinx-gallery/sphinx-gallery.git;
+    - python -c "from mayavi import mlab"
 
   override:
     # Figure out if we should run a full, pattern, or noplot version
@@ -74,14 +73,14 @@ dependencies:
     - git fetch upstream;
     - git branch -a;
     - mkdir -p ~/mne_data;
-    - if [[ `git log -1 --pretty=%B` == *"[circle front]"* ]]; then
+    - if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
         PATTERN="plot_mne_dspm_source_localization.py\|plot_receptive_field.py\|plot_mne_inverse_label_connectivity.py\|plot_sensors_decoding.py\|plot_stats_cluster_spatio_temporal.py\|plot_visualize_evoked.py\|";
       else
         PATTERN="";
       fi;
-      if [ "$CIRCLE_BRANCH" == "master" ] || [[ `git log -1 --pretty=%B` == *"[circle full]"* ]]; then
+      if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
         echo html_dev > build.txt;
-      elif [ "$CIRCLE_BRANCH" == "maint/0.14" ]; then
+      elif [ "$CIRCLE_BRANCH" == "maint/0.15" ]; then
         echo html_stable > build.txt;
       else
         FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
@@ -93,11 +92,17 @@ dependencies:
             if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*spm_face.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.spm_face.data_path(update_path=True))";
+            fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*somato.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.somato.data_path(update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*hf_sef.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.hf_sef.data_path(update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
@@ -121,6 +126,12 @@ dependencies:
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*testing.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*kiloword.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.kiloword.data_path(update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*mtrf.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.mtrf.data_path(update_path=True))";
@@ -159,9 +170,13 @@ test:
     # what immediately precedes the "Build finished." line.
     - if [[ $(cat build.txt) == "html_dev-noplot" ]]; then cd doc && make html_dev-noplot | tee $CIRCLE_ARTIFACTS/log.txt; elif [[ $(cat build.txt) == "html_dev-pattern" ]]; then cd doc && PATTERN=$(cat ../pattern.txt) make html_dev-pattern | tee $CIRCLE_ARTIFACTS/log.txt; else make test-doc; cd doc; make $(cat ../build.txt) | tee $CIRCLE_ARTIFACTS/log.txt; fi:
           timeout: 1500
-    - tail $CIRCLE_ARTIFACTS/log.txt | grep -E "auto_tutorials\s*\[100%\]\s*plot_|Build finished"
+    - tail -n 20 $CIRCLE_ARTIFACTS/log.txt | tee /dev/tty | grep -E "auto_tutorials\s*\[100%\]\s*plot_|Build finished"
   post:
-    - cp -a doc/_build/html $CIRCLE_ARTIFACTS/
+    - if [[ $(cat build.txt) == "html" ]]; then
+        cp -a doc/_build/html_stable $CIRCLE_ARTIFACTS/;
+      else
+        cp -a doc/_build/html $CIRCLE_ARTIFACTS/;
+      fi;
 
 deployment:
   production:
@@ -170,13 +185,13 @@ deployment:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"
       - cd ../mne-tools.github.io && git checkout master && git pull origin master
-      - cd doc/_build/html && cp -rf * ~/mne-tools.github.io/dev
+      - cd doc/_build && rm -Rf ~/mne-tools.github.io/dev && cp -a html ~/mne-tools.github.io/dev
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of dev docs.' && git push origin master
   stable:
-    branch: maint/0.14
+    branch: maint/0.15
     commands:
       - git config --global user.email "circle@mne.com"
       - git config --global user.name "Circle Ci"
       - cd ../mne-tools.github.io && git checkout master && git pull origin master
-      - cd doc/_build/html_stable && cp -rf * ~/mne-tools.github.io/stable
+      - cd doc/_build && rm -Rf ~/mne-tools.github.io/stable && cp -a html_stable ~/mne-tools.github.io/stable
       - cd ../mne-tools.github.io && git add -A && git commit -m 'Automated update of stable docs.' && git push origin master

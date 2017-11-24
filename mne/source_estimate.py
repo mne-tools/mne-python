@@ -461,10 +461,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            if not all(isinstance(v, np.ndarray) for v in vertices):
-                raise ValueError('Vertices, if a list, must contain numpy '
-                                 'arrays')
-
+            vertices = [np.asarray(v) for v in vertices]
             if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
                 raise ValueError('Vertices must be ordered in increasing '
                                  'order.')
@@ -1493,7 +1490,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        labels : Label | list of Label
+        labels : Label | BiHemiLabel | list of Label or BiHemiLabel
             The labels for which to extract the time courses.
         src : list
             Source spaces for left and right hemisphere.
@@ -1559,7 +1556,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno,
                   None: np.concatenate(self.vertices)}[hemi]
 
-        vert_idx, time_idx = _get_peak(data, self.times, tmin, tmax, mode)
+        vert_idx, time_idx, _ = _get_peak(data, self.times, tmin, tmax, mode)
 
         return (vert_idx if vert_as_index else vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
@@ -1851,8 +1848,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
         latency : float
             The latency in seconds.
         """
-        vert_idx, time_idx = _get_peak(self.data, self.times, tmin, tmax,
-                                       mode)
+        vert_idx, time_idx, _ = _get_peak(self.data, self.times, tmin, tmax,
+                                          mode)
 
         return (vert_idx if vert_as_index else self.vertices[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
@@ -2448,27 +2445,30 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
                          smooth=None, subjects_dir=None, warn=True,
-                         verbose=None):
+                         xhemi=False, verbose=None):
     """Get a matrix that morphs data from one subject to another.
 
     Parameters
     ----------
     subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR
+        Name of the original subject as named in the SUBJECTS_DIR.
     subject_to : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR
+        Name of the subject on which to morph as named in the SUBJECTS_DIR.
     vertices_from : list of arrays of int
-        Vertices for each hemisphere (LH, RH) for subject_from
+        Vertices for each hemisphere (LH, RH) for subject_from.
     vertices_to : list of arrays of int
-        Vertices for each hemisphere (LH, RH) for subject_to
+        Vertices for each hemisphere (LH, RH) for subject_to.
     smooth : int or None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
     subjects_dir : string
-        Path to SUBJECTS_DIR is not set in the environment
+        Path to SUBJECTS_DIR is not set in the environment.
     warn : bool
         If True, warn if not all vertices were used.
+    xhemi : bool
+        Morph across hemisphere. Currently only implemented for
+        ``subject_to == subject_from``. See notes below.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2476,30 +2476,62 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     Returns
     -------
     morph_matrix : sparse matrix
-        matrix that morphs data from subject_from to subject_to
+        matrix that morphs data from ``subject_from`` to ``subject_to``.
+
+    Notes
+    -----
+    This function can be used to morph data between hemispheres by setting
+    ``xhemi=True``. The full cross-hemisphere morph matrix maps left to right
+    and right to left. A matrix for cross-mapping only one hemisphere can be
+    constructed by specifying the appropriate vertices, for example, to map the
+    right hemisphere to the left:
+    ``vertices_from=[[], vert_rh], vertices_to=[vert_lh, []]``.
+
+    Cross-hemisphere mapping requires appropriate ``sphere.left_right``
+    morph-maps in the subject's directory. These morph maps are included
+    with the ``fsaverage_sym`` FreeSurfer subject, and can be created for other
+    subjects with the ``mris_left_right_register`` FreeSurfer command. The
+    ``fsaverage_sym`` subject is included with FreeSurfer > 5.1 and can be
+    obtained as described `here
+    <http://surfer.nmr.mgh.harvard.edu/fswiki/Xhemi>`_. For statistical
+    comparisons between hemispheres, use of the symmetric ``fsaverage_sym``
+    model is recommended to minimize bias [1]_.
+
+    References
+    ----------
+    .. [1] Greve D. N., Van der Haegen L., Cai Q., Stufflebeam S., Sabuncu M.
+           R., Fischl B., Brysbaert M.
+           A Surface-based Analysis of Language Lateralization and Cortical
+           Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
     """
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    tris = _get_subject_sphere_tris(subject_from, subjects_dir)
-    maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
-    morpher = [None] * 2
-    for hemi in [0, 1]:
-        e = mesh_edges(tris[hemi])
+    tris = _get_subject_sphere_tris(subject_from, subjects_dir)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir, xhemi)
+
+    if xhemi:
+        hemi_indexes = [(0, 1), (1, 0)]
+    else:
+        hemi_indexes = [(0, 0), (1, 1)]
+
+    morpher = []
+    for hemi_from, hemi_to in hemi_indexes:
+        idx_use = vertices_from[hemi_from]
+        if len(idx_use) == 0:
+            continue
+        e = mesh_edges(tris[hemi_from])
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = vertices_from[hemi]
-        if len(idx_use) == 0:
-            morpher[hemi] = []
-            continue
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
-        morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                                      vertices_to[hemi], maps[hemi], warn=warn)
-    # be careful about zero-length arrays
-    if isinstance(morpher[0], list):
-        morpher = morpher[1]
-    elif isinstance(morpher[1], list):
+        mm = _morph_buffer(m, idx_use, e, smooth, n_vertices,
+                           vertices_to[hemi_to], maps[hemi_from], warn=warn)
+        morpher.append(mm)
+
+    if len(morpher) == 0:
+        raise ValueError("Empty morph-matrix")
+    elif len(morpher) == 1:
         morpher = morpher[0]
     else:
         morpher = sparse_block_diag(morpher, format='csr')
@@ -2639,6 +2671,58 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     return stc_to
 
 
+def _get_vol_mask(src):
+    """Get the volume source space mask."""
+    assert len(src) == 1  # not a mixed source space
+    shape = src[0]['shape'][::-1]
+    mask = np.zeros(shape, bool)
+    mask.flat[src[0]['vertno']] = True
+    return mask
+
+
+def _spatio_temporal_src_connectivity_vol(src, n_times):
+    from sklearn.feature_extraction import grid_to_graph
+    mask = _get_vol_mask(src)
+    edges = grid_to_graph(*mask.shape, mask=mask)
+    connectivity = _get_connectivity_from_edges(edges, n_times)
+    return connectivity
+
+
+def _spatio_temporal_src_connectivity_ico(src, n_times):
+    if src[0]['use_tris'] is None:
+        # XXX It would be nice to support non oct source spaces too...
+        raise RuntimeError("The source space does not appear to be an ico "
+                           "surface. Connectivity cannot be extracted from"
+                           " non-ico source spaces.")
+    used_verts = [np.unique(s['use_tris']) for s in src]
+    lh_tris = np.searchsorted(used_verts[0], src[0]['use_tris'])
+    rh_tris = np.searchsorted(used_verts[1], src[1]['use_tris'])
+    tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
+    connectivity = spatio_temporal_tris_connectivity(tris, n_times)
+
+    # deal with source space only using a subset of vertices
+    masks = [np.in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
+    if sum(u.size for u in used_verts) != connectivity.shape[0] / n_times:
+        raise ValueError('Used vertices do not match connectivity shape')
+    if [np.sum(m) for m in masks] != [len(s['vertno']) for s in src]:
+        raise ValueError('Vertex mask does not match number of vertices')
+    masks = np.concatenate(masks)
+    missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
+    if missing:
+        warn_('%0.1f%% of original source space vertices have been'
+              ' omitted, tri-based connectivity will have holes.\n'
+              'Consider using distance-based connectivity or '
+              'morphing data to all source space vertices.' % missing)
+        masks = np.tile(masks, n_times)
+        masks = np.where(masks)[0]
+        connectivity = connectivity.tocsr()
+        connectivity = connectivity[masks]
+        connectivity = connectivity[:, masks]
+        # return to original format
+        connectivity = connectivity.tocoo()
+    return connectivity
+
+
 @verbose
 def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
     """Compute connectivity for a source space activation over time.
@@ -2646,7 +2730,8 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
     Parameters
     ----------
     src : instance of SourceSpaces
-        The source space.
+        The source space. It can be a surface source space or a
+        volume source space.
     n_times : int
         Number of time instants.
     dist : float, or None
@@ -2666,41 +2751,20 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
-    if dist is None:
-        if src[0]['use_tris'] is None:
-            raise RuntimeError("The source space does not appear to be an ico "
-                               "surface. Connectivity cannot be extracted from"
-                               " non-ico source spaces.")
-        used_verts = [np.unique(s['use_tris']) for s in src]
-        lh_tris = np.searchsorted(used_verts[0], src[0]['use_tris'])
-        rh_tris = np.searchsorted(used_verts[1], src[1]['use_tris'])
-        tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
-        connectivity = spatio_temporal_tris_connectivity(tris, n_times)
+    # XXX we should compute connectivity for each source space and then
+    # use scipy.sparse.block_diag to concatenate them
+    if src[0]['type'] == 'vol':
+        if dist is not None:
+            raise ValueError('dist must be None for a volume '
+                             'source space. Got %s.' % dist)
 
-        # deal with source space only using a subset of vertices
-        masks = [np.in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
-        if sum(u.size for u in used_verts) != connectivity.shape[0] / n_times:
-            raise ValueError('Used vertices do not match connectivity shape')
-        if [np.sum(m) for m in masks] != [len(s['vertno']) for s in src]:
-            raise ValueError('Vertex mask does not match number of vertices')
-        masks = np.concatenate(masks)
-        missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
-        if missing:
-            warn_('%0.1f%% of original source space vertices have been'
-                  ' omitted, tri-based connectivity will have holes.\n'
-                  'Consider using distance-based connectivity or '
-                  'morphing data to all source space vertices.' % missing)
-            masks = np.tile(masks, n_times)
-            masks = np.where(masks)[0]
-            connectivity = connectivity.tocsr()
-            connectivity = connectivity[masks]
-            connectivity = connectivity[:, masks]
-            # return to original format
-            connectivity = connectivity.tocoo()
-
-        return connectivity
-    else:  # use distances computed and saved in the source space file
-        return spatio_temporal_dist_connectivity(src, n_times, dist)
+        connectivity = _spatio_temporal_src_connectivity_vol(src, n_times)
+    elif dist is not None:
+        # use distances computed and saved in the source space file
+        connectivity = spatio_temporal_dist_connectivity(src, n_times, dist)
+    else:
+        connectivity = _spatio_temporal_src_connectivity_ico(src, n_times)
+    return connectivity
 
 
 @verbose
@@ -2809,7 +2873,8 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
     Parameters
     ----------
     src : instance of SourceSpaces
-        The source space.
+        The source space. It can be a surface source space or a
+        volume source space.
     dist : float, or None
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors. If None, immediate neighbors
@@ -3024,8 +3089,6 @@ def _get_label_flip(labels, label_vertidx, src):
     # get the sign-flip vector for every label
     label_flip = list()
     for label, vertidx in zip(labels, label_vertidx):
-        if label.hemi == 'both':
-            raise ValueError('BiHemiLabel not supported when using sign-flip')
         if vertidx is not None:
             flip = label_sign_flip(label, src)[:, None]
         else:
@@ -3208,7 +3271,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     ----------
     stcs : SourceEstimate | list (or generator) of SourceEstimate
         The source estimates from which to extract the time course.
-    labels : Label | list of Label
+    labels : Label | BiHemiLabel | list of Label or BiHemiLabel
         The labels for which to extract the time course.
     src : list
         Source spaces for left and right hemisphere.

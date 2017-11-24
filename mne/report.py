@@ -14,12 +14,11 @@ import codecs
 import time
 from glob import glob
 import base64
-from datetime import datetime as dt
 
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .io import Raw, read_info
+from .io import Raw, read_info, _stamp_to_dt
 from .utils import (_TempDir, logger, verbose, get_subjects_dir, warn,
                     _import_mlab)
 from .viz import plot_events, plot_alignment, plot_cov
@@ -1224,7 +1223,7 @@ class Report(object):
     @verbose
     def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
                      sort_sections=True, on_error='warn', image_format=None,
-                     verbose=None):
+                     render_bem=True, verbose=None):
         r"""Render all the files in the folder.
 
         Parameters
@@ -1253,6 +1252,10 @@ class Report(object):
             class construction.
 
             .. versionadded:: 0.15
+        render_bem : bool
+            If True (default), try to render the BEM.
+
+            .. versionadded:: 0.16
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1277,10 +1280,10 @@ class Report(object):
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            fnames.extend(_recursive_search(self.data_path, p))
+            fnames.extend(sorted(_recursive_search(self.data_path, p)))
 
         if self.info_fname is not None:
-            info = read_info(self.info_fname)
+            info = read_info(self.info_fname, verbose=False)
             sfreq = info['sfreq']
         else:
             warn('`info_fname` not provided. Cannot render -cov.fif(.gz) and '
@@ -1315,15 +1318,16 @@ class Report(object):
         self._sectionvars = dict(zip(self.sections, self.sections))
 
         # render mri
-        if self.subjects_dir is not None and self.subject is not None:
-            logger.info('Rendering BEM')
-            self.html.append(self._render_bem(self.subject, self.subjects_dir,
-                                              mri_decim, n_jobs))
-            self.fnames.append('bem')
-            self._sectionlabels.append('mri')
-        else:
-            warn('`subjects_dir` and `subject` not provided. Cannot render '
-                 'MRI and -trans.fif(.gz) files.')
+        if render_bem:
+            if self.subjects_dir is not None and self.subject is not None:
+                logger.info('Rendering BEM')
+                self.html.append(self._render_bem(
+                    self.subject, self.subjects_dir, mri_decim, n_jobs))
+                self.fnames.append('bem')
+                self._sectionlabels.append('mri')
+            else:
+                warn('`subjects_dir` and `subject` not provided. Cannot '
+                     'render MRI and -trans.fif(.gz) files.')
 
     def save(self, fname=None, open_browser=True, overwrite=False):
         """Save html report and open it in browser.
@@ -1570,7 +1574,7 @@ class Report(object):
             ecg = 'Not available'
         meas_date = raw.info['meas_date']
         if meas_date is not None:
-            meas_date = dt.fromtimestamp(meas_date[0]).strftime("%B %d, %Y")
+            meas_date = _stamp_to_dt(meas_date).strftime("%B %d, %Y") + ' GMT'
         tmin = raw.first_samp / raw.info['sfreq']
         tmax = raw.last_samp / raw.info['sfreq']
 

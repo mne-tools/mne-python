@@ -20,7 +20,7 @@ import numpy as np
 from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
-                       _pick_data_channels)
+                       _pick_data_channels, pick_channels)
 from ..utils import _clean_names, _time_mask, verbose, logger, warn
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
@@ -93,6 +93,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
 
 def _plot_update_evoked_topomap(params, bools):
     """Update topomaps."""
+    from ..channels.layout import _merge_grad_data
     projs = [proj for ii, proj in enumerate(params['projs'])
              if ii in np.where(bools)[0]]
 
@@ -104,7 +105,6 @@ def _plot_update_evoked_topomap(params, bools):
 
     data = new_evoked.data[:, params['time_idx']] * params['scale']
     if params['merge_grads']:
-        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
     image_off = ~params['image_mask']
 
@@ -128,7 +128,7 @@ def _plot_update_evoked_topomap(params, bools):
 def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
-                       axes=None):
+                       axes=None, info=None):
     """Plot topographic maps of SSP projections.
 
     Parameters
@@ -186,6 +186,9 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of projectors. If instance of Axes,
         there must be only one projector. Defaults to None.
+    info : instance of Info | None
+        The measurement information to use to determine the layout.
+        If not None, ``layout`` must be None.
 
     Returns
     -------
@@ -198,12 +201,27 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     """
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
-    if layout is None:
-        from ..channels import read_layout
-        layout = read_layout('Vectorview-all')
-
-    if not isinstance(layout, list):
-        layout = [layout]
+    from ..channels.layout import (_pair_grad_sensors_from_ch_names, Layout,
+                                   _merge_grad_data)
+    from ..channels import _get_ch_type
+    if info is not None:
+        if not isinstance(info, Info):
+            raise TypeError('info must be an instance of Info, got %s'
+                            % (type(info),))
+        if layout is not None:
+            raise ValueError('layout must be None if info is provided')
+    else:
+        if layout is None:
+            from ..channels import read_layout
+            layout = read_layout('Vectorview-all')
+        if not isinstance(layout, (list, tuple)):
+            layout = [layout]
+        if not isinstance(layout, (list, tuple)):
+            raise TypeError('layout must be an instance of Layout, list, '
+                            'or None, got %s' % (type(layout),))
+        if not all(isinstance(l, Layout) for l in layout):
+            raise TypeError('All entries in layout list must be of type '
+                            'Layout')
 
     n_projs = len(projs)
     nrows = math.floor(math.sqrt(n_projs))
@@ -221,48 +239,57 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     if len(axes) != len(projs):
         raise RuntimeError('There must be an axes for each picked projector.')
     for proj_idx, proj in enumerate(projs):
-        axes[proj_idx].set_title(proj['desc'][:10] + '...')
+        title = proj['desc']
+        title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
+        axes[proj_idx].set_title(title, fontsize=10)
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
         data = proj['data']['data'].ravel()
 
-        idx = []
-        for l in layout:
-            is_vv = l.kind.startswith('Vectorview')
-            if is_vv:
-                from ..channels.layout import _pair_grad_sensors_from_ch_names
-                grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
-                if grad_pairs:
-                    ch_names = [ch_names[i] for i in grad_pairs]
+        if info is not None:
+            info_names = _clean_names(info['ch_names'],
+                                      remove_whitespace=True)
+            use_info = pick_info(info, pick_channels(info_names, ch_names))
+            data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
+                use_info, _get_ch_type(use_info, None), None)
+            data = data[data_picks]
+            if merge_grads:
+                data = _merge_grad_data(data).ravel()
+        else:  # list of layouts
+            idx = []
+            for l in layout:
+                is_vv = l.kind.startswith('Vectorview')
+                if is_vv:
+                    grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
+                    if grad_pairs:
+                        ch_names = [ch_names[i] for i in grad_pairs]
 
-            l_names = _clean_names(l.names, remove_whitespace=True)
-            idx = [l_names.index(c) for c in ch_names if c in l_names]
+                l_names = _clean_names(l.names, remove_whitespace=True)
+                idx = [l_names.index(c) for c in ch_names if c in l_names]
+                if len(idx) == 0:
+                    continue
+                pos = l.pos[idx]
+                if is_vv and grad_pairs:
+                    shape = (len(idx) // 2, 2, -1)
+                    pos = pos.reshape(shape).mean(axis=1)
+                    data = _merge_grad_data(data[grad_pairs]).ravel()
+                break
             if len(idx) == 0:
-                continue
+                raise RuntimeError('Cannot find a proper layout for '
+                                   'projection %s, consider explicitly '
+                                   'passing a Layout or Info as the layout '
+                                   'parameter.' % proj['desc'])
 
-            pos = l.pos[idx]
-            if is_vv and grad_pairs:
-                from ..channels.layout import _merge_grad_data
-                shape = (len(idx) // 2, 2, -1)
-                pos = pos.reshape(shape).mean(axis=1)
-                data = _merge_grad_data(data[grad_pairs]).ravel()
-
-            break
-
-        if len(idx):
-            im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap[0],
-                              sensors=sensors, res=res, axes=axes[proj_idx],
-                              outlines=outlines, contours=contours,
-                              image_interp=image_interp, show=False)[0]
-            if colorbar:
-                divider = make_axes_locatable(axes[proj_idx])
-                cax = divider.append_axes("right", size="5%", pad=0.05)
-                cbar = plt.colorbar(im, cax=cax, cmap=cmap)
-                if cmap[1]:
-                    axes[proj_idx].CB = DraggableColorbar(cbar, im)
-        else:
-            raise RuntimeError('Cannot find a proper layout for projection %s'
-                               % proj['desc'])
+        im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap[0],
+                          sensors=sensors, res=res, axes=axes[proj_idx],
+                          outlines=outlines, contours=contours,
+                          image_interp=image_interp, show=False)[0]
+        if colorbar:
+            divider = make_axes_locatable(axes[proj_idx])
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            cbar = plt.colorbar(im, cax=cax, cmap=cmap)
+            if cmap[1]:
+                axes[proj_idx].CB = DraggableColorbar(cbar, im)
     tight_layout(fig=axes[0].get_figure())
     plt_show(show)
     return axes[0].get_figure()
@@ -286,9 +313,9 @@ def _check_outlines(pos, outlines, head_pos=None):
 
     if isinstance(outlines, np.ndarray) or outlines in ('head', 'skirt', None):
         radius = 0.5
-        l = np.linspace(0, 2 * np.pi, 101)
-        head_x = np.cos(l) * radius
-        head_y = np.sin(l) * radius
+        ll = np.linspace(0, 2 * np.pi, 101)
+        head_x = np.cos(ll) * radius
+        head_y = np.sin(ll) * radius
         nose_x = np.array([0.18, 0, -0.18]) * radius
         nose_y = np.array([radius - .004, radius * 1.15, radius - .004])
         ear_x = np.array([.497, .510, .518, .5299, .5419, .54, .547,
@@ -517,11 +544,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     """
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
-
-    if contours is None or contours is False:
-        warn('Using %s as contours is deprecated and will not be allowed in '
-             '0.16. Use 0 instead.' % str(contours), DeprecationWarning)
-        contours = 0
     data = np.asarray(data)
     logger.debug('Plotting topomap for data shape %s' % (data.shape,))
 
@@ -533,7 +555,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         ch_type = set(channel_type(pos, idx)
                       for idx, _ in enumerate(pos["chs"]))
         info_help = ("Pick Info with e.g. mne.pick_info and "
-                     "mne.channels.channel_indices_by_type.")
+                     "mne.io.pick.channel_indices_by_type.")
         if len(ch_type) > 1:
             raise ValueError("Multiple channel types in Info structure. " +
                              info_help)
@@ -643,9 +665,12 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         pass  # contours precomputed
     elif contours == 0:
         contours, no_contours = 1, True
-    cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
-                      linewidths=linewidth)
-    if no_contours:
+    if (Zi == Zi[0, 0]).all():
+        cont = None  # can't make contours for constant-valued functions
+    else:
+        cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
+                          linewidths=linewidth)
+    if no_contours and cont is not None:
         for col in cont.collections:
             col.set_visible(False)
 
@@ -780,7 +805,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     if merge_grads:
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
-    axes.set_title('IC #%03d' % idx, fontsize=12)
+    axes.set_title(ica._ica_names[idx], fontsize=12)
     vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
     im = plot_topomap(data.ravel(), pos, vmin=vmin_, vmax=vmax_,
                       res=res, axes=axes, cmap=cmap, outlines=outlines,
@@ -947,10 +972,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     if merge_grads:
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax in zip(picks, data, axes):
-        if ii in ica.exclude:
-            ax.set_title('IC #%03d' % ii, fontsize=12, color='gray')
-        else:
-            ax.set_title('IC #%03d' % ii, fontsize=12)
+        kwargs = dict(color='gray') if ii in ica.exclude else dict()
+        ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
@@ -958,7 +981,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                           image_mask=image_mask, contours=contours,
                           image_interp=image_interp, show=False,
                           sensors=sensors)[0]
-        im.axes.set_label('IC #%03d' % ii)
+        im.axes.set_label(ica._ica_names[ii])
         if colorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -976,8 +999,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         def onclick(event, ica=ica, inst=inst):
             # check which component to plot
             label = event.inaxes.get_label()
-            if 'IC #' in label:
-                ic = int(label[4:])
+            if label.startswith('ICA'):
+                ic = int(label[-3:])
                 ica.plot_properties(inst, picks=ic, show=True)
         fig.canvas.mpl_connect('button_press_event', onclick)
 
@@ -996,44 +1019,49 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     Parameters
     ----------
-    tfr : AvereageTFR
-        The AvereageTFR object.
+    tfr : AverageTFR
+        The AverageTFR object.
     tmin : None | float
         The first time instant to display. If None the first time point
         available is used.
     tmax : None | float
-        The last time instant to display. If None the last time point
-        available is used.
+        The last time instant to display. If None the last time point available
+        is used.
     fmin : None | float
-        The first frequency to display. If None the first frequency
-        available is used.
+        The first frequency to display. If None the first frequency available
+        is used.
     fmax : None | float
-        The last frequency to display. If None the last frequency
-        available is used.
+        The last frequency to display. If None the last frequency available is
+        used.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-        The channel type to plot. For 'grad', the gradiometers are
-        collected in pairs and the RMS for each pair is plotted.
-        If None, then channels are chosen in the order given above.
+        The channel type to plot. For 'grad', the gradiometers are collected in
+        pairs and the RMS for each pair is plotted. If None, then channels are
+        chosen in the order given above.
     baseline : tuple or list of length 2
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or z-score (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline))
-        If None, baseline no correction will be performed.
+        The time interval to apply rescaling / baseline correction. If None do
+        not apply it. If baseline is (a, b) the interval is between "a (s)" and
+        "b (s)". If a is None the beginning of the data is used and if b is
+        None then b is set to the end of the interval. If baseline is equal to
+        (None, None) the whole time interval is used.
+    mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio' | None
+        Perform baseline correction by
+
+          - subtracting the mean baseline power ('mean')
+          - dividing by the mean baseline power ('ratio')
+          - dividing by the mean baseline power and taking the log ('logratio')
+          - subtracting the mean baseline power followed by dividing by the
+            mean baseline power ('percent')
+          - subtracting the mean baseline power and dividing by the standard
+            deviation of the baseline power ('zscore')
+          - dividing by the mean baseline power, taking the log, and dividing
+            by the standard deviation of the baseline power ('zlogratio')
+
+        If None no baseline correction is applied.
     layout : None | Layout
-        Layout instance specifying sensor positions (does not need to
-        be specified for Neuromag data). If possible, the correct layout
-        file is inferred from the data; if no appropriate layout file
-        was found, the layout is automatically generated from the sensor
-        locations.
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). If possible, the correct layout file is
+        inferred from the data; if no appropriate layout file was found, the
+        layout is automatically generated from the sensor locations.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data) or in case
@@ -1054,9 +1082,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         otherwise defaults to 'RdBu_r'. If 'interactive', translates to
         (None, True).
     sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses). If True (default),
-        circles will be used.
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+'). If True (default), circles will be used.
     colorbar : bool
         Plot a colorbar.
     unit : str | None
@@ -1069,13 +1096,13 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     cbar_fmt : str
         String format for colorbar values.
     show_names : bool | callable
-        If True, show channel names on top of the map. If a callable is
-        passed, channel names will be formatted using the callable; e.g., to
-        delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', ''). If `mask` is not None, only
+        If True, show channel names on top of the map. If a callable is passed,
+        channel names will be formatted using the callable; e.g., to delete the
+        prefix 'MEG ' from all channel names, pass the function
+        ``lambda x: x.replace('MEG ', '')``. If `mask` is not None, only
         significant sensors will be shown.
     title : str | None
-        Title. If None (default), no title is displayed.
+        Plot title. If None (default), no title is displayed.
     axes : instance of Axis | None
         The axes to plot to. If None the axes is defined automatically.
     show : bool
@@ -1092,10 +1119,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
     head_pos : dict | None
-        If None (default), the sensors are positioned such that they span
-        the head circle. If dict, can have entries 'center' (tuple) and
-        'scale' (tuple) for what the center and scale of the head should be
-        relative to the electrode locations.
+        If None (default), the sensors are positioned such that they span the
+        head circle. If dict, can have entries 'center' (tuple) and 'scale'
+        (tuple) for what the center and scale of the head should be relative to
+        the electrode locations.
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         When an integer, matplotlib ticker locator is used to find suitable
@@ -1108,7 +1135,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     -------
     fig : matplotlib.figure.Figure
         The figure containing the topography.
-    """
+    """  # noqa: E501
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(tfr, ch_type)
     import matplotlib.pyplot as plt
@@ -1198,8 +1225,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         vmin=None, vmax=None, cmap=None, sensors=True,
-                        colorbar=None, scale=None, scale_time=1e3, unit=None,
-                        res=64, size=1, cbar_fmt='%3.1f',
+                        colorbar=None, scalings=None, scaling_time=1e3,
+                        units=None, res=64, size=1, cbar_fmt='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
@@ -1260,13 +1287,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         Plot a colorbar in the rightmost column of the figure.
         None (default) is the same as True, but emits a warning if custom
         ``axes`` are provided to remind the user that the colorbar will
-        occupy the last :class:`matplotlib.pyplot.Axes` instance.
-    scale : dict | float | None
-        Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-        for grad and 1e15 for mag.
-    scale_time : float | None
+        occupy the last :class:`matplotlib.axes.Axes` instance.
+    scalings : dict | float | None
+        The scalings of the channel types to be applied for plotting.
+        If None, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
+    scaling_time : float | None
         Scale the time labels. Defaults to 1e3 (ms).
-    unit : dict | str | None
+    units : dict | str | None
         The unit of the channel type used for colorbar label. If
         scale is None the unit is automatically determined.
     res : int
@@ -1420,8 +1447,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     else:
         key = ch_type
 
-    scale = _handle_default('scalings', scale)[key]
-    unit = _handle_default('units', unit)[key]
+    scaling = _handle_default('scalings', scalings)[key]
+    unit = _handle_default('units', units)[key]
 
     if not show_names:
         names = None
@@ -1455,7 +1482,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         raise ValueError('The average parameter must be None or a float.'
                          'Check your input.')
 
-    data *= scale
+    data *= scaling
     if merge_grads:
         data = _merge_grad_data(data)
 
@@ -1496,7 +1523,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         if cn is not None:
             contours_.append(cn)
         if time_format is not None:
-            axes[idx].set_title(time_format % (time * scale_time))
+            axes[idx].set_title(time_format % (time * scaling_time))
 
     if interactive:
         axes.append(plt.subplot(gs[2]))
@@ -1506,9 +1533,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         func = _merge_grad_data if merge_grads else lambda x: x
         changed_callback = partial(_slider_changed, ax=axes[0],
                                    data=evoked.data, times=evoked.times,
-                                   pos=pos, scale=scale, func=func,
+                                   pos=pos, scaling=scaling, func=func,
                                    time_format=time_format,
-                                   scale_time=scale_time, kwargs=kwargs)
+                                   scaling_time=scaling_time, kwargs=kwargs)
         slider.on_changed(changed_callback)
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color='k')
@@ -1535,9 +1562,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
                       picks=picks, images=images, contours=contours_,
-                      time_idx=time_idx, scale=scale, merge_grads=merge_grads,
+                      time_idx=time_idx, merge_grads=merge_grads,
                       res=res, pos=pos, image_mask=image_mask,
-                      plot_update_proj_callback=_plot_update_evoked_topomap)
+                      plot_update_proj_callback=_plot_update_evoked_topomap,
+                      scale=scaling)
         _draw_proj_checkbox(None, params)
 
     plt_show(show)
@@ -1555,18 +1583,18 @@ def _resize_cbar(cax, n_fig_axes, size=1):
     cax.set_position(cpos)
 
 
-def _slider_changed(val, ax, data, times, pos, scale, func, time_format,
-                    scale_time, kwargs):
+def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
+                    scaling_time, kwargs):
     """Handle selection in interactive topomap."""
     idx = np.argmin(np.abs(times - val))
-    data = func(data[:, idx]).ravel() * scale
+    data = func(data[:, idx]).ravel() * scaling
     ax.clear()
     im, _ = plot_topomap(data, pos, axes=ax, **kwargs)
     if hasattr(ax, 'CB'):
         ax.CB.mappable = im
         _resize_cbar(ax.CB.cbar.ax, 2)
     if time_format is not None:
-        ax.set_title(time_format % (val * scale_time))
+        ax.set_title(time_format % (val * scaling_time))
 
 
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
@@ -1963,12 +1991,12 @@ def _onselect(eclick, erelease, tfr, pos, ch_type, itmin, itmax, ifmin, ifmax,
     plt_show(True)
 
 
-def _prepare_topomap(pos, ax):
+def _prepare_topomap(pos, ax, check_nonzero=True):
     """Prepare the topomap."""
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
     _hide_frame(ax)
-    if any([not pos_y.any(), not pos_x.any()]):
+    if check_nonzero and any([not pos_y.any(), not pos_x.any()]):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
     return pos_x, pos_y
@@ -2187,9 +2215,8 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
     blit = False if plt.get_backend() == 'MacOSX' else blit
-    picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(evoked,
-                                                             ch_type=ch_type,
-                                                             layout=None)
+    picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(
+        evoked, ch_type=ch_type, layout=None)
     data = evoked.data[picks, :]
     data *= _handle_default('scalings')[ch_type]
 

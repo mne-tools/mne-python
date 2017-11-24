@@ -6,6 +6,7 @@ from numpy.testing import (assert_allclose, assert_array_equal, assert_equal,
                            assert_array_almost_equal)
 from scipy.interpolate import interp1d
 from nose.tools import assert_raises, assert_true
+import pytest
 
 from mne.forward import _make_surface_mapping, make_field_map
 from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
@@ -16,7 +17,7 @@ from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
 from mne import read_evokeds, pick_types
 from mne.externals.six.moves import zip
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -116,7 +117,7 @@ def test_make_field_map_eeg():
 
 
 @testing.requires_testing_data
-@slow_test
+@pytest.mark.slowtest
 def test_make_field_map_meg():
     """Test interpolation of MEG field onto helmet | head."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
@@ -217,7 +218,7 @@ def test_as_meg_type_evoked():
     virt_evoked = evoked.copy().pick_channels(ch_names=ch_names[:10:1])
     virt_evoked.info.normalize_proj()
     virt_evoked = virt_evoked.as_type('mag')
-    assert_true(all('_virtual' in ch for ch in virt_evoked.info['ch_names']))
+    assert_true(all(ch.endswith('_v') for ch in virt_evoked.info['ch_names']))
 
     # pick from and to channels
     evoked_from = evoked.copy().pick_channels(ch_names=ch_names[2:10:3])
@@ -241,5 +242,6 @@ def test_as_meg_type_evoked():
     data1 = evoked.pick_types(meg='grad').data.ravel()
     data2 = evoked.as_type('grad').data.ravel()
     assert_true(np.corrcoef(data1, data2)[0, 1] > 0.95)
+
 
 run_tests_if_main()

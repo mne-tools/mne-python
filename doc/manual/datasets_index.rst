@@ -131,6 +131,17 @@ with auditory, visual, and somatosensory stimuli.
     * :ref:`sphx_glr_auto_examples_io_plot_elekta_epochs.py`
 
 
+High frequency SEF
+==================
+:func:`mne.datasets.hf_sef.data_path()`
+
+This dataset contains somatosensory evoked fields (median nerve stimulation)
+with thousands of epochs. It was recorded with an Elekta TRIUX MEG device at
+a sampling frequency of 3 kHz. The dataset is suitable for investigating
+high-frequency somatosensory responses. Data from two subjects are included
+with MRI images in DICOM format and FreeSurfer reconstructions.
+
+
 Visual 92 object categories
 ===========================
 :func:`mne.datasets.visual_92_categories.data_path`.
@@ -163,6 +174,36 @@ More details and a description of the package can be found in [5]_.
 
     * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field.py>`: Partially replicates the results from Crosse et al. (2016).
 
+Miscellaneous Datasets
+======================
+These datasets are used for specific purposes in the documentation and in
+general are not useful for separate analyses.
+
+ECoG Dataset
+^^^^^^^^^^^^
+:func:`mne.datasets.misc.data_path`. Data exists at ``/ecog/sample_ecog.mat``.
+
+This dataset contains a sample Electrocorticography (ECoG) dataset. It includes
+a single grid of electrodes placed over the temporal lobe during an auditory
+listening task. This dataset is primarily used to demonstrate visualization
+functions in MNE and does not contain useful metadata for analysis.
+
+.. topic:: Examples
+
+    * :ref:`How to convert 3D electrode positions to a 2D image.
+      <sphx_glr_auto_examples_visualization_plot_3d_to_2d.py>`: Demonstrates
+      how to project a 3D electrode location onto a 2D image, a common procedure
+      in electrocorticography.
+
+
+Kiloword dataset
+================
+:func:`mne.datasets.kiloword.data_path`.
+
+This dataset consists of averaged EEG data from 75 subjects performing a lexical decision
+task on 960 English words [6]_. The words are richly annotated, and can be used for e.g.
+multiple regression estimation of EEG correlates of printed word processing.
+
 References
 ==========
 
@@ -172,6 +213,8 @@ References
 
 .. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220
 
-.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. "Resolving human object recognition in space and time." Nature neuroscience (2014): 17(3), 455-462
+.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. Resolving human object recognition in space and time. Nature Neuroscience (2014): 17(3), 455-462
 
 .. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A., & Lalor, E. C. The Multivariate Temporal Response Function (mTRF) Toolbox: A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli. Frontiers in Human Neuroscience (2016): 10.
+
+.. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are worth a picture: Snapshots of printed-word processing in an event-related potential megastudy. Psychological science, 2015

@@ -8,7 +8,7 @@ import datetime
 import calendar
 
 from .utils import _load_mne_locs, _read_pos
-from ...utils import logger, warn
+from ...utils import logger, warn, verbose
 from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info, _make_dig_points
@@ -17,6 +17,7 @@ from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 
+@verbose
 def read_raw_artemis123(input_fname, preload=False, verbose=None,
                         pos_fname=None, add_head_trans=True):
     """Read Artemis123 data as raw object.
@@ -149,7 +150,7 @@ def _get_artemis123_info(fname, pos_fname=None):
     # build subject info must be an integer (as per FIFF)
     try:
         subject_info = {'id': int(header_info['Subject ID'])}
-    except:
+    except ValueError:
         subject_info = {'id': 0}
 
     # build description

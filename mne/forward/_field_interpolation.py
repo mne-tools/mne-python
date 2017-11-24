@@ -210,7 +210,7 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
 
     # change channel names to emphasize they contain interpolated data
     for ch in evoked.info['chs']:
-        ch['ch_name'] += '_virtual'
+        ch['ch_name'] += '_v'
     evoked.info._update_redundant()
     evoked.info._check_consistency()
     return evoked

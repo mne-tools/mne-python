@@ -1,19 +1,18 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 # License: Simplified BSD
-from copy import deepcopy
 
 import numpy as np
 from scipy import linalg
 
-from ..forward import is_fixed_orient, _to_fixed_ori
+from ..forward import is_fixed_orient, convert_forward_solution
 
 from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose, warn
 from ..externals.six.moves import xrange as range
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
-                           _make_dipoles_sparse)
+                           _make_dipoles_sparse, _check_loose_forward)
 
 
 @verbose
@@ -122,7 +121,8 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
             if denom is None:
                 gammas = numer
             else:
-                gammas = numer / denom_fun(denom)
+                gammas = numer / np.maximum(denom_fun(denom),
+                                            np.finfo('float').eps)
         else:
             numer_comb = np.sum(numer.reshape(-1, group_size), axis=1)
             if denom is None:
@@ -164,7 +164,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 
 
 @verbose
-def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
+def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
               gammas=None, pca=True, return_residual=False,
               return_as_dipoles=False, verbose=None):
@@ -190,11 +190,13 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         Noise covariance to compute whitener.
     alpha : float
         Regularization parameter (noise variance).
-    loose : float in [0, 1]
+    loose : float in [0, 1] | 'auto'
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
-        is 0 or None then the solution is computed with fixed orientation.
+        is 0 then the solution is computed with fixed orientation.
         If loose is 1, it corresponds to free orientations.
+        The default value ('auto') is set to 0.2 for surface-oriented source
+        space and set to 1.0 for volumic or discrete source space.
     depth: None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     xyz_same_gamma : bool
@@ -240,10 +242,12 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     """
     _check_reference(evoked)
 
+    loose, forward = _check_loose_forward(loose, forward)
+
     # make forward solution in fixed orientation if necessary
-    if loose is None and not is_fixed_orient(forward):
-        forward = deepcopy(forward)
-        _to_fixed_ori(forward)
+    if loose == 0. and not is_fixed_orient(forward):
+        forward = convert_forward_solution(
+            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
 
     if is_fixed_orient(forward) or not xyz_same_gamma:
         group_size = 1

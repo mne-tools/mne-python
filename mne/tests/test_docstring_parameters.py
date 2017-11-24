@@ -2,11 +2,10 @@ from __future__ import print_function
 
 import inspect
 import os.path as op
+import re
 import sys
+from unittest import SkipTest
 import warnings
-
-from nose.tools import assert_true
-from nose.plugins.skip import SkipTest
 
 from pkgutil import walk_packages
 from inspect import getsource
@@ -24,6 +23,7 @@ public_modules = [
     'mne.connectivity',
     'mne.datasets',
     'mne.datasets.brainstorm',
+    'mne.datasets.hf_sef',
     'mne.datasets.megsim',
     'mne.datasets.sample',
     'mne.decoding',
@@ -61,7 +61,7 @@ def get_name(func):
 _docstring_ignores = [
     'mne.io.Info',  # Parameters
     'mne.io.write',  # always ignore these
-    'mne.decoding.base.cross_val_multiscore',
+    # Deprecations
 ]
 
 _tab_ignores = [
@@ -99,7 +99,7 @@ def check_parameters_match(func, doc=None):
     if len(param_names) != len(args):
         bad = str(sorted(list(set(param_names) - set(args)) +
                          list(set(args) - set(param_names))))
-        if not any(d in name_ for d in _docstring_ignores) and \
+        if not any(re.match(d, name_) for d in _docstring_ignores) and \
                 'deprecation_wrapped' not in func.__code__.co_name:
             incorrect += [name_ + ' arg mismatch: ' + bad]
     else:
@@ -179,9 +179,9 @@ def test_tabs():
                 source = getsource(mod)
             except IOError:  # user probably should have run "make clean"
                 continue
-            assert_true('\t' not in source,
-                        '"%s" has tabs, please remove them or add it to the'
-                        'ignore list' % modname)
+            assert '\t' not in source, ('"%s" has tabs, please remove them '
+                                        'or add it to the ignore list'
+                                        % modname)
 
 
 documented_ignored_mods = (

@@ -4,6 +4,7 @@
 #          Denis Egnemann <denis.engemann@gmail.com>
 # License: BSD Style.
 
+from collections import OrderedDict
 import os
 import os.path as op
 import shutil
@@ -11,10 +12,14 @@ import tarfile
 import stat
 import sys
 import zipfile
+from distutils.version import LooseVersion
+
+import numpy as np
 
 from .. import __version__ as mne_version
+from ..label import read_labels_from_annot, Label, write_labels_to_annot
 from ..utils import (get_config, set_config, _fetch_file, logger, warn,
-                     verbose, get_subjects_dir)
+                     verbose, get_subjects_dir, md5sum)
 from ..externals.six import string_types
 from ..externals.six.moves import input
 
@@ -221,6 +226,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+        'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
         'mtrf': 'MNE_DATASETS_MTRF_PATH',
         'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH'
     }[name]
@@ -228,93 +234,133 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.36', misc='0.3')
+    releases = dict(testing='0.41', misc='0.3')
     # And also update the "hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
     # an updated version) and update the hash.
+
+    # try to match url->archive_name->folder_name
+    urls = dict(  # the URLs to use
+        brainstorm=dict(
+            bst_auditory='https://osf.io/5t9n8/download',
+            bst_phantom_ctf='https://osf.io/sxr8y/download',
+            bst_phantom_elekta='https://osf.io/dpcku/download',
+            bst_raw='https://osf.io/9675n/download',
+            bst_resting='https://osf.io/m7bd3/download'),
+        fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
+             'datasets/foo.tgz',
+        misc='https://codeload.github.com/mne-tools/mne-misc-data/'
+             'tar.gz/%s' % releases['misc'],
+        sample="https://osf.io/86qa2/download",
+        somato='https://osf.io/tp4sg/download',
+        spm='https://osf.io/je4s8/download',
+        testing='https://codeload.github.com/mne-tools/mne-testing-data/'
+                'tar.gz/%s' % releases['testing'],
+        multimodal='https://ndownloader.figshare.com/files/5999598',
+        visual_92_categories=[
+            'https://osf.io/8ejrs/download',
+            'https://osf.io/t4yjp/download'],
+        mtrf='https://superb-dca2.dl.sourceforge.net/project/aespa/'
+             'mTRF_1.5.zip',
+        kiloword='https://osf.io/qkvf9/download',
+        fieldtrip_cmc='ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/'
+                      'tutorial/SubjectCMC.zip',
+    )
+    # filename of the resulting downloaded archive (only needed if the URL
+    # name does not match resulting filename)
     archive_names = dict(
+        kiloword='MNE-kiloword-data.tar.gz',
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
+        multimodal='MNE-multimodal-data.tar.gz',
         sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
         spm='MNE-spm-face.tar.gz',
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
-        multimodal='MNE-multimodal-data.tar.gz',
-        fake='foo.tgz',
-        visual_92_categories='MNE-visual_92_categories.tar.gz',
-        mtrf='mTRF_1.5.zip',
-        fieldtrip_cmc='SubjectCMC.zip'
+        visual_92_categories=['MNE-visual_92_categories-data-part1.tar.gz',
+                              'MNE-visual_92_categories-data-part2.tar.gz'],
     )
-    if archive_name is not None:
-        archive_names.update(archive_name)
+    # original folder names that get extracted (only needed if the
+    # archive does not extract the right folder name; e.g., usually GitHub)
+    folder_origs = dict(  # not listed means None (no need to move)
+        misc='mne-misc-data-%s' % releases['misc'],
+        testing='mne-testing-data-%s' % releases['testing'],
+    )
+    # finally, where we want them to extract to (only needed if the folder name
+    # is not the same as the last bit of the archive name without the file
+    # extension)
     folder_names = dict(
         brainstorm='MNE-brainstorm-data',
         fake='foo',
         misc='MNE-misc-data',
         mtrf='mTRF_1.5',
         sample='MNE-sample-data',
-        somato='MNE-somato-data',
-        multimodal='MNE-multimodal-data',
-        spm='MNE-spm-face',
         testing='MNE-testing-data',
         visual_92_categories='MNE-visual_92_categories-data',
         fieldtrip_cmc='MNE-fieldtrip_cmc-data'
     )
-    urls = dict(
-        brainstorm='https://mne-tools.s3.amazonaws.com/datasets/'
-                   'MNE-brainstorm-data/%s',
-        fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
-             'datasets/%s',
-        misc='https://codeload.github.com/mne-tools/mne-misc-data/'
-             'tar.gz/%s' % releases['misc'],
-        sample="https://mne-tools.s3.amazonaws.com/datasets/%s",
-        somato='https://mne-tools.s3.amazonaws.com/datasets/%s',
-        spm='https://mne-tools.s3.amazonaws.com/datasets/%s',
-        testing='https://codeload.github.com/mne-tools/mne-testing-data/'
-                'tar.gz/%s' % releases['testing'],
-        multimodal='https://ndownloader.figshare.com/files/5999598',
-        visual_92_categories='https://mne-tools.s3.amazonaws.com/datasets/%s',
-        mtrf="https://superb-dca2.dl.sourceforge.net/project/aespa/%s",
-        fieldtrip_cmc='ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/'
-                      'tutorial/%s'
-    )
     hashes = dict(
-        brainstorm=None,
+        brainstorm=dict(
+            bst_auditory='fa371a889a5688258896bfa29dd1700b',
+            bst_phantom_ctf='80819cb7f5b92d1a5289db3fb6acb33c',
+            bst_phantom_elekta='1badccbe17998d18cc373526e86a7aaf',
+            bst_raw='f82ba1f17b2e7a2d96995c1c08e1cc8d',
+            bst_resting='a14186aebe7bd2aaa2d28db43aa6587e'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
         misc='d822a720ef94302467cb6ad1d320b669',
-        sample='1d5da3a809fded1ef5734444ab5bf857',
+        sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
         somato='f3e3a8441477bb5bacae1d0c6e0964fb',
-        spm='ecce87351d88def59d3d4cdc561e2a60',
-        testing='03e84fe9a50dfeb04ab5f138ceed441d',
+        spm='9f43f67150e3b694b523a21eb929ea75',
+        testing='6e7f0f2506b98cad0f2161162ef5f9f3',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
-        visual_92_categories='46c7e590f4a48596441ce001595d5e58',
+        visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
+                              '203410a98afc9df9ae8ba9f933370e20'],
+        kiloword='3a124170795abbd2e48aae8727e719a8',
         mtrf='273a390ebbc48da2c3184b01a82e4636',
         fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c'
     )
-    folder_origs = dict(  # not listed means None
-        misc='mne-misc-data-%s' % releases['misc'],
-        testing='mne-testing-data-%s' % releases['testing'],
-    )
-    folder_name = folder_names[name]
-    archive_name = archive_names[name]
-    hash_ = hashes[name]
+    assert set(hashes.keys()) == set(urls.keys())
     url = urls[name]
+    hash_ = hashes[name]
     folder_orig = folder_origs.get(name, None)
-    if '%s' in url:
-        url = url % archive_name
-
-    folder_path = op.join(path, folder_name)
     if name == 'brainstorm':
-        extract_path = folder_path
-        folder_path = op.join(folder_path, archive_names[name].split('.')[0])
+        assert archive_name is not None
+        url = [url[archive_name.split('.')[0]]]
+        folder_path = [op.join(path, folder_names[name],
+                               archive_name.split('.')[0])]
+        hash_ = [hash_[archive_name.split('.')[0]]]
+        archive_name = [archive_name]
+    else:
+        url = [url] if not isinstance(url, list) else url
+        hash_ = [hash_] if not isinstance(hash_, list) else hash_
+        archive_name = archive_names.get(name)
+        if archive_name is None:
+            archive_name = [u.split('/')[-1] for u in url]
+        if not isinstance(archive_name, list):
+            archive_name = [archive_name]
+        folder_path = [op.join(path, folder_names.get(name, a.split('.')[0]))
+                       for a in archive_name]
+    if not isinstance(folder_orig, list):
+        folder_orig = [folder_orig] * len(url)
+    folder_path = [op.abspath(f) for f in folder_path]
+    assert hash_ is not None
+    assert all(isinstance(x, list) for x in (url, archive_name, hash_,
+                                             folder_path))
+    assert len(url) == len(archive_name) == len(hash_) == len(folder_path)
+    logger.debug('URL:          %s' % (url,))
+    logger.debug('archive_name: %s' % (archive_name,))
+    logger.debug('hash:         %s' % (hash_,))
+    logger.debug('folder_path:  %s' % (folder_path,))
 
-    rm_archive = False
-    martinos_path = '/cluster/fusion/sample_data/' + archive_name
-    neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
-
-    if not op.exists(folder_path) and not download:
+    need_download = any(not op.exists(f) for f in folder_path)
+    if need_download and not download:
         return ''
-    if not op.exists(folder_path) or force_update:
+
+    if need_download or force_update:
+        logger.debug('Downloading: need_download=%s, force_update=%s'
+                     % (need_download, force_update))
+        for f in folder_path:
+            logger.debug('  Exists: %s: %s' % (f, op.exists(f)))
         if name == 'brainstorm':
             if '--accept-brainstorm-license' in sys.argv:
                 answer = 'y'
@@ -323,92 +369,121 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             if answer.lower() != 'y':
                 raise RuntimeError('You must agree to the license to use this '
                                    'dataset')
-        logger.info('Downloading or reinstalling '
-                    'data archive %s at location %s' % (archive_name, path))
+        assert len(url) == len(hash_)
+        assert len(url) == len(archive_name)
+        assert len(url) == len(folder_orig)
+        assert len(url) == len(folder_path)
+        assert len(url) > 0
+        # 1. Get all the archives
+        full_name = list()
+        for u, an, h, fo in zip(url, archive_name, hash_, folder_orig):
+            remove_archive, full = _download(path, u, an, h)
+            full_name.append(full)
+        del archive_name
+        # 2. Extract all of the files
+        remove_dir = True
+        for u, fp, an, h, fo in zip(url, folder_path, full_name, hash_,
+                                    folder_orig):
+            _extract(path, name, fp, an, fo, remove_dir)
+            remove_dir = False  # only do on first iteration
+        # 3. Remove all of the archives
+        if remove_archive:
+            for an in full_name:
+                os.remove(op.join(path, an))
 
-        if op.exists(martinos_path):
-            archive_name = martinos_path
-        elif op.exists(neurospin_path):
-            archive_name = neurospin_path
-        else:
-            archive_name = op.join(path, archive_name)
-            rm_archive = True
-            fetch_archive = True
-            if op.exists(archive_name):
-                msg = ('Archive already exists. Overwrite it (y/[n])? ')
-                answer = input(msg)
-                if answer.lower() == 'y':
-                    os.remove(archive_name)
-                else:
-                    fetch_archive = False
+    logger.info('Successfully extracted to: %s' % folder_path)
 
-            if fetch_archive:
-                _fetch_file(url, archive_name, print_destination=False,
-                            hash_=hash_)
-
-        if op.exists(folder_path):
-            def onerror(func, path, exc_info):
-                """Deal with access errors (e.g. testing dataset read-only)."""
-                # Is the error an access error ?
-                do = False
-                if not os.access(path, os.W_OK):
-                    perm = os.stat(path).st_mode | stat.S_IWUSR
-                    os.chmod(path, perm)
-                    do = True
-                if not os.access(op.dirname(path), os.W_OK):
-                    dir_perm = (os.stat(op.dirname(path)).st_mode |
-                                stat.S_IWUSR)
-                    os.chmod(op.dirname(path), dir_perm)
-                    do = True
-                if do:
-                    func(path)
-                else:
-                    raise
-            shutil.rmtree(folder_path, onerror=onerror)
-
-        logger.info('Decompressing the archive: %s' % archive_name)
-        logger.info('(please be patient, this can take some time)')
-        if name != 'brainstorm':
-            extract_path = path
-        if name == 'fieldtrip_cmc':
-            extract_path = folder_path
-        if archive_name.endswith('.zip'):
-            with zipfile.ZipFile(archive_name, 'r') as ff:
-                ff.extractall(extract_path)
-        else:
-            for ext in ['gz', 'bz2']:  # informed guess
-                try:
-                    tf = tarfile.open(archive_name, 'r:%s' % ext)
-                    tf.extractall(path=extract_path)
-                    tf.close()
-                    break
-                except tarfile.ReadError as err:
-                    logger.info('%s is %s trying "bz2"' % (archive_name, err))
-        if folder_orig is not None:
-            shutil.move(op.join(path, folder_orig), folder_path)
-
-        if rm_archive:
-            os.remove(archive_name)
-
-    path = _do_path_update(path, update_path, key, name)
-    path = op.join(path, folder_name)
+    _do_path_update(path, update_path, key, name)
+    path = folder_path[0]
 
     # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
-    try:
-        from distutils.version import LooseVersion as LV
-    except:
-        warn('Could not determine %s dataset version; dataset could '
-             'be out of date. Please install the "distutils" package.'
-             % name)
-    else:  # 0.7 < 0.7.git shoud be False, therefore strip
-        if check_version and LV(data_version) < LV(mne_version.strip('.git')):
-            warn('The {name} dataset (version {current}) is older than '
-                 'mne-python (version {newest}). If the examples fail, '
-                 'you may need to update the {name} dataset by using '
-                 'mne.datasets.{name}.data_path(force_update=True)'.format(
-                     name=name, current=data_version, newest=mne_version))
+    # 0.7 < 0.7.git shoud be False, therefore strip
+    if check_version and (LooseVersion(data_version) <
+                          LooseVersion(mne_version.strip('.git'))):
+        warn('The {name} dataset (version {current}) is older than '
+             'mne-python (version {newest}). If the examples fail, '
+             'you may need to update the {name} dataset by using '
+             'mne.datasets.{name}.data_path(force_update=True)'.format(
+                 name=name, current=data_version, newest=mne_version))
     return (path, data_version) if return_version else path
+
+
+def _download(path, url, archive_name, hash_):
+    """Download and extract an archive, completing the filename."""
+    martinos_path = '/cluster/fusion/sample_data/' + archive_name
+    neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
+    remove_archive = False
+    if op.exists(martinos_path):
+        full_name = martinos_path
+    elif op.exists(neurospin_path):
+        full_name = neurospin_path
+    else:
+        full_name = op.join(path, archive_name)
+        remove_archive = True
+        fetch_archive = True
+        if op.exists(full_name):
+            logger.info('Archive exists (%s), checking hash %s.'
+                        % (archive_name, hash_,))
+            md5 = md5sum(full_name)
+            fetch_archive = False
+            if md5 != hash_:
+                if input('Archive already exists but the hash does not match: '
+                         '%s\nOverwrite (y/[n])?'
+                         % (archive_name,)).lower() == 'y':
+                    os.remove(full_name)
+                    fetch_archive = True
+        if fetch_archive:
+            logger.info('Downloading archive %s to %s' % (archive_name, path))
+            _fetch_file(url, full_name, print_destination=False,
+                        hash_=hash_)
+    return remove_archive, full_name
+
+
+def _extract(path, name, folder_path, archive_name, folder_orig, remove_dir):
+    if op.exists(folder_path) and remove_dir:
+        logger.info('Removing old directory: %s' % (folder_path,))
+
+        def onerror(func, path, exc_info):
+            """Deal with access errors (e.g. testing dataset read-only)."""
+            # Is the error an access error ?
+            do = False
+            if not os.access(path, os.W_OK):
+                perm = os.stat(path).st_mode | stat.S_IWUSR
+                os.chmod(path, perm)
+                do = True
+            if not os.access(op.dirname(path), os.W_OK):
+                dir_perm = (os.stat(op.dirname(path)).st_mode |
+                            stat.S_IWUSR)
+                os.chmod(op.dirname(path), dir_perm)
+                do = True
+            if do:
+                func(path)
+            else:
+                raise
+        shutil.rmtree(folder_path, onerror=onerror)
+
+    logger.info('Decompressing the archive: %s' % archive_name)
+    logger.info('(please be patient, this can take some time)')
+    if name == 'fieldtrip_cmc':
+        extract_path = folder_path
+    elif name == 'brainstorm':
+        extract_path = op.join(*op.split(folder_path)[:-1])
+    else:
+        extract_path = path
+    if archive_name.endswith('.zip'):
+        with zipfile.ZipFile(archive_name, 'r') as ff:
+            ff.extractall(extract_path)
+    else:
+        if archive_name.endswith('.bz2'):
+            ext = 'bz2'
+        else:
+            ext = 'gz'
+        with tarfile.open(archive_name, 'r:%s' % ext) as tf:
+            tf.extractall(path=extract_path)
+
+    if folder_orig is not None:
+        shutil.move(op.join(path, folder_orig), folder_path)
 
 
 def _get_version(name):
@@ -428,8 +503,10 @@ def has_dataset(name):
         'sample': 'MNE-sample-data',
         'somato': 'MNE-somato-data',
         'spm': 'MNE-spm-face',
+        'multimodal': 'MNE-multimodal-data',
         'testing': 'MNE-testing-data',
-        'visual_92_categories': 'visual_92_categories-data',
+        'visual_92_categories': 'MNE-visual_92_categories-data',
+        'kiloword': 'MNE-kiloword-data',
     }[name]
     archive_name = None
     if name == 'brainstorm':
@@ -446,15 +523,18 @@ def _download_all_example_data(verbose=True):
     # verbose=True by default so we get nice status messages
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
-                   eegbci, multimodal, mtrf, fieldtrip_cmc)
+                   eegbci, multimodal, hf_sef, mtrf, fieldtrip_cmc,
+                   kiloword)
     sample.data_path()
     testing.data_path()
     misc.data_path()
     spm_face.data_path()
     somato.data_path()
+    hf_sef.data_path()
     multimodal.data_path()
     mtrf.data_path()
     fieldtrip_cmc.data_path()
+    kiloword.data_path()
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()
@@ -478,7 +558,7 @@ def _download_all_example_data(verbose=True):
 
 
 @verbose
-def fetch_hcp_mmp_parcellation(subjects_dir=None, verbose=None):
+def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
     """Fetch the HCP-MMP parcellation.
 
     This will download and install the HCP-MMP parcellation [1]_ files for
@@ -489,6 +569,9 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, verbose=None):
     subjects_dir : str | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
+    combine : bool
+        If True, also produce the combined/reduced set of 23 labels per
+        hemisphere as ``HCPMMP1_combined.annot`` [3]_.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -503,21 +586,116 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, verbose=None):
            cerebral cortex. Nature 536:171-178.
     .. [2] Mills K (2016) HCP-MMP1.0 projected on fsaverage.
            https://figshare.com/articles/HCP-MMP1_0_projected_on_fsaverage/3498446/2
-    """
+    .. [3] Glasser MF et al. (2016) Supplemental information.
+           https://images.nature.com/full/nature-assets/nature/journal/v536/n7615/extref/nature18933-s3.pdf
+    """  # noqa: E501
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     destination = op.join(subjects_dir, 'fsaverage', 'label')
-    fnames = [op.join(destination, 'lh.HCPMMP1.annot'),
-              op.join(destination, 'rh.HCPMMP1.annot')]
-    if all(op.isfile(fname) for fname in fnames):
-        return
-    if '--accept-hcpmmp-license' in sys.argv:
-        answer = 'y'
-    else:
-        answer = input('%s\nAgree (y/[n])? ' % _hcp_mmp_license_text)
-    if answer.lower() != 'y':
-        raise RuntimeError('You must agree to the license to use this '
-                           'dataset')
-    _fetch_file('https://ndownloader.figshare.com/files/5528816',
-                fnames[0], hash_='46a102b59b2fb1bb4bd62d51bf02e975')
-    _fetch_file('https://ndownloader.figshare.com/files/5528819',
-                fnames[1], hash_='75e96b331940227bbcb07c1c791c2463')
+    fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
+              for hemi in ('lh', 'rh')]
+    if not all(op.isfile(fname) for fname in fnames):
+        if '--accept-hcpmmp-license' in sys.argv:
+            answer = 'y'
+        else:
+            answer = input('%s\nAgree (y/[n])? ' % _hcp_mmp_license_text)
+        if answer.lower() != 'y':
+            raise RuntimeError('You must agree to the license to use this '
+                               'dataset')
+        _fetch_file('https://ndownloader.figshare.com/files/5528816',
+                    fnames[0], hash_='46a102b59b2fb1bb4bd62d51bf02e975')
+        _fetch_file('https://ndownloader.figshare.com/files/5528819',
+                    fnames[1], hash_='75e96b331940227bbcb07c1c791c2463')
+    if combine:
+        fnames = [op.join(destination, '%s.HCPMMP1_combined.annot' % hemi)
+                  for hemi in ('lh', 'rh')]
+        if all(op.isfile(fname) for fname in fnames):
+            return
+        # otherwise, let's make them
+        logger.info('Creating combined labels')
+        groups = OrderedDict([
+            ('Primary Visual Cortex (V1)',
+             ('V1',)),
+            ('Early Visual Cortex',
+             ('V2', 'V3', 'V4')),
+            ('Dorsal Stream Visual Cortex',
+             ('V3A', 'V3B', 'V6', 'V6A', 'V7', 'IPS1')),
+            ('Ventral Stream Visual Cortex',
+             ('V8', 'VVC', 'PIT', 'FFC', 'VMV1', 'VMV2', 'VMV3')),
+            ('MT+ Complex and Neighboring Visual Areas',
+             ('V3CD', 'LO1', 'LO2', 'LO3', 'V4t', 'FST', 'MT', 'MST', 'PH')),
+            ('Somatosensory and Motor Cortex',
+             ('4', '3a', '3b', '1', '2')),
+            ('Paracentral Lobular and Mid Cingulate Cortex',
+             ('24dd', '24dv', '6mp', '6ma', 'SCEF', '5m', '5L', '5mv',)),
+            ('Premotor Cortex',
+             ('55b', '6d', '6a', 'FEF', '6v', '6r', 'PEF')),
+            ('Posterior Opercular Cortex',
+             ('43', 'FOP1', 'OP4', 'OP1', 'OP2-3', 'PFcm')),
+            ('Early Auditory Cortex',
+             ('A1', 'LBelt', 'MBelt', 'PBelt', 'RI')),
+            ('Auditory Association Cortex',
+             ('A4', 'A5', 'STSdp', 'STSda', 'STSvp', 'STSva', 'STGa', 'TA2',)),
+            ('Insular and Frontal Opercular Cortex',
+             ('52', 'PI', 'Ig', 'PoI1', 'PoI2', 'FOP2', 'FOP3',
+              'MI', 'AVI', 'AAIC', 'Pir', 'FOP4', 'FOP5')),
+            ('Medial Temporal Cortex',
+             ('H', 'PreS', 'EC', 'PeEc', 'PHA1', 'PHA2', 'PHA3',)),
+            ('Lateral Temporal Cortex',
+             ('PHT', 'TE1p', 'TE1m', 'TE1a', 'TE2p', 'TE2a',
+              'TGv', 'TGd', 'TF',)),
+            ('Temporo-Parieto-Occipital Junction',
+             ('TPOJ1', 'TPOJ2', 'TPOJ3', 'STV', 'PSL',)),
+            ('Superior Parietal Cortex',
+             ('LIPv', 'LIPd', 'VIP', 'AIP', 'MIP',
+              '7PC', '7AL', '7Am', '7PL', '7Pm',)),
+            ('Inferior Parietal Cortex',
+             ('PGp', 'PGs', 'PGi', 'PFm', 'PF', 'PFt', 'PFop',
+              'IP0', 'IP1', 'IP2',)),
+            ('Posterior Cingulate Cortex',
+             ('DVT', 'ProS', 'POS1', 'POS2', 'RSC', 'v23ab', 'd23ab',
+              '31pv', '31pd', '31a', '23d', '23c', 'PCV', '7m',)),
+            ('Anterior Cingulate and Medial Prefrontal Cortex',
+             ('33pr', 'p24pr', 'a24pr', 'p24', 'a24', 'p32pr', 'a32pr', 'd32',
+              'p32', 's32', '8BM', '9m', '10v', '10r', '25',)),
+            ('Orbital and Polar Frontal Cortex',
+             ('47s', '47m', 'a47r', '11l', '13l',
+              'a10p', 'p10p', '10pp', '10d', 'OFC', 'pOFC',)),
+            ('Inferior Frontal Cortex',
+             ('44', '45', 'IFJp', 'IFJa', 'IFSp', 'IFSa', '47l', 'p47r',)),
+            ('DorsoLateral Prefrontal Cortex',
+             ('8C', '8Av', 'i6-8', 's6-8', 'SFL', '8BL', '9p', '9a', '8Ad',
+              'p9-46v', 'a9-46v', '46', '9-46d',)),
+            ('???',
+             ('???',))])
+        assert len(groups) == 23
+        labels_out = list()
+
+        for hemi in ('lh', 'rh'):
+            labels = read_labels_from_annot('fsaverage', 'HCPMMP1', hemi=hemi,
+                                            subjects_dir=subjects_dir)
+            label_names = [
+                '???' if label.name.startswith('???') else
+                label.name.split('_')[1] for label in labels]
+            used = np.zeros(len(labels), bool)
+            for key, want in groups.items():
+                assert '\t' not in key
+                these_labels = [li for li, label_name in enumerate(label_names)
+                                if label_name in want]
+                assert not used[these_labels].any()
+                assert len(these_labels) == len(want)
+                used[these_labels] = True
+                these_labels = [labels[li] for li in these_labels]
+                # take a weighted average to get the color
+                # (here color == task activation)
+                w = np.array([len(label.vertices) for label in these_labels])
+                w = w / float(w.sum())
+                color = np.dot(w, [label.color for label in these_labels])
+                these_labels = sum(these_labels,
+                                   Label([], subject='fsaverage', hemi=hemi))
+                these_labels.name = key
+                these_labels.color = color
+                labels_out.append(these_labels)
+            assert used.all()
+        assert len(labels_out) == 46
+        write_labels_to_annot(labels_out, 'fsaverage', 'HCPMMP1_combined',
+                              hemi='both', subjects_dir=subjects_dir)

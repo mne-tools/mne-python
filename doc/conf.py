@@ -277,14 +277,17 @@ trim_doctests_flags = True
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'python': ('http://docs.python.org', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy-dev', None),
-    'scipy': ('http://scipy.github.io/devdocs', None),
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy-dev', None),
+    'scipy': ('https://scipy.github.io/devdocs', None),
     'matplotlib': ('http://matplotlib.org', None),
     'sklearn': ('http://scikit-learn.org/stable', None),
     'mayavi': ('http://docs.enthought.com/mayavi/mayavi', None),
     'nibabel': ('http://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io', None),
+    'surfer': ('https://pysurfer.github.io/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
+    'statsmodels': ('http://www.statsmodels.org/stable/', None),
 }
 
 examples_dirs = ['../examples', '../tutorials']
@@ -303,13 +306,6 @@ sphinx_gallery_conf = {
     'doc_module': ('mne',),
     'reference_url': {
         'mne': None,
-        'numpy': 'http://docs.scipy.org/doc/numpy',
-        'scipy': 'http://docs.scipy.org/doc/scipy/reference',
-        'matplotlib': 'http://matplotlib.org',
-        'sklearn': 'http://scikit-learn.org/stable',
-        'mayavi': 'http://docs.enthought.com/mayavi/mayavi',
-        'nibabel': 'http://nipy.org/nibabel',
-        'nilearn': 'http://nilearn.github.io',
         },
     'examples_dirs': examples_dirs,
     'gallery_dirs': gallery_dirs,
@@ -319,7 +315,9 @@ sphinx_gallery_conf = {
     'plot_gallery': 'True',  # Avoid annoying Unicode/bool default warning
     'download_section_examples': False,
     'thumbnail_size': (160, 112),
-    }
+    'min_reported_time': 1.,
+    'abort_on_example_error': False,
+}
 
 numpydoc_class_members_toctree = False
 

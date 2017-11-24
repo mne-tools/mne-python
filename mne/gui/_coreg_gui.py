@@ -402,7 +402,7 @@ class CoregModel(HasPrivateTraits):
         if old_filter is None:
             new_filter = new_sub_filter
         else:
-            new_filter = np.ones(len(self.hsp.raw_points), np.bool8)
+            new_filter = np.ones(len(self.hsp.points), np.bool8)
             new_filter[old_filter] = new_sub_filter
 
         # set the filter
@@ -852,7 +852,7 @@ class CoregPanel(HasPrivateTraits):
                     scale_mri(subject_from, subject_to, scale, True,
                               subjects_dir, skip_fiducials, include_labels,
                               include_annot)
-                except:
+                except Exception:
                     logger.error('Error scaling %s:\n' % subject_to +
                                  traceback.format_exc())
                     self.queue_feedback = ('Error scaling %s (see Terminal)' %
@@ -871,7 +871,7 @@ class CoregPanel(HasPrivateTraits):
                                                     name=bem_name)
                         bemsol = make_bem_solution(bem_file)
                         write_bem_solution(bem_file[:-4] + '-sol.fif', bemsol)
-                    except:
+                    except Exception:
                         logger.error('Error computing %s solution:\n' %
                                      bem_name + traceback.format_exc())
                         self.queue_feedback = ('Error computing %s solution '

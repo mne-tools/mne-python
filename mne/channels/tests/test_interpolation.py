@@ -3,11 +3,12 @@ import warnings
 
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_equal)
+import pytest
 from nose.tools import assert_raises, assert_equal, assert_true
 
 from mne import io, pick_types, pick_channels, read_events, Epochs
 from mne.channels.interpolation import _make_interpolation_matrix
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -41,7 +42,7 @@ def _load_data():
     return raw, epochs, epochs_eeg, epochs_meg
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_interpolation():
     """Test interpolation"""
     raw, epochs, epochs_eeg, epochs_meg = _load_data()

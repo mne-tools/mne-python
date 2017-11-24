@@ -16,6 +16,11 @@ import os.path as op
 import mne
 from mne.datasets import sample
 
+###############################################################################
+# Source estimation method such as MNE require a noise estimations from the
+# recordings. In this tutorial we cover the basics of noise covariance and
+# construct a noise covariance matrix that can be used when computing the
+# inverse solution. For more information, see :ref:`BABDEEEB`.
 data_path = sample.data_path()
 raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')
@@ -24,6 +29,7 @@ raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference('average', projection=True)
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
+
 
 ###############################################################################
 # The definition of noise depends on the paradigm. In MEG it is quite common
@@ -35,12 +41,27 @@ raw.info['bads'] += ['EEG 053']  # bads + 1 more
 # useful if you use resting state as a noise baseline. Here we use the whole
 # empty room recording to compute the noise covariance (tmax=None is the same
 # as the end of the recording, see :func:`mne.compute_raw_covariance`).
-noise_cov = mne.compute_raw_covariance(raw_empty_room, tmin=0, tmax=None)
+#
+# Keep in mind that you want to match your empty room dataset to your
+# actual MEG data, processing-wise. Ensure that filters
+# are all the same and if you use ICA, apply it to your empty-room and subject
+# data equivalently. In this case we did not filter the data and
+# we don't use ICA. However, we do have bad channels and projections in
+# the MEG data, and, hence, we want to make sure they get stored in the
+# covariance object.
+
+raw_empty_room.info['bads'] = [
+    bb for bb in raw.info['bads'] if 'EEG' not in bb]
+raw_empty_room.add_proj(
+    [pp.copy() for pp in raw.info['projs'] if 'EEG' not in pp['desc']])
+
+noise_cov = mne.compute_raw_covariance(
+    raw_empty_room, tmin=0, tmax=None)
 
 ###############################################################################
-# Now that you the covariance matrix in a python object you can save it to a
-# file with :func:`mne.write_cov`. Later you can read it back to a python
-# object using :func:`mne.read_cov`.
+# Now that you have the covariance matrix in an MNE-Python object you can
+# save it to a file with :func:`mne.write_cov`. Later you can read it back
+# using :func:`mne.read_cov`.
 #
 # You can also use the pre-stimulus baseline to estimate the noise covariance.
 # First we have to construct the epochs. When computing the covariance, you
@@ -48,13 +69,14 @@ noise_cov = mne.compute_raw_covariance(raw_empty_room, tmin=0, tmax=None)
 # covariance matrix will be inaccurate. In MNE this is done by default, but
 # just to be sure, we define it here manually.
 events = mne.find_events(raw)
-epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.0,
-                    baseline=(-0.2, 0.0))
+epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
+                    baseline=(-0.2, 0.0), decim=3,  # we'll decimate for speed
+                    verbose='error')  # and ignore the warning about aliasing
 
 ###############################################################################
-# Note that this method also attenuates the resting state activity in your
-# source estimates.
-noise_cov_baseline = mne.compute_covariance(epochs)
+# Note that this method also attenuates any activity in your
+# source estimates that resemble the baseline, if you like it or not.
+noise_cov_baseline = mne.compute_covariance(epochs, tmax=0)
 
 ###############################################################################
 # Plot the covariance matrices
@@ -63,7 +85,7 @@ noise_cov_baseline = mne.compute_covariance(epochs)
 # Try setting proj to False to see the effect. Notice that the projectors in
 # epochs are already applied, so ``proj`` parameter has no effect.
 noise_cov.plot(raw_empty_room.info, proj=True)
-noise_cov_baseline.plot(epochs.info)
+noise_cov_baseline.plot(epochs.info, proj=True)
 
 ###############################################################################
 # How should I regularize the covariance matrix?
@@ -80,7 +102,8 @@ noise_cov_baseline.plot(epochs.info)
 # described in [1]_. For this the 'auto' option can be used. With this
 # option cross-validation will be used to learn the optimal regularization:
 
-cov = mne.compute_covariance(epochs, tmax=0., method='auto')
+noise_cov_reg = mne.compute_covariance(epochs, tmax=0.,
+                                       method='auto')
 
 ###############################################################################
 # This procedure evaluates the noise covariance quantitatively by how well it
@@ -97,7 +120,8 @@ cov = mne.compute_covariance(epochs, tmax=0., method='auto')
 # of freedom, e.g. ``ddof=3`` with 2 active SSP vectors):
 
 evoked = epochs.average()
-evoked.plot_white(cov)
+evoked.plot_white(noise_cov_reg)
+
 
 ###############################################################################
 # This plot displays both, the whitened evoked signals for each channels and
@@ -120,14 +144,32 @@ evoked.plot_white(cov)
 # For expert use cases or debugging the alternative estimators can also be
 # compared:
 
-covs = mne.compute_covariance(epochs, tmax=0., method=('empirical', 'shrunk'),
-                              return_estimators=True)
+noise_covs = mne.compute_covariance(
+    epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True)
 evoked = epochs.average()
-evoked.plot_white(covs)
+evoked.plot_white(noise_covs)
+
 
 ##############################################################################
 # This will plot the whitened evoked for the optimal estimator and display the
 # GFPs for all estimators as separate lines in the related panel.
+
+
+##############################################################################
+# Finally, let's have a look at the difference between empty room and
+# event related covariance.
+
+evoked_meg = evoked.pick_types(meg=True, eeg=False)
+noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
+noise_cov['method'] = 'empty_room'
+noise_cov_meg['method'] = 'baseline'
+
+evoked_meg.plot_white([noise_cov_meg, noise_cov])
+
+
+##############################################################################
+# Based on the negative log-likelihood, the baseline covariance
+# seems more appropriate.
 
 ###############################################################################
 # References

@@ -219,13 +219,15 @@ def _create_eeg_els(chs):
 
 @verbose
 def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
-    """Set up a BEM for forward computation."""
+    """Set up a BEM for forward computation, making a copy and modifying."""
     logger.info('')
     if isinstance(bem, string_types):
         logger.info('Setting up the BEM model using %s...\n' % bem_extra)
         bem = read_bem_solution(bem)
-    if not isinstance(bem, ConductorModel):
-        raise TypeError('bem must be a string or ConductorModel')
+    else:
+        if not isinstance(bem, ConductorModel):
+            raise TypeError('bem must be a string or ConductorModel')
+        bem = bem.copy()
     if bem['is_sphere']:
         logger.info('Using the sphere model.\n')
         if len(bem['layers']) == 0 and neeg > 0:
@@ -234,6 +236,10 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
         if bem['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError('Spherical model is not in head coordinates')
     else:
+        if bem['surfs'][0]['coord_frame'] != FIFF.FIFFV_COORD_MRI:
+            raise RuntimeError(
+                'BEM is in %s coordinates, should be in MRI'
+                % (_coord_frame_name(bem['surfs'][0]['coord_frame']),))
         if neeg > 0 and len(bem['surfs']) == 1:
             raise RuntimeError('Cannot use a homogeneous model in EEG '
                                'calculations')
@@ -558,7 +564,10 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     # read the transformation from MRI to HEAD coordinates
     # (could also be HEAD to MRI)
     mri_head_t, trans = _get_trans(trans)
-    bem_extra = 'dict' if isinstance(bem, dict) else bem
+    if isinstance(bem, ConductorModel):
+        bem_extra = 'instance of ConductorModel'
+    else:
+        bem_extra = bem
     if not isinstance(info, (Info, string_types)):
         raise TypeError('info should be an instance of Info or string')
     if isinstance(info, string_types):
@@ -569,15 +578,15 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     n_jobs = check_n_jobs(n_jobs)
 
     # Report the setup
-    logger.info('Source space                 : %s' % src)
-    logger.info('MRI -> head transform source : %s' % trans)
-    logger.info('Measurement data             : %s' % info_extra)
-    if isinstance(bem, dict) and bem['is_sphere']:
-        logger.info('Sphere model                 : origin at %s mm'
+    logger.info('Source space          : %s' % src)
+    logger.info('MRI -> head transform : %s' % trans)
+    logger.info('Measurement data      : %s' % info_extra)
+    if isinstance(bem, ConductorModel) and bem['is_sphere']:
+        logger.info('Sphere model      : origin at %s mm'
                     % (bem['r0'],))
         logger.info('Standard field computations')
     else:
-        logger.info('BEM model                    : %s' % bem_extra)
+        logger.info('Conductor model   : %s' % bem_extra)
         logger.info('Accurate field computations')
     logger.info('Do computations in %s coordinates',
                 _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
@@ -682,7 +691,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
                                 verbose=verbose)
     # Convert from free orientations to fixed (in-place)
     convert_forward_solution(fwd, surf_ori=False, force_fixed=True,
-                             copy=False, verbose=None)
+                             copy=False, use_cps=False, verbose=None)
 
     # Check for omissions due to proximity to inner skull in
     # make_forward_solution, which will result in an exception

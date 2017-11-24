@@ -23,7 +23,7 @@ from ...externals.six.moves import zip
 from ...utils import copy_function_doc_to_method_doc
 
 
-def get_edf_events(raw):
+def find_edf_events(raw):
     """Get original EDF events as read from the header.
 
     For GDF, the values are returned in form
@@ -62,7 +62,7 @@ def get_edf_events(raw):
     events : ndarray
         The events as they are in the file header.
     """
-    return raw.get_edf_events()
+    return raw.find_edf_events()
 
 
 class RawEDF(BaseRaw):
@@ -118,15 +118,30 @@ class RawEDF(BaseRaw):
     To retrieve correct event values (bits 1-16), one could do:
 
         >>> events = mne.find_events(...)  # doctest:+SKIP
-        >>> events[:, 2] >>= 8  # doctest:+SKIP
+        >>> events[:, 2] &= (2**16 - 1)  # doctest:+SKIP
+
+    The above operation can be carried out directly in :func:`mne.find_events`
+    using the ``mask`` and ``mask_type`` parameters
+    (see :func:`mne.find_events` for more details).
 
     It is also possible to retrieve system codes, but no particular effort has
-    been made to decode these in MNE.
+    been made to decode these in MNE. In case it is necessary, for instance to
+    check the CMS bit, the following operation can be carried out:
 
-    For GDF files, the stimulus channel is constructed from the events in the
-    header. The id numbers of overlapping events are simply combined through
-    addition. To get the original events from the header, use function
-    :func:`mne.io.get_edf_events`.
+        >>> cms_bit = 20  # doctest:+SKIP
+        >>> cms_high = (events[:, 2] & (1 << cms_bit)) != 0  # doctest:+SKIP
+
+    It is worth noting that in some special cases, it may be necessary to
+    shift the event values in order to retrieve correct event triggers. This
+    depends on the triggering device used to perform the synchronization.
+    For instance, some GDF files need a 8 bits shift:
+
+        >>> events[:, 2] >>= 8  # doctest:+SKIP
+
+    In addition, for GDF files, the stimulus channel is constructed from the
+    events in the header. The id numbers of overlapping events are simply
+    combined through addition. To get the original events from the header,
+    use function :func:`mne.io.find_edf_events`.
 
     See Also
     --------
@@ -135,23 +150,17 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=True, annot=None, annotmap=None, exclude=(),
+                 stim_channel='auto', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):  # noqa: D102
-        if stim_channel is True:
-            warn("stim_channel will default to 'auto' in version 0.16. "
-                 "Set stim_channel explicitly to avoid this warning.",
-                 DeprecationWarning)
-            stim_channel = 'auto' if input_fname[-4:] == '.gdf' else -1
-
-        logger.info('Extracting edf Parameters from %s...' % input_fname)
+        logger.info('Extracting EDF parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, edf_info = _get_info(input_fname, stim_channel, annot,
                                    annotmap, eog, misc, exclude, preload)
-        logger.info('Created Raw.info structure...')
+        logger.info('Creating raw.info structure...')
         _check_update_montage(info, montage)
 
         if bool(annot) != bool(annotmap):
-            warn("Stimulus Channel will not be annotated. Both 'annot' and "
+            warn("Stimulus channel will not be annotated. Both 'annot' and "
                  "'annotmap' must be specified.")
 
         # Raw attributes
@@ -159,8 +168,6 @@ class RawEDF(BaseRaw):
         super(RawEDF, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[edf_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
-
-        logger.info('Ready.')
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -318,8 +325,8 @@ class RawEDF(BaseRaw):
                                       2**17 - 1)
                 data[stim_channel_idx, :] = stim
 
-    @copy_function_doc_to_method_doc(get_edf_events)
-    def get_edf_events(self):
+    @copy_function_doc_to_method_doc(find_edf_events)
+    def find_edf_events(self):
         return self._raw_extras[0]['events']
 
 
@@ -429,6 +436,8 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
     tal_ch_name = 'EDF Annotations'
     tal_chs = np.where(np.array(ch_names) == tal_ch_name)[0]
     if len(tal_chs) > 0:
+        logger.info('EDF annotations detected (consider using '
+                    'raw.find_edf_events() to extract them)')
         if len(tal_chs) > 1:
             warn('Channel names are not unique, found duplicates for: %s. '
                  'Adding running numbers to duplicate channel names.'
@@ -695,11 +704,11 @@ def _read_gdf_header(fname, stim_channel, exclude):
         edf_info['number'] = float(version[4:])
 
         # GDF 1.x
-        # ----------------------------------------------------------------------
+        # ---------------------------------------------------------------------
         if edf_info['number'] < 1.9:
 
             # patient ID
-            pid = fid.read(80).decode()
+            pid = fid.read(80).decode('latin-1')
             pid = pid.split(' ', 2)
             patient = {}
             if len(pid) >= 2:
@@ -737,10 +746,11 @@ def _read_gdf_header(fname, stim_channel, exclude):
                      'Default record length set to 1.')
             nchan = np.fromfile(fid, np.uint32, 1)[0]
             channels = list(range(nchan))
-            ch_names = [fid.read(16).decode().strip(' \x00')
+            ch_names = [fid.read(16).decode('latin-1').strip(' \x00')
                         for ch in channels]
             fid.seek(80 * len(channels), 1)  # transducer
-            units = [fid.read(8).decode().strip(' \x00') for ch in channels]
+            units = [fid.read(8).decode('latin-1').strip(' \x00')
+                     for ch in channels]
 
             exclude = [ch_names.index(idx) for idx in exclude]
             include = list()
@@ -791,7 +801,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
             assert fid.tell() == header_nbytes
 
             # Event table
-            # ------------------------------------------------------------------
+            # -----------------------------------------------------------------
             etp = header_nbytes + n_records * edf_info['bytes_tot']
             # skip data to go to event table
             fid.seek(etp)
@@ -815,7 +825,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 events = [n_events, pos, typ, chn, dur]
 
         # GDF 2.x
-        # ----------------------------------------------------------------------
+        # ---------------------------------------------------------------------
         else:
             # FIXED HEADER
             handedness = ('Unknown', 'Right', 'Left', 'Equal')
@@ -1011,7 +1021,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 record_length=record_length, ref=ref, units=units)
 
             # EVENT TABLE
-            # ------------------------------------------------------------------
+            # -----------------------------------------------------------------
             etp = edf_info['data_offset'] + edf_info['n_records'] * \
                 edf_info['bytes_tot']
             fid.seek(etp)  # skip data to go to event table
@@ -1067,7 +1077,7 @@ def _read_gdf_header(fname, stim_channel, exclude):
                 warn_overlap = True  # Warn only once.
             data[samp:samp + dur] += id
         if warn_overlap:
-            warn('Overlapping events detected. Use get_edf_events for the '
+            warn('Overlapping events detected. Use find_edf_events for the '
                  'original events.')
         edf_info['stim_data'] = data
     edf_info['events'] = events
@@ -1143,7 +1153,7 @@ def _check_stim_channel(stim_channel, ch_names, include):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=True, annot=None, annotmap=None, exclude=(),
+                 stim_channel='auto', annot=None, annotmap=None, exclude=(),
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF, GDF conversion to FIF.
 
@@ -1163,10 +1173,12 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
-    stim_channel : str | int | None
-        The channel name or channel index (starting at 0).
-        -1 corresponds to the last channel (default).
-        If None, there will be no stim channel added.
+    stim_channel : str | int | 'auto' | None
+        The channel name or channel index (starting at 0). -1 corresponds to
+        the last channel. If None, there will be no stim channel added. If
+        'auto' (default), the stim channel will be added as the last channel if
+        the header contains ``'EDF Annotations'`` or GDF events (otherwise stim
+        channel will not be added).
     annot : str | None
         Path to annotation file.
         If None, no derived stim channel will be added (for files requiring
@@ -1209,7 +1221,7 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     header. You should use keyword ``stim_channel=-1`` to add it at the end of
     the channel list. The id numbers of overlapping events are simply combined
     through addition. To get the original events from the header, use method
-    ``raw.get_edf_events``.
+    ``raw.find_edf_events``.
 
     See Also
     --------

@@ -42,7 +42,6 @@ from mne import combine_evoked
 from mne.minimum_norm import apply_inverse
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-from mne.filter import notch_filter, filter_data
 
 print(__doc__)
 
@@ -171,7 +170,7 @@ if not use_precomputed:
     meg_picks = mne.pick_types(raw.info, meg=True, eeg=False)
     raw.plot_psd(tmax=np.inf, picks=meg_picks)
     notches = np.arange(60, 181, 60)
-    raw.notch_filter(notches)
+    raw.notch_filter(notches, phase='zero-double', fir_design='firwin2')
     raw.plot_psd(tmax=np.inf, picks=meg_picks)
 
 ###############################################################################
@@ -249,17 +248,13 @@ del epochs_standard, epochs_deviant
 
 ###############################################################################
 # Typical preprocessing step is the removal of power line artifact (50 Hz or
-# 60 Hz). Here we notch filter the data at 60, 120 and 180 to remove the
-# original 60 Hz artifact and the harmonics. Normally this would be done to
-# raw data (with :func:`mne.io.Raw.filter`), but to reduce memory consumption
-# of this tutorial, we do it at evoked stage.
-if use_precomputed:
-    sfreq = evoked_std.info['sfreq']
-    notches = [60, 120, 180]
-    for evoked in (evoked_std, evoked_dev):
-        evoked.data[:] = notch_filter(evoked.data, sfreq, notches)
-        evoked.data[:] = filter_data(evoked.data, sfreq, l_freq=None,
-                                     h_freq=100.)
+# 60 Hz). Here we lowpass filter the data at 40 Hz, which will remove all
+# line artifacts (and high frequency information). Normally this would be done
+# to raw data (with :func:`mne.io.Raw.filter`), but to reduce memory
+# consumption of this tutorial, we do it at evoked stage. (At the raw stage,
+# you could alternatively notch filter with :func:`mne.io.Raw.notch_filter`.)
+for evoked in (evoked_std, evoked_dev):
+    evoked.filter(l_freq=None, h_freq=40., fir_design='firwin')
 
 ###############################################################################
 # Here we plot the ERF of standard and deviant conditions. In both conditions

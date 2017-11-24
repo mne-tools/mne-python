@@ -10,7 +10,6 @@ import glob
 import os
 import os.path as op
 import shutil
-import sys
 from copy import deepcopy
 
 import numpy as np
@@ -754,9 +753,9 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         raise ValueError('relative_radii length (%s) must match that of '
                          'sigmas (%s)' % (len(relative_radii),
                                           len(sigmas)))
-    if len(sigmas) == 0 and head_radius is not None:
-            raise ValueError('sigmas must be supplied if head_radius is not '
-                             'None')
+    if len(sigmas) <= 1 and head_radius is not None:
+        raise ValueError('at least 2 sigmas must be supplied if '
+                         'head_radius is not None, got %s' % (len(sigmas),))
     if (isinstance(r0, string_types) and r0 == 'auto') or \
        (isinstance(head_radius, string_types) and head_radius == 'auto'):
         if info is None:
@@ -1106,7 +1105,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 'SUBJECT = %s\n'
                 'Results dir = %s\n' % (subjects_dir, subject, ws_dir))
     os.makedirs(op.join(ws_dir, 'ws'))
-    run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+    run_subprocess(cmd, env=env)
 
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
@@ -1653,8 +1652,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                     logger.info("The file %s is already there")
                 else:
                     cmd = ['mri_convert', sample_file, dest_file]
-                    run_subprocess(cmd, env=env, stdout=sys.stdout,
-                                   stderr=sys.stderr)
+                    run_subprocess(cmd, env=env)
                     echos_done += 1
     # Step 1b : Run grad_unwarp on converted files
     os.chdir(op.join(mri_dir, "flash"))
@@ -1665,7 +1663,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
             outfile = infile.replace(".mgz", "u.mgz")
             cmd = ['grad_unwarp', '-i', infile, '-o', outfile, '-unwarp',
                    'true']
-            run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+            run_subprocess(cmd, env=env)
     # Clear parameter maps if some of the data were reconverted
     if echos_done > 0 and op.exists("parameter_maps"):
         shutil.rmtree("parameter_maps")
@@ -1679,7 +1677,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
             files = glob.glob("mef05*u.mgz")
         if len(os.listdir('parameter_maps')) == 0:
             cmd = ['mri_ms_fitparms'] + files + ['parameter_maps']
-            run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+            run_subprocess(cmd, env=env)
         else:
             logger.info("Parameter maps were already computed")
         # Step 3 : Synthesize the flash 5 images
@@ -1688,7 +1686,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         if not op.exists('flash5.mgz'):
             cmd = ['mri_synthesize', '20 5 5', 'T1.mgz', 'PD.mgz',
                    'flash5.mgz']
-            run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+            run_subprocess(cmd, env=env)
             os.remove('flash5_reg.mgz')
         else:
             logger.info("Synthesized flash 5 volume is already there")
@@ -1700,7 +1698,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         else:
             files = glob.glob("mef05*.mgz")
         cmd = ['mri_average', '-noconform', files, 'flash5.mgz']
-        run_subprocess(cmd, env=env, stdout=sys.stdout)
+        run_subprocess(cmd, env=env)
         if op.exists('flash5_reg.mgz'):
             os.remove('flash5_reg.mgz')
 
@@ -1776,7 +1774,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             ref_volume = op.join(mri_dir, 'T1')
         cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
                '-o', flash5_reg]
-        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+        run_subprocess(cmd, env=env)
     else:
         logger.info("Registered flash 5 image is already there")
     # Step 5a : Convert flash5 into COR
@@ -1785,7 +1783,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     os.makedirs(op.join(mri_dir, 'flash5'))
     if not is_test:  # CIs don't have freesurfer, skipped when testing.
         cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
-        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+        run_subprocess(cmd, env=env)
     # Step 5b and c : Convert the mgz volumes into COR
     os.chdir(mri_dir)
     convert_T1 = False
@@ -1800,7 +1798,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             raise RuntimeError("Both T1 mgz and T1 COR volumes missing.")
         os.makedirs('T1')
         cmd = ['mri_convert', 'T1.mgz', 'T1']
-        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+        run_subprocess(cmd, env=env)
     else:
         logger.info("T1 volume is already in COR format")
     logger.info("\n---- Converting brain volume into COR format ----")
@@ -1809,14 +1807,14 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             raise RuntimeError("Both brain mgz and brain COR volumes missing.")
         os.makedirs('brain')
         cmd = ['mri_convert', 'brain.mgz', 'brain']
-        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+        run_subprocess(cmd, env=env)
     else:
         logger.info("Brain volume is already in COR format")
     # Finally ready to go
     if not is_test:  # CIs don't have freesurfer, skipped when testing.
         logger.info("\n---- Creating the BEM surfaces ----")
         cmd = ['mri_make_bem_surfaces', subject]
-        run_subprocess(cmd, env=env, stdout=sys.stdout, stderr=sys.stderr)
+        run_subprocess(cmd, env=env)
 
     logger.info("\n---- Converting the tri files into surf files ----")
     os.chdir(bem_dir)

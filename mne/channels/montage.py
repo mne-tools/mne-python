@@ -84,7 +84,7 @@ class Montage(object):
         return _pol_to_cart(_cart_to_sph(self.pos)[:, 1:][:, ::-1])
 
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=20, show_names=False, kind='topomap',
+    def plot(self, scale_factor=20, show_names=True, kind='topomap',
              show=True):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
@@ -203,8 +203,6 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     GSN-HydroCel-129      HydroCel Geodesic Sensor Net and Cz (129+3 locations)
     GSN-HydroCel-256      HydroCel Geodesic Sensor Net (256+3 locations)
     GSN-HydroCel-257      HydroCel Geodesic Sensor Net and Cz (257+3 locations)
-
-    10-5_EGI129           462+3 locations
 
     mgh60                 The (older) 60-channel cap used at
                           MGH (60+3 locations)

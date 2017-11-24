@@ -16,11 +16,11 @@ from numpy.testing import assert_raises, assert_equal
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
-                 make_sphere_model)
+                 make_sphere_model, setup_volume_source_space)
 from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
 from mne.io.meas_info import write_dig
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
-                     plot_trans, snapshot_brain_montage, plot_head_positions,
+                     snapshot_brain_montage, plot_head_positions,
                      plot_alignment)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
@@ -160,7 +160,6 @@ def test_plot_alignment():
                        subjects_dir=subjects_dir, meg=meg)
         mlab.close(all=True)
     # KIT ref sensor coil def is defined
-    plot_trans(infos['KIT'], None, meg_sensors=True, ref_meg=True)
     mlab.close(all=True)
     info = infos['Neuromag']
     assert_raises(TypeError, plot_alignment, 'foo', trans_fname,
@@ -174,7 +173,6 @@ def test_plot_alignment():
                     brain='white')
     mlab.close(all=True)
     # no-head version
-    plot_trans(info, None, meg_sensors=True, dig=True, coord_frame='head')
     mlab.close(all=True)
     # all coord frames
     for coord_frame in ('meg', 'head', 'mri'):
@@ -202,20 +200,29 @@ def test_plot_alignment():
     bem_surfs = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
                                           'sample-1280-1280-1280-bem.fif'))
     sample_src[0]['coord_frame'] = 4  # hack for coverage
+    plot_alignment(info, subject='sample', eeg='projected',
+                   meg='helmet', bem=sphere, dig=True,
+                   surfaces=['brain', 'inner_skull', 'outer_skull',
+                             'outer_skin'])
     plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
-                   surfaces=['head', 'brain', 'inner_skull', 'outer_skull'],
-                   src=sample_src)
+                   surfaces=['head', 'brain'], src=sample_src)
     plot_alignment(info, trans_fname, subject='sample', meg=[],
                    subjects_dir=subjects_dir, bem=bem_sol, eeg=True,
                    surfaces=['head', 'inflated', 'outer_skull', 'inner_skull'])
     plot_alignment(info, trans_fname, subject='sample',
                    meg=True, subjects_dir=subjects_dir,
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
+    sphere = make_sphere_model('auto', 'auto', evoked.info)
+    src = setup_volume_source_space(sphere=sphere)
+    plot_alignment(info, eeg='projected', meg='helmet', bem=sphere,
+                   src=src, dig=True, surfaces=['brain', 'inner_skull',
+                                                'outer_skull', 'outer_skin'])
     sphere = make_sphere_model('auto', None, evoked.info)  # one layer
     plot_alignment(info, trans_fname, subject='sample', meg=False,
                    coord_frame='mri', subjects_dir=subjects_dir,
-                   surfaces=['brain'], bem=sphere)
+                   surfaces=['brain'], bem=sphere, show_axes=True)
+
     # one layer bem with skull surfaces:
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
@@ -230,6 +237,13 @@ def test_plot_alignment():
     assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   surfaces=['white', 'pial'])
+    assert_raises(TypeError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=[1])
+    assert_raises(ValueError, plot_alignment, info=info, trans=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  surfaces=['foo'])
+    mlab.close(all=True)
 
 
 @testing.requires_testing_data
@@ -307,10 +321,10 @@ def test_stc_mpl():
         fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
                        hemi='lh', smoothing_steps=2, subject='sample',
                        backend='matplotlib', spacing='ico2', time_viewer=True)
-    time_viewer = fig.time_viewer
-    _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change time
-    time_viewer.canvas.key_press_event('ctrl+right')
-    time_viewer.canvas.key_press_event('left')
+        time_viewer = fig.time_viewer
+        _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
+        time_viewer.canvas.key_press_event('ctrl+right')
+        time_viewer.canvas.key_press_event('left')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   hemi='both', subject='sample', backend='matplotlib')
     assert_raises(ValueError, stc.plot, subjects_dir=subjects_dir,
@@ -345,9 +359,9 @@ def test_plot_dipole_mri_orthoview():
 def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
     info = read_info(evoked_fname)
-    fig = plot_trans(info, trans=None, subject='sample',
-                     skull=['outer_skull', 'inner_skull'],
-                     subjects_dir=subjects_dir)  # deprecated, for coverage
+    with warnings.catch_warnings(record=True):  # deprecated
+        fig = plot_alignment(
+            info, trans=None, subject='sample', subjects_dir=subjects_dir)
 
     xyz = np.vstack([ich['loc'][:3] for ich in info['chs']])
     ch_names = [ich['ch_name'] for ich in info['chs']]

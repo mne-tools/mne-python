@@ -176,7 +176,11 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
         evo_cov = np.matrix(_regularized_covariance(evo, reg))
 
         # Fit spatial filters
-        evals, evecs = linalg.eigh(evo_cov, signal_cov)
+        try:
+            evals, evecs = linalg.eigh(evo_cov, signal_cov)
+        except np.linalg.LinAlgError as exp:
+            raise ValueError('Could not compute eigenvalues, ensure '
+                             'proper regularization (%s)' % (exp,))
         evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
         evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
         _patterns = np.linalg.pinv(evecs.T)
@@ -461,23 +465,27 @@ class Xdawn(_XdawnTransformer):
             self.evokeds_[eid] = evoked
         return self
 
-    def transform(self, epochs):
+    def transform(self, inst):
         """Apply Xdawn dim reduction.
 
         Parameters
         ----------
-        epochs : Epochs | ndarray, shape (n_epochs, n_channels, n_times)
+        inst : Epochs | Evoked | ndarray, shape ([n_epochs, ]n_channels, n_times)
             Data on which Xdawn filters will be applied.
 
         Returns
         -------
-        X : ndarray, shape (n_epochs, n_components * n_event_types, n_times)
+        X : ndarray, shape ([n_epochs, ]n_components * n_event_types, n_times)
             Spatially filtered signals.
-        """
-        if isinstance(epochs, BaseEpochs):
-            X = epochs.get_data()
-        elif isinstance(epochs, np.ndarray):
-            X = epochs
+        """  # noqa: E501
+        if isinstance(inst, BaseEpochs):
+            X = inst.get_data()
+        elif isinstance(inst, Evoked):
+            X = inst.data
+        elif isinstance(inst, np.ndarray):
+            X = inst
+            if X.ndim not in (2, 3):
+                raise ValueError('X must be 2D or 3D, got %s' % (X.ndim,))
         else:
             raise ValueError('Data input must be of Epoch type or numpy array')
 
@@ -485,7 +493,9 @@ class Xdawn(_XdawnTransformer):
                    for filt in itervalues(self.filters_)]
         filters = np.concatenate(filters, axis=0)
         X = np.dot(filters, X)
-        return X.transpose((1, 0, 2))
+        if X.ndim == 3:
+            X = X.transpose((1, 0, 2))
+        return X
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.

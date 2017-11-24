@@ -12,7 +12,7 @@ from ..io.pick import pick_channels_evoked
 from ..cov import compute_whitener
 from ..utils import logger, verbose
 from ..dipole import Dipole
-from ._lcmv import _prepare_beamformer_input, _setup_picks, _deprecate_picks
+from ._lcmv import _prepare_beamformer_input, _setup_picks
 
 
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
@@ -168,7 +168,7 @@ def _compute_subcorr(G, phi_sig):
     # in G and handle the fact that it might be rank defficient
     # eg. when using MEG and a sphere model for which the
     # radial component will be truly 0.
-    rank = np.sum(Sg > (Sg[0] * 1e-12))
+    rank = np.sum(Sg > (Sg[0] * 1e-6))
     if rank == 0:
         return 0, np.zeros(len(G))
     rank = max(rank, 2)  # rank cannot be 1
@@ -187,7 +187,7 @@ def _compute_proj(A):
 
 @verbose
 def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
-              picks=None, verbose=None):
+              verbose=None):
     """RAP-MUSIC source localization method.
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
@@ -208,11 +208,6 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
         The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    picks : array-like of int | None
-        Indices (in info) of data channels. If None, MEG and EEG data channels
-        (without bad channels) will be used.
-        picks is deprecated and will be removed in 0.16, specify the selection
-        of channels in info instead.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -248,8 +243,6 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     info = evoked.info
     data = evoked.data
     times = evoked.times
-
-    info = _deprecate_picks(info, picks)
 
     picks = _setup_picks(info, forward, data_cov=None, noise_cov=noise_cov)
 

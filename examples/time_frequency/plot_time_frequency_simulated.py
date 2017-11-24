@@ -36,7 +36,7 @@ ch_names = ['SIM0001', 'SIM0002']
 ch_types = ['grad', 'grad']
 info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
-n_times = int(sfreq)  # 1 second long epochs
+n_times = 1024  # Just over 1 second epochs
 n_epochs = 40
 seed = 42
 rng = np.random.RandomState(seed)
@@ -178,10 +178,10 @@ avgpower.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
 # MNE also has versions of the functions above which operate on numpy arrays
 # instead of MNE objects. They expect inputs of the shape
 # ``(n_epochs, n_channels, n_times)``. They will also return a numpy array
-# of shape ``(n_epochs, n_channels, n_frequencies, n_times)``.
+# of shape ``(n_epochs, n_channels, n_freqs, n_times)``.
 
 power = tfr_array_morlet(epochs.get_data(), sfreq=epochs.info['sfreq'],
-                         frequencies=freqs, n_cycles=n_cycles,
+                         freqs=freqs, n_cycles=n_cycles,
                          output='avg_power')
 # Baseline the output
 rescale(power, epochs.times, (0., 0.1), mode='mean', copy=False)

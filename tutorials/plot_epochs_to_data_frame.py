@@ -1,6 +1,4 @@
 """
-.. _tut_io_export_pandas:
-
 =================================
 Export epochs to Pandas DataFrame
 =================================
@@ -9,7 +7,11 @@ In this example the pandas exporter will be used to produce a DataFrame
 object. After exploring some basic features a split-apply-combine
 work flow will be conducted to examine the latencies of the response
 maxima across epochs and conditions.
-Note. Equivalent methods are available for raw and evoked data objects.
+
+.. note:: Equivalent methods are available for raw and evoked data objects.
+
+More information and additional introductory materials can be found at the
+pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
 
 Short Pandas Primer
 -------------------
@@ -37,13 +39,13 @@ Pandas DataFrame objects use a so called hierarchical index. This can be
 thought of as an array of unique tuples, in our case, representing the higher
 dimensional MEG data in a 2D data table. The column names are the channel names
 from the epoch object. The channels can be accessed like entries of a
-dictionary:
+dictionary::
 
-    df['MEG 2333']
+    >>> df['MEG 2333']
 
-Epochs and time slices can be accessed with the .ix method:
+Epochs and time slices can be accessed with the .loc method::
 
-    epochs_df.ix[(1, 2), 'MEG 2333']
+    >>> epochs_df.loc[(1, 2), 'MEG 2333']
 
 However, it is also possible to include this index as regular categorial data
 columns which yields a long table format typically used for repeated measure
@@ -81,11 +83,6 @@ to_records :
     export data as numpy record array.
 to_dict :
     export data as dict of arrays.
-
-Reference
-~~~~~~~~~
-More information and additional introductory materials can be found at the
-pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
 """
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #
@@ -102,8 +99,8 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
+# These data already have an average EEG ref applied
 raw = mne.io.read_raw_fif(raw_fname)
-raw.set_eeg_reference('average', projection=True)  # set EEG average reference
 
 # For simplicity we will only consider the first 10 epochs
 events = mne.read_events(event_fname)[:10]
@@ -132,10 +129,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 # factors in a long table style commonly used for analyzing repeated measure
 # designs.
 
-index, scale_time, scalings = ['epoch', 'time'], 1e3, dict(grad=1e13)
+index, scaling_time, scalings = ['epoch', 'time'], 1e3, dict(grad=1e13)
 
-df = epochs.to_data_frame(picks=None, scalings=scalings, scale_time=scale_time,
-                          index=index)
+df = epochs.to_data_frame(picks=None, scalings=scalings,
+                          scaling_time=scaling_time, index=index)
 
 # Create MEG channel selector and drop EOG channel.
 meg_chs = [c for c in df.columns if 'MEG' in c]
@@ -152,18 +149,18 @@ print(df.index.names, df.index.levels)
 
 # Inspecting the index object unveils that 'epoch', 'time' are used
 # for subsetting data. We can take advantage of that by using the
-# .ix attribute, where in this case the first position indexes the MultiIndex
+# .loc attribute, where in this case the first position indexes the MultiIndex
 # and the second the columns, that is, channels.
 
 # Plot some channels across the first three epochs
 xticks, sel = np.arange(3, 600, 120), meg_chs[:15]
-df.ix[:3, sel].plot(xticks=xticks)
+df.loc[:3, sel].plot(xticks=xticks)
 mne.viz.tight_layout()
 
 # slice the time starting at t0 in epoch 2 and ending 500ms after
 # the base line in epoch 3. Note that the second part of the tuple
 # represents time in milliseconds from stimulus onset.
-df.ix[(1, 0):(3, 500), sel].plot(xticks=xticks)
+df.loc[(1, 0):(3, 500), sel].plot(xticks=xticks)
 mne.viz.tight_layout()
 
 # Note: For convenience the index was converted from floating point values
@@ -196,7 +193,7 @@ mne.viz.tight_layout()
 # apply method and passing a function. Assume we wanted to know the time
 # slice of the maximum response for each condition.
 
-max_latency = grouped[sel[2]].apply(lambda x: df.time[x.argmax()])
+max_latency = grouped[sel[2]].apply(lambda x: df.time[x.idxmax()])
 
 print(max_latency)
 

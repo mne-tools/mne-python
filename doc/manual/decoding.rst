@@ -115,8 +115,8 @@ The columns of the matrix :math:`(W^{-1})^T` are called spatial patterns. This i
 
 Plotting a pattern is as simple as doing::
 
-    >>> info = epochs.info
-    >>> model.plot_patterns(info)  # model is an instantiation of an estimator described in this section
+    >>> info = epochs.info  # doctest: +SKIP
+    >>> model.plot_patterns(info)  # model is an instantiation of an estimator described in this section  # doctest: +SKIP
 
 .. image:: ../../_images/sphx_glr_plot_linear_model_patterns_001.png
    :align: center
@@ -124,7 +124,7 @@ Plotting a pattern is as simple as doing::
 
 To plot the corresponding filter, you can do::
 
-    >>> model.plot_filters(info)
+    >>> model.plot_filters(info)  # doctest: +SKIP
 
 .. image:: ../../_images/sphx_glr_plot_linear_model_patterns_002.png
    :align: center

@@ -15,7 +15,7 @@ from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
 from .channels.layout import _merge_grad_data, _pair_grad_sensors
-from .filter import resample, detrend, FilterMixin
+from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
@@ -91,6 +91,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Array of time instants in seconds.
     data : array of shape (n_channels, n_times)
         Evoked response.
+    times :  ndarray
+        Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
+        between consecutive time samples is equal to the inverse of the
+        sampling frequency.
     verbose : bool, str, int, or None.
         See above.
 
@@ -291,13 +295,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
-             spatial_colors=False, zorder='unsorted', selectable=True):
+             spatial_colors=False, zorder='unsorted', selectable=True,
+             verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
-            zorder=zorder, selectable=selectable)
+            zorder=zorder, selectable=selectable, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
@@ -311,47 +316,40 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
                   border='none', ylim=None, scalings=None, title=None,
-                  proj=False, vline=[0.0], fig_facecolor=None,
-                  fig_background=None, axis_facecolor=None, font_color=None,
+                  proj=False, vline=[0.0], fig_background=None,
                   merge_grads=False, legend=True, axes=None,
-                  background_color=None, show=True):
+                  background_color='w', show=True):
         """
 
         Notes
         -----
         .. versionadded:: 0.10.0
         """
-        return plot_evoked_topo(self, layout=layout, layout_scale=layout_scale,
-                                color=color, border=border, ylim=ylim,
-                                scalings=scalings, title=title, proj=proj,
-                                vline=vline, fig_facecolor=fig_facecolor,
-                                fig_background=fig_background,
-                                axis_facecolor=axis_facecolor,
-                                font_color=font_color, merge_grads=merge_grads,
-                                legend=legend, axes=axes,
-                                background_color=background_color, show=show)
+        return plot_evoked_topo(
+            self, layout=layout, layout_scale=layout_scale, color=color,
+            border=border, ylim=ylim, scalings=scalings, title=title,
+            proj=proj, vline=vline, fig_background=fig_background,
+            merge_grads=merge_grads, legend=legend, axes=axes,
+            background_color=background_color, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
                      vmax=None, cmap=None, sensors=True, colorbar=True,
-                     scale=None, scale_time=1e3, unit=None, res=64, size=1,
-                     cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
-                     show=True, show_names=False, title=None, mask=None,
-                     mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None,
-                     axes=None):
-        return plot_evoked_topomap(self, times=times, ch_type=ch_type,
-                                   layout=layout, vmin=vmin, vmax=vmax,
-                                   cmap=cmap, sensors=sensors,
-                                   colorbar=colorbar, scale=scale,
-                                   scale_time=scale_time, unit=unit, res=res,
-                                   proj=proj, size=size, cbar_fmt=cbar_fmt,
-                                   time_format=time_format, show=show,
-                                   show_names=show_names, title=title,
-                                   mask=mask, mask_params=mask_params,
-                                   outlines=outlines, contours=contours,
-                                   image_interp=image_interp, average=average,
-                                   head_pos=head_pos, axes=axes)
+                     scalings=None, scaling_time=1e3, units=None, res=64,
+                     size=1, cbar_fmt="%3.1f", time_format='%01d ms',
+                     proj=False, show=True, show_names=False, title=None,
+                     mask=None, mask_params=None, outlines='head',
+                     contours=6, image_interp='bilinear', average=None,
+                     head_pos=None, axes=None):
+        return plot_evoked_topomap(
+            self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
+            vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
+            scalings=scalings, scaling_time=scaling_time, units=units, res=res,
+            size=size, cbar_fmt=cbar_fmt, time_format=time_format,
+            proj=proj, show=show, show_names=show_names, title=title,
+            mask=mask, mask_params=mask_params, outlines=outlines,
+            contours=contours, image_interp=image_interp, average=average,
+            head_pos=head_pos, axes=axes)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -359,7 +357,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
 
-    def plot_white(self, noise_cov, show=True):
+    def plot_white(self, noise_cov, show=True, rank=None):
         """Plot whitened evoked response.
 
         Plots the whitened evoked response and the whitened GFP as described in
@@ -380,6 +378,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             The noise covariance as computed by ``mne.cov.compute_covariance``.
         show : bool
             Whether to show the figure or not. Defaults to True.
+        rank : dict of int | None
+            Dict of ints where keys are 'eeg', 'meg', mag' or 'grad'. If None,
+            the rank is detected automatically. Defaults to None. 'mag' or
+            'grad' cannot be specified jointly with 'meg'. For SSS'd data,
+            only 'meg' is valid. For non-SSS'd data, 'mag' and/or 'grad' must
+            be specified separately. If only one is specified, the other one
+            gets estimated. Note. The rank estimation will be printed by the
+            logger for each noise covariance estimator that is passed.
 
         Returns
         -------
@@ -397,7 +403,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         .. versionadded:: 0.9.0
         """
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
-                                  rank=None, show=show)
+                                  rank=rank, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(self, times="peaks", title='', picks=None,
@@ -458,7 +464,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Compute virtual evoked using interpolated fields.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
-            unexpected results. The virtual channels have `'_virtual'` appended
+            unexpected results. The virtual channels have `'_v'` appended
             at the end of the names to emphasize that the data contained in
             them are interpolated.
 
@@ -482,38 +488,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         from .forward import _as_meg_type_evoked
         return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
-
-    def resample(self, sfreq, npad='auto', window='boxcar'):
-        """Resample data.
-
-        This function operates in-place.
-
-        Parameters
-        ----------
-        sfreq : float
-            New sample rate to use
-        npad : int | str
-            Amount to pad the start and end of the data.
-            Can also be "auto" to use a padding that will result in
-            a power-of-two size (can be much faster).
-        window : string or tuple
-            Window to use in resampling. See scipy.signal.resample.
-
-        Returns
-        -------
-        evoked : instance of mne.Evoked
-            The resampled evoked object.
-        """
-        sfreq = float(sfreq)
-        o_sfreq = self.info['sfreq']
-        self.data = resample(self.data, sfreq, o_sfreq, npad, -1, window)
-        # adjust indirectly affected variables
-        self.info['sfreq'] = sfreq
-        self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq +
-                      self.times[0])
-        self.first = int(self.times[0] * self.info['sfreq'])
-        self.last = len(self.times) + self.first - 1
-        return self
 
     def detrend(self, order=1, picks=None):
         """Detrend data.
@@ -563,7 +537,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return out
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None,
-                 mode='abs', time_as_index=False, merge_grads=False):
+                 mode='abs', time_as_index=False, merge_grads=False,
+                 return_amplitude=False):
         """Get location and latency of peak amplitude.
 
         Parameters
@@ -587,7 +562,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Whether to return the time index instead of the latency in seconds.
         merge_grads : bool
             If True, compute peak from merged gradiometer data.
+        return_amplitude : bool
+            If True, return also the amplitude at the maximum response.
 
+            .. versionadded:: 0.16
+            
         Returns
         -------
         ch_name : str
@@ -595,6 +574,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         latency : float | int
             The time point of the maximum response, either latency in seconds
             or index.
+        amplitude : float
+            The amplitude of the maximum response. Only returned if
+            return_amplitude is True.
+        
+            .. versionadded:: 0.16
         """
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
                      'hbr', 'None')
@@ -656,10 +640,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             data = _merge_grad_data(data)
             ch_names = [ch_name[:-1] + 'X' for ch_name in ch_names[::2]]
 
-        ch_idx, time_idx = _get_peak(data, self.times, tmin,
-                                     tmax, mode)
-        return (ch_names[ch_idx],
-                time_idx if time_as_index else self.times[time_idx])
+        ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin,
+                                              tmax, mode)
+
+        out = (ch_names[ch_idx], time_idx if time_as_index else
+               self.times[time_idx])
+
+        if return_amplitude:
+            out += (max_amp,)
+
+        return out
 
 
 def _check_decim(info, decim, offset):
@@ -787,7 +777,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
                          'could not be found.')
     t = [_aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
-    t = '  ' + '\n  '.join(t)
+    t = '\n'.join(t)
     return comments, aspect_kinds, t
 
 
@@ -864,6 +854,18 @@ def grand_average(all_evoked, interpolate_bads=True):
     return grand_average
 
 
+def _check_evokeds_ch_names_times(all_evoked):
+    evoked = all_evoked[0]
+    ch_names = evoked.ch_names
+    for ev in all_evoked[1:]:
+        if ev.ch_names != ch_names:
+            raise ValueError(
+                "%s and %s do not contain the same channels" % (evoked, ev))
+        if not np.max(np.abs(ev.times - evoked.times)) < 1e-7:
+            raise ValueError("%s and %s do not contain the same time instants"
+                             % (evoked, ev))
+
+
 def combine_evoked(all_evoked, weights):
     """Merge evoked data by weighted addition or subtraction.
 
@@ -902,14 +904,7 @@ def combine_evoked(all_evoked, weights):
     if weights.ndim != 1 or weights.size != len(all_evoked):
         raise ValueError('weights must be the same size as all_evoked')
 
-    ch_names = evoked.ch_names
-    for e in all_evoked[1:]:
-        assert e.ch_names == ch_names, ValueError("%s and %s do not contain "
-                                                  "the same channels"
-                                                  % (evoked, e))
-        assert np.max(np.abs(e.times - evoked.times)) < 1e-7, \
-            ValueError("%s and %s do not contain the same time instants"
-                       % (evoked, e))
+    _check_evokeds_ch_names_times(all_evoked)
 
     # use union of bad channels
     bads = list(set(evoked.info['bads']).union(*(ev.info['bads']
@@ -1034,7 +1029,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             found_cond = np.where(goods)[0]
             if len(found_cond) != 1:
                 raise ValueError('condition "%s" (%s) not found, out of '
-                                 'found datasets:\n  %s'
+                                 'found datasets:\n%s'
                                  % (condition, kind, t))
             condition = found_cond[0]
         elif condition is None:
@@ -1278,6 +1273,8 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
         The index of the feature with the maximum value.
     max_time : int
         The time point of the maximum response, index.
+    max_amp : float
+        Amplitude of the maximum response.
     """
     modes = ('abs', 'neg', 'pos')
     if mode not in modes:
@@ -1319,4 +1316,4 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
 
     max_loc, max_time = np.unravel_index(maxfun(masked_index), data.shape)
 
-    return max_loc, max_time
+    return max_loc, max_time, data[max_loc, max_time]

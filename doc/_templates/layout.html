@@ -2,6 +2,8 @@
 
 {% block extrahead %}
 
+    <script type="text/javascript" src="{{ pathto('_static/copybutton.js', 1) }}"></script>
+
 {% if use_google_analytics|tobool %}
     <script type="text/javascript">
     var _gaq = _gaq || [];
@@ -45,7 +47,7 @@
 {% block relbar1 %}
 {% if build_dev_html|tobool %}
 <div class="row devbar alert alert-danger">
-This documentation is for the <strong>development version {{ release }}</strong> - <a href="http://martinos.org/mne/stable">switch to Stable</a>
+This documentation is for <strong>development version {{ release }}</strong>.
 </div>
 {% endif %}
 

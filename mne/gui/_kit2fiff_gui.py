@@ -20,7 +20,7 @@ from ..utils import get_config, set_config, logger
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import (confirm, error, FileDialog, OK, YES, information,
-                        ProgressDialog)
+                        ProgressDialog, warning)
 from traits.api import (HasTraits, HasPrivateTraits, cached_property, Instance,
                         Property, Bool, Button, Enum, File, Float, Int, List,
                         Str, Array, DelegatesTo)
@@ -31,7 +31,8 @@ from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
 from ..io.constants import FIFF
-from ..io.kit.kit import RawKIT, KIT, _make_stim_channel, _default_stim_chs
+from ..io.kit.kit import (RawKIT, KIT, _make_stim_channel, _default_stim_chs,
+                          UnsupportedKITFormat)
 from ..transforms import (apply_trans, als_ras_trans,
                           get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
@@ -73,6 +74,7 @@ class Kit2FiffModel(HasPrivateTraits):
     # Input Traits
     markers = Instance(CombineMarkersModel, ())
     sqd_file = File(exists=True, filter=kit_con_wildcard)
+    allow_unknown_format = Bool(False)
     hsp_file = File(exists=True, filter=hsp_wildcard)
     fid_file = File(exists=True, filter=elp_wildcard)
     stim_coding = Enum(">", "<", "channel")
@@ -308,7 +310,18 @@ class Kit2FiffModel(HasPrivateTraits):
         if not self.sqd_file:
             return
         try:
-            return RawKIT(self.sqd_file, stim=None)
+            return RawKIT(self.sqd_file, stim=None,
+                          allow_unknown_format=self.allow_unknown_format)
+        except UnsupportedKITFormat as exception:
+            warning(
+                None,
+                "The selected SQD file is written in an old file format (%s) "
+                "that is not officially supported. Confirm that the results "
+                "are as expected. This warning is displayed only once per "
+                "session." % (exception.sqd_version,),
+                "Unsupported SQD File Format")
+            self.allow_unknown_format = True
+            return self._get_raw()
         except Exception as err:
             self.reset_traits(['sqd_file'])
             if self.show_gui:
@@ -335,7 +348,7 @@ class Kit2FiffModel(HasPrivateTraits):
                 picks = eval("r_[%s]" % self.stim_chs, vars(np))
                 if picks.dtype.kind != 'i':
                     raise TypeError("Need array of int")
-            except:
+            except Exception:
                 return None
 
         if self.stim_coding == '<':  # Big-endian

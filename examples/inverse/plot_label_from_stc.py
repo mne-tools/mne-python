@@ -9,7 +9,6 @@ Here we compare the average time course in the anatomical label obtained
 by FreeSurfer segmentation and the average time course from the
 functional label. As expected the time course in the functional
 label yields higher values.
-
 """
 # Author: Luke Bloy <luke.bloy@gmail.com>
 #         Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -62,8 +61,11 @@ stc_mean_label = stc_mean.in_label(label)
 data = np.abs(stc_mean_label.data)
 stc_mean_label.data[data < 0.6 * np.max(data)] = 0.
 
+# 8.5% of original source space vertices were omitted during forward
+# calculation, suppress the warning here with verbose='error'
 func_labels, _ = mne.stc_to_label(stc_mean_label, src=src, smooth=True,
-                                  subjects_dir=subjects_dir, connected=True)
+                                  subjects_dir=subjects_dir, connected=True,
+                                  verbose='error')
 
 # take first as func_labels are ordered based on maximum values in stc
 func_label = func_labels[0]

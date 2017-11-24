@@ -3,6 +3,8 @@
 # License: BSD (3-clause)
 
 import os
+import sys
+from unittest import SkipTest
 import warnings
 
 import numpy as np
@@ -18,6 +20,12 @@ mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 mrk_avg_path = os.path.join(kit_data_dir, 'test_mrk.sqd')
 
 warnings.simplefilter('always')
+
+
+def _check_ci():
+    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
+            sys.platform == 'darwin':
+        raise SkipTest('Skipping GUI tests on Travis OSX')
 
 
 @requires_mayavi
@@ -71,6 +79,7 @@ def test_combine_markers_model():
     model.mrk2.file = mrk_post_path
     assert_array_equal(model.mrk3.points, points_interpolate_mrk1_mrk2)
 
+    _check_ci()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     try:
         with warnings.catch_warnings(record=True):  # traits warnings

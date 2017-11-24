@@ -3,7 +3,7 @@
 Compute sparse inverse solution with mixed norm: MxNE and irMxNE
 ================================================================
 
-Runs (ir)MxNE (L1/L2 [1]_ or L0.5/L2 [2]_ mixed norm) inverse solver.
+Runs an (ir)MxNE (L1/L2 [1]_ or L0.5/L2 [2]_ mixed norm) inverse solver.
 L0.5/L2 is done with irMxNE which allows for sparser
 source estimates with less amplitude bias due to the non-convexity
 of the L0.5/L2 mixed norm penalty.
@@ -49,18 +49,19 @@ condition = 'Left Auditory'
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked.crop(tmin=0, tmax=0.3)
 # Handling forward solution
-forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
+forward = mne.read_forward_solution(fwd_fname)
 
 ###############################################################################
 # Run solver
-alpha = 50  # regularization parameter between 0 and 100 (100 is high)
+alpha = 55  # regularization parameter between 0 and 100 (100 is high)
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
 n_mxne_iter = 10  # if > 1 use L0.5/L2 reweighted mixed norm solver
 # if n_mxne_iter > 1 dSPM weighting can be avoided.
 
 # Compute dSPM solution to be used as weights in MxNE
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,
-                                         loose=None, depth=depth, fixed=True)
+                                         depth=depth, fixed=True,
+                                         use_cps=True)
 stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 

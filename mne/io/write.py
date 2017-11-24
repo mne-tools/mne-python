@@ -331,14 +331,9 @@ def write_ch_info(fid, ch):
     fid.write(np.array(ch['unit_mul'], dtype='>i4').tostring())
 
     #   Finally channel name
-    if len(ch['ch_name']):
-        ch_name = ch['ch_name'][:15]
-    else:
-        ch_name = ch['ch_name']
-
+    ch_name = ch['ch_name'][:15]
     fid.write(np.array(ch_name, dtype='>c').tostring())
-    if len(ch_name) < 16:
-        fid.write(b('\0') * (16 - len(ch_name)))
+    fid.write(b('\0') * (16 - len(ch_name)))
 
 
 def write_dig_points(fid, dig, block=False, coord_frame=None):

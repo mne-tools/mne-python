@@ -11,7 +11,7 @@ from __future__ import print_function
 from functools import partial
 from itertools import cycle
 from copy import deepcopy
-
+from matplotlib.colors import colorConverter
 import numpy as np
 
 from ..io.constants import Bunch
@@ -91,6 +91,25 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
     if fig is None:
         fig = plt.figure()
 
+    def format_coord_unified(x, y, pos=None, ch_names=None):
+        """Update status bar with channel name under cursor."""
+        # find candidate channels (ones that are down and left from cursor)
+        pdist = np.array([x, y]) - pos[:, :2]
+        pind = np.where((pdist >= 0).all(axis=1))[0]
+        if len(pind) > 0:
+            # find the closest channel
+            closest = pind[np.sum(pdist[pind, :]**2, axis=1).argmin()]
+            # check whether we are inside its box
+            in_box = (pdist[closest, :] < pos[closest, 2:]).all()
+        else:
+            in_box = False
+        return (('%s (click to magnify)' % ch_names[closest]) if
+                in_box else 'No channel here')
+
+    def format_coord_multiaxis(x, y, ch_name=None):
+        """Update status bar with channel name under cursor."""
+        return '%s (click to magnify)' % ch_name
+
     fig.set_facecolor(fig_facecolor)
     if layout is None:
         layout = find_layout(info)
@@ -111,7 +130,10 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
             under_ax.axis('off')
         else:
             under_ax = axes
+        under_ax.format_coord = partial(format_coord_unified, pos=pos,
+                                        ch_names=layout.names)
         under_ax.set(xlim=[0, 1], ylim=[0, 1])
+
         axs = list()
     for idx, name in iter_ch:
         ch_idx = ch_names.index(name)
@@ -126,6 +148,7 @@ def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
             ax._mne_ch_name = name
             ax._mne_ch_idx = ch_idx
             ax._mne_ax_face_color = axis_facecolor
+            ax.format_coord = partial(format_coord_multiaxis, ch_name=name)
             yield ax, ch_idx
         else:
             ax = Bunch(ax=under_ax, pos=pos[idx], data_lines=list(),
@@ -170,17 +193,18 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
 
     if axes is None:
         fig = plt.figure()
+        axes = plt.axes([0.015, 0.025, 0.97, 0.95])
+        _set_ax_facecolor(axes, fig_facecolor)
     else:
         fig = axes.figure
     if colorbar:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        ax = plt.axes([0.015, 0.025, 1.05, .8])
-        _set_ax_facecolor(ax, fig_facecolor)
-        cb = fig.colorbar(sm, ax=ax)
+        cb = fig.colorbar(sm, ax=axes, pad=0.025, fraction=0.075, shrink=0.5,
+                          anchor=(-1, 0.5))
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
         plt.setp(cb_yticks, color=font_color)
-        ax.axis('off')
+    axes.axis('off')
 
     my_topo_plot = _iter_topography(info, layout=layout, on_pick=on_pick,
                                     fig=fig, layout_scale=layout_scale,
@@ -209,10 +233,6 @@ def _plot_topo_onpick(event, show_func):
     """Onpick callback that shows a single channel in a new figure."""
     # make sure that the swipe gesture in OS-X doesn't open many figures
     orig_ax = event.inaxes
-    if event.inaxes is None or (not hasattr(orig_ax, '_mne_ch_idx') and
-                                not hasattr(orig_ax, '_mne_axs')):
-        return
-
     import matplotlib.pyplot as plt
     try:
         if hasattr(orig_ax, '_mne_axs'):  # in unified, single-axes mode
@@ -224,7 +244,11 @@ def _plot_topo_onpick(event, show_func):
                     orig_ax = ax
                     break
             else:
+                # no axis found
                 return
+        elif not hasattr(orig_ax, '_mne_ch_idx'):
+            # neither old nor new mode
+            return
         ch_idx = orig_ax._mne_ch_idx
         face_color = orig_ax._mne_ax_face_color
         fig, ax = plt.subplots(1)
@@ -356,7 +380,8 @@ def _imshow_tfr_unified(bn, ch_idx, tmin, tmax, vmin, vmax, onselect,
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      times, vline=None, x_label=None, y_label=None,
-                     colorbar=False, hline=None, hvline_color='w'):
+                     colorbar=False, hline=None, hvline_color='w',
+                     labels=None):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
     picker_flag = False
@@ -376,6 +401,57 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
             ax.set_ylabel(y_label[ch_idx])
         else:
             ax.set_ylabel(y_label)
+
+    def _format_coord(x, y, labels, ax):
+        """Create status string based on cursor coordinates."""
+        idx = np.abs(times - x).argmin()
+        ylabel = ax.get_ylabel()
+        unit = (ylabel[ylabel.find('(') + 1:ylabel.find(')')]
+                if '(' in ylabel and ')' in ylabel else '')
+        labels = [''] * len(data) if labels is None else labels
+        # try to estimate whether to truncate condition labels
+        slen = 10 + sum([12 + len(unit) + len(label) for label in labels])
+        bar_width = (ax.figure.get_size_inches() * ax.figure.dpi)[0] / 5.5
+        trunc_labels = bar_width < slen
+        s = '%6.3f s: ' % times[idx]
+        for data_, label in zip(data, labels):
+            s += '%7.2f %s' % (data_[ch_idx, idx], unit)
+            if trunc_labels:
+                label = (label if len(label) <= 10 else
+                         '%s..%s' % (label[:6], label[-2:]))
+            s += ' [%s] ' % label if label else ' '
+        return s
+
+    ax.format_coord = lambda x, y: _format_coord(x, y, labels=labels, ax=ax)
+
+    def _cursor_vline(event):
+        """Draw cursor (vertical line)."""
+        ax = event.inaxes
+        if not ax:
+            return
+        if ax._cursorline is not None:
+            ax._cursorline.remove()
+        ax._cursorline = ax.axvline(event.xdata, color=ax._cursorcolor)
+        ax.figure.canvas.draw()
+
+    def _rm_cursor(event):
+        ax = event.inaxes
+        if ax._cursorline is not None:
+            ax._cursorline.remove()
+            ax._cursorline = None
+        ax.figure.canvas.draw()
+
+    ax._cursorline = None
+    # choose cursor color based on perceived brightness of background
+    try:
+        facecol = colorConverter.to_rgb(ax.get_facecolor())
+    except AttributeError:  # older MPL
+        facecol = colorConverter.to_rgb(ax.get_axis_bgcolor())
+    face_brightness = np.dot(facecol, np.array([299, 587, 114]))
+    ax._cursorcolor = 'white' if face_brightness < 150 else 'black'
+
+    plt.connect('motion_notify_event', _cursor_vline)
+    plt.connect('axes_leave_event', _rm_cursor)
 
     _setup_ax_spines(ax, vline, tmin, tmax)
     ax.figure.set_facecolor('k' if hvline_color is 'w' else 'w')
@@ -414,7 +490,7 @@ def _plot_timeseries_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim, data,
     for data_, color_ in zip(data, color):
         data_lines.append(ax.plot(
             bn.x_t + bn.x_s * times, bn.y_t + bn.y_s * data_[ch_idx],
-            color=color_, clip_on=True, clip_box=pos)[0])
+            linewidth=0.5, color=color_, clip_on=True, clip_box=pos)[0])
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
         ax.vlines(vline, pos[1], pos[1] + pos[3], color=hvline_color,
@@ -675,11 +751,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         raise TypeError('ylim must be None or a dict. Got %s.' % type(ylim))
 
     data = [e.data for e in evoked]
+    comments = [e.comment for e in evoked]
     show_func = partial(_plot_timeseries_unified, data=data, color=color,
                         times=times, vline=vline, hline=hline,
                         hvline_color=font_color)
     click_func = partial(_plot_timeseries, data=data, color=color, times=times,
-                         vline=vline, hline=hline, hvline_color=font_color)
+                         vline=vline, hline=hline, hvline_color=font_color,
+                         labels=comments)
 
     fig = _plot_topo(info=info, times=times, show_func=show_func,
                      click_func=click_func, layout=layout, colorbar=False,

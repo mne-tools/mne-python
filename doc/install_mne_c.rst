@@ -48,13 +48,13 @@ Installing from a compressed tar archive
 
 Go to the directory where you want the software to be installed:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ cd <dir>
 
 Unpack the tar archive:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ tar zxvf <software package>
 
@@ -88,13 +88,13 @@ here referred to by the environment variable MNE_ROOT. There are
 two scripts for setting up user environment so that the software
 can be used conveniently:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ $MNE_ROOT/bin/mne_setup_sh
 
 and
 
-.. code-block:: bash
+.. code-block:: console
 
     $ $MNE_ROOT/bin/mne_setup
 
@@ -103,14 +103,14 @@ the scripts set environment variables they should be 'sourced' to
 the present shell. You can find which type of a shell you are using
 by saying
 
-.. code-block:: bash
+.. code-block:: console
 
     $ echo $SHELL
 
-If the output indicates a POSIX shell (bash or sh) you should issue
+If the output indicates a POSIX shell (``bash`` or ``sh``) you should issue
 the three commands:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ export MNE_ROOT=<MNE>
     $ export MATLAB_ROOT=<Matlab>
@@ -228,7 +228,7 @@ key (usually control-c) is pressed on the terminal window.
 mne_opengl_test is located
 in the ``bin`` directory and is thus started as:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ $MNE_ROOT/bin/mne_opengl_test
 

@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_equal)
+import pytest
 
 import copy as cp
 
@@ -19,7 +20,7 @@ from mne.io.proj import (make_projector, activate_proj,
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne.tests.common import assert_naming
-from mne.utils import _TempDir, run_tests_if_main, slow_test
+from mne.utils import _TempDir, run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -55,7 +56,7 @@ def test_bad_proj():
     _check_warnings(raw, events, count=0)
     # eeg avg ref is okay
     raw = read_raw_fif(raw_fname, preload=True).pick_types(meg=False, eeg=True)
-    raw.set_eeg_reference()
+    raw.set_eeg_reference(projection=True)
     _check_warnings(raw, events, count=0)
     raw.info['bads'] = raw.ch_names[:10]
     _check_warnings(raw, events, count=0)
@@ -102,7 +103,8 @@ def _check_warnings(raw, events, picks=None, count=3):
 @testing.requires_testing_data
 def test_sensitivity_maps():
     """Test sensitivity map computation."""
-    fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
+    fwd = mne.read_forward_solution(fwd_fname)
+    fwd = mne.convert_forward_solution(fwd, surf_ori=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         projs = read_proj(eog_fname)
@@ -225,7 +227,7 @@ def test_compute_proj_epochs():
     assert_naming(w, 'test_proj.py', 2)
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_compute_proj_raw():
     """Test SSP computation on raw"""
     tempdir = _TempDir()
@@ -340,5 +342,6 @@ def test_needs_eeg_average_ref_proj():
     raw = read_raw_fif(raw_fname)
     raw.info['custom_ref_applied'] = True
     assert_true(not _needs_eeg_average_ref_proj(raw.info))
+
 
 run_tests_if_main()

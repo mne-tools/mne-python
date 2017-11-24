@@ -30,7 +30,8 @@ from .write import (start_file, end_file, start_block, end_block,
 
 from ..annotations import _annotations_starts_stops
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
-                      _resample_stim_channels)
+                      _resample_stim_channels, _filt_check_picks,
+                      _filt_update_info)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments,
@@ -58,7 +59,7 @@ class ToDataFrameMixin(object):
                                  'in this object instance.')
         return picks
 
-    def to_data_frame(self, picks=None, index=None, scale_time=1e3,
+    def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
                       scalings=None, copy=True, start=None, stop=None):
         """Export data in tabular structure as a pandas DataFrame.
 
@@ -77,7 +78,7 @@ class ToDataFrameMixin(object):
             Column to be used as index for the data. Valid string options
             are 'epoch', 'time' and 'condition'. If None, all three info
             columns will be included in the table as categorial data.
-        scale_time : float
+        scaling_time : float
             Scaling to be applied to time units.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
@@ -177,7 +178,7 @@ class ToDataFrameMixin(object):
                             'SourceEstimate. This is {0}'.format(type(self)))
 
         # Make sure that the time index is scaled correctly
-        times = np.round(times * scale_time)
+        times = np.round(times * scaling_time)
         mindex.append(('time', times))
 
         if index is not None:
@@ -1091,8 +1092,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
-               fir_window='hamming', fir_design=None,
-               skip_by_annotation=None, verbose=None):
+               fir_window='hamming', fir_design='firwin',
+               skip_by_annotation='edge', pad='reflect_limited', verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -1183,24 +1184,30 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.13
         fir_design : str
-            Can be "firwin" (default in 0.16) to use
-            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-            time-domain design technique that generally gives improved
+            Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+            or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+            a time-domain design technique that generally gives improved
             attenuation using fewer samples than "firwin2".
 
             .. versionadded:: 0.15
-
         skip_by_annotation : str | list of str
             If a string (or list of str), any annotation segment that begins
             with the given string will not be included in filtering, and
             segments on either side of the given excluded annotated segment
             will be filtered separately (i.e., as independent signals).
-            The default in 0.16 (``'edge'``) will separately filter any
+            The default (``'edge'``) will separately filter any
             segments that were concatenated by :func:`mne.concatenate_raws`
             or :meth:`mne.io.Raw.append`. To disable, provide an empty list.
 
             .. versionadded:: 0.16.
+        pad : str
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+            options. Can also be "reflect_limited" (default), which pads with a
+            reflected version of each vector mirrored on the first and last
+            values of the vector, followed by zeros.
+            Only used for ``method='fir'``.
+
+            .. versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1225,32 +1232,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         and :ref:`tut_artifacts_filter`.
         """
         _check_preload(self, 'raw.filter')
-        data_picks = _pick_data_or_ica(self.info)
-        update_info = False
-        if picks is None:
-            picks = data_picks
-            update_info = True
-            # let's be safe.
-            if len(picks) == 0:
-                raise RuntimeError('Could not find any valid channels for '
-                                   'your Raw object. Please contact the '
-                                   'MNE-Python developers.')
-        elif h_freq is not None or l_freq is not None:
-            if np.in1d(data_picks, picks).all():
-                update_info = True
-            else:
-                logger.info('Filtering a subset of channels. The highpass and '
-                            'lowpass values in the measurement info will not '
-                            'be updated.')
+        update_info, picks = _filt_check_picks(self.info, picks,
+                                               l_freq, h_freq)
         # Deal with annotations
-        if skip_by_annotation is None:
-            if self.annotations is not None and any(
-                    desc.upper().startswith('EDGE')
-                    for desc in self.annotations.description):
-                warn('skip_by_annotation defaults to [] in 0.15 but will '
-                     'change to "edge" in 0.16, set it explicitly to avoid '
-                     'this warning', DeprecationWarning)
-            skip_by_annotation = []
         onsets, ends = _annotations_starts_stops(self, skip_by_annotation,
                                                  'skip_by_annotation')
         if len(onsets) == 0 or onsets[0] != 0:
@@ -1264,18 +1248,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
                 picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
                 n_jobs, method, iir_params, copy=False, phase=phase,
-                fir_window=fir_window, fir_design=fir_design)
+                fir_window=fir_window, fir_design=fir_design, pad=pad)
         # update info if filter is applied to all data channels,
         # and it's not a band-stop filter
-        if update_info:
-            if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
-                    (self.info["lowpass"] is None or
-                     h_freq < self.info['lowpass']):
-                self.info['lowpass'] = float(h_freq)
-            if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
-                    (self.info["highpass"] is None or
-                     l_freq > self.info['highpass']):
-                self.info['highpass'] = float(l_freq)
+        _filt_update_info(self.info, update_info, l_freq, h_freq)
         return self
 
     @verbose
@@ -1283,7 +1259,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
-                     fir_design=None, verbose=None):
+                     fir_design='firwin', pad='reflect_limited', verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -1360,13 +1336,20 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             .. versionadded:: 0.13
         fir_design : str
-            Can be "firwin" (default in 0.16) to use
-            :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-            before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-            time-domain design technique that generally gives improved
+            Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+            or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+            a time-domain design technique that generally gives improved
             attenuation using fewer samples than "firwin2".
 
             ..versionadded:: 0.15
+        pad : str
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+            options. Can also be "reflect_limited" (default), which pads with a
+            reflected version of each vector mirrored on the first and last
+            values of the vector, followed by zeros.
+            Only used for ``method='fir'``.
+
+            .. versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1399,12 +1382,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
             method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
             p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
-            phase=phase, fir_window=fir_window, fir_design=fir_design)
+            phase=phase, fir_window=fir_window, fir_design=fir_design,
+            pad=pad)
         return self
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, verbose=None):
+                 n_jobs=1, events=None, pad='reflect_limited', verbose=None):
         """Resample all channels.
 
         The Raw object has to have the data loaded e.g. with ``preload=True``
@@ -1423,7 +1407,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      If resampling the continuous data is desired, it is
                      recommended to construct events using the original data.
                      The event onsets can be jointly resampled with the raw
-                     data using the 'events' parameter.
+                     data using the 'events' parameter (a resampled copy is
+                     returned).
 
         Parameters
         ----------
@@ -1447,7 +1432,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             is installed properly and CUDA is initialized.
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
-            are resampled jointly with the data.
+            are resampled jointly with the data. NB: The input events are not
+            modified, but a new array is returned with the raw instead.
+        pad : str
+            The type of padding to use. Supports all :func:`numpy.pad` ``mode``
+            options. Can also be "reflect_limited" (default), which pads with a
+            reflected version of each vector mirrored on the first and last
+            values of the vector, followed by zeros.
+
+            .. versionadded:: 0.15
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1457,6 +1450,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -------
         raw : instance of Raw
             The resampled version of the raw object.
+        events : 2D array, shape (n_events, 3) | None
+            If events are jointly resampled, these are returned with the raw.
 
         See Also
         --------
@@ -1498,7 +1493,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         for ri in range(len(self._raw_lengths)):
             data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
             new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
-                                     window=window, n_jobs=n_jobs))
+                                     window=window, n_jobs=n_jobs, pad=pad))
             new_ntimes = new_data[ri].shape[1]
 
             # In empirical testing, it was faster to resample all channels
@@ -1536,12 +1531,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             return self
         else:
-            if copy:
-                events = events.copy()
+            # always make a copy of events
+            events = events.copy()
 
             events[:, 0] = np.minimum(
                 np.round(events[:, 0] * ratio).astype(int),
-                self._data.shape[1]
+                self._data.shape[1] + self.first_samp
             )
             return self, events
 
@@ -1757,16 +1752,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot_psd(self, tmin=0.0, tmax=np.inf, fmin=0, fmax=np.inf,
                  proj=False, n_fft=None, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, average=None, show=True,
-                 n_jobs=1, line_alpha=None, spatial_colors=None,
+                 n_overlap=0, dB=True, estimate='auto', average=None,
+                 show=True, n_jobs=1, line_alpha=None, spatial_colors=None,
                  xscale='linear', reject_by_annotation=True, verbose=None):
         return plot_raw_psd(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj,
             n_fft=n_fft, picks=picks, ax=ax, color=color, area_mode=area_mode,
-            area_alpha=area_alpha, n_overlap=n_overlap, dB=dB, average=average,
-            show=show, n_jobs=n_jobs, line_alpha=line_alpha,
-            spatial_colors=spatial_colors, xscale=xscale,
-            reject_by_annotation=reject_by_annotation)
+            area_alpha=area_alpha, n_overlap=n_overlap, dB=dB,
+            estimate=estimate, average=average, show=show, n_jobs=n_jobs,
+            line_alpha=line_alpha, spatial_colors=spatial_colors,
+            xscale=xscale, reject_by_annotation=reject_by_annotation)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
@@ -2185,6 +2180,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     pos_prev = fid.tell()
     if pos_prev > split_size:
+        fid.close()
         raise ValueError('file is larger than "split_size" after writing '
                          'measurement information, you must use a larger '
                          'value for split size: %s plus enough bytes for '
@@ -2213,6 +2209,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         if overage > 0:
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
+            fid.close()
             raise ValueError(
                 'buffer size (%s) is too large for the given split size (%s) '
                 'by %s bytes after writing info (%s) and leaving enough space '

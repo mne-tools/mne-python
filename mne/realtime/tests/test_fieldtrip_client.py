@@ -84,7 +84,7 @@ def test_fieldtrip_client():
         assert_equal(n_channels, len(picks))
         assert_equal(n_channels2, len(picks))
         kill_signal.put(False)  # stop the buffer
-    except:
+    except Exception:
         kill_signal.put(False)  # stop the buffer even if tests fail
         raise
 

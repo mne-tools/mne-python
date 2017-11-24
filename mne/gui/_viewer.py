@@ -127,7 +127,7 @@ class Object(HasPrivateTraits):
     src = Instance(VTKDataSource)
 
     # This should be Tuple, but it is broken on Anaconda as of 2016/12/16
-    color = RGBColor()
+    color = RGBColor((1., 1., 1.))
     point_scale = Float(10, label='Point Scale')
     opacity = Range(low=0., high=1., value=1.)
     visible = Bool(True)
@@ -221,8 +221,8 @@ class PointObject(Object):
     @on_trait_change('scene.activated')
     def _plot_points(self):
         """Add the points to the mayavi pipeline"""
-        from . import _testing_mode
-
+        if self.scene is None:
+            return
         if hasattr(self.glyph, 'remove'):
             self.glyph.remove()
         if hasattr(self.src, 'remove'):
@@ -230,8 +230,12 @@ class PointObject(Object):
 
         _toggle_mlab_render(self, False)
         x, y, z = self.points.T
-        scatter = pipeline.scalar_scatter(x, y, z)
-        fig = self.scene.mayavi_scene if not _testing_mode() else None
+        fig = self.scene.mayavi_scene
+        scatter = pipeline.scalar_scatter(x, y, z, fig=fig)
+        if not scatter.running:
+            # this can occur sometimes during testing w/ui.dispose()
+            return
+        # fig.scene.engine.current_object is scatter
         glyph = pipeline.glyph(scatter, color=self.color,
                                figure=fig,
                                scale_factor=self.point_scale, opacity=1.,

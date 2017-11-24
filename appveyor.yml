@@ -1,8 +1,8 @@
 environment:
   global:
       PYTHON: "C:\\conda"
-      CONDA_DEPENDENCIES: "setuptools numpy scipy matplotlib scikit-learn mayavi pandas h5py PIL pyside pytest"
-      PIP_DEPENDENCIES: "git+git://github.com/nipy/PySurfer.git nibabel nitime nose-timer nose-faulthandler pytest-attrib"
+      CONDA_ENVIRONMENT: "environment.yml"
+      PIP_DEPENDENCIES: "codecov pytest-faulthandler"
   matrix:
       - PYTHON_VERSION: "2.7"
         PYTHON_ARCH: "64"
@@ -12,8 +12,9 @@ install:
   - "powershell ci-helpers/appveyor/install-miniconda.ps1"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "activate test"
+  - "pip uninstall -yq mne"
   - "python setup.py develop"
-  - "SET MNE_SKIP_NETWORK_TESTS=1"
+  - "python -c \"import mne; print(mne.sys_info())\""
   - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
   - "SET MNE_LOGGING_LEVEL=warning"
   - "python -c \"import mne; mne.datasets.testing.data_path()\""
@@ -22,4 +23,7 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the project tests, but (sadly) exclude ones that take a long time
-  - "py.test --doctest-modules -a \"not slow_test\" --showlocals --durations=20 mne"
+  - "py.test -m \"not ultraslowtest\" mne --cov=mne"
+
+on_success:
+  - "codecov"

@@ -4,7 +4,7 @@
 Source localization with MNE/dSPM/sLORETA
 =========================================
 
-The aim of this tutorials is to teach you how to compute and apply a linear
+The aim of this tutorial is to teach you how to compute and apply a linear
 inverse method such as MNE/dSPM/sLORETA on evoked/raw/epochs data.
 
 """
@@ -68,7 +68,8 @@ evoked.plot_white(noise_cov)
 # Read the forward solution and compute the inverse operator
 
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
-fwd = mne.read_forward_solution(fname_fwd, surf_ori=True)
+fwd = mne.read_forward_solution(fname_fwd)
+fwd = mne.convert_forward_solution(fwd, surf_ori=True)
 
 # Restrict forward solution as necessary for MEG
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=False)
@@ -98,6 +99,7 @@ del fwd, epochs  # to save memory
 # -------------
 # View activation time-series
 
+plt.figure()
 plt.plot(1e3 * stc.times, stc.data[::100, :].T)
 plt.xlabel('time (ms)')
 plt.ylabel('%s value' % method)

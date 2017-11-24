@@ -4,12 +4,12 @@ import warnings
 
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal, assert_raises
+import pytest
 
 import mne
 from mne import Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.io import read_raw_fif
-from mne.utils import (_TempDir, run_tests_if_main, slow_test, requires_h5py,
-                       grand_average)
+from mne.utils import _TempDir, run_tests_if_main, requires_h5py, grand_average
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
@@ -95,6 +95,20 @@ def test_time_frequency():
     assert_array_almost_equal(power.data, power_picks_avg.data)
     assert_array_almost_equal(itc.data, itc_picks.data)
     assert_array_almost_equal(power.data, power_evoked.data)
+    # complex output
+    assert_raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
+                  return_itc=False, average=True, output="complex")
+    assert_raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
+                  output="complex", average=False, return_itc=True)
+    epochs_power_complex = tfr_morlet(epochs, freqs, n_cycles,
+                                      output="complex", average=False,
+                                      return_itc=False)
+    epochs_power_2 = abs(epochs_power_complex)
+    epochs_power_3 = epochs_power_2.copy()
+    epochs_power_3.data[:] = np.inf  # test that it's actually copied
+    assert_array_almost_equal(epochs_power_2.data, epochs_power_picks.data)
+    power_2 = epochs_power_2.average()
+    assert_array_almost_equal(power_2.data, power.data)
 
     print(itc)  # test repr
     print(itc.ch_names)  # test property
@@ -240,7 +254,7 @@ def test_dpsswavelet():
     assert_true(len(Ws[0]) == len(freqs))  # As many wavelets as asked for
 
 
-@slow_test
+@pytest.mark.slowtest
 def test_tfr_multitaper():
     """Test tfr_multitaper."""
     sfreq = 200.0
@@ -510,11 +524,11 @@ def test_compute_tfr():
         # Check exception
         if (func == tfr_array_multitaper) and (output == 'phase'):
             assert_raises(NotImplementedError, func, data, sfreq=sfreq,
-                          frequencies=freqs, output=output)
+                          freqs=freqs, output=output)
             continue
 
         # Check runs
-        out = func(data, sfreq=sfreq, frequencies=freqs, use_fft=use_fft,
+        out = func(data, sfreq=sfreq, freqs=freqs, use_fft=use_fft,
                    zero_mean=zero_mean, n_cycles=2., output=output)
         # Check shapes
         shape = np.r_[data.shape[:2], len(freqs), data.shape[2]]

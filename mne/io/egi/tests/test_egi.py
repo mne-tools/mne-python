@@ -10,6 +10,8 @@ import inspect
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from nose.tools import assert_true, assert_raises, assert_equal
+from scipy import io as sio
+
 
 from mne import find_events, pick_types
 from mne.io import read_raw_egi
@@ -112,5 +114,47 @@ def test_io_egi():
     for ii, k in enumerate(include, 1):
         assert_true(k in raw.event_id)
         assert_true(raw.event_id[k] == ii)
+
+
+@requires_testing_data
+def test_io_egi_pns_mff():
+    """Test importing EGI MFF with PNS data"""
+    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns.mff')
+    raw = read_raw_egi(egi_fname_mff, include=None, preload=True,
+                       verbose='error')
+    assert_true('RawMff' in repr(raw))
+    pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
+    assert_equal(len(pns_chans), 7)
+    names = [raw.ch_names[x] for x in pns_chans]
+    pns_names = ['Resp. Temperature'[:15],
+                 'Resp. Pressure',
+                 'ECG',
+                 'Body Position',
+                 'Resp. Effort Chest'[:15],
+                 'Resp. Effort Abdomen'[:15],
+                 'EMG-Leg']
+    _test_raw_reader(read_raw_egi, input_fname=egi_fname_mff,
+                     channel_naming='EEG %03d', verbose='error')
+    assert_equal(names, pns_names)
+    mat_names = [
+        'Resp_Temperature'[:15],
+        'Resp_Pressure',
+        'ECG',
+        'Body_Position',
+        'Resp_Effort_Chest'[:15],
+        'Resp_Effort_Abdomen'[:15],
+        'EMGLeg'
+
+    ]
+    egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
+    mc = sio.loadmat(egi_fname_mat)
+    for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
+        print('Testing {}'.format(ch_name))
+        mc_key = [x for x in mc.keys() if mat_name in x][0]
+        cal = raw.info['chs'][ch_idx]['cal']
+        mat_data = mc[mc_key] * cal
+        raw_data = raw[ch_idx][0]
+        assert_array_equal(mat_data, raw_data)
+
 
 run_tests_if_main()

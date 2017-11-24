@@ -24,11 +24,8 @@ def parse_config(fname):
     """
     reject_params = read_reject_parameters(fname)
 
-    try:
-        with open(fname, 'r') as f:
-            lines = f.readlines()
-    except:
-        raise ValueError("Error while reading %s" % fname)
+    with open(fname, 'r') as f:
+        lines = f.readlines()
 
     cat_ind = [i for i, x in enumerate(lines) if "category {" in x]
     event_dict = dict()
@@ -67,11 +64,8 @@ def read_reject_parameters(fname):
     fname : str
         Filename to read.
     """
-    try:
-        with open(fname, 'r') as f:
-            lines = f.readlines()
-    except:
-        raise ValueError("Error while reading %s" % fname)
+    with open(fname, 'r') as f:
+        lines = f.readlines()
 
     reject_names = ['gradReject', 'magReject', 'eegReject', 'eogReject',
                     'ecgReject']
@@ -88,11 +82,8 @@ def read_reject_parameters(fname):
 
 def read_flat_parameters(fname):
     """Read flat channel rejection parameters from .cov or .ave config file."""
-    try:
-        with open(fname, 'r') as f:
-            lines = f.readlines()
-    except:
-        raise ValueError("Error while reading %s" % fname)
+    with open(fname, 'r') as f:
+        lines = f.readlines()
 
     reject_names = ['gradFlat', 'magFlat', 'eegFlat', 'eogFlat', 'ecgFlat']
     reject_pynames = ['grad', 'mag', 'eeg', 'eog', 'ecg']

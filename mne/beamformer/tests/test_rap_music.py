@@ -124,7 +124,7 @@ def test_rap_music_simulated():
     forward = mne.pick_channels_forward(forward, evoked.ch_names)
     forward_surf_ori = mne.convert_forward_solution(forward, surf_ori=True)
     forward_fixed = mne.convert_forward_solution(forward, force_fixed=True,
-                                                 surf_ori=True)
+                                                 surf_ori=True, use_cps=True)
 
     n_dipoles = 2
     sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
@@ -174,6 +174,10 @@ def test_rap_music_sphere():
     assert_equal((pos[:, 0] > 0).sum(), 1)
     # Check the amplitude scale
     assert_true(1e-10 < dipoles[0].amplitude[0] < 1e-7)
+    # Check the orientation
+    dip_fit = mne.fit_dipole(evoked, noise_cov, sphere)[0]
+    assert_true(np.max(np.abs(np.dot(dip_fit.ori, dipoles[0].ori[0]))) > 0.99)
+    assert_true(np.max(np.abs(np.dot(dip_fit.ori, dipoles[1].ori[0]))) > 0.99)
 
 
 run_tests_if_main()

@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os
+import sys
 import warnings
 
 import numpy as np
@@ -23,6 +24,15 @@ fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
 fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
 warnings.simplefilter('always')
+
+
+def _check_ci():
+    osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
+           sys.platform == 'darwin')
+    win = (os.getenv('APPVEYOR', 'false').lower() == 'true' and
+           sys.platform.startswith('win'))
+    if win or osx:
+        raise SkipTest('Skipping GUI tests on Travis OSX and AppVeyor')
 
 
 @requires_mayavi
@@ -119,32 +129,36 @@ def test_kit2fiff_model():
 @requires_mayavi
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""
-    if os.environ.get('TRAVIS_OS_NAME') == 'linux':
-        raise SkipTest("Skipping on Travis for Linux due to GUI error")
+    _check_ci()
     home_dir = _TempDir()
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
     try:
-        with warnings.catch_warnings(record=True):  # traits warnings
-            warnings.simplefilter('always')
-            ui, frame = mne.gui.kit2fiff()
-            assert_false(frame.model.can_save)
-            assert_equal(frame.model.stim_threshold, 1.)
-            frame.model.stim_threshold = 10.
-            frame.model.stim_chs = 'save this!'
-            # ui.dispose() should close the Traits-UI, but it opens modal
-            # dialogs which interrupt the tests. This workaround triggers
-            # saving of configurations without closing the window:
-            frame.save_config(home_dir)
+        from pyface.api import GUI
+        gui = GUI()
+        gui.process_events()
 
-            # test setting persistence
-            ui, frame = mne.gui.kit2fiff()
-            assert_equal(frame.model.stim_threshold, 10.)
-            assert_equal(frame.model.stim_chs, 'save this!')
+        ui, frame = mne.gui.kit2fiff()
+        assert_false(frame.model.can_save)
+        assert_equal(frame.model.stim_threshold, 1.)
+        frame.model.stim_threshold = 10.
+        frame.model.stim_chs = 'save this!'
+        frame.save_config(home_dir)
+        ui.dispose()
 
-            frame.model.markers.mrk1.file = mrk_pre_path
-            frame.marker_panel.mrk1_obj.label = True
-            frame.marker_panel.mrk1_obj.label = False
+        gui.process_events()
+
+        # test setting persistence
+        ui, frame = mne.gui.kit2fiff()
+        assert_equal(frame.model.stim_threshold, 10.)
+        assert_equal(frame.model.stim_chs, 'save this!')
+
+        frame.model.markers.mrk1.file = mrk_pre_path
+        frame.marker_panel.mrk1_obj.label = True
+        frame.marker_panel.mrk1_obj.label = False
+        ui.dispose()
+
+        gui.process_events()
     finally:
         del os.environ['_MNE_GUI_TESTING_MODE']
         del os.environ['_MNE_FAKE_HOME_DIR']

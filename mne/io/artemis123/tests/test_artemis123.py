@@ -4,6 +4,8 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import warnings
+
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 from nose.tools import assert_true
@@ -45,7 +47,7 @@ def _assert_trans(actual, desired, dist_tol=0.003, angle_tol=5.):
 def test_data():
     """Test reading raw Artemis123 files."""
     _test_raw_reader(read_raw_artemis123, input_fname=short_hpi_1kz_fname,
-                     pos_fname=dig_fname)
+                     pos_fname=dig_fname, verbose='error')
 
     # test a random selected point
     raw = read_raw_artemis123(short_hpi_1kz_fname, preload=True,
@@ -71,8 +73,9 @@ def test_data():
     assert_equal(raw.info['sfreq'], 5000.0)
 
     # test with head loc and digitization
-    raw = read_raw_artemis123(short_HPI_dip_fname,  add_head_trans=True,
-                              pos_fname=dig_fname)
+    with warnings.catch_warnings(record=True):  # bad dig
+        raw = read_raw_artemis123(short_HPI_dip_fname,  add_head_trans=True,
+                                  pos_fname=dig_fname)
     _assert_trans(raw.info['dev_head_t']['trans'], dev_head_t_1)
 
     # test 1kz hpi head loc (different freq)

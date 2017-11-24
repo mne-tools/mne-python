@@ -60,20 +60,22 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     return vmin, vmax
 
 
-def plt_show(show=True, **kwargs):
+def plt_show(show=True, fig=None, **kwargs):
     """Show a figure while suppressing warnings.
 
     Parameters
     ----------
     show : bool
         Show the figure.
+    fig : instance of Figure | None
+        If non-None, use fig.show().
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
     import matplotlib
     import matplotlib.pyplot as plt
     if show and matplotlib.get_backend() != 'agg':
-        plt.show(**kwargs)
+        (fig or plt).show(**kwargs)
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
@@ -103,15 +105,18 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         with catch_warnings(record=True) as ws:
             fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
-        for msg in [w.get_message() for w in ws]:
-            if not msg.startswith('This figure includes Axes'):
-                warn(msg)
     except Exception:
         try:
-            fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+            with catch_warnings(record=True) as ws:
+                fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
         except Exception:
             warn('Matplotlib function "tight_layout" is not supported.'
                  ' Skipping subplot adjustment.')
+            return
+    for w in ws:
+        w = str(w.message) if hasattr(w, 'message') else w.get_message()
+        if not w.startswith('This figure includes Axes'):
+            warn(w)
 
 
 def _check_delayed_ssp(container):
@@ -427,7 +432,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     # this should work for non-test cases
     try:
         fig_proj.canvas.draw()
-        fig_proj.show(warn=False)
+        plt_show(fig=fig_proj, warn=False)
     except Exception:
         pass
 
@@ -831,7 +836,7 @@ def _setup_annotation_fig(params):
     fig.button = Button(button_ax, 'Add label')
     fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center')
     fig.button.on_clicked(partial(_onclick_new_label, params=params))
-    fig.show()
+    plt_show(fig=fig)
     params['fig_annotation'] = fig
 
     ax = params['ax']
@@ -1027,7 +1032,7 @@ def _onclick_help(event, params):
     # this should work for non-test cases
     try:
         fig_help.canvas.draw()
-        fig_help.show(warn=False)
+        plt_show(fig=fig_help, warn=False)
     except Exception:
         pass
 
@@ -1444,7 +1449,8 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
 
 def _close_event(event, fig):
     """Listen for sensor plotter close event."""
-    fig.lasso.disconnect()
+    if fig.lasso is not None:
+        fig.lasso.disconnect()
 
 
 def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
@@ -1494,6 +1500,8 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
 
         if select:
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
+        else:
+            fig.lasso = None
 
         ax.axis("off")  # remove border around figure
 
@@ -1821,7 +1829,6 @@ def _plot_annotations(raw, params):
 
     while len(params['ax_hscroll'].collections) > 0:
         params['ax_hscroll'].collections.pop()
-
     segments = list()
     # sort the segments by start time
     ann_order = raw.annotations.onset.argsort(axis=0)
@@ -1869,8 +1876,9 @@ def _annotations_closed(event, params):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
-    params['ax'].selector.disconnect_events()
-    params['ax'].selector = None
+    if params['ax'].selector is not None:
+        params['ax'].selector.disconnect_events()
+        params['ax'].selector = None
     params['fig_annotation'] = None
     if params['segment_line'] is not None:
         params['segment_line'].remove()
@@ -2142,12 +2150,16 @@ def _set_ax_facecolor(ax, face_color):
 
 
 def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
-                     ymax_bound=None, unit=None):
-    y_range = -np.subtract(*axes.get_ylim())
+                     ymax_bound=None, unit=None, truncate_xaxis=True):
+    ymin, ymax = axes.get_ylim()
+    y_range = -np.subtract(ymin, ymax)
 
     # style the spines/axes
     axes.spines["top"].set_position('zero')
-    axes.spines["top"].set_smart_bounds(True)
+    if truncate_xaxis is True:
+        axes.spines["top"].set_smart_bounds(True)
+    else:
+        axes.spines['top'].set_bounds(tmin, tmax)
 
     axes.tick_params(direction='out')
     axes.tick_params(right="off")
@@ -2160,7 +2172,7 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
 
     # set y label and ylabel position
     if unit is not None:
-        axes.set_ylabel(unit, rotation=0)
+        axes.set_ylabel(unit + "\n", rotation=90)
         ylabel_height = (-(current_ymin / y_range)
                          if 0 > current_ymin  # ... if we have negative values
                          else (axes.get_yticks()[-1] / 2 / y_range))
@@ -2171,7 +2183,12 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
     axes.set_xticks(xticks)
     axes.set_xticklabels(xticks)
     x_extrema = [t for t in xticks if tmax >= t >= tmin]
-    axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    if truncate_xaxis is True:
+        axes.spines['bottom'].set_bounds(x_extrema[0], x_extrema[-1])
+    else:
+        axes.spines['bottom'].set_bounds(tmin, tmax)
+    if ymin >= 0:
+        axes.spines["top"].set_color('none')
     axes.spines["left"].set_zorder(0)
 
     # finishing touches
@@ -2179,6 +2196,9 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.invert_yaxis()
     axes.spines['right'].set_color('none')
     axes.set_xlim(tmin, tmax)
+    if truncate_xaxis is False:
+        axes.axis("tight")
+        axes.set_autoscale_on(False)
 
 
 def _handle_decim(info, decim, lowpass):
@@ -2197,3 +2217,18 @@ def _handle_decim(info, decim, lowpass):
     decim = _check_decim(info, decim, 0)[0]
     data_picks = _pick_data_channels(info, exclude=())
     return decim, data_picks
+
+
+def _grad_pair_pick_and_name(info, picks):
+    """Deal with grads. (Helper for a few viz functions)."""
+    from ..channels.layout import _pair_grad_sensors
+    picked_chans = list()
+    pairpicks = _pair_grad_sensors(info, topomap_coords=False)
+    for ii in np.arange(0, len(pairpicks), 2):
+        first, second = pairpicks[ii], pairpicks[ii + 1]
+        if first in picks or second in picks:
+            picked_chans.append(first)
+            picked_chans.append(second)
+    picks = list(sorted(set(picked_chans)))
+    ch_names = [info["ch_names"][pick] for pick in picks]
+    return picks, ch_names

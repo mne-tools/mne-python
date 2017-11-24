@@ -16,13 +16,16 @@ from nose.tools import (assert_equal, assert_almost_equal, assert_raises,
 from scipy import linalg
 import scipy.io
 
+import mne
 from mne import pick_types, Epochs, find_events, read_events
+from mne.datasets.testing import requires_testing_data
 from mne.transforms import apply_trans
 from mne.tests.common import assert_dig_allclose
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
+from mne.io.constants import FIFF
 from mne.io.kit.coreg import read_sns
-from mne.io.kit.constants import KIT, KIT_CONSTANTS, KIT_NY, KIT_UMD_2014
+from mne.io.kit.constants import KIT
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.surface import _get_ico_surface
 
@@ -41,7 +44,11 @@ hsp_txt_path = op.join(data_dir, 'test_hsp.txt')
 elp_path = op.join(data_dir, 'test.elp')
 hsp_path = op.join(data_dir, 'test.hsp')
 
+data_path = mne.datasets.testing.data_path(download=False)
+sqd_as_path = op.join(data_path, 'KIT', 'test_as-raw.con')
 
+
+@requires_testing_data
 def test_data():
     """Test reading raw kit files."""
     assert_raises(TypeError, read_raw_kit, epochs_path)
@@ -60,7 +67,18 @@ def test_data():
                               stimthresh=1)
     assert_true('RawKIT' in repr(raw_py))
     assert_equal(raw_mrk.info['kit_system_id'], KIT.SYSTEM_NYU_2010)
-    assert_true(KIT_CONSTANTS[raw_mrk.info['kit_system_id']] is KIT_NY)
+
+    # check number/kind of channels
+    assert_equal(len(raw_py.info['chs']), 193)
+    kit_channels = (('kind', {FIFF.FIFFV_MEG_CH: 157, FIFF.FIFFV_REF_MEG_CH: 3,
+                              FIFF.FIFFV_MISC_CH: 32, FIFF.FIFFV_STIM_CH: 1}),
+                    ('coil_type', {FIFF.FIFFV_COIL_KIT_GRAD: 157,
+                                   FIFF.FIFFV_COIL_KIT_REF_MAG: 3,
+                                   FIFF.FIFFV_COIL_NONE: 33}))
+    for label, target in kit_channels:
+        actual = {id_: sum(ch[label] == id_ for ch in raw_py.info['chs']) for
+                  id_ in target.keys()}
+        assert_equal(actual, target)
 
     # Test stim channel
     raw_stim = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path,
@@ -96,7 +114,27 @@ def test_data():
     _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
     raw = read_raw_kit(sqd_umd_path)
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_UMD_2014_12)
-    assert_true(KIT_CONSTANTS[raw.info['kit_system_id']] is KIT_UMD_2014)
+    # check number/kind of channels
+    assert_equal(len(raw.info['chs']), 193)
+    for label, target in kit_channels:
+        actual = {id_: sum(ch[label] == id_ for ch in raw.info['chs']) for
+                  id_ in target.keys()}
+        assert_equal(actual, target)
+
+    # KIT Academia Sinica
+    raw = read_raw_kit(sqd_as_path, slope='+')
+    assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_AS_2008)
+    assert_equal(raw.info['chs'][100]['ch_name'], 'MEG 101')
+    assert_equal(raw.info['chs'][100]['kind'], FIFF.FIFFV_MEG_CH)
+    assert_equal(raw.info['chs'][100]['coil_type'], FIFF.FIFFV_COIL_KIT_GRAD)
+    assert_equal(raw.info['chs'][157]['ch_name'], 'MEG 158')
+    assert_equal(raw.info['chs'][157]['kind'], FIFF.FIFFV_REF_MEG_CH)
+    assert_equal(raw.info['chs'][157]['coil_type'],
+                 FIFF.FIFFV_COIL_KIT_REF_MAG)
+    assert_equal(raw.info['chs'][160]['ch_name'], 'EEG 001')
+    assert_equal(raw.info['chs'][160]['kind'], FIFF.FIFFV_EEG_CH)
+    assert_equal(raw.info['chs'][160]['coil_type'], FIFF.FIFFV_COIL_EEG)
+    assert_array_equal(find_events(raw), [[91, 0, 2]])
 
 
 def test_epochs():
@@ -146,7 +184,8 @@ def test_ch_loc():
                           stim='<')
     raw_bin = read_raw_fif(op.join(data_dir, 'test_bin_raw.fif'))
 
-    ch_py = raw_py._raw_extras[0]['sensor_locs'][:, :5]
+    ch_py = np.array([ch['loc'] for ch in
+                      raw_py._raw_extras[0]['channels'][:160]])
     # ch locs stored as m, not mm
     ch_py[:, :3] *= 1e3
     ch_sns = read_sns(op.join(data_dir, 'sns.txt'))

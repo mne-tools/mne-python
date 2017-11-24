@@ -14,7 +14,7 @@ from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
 from ..externals.six import string_types
-from ..utils import _check_type_picks, check_version, warn
+from ..utils import _check_type_picks, check_version
 from ..io.pick import pick_info, _pick_data_channels, _picks_by_type
 from ..cov import _check_scalings_user
 
@@ -42,7 +42,7 @@ class _ConstantScaler():
         self.mean_ = np.zeros_like(std)
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X):
         return X / self.std_
 
     def inverse_transform(self, X, y=None):
@@ -148,16 +148,13 @@ class Scaler(TransformerMixin, BaseEstimator):
         _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y=y)
         return self
 
-    def transform(self, epochs_data, y=None):
+    def transform(self, epochs_data):
         """Standardize data across channels.
 
         Parameters
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : None | array, shape (n_epochs,)
-            The label for each epoch.
-            If None not used. Defaults to None.
 
         Returns
         -------
@@ -169,10 +166,6 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
-        if y is not None:
-            warn("The parameter y on transform() is "
-                 "deprecated and will be removed in 0.16",
-                 DeprecationWarning)
         return _sklearn_reshape_apply(self._scaler.transform, True,
                                       epochs_data)
 
@@ -394,16 +387,13 @@ class PSDEstimator(TransformerMixin):
 
         return self
 
-    def transform(self, epochs_data, y=None):
+    def transform(self, epochs_data):
         """Compute power spectrum density (PSD) using a multi-taper method.
 
         Parameters
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data
-        y : None | array, shape (n_epochs,)
-            The label for each epoch.
-            If None not used. Defaults to None.
 
         Returns
         -------
@@ -471,6 +461,14 @@ class FilterEstimator(TransformerMixin):
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
+    fir_design : str
+        Can be "firwin" (default in 0.16) to use
+        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
+        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
+        time-domain design technique that generally gives improved
+        attenuation using fewer samples than "firwin2".
+
+        ..versionadded:: 0.15
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -483,7 +481,8 @@ class FilterEstimator(TransformerMixin):
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
                  l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                 method='fft', iir_params=None, verbose=None):  # noqa: D102
+                 method='fft', iir_params=None, fir_design='firwin',
+                 verbose=None):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -494,6 +493,7 @@ class FilterEstimator(TransformerMixin):
         self.n_jobs = n_jobs
         self.method = method
         self.iir_params = iir_params
+        self.fir_design = fir_design
 
     def fit(self, epochs_data, y):
         """Filter data.
@@ -543,16 +543,13 @@ class FilterEstimator(TransformerMixin):
 
         return self
 
-    def transform(self, epochs_data, y=None):
+    def transform(self, epochs_data):
         """Filter data.
 
         Parameters
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
-        y : None | array, shape (n_epochs,)
-            The label for each epoch.
-            If None not used. Defaults to None.
 
         Returns
         -------
@@ -568,7 +565,7 @@ class FilterEstimator(TransformerMixin):
             self.picks, self.filter_length, self.l_trans_bandwidth,
             self.h_trans_bandwidth, method=self.method,
             iir_params=self.iir_params, n_jobs=self.n_jobs, copy=False,
-            verbose=False)
+            fir_design=self.fir_design, verbose=False)
 
 
 class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
@@ -762,14 +759,12 @@ class TemporalFilter(TransformerMixin):
         The window to use in FIR design, can be "hamming", "hann",
         or "blackman".
     fir_design : str
-        Can be "firwin" (default in 0.16) to use
-        :func:`scipy.signal.firwin`, or "firwin2" (default in 0.15 and
-        before) to use :func:`scipy.signal.firwin2`. "firwin" uses a
-        time-domain design technique that generally gives improved
+        Can be "firwin" (default) to use :func:`scipy.signal.firwin`,
+        or "firwin2" to use :func:`scipy.signal.firwin2`. "firwin" uses
+        a time-domain design technique that generally gives improved
         attenuation using fewer samples than "firwin2".
 
         ..versionadded:: 0.15
-
     verbose : bool, str, int, or None, defaults to None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more). Defaults to
@@ -785,7 +780,7 @@ class TemporalFilter(TransformerMixin):
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
                  h_trans_bandwidth='auto', n_jobs=1, method='fir',
-                 iir_params=None, fir_window='hamming', fir_design=None,
+                 iir_params=None, fir_window='hamming', fir_design='firwin',
                  verbose=None):  # noqa: D102
         self.l_freq = l_freq
         self.h_freq = h_freq

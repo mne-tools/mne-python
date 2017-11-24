@@ -1,0 +1,20 @@
+{% extends "!navbar.html" %}
+
+{% block navbarsearch %}
+<div class="navbar-form navbar-right navbar-btn dropdown btn-group-sm" style="margin-left: 20px; margin-top: 5px; margin-bottom: 5px">
+  <button type="button" class="btn btn-{% if (build_dev_html|tobool) %}danger{% else %}primary{% endif %} navbar-btn dropdown-toggle" id="dropdownMenu1" data-toggle="dropdown">
+    v{{ release }}
+    <span class="caret"></span>
+  </button>
+  <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+    <li><a href="https://mne-tools.github.io/dev/index.html">Development</a></li>
+    <li><a href="https://mne-tools.github.io/stable/index.html">v0.15 (stable)</a></li>
+    <li><a href="https://mne-tools.github.io/0.14/index.html">v0.14</a></li>
+    <li><a href="https://mne-tools.github.io/0.13/index.html">v0.13</a></li>
+    <li><a href="https://mne-tools.github.io/0.12/index.html">v0.12</a></li>
+    <li><a href="https://mne-tools.github.io/0.11/index.html">v0.11</a></li>
+  </ul>
+</div>
+
+{{ super() }}
+{% endblock %}

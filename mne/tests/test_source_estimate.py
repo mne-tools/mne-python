@@ -7,24 +7,27 @@ from copy import deepcopy
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
-
+import pytest
 from scipy.fftpack import fft
 
 from mne.datasets import testing
 from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  VolSourceEstimate, Label, read_source_spaces,
-                 read_evokeds, MixedSourceEstimate,
+                 read_evokeds, MixedSourceEstimate, find_events, Epochs,
                  read_source_estimate, morph_data, extract_label_time_course,
                  spatio_temporal_tris_connectivity,
                  spatio_temporal_src_connectivity,
-                 spatial_inter_hemi_connectivity)
+                 spatial_inter_hemi_connectivity,
+                 spatial_src_connectivity)
 from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
-                                 grade_to_tris)
+                                 grade_to_tris, _get_vol_mask)
 
-from mne.minimum_norm import read_inverse_operator, apply_inverse
+from mne.minimum_norm import (read_inverse_operator, apply_inverse,
+                              apply_inverse_epochs)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_h5py, run_tests_if_main, slow_test)
+                       requires_h5py, run_tests_if_main, requires_nibabel)
+from mne.io import read_raw_fif
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -34,6 +37,7 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-ave.fif')
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
@@ -85,7 +89,7 @@ def test_spatial_inter_hemi_connectivity():
         assert_true(set(use_labels) - set(good_labels) == set())
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_stc():
     """Test volume STCs."""
@@ -358,7 +362,7 @@ def test_stc_arithmetic():
                        np.mean(vec_stc.data, 2)[:, :, None])
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_stc_methods():
     """Test stc methods lh_data, rh_data, bin(), resample()."""
@@ -523,7 +527,7 @@ def test_extract_label_time_course():
     assert_true(x.size == 0)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morph_data():
     """Test morphing of data."""
@@ -760,6 +764,8 @@ def test_spatio_temporal_src_connectivity():
     src[1]['use_tris'] = np.array([[0, 1, 2]])
     src[0]['vertno'] = np.array([0, 1, 2])
     src[1]['vertno'] = np.array([0, 1, 2])
+    src[0]['type'] = 'surf'
+    src[1]['type'] = 'surf'
     connectivity2 = spatio_temporal_src_connectivity(src, 2)
     assert_array_equal(connectivity.todense(), connectivity2.todense())
     # add test for dist connectivity
@@ -767,6 +773,8 @@ def test_spatio_temporal_src_connectivity():
     src[1]['dist'] = np.ones((3, 3)) - np.eye(3)
     src[0]['vertno'] = [0, 1, 2]
     src[1]['vertno'] = [0, 1, 2]
+    src[0]['type'] = 'surf'
+    src[1]['type'] = 'surf'
     connectivity3 = spatio_temporal_src_connectivity(src, 2, dist=2)
     assert_array_equal(connectivity.todense(), connectivity3.todense())
     # add test for source space connectivity with omitted vertices
@@ -879,6 +887,78 @@ def test_vec_stc():
     # Vector components projected onto the vertex normals
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
+
+
+@testing.requires_testing_data
+def test_epochs_vector_inverse():
+    """Test vector inverse consistency between evoked and epochs"""
+
+    raw = read_raw_fif(fname_raw)
+    events = find_events(raw, stim_channel='STI 014')[:2]
+    reject = dict(grad=2000e-13, mag=4e-12, eog=150e-6)
+
+    epochs = Epochs(raw, events, None, 0, 0.01, baseline=None,
+                    reject=reject, preload=True)
+
+    assert_equal(len(epochs), 2)
+
+    evoked = epochs.average(picks=range(len(epochs.ch_names)))
+
+    inv = read_inverse_operator(fname_inv)
+
+    method = "MNE"
+    snr = 3.
+    lambda2 = 1. / snr ** 2
+
+    stcs_epo = apply_inverse_epochs(epochs, inv, lambda2, method=method,
+                                    pick_ori='vector', return_generator=False)
+    stc_epo = np.mean(stcs_epo)
+
+    stc_evo = apply_inverse(evoked, inv, lambda2, method=method,
+                            pick_ori='vector')
+
+    assert_allclose(stc_epo.data, stc_evo.data, rtol=1e-9, atol=0)
+
+
+@requires_sklearn
+@testing.requires_testing_data
+def test_vol_connectivity():
+    """Test volume connectivity."""
+    from scipy import sparse
+    vol = read_source_spaces(fname_vsrc)
+
+    assert_raises(ValueError, spatial_src_connectivity, vol, dist=1.)
+
+    connectivity = spatial_src_connectivity(vol)
+    n_vertices = vol[0]['inuse'].sum()
+    assert_equal(connectivity.shape, (n_vertices, n_vertices))
+    assert_true(np.all(connectivity.data == 1))
+    assert_true(isinstance(connectivity, sparse.coo_matrix))
+
+    connectivity2 = spatio_temporal_src_connectivity(vol, n_times=2)
+    assert_equal(connectivity2.shape, (2 * n_vertices, 2 * n_vertices))
+    assert_true(np.all(connectivity2.data == 1))
+
+
+@requires_sklearn
+@requires_nibabel()
+@testing.requires_testing_data
+def test_vol_mask():
+    """Test extraction of volume mask."""
+    src = read_source_spaces(fname_vsrc)
+    mask = _get_vol_mask(src)
+    # Let's use an alternative way that should be equivalent
+    vertices = src[0]['vertno']
+    n_vertices = len(vertices)
+    data = (1 + np.arange(n_vertices))[:, np.newaxis]
+    stc_tmp = VolSourceEstimate(data, vertices, tmin=0., tstep=1.)
+    img = stc_tmp.as_volume(src, mri_resolution=False)
+    img_data = img.get_data()[:, :, :, 0].T
+    mask_nib = (img_data != 0)
+    assert_array_equal(img_data[mask_nib], data[:, 0])
+    assert_array_equal(np.where(mask_nib.ravel())[0], src[0]['vertno'])
+    assert_array_equal(mask, mask_nib)
+    assert_array_equal(img_data.shape, mask.shape)
 
 
 run_tests_if_main()

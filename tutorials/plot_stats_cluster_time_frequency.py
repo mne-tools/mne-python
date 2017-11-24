@@ -75,14 +75,14 @@ epochs_condition_2.pick_channels([ch_name])
 # operations such as nonparametric statistics) if you don't need high
 # spectrotemporal resolution.
 decim = 2
-frequencies = np.arange(7, 30, 3)  # define frequencies of interest
+freqs = np.arange(7, 30, 3)  # define frequencies of interest
 n_cycles = 1.5
 
-tfr_epochs_1 = tfr_morlet(epochs_condition_1, frequencies,
+tfr_epochs_1 = tfr_morlet(epochs_condition_1, freqs,
                           n_cycles=n_cycles, decim=decim,
                           return_itc=False, average=False)
 
-tfr_epochs_2 = tfr_morlet(epochs_condition_2, frequencies,
+tfr_epochs_2 = tfr_morlet(epochs_condition_2, freqs,
                           n_cycles=n_cycles, decim=decim,
                           return_itc=False, average=False)
 
@@ -119,10 +119,10 @@ for c, p_val in zip(clusters, cluster_p_values):
         T_obs_plot[c] = T_obs[c]
 
 plt.imshow(T_obs,
-           extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+           extent=[times[0], times[-1], freqs[0], freqs[-1]],
            aspect='auto', origin='lower', cmap='gray')
 plt.imshow(T_obs_plot,
-           extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+           extent=[times[0], times[-1], freqs[0], freqs[-1]],
            aspect='auto', origin='lower', cmap='RdBu_r')
 
 plt.xlabel('Time (ms)')

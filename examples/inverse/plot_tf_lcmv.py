@@ -57,7 +57,7 @@ raw.info.normalize_proj()
 # points than will later be displayed on the final spectrogram. This ensures
 # that all time bins displayed represent an average of an equal number of time
 # windows.
-tmin, tmax = -0.55, 0.75  # s
+tmin, tmax = -0.5, 0.75  # s
 tmin_plot, tmax_plot = -0.3, 0.5  # s
 
 # Read epochs. Note that preload is set to False to enable tf_lcmv to read the
@@ -92,7 +92,7 @@ epochs_noise = mne.Epochs(raw_noise, events_noise, event_id, tmin, tmax,
 epochs_noise = epochs_noise[:len(epochs.events)]
 
 # Read forward operator
-forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
+forward = mne.read_forward_solution(fname_fwd)
 
 # Read label
 label = mne.read_label(fname_label)

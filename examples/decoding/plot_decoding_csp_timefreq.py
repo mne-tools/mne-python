@@ -47,7 +47,7 @@ events = find_events(raw, shortest_event=0, stim_channel='STI 014')
 raw.pick_types(meg=False, eeg=True, stim=False, eog=False, exclude='bads')
 
 # Assemble the classifier using scikit-learn pipeline
-clf = make_pipeline(CSP(n_components=4, reg=None, log=True),
+clf = make_pipeline(CSP(n_components=4, reg=None, log=True, norm_trace=False),
                     LinearDiscriminantAnalysis())
 n_splits = 5  # how many folds to use for cross-validation
 cv = StratifiedKFold(n_splits=n_splits, shuffle=True)
@@ -84,7 +84,8 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
 
     # Apply band-pass filter to isolate the specified frequencies
-    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin')
+    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin',
+                                   skip_by_annotation='edge')
 
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,
@@ -102,7 +103,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
 ###############################################################################
 # Plot frequency results
 
-plt.bar(left=freqs[:-1], height=freq_scores, width=np.diff(freqs)[0],
+plt.bar(freqs[:-1], freq_scores, width=np.diff(freqs)[0],
         align='edge', edgecolor='black')
 plt.xticks(freqs)
 plt.ylim([0, 1])
@@ -126,7 +127,8 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
 
     # Apply band-pass filter to isolate the specified frequencies
-    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin')
+    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin',
+                                   skip_by_annotation='edge')
 
     # Extract epochs from filtered data, padded by window size
     epochs = Epochs(raw_filter, events, event_id, tmin - w_size, tmax + w_size,

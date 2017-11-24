@@ -62,8 +62,6 @@
 .. _pep8: https://pypi.python.org/pypi/pep8
 .. _pyflakes: https://pypi.python.org/pypi/pyflakes
 .. _coverage: https://pypi.python.org/pypi/coverage
-.. _nose-timer: https://pypi.python.org/pypi/nose-timer
-.. _nosetests: https://nose.readthedocs.org/en/latest/
 .. _mayavi: http://mayavi.sourceforge.net/
 .. _nitime: http://nipy.org/nitime/
 .. _joblib: https://pypi.python.org/pypi/joblib

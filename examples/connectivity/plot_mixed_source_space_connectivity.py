@@ -99,8 +99,7 @@ lambda2 = 1.0 / snr ** 2
 
 # Compute inverse operator
 inverse_operator = make_inverse_operator(raw.info, fwd, noise_cov,
-                                         loose=None, depth=None,
-                                         fixed=False)
+                                         depth=None, fixed=False)
 
 
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, inv_method,
@@ -148,11 +147,12 @@ for name in lh_labels:
     label_ypos_lh.append(ypos)
 try:
     idx = label_names.index('Brain-Stem')
+except ValueError:
+    pass
+else:
     ypos = np.mean(labels[idx].pos[:, 1])
     lh_labels.append('Brain-Stem')
     label_ypos_lh.append(ypos)
-except ValueError:
-    pass
 
 
 # Reorder the labels based on their location
@@ -177,9 +177,3 @@ plot_connectivity_circle(conmat, label_names, n_lines=300,
                          node_angles=node_angles, node_colors=node_colors,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition (PLI)')
-
-# Uncomment the following line to save the figure
-'''
-import matplotlib.pyplot as plt
-plt.savefig('circle.png', facecolor='black')
-'''

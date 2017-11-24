@@ -7,14 +7,15 @@ from scipy.signal import lfilter
 
 from mne import io
 from mne.time_frequency.ar import _yule_walker, fit_iir_model_raw
-from mne.utils import requires_statsmodels, run_tests_if_main
+from mne.utils import requires_version, run_tests_if_main
 
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
 
-@requires_statsmodels
+# 0.7 attempts to import nonexistent TimeSeries from Pandas 0.20
+@requires_version('statsmodels', '0.8')
 def test_yule_walker():
     """Test Yule-Walker against statsmodels."""
     from statsmodels.regression.linear_model import yule_walker as sm_yw

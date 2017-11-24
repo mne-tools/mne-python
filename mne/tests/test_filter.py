@@ -5,6 +5,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
+import pytest
 from scipy.signal import resample as sp_resample, butter
 from scipy.fftpack import fft, fftfreq
 
@@ -15,7 +16,7 @@ from mne.filter import (filter_data, resample, _resample_stim_channels,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
                         estimate_ringing_samples, create_filter, _Interp2)
 
-from mne.utils import (sum_squared, run_tests_if_main, slow_test,
+from mne.utils import (sum_squared, run_tests_if_main,
                        catch_logging, requires_version, _TempDir,
                        requires_mne, run_subprocess)
 
@@ -85,7 +86,7 @@ def test_1d_filter():
                     h = np.concatenate([[1.], np.zeros(n_filter - 1)])
                 # ensure we pad the signal the same way for both filters
                 n_pad = n_filter - 1
-                x_pad = _smart_pad(x, np.array([n_pad, n_pad]))
+                x_pad = _smart_pad(x, (n_pad, n_pad))
                 for phase in ('zero', 'linear', 'zero-double'):
                     # compute our expected result the slow way
                     if phase == 'zero':
@@ -279,7 +280,7 @@ def test_resample_stim_channel():
 
 
 @requires_version('scipy', '0.16')
-@slow_test
+@pytest.mark.slowtest
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling."""
     sfreq = 100
@@ -406,6 +407,13 @@ def test_filters():
         assert_raises(ValueError, filter_data, a, sfreq, 4, 8,
                       np.array([0, 1]), 100, 1.0, 1.0)
 
+    # check corner case (#4693)
+    h = create_filter(
+        np.empty(10000), 1000., l_freq=None, h_freq=55.,
+        h_trans_bandwidth=0.5, method='fir', phase='zero-double',
+        fir_design='firwin', verbose=True)
+    assert len(h) == 6601
+
 
 def test_filter_auto():
     """Test filter auto parameters"""
@@ -419,21 +427,24 @@ def test_filter_auto():
     t = np.arange(N) / sfreq
     x += np.sin(2 * np.pi * sine_freq * t)
     x_orig = x.copy()
-    for fir_design in ('firwin2', 'firwin'):
-        kwargs = dict(fir_design=fir_design)
-        x = x_orig.copy()
-        x_filt = filter_data(x, sfreq, None, lp, **kwargs)
-        assert_array_equal(x, x_orig)
-        # the firwin2 function gets us this close
-        assert_allclose(x, x_filt, rtol=1e-4, atol=1e-2)
-        assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, None,
-                                               **kwargs))
-        assert_array_equal(x, x_orig)
-        assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, **kwargs))
-        assert_array_equal(x, x_orig)
-        assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, copy=False,
-                                               **kwargs))
-        assert_array_equal(x, x_filt)
+    for pad in ('reflect_limited', 'reflect', 'edge'):
+        for fir_design in ('firwin2', 'firwin'):
+            kwargs = dict(fir_design=fir_design, pad=pad)
+            x = x_orig.copy()
+            x_filt = filter_data(x, sfreq, None, lp, **kwargs)
+            assert_array_equal(x, x_orig)
+            n_edge = 10
+            assert_allclose(x[n_edge:-n_edge], x_filt[n_edge:-n_edge],
+                            atol=1e-2)
+            assert_array_equal(x_filt, filter_data(x, sfreq, None, lp, None,
+                                                   **kwargs))
+            assert_array_equal(x, x_orig)
+            assert_array_equal(x_filt, filter_data(x, sfreq, None, lp,
+                                                   **kwargs))
+            assert_array_equal(x, x_orig)
+            assert_array_equal(x_filt, filter_data(x, sfreq, None, lp,
+                                                   copy=False, **kwargs))
+            assert_array_equal(x, x_filt)
 
     # degenerate conditions
     assert_raises(ValueError, filter_data, x, -sfreq, 1, 10)

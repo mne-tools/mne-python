@@ -395,17 +395,18 @@ def pick_info(info, sel=(), copy=True):
     info._update_redundant()
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
 
-    comps = deepcopy(info['comps'])
-    for c in comps:
-        row_idx = [k for k, n in enumerate(c['data']['row_names'])
-                   if n in info['ch_names']]
-        row_names = [c['data']['row_names'][i] for i in row_idx]
-        rowcals = c['rowcals'][row_idx]
-        c['rowcals'] = rowcals
-        c['data']['nrow'] = len(row_names)
-        c['data']['row_names'] = row_names
-        c['data']['data'] = c['data']['data'][row_idx]
-    info['comps'] = comps
+    if 'comps' in info:
+        comps = deepcopy(info['comps'])
+        for c in comps:
+            row_idx = [k for k, n in enumerate(c['data']['row_names'])
+                       if n in info['ch_names']]
+            row_names = [c['data']['row_names'][i] for i in row_idx]
+            rowcals = c['rowcals'][row_idx]
+            c['rowcals'] = rowcals
+            c['data']['nrow'] = len(row_names)
+            c['data']['row_names'] = row_names
+            c['data']['data'] = c['data']['data'][row_idx]
+        info['comps'] = comps
     info._check_consistency()
     return info
 
@@ -582,17 +583,33 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
     return pick_channels_forward(orig, include_ch_names)
 
 
-def channel_indices_by_type(info):
-    """Get indices of channels by type."""
-    idx = dict((key, list()) for key in _PICK_TYPES_KEYS if
-               key not in ('meg', 'fnirs'))
-    idx.update(mag=list(), grad=list(), hbo=list(), hbr=list())
-    for k, ch in enumerate(info['chs']):
-        for key in idx.keys():
-            if channel_type(info, k) == key:
-                idx[key].append(k)
+def channel_indices_by_type(info, picks=None):
+    """Get indices of channels by type.
 
-    return idx
+    Parameters
+    ----------
+    info : instance of mne.measuerment_info.Info
+        The info.
+    picks : None | list of int
+        The indices of channels from which to get the type
+
+    Returns
+    -------
+    idx_by_type : dict
+        The dictionary that maps each channel type to the list of
+        channel indidces.
+    """
+    idx_by_type = dict((key, list()) for key in _PICK_TYPES_KEYS if
+                       key not in ('meg', 'fnirs'))
+    idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list())
+    if picks is None:
+        picks = range(len(info["chs"]))
+    for k in picks:
+        ch_type = channel_type(info, k)
+        for key in idx_by_type.keys():
+            if ch_type == key:
+                idx_by_type[key].append(k)
+    return idx_by_type
 
 
 def pick_channels_cov(orig, include=[], exclude='bads'):
@@ -734,8 +751,7 @@ def _pick_aux_channels(info, exclude='bads'):
 
 def _pick_data_or_ica(info):
     """Pick only data or ICA channels."""
-    ch_names = [c['ch_name'] for c in info['chs']]
-    if 'ICA ' in ','.join(ch_names):
+    if any(ch_name.startswith('ICA') for ch_name in info['ch_names']):
         picks = pick_types(info, exclude=[], misc=True)
     else:
         picks = _pick_data_channels(info, exclude=[], with_ref_meg=True)

@@ -1,4 +1,3 @@
-# doc:slow-example
 """
 ===================================================
 Demonstrate impact of whitening on source estimates
@@ -27,11 +26,7 @@ References
 #
 # License: BSD (3-clause)
 
-import os
-import os.path as op
-
 import numpy as np
-from scipy.misc import imread
 import matplotlib.pyplot as plt
 
 import mne
@@ -54,10 +49,10 @@ raw = io.read_raw_ctf(raw_fname % 1)  # Take first run
 # To save time and memory for this demo, we'll just use the first
 # 2.5 minutes (all we need to get 30 total events) and heavily
 # resample 480->60 Hz (usually you wouldn't do either of these!)
-raw = raw.crop(0, 150.).load_data().resample(60, npad='auto')
+raw = raw.crop(0, 150.).load_data()
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
-raw.filter(1, None, n_jobs=1, fir_design='firwin')
+raw.filter(1, 20., n_jobs=1, fir_design='firwin')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
 
@@ -73,7 +68,6 @@ src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
                              add_dist=False)
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(raw.info, trans, src, bem)
-forward = mne.convert_forward_solution(forward, surf_ori=True)
 del src
 
 # inverse parameters
@@ -98,14 +92,18 @@ for n_train in samples_epochs:
     # make sure we have the same number of conditions.
     events_ = np.concatenate([events[events[:, 2] == id_][:n_train]
                               for id_ in [event_ids[k] for k in conditions]])
+    events_ = events_[np.argsort(events_[:, 0])]
     epochs_train = mne.Epochs(raw, events_, event_ids, tmin, tmax, picks=picks,
-                              baseline=baseline, preload=True, reject=reject)
+                              baseline=baseline, preload=True, reject=reject,
+                              decim=8)
     epochs_train.equalize_event_counts(event_ids)
     assert len(epochs_train) == 2 * n_train
 
+    # We know some of these have too few samples, so suppress warning
+    # with verbose='error'
     noise_covs = compute_covariance(
         epochs_train, method=method, tmin=None, tmax=0,  # baseline only
-        return_estimators=True)  # returns list
+        return_estimators=True, verbose='error')  # returns list
     # prepare contrast
     evokeds = [epochs_train[k].average() for k in conditions]
     del epochs_train, events_
@@ -135,17 +133,7 @@ del raw, forward  # save some memory
 ##############################################################################
 # Show the resulting source estimates
 
-fig, (axes1, axes2) = plt.subplots(2, 3, figsize=(9.5, 6))
-
-
-def brain_to_mpl(brain):
-    """convert image to be usable with matplotlib"""
-    tmp_path = op.abspath(op.join(op.curdir, 'my_tmp'))
-    brain.save_imageset(tmp_path, views=['ven'])
-    im = imread(tmp_path + '_ven.png')
-    os.remove(tmp_path + '_ven.png')
-    return im
-
+fig, (axes1, axes2) = plt.subplots(2, 3, figsize=(9.5, 5))
 
 for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
     # compute stc based on worst and best
@@ -156,11 +144,11 @@ for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
                                             ['best', 'worst'],
                                             colors):
         brain = stc.plot(subjects_dir=subjects_dir, hemi='both', clim=clim,
-                         initial_time=0.175)
-
-        im = brain_to_mpl(brain)
+                         initial_time=0.175, background='w', foreground='k')
+        brain.show_view('ven')
+        im = brain.screenshot()
         brain.close()
-        del brain
+
         ax.axis('off')
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
@@ -178,13 +166,10 @@ for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
                                  stc_mean + stc_var, alpha=0.2, color=color)
 
     # signal dynamics worst and best
-    ax_dynamics.set_title('{0} epochs'.format(n_train * 2))
-    ax_dynamics.set_xlabel('Time (ms)')
-    ax_dynamics.set_ylabel('Source Activation (dSPM)')
-    ax_dynamics.set_xlim(tmin * 1e3, tmax * 1e3)
-    ax_dynamics.set_ylim(-3, 3)
+    ax_dynamics.set(title='{0} epochs'.format(n_train * 2),
+                    xlabel='Time (ms)', ylabel='Source Activation (dSPM)',
+                    xlim=(tmin * 1e3, tmax * 1e3), ylim=(-3, 3))
     ax_dynamics.legend(loc='upper left', fontsize=10)
 
-fig.subplots_adjust(hspace=0.4, left=0.03, right=0.98, wspace=0.07)
-fig.canvas.draw()
-fig.show()
+fig.subplots_adjust(hspace=0.2, left=0.01, right=0.99, wspace=0.03)
+mne.viz.utils.plt_show()

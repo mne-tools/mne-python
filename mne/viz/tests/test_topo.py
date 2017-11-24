@@ -11,6 +11,7 @@ from collections import namedtuple
 
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
+from nose.tools import assert_true
 
 from mne import read_events, Epochs, pick_channels_evoked
 from mne.channels import read_layout
@@ -127,6 +128,28 @@ def test_plot_topo():
     plt.close('all')
     for ax, idx in iter_topography(evoked.info):
         ax.plot(evoked.data[idx], color='red')
+        # test status bar message
+        assert_true(evoked.ch_names[idx] in ax.format_coord(.5, .5))
+    plt.close('all')
+
+
+def test_plot_topo_single_ch():
+    """Test single channel topoplot with time cursor"""
+    import matplotlib.pyplot as plt
+    evoked = _get_epochs().average()
+    fig = plot_evoked_topo(evoked, background_color='w')
+    # test status bar message
+    ax = plt.gca()
+    assert_true('MEG 0113' in ax.format_coord(.065, .63))
+    num_figures_before = len(plt.get_fignums())
+    _fake_click(fig, fig.axes[0], (0.08, 0.65))
+    assert_equal(num_figures_before + 1, len(plt.get_fignums()))
+    fig = plt.gcf()
+    ax = plt.gca()
+    _fake_click(fig, ax, (.5, .5), kind='motion')  # cursor should appear
+    assert_true(isinstance(ax._cursorline, matplotlib.lines.Line2D))
+    _fake_click(fig, ax, (1.5, 1.5), kind='motion')  # cursor should disappear
+    assert_equal(ax._cursorline, None)
     plt.close('all')
 
 
@@ -138,10 +161,13 @@ def test_plot_topo_image_epochs():
     epochs.load_data()
     cmap = mne_analyze_colormap(format='matplotlib')
     data_min = epochs._data.min()
+    plt.close('all')
     fig = plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
                                  colorbar=True, title=title, cmap=cmap)
     assert_equal(epochs._data.min(), data_min)
-    _fake_click(fig, fig.axes[2], (0.08, 0.64))
+    num_figures_before = len(plt.get_fignums())
+    _fake_click(fig, fig.axes[0], (0.08, 0.64))
+    assert_equal(num_figures_before + 1, len(plt.get_fignums()))
     plt.close('all')
 
 
@@ -155,12 +181,14 @@ def test_plot_tfr_topo():
     data = np.random.RandomState(0).randn(len(epochs.ch_names),
                                           n_freqs, len(epochs.times))
     tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
+    plt.close('all')
     fig = tfr.plot_topo(baseline=(None, 0), mode='ratio',
                         title='Average power', vmin=0., vmax=14.)
 
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
-    _fake_click(fig, fig.axes[-1], (0.08, 0.65))
+    # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
+    _fake_click(fig, fig.axes[0], (0.08, 0.65))
     assert_equal(num_figures_before + 1, len(plt.get_fignums()))
     plt.close('all')
 
@@ -196,5 +224,6 @@ def test_plot_tfr_topo():
                   None, tfr=data[:, :3, :], freq=these_freqs, x_label=None,
                   y_label=None, colorbar=False, cmap=('RdBu_r', True),
                   yscale='log')
+
 
 run_tests_if_main()

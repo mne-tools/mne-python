@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_allclose, assert_array_equal
+import pytest
 
 from mne import (read_dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
@@ -15,8 +16,7 @@ from mne import (read_dipole, read_forward_solution,
 from mne.dipole import get_phantom_dipoles
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
-                       run_subprocess)
+from mne.utils import run_tests_if_main, _TempDir, requires_mne, run_subprocess
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -94,7 +94,7 @@ def test_dipole_fitting_ctf():
     fit_dipole(evoked, cov, sphere)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_mne
 def test_dipole_fitting():
@@ -105,7 +105,8 @@ def test_dipole_fitting():
     fname_dtemp = op.join(tempdir, 'test.dip')
     fname_sim = op.join(tempdir, 'test-ave.fif')
     fwd = convert_forward_solution(read_forward_solution(fname_fwd),
-                                   surf_ori=False, force_fixed=True)
+                                   surf_ori=False, force_fixed=True,
+                                   use_cps=True)
     evoked = read_evokeds(fname_evo)[0]
     cov = read_cov(fname_cov)
     n_per_hemi = 5
@@ -300,7 +301,7 @@ def test_accuracy():
         src = read_source_spaces(fname_src)
 
         fwd = make_forward_solution(evoked.info, None, src, bem)
-        fwd = convert_forward_solution(fwd, force_fixed=True)
+        fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=True)
         vertices = [src[0]['vertno'], src[1]['vertno']]
         n_vertices = sum(len(v) for v in vertices)
         amp = 10e-9

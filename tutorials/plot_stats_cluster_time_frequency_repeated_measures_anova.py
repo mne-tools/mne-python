@@ -74,8 +74,8 @@ epochs.equalize_event_counts(event_id)
 # Factor to down-sample the temporal dimension of the TFR computed by
 # tfr_morlet.
 decim = 2
-frequencies = np.arange(7, 30, 3)  # define frequencies of interest
-n_cycles = frequencies / frequencies[0]
+freqs = np.arange(7, 30, 3)  # define frequencies of interest
+n_cycles = freqs / freqs[0]
 zero_mean = False  # don't correct morlet wavelet to be of mean zero
 # To have a true wavelet zero_mean should be True but here for illustration
 # purposes it helps to spot the evoked response.
@@ -85,7 +85,7 @@ zero_mean = False  # don't correct morlet wavelet to be of mean zero
 # ---------------------------------------------
 epochs_power = list()
 for condition in [epochs[k] for k in event_id]:
-    this_tfr = tfr_morlet(condition, frequencies, n_cycles=n_cycles,
+    this_tfr = tfr_morlet(condition, freqs, n_cycles=n_cycles,
                           decim=decim, average=False, zero_mean=zero_mean,
                           return_itc=False)
     this_tfr.apply_baseline(mode='ratio', baseline=(None, 0))
@@ -101,14 +101,14 @@ for condition in [epochs[k] for k in event_id]:
 # factor levels for each factor.
 
 n_conditions = len(epochs.event_id)
-n_replications = epochs.events.shape[0] / n_conditions
+n_replications = epochs.events.shape[0] // n_conditions
 
 factor_levels = [2, 2]  # number of levels in each factor
 effects = 'A*B'  # this is the default signature for computing all effects
 # Other possible options are 'A' or 'B' for the corresponding main effects
 # or 'A:B' for the interaction effect only (this notation is borrowed from the
 # R formula language)
-n_frequencies = len(frequencies)
+n_freqs = len(freqs)
 times = 1e3 * epochs.times[::decim]
 n_times = len(times)
 
@@ -117,7 +117,7 @@ n_times = len(times)
 # are the first dimension and the conditions are the second dimension.
 data = np.swapaxes(np.asarray(epochs_power), 1, 0)
 # reshape last two dimensions in one mass-univariate observation-vector
-data = data.reshape(n_replications, n_conditions, n_frequencies * n_times)
+data = data.reshape(n_replications, n_conditions, n_freqs * n_times)
 
 # so we have replications * conditions * observations:
 print(data.shape)
@@ -153,12 +153,12 @@ for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
     plt.figure()
     # show naive F-values in gray
     plt.imshow(effect.reshape(8, 211), cmap=plt.cm.gray, extent=[times[0],
-               times[-1], frequencies[0], frequencies[-1]], aspect='auto',
+               times[-1], freqs[0], freqs[-1]], aspect='auto',
                origin='lower')
     # create mask for significant Time-frequency locations
     effect = np.ma.masked_array(effect, [sig > .05])
     plt.imshow(effect.reshape(8, 211), cmap='RdBu_r', extent=[times[0],
-               times[-1], frequencies[0], frequencies[-1]], aspect='auto',
+               times[-1], freqs[0], freqs[-1]], aspect='auto',
                origin='lower')
     plt.colorbar()
     plt.xlabel('Time (ms)')
@@ -188,6 +188,7 @@ def stat_fun(*args):
     return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
                      effects=effects, return_pvals=False)[0]
 
+
 # The ANOVA returns a tuple f-values and p-values, we will pick the former.
 pthresh = 0.00001  # set threshold rather high to save some time
 f_thresh = f_threshold_mway_rm(n_replications, factor_levels, effects,
@@ -208,7 +209,7 @@ T_obs_plot = np.ma.masked_array(T_obs,
 plt.figure()
 for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, 'RdBu_r']):
     plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
-               frequencies[0], frequencies[-1]], aspect='auto',
+               freqs[0], freqs[-1]], aspect='auto',
                origin='lower')
 plt.xlabel('Time (ms)')
 plt.ylabel('Frequency (Hz)')
@@ -225,7 +226,7 @@ T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
 plt.figure()
 for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, 'RdBu_r']):
     plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
-               frequencies[0], frequencies[-1]], aspect='auto',
+               freqs[0], freqs[-1]], aspect='auto',
                origin='lower')
 
 plt.xlabel('Time (ms)')

@@ -6,7 +6,8 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true, assert_equal, assert_raises
-from mne.utils import requires_sklearn_0_15
+from mne.fixes import is_regressor, is_classifier
+from mne.utils import requires_version
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
                                cross_val_multiscore)
 from mne.decoding.search_light import SlidingEstimator
@@ -39,6 +40,7 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     # Define Y latent factors
     np.random.seed(0)
     cov_Y = np.eye(n_targets) * 10 + np.random.rand(n_targets, n_targets)
+    cov_Y = (cov_Y + cov_Y.T) / 2.
     mean_Y = np.random.rand(n_targets)
     Y = np.random.multivariate_normal(mean_Y, cov_Y, size=n_samples)
 
@@ -52,17 +54,19 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     return X, Y, A
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.17')
 def test_get_coef():
-    """Test the retrieval of linear coefficients (filters and patterns) from
-    simple and pipeline estimators.
-    """
+    """Test getting linear coefficients (filters/patterns) from estimators."""
     from sklearn.base import TransformerMixin, BaseEstimator
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
     from sklearn.linear_model import Ridge, LinearRegression
 
+    lm = LinearModel()
+    assert_true(is_classifier(lm))
+
     lm = LinearModel(Ridge())
+    assert_true(is_regressor(lm))
 
     # Define a classifier, an invertible transformer and an non-invertible one.
 
@@ -159,10 +163,9 @@ def test_get_coef():
             assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.15')
 def test_linearmodel():
-    """Test LinearModel class for computing filters and patterns.
-    """
+    """Test LinearModel class for computing filters and patterns."""
     from sklearn.linear_model import LinearRegression
     np.random.seed(42)
     clf = LinearModel()
@@ -184,10 +187,9 @@ def test_linearmodel():
     assert_raises(ValueError, clf.fit, X, np.random.rand(n, n_features, 99))
 
 
-@requires_sklearn_0_15
+@requires_version('sklearn', '0.18')
 def test_cross_val_multiscore():
-    """Test cross_val_multiscore for computing scores on decoding over time.
-    """
+    """Test cross_val_multiscore for computing scores on decoding over time."""
     from sklearn.model_selection import KFold, cross_val_score
     from sklearn.linear_model import LogisticRegression
 

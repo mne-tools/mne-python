@@ -6,6 +6,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Phillip Alday <phillip.alday@unisa.edu.au>
+#          Okba Bekhelifi <okba.bekhelifi@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -34,9 +35,10 @@ class RawBrainVision(BaseRaw):
     vhdr_fname : str
         Path to the EEG header file.
     montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+        Path or instance of montage containing electrode positions. If None,
+        read sensor locations from header file if present, otherwise (0, 0, 0).
+        See the documentation of :func:`mne.channels.read_montage` for more
+        information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
@@ -230,15 +232,20 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     # blocks, such as that the filename are specifying are not
     # guaranteed to be ASCII.
 
-    codepage = 'utf-8'
     try:
         # if there is an explicit codepage set, use it
         # we pretend like it's ascii when searching for the codepage
         cp_setting = re.search('Codepage=(.+)',
                                txt.decode('ascii', 'ignore'),
                                re.IGNORECASE & re.MULTILINE)
+        codepage = 'utf-8'
         if cp_setting:
             codepage = cp_setting.group(1).strip()
+        # BrainAmp Recorder also uses ANSI codepage
+        # an ANSI codepage raises a LookupError exception
+        # python recognize ANSI decoding as cp1252
+        if codepage == 'ANSI':
+            codepage = 'cp1252'
         txt = txt.decode(codepage)
     except UnicodeDecodeError:
         # if UTF-8 (new standard) or explicit codepage setting fails,
@@ -348,10 +355,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
-    montage : str | True | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions. If None,
+        read sensor locations from header file if present, otherwise (0, 0, 0).
+        See the documentation of :func:`mne.channels.read_montage` for more
+        information.
 
     Returns
     -------
@@ -388,6 +396,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                                    re.IGNORECASE & re.MULTILINE)
             if cp_setting:
                 codepage = cp_setting.group(1).strip()
+            # BrainAmp Recorder also uses ANSI codepage
+            # an ANSI codepage raises a LookupError exception
+            # python recognize ANSI decoding as cp1252
+            if codepage == 'ANSI':
+                codepage = 'cp1252'
             settings = settings.decode(codepage)
         except UnicodeDecodeError:
             # if UTF-8 (new standard) or explicit codepage setting fails,
@@ -477,20 +490,31 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
     # create montage
-    if montage is True:
-        from ...transforms import _sphere_to_cartesian
+    if cfg.has_section('Coordinates') and montage is None:
+        from ...transforms import _sph_to_cart
         from ...channels.montage import Montage
         montage_pos = list()
         montage_names = list()
+        to_misc = list()
         for ch in cfg.items('Coordinates'):
-            montage_names.append(ch_dict[ch[0]])
+            ch_name = ch_dict[ch[0]]
+            montage_names.append(ch_name)
             radius, theta, phi = map(float, ch[1].split(','))
             # 1: radius, 2: theta, 3: phi
-            pos = _sphere_to_cartesian(r=radius, theta=theta, phi=phi)
+            pol = np.deg2rad(theta)
+            az = np.deg2rad(phi)
+            pos = _sph_to_cart(np.array([[radius * 85., az, pol]]))[0]
+            if (pos == 0).all() and ch_name not in list(eog) + misc:
+                to_misc.append(ch_name)
             montage_pos.append(pos)
         montage_sel = np.arange(len(montage_pos))
         montage = Montage(montage_pos, montage_names, 'Brainvision',
                           montage_sel)
+        if len(to_misc) > 0:
+            misc += to_misc
+            warn('No coordinate information found for channels {}. '
+                 'Setting channel types to misc. To avoid this warning, set '
+                 'channel types explicitly.'.format(to_misc))
 
     ch_names[-1] = 'STI 014'
     cals[-1] = 1.

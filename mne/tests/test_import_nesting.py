@@ -18,7 +18,8 @@ ok_scipy_submodules = set(['scipy', 'numpy',  # these appear in old scipy
                            'misc', 'sparse', 'version'])
 scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        if x.startswith('scipy.') and '__' not in x and
-                       not x.split('.')[1].startswith('_'))
+                       not x.split('.')[1].startswith('_')
+                       and sys.modules[x] is not None)
 bad = scipy_submodules - ok_scipy_submodules
 if len(bad) > 0:
     out.append('Found un-nested scipy submodules: %s' % list(bad))
@@ -52,5 +53,6 @@ def test_module_nesting():
     stdout, stderr = proc.communicate()
     if proc.returncode:
         raise AssertionError(stdout)
+
 
 run_tests_if_main()

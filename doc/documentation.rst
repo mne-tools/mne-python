@@ -138,9 +138,11 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 
     manual/io.rst
     auto_tutorials/plot_creating_data_structures.rst
+    auto_tutorials/plot_metadata_epochs.rst
     auto_tutorials/plot_modifying_data_inplace.rst
     auto_tutorials/plot_ecog.rst
     manual/memory.rst
+    manual/migrating.rst
 
 .. raw:: html
 
@@ -287,6 +289,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/visualization/plot_ssp_projs_sensitivity_map.rst
     auto_examples/visualization/plot_topo_compare_conditions.rst
     auto_examples/visualization/plot_topo_customized.rst
+    auto_examples/visualization/plot_xhemi.rst
 
 .. raw:: html
 
@@ -431,7 +434,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/inverse/plot_tf_dics.rst
     auto_examples/inverse/plot_tf_lcmv.rst
     auto_examples/inverse/plot_time_frequency_mixed_norm_inverse.rst
-    auto_examples/inverse/plot_vector_source_estimate.rst
+    auto_examples/inverse/plot_vector_mne_solution.rst
 
 .. raw:: html
 
@@ -462,7 +465,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <a data-toggle="collapse" href="#collapse_statistics">Statistics in sensor- and source-space</a>
+            <a data-toggle="collapse" href="#collapse_statistics">Statistics</a>
           </h4>
         </div>
         <div id="collapse_statistics" class="panel-collapse collapse">
@@ -474,14 +477,13 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    manual/statistics.rst
+    auto_tutorials/plot_background_statistics.rst
 
 **Sensor Space**
 
 .. toctree::
     :maxdepth: 1
 
-    auto_tutorials/plot_stats_cluster_methods.rst
     auto_tutorials/plot_stats_spatio_temporal_cluster_sensors.rst
     auto_tutorials/plot_stats_cluster_1samp_test_time_frequency.rst
     auto_tutorials/plot_stats_cluster_time_frequency.rst
@@ -552,6 +554,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/decoding/plot_decoding_csp_space.rst
     auto_examples/decoding/plot_decoding_csp_timefreq.rst
     auto_examples/decoding/plot_decoding_spatio_temporal_source.rst
+    auto_examples/decoding/plot_decoding_spoc_CMC.rst
     auto_examples/decoding/plot_decoding_time_generalization_conditions.rst
     auto_examples/decoding/plot_decoding_unsupervised_spatial_filter.rst
     auto_examples/decoding/plot_decoding_xdawn_eeg.rst
@@ -606,7 +609,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     :maxdepth: 1
 
     auto_examples/connectivity/plot_cwt_sensor_connectivity.rst
-    auto_examples/connectivity/plot_mixed_source_space_connectity.rst
+    auto_examples/connectivity/plot_mixed_source_space_connectivity.rst
     auto_examples/connectivity/plot_mne_inverse_coherence_epochs.rst
     auto_examples/connectivity/plot_mne_inverse_connectivity_spectrum.rst
     auto_examples/connectivity/plot_mne_inverse_label_connectivity.rst
@@ -667,6 +670,9 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     manual/gui/browse.rst
     manual/appendix/bem_model.rst
     manual/appendix/c_misc.rst
+    manual/appendix/c_release_notes.rst
+    manual/appendix/c_EULA.rst
+    manual/appendix/martinos.rst
 
 **MNE-MATLAB**
 

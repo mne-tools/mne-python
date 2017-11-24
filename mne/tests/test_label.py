@@ -9,6 +9,7 @@ from scipy import sparse
 
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_equal, assert_true, assert_false, assert_raises
+import pytest
 
 from mne.datasets import testing
 from mne import (read_label, stc_to_label, read_source_estimate,
@@ -17,7 +18,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
                  read_surface)
 from mne.label import Label, _blend_colors, label_sign_flip
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main, slow_test)
+                       run_tests_if_main)
 from mne.fixes import assert_is, assert_is_not
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
@@ -214,22 +215,22 @@ def test_label_addition():
     assert_labels_equal(l01 - l0, l1, comment=False, color=False)
     assert_labels_equal(l01 - l1, l0, comment=False, color=False)
 
-    # adding overlappig labels
-    l = l0 + l2
+    # adding overlapping labels
+    l02 = l0 + l2
     i0 = np.where(l0.vertices == 6)[0][0]
     i2 = np.where(l2.vertices == 6)[0][0]
-    i = np.where(l.vertices == 6)[0][0]
-    assert_equal(l.values[i], l0.values[i0] + l2.values[i2])
-    assert_equal(l.values[0], l0.values[0])
-    assert_array_equal(np.unique(l.vertices), np.unique(idx0 + idx2))
-    assert_equal(l.color, _blend_colors(l0.color, l2.color))
+    i = np.where(l02.vertices == 6)[0][0]
+    assert_equal(l02.values[i], l0.values[i0] + l2.values[i2])
+    assert_equal(l02.values[0], l0.values[0])
+    assert_array_equal(np.unique(l02.vertices), np.unique(idx0 + idx2))
+    assert_equal(l02.color, _blend_colors(l0.color, l2.color))
 
     # adding lh and rh
     l2.hemi = 'rh'
     bhl = l0 + l2
     assert_equal(bhl.hemi, 'both')
     assert_equal(len(bhl), len(l0) + len(l2))
-    assert_equal(bhl.color, l.color)
+    assert_equal(bhl.color, l02.color)
     assert_true('BiHemiLabel' in repr(bhl))
     # subtraction
     assert_labels_equal(bhl - l0, l2)
@@ -628,7 +629,7 @@ def test_split_label():
                  [16181, 7022, 5965, 5300, 823] + [1] * 23)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_sklearn
 def test_stc_to_label():
@@ -690,7 +691,7 @@ def test_stc_to_label():
         assert_labels_equal(l1, l2, decimal=4)
 
 
-@slow_test
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_morph():
     """Test inter-subject label morphing."""
@@ -715,7 +716,8 @@ def test_morph():
     verts = [np.arange(10242), np.arange(10242)]
     for hemi in ['lh', 'rh']:
         label.hemi = hemi
-        label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
+        with warnings.catch_warnings(record=True):  # morph map maybe missing
+            label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
     assert_raises(TypeError, label.morph, None, 1, 5, verts,
                   subjects_dir, 2)
     assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
@@ -780,9 +782,16 @@ def test_label_sign_flip():
     known_flips = np.array([1, 1, np.nan, 1, 1])
     idx = [0, 1, 3, 4]  # indices that are usable (third row is orthognoal)
     flip = label_sign_flip(label, src)
-    # Need the abs here because the direction is arbitrary
-    assert_array_almost_equal(np.abs(np.dot(flip[idx], known_flips[idx])),
-                              len(idx))
+    assert_array_almost_equal(np.dot(flip[idx], known_flips[idx]), len(idx))
+    bi_label = label + Label(vertices=src[1]['vertno'][:5], hemi='rh')
+    src[1]['nn'][src[1]['vertno'][:5]] = -src[0]['nn'][label.vertices]
+    flip = label_sign_flip(bi_label, src)
+    known_flips = np.array([1, 1, np.nan, 1, 1, 1, 1, np.nan, 1, 1])
+    idx = [0, 1, 3, 4, 5, 6, 8, 9]
+    assert_array_almost_equal(np.dot(flip[idx], known_flips[idx]), 0.)
+    src[1]['nn'][src[1]['vertno'][:5]] *= -1
+    flip = label_sign_flip(bi_label, src)
+    assert_array_almost_equal(np.dot(flip[idx], known_flips[idx]), len(idx))
 
 
 @testing.requires_testing_data

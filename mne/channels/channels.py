@@ -17,7 +17,7 @@ from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..utils import _check_preload
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info
+from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _PICK_TYPES_KEYS,
                        channel_indices_by_type)
@@ -94,7 +94,11 @@ def _get_ch_type(inst, ch_type):
     """
     if ch_type is None:
         for type_ in ['mag', 'grad', 'planar1', 'planar2', 'eeg']:
-            if type_ in inst:
+            if isinstance(inst, Info):
+                if _contains_ch_type(inst, type_):
+                    ch_type = type_
+                    break
+            elif type_ in inst:
                 ch_type = type_
                 break
         else:
@@ -130,7 +134,7 @@ def equalize_channels(candidates, verbose=None):
 
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
-    logger.info('Identiying common channels ...')
+    logger.info('Identifying common channels ...')
     channels = [set(c.ch_names) for c in candidates]
     common_channels = set(chan_template).intersection(*channels)
     dropped = list()
@@ -260,8 +264,9 @@ class SetChannelsMixin(object):
 
         Average reference:
             A new virtual reference electrode is created by averaging the
-            current EEG signal. Make sure that all bad EEG channels are
-            properly marked and set ``ref_channels='average'``.
+            current EEG signal by setting ``ref_channels='average'``. Bad EEG
+            channels are automatically excluded if they are properly set in
+            ``info['bads']``.
 
         A single electrode:
             Set ``ref_channels`` to a list containing the name of the channel
@@ -276,12 +281,12 @@ class SetChannelsMixin(object):
             mastoid reference, when using the 10-20 naming scheme, set
             ``ref_channels=['M1', 'M2']``.
 
-        .. note:: In case of average reference `ref_channels='average'`` in
-                  combination with `projection=True`, the reference is added as
-                  a projection and it is not applied automatically. For it to
-                  take effect, apply with method
-                  :meth:`apply_proj <mne.io.Raw.apply_proj>`. Other references
-                  are directly applied (this behavior will change in MNE 0.16).
+        .. note:: In case of ``ref_channels='average'`` in combination with
+                  ``projection=True``, the reference is added as a projection
+                  and it is not applied automatically. For it to take effect,
+                  apply with method :meth:`apply_proj <mne.io.Raw.apply_proj>`.
+                  Other references are directly applied (this behavior will
+                  change in MNE 0.16).
 
         Parameters
         ----------
@@ -329,6 +334,9 @@ class SetChannelsMixin(object):
 
         3. In order to apply a reference, the data must be preloaded. This is
            not necessary if ``ref_channels='average'`` and ``projection=True``.
+
+        4. For an average reference, bad EEG channels are automatically
+           excluded if they are properly set in ``info['bads']``.
 
         .. versionadded:: 0.9.0
         """
@@ -837,7 +845,7 @@ class InterpolationMixin(object):
         reset_bads : bool
             If True, remove the bads from info.
         mode : str
-            Either `'accurate'` or `'fast'`, determines the quality of the
+            Either ``'accurate'`` or ``'fast'``, determines the quality of the
             Legendre polynomial expansion used for interpolation of MEG
             channels.
         verbose : bool, str, int, or None
@@ -870,6 +878,8 @@ class InterpolationMixin(object):
 
 def rename_channels(info, mapping):
     """Rename channels.
+
+    .. warning::  The channel names must have at most 15 characters
 
     Parameters
     ----------
@@ -905,6 +915,12 @@ def rename_channels(info, mapping):
            for new_name in new_names):
         raise ValueError('New channel mapping must only be to strings')
 
+    bad_new_names = [name for _, name in new_names if len(name) > 15]
+    if len(bad_new_names):
+        raise ValueError('Channel names cannot be longer than 15 '
+                         'characters. These channel names are not '
+                         'valid : %s' % new_names)
+
     # do the remapping locally
     for c_ind, new_name in new_names:
         for bi, bad in enumerate(bads):
@@ -935,8 +951,8 @@ def _recursive_flatten(cell, dtype):
 def read_ch_connectivity(fname, picks=None):
     """Parse FieldTrip neighbors .mat file.
 
-    More information on these neighbor definitions can be found on the
-    related FieldTrip documentation pages:
+    More information on these neighbor definitions can be found on the related
+    FieldTrip documentation pages:
     http://fieldtrip.fcdonders.nl/template/neighbours
 
     Parameters
@@ -961,9 +977,10 @@ def read_ch_connectivity(fname, picks=None):
 
     Notes
     -----
-    This function is closely related to ``find_ch_connectivity``. In case you
-    don't know the correct file for the neighbor definitions, the use of
-    ``find_ch_connectivity`` is preferred.
+    This function is closely related to :func:`find_ch_connectivity`. If you
+    don't know the correct file for the neighbor definitions,
+    :func:`find_ch_connectivity` can compute the connectivity matrix from 2d
+    sensor locations.
     """
     from scipy.io import loadmat
     if not op.isabs(fname):
@@ -1069,6 +1086,12 @@ def find_ch_connectivity(info, ch_type):
     Notes
     -----
     .. versionadded:: 0.15
+
+    Automatic detection of an appropriate connectivity matrix template only
+    works for MEG data at the moment. This means that the connectivity matrix
+    is always computed for EEG data and never loaded from a template file. If
+    you want to load a template for a given montage use
+    :func:`read_ch_connectivity` directly.
     """
     if ch_type is None:
         picks = channel_indices_by_type(info)
@@ -1163,8 +1186,9 @@ def _compute_ch_connectivity(info, ch_type):
                     ch_connectivity[idx * 2 + ii, idx * 2 + jj] = True  # pair
         ch_connectivity = sparse.csr_matrix(ch_connectivity)
     else:
-        ch_connectivity = sparse.csr_matrix(neighbors)
+        ch_connectivity = sparse.lil_matrix(neighbors)
         ch_connectivity.setdiag(np.repeat(1, ch_connectivity.shape[0]))
+        ch_connectivity = ch_connectivity.tocsr()
 
     return ch_connectivity, ch_names
 

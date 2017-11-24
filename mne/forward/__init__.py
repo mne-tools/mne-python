@@ -10,8 +10,7 @@ from .forward import (Forward, read_forward_solution, write_forward_solution,
                       _restrict_gain_matrix, _stc_src_sel,
                       _fill_measurement_info, _apply_forward,
                       _subject_from_forward, convert_forward_solution,
-                      _to_fixed_ori, _merge_meg_eeg_fwds,
-                      _do_forward_solution)
+                      _merge_meg_eeg_fwds, _do_forward_solution)
 from ._make_forward import (make_forward_solution, _prepare_for_forward,
                             _prep_meg_channels, _prep_eeg_channels,
                             _to_forward_dict, _create_meg_coils,

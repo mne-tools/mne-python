@@ -6,16 +6,15 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal, assert_allclose)
+                           assert_equal)
 from nose.tools import assert_true, assert_raises
 import warnings
 
+from mne import (read_cov, read_forward_solution, convert_forward_solution,
+                 pick_types_forward, read_evokeds)
 from mne.datasets import testing
-from mne import read_forward_solution
 from mne.simulation import simulate_sparse_stc, simulate_evoked
-from mne import read_cov
 from mne.io import read_raw_fif
-from mne import pick_types_forward, read_evokeds
 from mne.cov import regularize
 from mne.utils import run_tests_if_main
 
@@ -37,7 +36,8 @@ def test_simulate_evoked():
     """Test simulation of evoked data."""
 
     raw = read_raw_fif(raw_fname)
-    fwd = read_forward_solution(fwd_fname, force_fixed=True)
+    fwd = read_forward_solution(fwd_fname)
+    fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=False)
     fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
     cov = read_cov(cov_fname)
 
@@ -77,13 +77,6 @@ def test_simulate_evoked():
     evoked_2 = simulate_evoked(fwd, stc, evoked_template.info, cov,
                                nave=np.inf)
     assert_array_equal(evoked_1.data, evoked_2.data)
-
-    # Test the equivalence snr to nave
-    with warnings.catch_warnings(record=True):  # deprecation
-        evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                                 snr=6, random_state=42)
-    assert_allclose(np.linalg.norm(evoked.data, ord='fro'),
-                    0.00078346820226502716)
 
     cov['names'] = cov.ch_names[:-2]  # Error channels are different.
     assert_raises(ValueError, simulate_evoked, fwd, stc, evoked_template.info,

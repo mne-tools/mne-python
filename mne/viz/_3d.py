@@ -29,7 +29,7 @@ from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials
 from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
 
-from ..surface import (_get_head_surface, get_meg_helmet_surf, read_surface,
+from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info, mesh_edges,
                        _complete_sphere_surf)
@@ -38,10 +38,11 @@ from ..transforms import (read_trans, _find_trans, apply_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      _import_mlab, SilenceStdout, has_nibabel, check_version,
-                     _ensure_int, deprecated)
+                     _ensure_int)
 from .utils import (mne_analyze_colormap, _prepare_trellis, COLORS, plt_show,
                     tight_layout, figure_nobar)
-from ..bem import ConductorModel, _bem_find_surface, _surf_dict, _surf_name
+from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
+                   read_bem_surfaces)
 
 
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
@@ -51,12 +52,25 @@ FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
 def _fiducial_coords(points, coord_frame=None):
     """Generate 3x3 array of fiducial coordinates."""
     if coord_frame is not None:
-        points = (p for p in points if p['coord_frame'] == coord_frame)
+        points = [p for p in points if p['coord_frame'] == coord_frame]
     points_ = dict((p['ident'], p) for p in points if
                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL)
     if points_:
         return np.array([points_[i]['r'] for i in FIDUCIAL_ORDER])
     else:
+        # XXX eventually this should probably live in montage.py
+        if coord_frame is None or coord_frame == FIFF.FIFFV_COORD_HEAD:
+            # Try converting CTF HPI coils to fiducials
+            out = np.empty((3, 3))
+            out.fill(np.nan)
+            for p in points:
+                if p['kind'] == FIFF.FIFFV_POINT_HPI:
+                    if np.isclose(p['r'][1:], 0, atol=1e-6).all():
+                        out[0 if p['r'][0] < 0 else 2] = p['r']
+                    elif np.isclose(p['r'][::2], 0, atol=1e-6).all():
+                        out[1] = p['r']
+            if np.isfinite(out).all():
+                return out
         return np.array([])
 
 
@@ -128,13 +142,14 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         ax.add_collection(lc)
         # now plot the head directions as a quiver
         dir_idx = dict(x=0, y=1, z=2)
+        kwargs = _pivot_kwargs()
         for d, length in zip(direction, [1., 0.5, 0.25]):
             use_dir = use_rot[:, :, dir_idx[d]]
             # draws stems, then heads
             array = np.concatenate((t, np.repeat(t, 2)))
             ax.quiver(use_trans[:, 0], use_trans[:, 1], use_trans[:, 2],
                       use_dir[:, 0], use_dir[:, 1], use_dir[:, 2], norm=norm,
-                      cmap=cmap, array=array, pivot='tail', length=length)
+                      cmap=cmap, array=array, length=length, **kwargs)
         mins = use_trans.min(0)
         maxs = use_trans.max(0)
         scale = (maxs - mins).max() / 2.
@@ -145,6 +160,18 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     tight_layout(fig=fig)
     plt_show(show)
     return fig
+
+
+def _pivot_kwargs():
+    """Get kwargs for quiver."""
+    kwargs = dict()
+    if check_version('matplotlib', '1.5'):
+        kwargs['pivot'] = 'tail'
+    else:
+        import matplotlib
+        warn('pivot cannot be set in matplotlib %s (need version 1.5+), '
+             'locations are approximate' % (matplotlib.__version__,))
+    return kwargs
 
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -390,457 +417,13 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     return fig if img_output is None else outs
 
 
-@deprecated('this function will be removed in version 0.16. '
-            'Use plot_alignment instead')
-@verbose
-def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
-               source=('bem', 'head', 'outer_skin'),
-               coord_frame='head', meg_sensors=('helmet', 'sensors'),
-               eeg_sensors='original', dig=False, ref_meg=False,
-               ecog_sensors=True, head=None, brain=None, skull=False,
-               src=None, mri_fiducials=False, verbose=None):
-    """Plot head, sensor, and source space alignment in 3D.
-
-    Parameters
-    ----------
-    info : dict
-        The measurement info.
-    trans : str | 'auto' | dict | None
-        The full path to the head<->MRI transform ``*-trans.fif`` file
-        produced during coregistration. If trans is None, an identity matrix
-        is assumed.
-    subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. Can be omitted if ``src`` is provided.
-    subjects_dir : str
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    source : str | list
-        Type to load. Common choices would be `'bem'`, `'head'` or
-        `'outer_skin'`. If list, the sources are looked up in the given order
-        and first found surface is used. We first try loading
-        `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
-        `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
-        the subjects bem and bem/flash folders are searched. Defaults to 'bem'.
-        Note. For single layer bems it is recommended to use 'head'.
-    coord_frame : str
-        Coordinate frame to use, 'head', 'meg', or 'mri'.
-    meg_sensors : bool | str | list
-        Can be "helmet" (equivalent to False) or "sensors" to show the MEG
-        helmet or sensors, respectively, or a combination of the two like
-        ``['helmet', 'sensors']`` (equivalent to True, default) or ``[]``.
-    eeg_sensors : bool | str | list
-        Can be "original" (default; equivalent to True) or "projected" to
-        show EEG sensors in their digitized locations or projected onto the
-        scalp, or a list of these options including ``[]`` (equivalent of
-        False).
-    dig : bool | 'fiducials'
-        If True, plot the digitization points; 'fiducials' to plot fiducial
-        points only.
-    ref_meg : bool
-        If True (default False), include reference MEG sensors.
-    ecog_sensors : bool
-        If True (default), show ECoG sensors.
-    head : bool | None
-        If True, show head surface. Can also be None, which will show the
-        head surface for MEG and EEG, but hide it if ECoG sensors are
-        present.
-    brain : bool | str | None
-        If True, show the brain surfaces. Can also be a str for
-        surface type (e.g., 'pial', same as True), or None (True for ECoG,
-        False otherwise).
-    skull : bool | str | list of str | list of dict
-        Whether to plot skull surface. If string, common choices would be
-        'inner_skull', or 'outer_skull'. Can also be a list to plot
-        multiple skull surfaces. If a list of dicts, each dict must
-        contain the complete surface info (such as you get from
-        :func:`mne.make_bem_model`). True is an alias of 'outer_skull'.
-        The subjects bem and bem/flash folders are searched for the 'surf'
-        files. Defaults to False.
-    src : instance of SourceSpaces | None
-        If not None, also plot the source space points.
-
-        .. versionadded:: 0.14
-
-    mri_fiducials : bool | str
-        Plot MRI fiducials (default False). If ``True``, look for a file with
-        the canonical name (``bem/{subject}-fiducials.fif``). If ``str`` it
-        should provide the full path to the fiducials file.
-
-        .. versionadded:: 0.14
-
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    fig : instance of mlab.Figure
-        The mayavi figure.
-    """
-    from ..forward import _create_meg_coils
-    mlab = _import_mlab()
-    if meg_sensors is False:  # old behavior
-        meg_sensors = 'helmet'
-    elif meg_sensors is True:
-        meg_sensors = ['helmet', 'sensors']
-    if eeg_sensors is False:
-        eeg_sensors = []
-    elif eeg_sensors is True:
-        eeg_sensors = 'original'
-    if isinstance(eeg_sensors, string_types):
-        eeg_sensors = [eeg_sensors]
-    if isinstance(meg_sensors, string_types):
-        meg_sensors = [meg_sensors]
-    for kind, var in zip(('eeg', 'meg'), (eeg_sensors, meg_sensors)):
-        if not isinstance(var, (list, tuple)) or \
-                not all(isinstance(x, string_types) for x in var):
-            raise TypeError('%s_sensors must be list or tuple of str, got %s'
-                            % (type(var),))
-    if not all(x in ('helmet', 'sensors') for x in meg_sensors):
-        raise ValueError('meg_sensors must only contain "helmet" and "points",'
-                         ' got %s' % (meg_sensors,))
-    if not all(x in ('original', 'projected') for x in eeg_sensors):
-        raise ValueError('eeg_sensors must only contain "original" and '
-                         '"projected", got %s' % (eeg_sensors,))
-
-    if not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info, got %s'
-                        % type(info))
-    valid_coords = ['head', 'meg', 'mri']
-    if coord_frame not in valid_coords:
-        raise ValueError('coord_frame must be one of %s' % (valid_coords,))
-    if src is not None:
-        if not isinstance(src, SourceSpaces):
-            raise TypeError('src must be None or SourceSpaces, got %s'
-                            % (type(src),))
-        src_subject = src[0].get('subject_his_id', None)
-        subject = src_subject if subject is None else subject
-        if src_subject is not None and subject != src_subject:
-            raise ValueError('subject ("%s") did not match the subject name '
-                             ' in src ("%s")' % (subject, src_subject))
-        src_rr = np.concatenate([s['rr'][s['inuse'].astype(bool)]
-                                 for s in src])
-        src_nn = np.concatenate([s['nn'][s['inuse'].astype(bool)]
-                                 for s in src])
-    else:
-        src_rr = src_nn = np.empty((0, 3))
-
-    meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
-    eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
-
-    if head is None:
-        head = (len(ecog_picks) == 0 and subject is not None)
-    if head and subject is None:
-        raise ValueError('If head is True, subject must be provided')
-    if isinstance(trans, string_types):
-        if trans == 'auto':
-            # let's try to do this in MRI coordinates so they're easy to plot
-            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            trans = _find_trans(subject, subjects_dir)
-        trans = read_trans(trans, return_all=True)
-        for trans in trans:  # we got at least 1
-            try:
-                trans = _ensure_trans(trans, 'head', 'mri')
-            except Exception as exp:
-                pass
-            else:
-                break
-        else:
-            raise exp
-    elif trans is None:
-        trans = Transform('head', 'mri')
-    elif not isinstance(trans, dict):
-        raise TypeError('trans must be str, dict, or None')
-    head_mri_t = _ensure_trans(trans, 'head', 'mri')
-    dev_head_t = info['dev_head_t']
-    del trans
-
-    # Figure out our transformations
-    if coord_frame == 'meg':
-        head_trans = invert_transform(dev_head_t)
-        meg_trans = Transform('meg', 'meg')
-        mri_trans = invert_transform(combine_transforms(
-            dev_head_t, head_mri_t, 'meg', 'mri'))
-    elif coord_frame == 'mri':
-        head_trans = head_mri_t
-        meg_trans = combine_transforms(dev_head_t, head_mri_t, 'meg', 'mri')
-        mri_trans = Transform('mri', 'mri')
-    else:  # coord_frame == 'head'
-        head_trans = Transform('head', 'head')
-        meg_trans = info['dev_head_t']
-        mri_trans = invert_transform(head_mri_t)
-
-    # both the head and helmet will be in MRI coordinates after this
-    surfs = dict()
-    if head:
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        head_surf = _get_head_surface(subject, source=source,
-                                      subjects_dir=subjects_dir,
-                                      raise_error=False)
-        if head_surf is None:
-            if isinstance(source, string_types):
-                source = [source]
-            for this_surf in source:
-                if not this_surf.endswith('outer_skin'):
-                    continue
-                surf_fname = op.join(subjects_dir, subject, 'bem', 'flash',
-                                     '%s.surf' % this_surf)
-                if not op.exists(surf_fname):
-                    surf_fname = op.join(subjects_dir, subject, 'bem',
-                                         '%s.surf' % this_surf)
-                    if not op.exists(surf_fname):
-                        continue
-                logger.info('Using %s for head surface.' % this_surf)
-                rr, tris = read_surface(surf_fname)
-                head_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
-                                 np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
-                complete_surface_info(head_surf, copy=False, verbose=False)
-                break
-        if head_surf is None:
-            raise IOError('No head surface found for subject %s.' % subject)
-        surfs['head'] = head_surf
-
-    if mri_fiducials:
-        if mri_fiducials is True:
-            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            if subject is None:
-                raise ValueError("Subject needs to be specified to "
-                                 "automatically find the fiducials file.")
-            mri_fiducials = op.join(subjects_dir, subject, 'bem',
-                                    subject + '-fiducials.fif')
-        if isinstance(mri_fiducials, string_types):
-            mri_fiducials, cf = read_fiducials(mri_fiducials)
-            if cf != FIFF.FIFFV_COORD_MRI:
-                raise ValueError("Fiducials are not in MRI space")
-        fid_loc = _fiducial_coords(mri_fiducials, FIFF.FIFFV_COORD_MRI)
-        fid_loc = apply_trans(mri_trans, fid_loc)
-    else:
-        fid_loc = []
-
-    if 'helmet' in meg_sensors and len(meg_picks) > 0:
-        surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
-    if brain is None:
-        if len(ecog_picks) > 0 and subject is not None:
-            brain = 'pial'
-        else:
-            brain = False
-    if brain:
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        brain = 'pial' if brain is True else brain
-        for hemi in ['lh', 'rh']:
-            fname = op.join(subjects_dir, subject, 'surf',
-                            '%s.%s' % (hemi, brain))
-            rr, tris = read_surface(fname)
-            rr *= 1e-3
-            surfs[hemi] = dict(rr=rr, tris=tris, ntri=len(tris), np=len(rr),
-                               coord_frame=FIFF.FIFFV_COORD_MRI)
-            complete_surface_info(surfs[hemi], copy=False, verbose=False)
-
-    if skull is True:
-        skull = 'outer_skull'
-    if isinstance(skull, string_types):
-        skull = [skull]
-    elif not skull:
-        skull = []
-    if len(skull) > 0 and not isinstance(skull[0], dict):
-        skull = sorted(skull)
-    skull_alpha = dict()
-    skull_colors = dict()
-    hemi_val = 0.5
-    if src is None or (brain and any(s['type'] == 'surf' for s in src)):
-        hemi_val = 1.
-    alphas = (4 - np.arange(len(skull) + 1)) * (0.5 / 4.)
-    for idx, this_skull in enumerate(skull):
-        if isinstance(this_skull, dict):
-            from ..bem import _surf_name
-            skull_surf = this_skull
-            this_skull = _surf_name[skull_surf['id']]
-        else:
-            skull_fname = op.join(subjects_dir, subject, 'bem', 'flash',
-                                  '%s.surf' % this_skull)
-            if not op.exists(skull_fname):
-                skull_fname = op.join(subjects_dir, subject, 'bem',
-                                      '%s.surf' % this_skull)
-            if not op.exists(skull_fname):
-                raise IOError('No skull surface %s found for subject %s.'
-                              % (this_skull, subject))
-            logger.info('Using %s for head surface.' % skull_fname)
-            rr, tris = read_surface(skull_fname)
-            skull_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
-                              np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
-            complete_surface_info(skull_surf, copy=False, verbose=False)
-        skull_alpha[this_skull] = alphas[idx + 1]
-        skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
-        surfs[this_skull] = skull_surf
-
-    if src is None and brain is False and len(skull) == 0:
-        head_alpha = 1.0
-    else:
-        head_alpha = alphas[0]
-
-    for key in surfs.keys():
-        surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
-    src_rr = apply_trans(mri_trans, src_rr)
-    src_nn = apply_trans(mri_trans, src_nn, move=False)
-
-    # determine points
-    meg_rrs, meg_tris = list(), list()
-    ecog_loc = list()
-    hpi_loc = list()
-    ext_loc = list()
-    car_loc = list()
-    eeg_loc = list()
-    eegp_loc = list()
-    if len(eeg_sensors) > 0:
-        eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
-        if len(eeg_loc) > 0:
-            eeg_loc = apply_trans(head_trans, eeg_loc)
-            # XXX do projections here if necessary
-            if 'projected' in eeg_sensors:
-                eegp_loc, eegp_nn = _project_onto_surface(
-                    eeg_loc, surfs['head'], project_rrs=True,
-                    return_nn=True)[2:4]
-            if 'original' not in eeg_sensors:
-                eeg_loc = list()
-    del eeg_sensors
-    if 'sensors' in meg_sensors:
-        coil_transs = [_loc_to_coil_trans(info['chs'][pick]['loc'])
-                       for pick in meg_picks]
-        coils = _create_meg_coils([info['chs'][pick] for pick in meg_picks],
-                                  acc='normal')
-        offset = 0
-        for coil, coil_trans in zip(coils, coil_transs):
-            rrs, tris = _sensor_shape(coil)
-            rrs = apply_trans(coil_trans, rrs)
-            meg_rrs.append(rrs)
-            meg_tris.append(tris + offset)
-            offset += len(meg_rrs[-1])
-        if len(meg_rrs) == 0:
-            warn('MEG electrodes not found. Cannot plot MEG locations.')
-        else:
-            meg_rrs = apply_trans(meg_trans, np.concatenate(meg_rrs, axis=0))
-            meg_tris = np.concatenate(meg_tris, axis=0)
-    del meg_sensors
-    if dig:
-        if dig == 'fiducials':
-            hpi_loc = ext_loc = []
-        elif dig is not True:
-            raise ValueError("dig needs to be True, False or 'fiducials', "
-                             "not %s" % repr(dig))
-        else:
-            hpi_loc = np.array([d['r'] for d in info['dig']
-                                if d['kind'] == FIFF.FIFFV_POINT_HPI])
-            ext_loc = np.array([d['r'] for d in info['dig']
-                               if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
-        car_loc = _fiducial_coords(info['dig'])
-        # Transform from head coords if necessary
-        if coord_frame == 'meg':
-            for loc in (hpi_loc, ext_loc, car_loc):
-                loc[:] = apply_trans(invert_transform(info['dev_head_t']), loc)
-        elif coord_frame == 'mri':
-            for loc in (hpi_loc, ext_loc, car_loc):
-                loc[:] = apply_trans(head_mri_t, loc)
-        if len(car_loc) == len(ext_loc) == len(hpi_loc) == 0:
-            warn('Digitization points not found. Cannot plot digitization.')
-    del dig
-    if len(ecog_picks) > 0 and ecog_sensors:
-        ecog_loc = np.array([info['chs'][pick]['loc'][:3]
-                             for pick in ecog_picks])
-
-    # initialize figure
-    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
-    _toggle_mlab_render(fig, False)
-
-    # plot surfaces
-    alphas = dict(head=head_alpha, helmet=0.5, lh=hemi_val, rh=hemi_val)
-    alphas.update(skull_alpha)
-    colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
-                  rh=(0.5,) * 3)
-    colors.update(skull_colors)
-    for key, surf in surfs.items():
-        # Make a solid surface
-        mesh = _create_mesh_surf(surf, fig)
-        with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(mesh, color=colors[key],
-                                            opacity=alphas[key], figure=fig)
-        if key != 'helmet':
-            surface.actor.property.backface_culling = True
-
-    # plot points
-    defaults = DEFAULTS['coreg']
-    datas = [eeg_loc,
-             hpi_loc,
-             ext_loc, ecog_loc]
-    colors = [defaults['eeg_color'],
-              defaults['hpi_color'],
-              defaults['extra_color'], defaults['ecog_color']]
-    alphas = [0.8,
-              0.5,
-              0.25, 0.8]
-    scales = [defaults['eeg_scale'],
-              defaults['hpi_scale'],
-              defaults['extra_scale'], defaults['ecog_scale']]
-    for kind, loc in (('dig', car_loc), ('mri', fid_loc)):
-        if len(loc) > 0:
-            datas.extend(loc[:, np.newaxis])
-            colors.extend((defaults['lpa_color'],
-                           defaults['nasion_color'],
-                           defaults['rpa_color']))
-            alphas.extend(3 * (defaults[kind + '_fid_opacity'],))
-            scales.extend(3 * (defaults[kind + '_fid_scale'],))
-
-    for data, color, alpha, scale in zip(datas, colors, alphas, scales):
-        if len(data) > 0:
-            with warnings.catch_warnings(record=True):  # traits
-                points = mlab.points3d(data[:, 0], data[:, 1], data[:, 2],
-                                       color=color, scale_factor=scale,
-                                       opacity=alpha, figure=fig)
-                points.actor.property.backface_culling = True
-    if len(eegp_loc) > 0:
-        with warnings.catch_warnings(record=True):  # traits
-            quiv = mlab.quiver3d(
-                eegp_loc[:, 0], eegp_loc[:, 1], eegp_loc[:, 2],
-                eegp_nn[:, 0], eegp_nn[:, 1], eegp_nn[:, 2],
-                color=defaults['eegp_color'], mode='cylinder',
-                scale_factor=defaults['eegp_scale'], opacity=0.6, figure=fig)
-        quiv.glyph.glyph_source.glyph_source.height = defaults['eegp_height']
-        quiv.glyph.glyph_source.glyph_source.center = \
-            (0., -defaults['eegp_height'], 0)
-        quiv.glyph.glyph_source.glyph_source.resolution = 20
-        quiv.actor.property.backface_culling = True
-    if len(meg_rrs) > 0:
-        color, alpha = (0., 0.25, 0.5), 0.25
-        surf = dict(rr=meg_rrs, tris=meg_tris)
-        complete_surface_info(surf, copy=False, verbose=False)
-        mesh = _create_mesh_surf(surf, fig)
-        with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(mesh, color=color,
-                                            opacity=alpha, figure=fig)
-        # Don't cull these backfaces
-    if len(src_rr) > 0:
-        with warnings.catch_warnings(record=True):  # traits
-            quiv = mlab.quiver3d(
-                src_rr[:, 0], src_rr[:, 1], src_rr[:, 2],
-                src_nn[:, 0], src_nn[:, 1], src_nn[:, 2], color=(1., 1., 0.),
-                mode='cylinder', scale_factor=3e-3, opacity=0.75, figure=fig)
-        quiv.glyph.glyph_source.glyph_source.height = 0.25
-        quiv.glyph.glyph_source.glyph_source.center = (0., 0., 0.)
-        quiv.glyph.glyph_source.glyph_source.resolution = 20
-        quiv.actor.property.backface_culling = True
-    with SilenceStdout():
-        mlab.view(90, 90, figure=fig)
-    _toggle_mlab_render(fig, True)
-    return fig
-
-
 @verbose
 def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
-                   surfaces=('head',), coord_frame='head',
-                   meg=('helmet', 'sensors'), eeg='original',
+                   surfaces='head', coord_frame='head',
+                   meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, verbose=None):
+                   bem=None, show_axes=False, fig=None,
+                   interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -858,17 +441,24 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     surfaces : str | list
-        Surfaces to plot. Supported values: 'head', 'outer_skin',
-        'outer_skull', 'inner_skull', 'brain', 'pial', 'white', 'inflated'.
-        Defaults to ('head',).
+        Surfaces to plot. Supported values:
+
+        * scalp: one of 'head', 'outer_skin' (alias for 'head'),
+          'head-dense', or 'seghead' (alias for 'head-dense')
+        * skull: 'outer_skull', 'inner_skull', 'brain' (alias for
+          'inner_skull')
+        * brain: one of 'pial', 'white', 'inflated', or 'brain'
+          (alias for 'pial').
+
+        Defaults to 'head'.
 
         .. note:: For single layer BEMs it is recommended to use 'brain'.
     coord_frame : str
         Coordinate frame to use, 'head', 'meg', or 'mri'.
-    meg : str | list | bool
+    meg : str | list | bool | None
         Can be "helmet", "sensors" or "ref" to show the MEG helmet, sensors or
         reference sensors respectively, or a combination like
-        ``['helmet', 'sensors']``. True translates to
+        ``('helmet', 'sensors')`` (same as None, default). True translates to
         ``('helmet', 'sensors', 'ref')``.
     eeg : bool | str | list
         Can be "original" (default; equivalent to True) or "projected" to
@@ -892,6 +482,25 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
         `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
         the subjects bem and bem/flash folders are searched. Defaults to None.
+    show_axes : bool
+        If True (default False), coordinate frame axis indicators will be
+        shown:
+
+        * head in pink
+        * MRI in gray (if ``trans is not None``)
+        * MEG in blue (if MEG sensors are present)
+
+        .. versionadded:: 0.16
+    fig : mayavi figure object | None
+        Mayavi Scene (instance of mlab.Figure) in which to plot the alignment.
+        If ``None``, creates a new 600x600 pixel figure with black background.
+
+        .. versionadded:: 0.16
+    interaction : str
+        Can be "trackball" (default) or "terrain", i.e. a turntable-style
+        camera.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -919,11 +528,19 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils
     mlab = _import_mlab()
+    from tvtk.api import tvtk
 
     if eeg is False:
         eeg = list()
     elif eeg is True:
         eeg = 'original'
+    if meg is None:
+        meg = ('helmet', 'sensors')
+        # only consider warning if the value is explicit
+        warn_meg = False
+    else:
+        warn_meg = True
+
     if meg is True:
         meg = ('helmet', 'sensors', 'ref')
     elif meg is False:
@@ -932,6 +549,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         meg = [meg]
     if isinstance(eeg, string_types):
         eeg = [eeg]
+
+    if not isinstance(interaction, string_types) or \
+            interaction not in ('trackball', 'terrain'):
+        raise ValueError('interaction must be "trackball" or "terrain", '
+                         'got "%s"' % (interaction,))
 
     for kind, var in zip(('eeg', 'meg'), (eeg, meg)):
         if not isinstance(var, (list, tuple)) or \
@@ -949,40 +571,18 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         raise TypeError('info must be an instance of Info, got %s'
                         % type(info))
 
+    if isinstance(surfaces, string_types):
+        surfaces = [surfaces]
+    surfaces = list(surfaces)
+    if not all(isinstance(s, string_types) for s in surfaces):
+        raise TypeError('all entries in surfaces must be strings')
+
     is_sphere = False
     if isinstance(bem, ConductorModel) and bem['is_sphere']:
         if len(bem['layers']) != 4 and len(surfaces) > 1:
             raise ValueError('The sphere conductor model must have three '
                              'layers for plotting skull and head.')
         is_sphere = True
-
-    # Skull:
-    skull = list()
-    if 'outer_skull' in surfaces:
-        if isinstance(bem, ConductorModel) and not bem['is_sphere']:
-            skull.append(_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_SKULL))
-        else:
-            skull.append('outer_skull')
-    if 'inner_skull' in surfaces:
-        if isinstance(bem, ConductorModel) and not bem['is_sphere']:
-            skull.append(_bem_find_surface(bem, FIFF.FIFFV_BEM_SURF_ID_BRAIN))
-        else:
-            skull.append('inner_skull')
-
-    surf_dict = _surf_dict.copy()
-    surf_dict['outer_skin'] = FIFF.FIFFV_BEM_SURF_ID_HEAD
-    if len(skull) > 0 and not isinstance(skull[0], dict):  # list of str
-        skull = sorted(skull)
-        # list of dict
-        if bem is not None and not isinstance(bem, ConductorModel):
-            for idx, surf_name in enumerate(skull):
-                for this_surf in bem:
-                    if this_surf['id'] == surf_dict[surf_name]:
-                        skull[idx] = this_surf
-                        break
-                else:
-                    raise ValueError('Could not find the surface for '
-                                     '%s.' % surf_name)
 
     valid_coords = ['head', 'meg', 'mri']
     if coord_frame not in valid_coords:
@@ -1014,6 +614,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             trans = _find_trans(subject, subjects_dir)
         trans = read_trans(trans, return_all=True)
+        exp = None
         for trans in trans:  # we got at least 1
             try:
                 trans = _ensure_trans(trans, 'head', 'mri')
@@ -1050,41 +651,108 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     surfs = dict()
 
     # Head:
-    head = any(['outer_skin' in surfaces, 'head' in surfaces])
-    if head:
-        head_surf = None
-        if bem is not None:
-            if isinstance(bem, ConductorModel):
-                if is_sphere:
-                    head_surf = _complete_sphere_surf(bem, 3, 4)
-                else:  # BEM solution
-                    head_surf = _bem_find_surface(bem,
-                                                  FIFF.FIFFV_BEM_SURF_ID_HEAD)
-                    complete_surface_info(head_surf, copy=False, verbose=False)
-            elif bem is not None:  # list of dict
-                for this_surf in bem:
-                    if this_surf['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD:
-                        head_surf = this_surf
+    sphere_level = 4
+    head = False
+    for s in surfaces:
+        if s in ('head', 'outer_skin', 'head-dense', 'seghead'):
+            if head:
+                raise ValueError('Can only supply one head-like surface name')
+            surfaces.pop(surfaces.index(s))
+            head = True
+            head_surf = None
+            # Try the BEM if applicable
+            if s in ('head', 'outer_skin'):
+                if bem is not None:
+                    if isinstance(bem, ConductorModel):
+                        if is_sphere:
+                            head_surf = _complete_sphere_surf(
+                                bem, 3, sphere_level)
+                        else:  # BEM solution
+                            head_surf = _bem_find_surface(
+                                bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                            complete_surface_info(head_surf, copy=False,
+                                                  verbose=False)
+                    elif bem is not None:  # list of dict
+                        for this_surf in bem:
+                            if this_surf['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD:
+                                head_surf = this_surf
+                                break
+                        else:
+                            raise ValueError('Could not find the surface for '
+                                             'head in the provided BEM model.')
+            if head_surf is None:
+                subject_dir = op.join(
+                    get_subjects_dir(subjects_dir, raise_error=True), subject)
+                if s in ('head-dense', 'seghead'):
+                    try_fnames = [
+                        op.join(subject_dir, 'bem', '%s-head-dense.fif'
+                                % subject),
+                        op.join(subject_dir, 'surf', 'lh.seghead'),
+                    ]
+                else:
+                    try_fnames = [
+                        op.join(subject_dir, 'bem', 'outer_skin.surf'),
+                        op.join(subject_dir, 'bem', 'flash',
+                                'outer_skin.surf'),
+                    ]
+                for fname in try_fnames:
+                    if op.exists(fname):
+                        logger.info('Using %s for head surface.'
+                                    % (op.basename(fname),))
+                        if op.splitext(fname)[-1] == '.fif':
+                            head_surf = read_bem_surfaces(fname)[0]
+                        else:
+                            head_surf = read_surface(
+                                fname, return_dict=True)[2]
+                            head_surf['rr'] /= 1000.
+                            head_surf.update(coord_frame=FIFF.FIFFV_COORD_MRI)
+                        complete_surface_info(head_surf, copy=False,
+                                              verbose=False)
                         break
                 else:
-                    raise ValueError('Could not find the surface for head.')
-        if head_surf is None:
-            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            surf_fname = op.join(subjects_dir, subject, 'bem', 'flash',
-                                 'outer_skin.surf')
-            if not op.exists(surf_fname):
-                surf_fname = op.join(subjects_dir, subject, 'bem',
-                                     'outer_skin.surf')
-                if not op.exists(surf_fname):
                     raise IOError('No head surface found for subject '
-                                  '%s.' % subject)
-            logger.info('Using outer_skin for head surface.')
-            rr, tris = read_surface(surf_fname)
-            head_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
-                             np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
-            complete_surface_info(head_surf, copy=False, verbose=False)
+                                  '%s after trying:\n%s'
+                                  % (subject, '\n'.join(try_fnames)))
+            surfs['head'] = head_surf
 
-        surfs['head'] = head_surf
+    # Skull:
+    skull = list()
+    for name, id_ in (('outer_skull', FIFF.FIFFV_BEM_SURF_ID_SKULL),
+                      ('inner_skull', FIFF.FIFFV_BEM_SURF_ID_BRAIN)):
+        if name in surfaces:
+            surfaces.pop(surfaces.index(name))
+            if bem is None:
+                fname = op.join(
+                    get_subjects_dir(subjects_dir, raise_error=True),
+                    subject, 'bem', name + '.surf')
+                if not op.isfile(fname):
+                    raise ValueError('bem is None and the the %s file cannot '
+                                     'be found:\n%s' % (name, fname))
+                surf = read_surface(fname, return_dict=True)[2]
+                surf.update(coord_frame=FIFF.FIFFV_COORD_MRI,
+                            id=_surf_dict[name])
+                complete_surface_info(surf, copy=False, verbose=False)
+                surf['rr'] /= 1000.
+                skull.append(surf)
+            elif isinstance(bem, ConductorModel):
+                if is_sphere:
+                    if len(bem['layers']) != 4:
+                        raise ValueError('The sphere model must have three '
+                                         'layers for plotting %s' % (name,))
+                    this_idx = 1 if name == 'inner_skull' else 2
+                    skull.append(_complete_sphere_surf(
+                        bem, this_idx, sphere_level))
+                    skull[-1]['id'] = _surf_dict[name]
+                else:
+                    skull.append(_bem_find_surface(bem, id_))
+            else:  # BEM model
+                for this_surf in bem:
+                    if this_surf['id'] == _surf_dict[name]:
+                        skull.append(this_surf)
+                        break
+                else:
+                    raise ValueError('Could not find the surface for %s.'
+                                     % name)
 
     if mri_fiducials:
         if mri_fiducials is True:
@@ -1105,34 +773,37 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     if 'helmet' in meg and len(meg_picks) > 0:
         surfs['helmet'] = get_meg_helmet_surf(info, head_mri_t)
+        assert surfs['helmet']['coord_frame'] == FIFF.FIFFV_COORD_MRI
 
     # Brain:
-    brain = False
-    brain_surfs = np.intersect1d(surfaces, ['brain', 'pial', 'white',
-                                            'inflated'])
-    if len(brain_surfs) > 1:
+    brain = np.intersect1d(surfaces, ['brain', 'pial', 'white', 'inflated'])
+    if len(brain) > 1:
         raise ValueError('Only one brain surface can be plotted. '
-                         'Got %s.' % brain_surfs)
-    elif len(brain_surfs) == 1:
-        if brain_surfs[0] == 'brain':
-            brain = 'pial'
-        else:
-            brain = brain_surfs[0]
-
-    if brain:
+                         'Got %s.' % brain)
+    elif len(brain) == 0:
+        brain = False
+    else:  # exactly 1
+        brain = brain[0]
+        surfaces.pop(surfaces.index(brain))
+        brain = 'pial' if brain == 'brain' else brain
         if is_sphere:
             if len(bem['layers']) > 0:
-                surfs['lh'] = _complete_sphere_surf(bem, 0, 4)  # only plot 1
+                surfs['lh'] = _complete_sphere_surf(
+                    bem, 0, sphere_level)  # only plot 1
         else:
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             for hemi in ['lh', 'rh']:
                 fname = op.join(subjects_dir, subject, 'surf',
                                 '%s.%s' % (hemi, brain))
-                rr, tris = read_surface(fname)
-                rr *= 1e-3
-                surfs[hemi] = dict(rr=rr, ntri=len(tris), np=len(rr),
-                                   coord_frame=FIFF.FIFFV_COORD_MRI, tris=tris)
+                surfs[hemi] = read_surface(fname, return_dict=True)[2]
+                surfs[hemi]['rr'] /= 1000.
+                surfs[hemi].update(coord_frame=FIFF.FIFFV_COORD_MRI)
                 complete_surface_info(surfs[hemi], copy=False, verbose=False)
+        brain = True
+
+    # we've looked through all of them, raise if some remain
+    if len(surfaces) > 0:
+        raise ValueError('Unknown surfaces types: %s' % (surfaces,))
 
     skull_alpha = dict()
     skull_colors = dict()
@@ -1146,7 +817,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             this_skull = _surf_name[skull_surf['id']]
         elif is_sphere:  # this_skull == str
             this_idx = 1 if this_skull == 'inner_skull' else 2
-            skull_surf = _complete_sphere_surf(bem, this_idx, 4)
+            skull_surf = _complete_sphere_surf(bem, this_idx, sphere_level)
         else:  # str
             skull_fname = op.join(subjects_dir, subject, 'bem', 'flash',
                                   '%s.surf' % this_skull)
@@ -1157,21 +828,23 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 raise IOError('No skull surface %s found for subject %s.'
                               % (this_skull, subject))
             logger.info('Using %s for head surface.' % skull_fname)
-            rr, tris = read_surface(skull_fname)
-            skull_surf = dict(rr=rr / 1000., tris=tris, ntri=len(tris),
-                              np=len(rr), coord_frame=FIFF.FIFFV_COORD_MRI)
+            skull_surf = read_surface(skull_fname, return_dict=True)[2]
+            skull_surf['rr'] /= 1000.
+            skull_surf['coord_frame'] = FIFF.FIFFV_COORD_MRI
             complete_surface_info(skull_surf, copy=False, verbose=False)
         skull_alpha[this_skull] = alphas[idx + 1]
         skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
         surfs[this_skull] = skull_surf
 
-    if src is None and brain is False and len(skull) == 0:
+    if src is None and brain is False and len(skull) == 0 and not show_axes:
         head_alpha = 1.0
     else:
         head_alpha = alphas[0]
 
     for key in surfs.keys():
-        surfs[key] = transform_surface_to(surfs[key], coord_frame, mri_trans)
+        # Surfs can sometimes be in head coords (e.g., if coming from sphere)
+        surfs[key] = transform_surface_to(surfs[key], coord_frame,
+                                          [mri_trans, head_trans])
     if src is not None:
         if src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
             src_rr = apply_trans(mri_trans, src_rr)
@@ -1213,7 +886,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             meg_tris.append(tris + offset)
             offset += len(meg_rrs[-1])
         if len(meg_rrs) == 0:
-            warn('MEG electrodes not found. Cannot plot MEG locations.')
+            if warn_meg:
+                warn('MEG sensors not found. Cannot plot MEG locations.')
         else:
             meg_rrs = apply_trans(meg_trans, np.concatenate(meg_rrs, axis=0))
             meg_tris = np.concatenate(meg_tris, axis=0)
@@ -1245,11 +919,15 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                              for pick in ecog_picks])
 
     # initialize figure
-    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    if fig is None:
+        fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(800, 800))
+    if interaction == 'terrain' and fig.scene is not None:
+        fig.scene.interactor.interactor_style = \
+            tvtk.InteractorStyleTerrain()
     _toggle_mlab_render(fig, False)
 
     # plot surfaces
-    alphas = dict(head=head_alpha, helmet=0.5, lh=hemi_val, rh=hemi_val)
+    alphas = dict(head=head_alpha, helmet=0.25, lh=hemi_val, rh=hemi_val)
     alphas.update(skull_alpha)
     colors = dict(head=(0.6,) * 3, helmet=(0.0, 0.0, 0.6), lh=(0.5,) * 3,
                   rh=(0.5,) * 3)
@@ -1258,8 +936,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         # Make a solid surface
         mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
-            surface = mlab.pipeline.surface(mesh, color=colors[key],
-                                            opacity=alphas[key], figure=fig)
+            surface = mlab.pipeline.surface(
+                mesh, color=colors[key], opacity=alphas[key], figure=fig)
         if key != 'helmet':
             surface.actor.property.backface_culling = True
     if brain and 'lh' not in surfs:  # one layer sphere
@@ -1268,6 +946,19 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         center = apply_trans(head_trans, center)
         mlab.points3d(*center, scale_factor=0.01, color=colors['lh'],
                       opacity=alphas['lh'])
+    if show_axes:
+        axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
+        if not np.allclose(mri_trans['trans'], np.eye(4)):  # Show MRI
+            axes.append((mri_trans, (0.6, 0.6, 0.6)))
+        if len(meg_picks) > 0:  # Show MEG
+            axes.append((meg_trans, (0., 0.6, 0.6)))
+        for ax in axes:
+            x, y, z = np.tile(ax[0]['trans'][:3, 3], 3).reshape((3, 3)).T
+            u, v, w = ax[0]['trans'][:3, :3]
+            mlab.points3d(x[0], y[0], z[0], color=ax[1], scale_factor=3e-3)
+            mlab.quiver3d(x, y, z, u, v, w, mode='arrow', scale_factor=2e-2,
+                          color=ax[1], scale_mode='scalar', resolution=20,
+                          scalars=[0.33, 0.66, 1.0])
 
     # plot points
     defaults = DEFAULTS['coreg']
@@ -1319,7 +1010,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         with warnings.catch_warnings(record=True):  # traits
             surface = mlab.pipeline.surface(mesh, color=color,
                                             opacity=alpha, figure=fig)
-        # Don't cull these backfaces
+        surface.actor.property.backface_culling = True
     if len(src_rr) > 0:
         with warnings.catch_warnings(record=True):  # traits
             quiv = mlab.quiver3d(
@@ -1331,7 +1022,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         quiv.glyph.glyph_source.glyph_source.resolution = 20
         quiv.actor.property.backface_culling = True
     with SilenceStdout():
-        mlab.view(90, 90, figure=fig)
+        mlab.view(90, 90, focalpoint=(0., 0., 0.), distance=0.6, figure=fig)
     _toggle_mlab_render(fig, True)
     return fig
 
@@ -1364,7 +1055,7 @@ def _sensor_shape(coil):
             [-long_side / 2., long_side / 2.],
             [-offset, long_side / 2.]])
         tris = np.concatenate((_make_tris_fan(4),
-                               _make_tris_fan(4) + 4), axis=0)
+                               _make_tris_fan(4)[:, ::-1] + 4), axis=0)
     elif id_ in (2000, 3022, 3023, 3024):
         # square magnetometer (potentially point-type)
         size = 0.001 if id_ == 2000 else (coil['size'] / 2.)
@@ -1609,6 +1300,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         coords = surf['rr'][inuse]
         shape = faces.shape
         faces = stats.rankdata(faces, 'dense').reshape(shape) - 1
+        faces = np.round(faces).astype(int)  # should really be int-like anyway
     del surf
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
@@ -1671,17 +1363,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           time_unit='s', backend='auto', spacing='oct6'):
     """Plot SourceEstimates with PySurfer.
 
-    Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
-    which will automatically be set by this function. Plotting multiple
-    SourceEstimates with different values for subjects_dir will cause
-    PySurfer to use the wrong FreeSurfer surfaces when using methods of
-    the returned Brain object. It is therefore recommended to set the
-    SUBJECTS_DIR environment variable or always use the same value for
-    subjects_dir (within the same Python session).
-
-    By default this function uses Mayavi to plot the source estimates. If
-    Mayavi is not installed, the plotting is done with matplotlib (much slower,
-    decimated source space by default).
+    By default this function uses :mod:`mayavi.mlab` to plot the source
+    estimates. If Mayavi is not installed, the plotting is done with
+    :mod:`matplotlib.pyplot` (much slower, decimated source space by default).
 
     Parameters
     ----------
@@ -1784,7 +1468,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     Returns
     -------
     figure : surfer.viz.Brain | matplotlib.figure.Figure
-        An instance of surfer.viz.Brain from PySurfer or matplotlib figure.
+        An instance of :class:`surfer.Brain` from PySurfer or
+        matplotlib figure.
     """  # noqa: E501
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
@@ -1815,21 +1500,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              figure=figure, initial_time=initial_time,
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer)
-    import surfer
     from surfer import Brain, TimeViewer
-    surfer_version = LooseVersion(surfer.__version__)
-    v06 = LooseVersion('0.6')
-    if surfer_version < v06:
-        raise ImportError("This function requires PySurfer 0.6 (you are "
-                          "running version %s). You can update PySurfer "
-                          "using:\n\n    $ pip install -U pysurfer" %
-                          surfer.__version__)
-
-    if initial_time is not None and surfer_version > v06:
-        kwargs = {'initial_time': initial_time}
-        initial_time = None  # don't set it twice
-    else:
-        kwargs = {}
+    initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time)
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
@@ -1885,17 +1557,39 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 brain.add_data(data, colormap=colormap, vertices=vertices,
                                smoothing_steps=smoothing_steps, time=times,
                                time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar, **kwargs)
+                               colorbar=colorbar, min=0, max=1, **ad_kwargs)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], transparent=transparent)
+                                  fmax=scale_pts[2], transparent=transparent,
+                                  **sd_kwargs)
 
     if initial_time is not None:
         brain.set_time(initial_time)
     if time_viewer:
         TimeViewer(brain)
     return brain
+
+
+def _get_ps_kwargs(initial_time, require='0.6'):
+    """Triage arguments based on PySurfer version."""
+    import surfer
+    surfer_version = LooseVersion(surfer.__version__)
+    if surfer_version < LooseVersion(require):
+        raise ImportError("This function requires PySurfer %s (you are "
+                          "running version %s). You can update PySurfer "
+                          "using:\n\n    $ pip install -U pysurfer" %
+                          (require, surfer.__version__))
+
+    ad_kwargs = dict()
+    sd_kwargs = dict()
+    if initial_time is not None and surfer_version >= LooseVersion('0.7'):
+        ad_kwargs['initial_time'] = initial_time
+        initial_time = None  # don't set it twice
+    if surfer_version >= LooseVersion('0.8'):
+        ad_kwargs['verbose'] = False
+        sd_kwargs['verbose'] = False
+    return initial_time, ad_kwargs, sd_kwargs
 
 
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
@@ -2000,7 +1694,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     Returns
     -------
     brain : Brain
-        A instance of surfer.viz.Brain from PySurfer.
+        A instance of :class:`surfer.Brain` from PySurfer.
 
     Notes
     -----
@@ -2010,7 +1704,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     and ``smoothing_steps=1``.
     """
     # Import here to avoid circular imports
-    import surfer
     from surfer import Brain, TimeViewer
     from ..source_estimate import VectorSourceEstimate
 
@@ -2020,13 +1713,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
-    surfer_version = LooseVersion(surfer.__version__)
-    v08 = LooseVersion('0.8')
-    if surfer_version < v08:
-        raise ImportError("This function requires PySurfer 0.8 (you are "
-                          "running version %s). You can update PySurfer "
-                          "using:\n\n    $ pip install -U pysurfer" %
-                          surfer.__version__)
+    initial_time, ad_kwargs, sd_kwargs = _get_ps_kwargs(initial_time, '0.8')
 
     if hemi not in ['lh', 'rh', 'split', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", "split", '
@@ -2070,12 +1757,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                time_label=time_label, alpha=overlay_alpha,
                                hemi=hemi, colorbar=colorbar,
                                vector_alpha=vector_alpha,
-                               scale_factor=scale_factor,
-                               initial_time=initial_time)
+                               scale_factor=scale_factor, **ad_kwargs)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], transparent=transparent)
+                                  fmax=scale_pts[2], transparent=transparent,
+                                  **sd_kwargs)
 
     if time_viewer:
         TimeViewer(brain)
@@ -2606,8 +2293,9 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     ax.plot(np.repeat(xyz[idx, 0], len(zz)),
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
             linestyle='-', color='r')
+    kwargs = _pivot_kwargs()
     ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1],
-              ori[2], length=50, pivot='tail', color='r')
+              ori[2], length=50, color='r', **kwargs)
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
     ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
     ax.set_ylim(-1 * dims * zooms[:2])
@@ -2621,8 +2309,9 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     ax.contourf(gridx, zslice, gridy, offset=offset,
                 zdir='y', cmap='gray', zorder=0, alpha=.5)
 
-    plt.suptitle('Dipole %s, Time: %.3fs, GOF: %.1f, Amplitude: %.1fnAm\n' % (
-        idx, dipole.times[idx], dipole.gof[idx], dipole.amplitude[idx] * 1e9) +
+    plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n' % (
+        idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
+        dipole.amplitude[idx] * 1e9) +
         '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
     ax.set_xlabel('x')
     ax.set_ylabel('y')

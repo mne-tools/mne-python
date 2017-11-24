@@ -51,6 +51,7 @@ def my_callback(ax, ch_idx):
     ax.set_xlabel = 'Frequency (Hz)'
     ax.set_ylabel = 'Power (dB)'
 
+
 for ax, idx in iter_topography(raw.info,
                                fig_facecolor='white',
                                axis_facecolor='white',

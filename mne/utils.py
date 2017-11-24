@@ -7,6 +7,7 @@ from __future__ import print_function
 # License: BSD (3-clause)
 
 import atexit
+from collections import Iterable
 from distutils.version import LooseVersion
 from functools import wraps
 import ftplib
@@ -29,6 +30,7 @@ import sys
 import tempfile
 import time
 import traceback
+from unittest import SkipTest
 import warnings
 import webbrowser
 
@@ -87,10 +89,10 @@ def _ensure_int(x, name='unknown', must_be='an int'):
     return x
 
 
-def _pl(x):
+def _pl(x, non_pl=''):
     """Determine if plural should be used."""
     len_x = x if isinstance(x, (integer_types, np.generic)) else len(x)
-    return '' if len_x == 1 else 's'
+    return non_pl if len_x == 1 else 's'
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -745,21 +747,6 @@ class use_log_level(object):
         set_log_level(self.old_level)
 
 
-@nottest
-def slow_test(f):
-    """Mark slow tests (decorator)."""
-    f.slow_test = True
-    return f
-
-
-@nottest
-def ultra_slow_test(f):
-    """Mark ultra slow tests (decorator)."""
-    f.ultra_slow_test = True
-    f.slow_test = True
-    return f
-
-
 def has_nibabel(vox2ras_tkr=False):
     """Determine if nibabel is installed.
 
@@ -797,9 +784,10 @@ def has_freesurfer():
 
 def requires_nibabel(vox2ras_tkr=False):
     """Check for nibabel."""
+    import pytest
     extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
-    return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
-                                 'Requires nibabel%s' % extra)
+    return pytest.mark.skipif(not has_nibabel(vox2ras_tkr),
+                              reason='Requires nibabel%s' % extra)
 
 
 def buggy_mkl_svd(function):
@@ -810,7 +798,6 @@ def buggy_mkl_svd(function):
             return function(*args, **kwargs)
         except np.linalg.LinAlgError as exp:
             if 'SVD did not converge' in str(exp):
-                from nose.plugins.skip import SkipTest
                 msg = 'Intel MKL SVD convergence error detected, skipping test'
                 warn(msg)
                 raise SkipTest(msg)
@@ -820,26 +807,25 @@ def buggy_mkl_svd(function):
 
 def requires_version(library, min_version):
     """Check for a library version."""
-    return np.testing.dec.skipif(not check_version(library, min_version),
-                                 'Requires %s version >= %s'
-                                 % (library, min_version))
+    import pytest
+    return pytest.mark.skipif(not check_version(library, min_version),
+                              reason=('Requires %s version >= %s'
+                                      % (library, min_version)))
 
 
 def requires_module(function, name, call=None):
     """Skip a test if package is not available (decorator)."""
     call = ('import %s' % name) if call is None else call
-    try:
-        from nose.plugins.skip import SkipTest
-    except ImportError:
-        SkipTest = AssertionError
 
     @wraps(function)
     def dec(*args, **kwargs):  # noqa: D102
         try:
             exec(call) in globals(), locals()
         except Exception as exc:
-            raise SkipTest('Test %s skipped, requires %s. Got exception (%s)'
-                           % (function.__name__, name, exc))
+            msg = 'Test %s skipped, requires %s.' % (function.__name__, name)
+            if len(str(exc)) > 0:
+                msg += ' Got exception (%s)' % (exc,)
+            raise SkipTest(msg)
         return function(*args, **kwargs)
     return dec
 
@@ -1030,14 +1016,6 @@ if version < required_version:
     raise ImportError
 """
 
-_sklearn_0_15_call = """
-required_version = '0.15'
-import sklearn
-version = LooseVersion(sklearn.__version__)
-if version < required_version:
-    raise ImportError
-"""
-
 _mayavi_call = """
 with warnings.catch_warnings(record=True):  # traits
     from mayavi import mlab
@@ -1066,8 +1044,6 @@ if not has_nibabel() and not has_freesurfer():
 
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
-requires_sklearn_0_15 = partial(requires_module, name='sklearn',
-                                call=_sklearn_0_15_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
 requires_freesurfer = partial(requires_module, name='Freesurfer',
@@ -1079,7 +1055,6 @@ requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
 
 requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
-requires_statsmodels = partial(requires_module, name='statsmodels')
 requires_pysurfer = partial(requires_module, name='PySurfer',
                             call="""import warnings
 with warnings.catch_warnings(record=True):
@@ -1198,11 +1173,12 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     stderr : str
         Stderr returned by the process.
     """
-    for stdxxx, sys_stdxxx in (['stderr', sys.stderr],
-                               ['stdout', sys.stdout]):
-        if stdxxx not in kwargs:
+    for stdxxx, sys_stdxxx, thresh in (
+            ['stderr', sys.stderr, logging.ERROR],
+            ['stdout', sys.stdout, logging.WARNING]):
+        if stdxxx not in kwargs and logger.level >= thresh:
             kwargs[stdxxx] = subprocess.PIPE
-        elif kwargs[stdxxx] is sys_stdxxx:
+        elif kwargs.get(stdxxx, sys_stdxxx) is sys_stdxxx:
             if isinstance(sys_stdxxx, StringIO):
                 # nose monkey patches sys.stderr and sys.stdout to StringIO
                 kwargs[stdxxx] = subprocess.PIPE
@@ -1232,15 +1208,10 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
         logger.error('Command not found: %s' % command_name)
         raise
     stdout_, stderr = p.communicate()
-    stdout_ = '' if stdout_ is None else stdout_.decode('utf-8')
-    stderr = '' if stderr is None else stderr.decode('utf-8')
-
-    if stdout_.strip():
-        logger.info("stdout:\n%s" % stdout_)
-    if stderr.strip():
-        logger.info("stderr:\n%s" % stderr)
-
+    stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
+    stderr = u'' if stderr is None else stderr.decode('utf-8')
     output = (stdout_, stderr)
+
     if p.returncode:
         print(output)
         err_fun = subprocess.CalledProcessError.__init__
@@ -1500,6 +1471,7 @@ known_config_types = (
     'MNE_DATA',
     'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
+    'MNE_DATASETS_HF_SEF_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_MISC_PATH',
     'MNE_DATASETS_MTRF_PATH',
@@ -1510,6 +1482,7 @@ known_config_types = (
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_TESTING_PATH',
     'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
+    'MNE_DATASETS_KILOWORD_PATH',
     'MNE_DATASETS_FIELDTRIP_CMC_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
@@ -1718,13 +1691,12 @@ class ProgressBar(object):
                  progress_character='.', spinner=False,
                  verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
-        if isinstance(max_value, (float, int)):
-            self.max_value = max_value
-            self.iterable = None
-        else:
-            # input is an iterable
+        if isinstance(max_value, Iterable):
             self.max_value = len(max_value)
             self.iterable = max_value
+        else:
+            self.max_value = float(max_value)
+            self.iterable = None
         self.mesg = mesg
         self.max_chars = max_chars
         self.progress_character = progress_character
@@ -1732,6 +1704,8 @@ class ProgressBar(object):
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
         self._do_print = verbose_bool
+        self.cur_time = time.time()
+        self.cur_rate = 0
 
     def update(self, cur_value, mesg=None):
         """Update progressbar with current value of process.
@@ -1747,9 +1721,15 @@ class ProgressBar(object):
             last message provided will be used.  To clear the current message,
             pass a null string, ''.
         """
+        cur_time = time.time()
+        cur_rate = ((cur_value - self.cur_value) /
+                    max(float(cur_time - self.cur_time), 1e-6))
+        # cur_rate += 0.9 * self.cur_rate
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
+        self.cur_time = cur_time
         self.cur_value = cur_value
+        self.cur_rate = cur_rate
         progress = min(float(self.cur_value) / self.max_value, 1.)
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
@@ -1757,8 +1737,10 @@ class ProgressBar(object):
         # Update the message
         if mesg is not None:
             if mesg == 'file_sizes':
-                mesg = '(%s / %s)' % (sizeof_fmt(self.cur_value),
-                                      sizeof_fmt(self.max_value))
+                mesg = '(%s / %s, %s/s)' % (
+                    sizeof_fmt(self.cur_value).rjust(8),
+                    sizeof_fmt(self.max_value).rjust(8),
+                    sizeof_fmt(cur_rate).rjust(8))
             self.mesg = mesg
 
         # The \r tells the cursor to return to the beginning of the line rather
@@ -1792,8 +1774,7 @@ class ProgressBar(object):
             last message provided will be used.  To clear the current message,
             pass a null string, ''.
         """
-        self.cur_value += increment_value
-        self.update(self.cur_value, mesg)
+        self.update(self.cur_value + increment_value, mesg)
 
     def __iter__(self):
         """Iterate to auto-increment the pbar with 1."""
@@ -1867,7 +1848,9 @@ def _get_http(url, temp_file_name, initial_size, file_size, verbose_bool):
         initial_size = 0
     total_size += initial_size
     if total_size != file_size:
-        raise RuntimeError('URL could not be parsed properly')
+        raise RuntimeError('URL could not be parsed properly '
+                           '(total size %s != file size %s)'
+                           % (total_size, file_size))
     mode = 'ab' if initial_size > 0 else 'wb'
     progress = ProgressBar(total_size, initial_value=initial_size,
                            max_chars=40, spinner=True, mesg='file_sizes',
@@ -1943,7 +1926,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         finally:
             u.close()
             del u
-        logger.info('Downloading data from %s (%s)\n'
+        logger.info('Downloading %s (%s)'
                     % (url, sizeof_fmt(file_size)))
 
         # Triage resume
@@ -1962,14 +1945,20 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                                'file (%s), cannot resume download'
                                % (sizeof_fmt(initial_size),
                                   sizeof_fmt(file_size)))
-
-        scheme = urllib.parse.urlparse(url).scheme
-        fun = _get_http if scheme in ('http', 'https') else _get_ftp
-        fun(url, temp_file_name, initial_size, file_size, verbose_bool)
+        elif initial_size == file_size:
+            # This should really only happen when a hash is wrong
+            # during dev updating
+            warn('Local file appears to be complete (file_size == '
+                 'initial_size == %s)' % (file_size,))
+        else:
+            # Need to resume or start over
+            scheme = urllib.parse.urlparse(url).scheme
+            fun = _get_http if scheme in ('http', 'https') else _get_ftp
+            fun(url, temp_file_name, initial_size, file_size, verbose_bool)
 
         # check md5sum
         if hash_ is not None:
-            logger.info('Verifying download hash.')
+            logger.info('Verifying hash %s.' % (hash_,))
             md5 = md5sum(temp_file_name)
             if hash_ != md5:
                 raise RuntimeError('Hash mismatch for downloaded file %s, '
@@ -2162,14 +2151,17 @@ def _check_preload(inst, msg):
                            '%s.load_data().' % (name, name))
 
 
-def _check_pandas_installed():
+def _check_pandas_installed(strict=True):
     """Aux function."""
     try:
-        import pandas as pd
-        return pd
+        import pandas
+        return pandas
     except ImportError:
-        raise RuntimeError('For this method to work the Pandas library is'
-                           ' required.')
+        if strict is True:
+            raise RuntimeError('For this functionality to work the Pandas '
+                               'library is required.')
+        else:
+            return False
 
 
 def _check_pandas_index_arguments(index, defaults):
@@ -2206,8 +2198,8 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
             name = name.replace(' ', '')
         if '-' in name and before_dash:
             name = name.split('-')[0]
-        if name.endswith('_virtual'):
-            name = name[:-8]
+        if name.endswith('_v'):
+            name = name[:-2]
         cleaned.append(name)
 
     return cleaned
