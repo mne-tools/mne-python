@@ -1533,8 +1533,10 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
         if all([isinstance(color, Integral) for color in all_colors]):
             msg = "Integer colors detected, mapping to rank positions ..."
             n_colors = len(all_colors)
-            colors_ = {cond: ind for cond, ind in zip(color_conds, color_indices)}
-            convert_colors = lambda color: colors_[color]
+            colors_ = {cond: ind for cond, ind in
+                       zip(color_conds, color_indices)}
+            def convert_colors(color):
+                return colors_[color]
         else:
             for color in all_colors:
                 if not 0 <= color <= 1:
@@ -1543,11 +1545,12 @@ def _setup_styles(conditions, styles, cmap, colors, linestyles):
             msg = "Float colors detected, mapping to percentiles ..."
             n_colors = 101  # percentiles plus 1 if we have 1.0s
             colors_old = colors.copy()
-            convert_colors = lambda color: int(colors_old[color] * 100)
+            def convert_colors(color):
+                return int(colors_old[color] * 100)
             colors_are_float = True
         logger.info(msg)
         the_colors = cmapper(np.linspace(0, 1, n_colors))
-        
+
         colors = dict()
         for cond in conditions:
             cond_ = cond.split("/")
@@ -2071,7 +2074,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         else:
             ax_cb.imshow(the_colors[:, np.newaxis, :], interpolation='none')
             ax_cb.set_yticks(np.arange(len(the_colors)))
-            ax_cb.set_yticklabels(np.array(color_conds)[color_order])            
+            ax_cb.set_yticklabels(np.array(color_conds)[color_order])
         ax_cb.yaxis.tick_right()
         ax_cb.set_xticks(())
         ax_cb.set_ylabel(cmap_label)

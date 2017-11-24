@@ -220,7 +220,6 @@ def test_plot_evoked():
                     ci=False, show_sensors=False)
         colors = {"a" + str(ii): ii / len(evokeds)
                   for ii, _ in enumerate(evokeds)}
-        print(colors)
         plot_compare_evokeds(
             contrasts, colors=colors, picks=[0], cmap='Reds',
             split_legend=split, linestyles=linestyles, ci=False,
