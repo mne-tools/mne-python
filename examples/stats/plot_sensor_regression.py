@@ -1,7 +1,7 @@
 """
-=====================================
-Sensor space least squares regression
-=====================================
+============================================================
+Sensor space least squares regression of continuous features
+============================================================
 
 Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint
@@ -35,6 +35,7 @@ References
 import pandas as pd
 import mne
 from mne.stats import linear_regression
+from mne.viz import plot_compare_evokeds
 from mne.datasets import kiloword
 
 # Load the data
@@ -46,9 +47,25 @@ print(epochs.metadata.head())
 df = pd.DataFrame(epochs.metadata)
 epochs.metadata = df.assign(Intercept=[1 for _ in epochs.events])
 
-# Run and visualize the regression
+# plot Evoked response per percentile bin of the feature
 names = ["Intercept", "Concreteness", "BigramFrequency"]
-res = linear_regression(epochs, epochs.metadata[names], names=names)
+for name in names[1:]:
+    values = epochs.metadata[name].copy()
+    values -= values.min()
+    values /= values.max()
+    values = values.round(1)
+    colors = {str(val): val for val in values}
+    df = epochs.metadata
+    name_ = name + "_percentile"
+    df[name_] = values
+    epochs.metadata = df
+    evokeds = dict()
+    for val in epochs.metadata[name_].unique():
+        evokeds[str(val)] = epochs[name_ + " == " + str(val)].average()
+    plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
+                         cmap=(name + " Percentile", "viridis"))
 
+# Continuous analysis: run and visualize the regression
+res = linear_regression(epochs, epochs.metadata[names], names=names)
 for cond in names:
     res[cond].beta.plot_joint(title=cond)
