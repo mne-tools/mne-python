@@ -60,7 +60,7 @@ print("Sensors names : %s" % significant_sensors_names)
 evoked = mne.EvokedArray(-np.log10(p_values)[:, np.newaxis],
                          epochs.info, tmin=0.)
 
-# Extract mask and indices of active sensors in layout
+# Extract mask and indices of active sensors in the layout
 stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
 mask = p_values[:, np.newaxis] <= 0.05
 

@@ -19,17 +19,31 @@ def test_permutation_t_test():
     X = np.random.randn(n_samples, n_tests)
     X[:, :2] += 1
 
-    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=0)
+    t_obs, p_values, H0 = permutation_t_test(
+        X, n_permutations=999, tail=0, seed=0)
+    assert (p_values > 0).all()
+    assert len(H0) == 999
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [True, True, False, False, False])
 
-    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=1)
+    t_obs, p_values, H0 = permutation_t_test(
+        X, n_permutations=999, tail=1, seed=0)
+    assert (p_values > 0).all()
+    assert len(H0) == 999
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [True, True, False, False, False])
 
-    t_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=-1)
+    t_obs, p_values, H0 = permutation_t_test(
+        X, n_permutations=999, tail=-1, seed=0)
     is_significant = p_values < 0.05
     assert_array_equal(is_significant, [False, False, False, False, False])
+
+    t_obs, p_values, H0 = permutation_t_test(
+        -X, n_permutations=999, tail=-1, seed=0)
+    assert (p_values > 0).all()
+    assert len(H0) == 999
+    is_significant = p_values < 0.05
+    assert_array_equal(is_significant, [True, True, False, False, False])
 
     X = np.random.randn(18, 1)
     t_obs, p_values, H0 = permutation_t_test(X[:, [0]], n_permutations='all')
