@@ -33,6 +33,8 @@ Changelog
 
 - Add option ``initial_event`` to :func:`mne.find_events` by `Clemens Brunner`_
 
+- Left and right arrow keys now scroll by 25% of the visible data, whereas Shift+left/right scroll by a whole page by `Clemens Brunner`_
+
 Bug
 ~~~
 
