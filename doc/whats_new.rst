@@ -35,6 +35,8 @@ Changelog
 
 - Left and right arrow keys now scroll by 25% of the visible data, whereas Shift+left/right scroll by a whole page in :meth:`mne.io.Raw.plot` by `Clemens Brunner`_
 
+- Add possibility to concatenate `mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
+
 Bug
 ~~~
 
