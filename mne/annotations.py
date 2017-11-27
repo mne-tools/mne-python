@@ -4,6 +4,7 @@
 
 from datetime import datetime
 import time
+from copy import deepcopy
 
 import numpy as np
 
@@ -101,6 +102,17 @@ class Annotations(object):
     def __len__(self):
         """Return the number of annotations."""
         return len(self.duration)
+
+    def __add__(self, other):
+        """Add (concatencate) two Annotation objects."""
+        new = deepcopy(self)
+        new.append(other.onset, other.duration, other.description)
+        return new
+
+    def __iadd__(self, other):
+        """Add (concatencate) two Annotation objects."""
+        self.append(other.onset, other.duration, other.description)
+        return self
 
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
