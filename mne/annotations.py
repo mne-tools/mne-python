@@ -110,7 +110,7 @@ class Annotations(object):
         return new
 
     def __iadd__(self, other):
-        """Add (concatencate) two Annotation objects."""
+        """Add (concatencate) two Annotation objects in-place."""
         self.append(other.onset, other.duration, other.description)
         return self
 
