@@ -2,8 +2,7 @@
 #
 # License: BSD (3-clause)
 
-from numpy.testing import (assert_array_equal, assert_almost_equal,
-                           assert_allclose)
+from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
 from scipy import stats
 
@@ -48,8 +47,8 @@ def test_permutation_t_test():
     X = np.random.randn(18, 1)
     t_obs, p_values, H0 = permutation_t_test(X[:, [0]], n_permutations='all')
     t_obs_scipy, p_values_scipy = stats.ttest_1samp(X[:, 0], 0)
-    assert_almost_equal(t_obs[0], t_obs_scipy, 8)
-    assert_almost_equal(p_values[0], p_values_scipy, 2)
+    assert_allclose(t_obs[0], t_obs_scipy, 8)
+    assert_allclose(p_values[0], p_values_scipy, rtol=1e-2)
 
 
 def test_ci():
