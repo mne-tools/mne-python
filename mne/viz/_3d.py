@@ -683,11 +683,13 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             if head_surf is None:
                 subject_dir = op.join(
                     get_subjects_dir(subjects_dir, raise_error=True), subject)
-                if s in ('head-dense', 'seghead'):
+                if 'head' in s:  # 'head-dense', 'seghead', 'head'
                     try_fnames = [
                         op.join(subject_dir, 'bem', '%s-head-dense.fif'
                                 % subject),
                         op.join(subject_dir, 'surf', 'lh.seghead'),
+                        op.join(subject_dir, 'bem', '%s-head.fif'
+                                % subject),
                     ]
                 else:
                     try_fnames = [
