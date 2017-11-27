@@ -768,7 +768,7 @@ def _read_one_source_space(fid, this, verbose=None):
     if tag is None:
         raise ValueError('Vertex normals not found')
 
-    res['nn'] = tag.data
+    res['nn'] = tag.data.copy()
     if res['nn'].shape[0] != res['np']:
         raise ValueError('Vertex normal information is incorrect')
 
