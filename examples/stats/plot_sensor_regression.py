@@ -62,7 +62,8 @@ plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
 # We observe that there appears to be a monotonic dependence of EEG on
 # concreteness. We can also conduct a continuous analysis: single-trial level
 # regression with concreteness as a continuous (although here, binned)
-# feature.
+# feature. We can plot the resulting regression coefficient just like an
+# Event-related Potential.
 names = ["Intercept", name]
 res = linear_regression(epochs, epochs.metadata[names], names=names)
 for cond in names:
