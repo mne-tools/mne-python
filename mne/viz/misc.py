@@ -825,7 +825,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         >>> freq = [0, 1, 40, 50]
         >>> gain = [0, 1, 1, 0]
         >>> plot_ideal_filter(freq, gain, flim=(0.1, 100))  #doctest: +ELLIPSIS
-        <matplotlib.figure.Figure object at ...>
+        <...Figure...>
 
     """
     import matplotlib.pyplot as plt
