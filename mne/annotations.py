@@ -105,14 +105,12 @@ class Annotations(object):
 
     def __add__(self, other):
         """Add (concatencate) two Annotation objects."""
-        new = deepcopy(self)
-        new.append(other.onset, other.duration, other.description)
-        return new
+        return self.copy().append(other.onset, other.duration,
+                                  other.description)
 
     def __iadd__(self, other):
         """Add (concatencate) two Annotation objects in-place."""
-        self.append(other.onset, other.duration, other.description)
-        return self
+        return self.append(other.onset, other.duration, other.description)
 
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
@@ -127,10 +125,20 @@ class Annotations(object):
         description : str
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'
+
+        Returns
+        -------
+        self : mne.Annotations
+            The modified Annotations object.
         """
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
+        return self
+
+    def copy(self):
+        """Return a deep copy of self."""
+        return deepcopy(self)
 
     def delete(self, idx):
         """Remove an annotation. Operates inplace.
