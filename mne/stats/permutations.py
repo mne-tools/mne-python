@@ -95,13 +95,14 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs)
     max_abs = np.concatenate(parallel(my_max_stat(X, X2, p, dof_scaling)
                                       for p in np.array_split(perms, n_jobs)))
+    max_abs = np.concatenate((max_abs, [np.abs(T_obs).max()]))
     H0 = np.sort(max_abs)
     if tail == 0:
-        p_values = (H0 > np.abs(T_obs[:, np.newaxis])).mean(-1)
+        p_values = (H0 >= np.abs(T_obs[:, np.newaxis])).mean(-1)
     elif tail == 1:
-        p_values = (H0 > T_obs[:, np.newaxis]).mean(-1)
+        p_values = (H0 >= T_obs[:, np.newaxis]).mean(-1)
     elif tail == -1:
-        p_values = (-H0 < T_obs[:, np.newaxis]).mean(-1)
+        p_values = (-H0 <= T_obs[:, np.newaxis]).mean(-1)
     return T_obs, p_values, H0
 
 
