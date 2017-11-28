@@ -48,6 +48,8 @@ Bug
 
 - Fix bug in :func:`mne.simulation.simulate_raw` where 1- and 3-layer BEMs were not properly transformed using ``trans`` by `Eric Larson`_
 
+- Fix bug in :func:`mne.viz.plot_alignment` where the head surface file ``-head.fif`` was not used even though present by `Chris Bailey`_
+
 API
 ~~~
 
