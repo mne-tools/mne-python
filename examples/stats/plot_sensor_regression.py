@@ -43,29 +43,18 @@ path = kiloword.data_path() + '/kword_metadata-epo.fif'
 epochs = mne.read_epochs(path)
 print(epochs.metadata.head())
 
-# Add intercept column
-df = pd.DataFrame(epochs.metadata)
-epochs.metadata = df.assign(Intercept=[1 for _ in epochs.events])
-
-# plot Evoked response per percentile bin of the feature
-names = ["Intercept", "Concreteness", "BigramFrequency"]
-for name in names[1:]:
-    values = epochs.metadata[name].copy()
-    values -= values.min()
-    values /= values.max()
-    values = values.round(1)
-    colors = {str(val): val for val in values}
-    df = epochs.metadata
-    name_ = name + "_percentile"
-    df[name_] = values
-    epochs.metadata = df
-    evokeds = dict()
-    for val in epochs.metadata[name_].unique():
-        evokeds[str(val)] = epochs[name_ + " == " + str(val)].average()
-    plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
-                         cmap=(name + " Percentile", "viridis"))
+# Bin continuous feature and plot Evoked response per percentile bin
+name = "Concreteness"
+df = epochs.metadata
+df[name] = pd.cut(epochs.metadata[name], 11, labels=False) / 10
+colors = {str(val): val for val in df[name].unique()}
+epochs.metadata = df.assign(Intercept=1) # Add an intercept
+evokeds = {val: epochs[name + " == " + val].average() for val in colors}
+plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
+                     cmap=(name + " Percentile", "viridis"))
 
 # Continuous analysis: run and visualize the regression
+names = ["Intercept", name]
 res = linear_regression(epochs, epochs.metadata[names], names=names)
 for cond in names:
     res[cond].beta.plot_joint(title=cond)
