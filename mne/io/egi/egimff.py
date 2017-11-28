@@ -531,6 +531,10 @@ class RawMff(BaseRaw):
 
             samples_to_read = stop - start
             with open(pns_filepath, 'rb', buffering=0) as fid:
+                # Check file size
+                fid.seek(0, 2)
+                file_size = fid.tell()
+                fid.seek(0)
                 # Go to starting block
                 current_block = 0
                 current_block_info = None
@@ -544,6 +548,13 @@ class RawMff(BaseRaw):
 
                 # Start reading samples
                 while samples_to_read > 0:
+                    if samples_to_read == 1 and fid.tell() == file_size:
+                        # We are in the presense of the EEG bug
+                        # fill with zeros and break the loop
+                        data_view = data[n_data1_channels:, -1] = 0
+                        logger.warning('This file has the EGI PSG sample bug')
+                        break
+
                     this_block_info = _block_r(fid)
                     if this_block_info is not None:
                         current_block_info = this_block_info
