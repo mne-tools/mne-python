@@ -46,9 +46,9 @@ print(epochs.metadata.head())
 # Bin continuous feature and plot Evoked response per percentile bin
 name = "Concreteness"
 df = epochs.metadata
-df[name] = pd.cut(epochs.metadata[name], 11, labels=False) / 10
+df[name] = pd.cut(df[name], 11, labels=False) / 10
 colors = {str(val): val for val in df[name].unique()}
-epochs.metadata = df.assign(Intercept=1) # Add an intercept
+epochs.metadata = df.assign(Intercept=1)  # Add an intercept
 evokeds = {val: epochs[name + " == " + val].average() for val in colors}
 plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
                      cmap=(name + " Percentile", "viridis"))
