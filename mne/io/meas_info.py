@@ -143,7 +143,7 @@ class Info(dict):
     line_freq : float | None
         Frequency of the power line in Hertz.
     gantry_angle : float | None
-        Gantry angle during recording.
+        Tilt angle of the gantry in degrees.
     lowpass : float | None
         Lowpass corner frequency in Hertz.
     meas_date : list of int
