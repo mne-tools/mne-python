@@ -142,6 +142,8 @@ class Info(dict):
         See Notes for details.
     line_freq : float | None
         Frequency of the power line in Hertz.
+    gantry_angle : float | None
+        Gantry angle during recording.
     lowpass : float | None
         Lowpass corner frequency in Hertz.
     meas_date : list of int
@@ -896,6 +898,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     proj_id = None
     proj_name = None
     line_freq = None
+    gantry_angle = None
     custom_ref_applied = False
     xplotter_layout = None
     kit_system_id = None
@@ -948,6 +951,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         elif kind == FIFF.FIFF_LINE_FREQ:
             tag = read_tag(fid, pos)
             line_freq = float(tag.data)
+        elif kind == FIFF.FIFF_GANTRY_ANGLE:
+            tag = read_tag(fid, pos)
+            gantry_angle = float(tag.data)
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
             custom_ref_applied = bool(tag.data)
@@ -1208,6 +1214,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info['highpass'] = highpass if highpass is not None else 0.
     info['lowpass'] = lowpass if lowpass is not None else info['sfreq'] / 2.0
     info['line_freq'] = line_freq
+    info['gantry_angle'] = gantry_angle
 
     #   Add the channel information and make a list of channel names
     #   for convenience
@@ -1388,6 +1395,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
     if info.get('line_freq') is not None:
         write_float(fid, FIFF.FIFF_LINE_FREQ, info['line_freq'])
+    if info.get('gantry_angle') is not None:
+        write_float(fid, FIFF.FIFF_GANTRY_ANGLE, info['gantry_angle'])
     if data_type is not None:
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
     if info.get('custom_ref_applied'):
@@ -1638,7 +1647,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
                     'experimenter', 'file_id', 'highpass',
                     'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
-                    'proj_id', 'proj_name', 'projs', 'sfreq',
+                    'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
@@ -1756,7 +1765,7 @@ RAW_INFO_FIELDS = (
     'file_id', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
     'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
-    'subject_info', 'xplotter_layout', 'proc_history',
+    'subject_info', 'xplotter_layout', 'proc_history', 'gantry_angle',
 )
 
 
@@ -1768,7 +1777,7 @@ def _empty_info(sfreq):
         'dev_ctf_t', 'dig', 'experimenter',
         'file_id', 'highpass', 'hpi_subsystem', 'kit_system_id',
         'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
-        'subject_info', 'xplotter_layout',
+        'subject_info', 'xplotter_layout', 'gantry_angle',
     )
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
                   'projs', 'proc_history')

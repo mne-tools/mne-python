@@ -142,6 +142,7 @@ FIFF.FIFF_NAME           = 233          # Intended to be a short name.
 FIFF.FIFF_DESCRIPTION    = FIFF.FIFF_COMMENT # (Textual) Description of an object
 FIFF.FIFF_DIG_STRING     = 234          # String of digitized points
 FIFF.FIFF_LINE_FREQ      = 235    # Line frequency
+FIFF.FIFF_GANTRY_ANGLE   = 282    # Recording gantry angle (Triux)
 
 #
 # HPI fitting program tags
