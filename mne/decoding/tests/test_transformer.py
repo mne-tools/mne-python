@@ -177,7 +177,7 @@ def test_vectorizer():
                   np.random.rand(102, 12, 12))
 
 
-@requires_version('sklearn', '0.15')
+@requires_version('sklearn', '0.16')
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
     from sklearn.decomposition import PCA
