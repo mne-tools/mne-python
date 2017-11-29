@@ -4,6 +4,7 @@
 
 from datetime import datetime
 import time
+from copy import deepcopy
 
 import numpy as np
 
@@ -102,6 +103,15 @@ class Annotations(object):
         """Return the number of annotations."""
         return len(self.duration)
 
+    def __add__(self, other):
+        """Add (concatencate) two Annotation objects."""
+        return self.copy().append(other.onset, other.duration,
+                                  other.description)
+
+    def __iadd__(self, other):
+        """Add (concatencate) two Annotation objects in-place."""
+        return self.append(other.onset, other.duration, other.description)
+
     def append(self, onset, duration, description):
         """Add an annotated segment. Operates inplace.
 
@@ -115,10 +125,20 @@ class Annotations(object):
         description : str
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'
+
+        Returns
+        -------
+        self : mne.Annotations
+            The modified Annotations object.
         """
         self.onset = np.append(self.onset, onset)
         self.duration = np.append(self.duration, duration)
         self.description = np.append(self.description, description)
+        return self
+
+    def copy(self):
+        """Return a deep copy of self."""
+        return deepcopy(self)
 
     def delete(self, idx):
         """Remove an annotation. Operates inplace.
