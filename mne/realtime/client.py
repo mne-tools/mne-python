@@ -43,7 +43,7 @@ def _recv_tag_raw(sock):
     if len(s) != 16:
         raise RuntimeError('Not enough bytes received, something is wrong. '
                            'Make sure the mne_rt_server is running.')
-    tag = Tag(*np.fromstring(s, '>i4'))
+    tag = Tag(*np.frombuffer(s, '>i4'))
     n_received = 0
     rec_buff = [s]
     while n_received < tag.size:
@@ -215,7 +215,7 @@ class RtClient(object):
             directory.append(tag)
             buff.append(this_buff)
             if tag.kind == FIFF.FIFF_BLOCK_END and tag.type == FIFF.FIFFT_INT:
-                val = np.fromstring(this_buff[-4:], dtype=">i4")
+                val = np.frombuffer(this_buff[-4:], dtype=">i4")
                 if val == FIFF.FIFFB_MEAS_INFO:
                     break
 
@@ -251,7 +251,7 @@ class RtClient(object):
         tag, buff = _recv_tag_raw(self._data_sock)
         if (tag.kind == FIFF.FIFF_MNE_RT_CLIENT_ID and
                 tag.type == FIFF.FIFFT_INT):
-            client_id = int(np.fromstring(buff[-4:], dtype=">i4"))
+            client_id = int(np.frombuffer(buff[-4:], dtype=">i4"))
         else:
             raise RuntimeError('wrong tag received')
 

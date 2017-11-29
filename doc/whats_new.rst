@@ -37,6 +37,8 @@ Changelog
 
 - Add support for gantry tilt angle determination from Elekta FIF file header by `Chris Bailey`_
 
+- Add possibility to concatenate `mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
+
 Bug
 ~~~
 
@@ -51,6 +53,8 @@ Bug
 - Fix bug in :func:`mne.simulation.simulate_raw` with ``use_cps=True`` where CPS was not actually used by `Eric Larson`_
 
 - Fix bug in :func:`mne.simulation.simulate_raw` where 1- and 3-layer BEMs were not properly transformed using ``trans`` by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_alignment` where the head surface file ``-head.fif`` was not used even though present by `Chris Bailey`_
 
 API
 ~~~

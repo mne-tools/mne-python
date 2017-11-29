@@ -188,7 +188,8 @@ def test_plot_evoked():
         # various bad styles
         params = [dict(picks=3, colors=dict(fake=1)),
                   dict(picks=3, styles=dict(fake=1)), dict(picks=3, gfp=True),
-                  dict(picks=3, show_sensors="a")]
+                  dict(picks=3, show_sensors="a"),
+                  dict(colors=dict(red=10., blue=-2))]
         for param in params:
             assert_raises(ValueError, plot_compare_evokeds, evoked, **param)
         assert_raises(TypeError, plot_compare_evokeds, evoked, picks='str')
@@ -217,6 +218,12 @@ def test_plot_evoked():
                     contrasts, colors=colors, picks=[0], cmap='Reds',
                     split_legend=split, linestyles=linestyles,
                     ci=False, show_sensors=False)
+        colors = {"a" + str(ii): ii / len(evokeds)
+                  for ii, _ in enumerate(evokeds)}
+        plot_compare_evokeds(
+            contrasts, colors=colors, picks=[0], cmap='Reds',
+            split_legend=split, linestyles=linestyles, ci=False,
+            show_sensors=False)
         red.info["chs"][0]["loc"][:2] = 0  # test plotting channel at zero
         plot_compare_evokeds(red, picks=[0],
                              ci=lambda x: [x.std(axis=0), -x.std(axis=0)])

@@ -193,7 +193,7 @@ def get_machid():
     # Convert to integer in reverse-order (for some reason)
     from codecs import encode
     mac = b''.join([encode(h, 'hex_codec') for h in mac[::-1]])
-    ids = np.flipud(np.fromstring(mac, np.int32, count=2))
+    ids = np.flipud(np.frombuffer(mac, np.int32, count=2))
     return ids
 
 

@@ -202,7 +202,7 @@ def _get_sample_info(fname, res4, system_clock):
                 offset = CTF.HEADER_SIZE + (samp_offset * res4['nchan'] +
                                             (clock_ch * res4['nsamp'])) * 4
                 fid.seek(offset, 0)
-                this_data = np.fromstring(fid.read(4 * res4['nsamp']), '>i4')
+                this_data = np.fromfile(fid, '>i4', res4['nsamp'])
                 if len(this_data) != res4['nsamp']:
                     raise RuntimeError('Cannot read data for trial %d'
                                        % (t + 1))

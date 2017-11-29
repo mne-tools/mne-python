@@ -1310,7 +1310,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         res['nn'] = None
     else:
-        res['nn'] = tag.data
+        res['nn'] = tag.data.copy()
         if res['nn'].shape[0] != res['np']:
             raise ValueError('Vertex normal information is incorrect')
 
