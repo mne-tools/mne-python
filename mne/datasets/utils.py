@@ -264,12 +264,12 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         mtrf='https://superb-dca2.dl.sourceforge.net/project/aespa/'
              'mTRF_1.5.zip',
         kiloword='https://osf.io/qkvf9/download',
-        fieldtrip_cmc='ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/'
-                      'tutorial/SubjectCMC.zip',
+        fieldtrip_cmc='https://osf.io/j9b6s/download',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
     archive_names = dict(
+        fieldtrip_cmc='SubjectCMC.zip',
         kiloword='MNE-kiloword-data.tar.gz',
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         multimodal='MNE-multimodal-data.tar.gz',
@@ -391,7 +391,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             for an in full_name:
                 os.remove(op.join(path, an))
 
-    logger.info('Successfully extracted to: %s' % folder_path)
+        logger.info('Successfully extracted to: %s' % folder_path)
 
     _do_path_update(path, update_path, key, name)
     path = folder_path[0]
