@@ -553,7 +553,7 @@ class RawMff(BaseRaw):
                         # We are in the presense of the EEG bug
                         # fill with zeros and break the loop
                         data_view = data[n_data1_channels:, -1] = 0
-                        logger.warning('This file has the EGI PSG sample bug')
+                        warn('This file has the EGI PSG sample bug')
                         if self.annotations is None:
                             self.annotations = Annotations((), (), ())
                         an_start = current_data_sample
