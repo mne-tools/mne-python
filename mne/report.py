@@ -50,7 +50,6 @@ def _fig_to_img(function=None, fig=None, image_format='png',
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if not isinstance(fig, Figure) and function is None:
-        from scipy.misc import imread
         mlab = None
         try:
             mlab = _import_mlab()
@@ -59,12 +58,8 @@ def _fig_to_img(function=None, fig=None, image_format='png',
             warn('Could not import mayavi (%r). Trying to render'
                  '`mayavi.core.scene.Scene` figure instances'
                  ' will throw an error.' % (e,))
-        tempdir = _TempDir()
-        temp_fname = op.join(tempdir, 'test')
         if fig.scene is not None:
-            fig.scene.save_png(temp_fname)
-            img = imread(temp_fname)
-            os.remove(temp_fname)
+            img = mlab.screenshot(figure=fig)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
@@ -131,29 +126,24 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
-    from scipy.misc import imread
     import matplotlib.pyplot as plt
-    import mayavi
+    from mayavi import mlab, core
     fig = function(**kwargs)
 
-    assert isinstance(fig, mayavi.core.scene.Scene)
+    assert isinstance(fig, core.scene.Scene)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
-        mayavi.mlab.view(view[0], view[1])
-        # XXX: save_bmp / save_png / ...
-        tempdir = _TempDir()
-        temp_fname = op.join(tempdir, 'test.png')
+        mlab.view(view[0], view[1])
         if fig.scene is not None:
-            fig.scene.save_png(temp_fname)
-            im = imread(temp_fname)
+            im = mlab.screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
         ax.imshow(im)
         ax.axis('off')
 
-    mayavi.mlab.close(fig)
+    mlab.close(fig)
     img = _fig_to_img(fig=fig2, image_format='png')
     return img
 
@@ -924,7 +914,7 @@ class Report(object):
         figs : list of figures.
             Each figure in the list can be an instance of
             matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
-            or np.ndarray (images read in using scipy.imread).
+            or np.ndarray.
         captions : list of str
             A list of captions to the figures.
         section : str
@@ -1083,7 +1073,7 @@ class Report(object):
         figs : list of figures.
             Each figure in the list can be an instance of
             matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
-            or np.ndarray (images read in using scipy.imread).
+            or np.ndarray.
         captions : list of str | list of float | None
             A list of captions to the figures. If float, a str will be
             constructed as `%f s`. If None, it will default to
