@@ -158,7 +158,7 @@ def test_io_egi_pns_mff():
 
 
 @requires_testing_data
-def test_io_egi_pns_mff():
+def test_io_egi_pns_mff_bug():
     """Test importing EGI MFF with PNS data (BUG)"""
     egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns_bug.mff')
     raw = read_raw_egi(egi_fname_mff, include=None, preload=True,
