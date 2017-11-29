@@ -19,8 +19,7 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import read_raw_fif, read_info, _stamp_to_dt
-from .utils import (_TempDir, logger, verbose, get_subjects_dir, warn,
-                    _import_mlab)
+from .utils import logger, verbose, get_subjects_dir, warn, _import_mlab
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
