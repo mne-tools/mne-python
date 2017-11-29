@@ -18,9 +18,8 @@ import base64
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .io import Raw, read_info, _stamp_to_dt
-from .utils import (_TempDir, logger, verbose, get_subjects_dir, warn,
-                    _import_mlab)
+from .io import read_raw_fif, read_info, _stamp_to_dt
+from .utils import logger, verbose, get_subjects_dir, warn, _import_mlab
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -50,7 +49,6 @@ def _fig_to_img(function=None, fig=None, image_format='png',
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if not isinstance(fig, Figure) and function is None:
-        from scipy.misc import imread
         mlab = None
         try:
             mlab = _import_mlab()
@@ -59,12 +57,8 @@ def _fig_to_img(function=None, fig=None, image_format='png',
             warn('Could not import mayavi (%r). Trying to render'
                  '`mayavi.core.scene.Scene` figure instances'
                  ' will throw an error.' % (e,))
-        tempdir = _TempDir()
-        temp_fname = op.join(tempdir, 'test')
         if fig.scene is not None:
-            fig.scene.save_png(temp_fname)
-            img = imread(temp_fname)
-            os.remove(temp_fname)
+            img = mlab.screenshot(figure=fig)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
@@ -131,29 +125,24 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
-    from scipy.misc import imread
     import matplotlib.pyplot as plt
-    import mayavi
+    from mayavi import mlab, core
     fig = function(**kwargs)
 
-    assert isinstance(fig, mayavi.core.scene.Scene)
+    assert isinstance(fig, core.scene.Scene)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
-        mayavi.mlab.view(view[0], view[1])
-        # XXX: save_bmp / save_png / ...
-        tempdir = _TempDir()
-        temp_fname = op.join(tempdir, 'test.png')
+        mlab.view(view[0], view[1])
         if fig.scene is not None:
-            fig.scene.save_png(temp_fname)
-            im = imread(temp_fname)
+            im = mlab.screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
         ax.imshow(im)
         ax.axis('off')
 
-    mayavi.mlab.close(fig)
+    mlab.close(fig)
     img = _fig_to_img(fig=fig2, image_format='png')
     return img
 
@@ -924,7 +913,7 @@ class Report(object):
         figs : list of figures.
             Each figure in the list can be an instance of
             matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
-            or np.ndarray (images read in using scipy.imread).
+            or np.ndarray.
         captions : list of str
             A list of captions to the figures.
         section : str
@@ -1083,7 +1072,7 @@ class Report(object):
         figs : list of figures.
             Each figure in the list can be an instance of
             matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
-            or np.ndarray (images read in using scipy.imread).
+            or np.ndarray.
         captions : list of str | list of float | None
             A list of captions to the figures. If float, a str will be
             constructed as `%f s`. If None, it will default to
@@ -1555,9 +1544,10 @@ class Report(object):
     def _render_raw(self, raw_fname):
         """Render raw (only text)."""
         global_id = self._get_id()
-        caption = u'Raw : %s' % raw_fname
 
-        raw = Raw(raw_fname)
+        raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+        extra = ' (MaxShield on)' if raw.info.get('maxshield', False) else ''
+        caption = u'Raw : %s%s' % (raw_fname, extra)
 
         n_eeg = len(pick_types(raw.info, meg=False, eeg=True))
         n_grad = len(pick_types(raw.info, meg='grad'))

@@ -39,6 +39,8 @@ Changelog
 
 - Add possibility to concatenate `mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
 
+- Add support for MaxShield raw files in :class:`mne.Report` by `Eric Larson`_
+
 - Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :class:`mne.io.egi.egimff.RawMff` by `Fede Raimondo`_
 
 Bug
