@@ -39,6 +39,8 @@ Changelog
 
 - Add possibility to concatenate `mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
 
+- Add support for MaxShield raw files in :class:`mne.Report` by `Eric Larson`_
+
 Bug
 ~~~
 

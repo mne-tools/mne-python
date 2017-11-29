@@ -18,7 +18,7 @@ import base64
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .io import Raw, read_info, _stamp_to_dt
+from .io import read_raw_fif, read_info, _stamp_to_dt
 from .utils import (_TempDir, logger, verbose, get_subjects_dir, warn,
                     _import_mlab)
 from .viz import plot_events, plot_alignment, plot_cov
@@ -1555,9 +1555,10 @@ class Report(object):
     def _render_raw(self, raw_fname):
         """Render raw (only text)."""
         global_id = self._get_id()
-        caption = u'Raw : %s' % raw_fname
 
-        raw = Raw(raw_fname)
+        raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+        extra = ' (MaxShield on)' if raw.info.get('maxshield', False) else ''
+        caption = u'Raw : %s%s' % (raw_fname, extra)
 
         n_eeg = len(pick_types(raw.info, meg=False, eeg=True))
         n_grad = len(pick_types(raw.info, meg='grad'))

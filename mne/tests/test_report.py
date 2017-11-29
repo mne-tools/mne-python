@@ -27,6 +27,7 @@ data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 report_dir = op.join(data_dir, 'MEG', 'sample')
 raw_fname = op.join(report_dir, 'sample_audvis_trunc_raw.fif')
+ms_fname = op.join(data_dir, 'SSS', 'test_move_anon_raw.fif')
 event_fname = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
 cov_fname = op.join(report_dir, 'sample_audvis_trunc-cov.fif')
 fwd_fname = op.join(report_dir, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
@@ -51,11 +52,13 @@ def test_render_report():
     """Test rendering -*.fif files for mne report."""
     tempdir = _TempDir()
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    ms_fname_new = op.join(tempdir, 'temp_ms_raw.fif')
     event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
     cov_fname_new = op.join(tempdir, 'temp_raw-cov.fif')
     fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
     inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
     for a, b in [[raw_fname, raw_fname_new],
+                 [ms_fname, ms_fname_new],
                  [event_fname, event_fname_new],
                  [cov_fname, cov_fname_new],
                  [fwd_fname, fwd_fname_new],
@@ -95,8 +98,12 @@ def test_render_report():
 
     # Check saving functionality
     report.data_path = tempdir
-    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False)
-    assert_true(op.isfile(op.join(tempdir, 'report.html')))
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname=fname, open_browser=False)
+    assert_true(op.isfile(fname))
+    with open(fname, 'rb') as fid:
+        html = fid.read().decode('utf-8')
+    assert '(MaxShield on)' in html
 
     assert_equal(len(report.html), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
