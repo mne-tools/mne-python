@@ -30,7 +30,7 @@ from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
 from ..io.proc_history import _get_rank_sss
 
 from .topo import _plot_evoked_topo
-from .utils import COLORS, _setup_ax_spines
+from .utils import COLORS, _setup_ax_spines, _setup_plot_projector
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
@@ -181,7 +181,8 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
 def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
-                 set_tight_layout=True, selectable=True, zorder='unsorted'):
+                 set_tight_layout=True, selectable=True, zorder='unsorted',
+                 noise_cov=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -253,11 +254,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                          'types (%d: %s)' % (len(axes), len(ch_types_used),
                                              sorted(ch_types_used)))
 
-    # instead of projecting during each iteration let's use the mixin here.
-    if proj is True and evoked.proj is not True:
-        evoked = evoked.copy()
-        evoked.apply_proj()
-
+    projector, whitened_ch_names = _setup_plot_projector(info, noise_cov,
+                                                         proj=proj is True)
+    evoked = evoked.copy()
+    if len(whitened_ch_names) > 0:
+        unit = False
+    if projector is not None:
+        evoked.data[:] = np.dot(projector, evoked.data)
     if plot_type == 'butterfly':
         times = evoked.times * 1e3  # time in milliseconds
         _plot_lines(evoked.data, info, picks, fig, axes, spatial_colors, unit,
@@ -328,11 +331,12 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                        params=params))
     for ax, this_type in zip(axes, ch_types_used):
         line_list = list()  # 'line_list' contains the lines for this axes
-        ch_unit = units[this_type]
-        this_scaling = 1. if scalings is None else scalings[this_type]
         if unit is False:
             this_scaling = 1.0
             ch_unit = 'NA'  # no unit
+        else:
+            this_scaling = 1. if scalings is None else scalings[this_type]
+            ch_unit = units[this_type]
         idx = list(picks[types == this_type])
         idxs.append(idx)
 
@@ -500,8 +504,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False, zorder='unsorted',
-                selectable=True, verbose=None):
-    """Plot evoked data using butteryfly plots.
+                selectable=True, noise_cov=None, verbose=None):
+    """Plot evoked data using butterfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
     and holding left mouse button plots a topographic map of the painted area.
@@ -579,6 +583,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
         .. versionadded:: 0.13.0
 
+    noise_cov : instance of Covariance | None
+        XXX
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -594,14 +600,14 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
                         spatial_colors=spatial_colors, zorder=zorder,
-                        selectable=selectable)
+                        selectable=selectable, noise_cov=noise_cov)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
-                     background_color='w', show=True):
+                     background_color='w', show=True, noise_cov=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -663,6 +669,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         .. versionadded:: 0.15.0
     show : bool
         Show figure if True.
+    noise_cov : instance of Covariance | None
+        XXX
 
     Returns
     -------
@@ -701,7 +709,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color, merge_grads=merge_grads,
-                             legend=legend, axes=axes, show=show)
+                             legend=legend, axes=axes, show=show,
+                             noise_cov=noise_cov)
 
 
 def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,

@@ -296,13 +296,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False, zorder='unsorted', selectable=True,
-             verbose=None):
+             noise_cov=None, verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
-            zorder=zorder, selectable=selectable, verbose=verbose)
+            zorder=zorder, selectable=selectable, noise_cov=noise_cov,
+            verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
@@ -318,7 +319,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   border='none', ylim=None, scalings=None, title=None,
                   proj=False, vline=[0.0], fig_background=None,
                   merge_grads=False, legend=True, axes=None,
-                  background_color='w', show=True):
+                  background_color='w', show=True, noise_cov=None):
         """
 
         Notes
@@ -330,7 +331,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             border=border, ylim=ylim, scalings=scalings, title=title,
             proj=proj, vline=vline, fig_background=fig_background,
             merge_grads=merge_grads, legend=legend, axes=axes,
-            background_color=background_color, show=show)
+            background_color=background_color, show=show, noise_cov=noise_cov)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
@@ -566,7 +567,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If True, return also the amplitude at the maximum response.
 
             .. versionadded:: 0.16
-            
+
         Returns
         -------
         ch_name : str
@@ -577,7 +578,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         amplitude : float
             The amplitude of the maximum response. Only returned if
             return_amplitude is True.
-        
+
             .. versionadded:: 0.16
         """
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',

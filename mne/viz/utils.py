@@ -26,6 +26,7 @@ from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT)
+from ..io.proj import setup_proj
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
@@ -794,6 +795,9 @@ def _plot_raw_onkey(event, params):
             params['fig_annotation'].canvas.close_event()
     elif event.key == 'b':
         _setup_butterfly(params)
+    elif event.key == 'w':
+        params['use_noise_cov'] = not params['use_noise_cov']
+        params['plot_update_proj_callback'](params, None)
 
 
 def _setup_annotation_fig(params):
@@ -2242,3 +2246,31 @@ def _grad_pair_pick_and_name(info, picks):
     picks = list(sorted(set(picked_chans)))
     ch_names = [info["ch_names"][pick] for pick in picks]
     return picks, ch_names
+
+
+def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True):
+    from ..cov import compute_whitener
+    projector = np.eye(len(info['ch_names']))
+    whitened_ch_names = []
+    if noise_cov is not None and use_noise_cov:
+        whitener, whitened_ch_names = compute_whitener(
+            noise_cov, info, verbose=False)
+        idx = np.array([info['ch_names'].index(ch_name)
+                        for ch_name in whitened_ch_names])
+        projector[idx, idx[:, np.newaxis]] = whitener
+    elif proj:
+        projector, _ = setup_proj(info, add_eeg_ref=False, verbose=False)
+    return projector, whitened_ch_names
+
+
+def _get_plotting_whitener(params):
+    """Get a whitening matrix that can be dotted with an entire data array."""
+
+
+def _set_ax_label_style(ax, params):
+    import matplotlib.text
+    for tick in params['ax'].get_yaxis().get_major_ticks():
+        for text in tick.get_children():
+            if isinstance(text, matplotlib.text.Text):
+                whitened = text.get_text() in params['whitened_ch_names']
+                text.set_style('italic' if whitened else 'normal')

@@ -17,13 +17,13 @@ import numpy as np
 
 from ..utils import verbose, get_config, set_config, logger, warn
 from ..io.pick import pick_types, channel_type
-from ..io.proj import setup_proj
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
-                    _grad_pair_pick_and_name, _handle_decim)
+                    _grad_pair_pick_and_name, _handle_decim,
+                    _setup_plot_projector, _set_ax_label_style)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -220,8 +220,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     # be length 1 if combine is None, else of length > 1.
 
     # combine/construct list for plotting
-    groups = _pick_and_combine(
-        epochs, combine, all_picks, all_ch_types, scalings, names)
+    groups = _pick_and_combine(epochs, combine, all_picks, all_ch_types, names)
     # each entry of groups is: (data, ch_type, evoked, name)
 
     # prepare the image - required for uniform vlims
@@ -322,8 +321,7 @@ def _get_picks_and_types(picks, ch_types, group_by, combine):
     return all_picks, all_ch_types, names  # all_picks is a list of lists
 
 
-def _pick_and_combine(epochs, combine, all_picks, all_ch_types, scalings,
-                      names):
+def _pick_and_combine(epochs, combine, all_picks, all_ch_types, names):
     """Pick and combine epochs image. Helper for plot_epochs_image."""
     to_plot_list = list()
     tmin = epochs.times[0]
@@ -685,7 +683,7 @@ def _epochs_axes_onclick(event, params):
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, show=True,
-                block=False, decim='auto'):
+                block=False, decim='auto', noise_cov=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -750,6 +748,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         at least a 120 Hz displayed sample rate).
 
         .. versionadded:: 0.15
+    noise_cov : instance of Covariance | None
+        XXX
 
     Returns
     -------
@@ -778,13 +778,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     decim, data_picks = _handle_decim(epochs.info.copy(), decim, None)
     projs = epochs.info['projs']
 
-    params = {'epochs': epochs,
-              'info': copy.deepcopy(epochs.info),
-              'bad_color': (0.8, 0.8, 0.8),
-              't_start': 0,
-              'histogram': None,
-              'decim': decim,
-              'data_picks': data_picks}
+    params = dict(epochs=epochs, info=epochs.info.copy(), t_start=0.,
+                  bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
+                  data_picks=data_picks, noise_cov=noise_cov,
+                  use_noise_cov=noise_cov is not None)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events,
@@ -1310,6 +1307,7 @@ def _plot_traces(params):
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
         ax.set_yticklabels(tick_list, fontsize=12)
+        _set_ax_label_style(ax, params)
 
     if params['events'] is not None:  # vertical lines for events.
         _draw_event_lines(params)
@@ -1332,8 +1330,8 @@ def _plot_update_epochs_proj(params, bools=None):
         params['proj_bools'] = bools
     epochs = params['epochs']
     n_epochs = params['n_epochs']
-    params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
-                                        verbose=False)
+    params['projector'], params['whitened_ch_names'] = _setup_plot_projector(
+        params['info'], params['noise_cov'], True, params['use_noise_cov'])
     start = int(params['t_start'] / len(epochs.times))
     end = start + n_epochs
     if epochs.preload:
@@ -1346,7 +1344,11 @@ def _plot_update_epochs_proj(params, bools=None):
         data = np.dot(params['projector'], data)
     types = params['types']
     for pick, ind in enumerate(params['inds']):
-        params['data'][pick] = data[ind] / params['scalings'][types[pick]]
+        if params['info']['ch_names'][ind] in params['whitened_ch_names']:
+            norm = params['scalings']['whitened']
+        else:
+            norm = params['scalings'][types[pick]]
+        params['data'][pick] = data[ind] / norm
     params['plot_fun']()
 
 
@@ -1647,6 +1649,10 @@ def _plot_onkey(event, params):
             plt.close(params['fig_options'])
             params['fig_options'] = None
         _prepare_butterfly(params)
+        _plot_traces(params)
+    elif event.key == 'w':
+        params['use_noise_cov'] = not params['use_noise_cov']
+        _plot_update_epochs_proj(params)
         _plot_traces(params)
     elif event.key == 'o':
         if not params['butterfly']:

@@ -268,6 +268,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_visualize_raw.rst
     auto_tutorials/plot_visualize_epochs.rst
     auto_tutorials/plot_visualize_evoked.rst
+    auto_tutorials/plot_whitened.rst
     tutorials/report.rst
 
 .. raw:: html
