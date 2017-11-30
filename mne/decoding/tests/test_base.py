@@ -162,6 +162,9 @@ def test_get_coef():
             lm = LinearModel(Ridge(alpha=1)).fit(X, Y)
             assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
 
+    # Check can pass fitting parameters
+    lm.fit(X, Y, sample_weight=np.ones(len(Y)))
+
 
 @requires_version('sklearn', '0.15')
 def test_linearmodel():

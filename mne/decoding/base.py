@@ -62,7 +62,7 @@ class LinearModel(BaseEstimator):
         self.model = model
         self._estimator_type = getattr(model, "_estimator_type", None)
 
-    def fit(self, X, y):
+    def fit(self, X, y, **fit_params):
         """Estimate the coefficients of the linear model.
 
         Save the coefficients in the attribute ``filters_`` and
@@ -74,6 +74,8 @@ class LinearModel(BaseEstimator):
             The training input samples to estimate the linear coefficients.
         y : array, shape (n_samples, [n_targets])
             The target values.
+        **fit_params : dict of string -> object
+            Parameters to pass to the fit method of the estimator.
 
         Returns
         -------
@@ -89,7 +91,7 @@ class LinearModel(BaseEstimator):
                              'got %s instead.' % (y.shape,))
 
         # fit the Model
-        self.model.fit(X, y)
+        self.model.fit(X, y, **fit_params)
 
         # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
 
