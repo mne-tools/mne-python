@@ -971,9 +971,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     if merge_grads:
         from ..channels.layout import _merge_grad_data
+    titles = list()
     for ii, data_, ax in zip(picks, data, axes):
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
-        ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs)
+        titles.append(ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs))
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
@@ -996,12 +997,32 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
     if isinstance(inst, (BaseRaw, BaseEpochs)):
-        def onclick(event, ica=ica, inst=inst):
+        def onclick(event, ica=ica, inst=inst, titles=titles):
             # check which component to plot
-            label = event.inaxes.get_label()
-            if label.startswith('ICA'):
-                ic = int(label[-3:])
-                ica.plot_properties(inst, picks=ic, show=True)
+            if event.inaxes is not None:
+                label = event.inaxes.get_label()
+                if label.startswith('ICA'):
+                    ic = int(label[-3:])
+                    ica.plot_properties(inst, picks=ic, show=True)
+            else:
+                # check if any title was pressed
+                title_pressed = None
+                for title in titles:
+                    if title.contains(event)[0]:
+                        title_pressed = title
+                        break
+                # title was pressed -> identify the IC
+                if title_pressed is not None:
+                    label = title.get_text()
+                    ic = int(label[-3:])
+                    # add or remove IC from exclude depending on current state
+                    if ic in ica.exclude:
+                        ica.exclude.remove(ic)
+                        title_pressed.set_color('k')
+                    else:
+                        ica.exclude.append(ic)
+                        title_pressed.set_color('gray')
+                    fig.canvas.draw()
         fig.canvas.mpl_connect('button_press_event', onclick)
 
     plt_show(show)
