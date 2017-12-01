@@ -28,7 +28,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _get_call_line, compute_corr, sys_info, verbose,
                        check_fname, requires_ftp, get_config_path,
                        object_size, buggy_mkl_svd, _get_inst_data,
-                       copy_doc, copy_function_doc_to_method_doc, ProgressBar)
+                       copy_doc, copy_function_doc_to_method_doc, ProgressBar,
+                       get_subjects_dir)
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings

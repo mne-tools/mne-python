@@ -30,9 +30,20 @@ raw_stat = mne.io.read_raw_fif(op.join(data_path,
                                        'simulated_stationary_raw.fif'))
 
 ###############################################################################
-# Visualize the "subject" head movements (traces)
+# Visualize the "subject" head movements. By providing the measurement
+# information, the distance to the nearest sensor in each direction
+# (e.g., left/right for the X direction, forward/backward for Y) can
+# be shown in blue.
 
-mne.viz.plot_head_positions(pos, mode='traces')
+mne.viz.plot_head_positions(pos, mode='traces', destination=(0., 0., 0.04),
+                            info=raw.info)
+
+###############################################################################
+# This can also be visualized using a quiver. By providing the measurement
+# information, the MEG helmet is shown:
+
+mne.viz.plot_head_positions(pos, mode='field', destination=(0., 0., 0.04),
+                            info=raw.info)
 
 ###############################################################################
 # Process our simulated raw data (taking into account head movements)

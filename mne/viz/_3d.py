@@ -33,7 +33,7 @@ from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info, mesh_edges,
                        _complete_sphere_surf)
-from ..transforms import (read_trans, _find_trans, apply_trans,
+from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
@@ -75,13 +75,14 @@ def _fiducial_coords(points, coord_frame=None):
 
 
 def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
-                        show=True):
+                        show=True, destination=None, info=None):
     """Plot head positions.
 
     Parameters
     ----------
-    pos : ndarray, shape (n_pos, 10)
-        The head position data.
+    pos : ndarray, shape (n_pos, 10) | list of ndarray
+        The head position data. Can also be a list to treat as a
+        concatenation of runs.
     mode : str
         Can be 'traces' (default) to show position and quaternion traces,
         or 'field' to show the position as a vector field over time.
@@ -93,6 +94,19 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         directional axes in "field" mode.
     show : bool
         Show figure if True. Defaults to True.
+    destination : str | array-like, shape (3,) | None
+        The destination location for the head, assumed to be in head
+        coordinates. See :func:`mne.preprocessing.maxwell_filter` for
+        details.
+
+        .. versionadded:: 0.16
+    info : instance of mne.Info | None
+        Measurement information. If provided, will be used to show the
+        destination position when ``destination is None``, and for
+        showing the MEG sensors.
+
+        .. versionadded:: 0.16
+
 
     Returns
     -------
@@ -100,12 +114,29 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         The figure.
     """
     from ..chpi import head_pos_to_trans_rot_t
+    from ..preprocessing.maxwell import _check_destination
     import matplotlib.pyplot as plt
-    from matplotlib.colors import Normalize
-    from mpl_toolkits.mplot3d.art3d import Line3DCollection
-    from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
     if not isinstance(mode, string_types) or mode not in ('traces', 'field'):
         raise ValueError('mode must be "traces" or "field", got %s' % (mode,))
+    dest_info = dict(dev_head_t=None) if info is None else info
+    destination = _check_destination(destination, dest_info, head_frame=True)
+    if destination is not None:
+        destination = _ensure_trans(destination, 'head', 'meg')  # probably inv
+        destination = destination['trans'][:3].copy()
+        destination[:, 3] *= 1000
+
+    if not isinstance(pos, (list, tuple)):
+        pos = [pos]
+    for ii, p in enumerate(pos):
+        p = np.array(p, float)
+        if p.ndim != 2 or p.shape[1] != 10:
+            raise ValueError('pos (or each entry in pos if a list) must be '
+                             'dimension (N, 10), got %s' % (p.shape,))
+        if ii > 0:  # concatenation
+            p[:, 0] += pos[ii - 1][-1, 0] - p[0, 0]
+        pos[ii] = p
+    borders = np.cumsum([len(pp) for pp in pos])
+    pos = np.concatenate(pos, axis=0)
     trans, rot, t = head_pos_to_trans_rot_t(pos)  # also ensures pos is okay
     # trans, rot, and t are for dev_head_t, but what we really want
     # is head_dev_t (i.e., where the head origin is in device coords)
@@ -116,21 +147,79 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     if cmap == 'viridis' and not check_version('matplotlib', '1.5'):
         warn('viridis is unavailable on matplotlib < 1.4, using "YlGnBu_r"')
         cmap = 'YlGnBu_r'
+    surf = rrs = lims = None
+    if info is not None:
+        meg_picks = pick_types(info, meg=True, ref_meg=False, exclude=())
+        if len(meg_picks) > 0:
+            rrs = 1000 * np.array([info['chs'][pick]['loc'][:3]
+                                   for pick in meg_picks], float)
+            if mode == 'traces':
+                lims = np.array((rrs.min(0), rrs.max(0))).T
+            else:  # mode == 'field'
+                surf = get_meg_helmet_surf(info)
+                transform_surface_to(surf, 'meg', info['dev_head_t'],
+                                     copy=False)
+                surf['rr'] *= 1000.
+    helmet_color = (0.0, 0.0, 0.6)
     if mode == 'traces':
         fig, axes = plt.subplots(3, 2, sharex=True)
         labels = ['xyz', ('$q_1$', '$q_2$', '$q_3$')]
         for ii, (quat, coord) in enumerate(zip(use_quats.T, use_trans.T)):
-            axes[ii, 0].plot(t, coord, 'k')
+            axes[ii, 0].plot(t, coord, 'k', lw=1., zorder=3)
             axes[ii, 0].set(ylabel=labels[0][ii], xlim=t[[0, -1]])
-            axes[ii, 1].plot(t, quat, 'k')
+            axes[ii, 1].plot(t, quat, 'k', lw=1., zorder=3)
             axes[ii, 1].set(ylabel=labels[1][ii], xlim=t[[0, -1]])
+            for b in borders[:-1]:
+                for jj in range(2):
+                    axes[ii, jj].axvline(t[b], color='r')
         for ii, title in enumerate(('Position (mm)', 'Rotation (quat)')):
             axes[0, ii].set(title=title)
             axes[-1, ii].set(xlabel='Time (s)')
+        if rrs is not None:
+            for ii in range(3):
+                oidx = list(range(ii)) + list(range(ii + 1, 3))
+                # knowing it will generally be spherical, we can approximate
+                # how far away we are along the axis line by taking the
+                # point to the left and right with the smallest distance
+                from scipy.spatial.distance import cdist
+                dists = cdist(rrs[:, oidx], use_trans[:, oidx])
+                left = rrs[:, [ii]] < use_trans[:, ii]
+                left_dists = dists.copy()
+                left_dists[~left] = np.inf
+                # Don't show negative Z direction
+                if ii != 2 and np.isfinite(left_dists).any():
+                    left_dists = rrs[np.argmin(left_dists, axis=0), ii]
+                    axes[ii, 0].plot(t, left_dists, color=helmet_color,
+                                     ls='-', lw=0.5, zorder=2)
+                else:
+                    axes[ii, 0].axhline(lims[ii][0], color=helmet_color,
+                                        ls='-', lw=0.5, zorder=2)
+                right_dists = dists
+                right_dists[left] = np.inf
+                if np.isfinite(right_dists).any():
+                    right_dists = rrs[np.argmin(right_dists, axis=0), ii]
+                    axes[ii, 0].plot(t, right_dists, color=helmet_color,
+                                     ls='-', lw=0.5, zorder=2)
+                else:
+                    axes[ii, 0].axhline(lims[ii][1], color=helmet_color,
+                                        ls='-', lw=0.5, zorder=2)
+
+        for ii in range(3):
+            axes[ii, 1].set(ylim=[-1, 1])
+
+        if destination is not None:
+            vals = np.array([destination[:, 3],
+                             rot_to_quat(destination[:, :3])]).T.ravel()
+            for ax, val in zip(fig.axes, vals):
+                ax.axhline(val, color='r', ls=':', zorder=2, lw=1.)
+
     else:  # mode == 'field':
         if not check_version('matplotlib', '1.4'):
             raise RuntimeError('The "field" mode requires matplotlib version '
                                '1.4+')
+        from matplotlib.colors import Normalize
+        from mpl_toolkits.mplot3d.art3d import Line3DCollection
+        from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
@@ -143,15 +232,29 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         # now plot the head directions as a quiver
         dir_idx = dict(x=0, y=1, z=2)
         kwargs = _pivot_kwargs()
-        for d, length in zip(direction, [1., 0.5, 0.25]):
+        for d, length in zip(direction, [5., 2.5, 1.]):
             use_dir = use_rot[:, :, dir_idx[d]]
             # draws stems, then heads
             array = np.concatenate((t, np.repeat(t, 2)))
             ax.quiver(use_trans[:, 0], use_trans[:, 1], use_trans[:, 2],
                       use_dir[:, 0], use_dir[:, 1], use_dir[:, 2], norm=norm,
                       cmap=cmap, array=array, length=length, **kwargs)
+            if destination is not None:
+                ax.quiver(destination[0, 3],
+                          destination[1, 3],
+                          destination[2, 3],
+                          destination[dir_idx[d], 0],
+                          destination[dir_idx[d], 1],
+                          destination[dir_idx[d], 2], color='k', length=length,
+                          **kwargs)
         mins = use_trans.min(0)
         maxs = use_trans.max(0)
+        if surf is not None:
+            ax.plot_trisurf(*surf['rr'].T, triangles=surf['tris'],
+                            color=helmet_color, alpha=0.1, shade=False)
+            ax.scatter(*rrs.T, s=1, color=helmet_color)
+            mins = np.minimum(mins, rrs.min(0))
+            maxs = np.maximum(maxs, rrs.max(0))
         scale = (maxs - mins).max() / 2.
         xlim, ylim, zlim = (maxs + mins)[:, np.newaxis] / 2. + [-scale, scale]
         ax.set(xlabel='x', ylabel='y', zlabel='z',
@@ -681,6 +784,11 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                             raise ValueError('Could not find the surface for '
                                              'head in the provided BEM model.')
             if head_surf is None:
+                if subject is None:
+                    raise ValueError('To plot the head surface, the BEM/sphere'
+                                     ' model must contain a head surface '
+                                     'or "subject" must be provided (got '
+                                     'None)')
                 subject_dir = op.join(
                     get_subjects_dir(subjects_dir, raise_error=True), subject)
                 if s in ('head-dense', 'seghead'):
