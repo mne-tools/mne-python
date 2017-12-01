@@ -36,6 +36,7 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+cov_fname = op.join(base_dir, 'test-cov.fif')
 event_id, tmin, tmax = 1, -0.2, 0.2
 layout = read_layout('Vectorview-all')
 
@@ -130,6 +131,8 @@ def test_plot_topo():
         ax.plot(evoked.data[idx], color='red')
         # test status bar message
         assert_true(evoked.ch_names[idx] in ax.format_coord(.5, .5))
+    plt.close('all')
+    evoked.plot_topo(noise_cov=cov_fname)
     plt.close('all')
 
 

@@ -319,7 +319,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   border='none', ylim=None, scalings=None, title=None,
                   proj=False, vline=[0.0], fig_background=None,
                   merge_grads=False, legend=True, axes=None,
-                  background_color='w', show=True, noise_cov=None):
+                  background_color='w', noise_cov=None, show=True):
         """
 
         Notes
@@ -331,7 +331,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             border=border, ylim=ylim, scalings=scalings, title=title,
             proj=proj, vline=vline, fig_background=fig_background,
             merge_grads=merge_grads, legend=legend, axes=axes,
-            background_color=background_color, show=show, noise_cov=noise_cov)
+            background_color=background_color, noise_cov=noise_cov, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
     def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,

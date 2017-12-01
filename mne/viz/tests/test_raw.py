@@ -28,6 +28,7 @@ ctf_fname_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
 def _get_raw():
@@ -193,6 +194,15 @@ def test_plot_raw():
         for key in ['down', 'up', 'escape']:
             fig.canvas.key_press_event(key)
         plt.close('all')
+
+
+@testing.requires_testing_data
+def test_plot_raw_white():
+    """Test plotting whitened raw data."""
+    import matplotlib.pyplot as plt
+    raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
+    raw.plot(noise_cov=cov_fname)
+    plt.close('all')
 
 
 @testing.requires_testing_data

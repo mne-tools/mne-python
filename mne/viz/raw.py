@@ -213,7 +213,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         the decimation that results in a sampling rate least three times
         larger than ``min(info['lowpass'], lowpass)`` (e.g., a 40 Hz lowpass
         will result in at least a 120 Hz displayed sample rate).
-    noise_cov : instance of Covariance | None
+    noise_cov : instance of Covariance | str | None
         Noise covariance used to whiten the data while plotting.
         Whitened data channels are scaled by ``scalings['whitened']``,
         and their channel names are shown in italic.
@@ -255,6 +255,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from scipy.signal import butter
+    from ..cov import read_cov
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
@@ -367,6 +368,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
                            % key)
     decim, data_picks = _handle_decim(info, decim, lowpass)
+
+    if isinstance(noise_cov, string_types):
+        noise_cov = read_cov(noise_cov)
+
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
     first_time = raw._first_time if show_first_samp else 0

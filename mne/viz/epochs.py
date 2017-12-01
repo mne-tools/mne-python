@@ -706,7 +706,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         a subset of epochs up to 100mb will be loaded. If None, defaults to::
 
             dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)
+                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4,
+                 whitened=10.)
 
     n_epochs : int
         The number of epochs per view. Defaults to 20.
@@ -748,8 +749,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         at least a 120 Hz displayed sample rate).
 
         .. versionadded:: 0.15
-    noise_cov : instance of Covariance | None
-        XXX
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channels are scaled by ``scalings['whitened']``,
+        and their channel names are shown in italic.
+
+        .. versionadded:: 0.16
 
     Returns
     -------
@@ -772,11 +777,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     .. versionadded:: 0.10.0
     """
+    from ..cov import read_cov
     epochs.drop_bad()
     scalings = _compute_scalings(scalings, epochs)
     scalings = _handle_default('scalings_plot_raw', scalings)
     decim, data_picks = _handle_decim(epochs.info.copy(), decim, None)
     projs = epochs.info['projs']
+    if isinstance(noise_cov, string_types):
+        noise_cov = read_cov(noise_cov)
 
     params = dict(epochs=epochs, info=epochs.info.copy(), t_start=0.,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,

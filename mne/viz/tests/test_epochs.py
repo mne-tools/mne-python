@@ -59,6 +59,8 @@ def test_plot_epochs():
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
+    epochs.plot(noise_cov=cov_fname)
+    plt.close('all')
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')
     plt.close('all')

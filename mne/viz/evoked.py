@@ -195,6 +195,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         interactive.
     """
     import matplotlib.pyplot as plt
+    from ..cov import read_cov
     info = evoked.info
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
@@ -253,7 +254,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%d: %s)' % (len(axes), len(ch_types_used),
                                              sorted(ch_types_used)))
-
+    if isinstance(noise_cov, string_types):
+        noise_cov = read_cov(noise_cov)
     projector, whitened_ch_names = _setup_plot_projector(info, noise_cov,
                                                          proj=proj is True)
     evoked = evoked.copy()
@@ -583,8 +585,11 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
         .. versionadded:: 0.13.0
 
-    noise_cov : instance of Covariance | None
-        XXX
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channel names are shown in italic.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -607,7 +612,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_background=None,
                      merge_grads=False, legend=True, axes=None,
-                     background_color='w', show=True, noise_cov=None):
+                     background_color='w', noise_cov=None, show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -667,10 +672,13 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Background color. Typically 'k' (black) or 'w' (white; default).
 
         .. versionadded:: 0.15.0
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channel names are shown in italic.
+
+        .. versionadded:: 0.16
     show : bool
         Show figure if True.
-    noise_cov : instance of Covariance | None
-        XXX
 
     Returns
     -------
@@ -867,7 +875,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
     evoked : instance of mne.Evoked
         The evoked response.
     noise_cov : list | instance of Covariance | str
-        The noise covariance as computed by ``mne.cov.compute_covariance``.
+        The noise covariance.
     show : bool
         Show figure if True.
     rank : dict of int | None

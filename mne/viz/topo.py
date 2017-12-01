@@ -22,6 +22,7 @@ from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
                     DraggableColorbar, _set_ax_facecolor, _setup_ax_spines)
+from ..externals.six import string_types
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -641,8 +642,11 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Axes to plot into. If None, axes will be created.
     show : bool
         Show figure if True.
-    noise_cov : instance of Covariance | None
-        XXX
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channels names are shown in italic.
+
+        .. versionadded:: 0.16
 
     Returns
     -------
@@ -650,7 +654,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Images of evoked responses at sensor locations
     """
     import matplotlib.pyplot as plt
-    from ..cov import whiten_evoked
+    from ..cov import whiten_evoked, read_cov
 
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
@@ -674,6 +678,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not all((e.times == times).all() for e in evoked):
         raise ValueError('All evoked.times must be the same')
 
+    if isinstance(noise_cov, string_types):
+        noise_cov = read_cov(noise_cov)
     if noise_cov is not None:
         evoked = [whiten_evoked(e, noise_cov) for e in evoked]
     else:
@@ -697,7 +703,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         info._check_consistency()
         new_picks = list()
         for e in evoked:
-            data = _merge_grad_data(e.data[picks]) * scalings['grad']
+            data = _merge_grad_data(e.data[picks])
+            if noise_cov is None:
+                data *= scalings['grad']
             e.data = data
             new_picks.append(range(len(data)))
         picks = new_picks

@@ -41,6 +41,8 @@ Changelog
 
 - Add support for MaxShield raw files in :class:`mne.report.Report` by `Eric Larson`_
 
+- Add ability to plot whitened data in :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, :meth:`mne.Evoked.plot`, and :meth:`mne.Evoked.plot_topo` by `Eric Larson`_
+
 - Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :func:`mne.io.read_raw_egi` by `Federico Raimondo`_
 
 - Add support for reading subject height and weight in ``info['subject_info']`` by `Eric Larson`_
