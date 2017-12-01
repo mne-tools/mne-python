@@ -33,20 +33,19 @@ raw_stat = mne.io.read_raw_fif(op.join(data_path,
 # Visualize the "subject" head movements. By providing the measurement
 # information, the distance to the nearest sensor in each direction
 # (e.g., left/right for the X direction, forward/backward for Y) can
-# be shown in blue.
+# be shown in blue, and the destination (if given) shown in red.
 
-mne.viz.plot_head_positions(pos, mode='traces', destination=(0., 0., 0.04),
-                            info=raw.info)
-
-###############################################################################
-# This can also be visualized using a quiver. By providing the measurement
-# information, the MEG helmet is shown:
-
-mne.viz.plot_head_positions(pos, mode='field', destination=(0., 0., 0.04),
-                            info=raw.info)
+mne.viz.plot_head_positions(
+    pos, mode='traces', destination=raw.info['dev_head_t'], info=raw.info)
 
 ###############################################################################
-# Process our simulated raw data (taking into account head movements)
+# This can also be visualized using a quiver.
+
+mne.viz.plot_head_positions(
+    pos, mode='field', destination=raw. info['dev_head_t'], info=raw.info)
+
+###############################################################################
+# Process our simulated raw data (taking into account head movements).
 
 # extract our resulting events
 events = mne.find_events(raw, stim_channel='STI 014')
@@ -55,15 +54,18 @@ raw.plot(events=events)
 
 topo_kwargs = dict(times=[0, 0.1, 0.2], ch_type='mag', vmin=-500, vmax=500)
 
-# 0. Take average of stationary data (bilateral auditory patterns)
+###############################################################################
+# First, take the average of stationary data (bilateral auditory patterns).
 evoked_stat = mne.Epochs(raw_stat, events, 1, -0.2, 0.8).average()
 evoked_stat.plot_topomap(title='Stationary', **topo_kwargs)
 
-# 1. Take a naive average (smears activity)
+###############################################################################
+# Second, tak a naive average (smears activity).
 evoked = mne.Epochs(raw, events, 1, -0.2, 0.8).average()
 evoked.plot_topomap(title='Moving: naive average', **topo_kwargs)
 
-# 2. Use raw movement compensation (restores pattern)
+###############################################################################
+# Third, use raw movement compensation (restores pattern).
 raw_sss = maxwell_filter(raw, head_pos=pos)
 evoked_raw_mc = mne.Epochs(raw_sss, events, 1, -0.2, 0.8).average()
 evoked_raw_mc.plot_topomap(title='Moving: movement compensated', **topo_kwargs)
