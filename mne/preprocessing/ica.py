@@ -8,6 +8,7 @@ from inspect import isfunction
 from collections import namedtuple
 from copy import deepcopy
 from numbers import Integral
+from time import time
 
 import os
 import json
@@ -385,6 +386,7 @@ class ICA(ContainsMixin):
         """
         if isinstance(inst, (BaseRaw, BaseEpochs)):
             _check_for_unsupported_ica_channels(picks, inst.info)
+            t_start = time()
             if isinstance(inst, BaseRaw):
                 self._fit_raw(inst, picks, start, stop, decim, reject, flat,
                               tstep, reject_by_annotation, verbose)
@@ -397,7 +399,8 @@ class ICA(ContainsMixin):
         var = _ica_explained_variance(self, inst)
         var_ord = var.argsort()[::-1]
         _sort_components(self, var_ord, copy=False)
-
+        t_stop = time()
+        logger.info("Fitting ICA took {:.1f}s.".format(t_stop - t_start))
         return self
 
     def _reset(self):
