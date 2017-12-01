@@ -723,7 +723,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         make_label = _set_psd_plot_params(raw.info, proj, picks, ax, area_mode)
     del ax
     if line_alpha is None:
-        line_alpha = 1.0 if average else 0.1
+        line_alpha = 1.0 if average else 0.75
     line_alpha = float(line_alpha)
 
     psd_list = list()
