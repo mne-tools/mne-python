@@ -49,6 +49,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn)
 
+>>>>>>> upstream/master
 from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers
@@ -155,7 +156,7 @@ class ICA(ContainsMixin):
     ----------
     n_components : int | float | None
         The number of components used for ICA decomposition. If int, it must be
-        smaller then max_pca_components. If None, all PCA components will be
+        smaller than max_pca_components. If None, all PCA components will be
         used. If float between 0 and 1 components will be selected by the
         cumulative percentage of explained variance.
     max_pca_components : int | None
@@ -238,7 +239,17 @@ class ICA(ContainsMixin):
     def __init__(self, n_components=None, max_pca_components=None,
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
-                 verbose=None):  # noqa: D102
+                 verbose=None, channel_start=None):  # noqa: D102
+
+        if channel_start is None:
+            channel_start = 1
+            warn('channel_start will default to 1 in 0.15, but change '
+                 'to 0 in 0.16. Set it explicitly to avoid this warning',
+                 DeprecationWarning)
+        if channel_start not in (0, 1):
+            raise ValueError('channel_start must be 0 or 1, got %s' %
+                             (channel_start,))
+
         methods = ('fastica', 'infomax', 'extended-infomax')
         if method not in methods:
             raise ValueError('`method` must be "%s". You passed: "%s"' %
@@ -267,6 +278,7 @@ class ICA(ContainsMixin):
         self.n_pca_components = n_pca_components
         self.ch_names = None
         self.random_state = random_state
+        self.channel_start = channel_start
 
         if fit_params is None:
             fit_params = {}
@@ -833,6 +845,18 @@ class ICA(ContainsMixin):
         # set channel names and info
         ch_names = []
         ch_info = info['chs'] = []
+<<<<<<< HEAD
+        for ii in range(self.n_components_):
+            this_source = 'ICA %03d' % (ii)
+            ch_names.append(this_source)
+            ch_info.append(dict(ch_name=this_source, cal=1,
+                                logno=ii + 1, coil_type=FIFF.FIFFV_COIL_NONE,
+                                kind=FIFF.FIFFV_MISC_CH,
+                                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
+                                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
+                                unit=FIFF.FIFF_UNIT_NONE,
+                                range=1.0, scanno=ii + 1, unit_mul=0))
+=======
         for ii, name in enumerate(self._ica_names):
             ch_names.append(name)
             ch_info.append(dict(
@@ -841,6 +865,7 @@ class ICA(ContainsMixin):
                 coord_Frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_NONE,
                 loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
                 range=1.0, scanno=ii + 1, unit_mul=0))
+>>>>>>> 20ff59b850b9b1e33f6d3317be3cf8595410c098
 
         if add_channels is not None:
             # re-append additionally picked ch_names
