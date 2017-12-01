@@ -1,7 +1,7 @@
 """
-=====================================
-Sensor space least squares regression
-=====================================
+============================================================================
+Analysing continuous features with binning and regression in sensor space
+============================================================================
 
 Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint
@@ -35,6 +35,7 @@ References
 import pandas as pd
 import mne
 from mne.stats import linear_regression
+from mne.viz import plot_compare_evokeds
 from mne.datasets import kiloword
 
 # Load the data
@@ -42,13 +43,28 @@ path = kiloword.data_path() + '/kword_metadata-epo.fif'
 epochs = mne.read_epochs(path)
 print(epochs.metadata.head())
 
-# Add intercept column
-df = pd.DataFrame(epochs.metadata)
-epochs.metadata = df.assign(Intercept=[1 for _ in epochs.events])
+##############################################################################
+# Psycholinguistically relevant word characteristics are continuous. I.e.,
+# concreteness or imaginability is a graded property. In the metadata,
+# we have concreteness ratings on a 5-point scale. We can show the dependence
+# of the EEG on concreteness by dividing the data into bins and plotting the
+# mean activity per bin, color coded.
+name = "Concreteness"
+df = epochs.metadata
+df[name] = pd.cut(df[name], 11, labels=False) / 10
+colors = {str(val): val for val in df[name].unique()}
+epochs.metadata = df.assign(Intercept=1)  # Add an intercept for later
+evokeds = {val: epochs[name + " == " + val].average() for val in colors}
+plot_compare_evokeds(evokeds, colors=colors, split_legend=True,
+                     cmap=(name + " Percentile", "viridis"))
 
-# Run and visualize the regression
-names = ["Intercept", "Concreteness", "BigramFrequency"]
+##############################################################################
+# We observe that there appears to be a monotonic dependence of EEG on
+# concreteness. We can also conduct a continuous analysis: single-trial level
+# regression with concreteness as a continuous (although here, binned)
+# feature. We can plot the resulting regression coefficient just like an
+# Event-related Potential.
+names = ["Intercept", name]
 res = linear_regression(epochs, epochs.metadata[names], names=names)
-
 for cond in names:
     res[cond].beta.plot_joint(title=cond)

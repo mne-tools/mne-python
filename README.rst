@@ -79,7 +79,7 @@ The minimum required dependencies to run MNE-Python are:
 
 For full functionality, some functions require:
 
-- Scikit-learn >= 0.18
+- Scikit-learn >= 0.15 (>= 0.18 recommended)
 - NiBabel >= 2.1.0
 - Pandas >= 0.13
 

@@ -254,8 +254,8 @@ class ICA(ContainsMixin):
         if method not in methods:
             raise ValueError('`method` must be "%s". You passed: "%s"' %
                              ('" or "'.join(methods), method))
-        if not check_version('sklearn', '0.12'):
-            raise RuntimeError('the scikit-learn package (version >= 0.12)'
+        if not check_version('sklearn', '0.15'):
+            raise RuntimeError('the scikit-learn package (version >= 0.15) '
                                'is required for ICA')
 
         self.noise_cov = noise_cov

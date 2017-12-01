@@ -212,4 +212,27 @@ def test_annotation_epoching():
     assert_equal([0, 2, 4], epochs.selection)
 
 
+def test_annotation_concat():
+    """Test if two Annotations objects can be concatenated."""
+    a = Annotations([1, 2, 3], [5, 5, 8], ["a", "b", "c"])
+    b = Annotations([11, 12, 13], [1, 2, 2], ["x", "y", "z"])
+
+    # test + operator (does not modify a or b)
+    c = a + b
+    assert_array_equal(c.onset, [1, 2, 3, 11, 12, 13])
+    assert_array_equal(c.duration, [5, 5, 8, 1, 2, 2])
+    assert_array_equal(c.description, ["a", "b", "c", "x", "y", "z"])
+    assert_equal(len(a), 3)
+    assert_equal(len(b), 3)
+    assert_equal(len(c), 6)
+
+    # test += operator (modifies a in place)
+    a += b
+    assert_array_equal(a.onset, [1, 2, 3, 11, 12, 13])
+    assert_array_equal(a.duration, [5, 5, 8, 1, 2, 2])
+    assert_array_equal(a.description, ["a", "b", "c", "x", "y", "z"])
+    assert_equal(len(a), 6)
+    assert_equal(len(b), 3)
+
+
 run_tests_if_main()

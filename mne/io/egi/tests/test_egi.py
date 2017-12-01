@@ -157,4 +157,41 @@ def test_io_egi_pns_mff():
         assert_array_equal(mat_data, raw_data)
 
 
+@requires_testing_data
+def test_io_egi_pns_mff_bug():
+    """Test importing EGI MFF with PNS data (BUG)"""
+    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns_bug.mff')
+    with warnings.catch_warnings(record=True) as w:
+        raw = read_raw_egi(egi_fname_mff, include=None, preload=True,
+                           verbose='warning')
+    assert any('EGI PSG sample bug' in str(ww.message) for ww in w)
+    egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
+    mc = sio.loadmat(egi_fname_mat)
+    pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
+    pns_names = ['Resp. Temperature'[:15],
+                 'Resp. Pressure',
+                 'ECG',
+                 'Body Position',
+                 'Resp. Effort Chest'[:15],
+                 'Resp. Effort Abdomen'[:15],
+                 'EMG-Leg']
+    mat_names = [
+        'Resp_Temperature'[:15],
+        'Resp_Pressure',
+        'ECG',
+        'Body_Position',
+        'Resp_Effort_Chest'[:15],
+        'Resp_Effort_Abdomen'[:15],
+        'EMGLeg'
+
+    ]
+    for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
+        print('Testing {}'.format(ch_name))
+        mc_key = [x for x in mc.keys() if mat_name in x][0]
+        cal = raw.info['chs'][ch_idx]['cal']
+        mat_data = mc[mc_key] * cal
+        mat_data[:, -1] = 0  # The MFF has one less sample, the last one
+        raw_data = raw[ch_idx][0]
+        assert_array_equal(mat_data, raw_data)
+
 run_tests_if_main()

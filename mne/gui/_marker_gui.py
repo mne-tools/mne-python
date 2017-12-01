@@ -16,7 +16,7 @@ from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, Instance, Property, Array, Bool,
                         Button, Enum, File, Float, List, Str)
 from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
-from traitsui.menu import NoButtons
+from traitsui.menu import Action, CancelButton, NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
 from ..transforms import apply_trans, rotation, translation
@@ -67,11 +67,35 @@ mrk_view_basic = View(
                 style='custom'),
            HGroup(Item('clear', enabled_when="can_save", show_label=False),
                   Item('edit', show_label=False),
+                  Item('switch_left_right', label="Switch Left/Right",
+                       show_label=False),
+                  Item('reorder', show_label=False),
                   Item('save_as', enabled_when="can_save",
                        show_label=False)),
            ))
 
 mrk_view_edit = View(VGroup('points'))
+
+
+class ReorderDialog(HasPrivateTraits):
+    """Dialog for reordering marker points."""
+
+    order = Str("0 1 2 3 4")
+    index = Property(List, depends_on='order')
+    is_ok = Property(Bool, depends_on='order')
+
+    view = View(
+        Item('order', label='New order (five space delimited numbers)'),
+        buttons=[CancelButton, Action(name='OK', enabled_when='is_ok')])
+
+    def _get_index(self):
+        try:
+            return [int(i) for i in self.order.split()]
+        except ValueError:
+            return []
+
+    def _get_is_ok(self):
+        return sorted(self.index) == [0, 1, 2, 3, 4]
 
 
 class MarkerPoints(HasPrivateTraits):
@@ -134,6 +158,10 @@ class MarkerPointSource(MarkerPoints):  # noqa: D401
     enabled = Property(Bool, depends_on=['points', 'use'])
     clear = Button(desc="Clear the current marker data")
     edit = Button(desc="Edit the marker coordinates manually")
+    switch_left_right = Button(
+        desc="Switch left and right marker points; this is intended to "
+             "correct for markers that were attached in the wrong order")
+    reorder = Button(desc="Change the order of the marker points")
 
     view = mrk_view_basic
 
@@ -170,6 +198,16 @@ class MarkerPointSource(MarkerPoints):  # noqa: D401
 
     def _edit_fired(self):
         self.edit_traits(view=mrk_view_edit)
+
+    def _reorder_fired(self):
+        dlg = ReorderDialog()
+        ui = dlg.edit_traits(kind='modal')
+        if not ui.result:  # user pressed cancel
+            return
+        self.points = self.points[dlg.index]
+
+    def _switch_left_right_fired(self):
+        self.points = self.points[[1, 0, 2, 4, 3]]
 
 
 class MarkerPointDest(MarkerPoints):  # noqa: D401

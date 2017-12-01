@@ -694,6 +694,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                         op.join(subject_dir, 'bem', 'outer_skin.surf'),
                         op.join(subject_dir, 'bem', 'flash',
                                 'outer_skin.surf'),
+                        op.join(subject_dir, 'bem', '%s-head.fif'
+                                % subject),
                     ]
                 for fname in try_fnames:
                     if op.exists(fname):

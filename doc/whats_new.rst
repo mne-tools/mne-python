@@ -33,6 +33,16 @@ Changelog
 
 - Add option ``initial_event`` to :func:`mne.find_events` by `Clemens Brunner`_
 
+- Left and right arrow keys now scroll by 25% of the visible data, whereas Shift+left/right scroll by a whole page in :meth:`mne.io.Raw.plot` by `Clemens Brunner`_
+
+- Add support for gantry tilt angle determination from Elekta FIF file header by `Chris Bailey`_
+
+- Add possibility to concatenate `mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
+
+- Add support for MaxShield raw files in :class:`mne.Report` by `Eric Larson`_
+
+- Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :class:`mne.io.egi.egimff.RawMff` by `Fede Raimondo`_
+
 Bug
 ~~~
 
@@ -47,6 +57,10 @@ Bug
 - Fix bug in :func:`mne.simulation.simulate_raw` with ``use_cps=True`` where CPS was not actually used by `Eric Larson`_
 
 - Fix bug in :func:`mne.simulation.simulate_raw` where 1- and 3-layer BEMs were not properly transformed using ``trans`` by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_alignment` where the head surface file ``-head.fif`` was not used even though present by `Chris Bailey`_
+
+- Fix bug in :meth:`mne.io.Raw.plot_psd` to correctly deal with ``reject_by_annotation=False`` by `Clemens Brunner`_
 
 API
 ~~~

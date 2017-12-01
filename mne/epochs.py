@@ -2609,7 +2609,7 @@ class EpochsFIF(BaseEpochs):
         # could make use of it
 
         raw.fid.seek(raw.data_tag.pos + offset + 16, 0)  # 16 = Tag header
-        data = np.fromstring(raw.fid.read(size), '>f4').astype(np.float64)
+        data = np.frombuffer(raw.fid.read(size), '>f4').astype(np.float64)
         data.shape = raw.epoch_shape
         data *= raw.cals
         return data

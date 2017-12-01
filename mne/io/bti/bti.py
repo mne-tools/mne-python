@@ -1058,7 +1058,7 @@ class RawBTi(BaseRaw):
                                           block_size) // n_channels:
                 count = min(block_size, data_left - sample_start * n_channels)
                 if isinstance(fid, six.BytesIO):
-                    block = np.fromstring(fid.getvalue(), dtype, count)
+                    block = np.frombuffer(fid.getvalue(), dtype, count)
                 else:
                     block = np.fromfile(fid, dtype, count)
                 sample_stop = sample_start + count // n_channels

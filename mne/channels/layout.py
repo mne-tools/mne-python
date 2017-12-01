@@ -913,8 +913,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     -----
     .. versionadded:: 0.9.0
     """
-    from scipy.ndimage import imread
-
+    import matplotlib.pyplot as plt
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
@@ -930,10 +929,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     # Normalize xy to 0-1
     if bg_image is not None:
         # Normalize by image dimensions
-        if isinstance(bg_image, str):
-            img = imread(bg_image)
-        else:
-            img = bg_image
+        img = plt.imread(bg_image) if isinstance(bg_image, str) else bg_image
         x /= img.shape[1]
         y /= img.shape[0]
     elif normalize:

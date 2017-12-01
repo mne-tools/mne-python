@@ -183,11 +183,17 @@ def test_read_write_info():
     info['proc_history'][0]['creator'] = creator
     info['hpi_meas'][0]['creator'] = creator
     info['subject_info']['his_id'] = creator
+
+    if info['gantry_angle'] is None:  # future testing data may include it
+        info['gantry_angle'] = 0.  # Elekta supine position
+    gantry_angle = info['gantry_angle']
+
     write_info(temp_file, info)
     info = read_info(temp_file)
     assert_equal(info['proc_history'][0]['creator'], creator)
     assert_equal(info['hpi_meas'][0]['creator'], creator)
     assert_equal(info['subject_info']['his_id'], creator)
+    assert_equal(info['gantry_angle'], gantry_angle)
 
 
 def test_io_dig_points():

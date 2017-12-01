@@ -274,6 +274,11 @@ def test_plot_raw_psd():
                                               ('power', 'amplitude')):
             raw.plot_psd(average=True, dB=dB, estimate=estimate)
     assert_equal(len(w), 4)
+    # test reject_by_annotation
+    raw = _get_raw()
+    raw.annotations = Annotations([1, 5], [3, 3], ['test', 'test'])
+    raw.plot_psd(reject_by_annotation=True)
+    raw.plot_psd(reject_by_annotation=False)
 
 
 def test_plot_sensors():

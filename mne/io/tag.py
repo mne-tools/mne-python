@@ -94,13 +94,13 @@ def read_big(fid, size=None):
         >>> randgen = np.random.RandomState(9)
         >>> x = randgen.randn(3000000)  # > 16MB data
         >>> with open(fname, 'wb') as fid: x.tofile(fid)
-        >>> with open(fname, 'rb') as fid: y = np.fromstring(read_big(fid))
+        >>> with open(fname, 'rb') as fid: y = np.frombuffer(read_big(fid))
         >>> assert np.all(x == y)
         >>> fid_gz = gzip.open(fname_gz, 'wb')
         >>> _ = fid_gz.write(x.tostring())
         >>> fid_gz.close()
         >>> fid_gz = gzip.open(fname_gz, 'rb')
-        >>> y = np.fromstring(read_big(fid_gz))
+        >>> y = np.frombuffer(read_big(fid_gz))
         >>> assert np.all(x == y)
         >>> fid_gz.close()
         >>> shutil.rmtree(os.path.dirname(fname))
@@ -147,7 +147,7 @@ def read_tag_info(fid):
     return tag
 
 
-def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
+def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
     """Get a range of rows from a large tag."""
     if shape is not None:
         item_size = np.dtype(dtype).itemsize
@@ -171,11 +171,11 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
         # Move the pointer ahead to the read point
         fid.seek(start_skip, 1)
         # Do the reading
-        out = np.fromstring(fid.read(read_size), dtype=dtype)
+        out = np.frombuffer(fid.read(read_size), dtype=dtype)
         # Move the pointer ahead to the end of the tag
         fid.seek(end_pos)
     else:
-        out = np.fromstring(fid.read(tag_size), dtype=dtype)
+        out = np.frombuffer(fid.read(tag_size), dtype=dtype)
     return out
 
 
@@ -222,7 +222,7 @@ def _read_tag_header(fid):
     s = fid.read(4 * 4)
     if len(s) == 0:
         return None
-    # struct.unpack faster than np.fromstring, saves ~10% of time some places
+    # struct.unpack faster than np.frombuffer, saves ~10% of time some places
     return Tag(*struct.unpack('>iIii', s))
 
 
@@ -230,7 +230,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
     """Read a matrix (dense or sparse) tag."""
     matrix_coding = matrix_coding >> 16
 
-    # This should be easy to implement (see _fromstring_rows)
+    # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
     if shape is not None:
         raise ValueError('Row reading not implemented for matrices '
@@ -241,9 +241,9 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
-        ndim = int(np.fromstring(fid.read(4), dtype='>i4'))
+        ndim = int(np.frombuffer(fid.read(4), dtype='>i4'))
         fid.seek(-(ndim + 1) * 4, 1)
-        dims = np.fromstring(fid.read(4 * ndim), dtype='>i4')[::-1]
+        dims = np.frombuffer(fid.read(4 * ndim), dtype='>i4')[::-1]
         #
         # Back to where the data start
         #
@@ -256,20 +256,20 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         matrix_type = _data_type & tag.type
 
         if matrix_type == FIFF.FIFFT_INT:
-            data = np.fromstring(read_big(fid, 4 * dims.prod()), dtype='>i4')
+            data = np.frombuffer(read_big(fid, 4 * dims.prod()), dtype='>i4')
         elif matrix_type == FIFF.FIFFT_JULIAN:
-            data = np.fromstring(read_big(fid, 4 * dims.prod()), dtype='>i4')
+            data = np.frombuffer(read_big(fid, 4 * dims.prod()), dtype='>i4')
         elif matrix_type == FIFF.FIFFT_FLOAT:
-            data = np.fromstring(read_big(fid, 4 * dims.prod()), dtype='>f4')
+            data = np.frombuffer(read_big(fid, 4 * dims.prod()), dtype='>f4')
         elif matrix_type == FIFF.FIFFT_DOUBLE:
-            data = np.fromstring(read_big(fid, 8 * dims.prod()), dtype='>f8')
+            data = np.frombuffer(read_big(fid, 8 * dims.prod()), dtype='>f8')
         elif matrix_type == FIFF.FIFFT_COMPLEX_FLOAT:
-            data = np.fromstring(read_big(fid, 4 * 2 * dims.prod()),
+            data = np.frombuffer(read_big(fid, 4 * 2 * dims.prod()),
                                  dtype='>f4')
             # Note: we need the non-conjugate transpose here
             data = (data[::2] + 1j * data[1::2])
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
-            data = np.fromstring(read_big(fid, 8 * 2 * dims.prod()),
+            data = np.frombuffer(read_big(fid, 8 * 2 * dims.prod()),
                                  dtype='>f8')
             # Note: we need the non-conjugate transpose here
             data = (data[::2] + 1j * data[1::2])
@@ -282,9 +282,9 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
-        ndim = int(np.fromstring(fid.read(4), dtype='>i4'))
+        ndim = int(np.frombuffer(fid.read(4), dtype='>i4'))
         fid.seek(-(ndim + 2) * 4, 1)
-        dims = np.fromstring(fid.read(4 * (ndim + 1)), dtype='>i4')
+        dims = np.frombuffer(fid.read(4 * (ndim + 1)), dtype='>i4')
         if ndim != 2:
             raise Exception('Only two-dimensional matrices are '
                             'supported at this time')
@@ -294,28 +294,28 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         nnz = int(dims[0])
         nrow = int(dims[1])
         ncol = int(dims[2])
-        sparse_data = np.fromstring(fid.read(4 * nnz), dtype='>f4')
+        sparse_data = np.frombuffer(fid.read(4 * nnz), dtype='>f4')
         shape = (dims[1], dims[2])
         if matrix_coding == _matrix_coding_CCS:
             #    CCS
             tmp_indices = fid.read(4 * nnz)
-            sparse_indices = np.fromstring(tmp_indices, dtype='>i4')
+            sparse_indices = np.frombuffer(tmp_indices, dtype='>i4')
             tmp_ptrs = fid.read(4 * (ncol + 1))
-            sparse_ptrs = np.fromstring(tmp_ptrs, dtype='>i4')
+            sparse_ptrs = np.frombuffer(tmp_ptrs, dtype='>i4')
             if (sparse_ptrs[-1] > len(sparse_indices) or
                     np.any(sparse_ptrs < 0)):
                 # There was a bug in MNE-C that caused some data to be
                 # stored without byte swapping
                 sparse_indices = np.concatenate(
-                    (np.fromstring(tmp_indices[:4 * (nrow + 1)], dtype='>i4'),
-                     np.fromstring(tmp_indices[4 * (nrow + 1):], dtype='<i4')))
-                sparse_ptrs = np.fromstring(tmp_ptrs, dtype='<i4')
+                    (np.frombuffer(tmp_indices[:4 * (nrow + 1)], dtype='>i4'),
+                     np.frombuffer(tmp_indices[4 * (nrow + 1):], dtype='<i4')))
+                sparse_ptrs = np.frombuffer(tmp_ptrs, dtype='<i4')
             data = sparse.csc_matrix((sparse_data, sparse_indices,
                                      sparse_ptrs), shape=shape)
         else:
             #    RCS
-            sparse_indices = np.fromstring(fid.read(4 * nnz), dtype='>i4')
-            sparse_ptrs = np.fromstring(fid.read(4 * (nrow + 1)), dtype='>i4')
+            sparse_indices = np.frombuffer(fid.read(4 * nnz), dtype='>i4')
+            sparse_ptrs = np.frombuffer(fid.read(4 * (nrow + 1)), dtype='>i4')
             data = sparse.csr_matrix((sparse_data, sparse_indices,
                                      sparse_ptrs), shape=shape)
     else:
@@ -326,14 +326,14 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
 
 def _read_simple(fid, tag, shape, rlims, dtype):
     """Read simple datatypes from tag (typically used with partial)."""
-    return _fromstring_rows(fid, tag.size, dtype=dtype, shape=shape,
+    return _frombuffer_rows(fid, tag.size, dtype=dtype, shape=shape,
                             rlims=rlims)
 
 
 def _read_string(fid, tag, shape, rlims):
     """Read a string tag."""
     # Always decode to unicode.
-    d = _fromstring_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
+    d = _frombuffer_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
     return text_type(d.tostring().decode('utf-8', 'ignore'))
 
 
@@ -342,7 +342,7 @@ def _read_complex_float(fid, tag, shape, rlims):
     # data gets stored twice as large
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
-    d = _fromstring_rows(fid, tag.size, dtype=">f4", shape=shape, rlims=rlims)
+    d = _frombuffer_rows(fid, tag.size, dtype=">f4", shape=shape, rlims=rlims)
     d = d[::2] + 1j * d[1::2]
     return d
 
@@ -352,7 +352,7 @@ def _read_complex_double(fid, tag, shape, rlims):
     # data gets stored twice as large
     if shape is not None:
         shape = (shape[0], shape[1] * 2)
-    d = _fromstring_rows(fid, tag.size, dtype=">f8", shape=shape, rlims=rlims)
+    d = _frombuffer_rows(fid, tag.size, dtype=">f8", shape=shape, rlims=rlims)
     d = d[::2] + 1j * d[1::2]
     return d
 
@@ -360,28 +360,28 @@ def _read_complex_double(fid, tag, shape, rlims):
 def _read_id_struct(fid, tag, shape, rlims):
     """Read ID struct tag."""
     return dict(
-        version=int(np.fromstring(fid.read(4), dtype=">i4")),
-        machid=np.fromstring(fid.read(8), dtype=">i4"),
-        secs=int(np.fromstring(fid.read(4), dtype=">i4")),
-        usecs=int(np.fromstring(fid.read(4), dtype=">i4")))
+        version=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        machid=np.frombuffer(fid.read(8), dtype=">i4"),
+        secs=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        usecs=int(np.frombuffer(fid.read(4), dtype=">i4")))
 
 
 def _read_dig_point_struct(fid, tag, shape, rlims):
     """Read dig point struct tag."""
     return dict(
-        kind=int(np.fromstring(fid.read(4), dtype=">i4")),
-        ident=int(np.fromstring(fid.read(4), dtype=">i4")),
-        r=np.fromstring(fid.read(12), dtype=">f4"),
+        kind=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        ident=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        r=np.frombuffer(fid.read(12), dtype=">f4"),
         coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
 
 
 def _read_coord_trans_struct(fid, tag, shape, rlims):
     """Read coord trans struct tag."""
     from ..transforms import Transform
-    fro = int(np.fromstring(fid.read(4), dtype=">i4"))
-    to = int(np.fromstring(fid.read(4), dtype=">i4"))
-    rot = np.fromstring(fid.read(36), dtype=">f4").reshape(3, 3)
-    move = np.fromstring(fid.read(12), dtype=">f4")
+    fro = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    to = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    rot = np.frombuffer(fid.read(36), dtype=">f4").reshape(3, 3)
+    move = np.frombuffer(fid.read(12), dtype=">f4")
     trans = np.r_[np.c_[rot, move],
                   np.array([[0], [0], [0], [1]]).T]
     data = Transform(fro, to, trans)
@@ -399,20 +399,20 @@ _coord_dict = {
 def _read_ch_info_struct(fid, tag, shape, rlims):
     """Read channel info struct tag."""
     d = dict(
-        scanno=int(np.fromstring(fid.read(4), dtype=">i4")),
-        logno=int(np.fromstring(fid.read(4), dtype=">i4")),
-        kind=int(np.fromstring(fid.read(4), dtype=">i4")),
-        range=float(np.fromstring(fid.read(4), dtype=">f4")),
-        cal=float(np.fromstring(fid.read(4), dtype=">f4")),
-        coil_type=int(np.fromstring(fid.read(4), dtype=">i4")),
+        scanno=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        logno=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        kind=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        range=float(np.frombuffer(fid.read(4), dtype=">f4")),
+        cal=float(np.frombuffer(fid.read(4), dtype=">f4")),
+        coil_type=int(np.frombuffer(fid.read(4), dtype=">i4")),
         # deal with really old OSX Anaconda bug by casting to float64
-        loc=np.fromstring(fid.read(48), dtype=">f4").astype(np.float64),
+        loc=np.frombuffer(fid.read(48), dtype=">f4").astype(np.float64),
         # unit and exponent
-        unit=int(np.fromstring(fid.read(4), dtype=">i4")),
-        unit_mul=int(np.fromstring(fid.read(4), dtype=">i4")),
+        unit=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        unit_mul=int(np.frombuffer(fid.read(4), dtype=">i4")),
     )
     # channel name
-    ch_name = np.fromstring(fid.read(16), dtype=">c")
+    ch_name = np.frombuffer(fid.read(16), dtype=">c")
     ch_name = ch_name[:np.argmax(ch_name == b'')].tostring()
     d['ch_name'] = ch_name.decode()
     # coil coordinate system definition
@@ -422,9 +422,9 @@ def _read_ch_info_struct(fid, tag, shape, rlims):
 
 def _read_old_pack(fid, tag, shape, rlims):
     """Read old pack tag."""
-    offset = float(np.fromstring(fid.read(4), dtype=">f4"))
-    scale = float(np.fromstring(fid.read(4), dtype=">f4"))
-    data = np.fromstring(fid.read(tag.size - 8), dtype=">i2")
+    offset = float(np.frombuffer(fid.read(4), dtype=">f4"))
+    scale = float(np.frombuffer(fid.read(4), dtype=">f4"))
+    data = np.frombuffer(fid.read(tag.size - 8), dtype=">i2")
     data = data * scale  # to float64
     data += offset
     return data
@@ -437,7 +437,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
-    return jd2jcal(int(np.fromstring(fid.read(4), dtype=">i4")))
+    return jd2jcal(int(np.frombuffer(fid.read(4), dtype=">i4")))
 
 
 # Read types call dict
