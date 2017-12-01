@@ -72,24 +72,36 @@ def test_plot_ica_components():
         for components in [0, [0], [0, 1], [0, 1] * 2, None]:
             ica.plot_components(components, image_interp='bilinear',
                                 colorbar=True, **fast_test)
+        plt.close('all')
 
         # test interactive mode (passing 'inst' arg)
-        plt.close('all')
         ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16)
-
         fig = plt.gcf()
-        ax = [a for a in fig.get_children() if isinstance(a, plt.Axes)]
-        lbl = ax[1].get_label()
-        _fake_click(fig, ax[1], (0., 0.), xform='data')
+
+        # test title click
+        # ----------------
+        lbl = fig.axes[1].get_label()
+        ica_idx = int(lbl[-3:])
+        titles = [ax.title for ax in fig.axes]
+        title_pos = titles[1].get_position()
+        # first click adds to exclude
+        _fake_click(fig, fig.axes[1], (title_pos[0], title_pos[1] + 0.1))
+        assert_true(ica_idx in ica.exclude)
+        # clicking again removes from exclude
+        _fake_click(fig, fig.axes[1], (title_pos[0], title_pos[1] + 0.1))
+        assert_true(ica_idx not in ica.exclude)
+
+        # test topo click
+        # ---------------
+        _fake_click(fig, fig.axes[1], (0., 0.), xform='data')
 
         c_fig = plt.gcf()
-        ax = [a for a in c_fig.get_children() if isinstance(a, plt.Axes)]
-        labels = [a.get_label() for a in ax]
+        labels = [ax.get_label() for ax in c_fig.axes]
 
         for l in ['topomap', 'image', 'erp', 'spectrum', 'variance']:
             assert_true(l in labels)
 
-        topomap_ax = ax[labels.index('topomap')]
+        topomap_ax = c_fig.axes[labels.index('topomap')]
         title = topomap_ax.get_title()
         assert_true(lbl == title)
 
