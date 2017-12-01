@@ -2025,8 +2025,7 @@ def _setup_butterfly(params):
         types = np.array(params['types'])[params['orig_inds']]
         if params['group_by'] in ['type', 'original']:
             inds = params['inds']
-            eeg = 'seeg' if 'seeg' in types else 'eeg'
-            labels = [t for t in ['grad', 'mag', eeg, 'eog', 'ecg']
+            labels = [t for t in ['grad', 'mag', 'eeg', 'seeg', 'eog', 'ecg']
                       if t in types] + ['misc']
             ticks = np.arange(5, 5 * (len(labels) + 1), 5)
             offs = {l: t for (l, t) in zip(labels, ticks)}
