@@ -83,12 +83,13 @@ def test_plot_ica_components():
         lbl = fig.axes[1].get_label()
         ica_idx = int(lbl[-3:])
         titles = [ax.title for ax in fig.axes]
-        title_pos = titles[1].get_position()
+        title_pos_midpoint = (titles[1].get_window_extent().extents
+                              .reshape((2, 2)).mean(axis=0))
         # first click adds to exclude
-        _fake_click(fig, fig.axes[1], (title_pos[0], title_pos[1] + 0.1))
+        _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
         assert_true(ica_idx in ica.exclude)
         # clicking again removes from exclude
-        _fake_click(fig, fig.axes[1], (title_pos[0], title_pos[1] + 0.1))
+        _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
         assert_true(ica_idx not in ica.exclude)
 
         # test topo click

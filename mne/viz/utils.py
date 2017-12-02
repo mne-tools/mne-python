@@ -1164,6 +1164,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
         x, y = ax.transData.transform_point(point)
+    elif xform is 'pix':
+        x, y = point
     else:
         raise ValueError('unknown transform')
     if kind == 'press':
