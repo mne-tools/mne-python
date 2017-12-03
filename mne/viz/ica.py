@@ -926,7 +926,7 @@ def _label_clicked(pos, params):
     if line_idx >= len(params['picks']):
         return
     ic_idx = [params['picks'][line_idx]]
-    if params['types'][ic_idx[0]] != 'misc':
+    if params['types'][line_idx] != 'misc':
         warn('Can only plot ICA components.')
         return
     types = list()

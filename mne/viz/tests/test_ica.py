@@ -192,6 +192,11 @@ def test_plot_ica_sources():
     # Sadly close_event isn't called on Agg backend and the test always passes.
     assert_array_equal(ica.exclude, [1])
 
+    fig = ica.plot_sources(raw, [1])
+    # test mouse clicks
+    data_ax = fig.axes[0]
+    _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+
     raw.info['bads'] = ['MEG 0113']
     assert_raises(RuntimeError, ica.plot_sources, inst=raw)
     ica.plot_sources(epochs)
