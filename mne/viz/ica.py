@@ -962,6 +962,6 @@ def _label_clicked(pos, params):
             plot_topomap(data_.flatten(), pos, axes=ax, show=False)
             _hide_frame(ax)
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.88, bottom=0.)
     fig.canvas.draw()
     plt_show(True)

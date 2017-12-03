@@ -994,7 +994,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                 ax.CB = DraggableColorbar(cbar, im)
         _hide_frame(ax)
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.88, bottom=0.)
     fig.canvas.draw()
 
     # add title selection interactivity
