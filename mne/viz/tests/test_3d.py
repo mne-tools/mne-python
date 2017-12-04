@@ -59,14 +59,21 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 def test_plot_head_positions():
     """Test plotting of head positions."""
     import matplotlib.pyplot as plt
+    info = read_info(evoked_fname)
     pos = np.random.RandomState(0).randn(4, 10)
     pos[:, 0] = np.arange(len(pos))
+    destination = (0., 0., 0.04)
     with warnings.catch_warnings(record=True):  # old MPL will cause a warning
         plot_head_positions(pos)
         if check_version('matplotlib', '1.4'):
-            plot_head_positions(pos, mode='field')
+            plot_head_positions(pos, mode='field', info=info,
+                                destination=destination)
         else:
-            assert_raises(RuntimeError, plot_head_positions, pos, mode='field')
+            assert_raises(RuntimeError, plot_head_positions, pos, mode='field',
+                          info=info, destination=destination)
+        plot_head_positions([pos, pos])  # list support
+        assert_raises(ValueError, plot_head_positions, ['pos'])
+        assert_raises(ValueError, plot_head_positions, pos[:, :9])
     assert_raises(ValueError, plot_head_positions, pos, 'foo')
     plt.close('all')
 
@@ -175,6 +182,8 @@ def test_plot_alignment():
     # no-head version
     mlab.close(all=True)
     # all coord frames
+    assert_raises(ValueError, plot_alignment, info)
+    plot_alignment(info, surfaces=[])
     for coord_frame in ('meg', 'head', 'mri'):
         plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
                        coord_frame=coord_frame, trans=trans_fname,

@@ -43,6 +43,8 @@ Changelog
 
 - Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :class:`mne.io.egi.egimff.RawMff` by `Fede Raimondo`_
 
+- Add support for multiple head position files and plotting of sensors in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
+
 Bug
 ~~~
 
