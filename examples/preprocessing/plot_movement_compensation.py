@@ -24,7 +24,7 @@ print(__doc__)
 
 data_path = op.join(mne.datasets.misc.data_path(verbose=True), 'movement')
 
-pos = mne.chpi.read_head_pos(op.join(data_path, 'simulated_quats.pos'))
+head_pos = mne.chpi.read_head_pos(op.join(data_path, 'simulated_quats.pos'))
 raw = mne.io.read_raw_fif(op.join(data_path, 'simulated_movement_raw.fif'))
 raw_stat = mne.io.read_raw_fif(op.join(data_path,
                                        'simulated_stationary_raw.fif'))
@@ -36,13 +36,13 @@ raw_stat = mne.io.read_raw_fif(op.join(data_path,
 # be shown in blue, and the destination (if given) shown in red.
 
 mne.viz.plot_head_positions(
-    pos, mode='traces', destination=raw.info['dev_head_t'], info=raw.info)
+    head_pos, mode='traces', destination=raw.info['dev_head_t'], info=raw.info)
 
 ###############################################################################
 # This can also be visualized using a quiver.
 
 mne.viz.plot_head_positions(
-    pos, mode='field', destination=raw. info['dev_head_t'], info=raw.info)
+    head_pos, mode='field', destination=raw.info['dev_head_t'], info=raw.info)
 
 ###############################################################################
 # Process our simulated raw data (taking into account head movements).
@@ -60,12 +60,14 @@ evoked_stat = mne.Epochs(raw_stat, events, 1, -0.2, 0.8).average()
 evoked_stat.plot_topomap(title='Stationary', **topo_kwargs)
 
 ###############################################################################
-# Second, tak a naive average (smears activity).
+# Second, take a naive average, which averages across epochs that have been
+# simulated to have different head positions and orientations, thereby
+# spatially smearing the activity.
 evoked = mne.Epochs(raw, events, 1, -0.2, 0.8).average()
 evoked.plot_topomap(title='Moving: naive average', **topo_kwargs)
 
 ###############################################################################
 # Third, use raw movement compensation (restores pattern).
-raw_sss = maxwell_filter(raw, head_pos=pos)
+raw_sss = maxwell_filter(raw, head_pos=head_pos)
 evoked_raw_mc = mne.Epochs(raw_sss, events, 1, -0.2, 0.8).average()
 evoked_raw_mc.plot_topomap(title='Moving: movement compensated', **topo_kwargs)
