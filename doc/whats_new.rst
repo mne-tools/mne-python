@@ -60,6 +60,8 @@ Bug
 
 - Fix bug in :func:`mne.viz.plot_alignment` where the head surface file ``-head.fif`` was not used even though present by `Chris Bailey`_
 
+- Fix bug when writing compressed sparse column matrices (e.g., Maxwell filtering cross-talk matrices) by `Marijn van Vliet`_ and `Eric Larson`_
+
 - Fix bug in :meth:`mne.io.Raw.plot_psd` to correctly deal with ``reject_by_annotation=False`` by `Clemens Brunner`_
 
 API

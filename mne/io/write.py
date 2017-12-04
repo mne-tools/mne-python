@@ -10,7 +10,7 @@ import time
 import uuid
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, sparse
 
 from .constants import FIFF
 from ..utils import logger
@@ -358,8 +358,29 @@ def write_dig_points(fid, dig, block=False, coord_frame=None):
 
 
 def write_float_sparse_rcs(fid, kind, mat):
-    """Write a single-precision floating-point matrix tag."""
-    FIFFT_MATRIX = 16416 << 16
+    """Write a single-precision sparse compressed row matrix tag."""
+    return write_float_sparse(fid, kind, mat, fmt='csr')
+
+
+def write_float_sparse_ccs(fid, kind, mat):
+    """Write a single-precision sparse compressed column matrix tag."""
+    return write_float_sparse(fid, kind, mat, fmt='csc')
+
+
+def write_float_sparse(fid, kind, mat, fmt='auto'):
+    """Write a single-precision floating-point sparse matrix tag."""
+    from .tag import _matrix_coding_CCS, _matrix_coding_RCS
+    if fmt == 'auto':
+        fmt = 'csr' if isinstance(mat, sparse.csr_matrix) else 'csc'
+    if fmt == 'csr':
+        need = sparse.csr_matrix
+        bits = _matrix_coding_RCS
+    else:
+        need = sparse.csc_matrix
+        bits = _matrix_coding_CCS
+    if not isinstance(mat, need):
+        raise TypeError('Must write %s, got %s' % (fmt.upper(), type(mat),))
+    FIFFT_MATRIX = bits << 16
     FIFFT_MATRIX_FLOAT_RCS = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
 
     nnzm = mat.nnz

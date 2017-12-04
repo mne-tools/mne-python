@@ -6,9 +6,10 @@ import os.path as op
 import warnings
 import numpy as np
 
-from numpy.testing import assert_equal, assert_allclose
+from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 import pytest
 from nose.tools import assert_true, assert_raises
+from scipy import sparse
 
 from mne import compute_raw_covariance, pick_types
 from mne.chpi import read_head_pos, filter_chpi
@@ -698,6 +699,19 @@ def test_cross_talk():
     assert_raises(ValueError, maxwell_filter, raw, cross_talk=raw_fname)
     mf_ctc = sss_ctc.info['proc_history'][0]['max_info']['sss_ctc']
     del mf_ctc['block_id']  # we don't write this
+    assert isinstance(py_ctc['decoupler'], sparse.csc_matrix)
+    assert isinstance(mf_ctc['decoupler'], sparse.csc_matrix)
+    assert_array_equal(py_ctc['decoupler'].toarray(),
+                       mf_ctc['decoupler'].toarray())
+    # I/O roundtrip
+    tempdir = _TempDir()
+    fname = op.join(tempdir, 'test_sss_raw.fif')
+    sss_ctc.save(fname)
+    sss_ctc_read = read_raw_fif(fname)
+    mf_ctc_read = sss_ctc_read.info['proc_history'][0]['max_info']['sss_ctc']
+    assert isinstance(mf_ctc_read['decoupler'], sparse.csc_matrix)
+    assert_array_equal(mf_ctc_read['decoupler'].toarray(),
+                       mf_ctc['decoupler'].toarray())
     assert_equal(object_diff(py_ctc, mf_ctc), '')
     raw_ctf = read_crop(fname_ctf_raw).apply_gradient_compensation(0)
     assert_raises(ValueError, maxwell_filter, raw_ctf)  # cannot fit headshape

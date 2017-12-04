@@ -294,40 +294,37 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         nnz = int(dims[0])
         nrow = int(dims[1])
         ncol = int(dims[2])
-        sparse_data = np.frombuffer(fid.read(4 * nnz), dtype='>f4')
+        data = np.frombuffer(fid.read(4 * nnz), dtype='>f4')
         shape = (dims[1], dims[2])
         if matrix_coding == _matrix_coding_CCS:
             #    CCS
             tmp_indices = fid.read(4 * nnz)
-            sparse_indices = np.frombuffer(tmp_indices, dtype='>i4')
-            tmp_ptrs = fid.read(4 * (ncol + 1))
-            sparse_ptrs = np.frombuffer(tmp_ptrs, dtype='>i4')
-            if (sparse_ptrs[-1] > len(sparse_indices) or
-                    np.any(sparse_ptrs < 0)):
+            indices = np.frombuffer(tmp_indices, dtype='>i4')
+            tmp_ptr = fid.read(4 * (ncol + 1))
+            indptr = np.frombuffer(tmp_ptr, dtype='>i4')
+            if indptr[-1] > len(indices) or np.any(indptr < 0):
                 # There was a bug in MNE-C that caused some data to be
                 # stored without byte swapping
-                sparse_indices = np.concatenate(
+                indices = np.concatenate(
                     (np.frombuffer(tmp_indices[:4 * (nrow + 1)], dtype='>i4'),
                      np.frombuffer(tmp_indices[4 * (nrow + 1):], dtype='<i4')))
-                sparse_ptrs = np.frombuffer(tmp_ptrs, dtype='<i4')
-            data = sparse.csc_matrix((sparse_data, sparse_indices,
-                                     sparse_ptrs), shape=shape)
+                indptr = np.frombuffer(tmp_ptr, dtype='<i4')
+            data = sparse.csc_matrix((data, indices, indptr), shape=shape)
         else:
             #    RCS
             tmp_indices = fid.read(4 * nnz)
-            sparse_indices = np.frombuffer(tmp_indices, dtype='>i4')
-            tmp_ptrs = fid.read(4 * (nrow + 1))
-            sparse_ptrs = np.frombuffer(tmp_ptrs, dtype='>i4')
-            if (sparse_ptrs[-1] > len(sparse_indices) or
-                    np.any(sparse_ptrs < 0)):
+            indices = np.frombuffer(tmp_indices, dtype='>i4')
+            tmp_ptr = fid.read(4 * (nrow + 1))
+            indptr = np.frombuffer(tmp_ptr, dtype='>i4')
+            if indptr[-1] > len(indices) or np.any(indptr < 0):
                 # There was a bug in MNE-C that caused some data to be
                 # stored without byte swapping
-                sparse_indices = np.concatenate(
-                    (np.fromstring(tmp_indices[:4 * (ncol + 1)], dtype='>i4'),
-                     np.fromstring(tmp_indices[4 * (ncol + 1):], dtype='<i4')))
-                sparse_ptrs = np.fromstring(tmp_ptrs, dtype='<i4')
-            data = sparse.csr_matrix((sparse_data, sparse_indices,
-                                     sparse_ptrs), shape=shape)
+                indices = np.concatenate(
+                    (np.frombuffer(tmp_indices[:4 * (ncol + 1)], dtype='>i4'),
+                     np.frombuffer(tmp_indices[4 * (ncol + 1):], dtype='<i4')))
+                indptr = np.frombuffer(tmp_ptr, dtype='<i4')
+            data = sparse.csr_matrix((data, indices,
+                                     indptr), shape=shape)
     else:
         raise Exception('Cannot handle other than dense or sparse '
                         'matrices yet')
