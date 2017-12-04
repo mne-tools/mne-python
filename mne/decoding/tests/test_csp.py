@@ -66,7 +66,8 @@ def test_csp():
     # Init
     assert_raises(ValueError, CSP, n_components='foo', norm_trace=False)
     for reg in ['foo', -0.1, 1.1]:
-        assert_raises(ValueError, CSP, reg=reg, norm_trace=False)
+        csp = CSP(reg=reg, norm_trace=False)
+        assert_raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
     for reg in ['oas', 'ledoit_wolf', 0, 0.5, 1.]:
         CSP(reg=reg, norm_trace=False)
     for cov_est in ['foo', None]:

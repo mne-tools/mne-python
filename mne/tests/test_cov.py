@@ -605,16 +605,22 @@ def test_compute_covariance_auto_reg():
     logliks = [c['loglik'] for c in covs]
     assert_true(np.diff(logliks).max() <= 0)  # descending order
 
-    methods = ['empirical',
-               'factor_analysis',
-               'ledoit_wolf',
-               'pca']
+    methods = ['empirical', 'factor_analysis', 'ledoit_wolf', 'oas', 'pca',
+               'shrunk', 'shrinkage']
     cov3 = compute_covariance(epochs, method=methods,
                               method_params=method_params, projs=None,
                               return_estimators=True)
+    method_names = [cov['method'] for cov in cov3]
+    for method in ['factor_analysis', 'ledoit_wolf', 'oas', 'pca',
+                   'shrinkage']:
+        this_lik = cov3[method_names.index(method)]['loglik']
+        assert -55 < this_lik < -45
+    this_lik = cov3[method_names.index('empirical')]['loglik']
+    assert -110 < this_lik < -100
+    this_lik = cov3[method_names.index('shrunk')]['loglik']
+    assert -45 < this_lik < -35
 
-    assert_equal(set([c['method'] for c in cov3]),
-                 set(methods))
+    assert_equal(set([c['method'] for c in cov3]), set(methods))
 
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')
