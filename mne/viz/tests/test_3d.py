@@ -364,6 +364,7 @@ def test_plot_dipole_mri_orthoview():
     plt.close('all')
 
 
+@testing.requires_testing_data
 @requires_mayavi
 def test_snapshot_brain_montage():
     """Test snapshot brain montage."""
