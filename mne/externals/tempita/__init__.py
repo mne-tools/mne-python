@@ -331,9 +331,10 @@ class Template(object):
                 return ''
             if self._unicode:
                 try:
-                    value = str(value)
                     if not is_unicode(value):
-                        value = value.decode('utf-8')
+                        value = str(value)
+                        if not is_unicode(value):
+                            value = value.decode('utf-8')
                 except UnicodeDecodeError:
                     value = bytes(value)
             else:
