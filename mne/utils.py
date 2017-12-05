@@ -1367,7 +1367,7 @@ def _get_extra_data_path(home_dir=None):
     if home_dir is None:
         # this has been checked on OSX64, Linux64, and Win32
         if 'nt' == os.name.lower():
-            home_dir = os.getenv('APPDATA')
+            home_dir = os.getenv('USERPROFILE')
         else:
             # This is a more robust way of getting the user's home folder on
             # Linux platforms (not sure about OSX, Unix or BSD) than checking
@@ -1405,7 +1405,7 @@ def get_config_path(home_dir=None):
     -------
     config_path : str
         The path to the mne-python configuration file. On windows, this
-        will be '%APPDATA%\.mne\mne-python.json'. On every other
+        will be '%USERPROFILE%\.mne\mne-python.json'. On every other
         system, this will be ~/.mne/mne-python.json.
     """
     val = op.join(_get_extra_data_path(home_dir=home_dir),
