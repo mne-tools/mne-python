@@ -426,12 +426,12 @@ class ICA(ContainsMixin):
             picks = _pick_data_channels(raw.info, exclude='bads',
                                         with_ref_meg=False)
 
-        logger.info('Fitting ICA to data using %i channels. \n'
-                    'Please be patient, this may take some time' % len(picks))
+        logger.info('Fitting ICA to data using %i channels '
+                    '(please be patient, this may take a while)' % len(picks))
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks.')
+            logger.info('Inferring max_pca_components from picks')
 
         self.info = pick_info(raw.info, picks)
         if self.info['comps']:
@@ -469,8 +469,8 @@ class ICA(ContainsMixin):
         if picks is None:
             picks = _pick_data_channels(epochs.info, exclude='bads',
                                         with_ref_meg=False)
-        logger.info('Fitting ICA to data using %i channels. \n'
-                    'Please be patient, this may take some time' % len(picks))
+        logger.info('Fitting ICA to data using %i channels '
+                    '(please be patient, this may take a while)' % len(picks))
 
         # filter out all the channels the raw wouldn't have initialized
         self.info = pick_info(epochs.info, picks)
@@ -480,7 +480,7 @@ class ICA(ContainsMixin):
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks.')
+            logger.info('Inferring max_pca_components from picks')
 
         # this should be a copy (picks a list of int)
         data = epochs.get_data()[:, picks]
@@ -663,7 +663,7 @@ class ICA(ContainsMixin):
     def _transform_epochs(self, epochs, concatenate):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
-            raise RuntimeError('No fit available. Please fit ICA')
+            raise RuntimeError('No fit available. Please fit ICA.')
 
         picks = pick_types(epochs.info, include=self.ch_names, exclude='bads',
                            meg=False, ref_meg=False)
@@ -688,7 +688,7 @@ class ICA(ContainsMixin):
     def _transform_evoked(self, evoked):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
-            raise RuntimeError('No fit available. Please first fit ICA')
+            raise RuntimeError('No fit available. Please fit ICA.')
 
         picks = pick_types(evoked.info, include=self.ch_names, exclude='bads',
                            meg=False, ref_meg=False)
@@ -1390,7 +1390,7 @@ class ICA(ContainsMixin):
 
         check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'))
 
-        logger.info('Writing ica solution to %s...' % fname)
+        logger.info('Writing ICA solution to %s...' % fname)
         fid = start_file(fname)
 
         try:
@@ -1554,7 +1554,7 @@ class ICA(ContainsMixin):
         Returns
         -------
         self : instance of ICA
-            The ica object with the detected artifact indices marked for
+            The ICA object with the detected artifact indices marked for
             exclusion
         """
         logger.info('    Searching for artifacts...')
@@ -2187,7 +2187,7 @@ def run_ica(raw, n_components, max_pca_components=100,
     Returns
     -------
     ica : instance of ICA
-        The ica object with detected artifact sources marked for exclusion
+        The ICA object with detected artifact sources marked for exclusion.
     """
     ica = ICA(n_components=n_components, max_pca_components=max_pca_components,
               n_pca_components=n_pca_components, noise_cov=noise_cov,
