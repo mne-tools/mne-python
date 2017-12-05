@@ -178,10 +178,7 @@ fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
 plot_connectivity_circle(conmat, label_names, n_lines=300,
                          node_angles=node_angles, node_colors=node_colors,
                          title='All-to-All Connectivity left-Auditory '
-                         'Condition (PLI)', fig=fig, interactive=False, 
-                         show=False)
-
-plt.show()
+                         'Condition (PLI)', fig=fig, interactive=False)
 
 ###############################################################################
 # Save the figure (optional)
@@ -191,5 +188,5 @@ plt.show()
 # set when the figure was generated. If not set via savefig, the labels, title,
 # and legend will be cut off from the output png file.
 
-#fname_fig = data_path + '/MEG/sample/plot_mixed_connect.png'
-#plt.savefig(fname_fig, facecolor='black')
+# fname_fig = data_path + '/MEG/sample/plot_mixed_connect.png'
+# plt.savefig(fname_fig, facecolor='black')
