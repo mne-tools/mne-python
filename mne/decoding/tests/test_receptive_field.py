@@ -10,7 +10,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import io, pick_types
-from mne.utils import requires_version, run_tests_if_main
+from mne.utils import requires_version, run_tests_if_main, check_version
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -519,6 +519,9 @@ def test_inverse_coef():
         rf = ReceptiveField(tmin, tmax, 1., estimator=estimator, patterns=True)
         with warnings.catch_warnings(record=True) as w:
             rf.fit(y, X)
+            # For some reason there is no warning
+            if estimator and not check_version('numpy', '1.13'):
+                continue
             assert_equal(len(w), 1)
             assert_true(any(x in str(w[0].message).lower()
                             for x in ('singular', 'scipy.linalg.solve')),
