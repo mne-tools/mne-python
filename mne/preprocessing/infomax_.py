@@ -127,7 +127,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     if block is None:
         block = int(math.floor(math.sqrt(n_samples / 3.0)))
 
-    logger.info('computing%sInfomax ICA' % ' Extended ' if extended else ' ')
+    logger.info('Computing%sInfomax ICA' % ' Extended ' if extended else ' ')
 
     # collect parameters
     nblock = n_samples // block
