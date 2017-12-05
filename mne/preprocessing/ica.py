@@ -1888,7 +1888,7 @@ def _write_ica(fid, ica):
 
 
 @verbose
-def read_ica(fname):
+def read_ica(fname, verbose=None):
     """Restore ICA solution from fif file.
 
     Parameters
@@ -1896,6 +1896,9 @@ def read_ica(fname):
     fname : str
         Absolute path to fif file containing ICA matrices.
         The file name should end with -ica.fif or -ica.fif.gz.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
