@@ -9,7 +9,7 @@ import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, pick_channels,
-                 read_evokeds, Epochs, create_info)
+                 read_evokeds, Epochs, create_info, compute_raw_covariance)
 from mne.io import read_raw_fif, RawArray
 from mne.tests.common import assert_naming
 from mne.utils import _TempDir, run_tests_if_main
@@ -411,6 +411,27 @@ def test_make_fixed_length_events():
     assert_raises(ValueError, make_fixed_length_events, 'not raw', 2)
     assert_raises(ValueError, make_fixed_length_events, raw, 23, tmin, tmax,
                   'abc')
+
+    # Let's try some ugly sample rate/sample count combos
+    data = np.random.RandomState(0).randn(1, 27768)
+
+    # This breaks unless np.round() is used in make_fixed_length_events
+    info = create_info(1, 155.4499969482422)
+    raw = RawArray(data, info)
+    events = make_fixed_length_events(raw, 1, duration=raw.times[-1])
+    assert events[0, 0] == 0
+    assert len(events) == 1
+
+    # Without use_rounding=True this breaks
+    raw = RawArray(data[:, :21216], info)
+    events = make_fixed_length_events(raw, 1, duration=raw.times[-1])
+    assert events[0, 0] == 0
+    assert len(events) == 1
+
+    # Make sure it gets used properly by compute_raw_covariance
+    cov = compute_raw_covariance(raw, tstep=None)
+    expected = np.cov(data[:, :21216])
+    np.testing.assert_allclose(cov['data'], expected, atol=1e-12)
 
 
 def test_define_events():

@@ -64,6 +64,8 @@ Bug
 
 - Fix bug in :meth:`mne.io.Raw.plot_psd` to correctly deal with ``reject_by_annotation=False`` by `Clemens Brunner`_
 
+- Fix bug in :func:`mne.make_fixed_length_events` when hitting corner case problems rounding to sample numbers by `Eric Larson`_
+
 API
 ~~~
 

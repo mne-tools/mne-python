@@ -861,9 +861,9 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     if not isinstance(duration, (int, float)):
         raise ValueError('duration must be an integer of a float, '
                          'got %s instead.' % (type(duration)))
-    start = raw.time_as_index(start)[0]
+    start = raw.time_as_index(start, use_rounding=True)[0]
     if stop is not None:
-        stop = raw.time_as_index(stop)[0]
+        stop = raw.time_as_index(stop, use_rounding=True)[0]
     else:
         stop = raw.last_samp + 1
     if first_samp:
@@ -872,7 +872,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.,
     else:
         stop = min([stop, len(raw.times)])
     # Make sure we don't go out the end of the file:
-    stop -= int(np.ceil(raw.info['sfreq'] * duration))
+    stop -= int(np.round(raw.info['sfreq'] * duration))
     # This should be inclusive due to how we generally use start and stop...
     ts = np.arange(start, stop + 1, raw.info['sfreq'] * duration).astype(int)
     n_events = len(ts)
