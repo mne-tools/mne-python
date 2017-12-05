@@ -175,5 +175,5 @@ plt.show()
 # set when the figure was generated. If not set via savefig, the labels, title,
 # and legend will be cut off from the output png file.
 
-#fname_fig = data_path + '/MEG/sample/plot_inverse_connect.png'
-#fig.savefig(fname_fig, facecolor='black')
+# fname_fig = data_path + '/MEG/sample/plot_inverse_connect.png'
+# fig.savefig(fname_fig, facecolor='black')
