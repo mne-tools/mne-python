@@ -12,7 +12,7 @@ from .open import read_tag, fiff_open
 from .tree import dir_tree_find
 from .write import (start_block, end_block, write_int, write_float,
                     write_string, write_float_matrix, write_int_matrix,
-                    write_float_sparse_rcs, write_id)
+                    write_float_sparse, write_id)
 from .tag import find_tag
 from .constants import FIFF
 from ..externals.six import text_type, string_types
@@ -157,7 +157,7 @@ _sss_ctc_ids = (FIFF.FIFF_BLOCK_ID,
                 FIFF.FIFF_MEAS_DATE,
                 FIFF.FIFF_CREATOR,
                 FIFF.FIFF_DECOUPLER_MATRIX)
-_sss_ctc_writers = (write_id, write_int, write_string, write_float_sparse_rcs)
+_sss_ctc_writers = (write_id, write_int, write_string, write_float_sparse)
 _sss_ctc_casters = (dict, np.array, text_type, csc_matrix)
 
 _sss_cal_keys = ('cal_chans', 'cal_corrs')
