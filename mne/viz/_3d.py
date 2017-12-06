@@ -176,6 +176,9 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
             axes[0, ii].set(title=title)
             axes[-1, ii].set(xlabel='Time (s)')
         if rrs is not None:
+            pos_bads = np.any([(use_trans[:, ii] <= lims[ii, 0]) |
+                               (use_trans[:, ii] >= lims[ii, 1])
+                               for ii in range(3)], axis=0)
             for ii in range(3):
                 oidx = list(range(ii)) + list(range(ii + 1, 3))
                 # knowing it will generally be spherical, we can approximate
@@ -184,20 +187,28 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
                 from scipy.spatial.distance import cdist
                 dists = cdist(rrs[:, oidx], use_trans[:, oidx])
                 left = rrs[:, [ii]] < use_trans[:, ii]
-                left_dists = dists.copy()
-                left_dists[~left] = np.inf
+                left_dists_all = dists.copy()
+                left_dists_all[~left] = np.inf
                 # Don't show negative Z direction
-                if ii != 2 and np.isfinite(left_dists).any():
-                    left_dists = rrs[np.argmin(left_dists, axis=0), ii]
+                if ii != 2 and np.isfinite(left_dists_all).any():
+                    idx = np.argmin(left_dists_all, axis=0)
+                    left_dists = rrs[idx, ii]
+                    bads = ~np.isfinite(
+                        left_dists_all[idx, np.arange(len(idx))]) | pos_bads
+                    left_dists[bads] = np.nan
                     axes[ii, 0].plot(t, left_dists, color=helmet_color,
                                      ls='-', lw=0.5, zorder=2)
                 else:
                     axes[ii, 0].axhline(lims[ii][0], color=helmet_color,
                                         ls='-', lw=0.5, zorder=2)
-                right_dists = dists
-                right_dists[left] = np.inf
-                if np.isfinite(right_dists).any():
-                    right_dists = rrs[np.argmin(right_dists, axis=0), ii]
+                right_dists_all = dists
+                right_dists_all[left] = np.inf
+                if np.isfinite(right_dists_all).any():
+                    idx = np.argmin(right_dists_all, axis=0)
+                    right_dists = rrs[idx, ii]
+                    bads = ~np.isfinite(
+                        right_dists_all[idx, np.arange(len(idx))]) | pos_bads
+                    right_dists[bads] = np.nan
                     axes[ii, 0].plot(t, right_dists, color=helmet_color,
                                      ls='-', lw=0.5, zorder=2)
                 else:
