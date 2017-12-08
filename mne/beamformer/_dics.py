@@ -28,6 +28,7 @@ deprecation_text = ('Please use the `make_dics` and `apply_dics_*` functions '
 
 @verbose
 def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
+              leadfield_norm='dipole', weight_norm='unit-noise-gain',
               real_filter=False, verbose=None):
     """Compute Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
@@ -48,12 +49,26 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     pick_ori : None | 'normal' | 'max-power'
         The source orientation to compute the filter for:
 
-            ``None`` : orientations are pooled (Default)
-            'normal' : filters are computed for the orientation tangential to
-                       the cortical surface
-            'max-power' : filters are computer for the orientation that
-                          maximizes spectral power.
+            ``None`` :
+                orientations are pooled (Default)
+            'normal' :
+                filters are computed for the orientation tangential to the
+                cortical surface
+            'max-power' :
+                filters are computer for the orientation that maximizes
+                spectral power.
 
+
+    leadfield_norm : None | 'dipole' | 'point'
+        How to normalize the leadfield. None means no normalization is
+        performed, 'dipole' means each dipole is normalized independently, and
+        'point' means all dipoles defined at a source point (typically 3) will
+        be normalized simultaneously. Defaults to 'dipole'.
+    weight_norm : None | 'unit-noise-gain'
+        How to normalize the beamformer weights. None means no normalization is
+        performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
+        beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
+        Defaults to 'unit-noise-gain'.
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
@@ -68,20 +83,20 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         Dictionary containing filter weights from DICS beamformer.
         Contains the following keys:
 
-            'weights' : {array}
+            'weights' : ndarray, shape (n_frequencies, n_weights)
                 For each frequency, the filter weights of the beamformer.
-            'csd' : {instance of CrossSpectralDensity}
+            'csd' : instance of CrossSpectralDensity
                 The data cross-spectral density matrices used to compute the
                 beamformer.
-            'ch_names' : {list}
+            'ch_names' : list of str
                 Channels used to compute the beamformer.
-            'proj' : {array}
+            'proj' : ndarray, shape (n_channels, n_channels)
                 Projections used to compute the beamformer.
-            'vertices' : {list}
+            'vertices' : list of ndarray
                 Vertices for which the filter weights were computed.
             'n_orient' : int
                 Number of source orientations defined in the forward model.
-            'subject' : {string}
+            'subject' : str
                 The subject ID.
 
     See Also
@@ -90,15 +105,19 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     Notes
     -----
+    The original reference is [1]_.
+
     For more information about ``real_filter``, see the
     `supplemental information <http://www.cell.com/cms/attachment/616681/4982593/mmc1.pdf>`_
-    from [2]_.
+    from [3]_.
 
     References
     ----------
     .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
            interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
-    .. [2] Hipp JF, Engel AK, Siegel M (2011) Oscillatory Synchronization
+    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
+           brain imaging (2008) Springer Science & Business Media
+    .. [3] Hipp JF, Engel AK, Siegel M (2011) Oscillatory Synchronization
            in Large-Scale Cortical Networks Predicts Perception.
            Neuron 69:387-396.
     """  # noqa: E501
@@ -112,15 +131,12 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     picks = _setup_picks(info=info, forward=forward)
     _, ch_names, proj, vertices, G = _prepare_beamformer_input(
-        info, forward, label, picks=picks, pick_ori=pick_ori
+        info, forward, label, picks=picks, pick_ori=pick_ori,
+        leadfield_norm=leadfield_norm,
     )
     csd_picks = [csd.names.index(ch) for ch in ch_names]
 
     n_sources = G.shape[1] // n_orient
-
-    # Normalize the leadfield for depth weighting. This also ensures that
-    # G @ G.T == I, which simplifies some of the equations.
-    G = G / np.linalg.norm(G, axis=0)
 
     logger.info('Computing DICS spatial filters...')
     Ws = []
@@ -169,28 +185,39 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 power = Wk.dot(Cm).dot(Wk.T)
 
                 # Compute the direction of max power
-                u, s, _ = np.linalg.svd(power)
-                max_power_ori = u[:, 0].real
-                max_power_ori /= np.linalg.norm(max_power_ori)
+                u, s, _ = np.linalg.svd(power.real)
+                max_power_ori = u[:, 0]
 
                 # Re-compute the filter in the direction of max power
-                Gk_max = Gk.dot(max_power_ori)
-                Wk_max = max_power_ori.dot(Wk)
-                Ck_max = np.dot(Wk_max, Gk_max)
-                Wk_max /= Ck_max
-                Wk[:] = Wk_max
+                Wk[:] = max_power_ori.dot(Wk)
 
         if pick_ori == 'normal':
             W = W[2::3]
         elif pick_ori == 'max-power':
             W = W[0::3]
 
+        if weight_norm == 'unit-noise-gain':
+            # Scale weights so that W @ I @ W.T == I
+            if pick_ori is None and n_orient > 1:
+                # Compute the norm for each set of 3 dipoles
+                W = W.reshape(-1, 3, W.shape[1])
+                norm = np.sqrt(np.sum(W ** 2, axis=(1, 2)))
+                W /= norm[:, np.newaxis, np.newaxis]
+                W = W.reshape(-1, W.shape[2])
+            else:
+                # Compute the norm for each dipole
+                norm = np.sqrt(np.sum(W ** 2, axis=1))
+                W /= norm[:, np.newaxis]
+
         Ws.append(W)
+
     Ws = np.array(Ws)
 
     subject = _subject_from_forward(forward)
     filters = dict(weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
                    vertices=vertices, subject=subject,
+                   pick_ori=pick_ori, leadfield_norm=leadfield_norm,
+                   weight_norm=weight_norm,
                    n_orient=n_orient if pick_ori is None else 1)
 
     return filters
@@ -209,9 +236,6 @@ def _apply_dics(data, filters, info, tmin):
 
     subject = filters['subject']
     for i, M in enumerate(data):
-        if len(M) != len(filters['ch_names']):
-            raise ValueError('data and picks must have the same length')
-
         if not one_epoch:
             logger.info("Processing epoch : %d" % (i + 1))
 
@@ -278,6 +302,7 @@ def apply_dics(evoked, filters, verbose=None):
     See Also
     --------
     apply_dics_epochs
+    apply_dics_csd
     """  # noqa: E501
     _check_reference(evoked)
 
@@ -332,6 +357,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     See Also
     --------
     apply_dics
+    apply_dics_csd
     """
     _check_reference(epochs)
 
@@ -363,7 +389,7 @@ def apply_dics_csd(csd, filters, verbose=None):
 
     Apply a previously computed DICS beamformer to a cross-spectral density
     (CSD) object to estimate source power in time and frequency windows
-    specified in the CSD object.
+    specified in the CSD object [1]_.
 
     Parameters
     ----------
@@ -387,6 +413,11 @@ def apply_dics_csd(csd, filters, verbose=None):
         The frequencies for which the source power has been computed. If the
         data CSD object defines frequency-bins instead of exact frequencies,
         the mean of each bin is returned.
+
+    References
+    ----------
+    .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
+           interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """  # noqa: E501
     ch_names = filters['ch_names']
     vertices = filters['vertices']
@@ -418,7 +449,7 @@ def apply_dics_csd(csd, filters, verbose=None):
             power = Wk.dot(Cm).dot(Wk.T)
 
             if n_orient > 1:  # Pool the orientations
-                source_power[k, i] = np.abs(power.trace() / n_orient)
+                source_power[k, i] = np.abs(power.trace())
             else:
                 source_power[k, i] = np.abs(power)
 
@@ -428,13 +459,11 @@ def apply_dics_csd(csd, filters, verbose=None):
                       tmin=0, tstep=1, subject=subject), frequencies)
 
 
+@deprecated(deprecation_text)
 def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
                     label=None, picks=None, pick_ori=None, real_filter=False,
                     verbose=None):
     """Old implementation of Dynamic Imaging of Coherent Sources (DICS).
-
-    .. warning:: This function is deprecated. Use make_dics/apply_dics_*
-                 instead.
     """
     from scipy import linalg  # Local import to keep 'import mne' fast
 
@@ -521,17 +550,14 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     logger.info('[done]')
 
 
-@verbose
 @deprecated(deprecation_text)
+@verbose
 def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
          pick_ori=None, real_filter=False, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
     Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ beamformer
     on evoked data and return estimates of source time courses.
-
-    .. warning:: This function is deprecated and will be removed in MNE 0.16.
-                 Use make_dics/apply_dics_* instead.
 
     .. note:: Fixed orientation forward operators with ``real_filter=False``
               will result in complex time courses, in which case absolute
@@ -601,8 +627,8 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.05, label=None,
     return six.advance_iterator(stc)
 
 
-@verbose
 @deprecated(deprecation_text)
+@verbose
 def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
                 pick_ori=None, return_generator=False, real_filter=False,
                 verbose=None):
@@ -610,9 +636,6 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
 
     Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
     on single trial data and return estimates of source time courses.
-
-    .. warning:: This function is deprecated and will be removed in MNE 0.16.
-                 Use make_dics/apply_dics_* instead.
 
     .. note:: Fixed orientation forward operators with ``real_filter=False``
               will result in complex time courses, in which case absolute
@@ -681,8 +704,8 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.05, label=None,
     return stcs
 
 
-@verbose
 @deprecated(deprecation_text)
+@verbose
 def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
                       label=None, pick_ori=None, real_filter=False,
                       verbose=None):
@@ -691,9 +714,6 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
     Calculate source power in time and frequency windows specified in the
     calculation of the data cross-spectral density matrix or matrices. Source
     power is normalized by noise power.
-
-    .. warning:: This function is deprecated and will be removed in MNE 0.16.
-                 Use make_dics/apply_dics_* instead.
 
     .. warning:: This implementation has not been heavily tested and may be
                  incorrect.
@@ -831,10 +851,11 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
 @verbose
 def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
-            freq_bins=None, frequencies=None, n_ffts=None, mt_bandwidths=None,
-            mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
-            subtract_evoked=False, reg=0.05, label=None, pick_ori=None,
-            real_filter=False, verbose=None):
+            freq_bins=None, frequencies=None, noise_csds=None, n_ffts=None,
+            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True,
+            cwt_n_cycles=7, decim=1, subtract_evoked=False, reg=0.05,
+            label=None, pick_ori=None, leadfield_norm='dipole',
+            weight_norm='unit-noise-gain', real_filter=False, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -871,6 +892,11 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
         lists: each list containing the frequencies for the corresponding bin.
         Only used in 'cwt_morlet' mode. In other modes, use the ``freq_bins``
         parameter instead.
+    noise_csds : list of instances of CrossSpectralDensity | None
+        Noise cross-spectral density for each frequency bin. If these are
+        specified, the DICS filters will be applied to both the signal and
+        noise CSDs. The source power estimates for each frequency bin will be
+        scaled by the estimated noise power (signal / noise).
     n_ffts : list | None
         Length of the FFT for each frequency bin. If ``None`` (the default),
         the exact number of samples between ``tmin`` and ``tmax`` will be used.
@@ -907,12 +933,25 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
     pick_ori : None | 'normal' | 'max-power'
         The source orientation to estimate source power for:
 
-            ``None`` : orientations are pooled. (Default)
-            'normal' : filters are computed for the orientation tangential to
-                       the cortical surface
-            'max-power' : filters are computer for the orientation that
-                          maximizes spectral power.
+            ``None`` :
+                orientations are pooled. (Default)
+            'normal' :
+                filters are computed for the orientation tangential to the
+                cortical surface
+            'max-power' :
+                filters are computer for the orientation that maximizes
+                spectral power.
 
+    leadfield_norm : None | 'dipole' | 'point'
+        How to normalize the leadfield. None means no normalization is
+        performed, 'dipole' means each dipole is normalized independently, and
+        'point' means all dipoles defined at a source point (typically 3) will
+        be normalized simultaneously. Defaults to 'dipole'.
+    weight_norm : None | 'unit-noise-gain'
+        How to normalize the beamformer weights. None means no normalization is
+        performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
+        beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
+        Defaults to 'unit-noise-gain'.
     real_filter : bool
         If True, take only the real part of the part of the
         cross-spectral-density matrices to compute real filters.
@@ -937,6 +976,8 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
     .. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
            time-frequency dynamics of cortical activity.
            NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
+           brain imaging (2008) Springer Science & Business Media
     """
     _check_reference(epochs)
 
@@ -966,6 +1007,9 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
 
+    if noise_csds is not None and len(noise_csds) != n_freq_bins:
+        raise ValueError('One noise CSD object expected per frequency bin')
+
     if n_ffts is not None and len(n_ffts) != n_freq_bins:
         raise ValueError('When specifying number of FFT samples, one value '
                          'must be provided per frequency bin')
@@ -987,6 +1031,11 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
     for i_freq in range(n_freq_bins):
         win_length = win_lengths[i_freq]
         n_overlap = int((win_length * 1e3) // (tstep * 1e3))
+
+        # Scale noise CSD to allow data and noise CSDs to have different length
+        if noise_csds is not None:
+            noise_csd = noise_csds[i_freq].copy()
+            noise_csd._data /= noise_csd.n_fft
 
         if mode == 'cwt_morlet':
             freq_bin = frequencies[i_freq]
@@ -1041,10 +1090,22 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
                                      mt_bandwidth=mt_bandwidth,
                                      mt_low_bias=mt_low_bias)
 
+                # Scale data CSD to allow data and noise CSDs to have different
+                # length
+                csd._data /= csd.n_fft
+
                 filters = make_dics(epochs.info, forward, csd, reg=reg,
                                     label=label, pick_ori=pick_ori,
+                                    leadfield_norm=leadfield_norm,
+                                    weight_norm=weight_norm,
                                     real_filter=real_filter)
                 stc, _ = apply_dics_csd(csd, filters)
+
+                if noise_csds is not None:
+                    # Scale signal power by noise power
+                    noise_stc, _ = apply_dics_csd(noise_csd, filters)
+                    stc /= noise_stc
+
                 sol_single.append(stc.data[:, 0])
 
             # Average over all time windows that contain the current time

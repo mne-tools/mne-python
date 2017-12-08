@@ -489,7 +489,8 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
     logger.info('[done]')
 
 
-def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
+def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
+                              leadfield_norm=None):
     """Input preparation common for all beamformer functions.
 
     Check input values, prepare channel list and gain matrix. For documentation
@@ -542,6 +543,24 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
     # Pick after applying the projections
     G = G[picks_forward]
     proj = proj[np.ix_(picks_forward, picks_forward)]
+
+    # Normalize the leadfield if requested
+    if leadfield_norm == 'dipole':
+        G = G / np.linalg.norm(G, axis=0)
+    elif leadfield_norm == 'point':
+        depth_prior = np.sum(G ** 2, axis=0)
+        if is_free_ori:
+            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1)
+        # Spherical leadfield can be zero at the center
+        depth_prior[depth_prior == 0.] = np.min(
+            depth_prior[depth_prior != 0.])
+        if is_free_ori:
+            depth_prior = np.repeat(depth_prior, 3)
+        source_weighting = np.sqrt(1. / depth_prior)
+        G = G * source_weighting[np.newaxis, :]
+    elif leadfield_norm is not None:
+        raise ValueError('Got invalid value for "leadfield_norm". Valid '
+                         'values are: "dipole", "point" or None.')
 
     return is_free_ori, ch_names, proj, vertno, G
 

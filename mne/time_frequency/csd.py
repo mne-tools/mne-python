@@ -45,13 +45,16 @@ class CrossSpectralDensity(object):
         function), this will be a list of lists that contains for each
         frequency bin, the frequencies that were averaged. Frequencies should
         always be sorted.
+    n_fft : int
+        The number of FFT points or samples that have been used in the
+        computation of this CSD.
     projs : list of Projection | None
         List of projectors to apply to timeseries data when using this CSD
-        object to compute a DICS beamformer.  Defaults to None, which means no
+        object to compute a DICS beamformer. Defaults to None, which means no
         projectors will be applied.
     is_sum : bool
-        Whether the CSD matrix represents an average across frequencies.
-        Defaults to False.
+        Whether the CSD matrix represents a sum (or average) across
+        frequencies. Defaults to False.
 
     See Also
     --------
@@ -59,7 +62,7 @@ class CrossSpectralDensity(object):
     csd_array
     """
 
-    def __init__(self, data, names, tmin, tmax, frequencies, projs=None,
+    def __init__(self, data, names, tmin, tmax, frequencies, n_fft, projs=None,
                  is_sum=False):
         data = np.asarray(data)
         if data.ndim == 1:
@@ -83,6 +86,7 @@ class CrossSpectralDensity(object):
                              (len(frequencies), data.shape[1]))
         self.frequencies = frequencies
 
+        self.n_fft = n_fft
         self.projs = cp.deepcopy(projs)
         self.is_sum = is_sum
 
@@ -316,6 +320,7 @@ class CrossSpectralDensity(object):
         self.tmax = state['tmax']
         self.names = state['names']
         self.frequencies = state['frequencies']
+        self.n_fft = state['n_fft']
         self.is_sum = state['is_sum']
 
     def __getstate__(self):  # noqa: D105
@@ -325,6 +330,7 @@ class CrossSpectralDensity(object):
             tmax=self.tmax,
             names=self.names,
             frequencies=self.frequencies,
+            n_fft=self.n_fft,
             is_sum=self.is_sum,
         )
 
@@ -333,7 +339,8 @@ class CrossSpectralDensity(object):
             data=self._data[:, sel], names=self.names, tmin=self.tmin,
             tmax=self.tmax,
             frequencies=np.atleast_1d(self.frequencies)[sel].tolist(),
-            is_sum=self.is_sum
+            n_fft=self.n_fft,
+            is_sum=self.is_sum,
         )
 
     def save(self, fname):
@@ -530,9 +537,9 @@ def csd_epochs(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         Only used in 'multitaper' or 'fourier' mode. For 'cwt_morlet' mode, use
         the ``frequencies`` parameter instead.
     frequencies : list of float | None
-        The frequencies of interest, in Hertz.
-        Only used in 'cwt_morlet' mode. For other modes, use the ``fmin`` and
-        ``fmax`` parameters instead.
+        The frequencies of interest, in Hertz. For each frequency, a Morlet
+        wavelet will be created. Only used in 'cwt_morlet' mode. For other
+        modes, use the ``fmin`` and ``fmax`` parameters instead.
     fsum : bool
         Sum CSD values for the frequencies of interest. Summing is performed
         instead of averaging so that accumulated power is comparable to power
@@ -792,6 +799,7 @@ def csd_array(X, sfreq, t0=0, mode='multitaper', fmin=0, fmax=np.inf,
     elif mode == 'cwt_morlet':
         # Construct the appropriate Morlet wavelets
         wavelets = morlet(sfreq, frequencies, cwt_n_cycles)
+        n_fft = n_times
 
         # Slice X to the requested time window + half the length of the longest
         # wavelet.
@@ -861,7 +869,7 @@ def csd_array(X, sfreq, t0=0, mode='multitaper', fmin=0, fmax=np.inf,
 
     return CrossSpectralDensity(csds_mean, names=names, tmin=times[0],
                                 tmax=times[-1], frequencies=frequencies,
-                                projs=projs, is_sum=fsum)
+                                n_fft=n_fft, projs=projs, is_sum=fsum)
 
 
 def _compute_mt_params(n_times, sfreq, mode, mt_bandwidth, mt_low_bias,

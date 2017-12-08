@@ -28,7 +28,7 @@ from matplotlib import pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import make_inverse_operator, compute_source_psd_epochs
 from mne.time_frequency import csd_epochs
 from mne.beamformer import make_dics, apply_dics_csd
 
@@ -212,17 +212,18 @@ epochs.plot()
 ###############################################################################
 # Computing the inverse using MNE-dSPM:
 
-# Estimating the noise covariance on the trail that only contains noise.
+# Estimating the noise covariance on the trial that only contains noise.
 cov = mne.compute_covariance(epochs['noise'])
 inv = make_inverse_operator(epochs.info, fwd, cov)
 
-# Apply the inverse model to the trial that also contains the signal.
-s = apply_inverse(epochs['signal'].average(), inv)
+# Apply the inverse model to the trial that also contains the signal and
+# compute the PSD at the source level.
+s = compute_source_psd_epochs(epochs['signal'], inv, fmin=9, fmax=11)
+s = s[0]  # A list of source estimates was returned
 
-# Take the root-mean square along the time dimension and plot the result.
-s_rms = (s ** 2).mean()
-brain = s_rms.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
-                   size=400)
+# Plot the result
+brain = s.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
+               size=400)
 
 # Indicate the true locations of the source activity on the plot.
 brain.add_foci(source_vert1, coords_as_verts=True, hemi='lh')

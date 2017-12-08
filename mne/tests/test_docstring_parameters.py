@@ -62,9 +62,6 @@ _docstring_ignores = [
     'mne.io.Info',  # Parameters
     'mne.io.write',  # always ignore these
     # Deprecations
-    'mne.utils.dics_source_power',
-    'mne.utils.dics',
-    'mne.utils.dics_epochs',
 ]
 
 _tab_ignores = [

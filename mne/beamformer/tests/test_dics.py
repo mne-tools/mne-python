@@ -7,6 +7,7 @@ import warnings
 import os.path as op
 import copy as cp
 
+import pytest
 from pytest import raises
 from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
@@ -19,6 +20,7 @@ from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
 from mne.time_frequency import csd_epochs
 from mne.utils import run_tests_if_main
 from mne.externals.six import advance_iterator
+from mne.proj import compute_proj_evoked, make_projector
 
 # Note that if this is the first test file, this will apply to all subsequent
 # tests in a full nosetest:
@@ -101,6 +103,15 @@ def _simulate_data(fwd):
     return epochs, evoked, csd, source_vertno
 
 
+def _test_weight_norm(filters):
+    """Test weight normalization."""
+    for ws in filters['weights']:
+        ws = ws.reshape(-1, filters['n_orient'], ws.shape[1])
+        for w in ws:
+            assert_allclose(np.trace(w.dot(w.T)), 1)
+
+
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_dics():
     """Test making DICS beamformer filters."""
@@ -143,26 +154,52 @@ def test_make_dics():
     assert_array_equal(filters['vertices'][0], vertices)
     assert_array_equal(filters['vertices'][1], [])  # Label was on the LH
     assert filters['subject'] == fwd_free['src'][0]['subject_his_id']
+    assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
+    assert filters['leadfield_norm'] == 'dipole'
+    assert filters['weight_norm'] == 'unit-noise-gain'
+    _test_weight_norm(filters)
 
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         pick_ori='normal')
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
+    _test_weight_norm(filters)
 
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         pick_ori='max-power')
     n_orient = 1
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
     assert filters['n_orient'] == n_orient
+    _test_weight_norm(filters)
 
     # Test using a real-valued filter
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         pick_ori='normal', real_filter=True)
     assert not np.iscomplexobj(filters['weights'])
+    _test_weight_norm(filters)
+
+    # Test leadfield normalization. With 'dipole' normalization, power of a
+    # unit-noise CSD should be 1, even without weight normalization.
+    csd_noise = csd.copy()
+    inds = np.triu_indices(csd.n_series)
+    # Using [:, :] syntax for in-place broadcasting
+    csd_noise._data[:, :] = np.eye(csd.n_series)[inds][:, np.newaxis]
+    filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
+                        leadfield_norm='dipole', pick_ori=None,
+                        weight_norm=None)
+    w = filters['weights'][0][:3]
+    assert_allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-6, atol=0)
+
+    # Test turning off both leadfield and weight normalization
+    filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
+                        leadfield_norm=None, weight_norm=None)
+    w = filters['weights'][0][:3]
+    assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_apply_dics_csd():
     """Test applying a DICS beamformer to a CSD matrix."""
@@ -171,6 +208,13 @@ def test_apply_dics_csd():
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
     source_ind = vertices.tolist().index(source_vertno)
     reg = 1  # Lots of regularization for our toy dataset
+
+    # Construct an identity "noise" CSD, which we will use to test the
+    # 'unit-noise-gain' setting.
+    csd_noise = csd.copy()
+    inds = np.triu_indices(csd.n_series)
+    # Using [:, :] syntax for in-place broadcasting
+    csd_noise._data[:, :] = np.eye(csd.n_series)[inds][:, np.newaxis]
 
     # Try different types of forward models
     for fwd in [fwd_free, fwd_surf, fwd_fixed]:
@@ -187,7 +231,20 @@ def test_apply_dics_csd():
     # Try picking different orientations
     for pick_ori in [None, 'normal', 'max-power']:
         filters = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
-                            pick_ori=pick_ori)
+                            pick_ori=pick_ori, weight_norm='unit-noise-gain')
+        power, f = apply_dics_csd(csd, filters)
+        assert f == [10, 20]
+        assert np.argmax(power.data[:, 1]) == source_ind
+        assert power.data[source_ind, 1] > power.data[source_ind, 0]
+
+        # Test unit-noise-gain weighting
+        noise_power, f = apply_dics_csd(csd_noise, filters)
+        assert np.allclose(noise_power.data, 1)
+
+        # Test filter without weighting, this should still work on our simple
+        # simulated data.
+        filters = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
+                            pick_ori=pick_ori, weight_norm=None)
         power, f = apply_dics_csd(csd, filters)
         assert f == [10, 20]
         assert np.argmax(power.data[:, 1]) == source_ind
@@ -210,6 +267,7 @@ def test_apply_dics_csd():
     assert power.data[vol_source_ind, 1] > power.data[vol_source_ind, 0]
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_apply_dics_timeseries():
     """Test DICS applied to timeseries data."""
@@ -287,6 +345,22 @@ def test_apply_dics_timeseries():
     stc = (stc ** 2).mean()
     assert np.argmax(stc.data) == source_ind
 
+    # Test whether projections are applied, by adding a custom projection
+    filters_noproj = make_dics(evoked.info, fwd_surf, csd20, label=label)
+    stc_noproj = apply_dics(evoked, filters_noproj)
+    evoked_proj = evoked.copy()
+    p = compute_proj_evoked(evoked_proj, n_grad=1, n_mag=0, n_eeg=0)
+    proj_matrix = make_projector(p, evoked_proj.ch_names)[0]
+    evoked_proj.info['projs'] += p
+    filters_proj = make_dics(evoked_proj.info, fwd_surf, csd20, label=label)
+    assert_array_equal(filters_proj['proj'], proj_matrix)
+    stc_proj = apply_dics(evoked_proj, filters_proj)
+    assert np.any(np.not_equal(stc_noproj.data, stc_proj.data))
+
+    # Test detecting incompatible projections
+    filters_proj['proj'] = filters_proj['proj'][:-1, :-1]
+    raises(ValueError, apply_dics, evoked_proj, filters_proj)
+
     # Test returning a generator
     stcs = apply_dics_epochs(epochs, filters, return_generator=False)
     stcs_gen = apply_dics_epochs(epochs, filters, return_generator=True)
@@ -299,11 +373,12 @@ def test_apply_dics_timeseries():
     assert np.argmax(stc.data) == 3851  # TODO: don't make this hard coded
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_tf_dics():
     """Test 5D time-frequency beamforming based on DICS."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward()
-    epochs, evoked, csd, source_vertno = _simulate_data(fwd_fixed)
+    epochs, evoked, _, source_vertno = _simulate_data(fwd_fixed)
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
     source_ind = vertices.tolist().index(source_vertno)
     reg = 1  # Lots of regularization for our toy dataset
@@ -338,12 +413,32 @@ def test_tf_dics():
         csd = csd_epochs(epochs, mode='cwt_morlet',
                          frequencies=[frequencies[1]], tmin=time_window[0],
                          tmax=time_window[1], decim=10)
+        csd._data /= csd.n_fft
         filters = make_dics(epochs.info, fwd_surf, csd, reg=reg, label=label)
         stc_source_power, _ = apply_dics_csd(csd, filters)
         source_power.append(stc_source_power.data)
 
     # Comparing tf_dics results with dics_source_power results
-    assert_allclose(stcs[1].data, np.array(source_power).squeeze().T)
+    assert_allclose(stcs[1].data, np.array(source_power).squeeze().T, atol=0)
+
+    # Test using noise csds. We're going to use identity matrices. That way, if
+    # all the computations are done correctly, there should be no effect if
+    # `leadfield_norm='dipole'`.
+    noise_csd = csd.copy()
+    inds = np.triu_indices(csd.n_series)
+    # Using [:, :] syntax for in-place broadcasting
+    noise_csd._data[:, :] = 2 * np.eye(csd.n_series)[inds][:, np.newaxis]
+    noise_csd.n_fft = 2  # Dividing by n_fft should yield an identity CSD
+    noise_csds = [noise_csd, noise_csd]  # Two frequency bins
+    stcs_norm = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
+                        mode='cwt_morlet', frequencies=frequencies,
+                        noise_csds=noise_csds, decim=10, reg=reg, label=label)
+    assert_allclose(stcs_norm[0].data, stcs[0].data, atol=0)
+    assert_allclose(stcs_norm[1].data, stcs[1].data, atol=0)
+
+    # Test if incorrect number of noise CSDs is detected
+    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
+           win_lengths, frequencies=frequencies, noise_csds=[noise_csds[0]])
 
     # Test if freq_bins and win_lengths incompatibility is detected
     raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,

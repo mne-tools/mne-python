@@ -928,8 +928,8 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
     Returns
     -------
-    fig : matplotlib figure | list of matplotlib figures
-        The figure(s) created by this function.
+    fig : list of matplotlib figures
+        The figures created by this function.
     """
     import matplotlib.pyplot as plt
 
@@ -1011,7 +1011,4 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
         figs.append(fig)
 
-    if len(figs) == 1:
-        return figs[0]
-    else:
-        return figs
+    return figs
