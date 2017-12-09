@@ -2347,11 +2347,11 @@ def assert_metadata_equal(got, exp):
 
 
 def test_events_list():
-    """Tests what events can be a list."""
+    """Test that events can be a list."""
     events = [[100, 0, 1], [200, 0, 1], [300, 0, 1]]
-    epo = mne.Epochs(mne.io.RawArray(np.random.randn(10, 1000),
-                                     mne.create_info(10, 1000.)),
-                     events=events)
-    assert_array_equal(epo.events, np.array(events))
+    epochs = mne.Epochs(mne.io.RawArray(np.random.randn(10, 1000),
+                                        mne.create_info(10, 1000.)),
+                        events=events)
+    assert_array_equal(epochs.events, np.array(events))
 
 run_tests_if_main()
