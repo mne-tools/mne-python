@@ -239,6 +239,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             raise ValueError('on_missing must be one of: error, '
                              'warning, ignore. Got: %s' % on_missing)
 
+        if events is not None:  # RtEpochs can have events=None
+            events = np.asarray(events)
+
         # check out event_id dict
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = list(np.unique(events[:, 2]))
@@ -260,7 +263,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         del event_id
 
         if events is not None:  # RtEpochs can have events=None
-            events = np.asarray(events)
             if events.dtype.kind not in ['i', 'u']:
                 raise ValueError('events must be an array of type int')
             events = events.astype(int)

@@ -68,6 +68,9 @@ Bug
 
 - Fix bug in :func:`mne.make_fixed_length_events` when hitting corner case problems rounding to sample numbers by `Eric Larson`_
 
+- Fix bug in :class:`mne.Epochs` when passing events as list with ``event_id=None``  by `Alex Gramfort`_
+
+
 API
 ~~~
 
