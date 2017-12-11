@@ -416,7 +416,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                      % (len(metadata), len(self.events)))
                 if reset_index:
                     metadata = metadata.reset_index(drop=True)  # makes a copy
-                    metadata.index = pd.UInt64Index(self.selection)
+                    metadata.index = self.selection
             else:
                 if not isinstance(metadata, list):
                     raise TypeError('metdata must be a list, got %s'
@@ -1496,7 +1496,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             pd = _check_pandas_installed(strict=False)
             if pd is not False:
                 metadata = epochs.metadata.iloc[select]
-                metadata.index = pd.UInt64Index(epochs.selection)
+                metadata.index = epochs.selection
             else:
                 metadata = np.array(epochs.metadata, 'object')[select].tolist()
 
