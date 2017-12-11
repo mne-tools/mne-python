@@ -25,7 +25,8 @@ from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT,
+                       pick_types, pick_info)
 from ..io.proj import setup_proj
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
@@ -2086,7 +2087,8 @@ def _setup_butterfly(params):
             radio = params['fig_selection'].radio
             active_idx = _get_active_radiobutton(radio)
             _radio_clicked(radio.labels[active_idx]._text, params)
-
+    # For now, italics only work in non-grouped mode
+    _set_ax_label_style(ax, params, italicize=not butterfly)
     params['ax_vscroll'].set_visible(not butterfly)
     params['plot_fun']()
 
@@ -2253,11 +2255,24 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True):
     projector = np.eye(len(info['ch_names']))
     whitened_ch_names = []
     if noise_cov is not None and use_noise_cov:
+        # any channels in noise_cov['bads'] but not in info['bads'] get
+        # set to zero
+        # XXX This call mimics what is done in compute_whitener... should
+        # probably allow for other channel types, too (e.g., ECoG)!
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
+        pick_names = [info['ch_names'][pick] for pick in picks]
+        missing_names = set(pick_names) - set(noise_cov['names'])
+        missing_picks = [pick_names.index(miss) for miss in missing_names]
+        use_picks = np.setdiff1d(picks, missing_picks)
+        use_info = pick_info(info, use_picks)
         whitener, whitened_ch_names = compute_whitener(
-            noise_cov, info, verbose=False)
+            noise_cov, use_info, verbose=False)
         idx = np.array([info['ch_names'].index(ch_name)
                         for ch_name in whitened_ch_names])
         projector[idx, idx[:, np.newaxis]] = whitener
+        idx = [info['ch_names'].index(ch_name) for ch_name in missing_names]
+        projector[idx] = np.nan  # remove the line
     elif proj:
         projector, _ = setup_proj(info, add_eeg_ref=False, verbose=False)
     return projector, whitened_ch_names
@@ -2267,10 +2282,11 @@ def _get_plotting_whitener(params):
     """Get a whitening matrix that can be dotted with an entire data array."""
 
 
-def _set_ax_label_style(ax, params):
+def _set_ax_label_style(ax, params, italicize=True):
     import matplotlib.text
     for tick in params['ax'].get_yaxis().get_major_ticks():
         for text in tick.get_children():
             if isinstance(text, matplotlib.text.Text):
                 whitened = text.get_text() in params['whitened_ch_names']
+                whitened = whitened and italicize
                 text.set_style('italic' if whitened else 'normal')
