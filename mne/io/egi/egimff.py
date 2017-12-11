@@ -41,6 +41,9 @@ def _read_mff_header(filepath):
                        samples_block=samples_block)
     summaryinfo.update(signal_blocks)
 
+    if len(epoch_info) > 1:
+        raise NotImplementedError('Pause in recording are not supported')
+
     # Pull header info from the summary info.
     categfile = op.join(filepath, 'categories.xml')
     if op.isfile(categfile):  # epochtype = 'seg'
