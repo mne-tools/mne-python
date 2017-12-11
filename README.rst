@@ -1,126 +1,107 @@
 .. -*- mode: rst -*-
 
 
-|Travis|_ |Coveralls|_ |Zenodo|_
+|Travis|_ |Appveyor|_ |Circle|_ |Codecov|_ |Zenodo|_
+
+|MNE|_
 
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python
 
-.. |Coveralls| image:: https://coveralls.io/repos/mne-tools/mne-python/badge.png?branch=master
-.. _Coveralls: https://coveralls.io/r/mne-tools/mne-python?branch=master
+.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/7isroetnxsp7hgxv/branch/master?svg=true
+.. _Appveyor: https://ci.appveyor.com/project/mne-tools/mne-python/branch/master
 
-.. |Zenodo| image:: https://zenodo.org/badge/doi/10.5281/zenodo.11556.png
-.. _Zenodo: http://dx.doi.org/10.5281/zenodo.11556
+.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
+.. _Circle: https://circleci.com/gh/mne-tools/mne-python
+
+.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/master/graph/badge.svg
+.. _Codecov: https://codecov.io/gh/mne-tools/mne-python
+
+.. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
+.. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
+
+.. |MNE| image:: https://martinos.org/mne/stable/_static/mne_logo.png
+.. _MNE: https://martinos.org/mne
+
+`MNE-Python <https://martinos.org/mne>`_
+========================================
+
+MNE-Python is an open-source Python package for exploring, visualizing, and
+analyzing human neurophysiological data such as MEG, EEG, sEEG, ECoG, and more.
+It includes modules for data input/output, preprocessing, visualization, source
+estimation, time-frequency analysis, connectivity analysis, machine learning,
+and statistics.
 
 
-`mne-python <http://martinos.org/mne/mne-python.html>`_
-=======================================================
+Documentation
+^^^^^^^^^^^^^
 
-This package is designed for sensor- and source-space analysis of M-EEG
-data, including frequency-domain and time-frequency analyses and
-non-parametric statistics. This package is presently evolving quickly and
-thanks to the adopted open development environment user contributions can
-be easily incorporated.
+Documentation for MNE-Python is available at the
+`MNE homepage <https://martinos.org/mne>`_.
 
-Get more information
-^^^^^^^^^^^^^^^^^^^^
-
-This page only contains bare-bones instructions for installing mne-python.
-
-If you're familiar with MNE and you're looking for information on using
-mne-python specifically, jump right to the `mne-python homepage
-<http://martinos.org/mne/mne-python.html>`_. This website includes a
-`tutorial <http://martinos.org/mne/python_tutorial.html>`_,
-helpful `examples <http://martinos.org/mne/auto_examples/index.html>`_, and
-a handy `function reference <http://martinos.org/mne/python_reference.html>`_,
-among other things.
-
-If you're unfamiliar with MNE, you can visit the
-`MNE homepage <http://martinos.org/mne>`_ for full user documentation.
 
 Get the latest code
 ^^^^^^^^^^^^^^^^^^^
 
-To get the latest code using git, simply type::
+To get the latest code using `git <https://git-scm.com/>`_, open a terminal and type:
+
+.. code-block:: bash
 
     git clone git://github.com/mne-tools/mne-python.git
 
-If you don't have git installed, you can download a zip or tarball
-of the latest code: http://github.com/mne-tools/mne-python/archives/master
+Alternatively, you can also download a
+`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`_.
 
-Install mne-python
-^^^^^^^^^^^^^^^^^^
 
-As any Python packages, to install MNE-Python, go in the mne-python source
-code directory and do::
+Installing MNE-Python
+^^^^^^^^^^^^^^^^^^^^
 
-    python setup.py install
+To install the latest stable version of MNE-Python, you can use `pip <https://pip.pypa.io/en/stable/>`_ in a terminal:
 
-or if you don't have admin access to your python setup (permission denied
-when install) use::
+.. code-block:: bash
 
-    python setup.py install --user
+    pip install -U mne
 
-You can also install the latest release version with easy_install::
+For more complete instructions and more advanced installation methods (e.g. for
+the latest development version), see the
+`getting started page <https://martinos.org/mne/getting_started.html>`_.
 
-    easy_install -U mne
-
-or with pip::
-
-    pip install mne --upgrade
-
-or for the latest development version (the most up to date)::
-
-    pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev --user
 
 Dependencies
 ^^^^^^^^^^^^
 
-The required dependencies to build the software are python >= 2.6,
-NumPy >= 1.6, SciPy >= 0.7.2 and matplotlib >= 0.98.4.
+The minimum required dependencies to run MNE-Python are:
 
-Some isolated functions require pandas >= 0.7.3 and nitime (multitaper analysis).
+- Python >= 2.7
+- NumPy >= 1.8
+- SciPy >= 0.12
+- Matplotlib >= 1.3
 
-To run the tests you will also need nose >= 0.10.
-and the MNE sample dataset (will be downloaded automatically
-when you run an example ... but be patient)
+For full functionality, some functions require:
 
-To use NVIDIA CUDA for FFT FIR filtering, you will also need to install
-the NVIDIA CUDA SDK, pycuda, and scikits.cuda. The difficulty of this varies
-by platform; consider reading the following site for help getting pycuda
-to work (typically the most difficult to configure):
+- Scikit-learn >= 0.15 (>= 0.18 recommended)
+- NiBabel >= 2.1.0
+- Pandas >= 0.13
 
-http://wiki.tiker.net/PyCuda/Installation/
+To use `NVIDIA CUDA <https://developer.nvidia.com/cuda-zone>`_ for resampling
+and FFT FIR filtering, you will also need to install the NVIDIA CUDA SDK,
+pycuda, and scikit-cuda (see the
+`getting started page <https://martinos.org/mne/getting_started.html>`_
+for more information).
 
-Contribute to mne-python
-^^^^^^^^^^^^^^^^^^^^^^^^
 
-Please see the documentation on the mne-python homepage:
+Contributing to MNE-Python
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-http://martinos.org/mne/contributing.html
+Please see the documentation on the MNE-Python homepage:
+
+https://martinos.org/mne/contributing.html
+
 
 Mailing list
 ^^^^^^^^^^^^
 
 http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
-
-Running the test suite
-^^^^^^^^^^^^^^^^^^^^^^
-
-To run the test suite, you need nosetests and the coverage modules.
-Run the test suite using::
-
-    nosetests
-
-from the root of the project.
-
-Making a release and uploading it to PyPI
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-This command is only run by project manager, to make a release, and
-upload in to PyPI::
-
-    python setup.py sdist bdist_egg register upload
 
 
 Licensing
@@ -131,7 +112,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
 
-    Copyright (c) 2011, authors of MNE-Python
+    Copyright (c) 2011-2017, authors of MNE-Python.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without

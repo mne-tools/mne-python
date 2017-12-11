@@ -309,7 +309,7 @@ class Client:
                 (chunk_type, chunk_len) = struct.unpack(
                     'II', payload[offset:offset + 8])
                 offset += 8
-                if offset + chunk_len < bufsize:
+                if offset + chunk_len > bufsize:
                     break
                 H.chunks[chunk_type] = payload[offset:offset + chunk_len]
                 offset += chunk_len

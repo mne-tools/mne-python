@@ -1,5 +1,5 @@
-"""Functions to plot on circle as for connectivity
-"""
+"""Functions to plot on circle as for connectivity."""
+
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -14,8 +14,8 @@ from functools import partial
 
 import numpy as np
 
+from .utils import plt_show, _set_ax_facecolor
 from ..externals.six import string_types
-from ..fixes import tril_indices, normalize_colors
 
 
 def circular_layout(node_names, node_order, start_pos=90, start_between=True,
@@ -92,10 +92,12 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
 
 
 def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
-                                     n_nodes=0, node_angles=None, ylim=[9, 10]):
-    """Isolates connections around a single node when user left clicks a node.
+                                     n_nodes=0, node_angles=None,
+                                     ylim=[9, 10]):
+    """Isolate connections around a single node when user left clicks a node.
 
-    On right click, resets all connections."""
+    On right click, resets all connections.
+    """
     if event.inaxes != axes:
         return
 
@@ -114,7 +116,7 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
         fig.canvas.draw()
     elif event.button == 3:  # right click
         patches = event.inaxes.patches
-        for ii in xrange(np.size(indices, axis=1)):
+        for ii in range(np.size(indices, axis=1)):
             patches[ii].set_visible(True)
         fig.canvas.draw()
 
@@ -129,11 +131,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              fontsize_title=12, fontsize_names=8,
                              fontsize_colorbar=8, padding=6.,
                              fig=None, subplot=111, interactive=True,
-                             node_linewidth=2.):
+                             node_linewidth=2., show=True):
     """Visualize connectivity as a circular graph.
-
-    Note: This code is based on the circle graph example by Nicolas P. Rougier
-    http://www.loria.fr/~rougier/coding/recipes.html
 
     Parameters
     ----------
@@ -201,6 +200,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         node. Right-click shows all connections.
     node_linewidth : float
         Line with for nodes.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
@@ -208,6 +209,20 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         The figure handle.
     axes : instance of matplotlib.axes.PolarAxesSubplot
         The subplot handle.
+
+    Notes
+    -----
+    This code is based on the circle graph example by Nicolas P. Rougier
+    http://www.labri.fr/perso/nrougier/coding/.
+
+    By default, :func:`matplotlib.pyplot.savefig` does not take ``facecolor``
+    into account when saving, even if set when a figure is generated. This
+    can be addressed via, e.g.::
+
+    >>> fig.savefig(fname_fig, facecolor='black') # doctest:+SKIP
+
+    If ``facecolor`` is not set via :func:`matplotlib.pyplot.savefig`, the
+    figure labels, title, and legend may be cut off in the output figure.
     """
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
@@ -249,7 +264,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         if con.shape[0] != n_nodes or con.shape[1] != n_nodes:
             raise ValueError('con has to be 1D or a square matrix')
         # we use the lower-triangular part
-        indices = tril_indices(n_nodes, -1)
+        indices = np.tril_indices(n_nodes, -1)
         con = con[indices]
     else:
         raise ValueError('con has to be 1D or a square matrix')
@@ -265,13 +280,14 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # Use a polar axes
     if not isinstance(subplot, tuple):
         subplot = (subplot,)
-    axes = plt.subplot(*subplot, polar=True, axisbg=facecolor)
+    axes = plt.subplot(*subplot, polar=True)
+    _set_ax_facecolor(axes, facecolor)
 
     # No ticks, we'll put our own
     plt.xticks([])
     plt.yticks([])
 
-    # Set y axes limit, add additonal space if requested
+    # Set y axes limit, add additional space if requested
     plt.ylim(0, 10 + padding)
 
     # Remove the black axes border which may obscure the labels
@@ -314,7 +330,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         nodes_n_con[i] += 1
         nodes_n_con[j] += 1
 
-    # initalize random number generator so plot is reproducible
+    # initialize random number generator so plot is reproducible
     rng = np.random.mtrand.RandomState(seed=0)
 
     n_con = len(indices[0])
@@ -327,10 +343,10 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         nodes_n_con_seen[start] += 1
         nodes_n_con_seen[end] += 1
 
-        start_noise[i] *= ((nodes_n_con[start] - nodes_n_con_seen[start])
-                           / float(nodes_n_con[start]))
-        end_noise[i] *= ((nodes_n_con[end] - nodes_n_con_seen[end])
-                         / float(nodes_n_con[end]))
+        start_noise[i] *= ((nodes_n_con[start] - nodes_n_con_seen[start]) /
+                           float(nodes_n_con[start]))
+        end_noise[i] *= ((nodes_n_con[end] - nodes_n_con_seen[end]) /
+                         float(nodes_n_con[end]))
 
     # scale connectivity for colormap (vmin<=>0, vmax<=>1)
     con_val_scaled = (con - vmin) / vrange
@@ -388,8 +404,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                   axes=axes)
 
     if colorbar:
-        norm = normalize_colors(vmin=vmin, vmax=vmax)
-        sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
+        sm = plt.cm.ScalarMappable(cmap=colormap,
+                                   norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
         cb = plt.colorbar(sm, ax=axes, use_gridspec=False,
                           shrink=colorbar_size,
@@ -398,7 +414,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
 
-    #Add callback for interaction
+    # Add callback for interaction
     if interactive:
         callback = partial(_plot_connectivity_circle_onpick, fig=fig,
                            axes=axes, indices=indices, n_nodes=n_nodes,
@@ -406,4 +422,5 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
         fig.canvas.mpl_connect('button_press_event', callback)
 
+    plt_show(show)
     return fig, axes

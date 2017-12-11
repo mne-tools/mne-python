@@ -46,12 +46,12 @@ Ch23=CP1,,0.5,µV
 Ch24=CP2,,0.5,µV
 Ch25=FC5,,0.5,µV
 Ch26=FC6,,0.5,µV
-Ch27=CP5,,0.5,µV
-Ch28=CP6,,0.5,µV
-Ch29=HL,,0.5,µV
-Ch30=HR,,0.5,µV
-Ch31=Vb,,0.5,µV
-Ch32=ReRef,,0.5,µV
+Ch27=CP5,,0.5,BS
+Ch28=CP6,,0.5,µS
+Ch29=HL,,0.5,ARU
+Ch30=HR,,0.5,uS
+Ch31=Vb,,0.5,S
+Ch32=ReRef,,0.5,C
 
 [Comment]
 
@@ -90,12 +90,12 @@ Channels
 24    CP2         24               0.5 µV             DC              250              Off                0
 25    FC5         25               0.5 µV             DC              250              Off                0
 26    FC6         26               0.5 µV             DC              250              Off                0
-27    CP5         27               0.5 µV             DC              250              Off                0
-28    CP6         28               0.5 µV             DC              250              Off                0
-29    HL          29               0.5 µV             DC              250              Off                0
-30    HR          30               0.5 µV             DC              250              Off                0
-31    Vb          31               0.5 µV             DC              250              Off                0
-32    ReRef       32               0.5 µV             DC              250              Off                0
+27    CP5         27               0.5 BS             DC              250              Off                0
+28    CP6         28               0.5 µS             DC              250              Off                0
+29    HL          29               0.5 ARU            DC              250              Off                0
+30    HR          30               0.5 uS             DC              250              Off                0
+31    Vb          31               0.5 S              DC              250              Off                0
+32    ReRef       32               0.5 C              DC              250              Off                0
 
 S o f t w a r e  F i l t e r s
 ==============================

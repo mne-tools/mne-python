@@ -1,35 +1,28 @@
-"""Mayavi/traits GUI for averaging two sets of KIT marker points"""
+"""Mayavi/traits GUI for averaging two sets of KIT marker points."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
 import os
+import sys
 
 import numpy as np
 
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import confirm, error, FileDialog, OK, YES
-    from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
-                            cached_property, Instance, Property, Array, Bool,
-                            Button, Enum, File, Float, List, Str)
-    from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
-    from traitsui.menu import NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = object
-    cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
-        Array = Bool = Button = Enum = File = Float = Instance = Int = \
-        List = Property = Str = View = Item = HGroup = VGroup = \
-        CheckListEditor = NoButtons = SceneEditor = trait_wraith
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from pyface.api import confirm, error, FileDialog, OK, YES
+from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
+                        cached_property, Instance, Property, Array, Bool,
+                        Button, Enum, File, Float, List, Str)
+from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
+from traitsui.menu import Action, CancelButton, NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
-from ..io.kit import read_mrk, write_mrk
+from ..io.kit import read_mrk
+from ..io.meas_info import _write_dig_points
 from ._viewer import HeadViewController, headview_borders, PointObject
 
 
@@ -40,12 +33,15 @@ if backend_is_wx:
                     'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
                     'Text marker file (*.txt)|*.txt',
                     'Pickled markers (*.pickled)|*.pickled']
-    mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt",
-                        "Pickled KIT parameters (*.pickled)|*.pickled"]
+    mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
-    mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
-    mrk_out_wildcard = ["*.txt;*.pickled"]
-out_ext = ['.txt', '.pickled']
+    if sys.platform in ('win32',  'linux2'):
+        # on Windows and Ubuntu, multiple wildcards does not seem to work
+        mrk_wildcard = ["*.sqd", "*.mrk", "*.txt", "*.pickled"]
+    else:
+        mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
+    mrk_out_wildcard = "*.txt"
+out_ext = '.txt'
 
 
 use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in range(5)])
@@ -58,7 +54,7 @@ mrk_view_editable = View(
                Item('use', editor=use_editor_v, enabled_when="enabled",
                     style='custom'),
                'points',
-               ),
+           ),
            HGroup(Item('clear', enabled_when="can_save", show_label=False),
                   Item('save_as', enabled_when="can_save",
                        show_label=False)),
@@ -71,6 +67,9 @@ mrk_view_basic = View(
                 style='custom'),
            HGroup(Item('clear', enabled_when="can_save", show_label=False),
                   Item('edit', show_label=False),
+                  Item('switch_left_right', label="Switch Left/Right",
+                       show_label=False),
+                  Item('reorder', show_label=False),
                   Item('save_as', enabled_when="can_save",
                        show_label=False)),
            ))
@@ -78,8 +77,30 @@ mrk_view_basic = View(
 mrk_view_edit = View(VGroup('points'))
 
 
+class ReorderDialog(HasPrivateTraits):
+    """Dialog for reordering marker points."""
+
+    order = Str("0 1 2 3 4")
+    index = Property(List, depends_on='order')
+    is_ok = Property(Bool, depends_on='order')
+
+    view = View(
+        Item('order', label='New order (five space delimited numbers)'),
+        buttons=[CancelButton, Action(name='OK', enabled_when='is_ok')])
+
+    def _get_index(self):
+        try:
+            return [int(i) for i in self.order.split()]
+        except ValueError:
+            return []
+
+    def _get_is_ok(self):
+        return sorted(self.index) == [0, 1, 2, 3, 4]
+
+
 class MarkerPoints(HasPrivateTraits):
-    """Represent 5 marker points"""
+    """Represent 5 marker points."""
+
     points = Array(float, (5, 3))
 
     can_save = Property(depends_on='points')
@@ -100,19 +121,20 @@ class MarkerPoints(HasPrivateTraits):
         if dlg.return_code != OK:
             return
 
-        ext = out_ext[dlg.wildcard_index]
-        path = dlg.path
-        if not path.endswith(ext):
-            path = path + ext
-            if os.path.exists(path):
-                answer = confirm(None, "The file %r already exists. Should it "
-                                 "be replaced?", "Overwrite File?")
-                if answer != YES:
-                    return
+        path, ext = os.path.splitext(dlg.path)
+        if not path.endswith(out_ext) and len(ext) != 0:
+            ValueError("The extension '%s' is not supported." % ext)
+        path = path + out_ext
+
+        if os.path.exists(path):
+            answer = confirm(None, "The file %r already exists. Should it "
+                             "be replaced?", "Overwrite File?")
+            if answer != YES:
+                return
         self.save(path)
 
     def save(self, path):
-        """Save the marker points
+        """Save the marker points.
 
         Parameters
         ----------
@@ -121,11 +143,12 @@ class MarkerPoints(HasPrivateTraits):
             based on the extension: '.txt' for tab separated text file,
             '.pickled' for pickled file.
         """
-        write_mrk(path, self.points)
+        _write_dig_points(path, self.points)
 
 
-class MarkerPointSource(MarkerPoints):
-    """MarkerPoints subclass for source files"""
+class MarkerPointSource(MarkerPoints):  # noqa: D401
+    """MarkerPoints subclass for source files."""
+
     file = File(filter=mrk_wildcard, exists=True)
     name = Property(Str, depends_on='file')
     dir = Property(Str, depends_on='file')
@@ -135,6 +158,10 @@ class MarkerPointSource(MarkerPoints):
     enabled = Property(Bool, depends_on=['points', 'use'])
     clear = Button(desc="Clear the current marker data")
     edit = Button(desc="Edit the marker coordinates manually")
+    switch_left_right = Button(
+        desc="Switch left and right marker points; this is intended to "
+             "correct for markers that were attached in the wrong order")
+    reorder = Button(desc="Change the order of the marker points")
 
     view = mrk_view_basic
 
@@ -172,9 +199,20 @@ class MarkerPointSource(MarkerPoints):
     def _edit_fired(self):
         self.edit_traits(view=mrk_view_edit)
 
+    def _reorder_fired(self):
+        dlg = ReorderDialog()
+        ui = dlg.edit_traits(kind='modal')
+        if not ui.result:  # user pressed cancel
+            return
+        self.points = self.points[dlg.index]
 
-class MarkerPointDest(MarkerPoints):
-    """MarkerPoints subclass that serves for derived points"""
+    def _switch_left_right_fired(self):
+        self.points = self.points[[1, 0, 2, 4, 3]]
+
+
+class MarkerPointDest(MarkerPoints):  # noqa: D401
+    """MarkerPoints subclass that serves for derived points."""
+
     src1 = Instance(MarkerPointSource)
     src2 = Instance(MarkerPointSource)
 
@@ -287,6 +325,8 @@ class MarkerPointDest(MarkerPoints):
 
 
 class CombineMarkersModel(HasPrivateTraits):
+    """Combine markers model."""
+
     mrk1_file = Instance(File)
     mrk2_file = Instance(File)
     mrk1 = Instance(MarkerPointSource)
@@ -304,28 +344,25 @@ class CombineMarkersModel(HasPrivateTraits):
         self.mrk3.reset_traits(['method'])
 
     def _mrk1_default(self):
-        mrk = MarkerPointSource()
-        return mrk
+        return MarkerPointSource()
 
     def _mrk1_file_default(self):
         return self.mrk1.trait('file')
 
     def _mrk2_default(self):
-        mrk = MarkerPointSource()
-        return mrk
+        return MarkerPointSource()
 
     def _mrk2_file_default(self):
         return self.mrk2.trait('file')
 
     def _mrk3_default(self):
-        mrk = MarkerPointDest(src1=self.mrk1, src2=self.mrk2)
-        return mrk
+        return MarkerPointDest(src1=self.mrk1, src2=self.mrk2)
 
     @cached_property
     def _get_distance(self):
-        if (self.mrk1 is None or self.mrk2 is None
-            or (not np.any(self.mrk1.points))
-                or (not np.any(self.mrk2.points))):
+        if (self.mrk1 is None or self.mrk2 is None or
+                (not np.any(self.mrk1.points)) or
+                (not np.any(self.mrk2.points))):
             return ""
 
         ds = np.sqrt(np.sum((self.mrk1.points - self.mrk2.points) ** 2, 1))
@@ -333,8 +370,9 @@ class CombineMarkersModel(HasPrivateTraits):
         return desc
 
 
-class CombineMarkersPanel(HasTraits):
-    """Has two marker points sources and interpolates to a third one"""
+class CombineMarkersPanel(HasTraits):  # noqa: D401
+    """Has two marker points sources and interpolates to a third one."""
+
     model = Instance(CombineMarkersModel, ())
 
     # model references for UI
@@ -376,27 +414,30 @@ class CombineMarkersPanel(HasTraits):
     def _mrk3_default(self):
         return self.model.mrk3
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         super(CombineMarkersPanel, self).__init__(*args, **kwargs)
 
         m = self.model
         m.sync_trait('distance', self, 'distance', mutual=False)
 
-        self.mrk1_obj = PointObject(scene=self.scene, color=(155, 55, 55),
+        self.mrk1_obj = PointObject(scene=self.scene,
+                                    color=(0.608, 0.216, 0.216),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk1_obj, mutual=False)
         m.mrk1.sync_trait('points', self.mrk1_obj, 'points', mutual=False)
         m.mrk1.sync_trait('enabled', self.mrk1_obj, 'visible',
                           mutual=False)
 
-        self.mrk2_obj = PointObject(scene=self.scene, color=(55, 155, 55),
+        self.mrk2_obj = PointObject(scene=self.scene,
+                                    color=(0.216, 0.608, 0.216),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk2_obj, mutual=False)
         m.mrk2.sync_trait('points', self.mrk2_obj, 'points', mutual=False)
         m.mrk2.sync_trait('enabled', self.mrk2_obj, 'visible',
                           mutual=False)
 
-        self.mrk3_obj = PointObject(scene=self.scene, color=(150, 200, 255),
+        self.mrk3_obj = PointObject(scene=self.scene,
+                                    color=(0.588, 0.784, 1.),
                                     point_scale=self.scale)
         self.sync_trait('trans', self.mrk3_obj, mutual=False)
         m.mrk3.sync_trait('points', self.mrk3_obj, 'points', mutual=False)
@@ -404,13 +445,14 @@ class CombineMarkersPanel(HasTraits):
 
 
 class CombineMarkersFrame(HasTraits):
-    """GUI for interpolating between two KIT marker files
+    """GUI for interpolating between two KIT marker files.
 
     Parameters
     ----------
     mrk1, mrk2 : str
         Path to pre- and post measurement marker files (*.sqd) or empty string.
     """
+
     model = Instance(CombineMarkersModel, ())
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)

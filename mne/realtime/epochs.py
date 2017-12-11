@@ -10,31 +10,28 @@ import copy
 
 import numpy as np
 
-from .. import pick_channels, pick_types
+from .. import pick_channels
 from ..utils import logger, verbose
-from ..baseline import rescale
-from ..epochs import _BaseEpochs
+from ..epochs import BaseEpochs
 from ..event import _find_events
-from ..filter import detrend
-from ..io.proj import setup_proj
 
 
-class RtEpochs(_BaseEpochs):
-    """Realtime Epochs
+class RtEpochs(BaseEpochs):
+    """Realtime Epochs.
 
     Can receive epochs in real time from an RtClient.
 
     For example, to get some epochs from a running mne_rt_server on
-    'localhost', you could use:
+    'localhost', you could use::
 
-    client = mne.realtime.RtClient('localhost')
-    event_id, tmin, tmax = 1, -0.2, 0.5
+        client = mne.realtime.RtClient('localhost')
+        event_id, tmin, tmax = 1, -0.2, 0.5
 
-    epochs = mne.realtime.RtEpochs(client, event_id, tmin, tmax)
-    epochs.start()  # start the measurement and start receiving epochs
+        epochs = mne.realtime.RtEpochs(client, event_id, tmin, tmax)
+        epochs.start()  # start the measurement and start receiving epochs
 
-    evoked_1 = epochs.average()  # computed over all epochs
-    evoked_2 = epochs[-5:].average()  # computed over the last 5 epochs
+        evoked_1 = epochs.average()  # computed over all epochs
+        evoked_2 = epochs[-5:].average()  # computed over the last 5 epochs
 
     Parameters
     ----------
@@ -54,8 +51,6 @@ class RtEpochs(_BaseEpochs):
     sleep_time : float
         Time in seconds to wait between checking for new epochs when epochs
         are requested and the receive queue is empty.
-    name : string
-        Comment that describes the Evoked data created.
     baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -64,19 +59,22 @@ class RtEpochs(_BaseEpochs):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    reject : dict
-        Epoch rejection parameters based on peak to peak amplitude.
+    picks : array-like of int | None (default)
+        Indices of channels to include (if None, all channels are used).
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done.
-        Values are float. Example:
-        reject = dict(grad=4000e-13, # T / m (gradiometers)
-                      mag=4e-12, # T (magnetometers)
-                      eeg=40e-6, # uV (EEG channels)
-                      eog=250e-6 # uV (EOG channels)
-                      )
-    flat : dict
-        Epoch rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        If reject is None then no rejection is done. Example::
+
+            reject = dict(grad=4000e-13, # T / m (gradiometers)
+                          mag=4e-12, # T (magnetometers)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels))
+
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     proj : bool, optional
         Apply SSP projection vectors
@@ -98,15 +96,22 @@ class RtEpochs(_BaseEpochs):
         either turn off baseline correction, as this may introduce a DC
         shift, or set baseline correction to use the entire time interval
         (will yield equivalent results but be slower).
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists).
     isi_max : float
         The maximmum time in seconds between epochs. If no epoch
         arrives in the next isi_max seconds the RtEpochs stops.
+    find_events : dict
+        The arguments to the real-time `find_events` method as a dictionary.
+        If `find_events` is None, then default values are used.
+        Example (also default values)::
+
+            find_events = dict(output='onset', consecutive='increasing',
+                               min_duration=0, mask=0, mask_type='not_and')
+
+        See :func:`mne.find_events` for detailed explanation of these options.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to client.verbose.
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more). Defaults to
+        client.verbose.
 
     Attributes
     ----------
@@ -121,13 +126,13 @@ class RtEpochs(_BaseEpochs):
     verbose : bool, str, int, or None
         See above.
     """
+
     @verbose
     def __init__(self, client, event_id, tmin, tmax, stim_channel='STI 014',
                  sleep_time=0.1, baseline=(None, 0), picks=None,
-                 name='Unknown', reject=None, flat=None, proj=True,
+                 reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 add_eeg_ref=True, isi_max=2., verbose=None):
-
+                 isi_max=2., find_events=None, verbose=None):  # noqa: D102
         info = client.get_measurement_info()
 
         # the measurement info of the data as we receive it
@@ -135,16 +140,12 @@ class RtEpochs(_BaseEpochs):
 
         verbose = client.verbose if verbose is None else verbose
 
-        # call _BaseEpochs constructor
-        super(RtEpochs, self).__init__(info, event_id, tmin, tmax,
-                baseline=baseline, picks=picks, name=name, reject=reject,
-                flat=flat, decim=decim, reject_tmin=reject_tmin,
-                reject_tmax=reject_tmax, detrend=detrend,
-                add_eeg_ref=add_eeg_ref, verbose=verbose)
-
-        self.proj = proj
-        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
-                                                activate=self.proj)
+        # call BaseEpochs constructor
+        super(RtEpochs, self).__init__(
+            info, None, None, event_id, tmin, tmax, baseline, picks=picks,
+            reject=reject, flat=flat, decim=decim,
+            reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
+            verbose=verbose, proj=True)
 
         self._client = client
 
@@ -160,13 +161,26 @@ class RtEpochs(_BaseEpochs):
 
         self._stim_picks = stim_picks
 
+        # find_events default options
+        self._find_events_kwargs = dict(output='onset',
+                                        consecutive='increasing',
+                                        min_duration=0, mask=0,
+                                        mask_type='not_and')
+        # update default options if dictionary is provided
+        if find_events is not None:
+            self._find_events_kwargs.update(find_events)
+        min_samples = (self._find_events_kwargs['min_duration'] *
+                       self.info['sfreq'])
+        self._find_events_kwargs.pop('min_duration', None)
+        self._find_events_kwargs['min_samples'] = min_samples
+
         self._sleep_time = sleep_time
 
         # add calibration factors
         cals = np.zeros(self._client_info['nchan'])
         for k in range(self._client_info['nchan']):
-            cals[k] = (self._client_info['chs'][k]['range']
-                       * self._client_info['chs'][k]['cal'])
+            cals[k] = (self._client_info['chs'][k]['range'] *
+                       self._client_info['chs'][k]['cal'])
         self._cals = cals[:, None]
 
         # FIFO queues for received epochs and events
@@ -193,7 +207,7 @@ class RtEpochs(_BaseEpochs):
         return np.array(self._events)
 
     def start(self):
-        """Start receiving epochs
+        """Start receiving epochs.
 
         The measurement will be started if it has not already been started.
         """
@@ -205,11 +219,10 @@ class RtEpochs(_BaseEpochs):
             nchan = self._client_info['nchan']
             self._client.start_receive_thread(nchan)
             self._started = True
-
-            self._last_time = np.inf  # init delay counter. Will stop iterations
+            self._last_time = np.inf  # init delay counter. Will stop iters
 
     def stop(self, stop_receive_thread=False, stop_measurement=False):
-        """Stop receiving epochs
+        """Stop receiving epochs.
 
         Parameters
         ----------
@@ -230,23 +243,32 @@ class RtEpochs(_BaseEpochs):
             self._client.stop_receive_thread(stop_measurement=stop_measurement)
 
     def next(self, return_event_id=False):
-        """To make iteration over epochs easy.
+        """Make iteration over epochs easy.
+
+        Parameters
+        ----------
+        return_event_id : bool
+            If True, return both an epoch and and event_id.
+
+        Returns
+        -------
+        epoch : instance of Epochs
+            The epoch.
+        event_id : int
+            The event id. Only returned if ``return_event_id`` is ``True``.
         """
         first = True
         while True:
             current_time = time.time()
             if current_time > (self._last_time + self.isi_max):
                 logger.info('Time of %s seconds exceeded.' % self.isi_max)
-                raise StopIteration
+                return  # signal the end properly
             if len(self._epoch_queue) > self._current:
                 epoch = self._epoch_queue[self._current]
                 event_id = self._events[self._current][-1]
                 self._current += 1
                 self._last_time = current_time
-                if return_event_id:
-                    return epoch, event_id
-                else:
-                    return epoch
+                return (epoch, event_id) if return_event_id else epoch
             if self._started:
                 if first:
                     logger.info('Waiting for epoch %d' % (self._current + 1))
@@ -256,9 +278,8 @@ class RtEpochs(_BaseEpochs):
                 raise RuntimeError('Not enough epochs in queue and currently '
                                    'not receiving epochs, cannot get epochs!')
 
-    def _get_data_from_disk(self):
-        """Return the data for n_epochs epochs"""
-
+    def _get_data(self):
+        """Return the data for n_epochs epochs."""
         epochs = list()
         for epoch in self:
             epochs.append(epoch)
@@ -268,10 +289,10 @@ class RtEpochs(_BaseEpochs):
         return data
 
     def _process_raw_buffer(self, raw_buffer):
-        """Process raw buffer (callback from RtClient)
+        """Process raw buffer (callback from RtClient).
 
         Note: Do not print log messages during regular use. It will be printed
-        asynchronously which is annyoing when working in an interactive shell.
+        asynchronously which is annoying when working in an interactive shell.
 
         Parameters
         ----------
@@ -293,10 +314,36 @@ class RtEpochs(_BaseEpochs):
 
         # detect events
         data = np.abs(raw_buffer[self._stim_picks]).astype(np.int)
-        data = np.atleast_2d(data)
-        buff_events = _find_events(data, self._first_samp, verbose=verbose)
+        # if there is a previous buffer check the last samples from it too
+        if self._last_buffer is not None:
+            prev_data = self._last_buffer[self._stim_picks,
+                                          -raw_buffer.shape[1]:].astype(np.int)
+            data = np.concatenate((prev_data, data), axis=1)
+            data = np.atleast_2d(data)
+            buff_events = _find_events(data,
+                                       self._first_samp - raw_buffer.shape[1],
+                                       verbose=verbose,
+                                       **self._find_events_kwargs)
+        else:
+            data = np.atleast_2d(data)
+            buff_events = _find_events(data, self._first_samp, verbose=verbose,
+                                       **self._find_events_kwargs)
 
         events = self._event_backlog
+
+        # remove events before the last epoch processed
+        min_event_samp = self._first_samp - \
+            int(self._find_events_kwargs['min_samples'])
+        if len(self._event_backlog) > 0:
+            backlog_samps = np.array(self._event_backlog)[:, 0]
+            min_event_samp = backlog_samps[-1] + 1
+
+        if buff_events.shape[0] > 0:
+            valid_events_idx = buff_events[:, 0] >= min_event_samp
+            buff_events = buff_events[valid_events_idx]
+
+        # add events from this buffer to the list of events
+        # processed so far
         for event_id in self.event_id.values():
             idx = np.where(buff_events[:, -1] == event_id)[0]
             events.extend(zip(list(buff_events[idx, 0]),
@@ -307,14 +354,14 @@ class RtEpochs(_BaseEpochs):
         event_backlog = list()
         for event_samp, event_id in events:
             epoch = None
-            if (event_samp + tmin_samp >= self._first_samp
-                    and event_samp + tmax_samp <= last_samp):
+            if (event_samp + tmin_samp >= self._first_samp and
+                    event_samp + tmax_samp <= last_samp):
                 # easy case: whole epoch is in this buffer
                 start = event_samp + tmin_samp - self._first_samp
                 stop = event_samp + tmax_samp - self._first_samp
                 epoch = raw_buffer[:, start:stop]
-            elif (event_samp + tmin_samp < self._first_samp
-                    and event_samp + tmax_samp <= last_samp):
+            elif (event_samp + tmin_samp < self._first_samp and
+                    event_samp + tmax_samp <= last_samp):
                 # have to use some samples from previous buffer
                 if self._last_buffer is None:
                     continue
@@ -323,10 +370,7 @@ class RtEpochs(_BaseEpochs):
                 epoch = np.c_[self._last_buffer[:, -n_last:],
                               raw_buffer[:, :n_this]]
             elif event_samp + tmax_samp > last_samp:
-                # we need samples from next buffer
-                if event_samp + tmin_samp < self._first_samp:
-                    raise RuntimeError('Epoch spans more than two raw '
-                                       'buffers, increase buffer size!')
+                # we need samples from the future
                 # we will process this epoch with the next buffer
                 event_backlog.append((event_samp, event_id))
             else:
@@ -337,11 +381,20 @@ class RtEpochs(_BaseEpochs):
 
         # set things up for processing of next buffer
         self._event_backlog = event_backlog
-        self._first_samp = last_samp + 1
-        self._last_buffer = raw_buffer
+        n_buffer = raw_buffer.shape[1]
+        if self._last_buffer is None:
+            self._last_buffer = raw_buffer
+            self._first_samp = last_samp + 1
+        elif self._last_buffer.shape[1] <= n_samp + n_buffer:
+            self._last_buffer = np.c_[self._last_buffer, raw_buffer]
+        else:
+            # do not increase size of _last_buffer any further
+            self._first_samp = self._first_samp + n_buffer
+            self._last_buffer[:, :-n_buffer] = self._last_buffer[:, n_buffer:]
+            self._last_buffer[:, -n_buffer:] = raw_buffer
 
     def _append_epoch_to_queue(self, epoch, event_samp, event_id):
-        """Append a (raw) epoch to queue
+        """Append a (raw) epoch to queue.
 
         Note: Do not print log messages during regular use. It will be printed
         asynchronously which is annyoing when working in an interactive shell.
@@ -359,16 +412,11 @@ class RtEpochs(_BaseEpochs):
         # select the channels
         epoch = epoch[self.picks, :]
 
-        # handle offset
-        if self._offset is not None:
-            epoch += self._offset
+        # Detrend, baseline correct, decimate
+        epoch = self._detrend_offset_decim(epoch, verbose='ERROR')
 
         # apply SSP
-        if self.proj and self._projector is not None:
-            epoch = np.dot(self._projector, epoch)
-
-        # Detrend, baseline correct, decimate
-        epoch = self._preprocess(epoch, verbose='ERROR')
+        epoch = self._project_epoch(epoch)
 
         # Decide if this is a good epoch
         is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')
@@ -380,7 +428,7 @@ class RtEpochs(_BaseEpochs):
         else:
             self._n_bad += 1
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         s = 'good / bad epochs received: %d / %d, epochs in queue: %d, '\
             % (self._n_good, self._n_bad, len(self._epoch_queue))
         s += ', tmin : %s (s)' % self.tmin

@@ -1,7 +1,7 @@
-"""EDF+,BDF module for conversion to FIF"""
+"""EDF+,BDF module for conversion to FIF."""
 
-# Author: Teon Brooks <teon@nyu.edu>
+# Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
-from .edf import read_raw_edf
+from .edf import read_raw_edf, find_edf_events

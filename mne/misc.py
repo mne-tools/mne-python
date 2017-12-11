@@ -5,7 +5,7 @@
 
 
 def parse_config(fname):
-    """Parse a config file (like .ave and .cov files)
+    """Parse a config file (like .ave and .cov files).
 
     Parameters
     ----------
@@ -16,17 +16,16 @@ def parse_config(fname):
     -------
     conditions : list of dict
         Each condition is indexed by the event type.
-        A condition contains as keys:
+        A condition contains as keys::
+
             tmin, tmax, name, grad_reject, mag_reject,
             eeg_reject, eog_reject
+
     """
     reject_params = read_reject_parameters(fname)
 
-    try:
-        with open(fname, 'r') as f:
-            lines = f.readlines()
-    except:
-        raise ValueError("Error while reading %s" % fname)
+    with open(fname, 'r') as f:
+        lines = f.readlines()
 
     cat_ind = [i for i, x in enumerate(lines) if "category {" in x]
     event_dict = dict()
@@ -58,13 +57,15 @@ def parse_config(fname):
 
 
 def read_reject_parameters(fname):
-    """Read rejection parameters from .cov or .ave config file"""
+    """Read rejection parameters from .cov or .ave config file.
 
-    try:
-        with open(fname, 'r') as f:
-            lines = f.readlines()
-    except:
-        raise ValueError("Error while reading %s" % fname)
+    Parameters
+    ----------
+    fname : str
+        Filename to read.
+    """
+    with open(fname, 'r') as f:
+        lines = f.readlines()
 
     reject_names = ['gradReject', 'magReject', 'eegReject', 'eogReject',
                     'ecgReject']
@@ -74,19 +75,15 @@ def read_reject_parameters(fname):
         words = line.split()
         if words[0] in reject_names:
             reject[reject_pynames[reject_names.index(words[0])]] = \
-                                                                float(words[1])
+                float(words[1])
 
     return reject
 
 
 def read_flat_parameters(fname):
-    """Read flat channel rejection parameters from .cov or .ave config file"""
-
-    try:
-        with open(fname, 'r') as f:
-            lines = f.readlines()
-    except:
-        raise ValueError("Error while reading %s" % fname)
+    """Read flat channel rejection parameters from .cov or .ave config file."""
+    with open(fname, 'r') as f:
+        lines = f.readlines()
 
     reject_names = ['gradFlat', 'magFlat', 'eegFlat', 'eogFlat', 'ecgFlat']
     reject_pynames = ['grad', 'mag', 'eeg', 'eog', 'ecg']
@@ -95,6 +92,6 @@ def read_flat_parameters(fname):
         words = line.split()
         if words[0] in reject_names:
             flat[reject_pynames[reject_names.index(words[0])]] = \
-                                                                float(words[1])
+                float(words[1])
 
     return flat

@@ -10,13 +10,16 @@ Locate QRS component of ECG.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################
@@ -24,7 +27,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 
 event_id = 999
 ecg_events, _, _ = mne.preprocessing.find_ecg_events(raw, event_id,
@@ -34,8 +37,8 @@ ecg_events, _, _ = mne.preprocessing.find_ecg_events(raw, event_id,
 picks = mne.pick_types(raw.info, meg=False, eeg=False, stim=False, eog=False,
                        include=['MEG 1531'], exclude='bads')
 tmin, tmax = -0.1, 0.1
-epochs = mne.Epochs(raw, ecg_events, event_id, tmin, tmax, picks=picks,
-                    proj=False)
+raw.del_proj()
+epochs = mne.Epochs(raw, ecg_events, event_id, tmin, tmax, picks=picks)
 data = epochs.get_data()
 
 print("Number of detected ECG artifacts : %d" % len(data))

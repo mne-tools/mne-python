@@ -15,14 +15,15 @@ latter also includes evoked (stimulus-locked) activity.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, source_induced_power
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -35,7 +36,7 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 tmin, tmax, event_id = -0.2, 0.5, 2
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 inverse_operator = read_inverse_operator(fname_inv)
 
@@ -44,7 +45,7 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # Picks MEG channels
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                        stim=False, include=include, exclude='bads')
+                       stim=False, include=include, exclude='bads')
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
 # Load epochs
@@ -54,26 +55,25 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # Compute a source estimate per frequency band including and excluding the
 # evoked response
-frequencies = np.arange(7, 30, 2)  # define frequencies of interest
+freqs = np.arange(7, 30, 2)  # define frequencies of interest
 label = mne.read_label(fname_label)
-n_cycles = frequencies / 3.  # different number of cycle per frequency
+n_cycles = freqs / 3.  # different number of cycle per frequency
 
 # subtract the evoked response in order to exclude evoked activity
 epochs_induced = epochs.copy().subtract_evoked()
 
-import matplotlib.pyplot as plt
 plt.close('all')
 
 for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
                                               ['evoked + induced',
                                                'induced only'])):
-    # compute the source space power and phase lock
-    power, phase_lock = source_induced_power(this_epochs, inverse_operator,
-        frequencies, label, baseline=(-0.1, 0), baseline_mode='percent',
-        n_cycles=n_cycles, n_jobs=1)
+    # compute the source space power and the inter-trial coherence
+    power, itc = source_induced_power(
+        this_epochs, inverse_operator, freqs, label, baseline=(-0.1, 0),
+        baseline_mode='percent', n_cycles=n_cycles, n_jobs=1)
 
     power = np.mean(power, axis=0)  # average over sources
-    phase_lock = np.mean(phase_lock, axis=0)  # average over sources
+    itc = np.mean(itc, axis=0)  # average over sources
     times = epochs.times
 
     ##########################################################################
@@ -81,7 +81,7 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
     plt.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.43)
     plt.subplot(2, 2, 2 * ii + 1)
     plt.imshow(20 * power,
-               extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+               extent=[times[0], times[-1], freqs[0], freqs[-1]],
                aspect='auto', origin='lower', vmin=0., vmax=30., cmap='RdBu_r')
     plt.xlabel('Time (s)')
     plt.ylabel('Frequency (Hz)')
@@ -89,13 +89,13 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
     plt.colorbar()
 
     plt.subplot(2, 2, 2 * ii + 2)
-    plt.imshow(phase_lock,
-               extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+    plt.imshow(itc,
+               extent=[times[0], times[-1], freqs[0], freqs[-1]],
                aspect='auto', origin='lower', vmin=0, vmax=0.7,
                cmap='RdBu_r')
     plt.xlabel('Time (s)')
     plt.ylabel('Frequency (Hz)')
-    plt.title('Phase-lock (%s)' % title)
+    plt.title('ITC (%s)' % title)
     plt.colorbar()
 
 plt.show()

@@ -1,5 +1,4 @@
-
-"""Tools for creating Raw objects from numpy arrays"""
+"""Tools for creating Raw objects from numpy arrays."""
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -7,26 +6,52 @@
 
 import numpy as np
 
-from ..constants import FIFF
+from ..base import BaseRaw
 from ..meas_info import Info
-from ..base import _BaseRaw
 from ...utils import verbose, logger
-from ...externals.six import string_types
 
 
-class RawArray(_BaseRaw):
-    """Raw object from numpy array
+class RawArray(BaseRaw):
+    """Raw object from numpy array.
 
     Parameters
     ----------
     data : array, shape (n_channels, n_times)
-        The channels' time series.
+        The channels' time series. See notes for proper units of measure.
     info : instance of Info
-        Info dictionary. Consider using ``create_info`` to populate
-        this structure.
+        Info dictionary. Consider using :func:`mne.create_info` to populate
+        this structure. This may be modified in place by the class.
+    first_samp : int
+        First sample offset used during recording (default 0).
+
+        .. versionadded:: 0.12
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Notes
+    -----
+    Proper units of measure:
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
+
+    See Also
+    --------
+    mne.EpochsArray
+    mne.EvokedArray
+    mne.create_info
     """
+
     @verbose
-    def __init__(self, data, info, verbose=None):
+    def __init__(self, data, info, first_samp=0, verbose=None):  # noqa: D102
+        if not isinstance(info, Info):
+            raise TypeError('info must be an instance of Info, got %s'
+                            % type(info))
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
@@ -40,24 +65,12 @@ class RawArray(_BaseRaw):
         if len(data) != len(info['ch_names']):
             raise ValueError('len(data) does not match len(info["ch_names"])')
         assert len(info['ch_names']) == info['nchan']
-
-        cals = np.zeros(info['nchan'])
-        for k in range(info['nchan']):
-            cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
-
-        self.verbose = verbose
-        self.cals = cals
-        self.rawdir = None
-        self.proj = None
-        self.comp = None
-        self._filenames = list()
-        self.preload = True
-        self.info = info
-        self._data = data
-        self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-        self._times = np.arange(self.first_samp,
-                                self.last_samp + 1) / info['sfreq']
-        self._projectors = list()
+        if info.get('buffer_size_sec', None) is None:
+            info['buffer_size_sec'] = 1.  # reasonable default
+        info = info.copy()  # do not modify original info
+        super(RawArray, self).__init__(info, data,
+                                       first_samps=(int(first_samp),),
+                                       dtype=dtype, verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     self.first_samp, self.last_samp,
                     float(self.first_samp) / info['sfreq'],

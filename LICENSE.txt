@@ -1,4 +1,4 @@
-Copyright © 2011-2014, authors of MNE-Python
+Copyright © 2011-2016, authors of MNE-Python
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

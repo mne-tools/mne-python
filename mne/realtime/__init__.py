@@ -1,4 +1,4 @@
-""" Module for realtime MEG data using mne_rt_server """
+"""Realtime MEG data processing with servers and clients."""
 
 # Authors: Christoph Dinh <chdinh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>

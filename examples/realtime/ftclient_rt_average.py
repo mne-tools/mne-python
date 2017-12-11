@@ -26,18 +26,17 @@ measurement info from the Fieldtrip Header object.
 Together with RtEpochs, this can be used to compute evoked
 responses using moving averages.
 """
-
-print(__doc__)
-
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
+
+import matplotlib.pyplot as plt
 
 import mne
 from mne.viz import plot_events
 from mne.realtime import FieldTripClient, RtEpochs
 
-import matplotlib.pyplot as plt
+print(__doc__)
 
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
@@ -71,16 +70,19 @@ with FieldTripClient(host='localhost', port=1972,
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
         print("Just got epoch %d" % (ii + 1))
 
-        if ii > 0:
-            ev += evoked
-        evoked = ev
+        ev.pick_types(meg=True, eog=False)
+        if ii == 0:
+            evoked = ev
+        else:
+            evoked = mne.combine_evoked([evoked, ev], weights='nave')
 
-        ax[0].cla(), ax[1].cla()  # clear axis
+        ax[0].cla()
+        ax[1].cla()  # clear axis
 
         plot_events(rt_epochs.events[-5:], sfreq=ev.info['sfreq'],
                     first_samp=-rt_client.tmin_samp, axes=ax[0])
 
-        evoked.plot(axes=ax[1])  # plot on second subplot
+        evoked.plot(axes=ax[1], selectable=False)  # plot on second subplot
         ax[1].set_title('Evoked response for gradiometer channels'
                         '(event_id = %d)' % event_id)
 

@@ -5,11 +5,10 @@
 import math
 
 import numpy as np
-from scipy.signal import hilbert
 
 
 def _compute_normalized_phase(data):
-    """Compute normalized phase angles
+    """Compute normalized phase angles.
 
     Parameters
     ----------
@@ -21,11 +20,12 @@ def _compute_normalized_phase(data):
     phase_angles : ndarray, shape (n_epochs, n_sources, n_times)
         The normalized phase angles.
     """
+    from scipy.signal import hilbert
     return (np.angle(hilbert(data)) + np.pi) / (2 * np.pi)
 
 
 def ctps(data, is_raw=True):
-    """Compute cross-trial-phase-statistics [1]
+    """Compute cross-trial-phase-statistics [1].
 
     Note. It is assumed that the sources are already
     appropriately filtered
@@ -78,8 +78,8 @@ def ctps(data, is_raw=True):
     return ks_dynamics, pk_dynamics, phase_angles if is_raw else None
 
 
-def kuiper(data, dtype=np.float64):
-    """ Kuiper's test of uniform distribution
+def kuiper(data, dtype=np.float64):  # noqa: D401
+    """Kuiper's test of uniform distribution.
 
     Parameters
     ----------
@@ -118,7 +118,7 @@ def kuiper(data, dtype=np.float64):
 
 
 def _prob_kuiper(d, n_eff, dtype='f8'):
-    """ Test for statistical significance against uniform distribution.
+    """Test for statistical significance against uniform distribution.
 
     Parameters
     ----------

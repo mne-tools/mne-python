@@ -43,7 +43,7 @@ eeg Fpz -100 0 -3
 eeg Fp2 -95 31 -3
 eeg AF8 -81 59 -3
 eeg AF4 -87 41 28
-eeg Afz -93 0 36
+eeg AFz -93 0 36
 eeg Fz -72 0 69
 eeg F2 -71 29 64
 eeg F4 -67 55 50
@@ -75,8 +75,8 @@ eeg O2 95 31 -3
 # 3 cardinal landmarks
 # --------------------
 # Nasion
-cardinal 2 -91 0 -42
+cardinal nasion -91 0 -42
 # Left auricular
-cardinal 1 0 -91 -42
+cardinal lpa 0 -91 -42
 # Right auricular
-cardinal 3 0 91 -42
+cardinal rpa 0 91 -42

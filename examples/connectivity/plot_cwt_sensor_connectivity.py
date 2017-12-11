@@ -1,30 +1,30 @@
 """
 ==============================================================
-Compute seed based time-frequency connectivity in sensor space
+Compute seed-based time-frequency connectivity in sensor space
 ==============================================================
 
 Computes the connectivity between a seed-gradiometer close to the visual cortex
 and all other gradiometers. The connectivity is computed in the time-frequency
 domain using Morlet wavelets and the debiased Squared Weighted Phase Lag Index
-[1] is used as connectivity metric.
+[1]_ is used as connectivity metric.
 
-[1] Vinck et al. "An improved index of phase-synchronization for electro-
-    physiological data in the presence of volume-conduction, noise and
-    sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
+.. [1] Vinck et al. "An improved index of phase-synchronization for electro-
+       physiological data in the presence of volume-conduction, noise and
+       sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
 """
-
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+
 import mne
 from mne import io
 from mne.connectivity import spectral_connectivity, seed_target_indices
 from mne.datasets import sample
 from mne.time_frequency import AverageTFR
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -33,7 +33,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 # Add a bad channel
@@ -59,14 +59,15 @@ targets = np.arange(len(picks))
 indices = seed_target_indices(seed, targets)
 
 # Define wavelet frequencies and number of cycles
-cwt_frequencies = np.arange(7, 30, 2)
-cwt_n_cycles = cwt_frequencies / 7.
+cwt_freqs = np.arange(7, 30, 2)
+cwt_n_cycles = cwt_freqs / 7.
 
 # Run the connectivity analysis using 2 parallel jobs
 sfreq = raw.info['sfreq']  # the sampling frequency
-con, freqs, times, _, _ = spectral_connectivity(epochs, indices=indices,
+con, freqs, times, _, _ = spectral_connectivity(
+    epochs, indices=indices,
     method='wpli2_debiased', mode='cwt_morlet', sfreq=sfreq,
-    cwt_frequencies=cwt_frequencies, cwt_n_cycles=cwt_n_cycles, n_jobs=2)
+    cwt_freqs=cwt_freqs, cwt_n_cycles=cwt_n_cycles, n_jobs=1)
 
 # Mark the seed channel with a value of 1.0, so we can see it in the plot
 con[np.where(indices[1] == seed)] = 1.0

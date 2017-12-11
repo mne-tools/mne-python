@@ -1,11 +1,13 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD 3 clause
+import warnings
 
-import numpy as np
-from mne.time_frequency import morlet
 from nose.tools import assert_true, assert_raises
+import numpy as np
 from numpy.testing import assert_array_equal
+
+from mne.time_frequency import morlet
 from mne.preprocessing.ctps_ import (ctps, _prob_kuiper,
                                      _compute_normalized_phase)
 
@@ -33,7 +35,8 @@ def get_data(n_trials, j_extent):
     ground_truth = np.tile(single_trial,  n_trials)
     my_shape = n_trials, 1, 600
     random_data = rng.random_sample(my_shape)
-    rand_ints = rng.random_integers(-j_extent, j_extent, n_trials)
+    with warnings.catch_warnings(record=True):  # weight tables
+        rand_ints = rng.random_integers(-j_extent, j_extent, n_trials)
     jittered_data = np.array([np.roll(single_trial, i) for i in rand_ints])
     data = np.concatenate([ground_truth.reshape(my_shape),
                            jittered_data.reshape(my_shape),

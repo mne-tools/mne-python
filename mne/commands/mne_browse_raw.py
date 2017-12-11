@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-"""Browse raw data
+r"""Browse raw data.
 
 You can do for example:
 
-$ mne browse_raw --raw sample_audvis_raw.fif --proj sample_audvis_ecg_proj.fif --eve sample_audvis_raw-eve.fif
+$ mne browse_raw --raw sample_audvis_raw.fif \
+                 --proj sample_audvis_ecg-proj.fif \
+                 --eve sample_audvis_raw-eve.fif
 """
 
 # Authors : Eric Larson, PhD
@@ -13,6 +15,7 @@ import mne
 
 
 def run():
+    """Run command."""
     import matplotlib.pyplot as plt
 
     from mne.commands.utils import get_optparser
@@ -60,6 +63,8 @@ def run():
     parser.add_option("--clipping", dest="clipping",
                       help="Enable trace clipping mode, either 'clip' or "
                       "'transparent'", default=None)
+    parser.add_option("--filterchpi", dest="filterchpi",
+                      help="Enable filtering cHPI signals.", default=None)
 
     options, args = parser.parse_args()
 
@@ -77,12 +82,14 @@ def run():
     lowpass = options.lowpass
     filtorder = options.filtorder
     clipping = options.clipping
+    filterchpi = options.filterchpi
 
     if raw_in is None:
         parser.print_help()
         sys.exit(1)
 
-    raw = mne.io.Raw(raw_in, preload=preload, allow_maxshield=maxshield)
+    raw = mne.io.read_raw_fif(raw_in, preload=preload,
+                              allow_maxshield=maxshield)
     if len(proj_in) > 0:
         projs = mne.read_proj(proj_in)
         raw.info['projs'] = projs
@@ -90,6 +97,13 @@ def run():
         events = mne.read_events(eve_in)
     else:
         events = None
+
+    if filterchpi:
+        if not preload:
+            raise RuntimeError(
+                'Raw data must be preloaded for chpi, use --preload')
+        raw = mne.chpi.filter_chpi(raw)
+
     highpass = None if highpass < 0 or filtorder <= 0 else highpass
     lowpass = None if lowpass < 0 or filtorder <= 0 else lowpass
     filtorder = 4 if filtorder <= 0 else filtorder

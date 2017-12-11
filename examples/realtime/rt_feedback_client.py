@@ -24,15 +24,14 @@ to test. However, it should be possible to adapt this script
 for a real experiment.
 
 """
-
-print(__doc__)
-
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
 
 from mne.realtime import StimClient
 from psychopy import visual, core
+
+print(__doc__)
 
 # Instantiating stimulation client
 

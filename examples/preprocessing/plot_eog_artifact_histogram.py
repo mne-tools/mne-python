@@ -10,13 +10,16 @@ Compute the distribution of timing for EOG artifacts.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################
@@ -24,7 +27,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname, preload=True)
+raw = io.read_raw_fif(raw_fname, preload=True)
 events = mne.find_events(raw, 'STI 014')
 eog_event_id = 512
 eog_events = mne.preprocessing.find_eog_events(raw, eog_event_id)
@@ -37,7 +40,7 @@ event_ids = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks)
 
 # Get the stim channel data
-pick_ch = mne.pick_channels(epochs.ch_names, 'STI 014')[0]
+pick_ch = mne.pick_channels(epochs.ch_names, ['STI 014'])[0]
 data = epochs.get_data()[:, pick_ch, :].astype(int)
 data = np.sum((data.astype(int) & 512) == 512, axis=0)
 

@@ -1,0 +1,156 @@
+Brain Vision Data Exchange Header File Version 1.0
+; Data created by the Vision Recorder and modified by hand
+
+[Common Infos]
+DataFile=test_old_layout_latin1_software_filter.eeg
+MarkerFile=test_old_layout_latin1_software_filter.vmrk
+DataFormat=BINARY
+; Data orientation: VECTORIZED=ch1,pt1, ch1,pt2...,MULTIPLEXED=ch1,pt1, ch2,pt1 ...
+DataOrientation=VECTORIZED
+NumberOfChannels=29
+; Sampling interval in microseconds
+SamplingInterval=4000
+
+[Binary Infos]
+BinaryFormat=IEEE_FLOAT_32
+
+[Channel Infos]
+; Each entry: Ch<Channel number>=<Name>,<Reference channel name>,
+; <Resolution in microvolts>,<Future extensions..
+; Fields are delimited by commas, some fields might be omitted (empty).
+; Commas in channel names are coded as "\1".
+Ch1=F7,,0.1
+Ch2=F3,,0.1
+Ch3=Fz,,0.1
+Ch4=F4,,0.1
+Ch5=F8,,0.1
+Ch6=FT7,,0.1
+Ch7=FC5,,0.1
+Ch8=FCz,,0.1
+Ch9=FC6,,0.1
+Ch10=FT8,,0.1
+Ch11=Cz,,0.1
+Ch12=C3,,0.1
+Ch13=CP5,,0.1
+Ch14=CPz,,0.1
+Ch15=CP6,,0.1
+Ch16=C4,,0.1
+Ch17=P7,,0.1
+Ch18=P3,,0.1
+Ch19=Pz,,0.1
+Ch20=P4,,0.1
+Ch21=P8,,0.1
+Ch22=POz,,0.1
+Ch23=O1,,0.1
+Ch24=O2,,0.1
+Ch25=A2,,0.1
+Ch26=VEOGo,,0.1
+Ch27=VEOGu,,0.1
+Ch28=HEOGli,,0.1
+Ch29=HEOGre,,0.1
+
+[Comment]
+
+A m p l i f i e r  S e t u p
+============================
+Number of channels: 29
+Sampling Rate [Hz]: 250
+Sampling Interval [µS]: 4000
+
+Channels
+--------
+#     Name      Phys. Chn.    Resolution [µV]  Low Cutoff [s]   High Cutoff [Hz]   Notch [Hz]
+1     F7          1                0.1               10             1000              Off
+2     F3          2                0.1               10             1000              Off
+3     Fz          3                0.1               10             1000              Off
+4     F4          4                0.1               10             1000              Off
+5     F8          5                0.1               10             1000              Off
+6     FT7         6                0.1               10             1000              Off
+7     FC5         7                0.1               10             1000              Off
+8     FCz         8                0.1               10             1000              Off
+9     FC6         9                0.1               10             1000              Off
+10    FT8         10               0.1               10             1000              Off
+11    Cz          11               0.1               10             1000              Off
+12    C3          12               0.1               10             1000              Off
+13    CP5         13               0.1               10             1000              Off
+14    CPz         14               0.1               10             1000              Off
+15    CP6         15               0.1               10             1000              Off
+16    C4          16               0.1               10             1000              Off
+17    P7          17               0.1               10             1000              Off
+18    P3          18               0.1               10             1000              Off
+19    Pz          19               0.1               10             1000              Off
+20    P4          20               0.1               10             1000              Off
+21    P8          21               0.1               10             1000              Off
+22    POz         22               0.1               10             1000              Off
+23    O1          23               0.1               10             1000              Off
+24    O2          24               0.1               10             1000              Off
+25    A2          25               0.1               10             1000              Off
+26    VEOGo       26               0.1               10             1000              Off
+27    VEOGu       27               0.1               10             1000              Off
+28    HEOGli      28               0.1               10             1000              Off
+29    HEOGre      29               0.1               10             1000              Off
+
+S o f t w a r e  F i l t e r s
+==============================
+#     Low Cutoff [s]   High Cutoff [Hz]   Notch [Hz]
+1      0.9              50                 50
+2      0.9              50                 50
+3      0.9              50                 50
+4      0.9              50                 50
+5      0.9              50                 50
+6      0.9              50                 50
+7      0.9              50                 50
+8      0.9              50                 50
+9      0.9              50                 50
+10     0.9              50                 50
+11     0.9              50                 50
+12     0.9              50                 50
+13     0.9              50                 50
+14     0.9              50                 50
+15     0.9              50                 50
+16     0.9              50                 50
+17     0.9              50                 50
+18     0.9              50                 50
+19     0.9              50                 50
+20     0.9              50                 50
+21     0.9              50                 50
+22     0.9              50                 50
+23     0.9              50                 50
+24     0.9              50                 50
+25     0.9              50                 50
+26     0.9              50                 50
+27     0.9              50                 50
+28     0.9              50                 50
+29     0.9              50                 50
+
+
+Impedance [kOhm] at 12:18:40 :
+F7:           0
+F3:           0
+Fz:           2
+F4:           1
+F8:           0
+FT7:          1
+FC5:          0
+FCz:          0
+FC6:          1
+FT8:          1
+Cz:           0
+C3:           0
+CP5:          2
+CPz:          0
+CP6:          0
+C4:           0
+P7:           1
+P3:           1
+Pz:           2
+P4:           0
+P8:           1
+POz:          3
+O1:           1
+O2:           3
+A2:           1
+VEOGo:        0
+VEOGu:        1
+HEOGli:       3
+HEOGre:       5

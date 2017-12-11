@@ -1,127 +1,116 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          simplified BSD-3 license
 
-import struct
 import numpy as np
-from ...externals.six import b
+
+from ..utils import read_str
 
 
-def _unpack_matrix(fid, format, rows, cols, dtype):
-    """ Aux Function """
-    out = np.zeros((rows, cols), dtype=dtype)
-    bsize = struct.calcsize(format)
-    string = fid.read(bsize)
-    data = struct.unpack(format, string)
-    iter_mat = [(r, c) for r in range(rows) for c in range(cols)]
-    for idx, (row, col) in enumerate(iter_mat):
-        out[row, col] = data[idx]
+def _unpack_matrix(fid, rows, cols, dtype, out_dtype):
+    """Unpack matrix."""
+    dtype = np.dtype(dtype)
 
+    string = fid.read(int(dtype.itemsize * rows * cols))
+    out = np.frombuffer(string, dtype=dtype).reshape(
+        rows, cols).astype(out_dtype)
     return out
 
 
-def _unpack_simple(fid, format, count):
-    """ Aux Function """
-    bsize = struct.calcsize(format)
-    string = fid.read(bsize)
-    data = list(struct.unpack(format, string))
+def _unpack_simple(fid, dtype, out_dtype):
+    """Unpack a NumPy type."""
+    dtype = np.dtype(dtype)
+    string = fid.read(dtype.itemsize)
+    out = np.frombuffer(string, dtype=dtype).astype(out_dtype)
 
-    out = data if count < 2 else list(data)
     if len(out) > 0:
         out = out[0]
-
     return out
-
-
-def read_str(fid, count=1):
-    """ Read string """
-    format = '>' + ('c' * count)
-    data = list(struct.unpack(format, fid.read(struct.calcsize(format))))
-
-    bytestr = b('').join(data[0:data.index(b('\x00')) if b('\x00') in data else
-                         count])
-
-    return str(bytestr.decode('ascii')) # Return native str type for Py2/3
 
 
 def read_char(fid, count=1):
-    " Read character from bti file """
-    return _unpack_simple(fid, '>' + ('c' * count), count)
+    """Read character from bti file."""
+    return _unpack_simple(fid, '>S%s' % count, 'S')
 
 
-def read_bool(fid, count=1):
-    """ Read bool value from bti file """
-    return _unpack_simple(fid, '>' + ('?' * count), count)
+def read_bool(fid):
+    """Read bool value from bti file."""
+    return _unpack_simple(fid, '>?', np.bool)
 
 
-def read_uint8(fid, count=1):
-    """ Read unsigned 8bit integer from bti file """
-    return _unpack_simple(fid, '>' + ('B' * count), count)
+def read_uint8(fid):
+    """Read unsigned 8bit integer from bti file."""
+    return _unpack_simple(fid, '>u1', np.uint8)
 
 
-def read_int8(fid, count=1):
-    """ Read 8bit integer from bti file """
-    return _unpack_simple(fid, '>' + ('b' * count),  count)
+def read_int8(fid):
+    """Read 8bit integer from bti file."""
+    return _unpack_simple(fid, '>i1', np.int8)
 
 
-def read_uint16(fid, count=1):
-    """ Read unsigned 16bit integer from bti file """
-    return _unpack_simple(fid, '>' + ('H' * count), count)
+def read_uint16(fid):
+    """Read unsigned 16bit integer from bti file."""
+    return _unpack_simple(fid, '>u2', np.uint16)
 
 
-def read_int16(fid, count=1):
-    """ Read 16bit integer from bti file """
-    return _unpack_simple(fid, '>' + ('H' * count),  count)
+def read_int16(fid):
+    """Read 16bit integer from bti file."""
+    return _unpack_simple(fid, '>i2', np.int16)
 
 
-def read_uint32(fid, count=1):
-    """ Read unsigned 32bit integer from bti file """
-    return _unpack_simple(fid, '>' + ('I' * count), count)
+def read_uint32(fid):
+    """Read unsigned 32bit integer from bti file."""
+    return _unpack_simple(fid, '>u4', np.uint32)
 
 
-def read_int32(fid, count=1):
-    """ Read 32bit integer from bti file """
-    return _unpack_simple(fid, '>' + ('i' * count), count)
+def read_int32(fid):
+    """Read 32bit integer from bti file."""
+    return _unpack_simple(fid, '>i4', np.int32)
 
 
-def read_uint64(fid, count=1):
-    """ Read unsigned 64bit integer from bti file """
-    return _unpack_simple(fid, '>' + ('Q' * count), count)
+def read_uint64(fid):
+    """Read unsigned 64bit integer from bti file."""
+    return _unpack_simple(fid, '>u8', np.uint64)
 
 
-def read_int64(fid, count=1):
-    """ Read 64bit integer from bti file """
-    return _unpack_simple(fid, '>' + ('q' * count), count)
+def read_int64(fid):
+    """Read 64bit integer from bti file."""
+    return _unpack_simple(fid, '>u8', np.int64)
 
 
-def read_float(fid, count=1):
-    """ Read 32bit float from bti file """
-    return _unpack_simple(fid, '>' + ('f' * count), count)
+def read_float(fid):
+    """Read 32bit float from bti file."""
+    return _unpack_simple(fid, '>f4', np.float32)
 
 
-def read_double(fid, count=1):
-    """ Read 64bit float from bti file """
-    return _unpack_simple(fid, '>' + ('d' * count), count)
+def read_double(fid):
+    """Read 64bit float from bti file."""
+    return _unpack_simple(fid, '>f8', np.float64)
 
 
 def read_int16_matrix(fid, rows, cols):
-    """ Read 16bit integer matrix from bti file """
-    format = '>' + ('h' * rows * cols)
-    return _unpack_matrix(fid, format, rows, cols, np.int16)
+    """Read 16bit integer matrix from bti file."""
+    return _unpack_matrix(fid, rows, cols, dtype='>i2',
+                          out_dtype=np.int16)
 
 
 def read_float_matrix(fid, rows, cols):
-    """ Read 32bit float matrix from bti file """
-    format = '>' + ('f' * rows * cols)
-    return _unpack_matrix(fid, format, rows, cols, 'f4')
+    """Read 32bit float matrix from bti file."""
+    return _unpack_matrix(fid, rows, cols, dtype='>f4',
+                          out_dtype=np.float32)
 
 
 def read_double_matrix(fid, rows, cols):
-    """ Read 64bit float matrix from bti file """
-    format = '>' + ('d' * rows * cols)
-    return _unpack_matrix(fid, format, rows, cols, 'f8')
+    """Read 64bit float matrix from bti file."""
+    return _unpack_matrix(fid, rows, cols, dtype='>f8',
+                          out_dtype=np.float64)
 
 
 def read_transform(fid):
-    """ Read 64bit float matrix transform from bti file """
-    format = '>' + ('d' * 4 * 4)
-    return _unpack_matrix(fid, format, 4, 4, 'f8')
+    """Read 64bit float matrix transform from bti file."""
+    return read_double_matrix(fid, rows=4, cols=4)
+
+
+def read_dev_header(x):
+    """Create a dev header."""
+    return dict(size=read_int32(x), checksum=read_int32(x),
+                reserved=read_str(x, 32))

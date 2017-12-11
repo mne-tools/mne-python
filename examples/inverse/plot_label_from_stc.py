@@ -9,10 +9,7 @@ Here we compare the average time course in the anatomical label obtained
 by FreeSurfer segmentation and the average time course from the
 functional label. As expected the time course in the functional
 label yields higher values.
-
 """
-print(__doc__)
-
 # Author: Luke Bloy <luke.bloy@gmail.com>
 #         Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
 # License: BSD (3-clause)
@@ -23,6 +20,8 @@ import matplotlib.pyplot as plt
 import mne
 from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -47,7 +46,7 @@ src = inverse_operator['src']  # get the source space
 
 # Compute inverse solution
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
-                    pick_normal=True)
+                    pick_ori='normal')
 
 # Make an STC in the time interval of interest and take the mean
 stc_mean = stc.copy().crop(tmin, tmax).mean()
@@ -62,8 +61,11 @@ stc_mean_label = stc_mean.in_label(label)
 data = np.abs(stc_mean_label.data)
 stc_mean_label.data[data < 0.6 * np.max(data)] = 0.
 
+# 8.5% of original source space vertices were omitted during forward
+# calculation, suppress the warning here with verbose='error'
 func_labels, _ = mne.stc_to_label(stc_mean_label, src=src, smooth=True,
-                                  subjects_dir=subjects_dir, connected=True)
+                                  subjects_dir=subjects_dir, connected=True,
+                                  verbose='error')
 
 # take first as func_labels are ordered based on maximum values in stc
 func_label = func_labels[0]
@@ -95,10 +97,8 @@ plt.legend()
 plt.show()
 
 ###############################################################################
-# Plot brain in 3D with PySurfer if available. Note that the subject name
-# is already known by the SourceEstimate stc object.
-brain = stc_mean.plot(surface='inflated', hemi='lh', subjects_dir=subjects_dir)
-brain.scale_data_colormap(fmin=0, fmid=350, fmax=700, transparent=True)
+# plot brain in 3D with PySurfer if available
+brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir)
 brain.show_view('lateral')
 
 # show both labels

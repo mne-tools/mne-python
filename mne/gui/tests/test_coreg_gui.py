@@ -3,6 +3,10 @@
 # License: BSD (3-clause)
 
 import os
+import os.path as op
+import re
+import sys
+from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -13,31 +17,39 @@ import warnings
 import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import (_TempDir, requires_traits, requires_mne,
-                       requires_freesurfer, run_tests_if_main)
+from mne.utils import _TempDir, run_tests_if_main, requires_mayavi
 from mne.externals.six import string_types
+
+# backend needs to be set early
+try:
+    from traits.etsconfig.api import ETSConfig
+except ImportError:
+    pass
+else:
+    ETSConfig.toolkit = 'qt4'
 
 
 data_path = testing.data_path(download=False)
-raw_path = os.path.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc_raw.fif')
-fname_trans = os.path.join(data_path, 'MEG', 'sample',
-                           'sample_audvis_trunc-trans.fif')
-kit_raw_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
-subjects_dir = os.path.join(data_path, 'subjects')
+raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+fname_trans = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc-trans.fif')
+kit_raw_path = op.join(kit_data_dir, 'test_bin_raw.fif')
+subjects_dir = op.join(data_path, 'subjects')
 warnings.simplefilter('always')
 
 
 @testing.requires_testing_data
-@requires_traits
+@requires_mayavi
 def test_coreg_model():
-    """Test CoregModel"""
+    """Test CoregModel."""
     from mne.gui._coreg_gui import CoregModel
     tempdir = _TempDir()
-    trans_dst = os.path.join(tempdir, 'test-trans.fif')
+    trans_dst = op.join(tempdir, 'test-trans.fif')
 
     model = CoregModel()
     assert_raises(RuntimeError, model.save_trans, 'blah.fif')
+
+    model.mri.use_high_res_head = False
 
     model.mri.subjects_dir = subjects_dir
     model.mri.subject = 'sample'
@@ -66,8 +78,8 @@ def test_coreg_model():
 
     model.fit_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
-    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
-             + model.nasion_distance ** 2)
+    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
+             model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
     model.fit_hsp_points()
@@ -101,32 +113,115 @@ def test_coreg_model():
     assert_true(isinstance(model.fid_eval_str, string_types))
     assert_true(isinstance(model.points_eval_str, string_types))
 
-    model.get_prepare_bem_model_job('sample')
+    # scaling job
+    assert_false(model.can_prepare_bem_model)
+    model.n_scale_params = 1
+    assert_true(model.can_prepare_bem_model)
+    model.prepare_bem_model = True
+    sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
+        model.get_scaling_job('sample2', False)
+    assert_equal(sdir, subjects_dir)
+    assert_equal(sfrom, 'sample')
+    assert_equal(sto, 'sample2')
+    assert_equal(scale, model.scale)
+    assert_equal(skip_fiducials, False)
+    # find BEM files
+    bems = set()
+    for fname in os.listdir(op.join(subjects_dir, 'sample', 'bem')):
+        match = re.match(r'sample-(.+-bem)\.fif', fname)
+        if match:
+            bems.add(match.group(1))
+    assert_equal(set(bemsol), bems)
+    model.prepare_bem_model = False
+    sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
+        model.get_scaling_job('sample2', True)
+    assert_equal(bemsol, [])
+    assert_true(skip_fiducials)
+
     model.load_trans(fname_trans)
 
-    from mne.gui._coreg_gui import CoregFrame
-    x = CoregFrame(raw_path, 'sample', subjects_dir)
-    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
-    try:
-        with warnings.catch_warnings(record=True):  # traits spews warnings
-            warnings.simplefilter('always')
-            x._init_plot()
-    finally:
-        del os.environ['_MNE_GUI_TESTING_MODE']
+
+def _check_ci():
+    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
+            sys.platform == 'darwin':
+        raise SkipTest('Skipping GUI tests on Travis OSX')
 
 
 @testing.requires_testing_data
-@requires_traits
-@requires_mne
-@requires_freesurfer
+@requires_mayavi
+def test_coreg_gui():
+    """Test CoregFrame."""
+    _check_ci()
+    home_dir = _TempDir()
+    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
+    os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
+    try:
+        assert_raises(ValueError, mne.gui.coregistration, subject='Elvis',
+                      subjects_dir=subjects_dir)
+
+        from pyface.api import GUI
+        gui = GUI()
+
+        # avoid modal dialog if SUBJECTS_DIR is set to a directory that
+        # does not contain valid subjects
+        ui, frame = mne.gui.coregistration(subjects_dir='')
+
+        frame.model.mri.subjects_dir = subjects_dir
+        frame.model.mri.subject = 'sample'
+
+        assert_false(frame.model.mri.fid_ok)
+        frame.model.mri.lpa = [[-0.06, 0, 0]]
+        frame.model.mri.nasion = [[0, 0.05, 0]]
+        frame.model.mri.rpa = [[0.08, 0, 0]]
+        assert_true(frame.model.mri.fid_ok)
+        frame.raw_src.file = raw_path
+
+        # grow hair (high-res head has no norms)
+        assert_true(frame.model.mri.use_high_res_head)
+        frame.model.mri.use_high_res_head = False
+        frame.model.grow_hair = 40.
+
+        # scale
+        frame.coreg_panel.n_scale_params = 3
+        frame.coreg_panel.scale_x_inc = True
+        assert_equal(frame.model.scale_x, 1.01)
+        frame.coreg_panel.scale_y_dec = True
+        assert_equal(frame.model.scale_y, 0.99)
+
+        # reset parameters
+        frame.coreg_panel.reset_params = True
+        assert_equal(frame.model.grow_hair, 0)
+        assert_false(frame.model.mri.use_high_res_head)
+
+        # configuration persistence
+        assert_true(frame.model.prepare_bem_model)
+        frame.model.prepare_bem_model = False
+        frame.save_config(home_dir)
+        ui.dispose()
+        gui.process_events()
+
+        ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
+        assert_false(frame.model.prepare_bem_model)
+        assert_false(frame.model.mri.use_high_res_head)
+        ui.dispose()
+        gui.process_events()
+    finally:
+        del os.environ['_MNE_GUI_TESTING_MODE']
+        del os.environ['_MNE_FAKE_HOME_DIR']
+
+
+@testing.requires_testing_data
+@requires_mayavi
 def test_coreg_model_with_fsaverage():
-    """Test CoregModel"""
+    """Test CoregModel with the fsaverage brain data."""
     tempdir = _TempDir()
     from mne.gui._coreg_gui import CoregModel
 
-    mne.create_default_subject(subjects_dir=tempdir)
+    mne.create_default_subject(subjects_dir=tempdir,
+                               fs_home=op.join(subjects_dir, '..'))
 
     model = CoregModel()
+    model.mri.use_high_res_head = False
     model.mri.subjects_dir = tempdir
     model.mri.subject = 'fsaverage'
     assert_true(model.mri.fid_ok)
@@ -157,20 +252,26 @@ def test_coreg_model_with_fsaverage():
 
     model.fit_scale_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
-    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
-             + model.nasion_distance ** 2)
+    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
+             model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
     model.fit_scale_hsp_points()
     avg_point_distance_1param = np.mean(model.point_distance)
     assert_true(avg_point_distance_1param < avg_point_distance)
 
-    desc, func, args, kwargs = model.get_scaling_job('test')
-    assert_true(isinstance(desc, string_types))
-    assert_equal(args[0], 'fsaverage')
-    assert_equal(args[1], 'test')
-    assert_allclose(args[2], model.scale)
-    assert_equal(kwargs['subjects_dir'], tempdir)
+    # scaling job
+    sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
+        model.get_scaling_job('scaled', False)
+    assert_equal(sdir, tempdir)
+    assert_equal(sfrom, 'fsaverage')
+    assert_equal(sto, 'scaled')
+    assert_equal(scale, model.scale)
+    assert_equal(set(bemsol), set(('inner_skull-bem',)))
+    model.prepare_bem_model = False
+    sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
+        model.get_scaling_job('scaled', False)
+    assert_equal(bemsol, [])
 
     # scale with 3 parameters
     model.n_scale_params = 3

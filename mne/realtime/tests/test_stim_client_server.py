@@ -36,7 +36,7 @@ def test_connection():
 
     thread1.start()
     thread2.start()
-    with StimServer('localhost', port=4218, n_clients=2) as stim_server:
+    with StimServer(port=4218, n_clients=2) as stim_server:
         _server = stim_server
         stim_server.start(timeout=10.0)  # don't allow test to hang
 
@@ -54,7 +54,7 @@ def test_connection():
         assert_equal(trig1, trig2)
 
     # test timeout for stim_server
-    with StimServer('localhost', port=4218) as stim_server:
+    with StimServer(port=4218) as stim_server:
         assert_raises(StopIteration, stim_server.start, 0.1)
 
 

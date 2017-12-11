@@ -3,7 +3,7 @@
 Temporal whitening with AR model
 ================================
 
-This script shows how to fit an AR model to data and use it
+Here we fit an AR model to the data and use it
 to temporally whiten the signals.
 
 """
@@ -11,21 +11,22 @@ to temporally whiten the signals.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 
 import mne
-from mne.time_frequency import ar_raw
+from mne.time_frequency import fit_iir_model_raw
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-proj_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
+proj_fname = data_path + '/MEG/sample/sample_audvis_ecg-proj.fif'
 
-raw = mne.io.Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 proj = mne.read_proj(proj_fname)
 raw.info['projs'] += proj
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
@@ -34,17 +35,14 @@ raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
 picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
 order = 5  # define model order
-picks = picks[:5]
+picks = picks[:1]
 
 # Estimate AR models on raw data
-coefs = ar_raw(raw, order=order, picks=picks, tmin=60, tmax=180)
-mean_coefs = np.mean(coefs, axis=0)  # mean model across channels
-
-filt = np.r_[1, -mean_coefs]  # filter coefficient
-d, times = raw[0, 1e4:2e4]  # look at one channel from now on
+b, a = fit_iir_model_raw(raw, order=order, picks=picks, tmin=60, tmax=180)
+d, times = raw[0, 10000:20000]  # look at one channel from now on
 d = d.ravel()  # make flat vector
-innovation = signal.convolve(d, filt, 'valid')
-d_ = signal.lfilter([1], filt, innovation)  # regenerate the signal
+innovation = signal.convolve(d, a, 'valid')
+d_ = signal.lfilter(b, a, innovation)  # regenerate the signal
 d_ = np.r_[d_[0] * np.ones(order), d_]  # dummy samples to keep signal length
 
 ###############################################################################

@@ -1,0 +1,103 @@
+Brain Vision Data Exchange Header File Version 1.0
+; Data created by the Vision Recorder
+
+[Common Infos]
+Codepage=UTF-8
+DataFile=test.eeg
+MarkerFile=test.vmrk
+DataFormat=BINARY
+; Data orientation: MULTIPLEXED=ch1,pt1, ch2,pt1 ...
+DataOrientation=MULTIPLEXED
+NumberOfChannels=32
+; Sampling interval in microseconds
+SamplingInterval=1000
+
+[Binary Infos]
+BinaryFormat=INT_16
+
+[Channel Infos]
+; Each entry: Ch<Channel number>=<Name>,<Reference channel name>,
+; <Resolution in "Unit">,<Unit>, Future extensions..
+; Fields are delimited by commas, some fields might be omitted (empty).
+; Commas in channel names are coded as "\1".
+Ch1=FP1,,0.5,µV
+Ch2=FP2,,0.5,µV
+Ch3=F3,,0.5,µV
+Ch4=F4,,0.5,µV
+Ch5=C3,,0.5,µV
+Ch6=C4,,0.5,µV
+Ch7=P3,,0.5,µV
+Ch8=P4,,0.5,µV
+Ch9=O1,,0.5,µV
+Ch10=O2,,0.5,µV
+Ch11=F7,,0.5,µV
+Ch12=F8,,0.5,µV
+Ch13=P7,,0.5,µV
+Ch14=P8,,0.5,µV
+Ch15=Fz,,0.5,µV
+Ch16=FCz,,0.5,µV
+Ch17=Cz,,0.5,µV
+Ch18=CPz,,0.5,µV
+Ch19=Pz,,0.5,µV
+Ch20=POz,,0.5,µV
+Ch21=FC1,,0.5,µV
+Ch22=FC2,,0.5,µV
+Ch23=CP1,,0.5,µV
+Ch24=CP2,,0.5,µV
+Ch25=FC5,,0.5,µV
+Ch26=FC6,,0.5,µV
+Ch27=CP5,,0.5,BS
+Ch28=CP6,,0.5,µS
+Ch29=HL,,0.5,ARU
+Ch30=HR,,0.5,uS
+Ch31=Vb,,0.5,S
+Ch32=ReRef,,0.5,C
+
+[Comment]
+
+A m p l i f i e r  S e t u p
+============================
+Number of channels: 32
+Sampling Rate [Hz]: 1000
+Sampling Interval [µS]: 1000
+
+Channels
+--------
+#     Name      Phys. Chn.    Resolution / Unit   Low Cutoff [s]   High Cutoff [Hz]   Notch [Hz]    Series Res. [kOhm] Gradient         Offset
+1     FP1         1                0.5 µV             DC              250              Off                0
+2     FP2         2                0.5 µV             DC              250              Off                0
+3     F3          3                0.5 µV             DC              250              Off                0
+4     F4          4                0.5 µV             DC              250              Off                0
+5     C3          5                0.5 µV             DC              250              Off                0
+6     C4          6                0.5 µV             DC              250              Off                0
+7     P3          7                0.5 µV             DC              250              Off                0
+8     P4          8                0.5 µV             DC              250              Off                0
+9     O1          9                0.5 µV             DC              250              Off                0
+10    O2          10               0.5 µV             DC              250              Off                0
+11    F7          11               0.5 µV             DC              250              Off                0
+12    F8          12               0.5 µV             DC              250              Off                0
+13    P7          13               0.5 µV             DC              250              Off                0
+14    P8          14               0.5 µV             DC              250              Off                0
+15    Fz          15               0.5 µV             DC              250              Off                0
+16    FCz         16               0.5 µV             DC              250              Off                0
+17    Cz          17               0.5 µV             DC              250              Off                0
+18    CPz         18               0.5 µV             DC              250              Off                0
+19    Pz          19               0.5 µV             DC              250              Off                0
+20    POz         20               0.5 µV             DC              250              Off                0
+21    FC1         21               0.5 µV             DC              250              Off                0
+22    FC2         22               0.5 µV             DC              250              Off                0
+23    CP1         23               0.5 µV             DC              250              Off                0
+24    CP2         24               0.5 µV             DC              250              Off                0
+25    FC5         25               0.5 µV             DC              250              Off                0
+26    FC6         26               0.5 µV             DC              250              Off                0
+27    CP5         27               0.5 BS             DC              250              Off                0
+28    CP6         28               0.5 µS             DC              250              Off                0
+29    HL          29               0.5 ARU            DC              250              Off                0
+30    HR          30               0.5 uS             DC              Off              Off                0
+31    Vb          31               0.5 S              Off             250              Off                0
+32    ReRef       32               0.5 C              10              250              Off                0
+
+S o f t w a r e  F i l t e r s
+==============================
+Disabled
+

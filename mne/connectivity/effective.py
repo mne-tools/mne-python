@@ -15,10 +15,9 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
                       mode='multitaper', fmin=None, fmax=np.inf,
                       tmin=None, tmax=None, mt_bandwidth=None,
                       mt_adaptive=False, mt_low_bias=True,
-                      cwt_frequencies=None, cwt_n_cycles=7, block_size=1000,
+                      cwt_freqs=None, cwt_n_cycles=7, block_size=1000,
                       n_jobs=1, verbose=None):
-    """
-    Compute the Phase Slope Index (PSI) connectivity measure
+    """Compute the Phase Slope Index (PSI) connectivity measure.
 
     The PSI is an effective connectivity measure, i.e., a measure which can
     give an indication of the direction of the information flow (causality).
@@ -42,10 +41,9 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
 
     Parameters
     ----------
-    data : array, shape=(n_epochs, n_signals, n_times)
-           or list/generator of array, shape =(n_signals, n_times)
-           or list/generator of SourceEstimate
-           or Epochs
+    data : array-like, shape=(n_epochs, n_signals, n_times)
+        Can also be a list/generator of array, shape =(n_signals, n_times);
+        list/generator of SourceEstimate; or Epochs.
         The data from which to compute connectivity. Note that it is also
         possible to combine multiple signals by providing a list of tuples,
         e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
@@ -80,7 +78,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     mt_low_bias : bool
         Only use tapers with more than 90% spectral concentration within
         bandwidth. Only used in 'multitaper' mode.
-    cwt_frequencies : array
+    cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
     cwt_n_cycles: float | array of float
         Number of cycles. Fixed number or one per frequency. Only used in
@@ -91,7 +89,8 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     n_jobs : int
         How many epochs to process in parallel.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -115,11 +114,11 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     """
     logger.info('Estimating phase slope index (PSI)')
     # estimate the coherency
-    cohy, freqs_, times, n_epochs, n_tapers = spectral_connectivity(data,
-        method='cohy', indices=indices, sfreq=sfreq, mode=mode, fmin=fmin,
-        fmax=fmax, fskip=0, faverage=False, tmin=tmin, tmax=tmax,
+    cohy, freqs_, times, n_epochs, n_tapers = spectral_connectivity(
+        data, method='cohy', indices=indices, sfreq=sfreq, mode=mode,
+        fmin=fmin, fmax=fmax, fskip=0, faverage=False, tmin=tmin, tmax=tmax,
         mt_bandwidth=mt_bandwidth, mt_adaptive=mt_adaptive,
-        mt_low_bias=mt_low_bias, cwt_frequencies=cwt_frequencies,
+        mt_low_bias=mt_low_bias, cwt_freqs=cwt_freqs,
         cwt_n_cycles=cwt_n_cycles, block_size=block_size, n_jobs=n_jobs,
         verbose=verbose)
 

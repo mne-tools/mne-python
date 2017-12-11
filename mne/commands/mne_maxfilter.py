@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" Apply MaxFilter
+"""Apply MaxFilter.
 
 Example usage:
 
@@ -18,6 +18,7 @@ import mne
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

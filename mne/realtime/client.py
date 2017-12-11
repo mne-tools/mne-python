@@ -1,13 +1,13 @@
-from __future__ import print_function
 # Authors: Christoph Dinh <chdinh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
+from __future__ import print_function
+
 import socket
 import time
-import struct
 from ..externals.six.moves import StringIO
 import threading
 
@@ -25,7 +25,7 @@ MNE_RT_SET_CLIENT_ALIAS = 2
 
 
 def _recv_tag_raw(sock):
-    """Read a tag and the associated data from a socket
+    """Read a tag and the associated data from a socket.
 
     Parameters
     ----------
@@ -43,7 +43,7 @@ def _recv_tag_raw(sock):
     if len(s) != 16:
         raise RuntimeError('Not enough bytes received, something is wrong. '
                            'Make sure the mne_rt_server is running.')
-    tag = Tag(*struct.unpack(">iiii", s))
+    tag = Tag(*np.frombuffer(s, '>i4'))
     n_received = 0
     rec_buff = [s]
     while n_received < tag.size:
@@ -62,7 +62,7 @@ def _recv_tag_raw(sock):
 
 
 def _buffer_recv_worker(rt_client, nchan):
-    """Worker thread that constantly receives buffers"""
+    """Worker thread that constantly receives buffers."""
     try:
         for raw_buffer in rt_client.raw_buffers(nchan):
             rt_client._push_raw_buffer(raw_buffer)
@@ -73,7 +73,7 @@ def _buffer_recv_worker(rt_client, nchan):
 
 
 class RtClient(object):
-    """Realtime Client
+    """Realtime Client.
 
     Client to communicate with mne_rt_server
 
@@ -81,22 +81,20 @@ class RtClient(object):
     ----------
     host : str
         Hostname (or IP address) of the host where mne_rt_server is running.
-
     cmd_port : int
         Port to use for the command connection.
-
     data_port : int
         Port to use for the data connection.
-
     timeout : float
         Communication timeout in seconds.
-
     verbose : bool, str, int, or None
-        Log verbosity see mne.verbose.
+        Log verbosity (see :func:`mne.verbose` and
+        :ref:`Logging documentation <tut_logging>` for more).
     """
+
     @verbose
     def __init__(self, host, cmd_port=4217, data_port=4218, timeout=1.0,
-                 verbose=None):
+                 verbose=None):  # noqa: D102
         self._host = host
         self._data_port = data_port
         self._cmd_port = cmd_port
@@ -131,7 +129,7 @@ class RtClient(object):
         self._recv_callbacks = list()
 
     def _send_command(self, command):
-        """Send a command to the server
+        """Send a command to the server.
 
         Parameters
         ----------
@@ -143,17 +141,16 @@ class RtClient(object):
         resp : str
             The response from the server.
         """
-
         logger.debug('Sending command: %s' % command)
         command += '\n'
         self._cmd_sock.sendall(command.encode('utf-8'))
 
         buf, chunk, begin = [], '', time.time()
         while True:
-            #if we got some data, then break after wait sec
+            # if we got some data, then break after wait sec
             if buf and time.time() - begin > self._timeout:
                 break
-            #if we got no data at all, wait a little longer
+            # if we got no data at all, wait a little longer
             elif time.time() - begin > self._timeout * 2:
                 break
             try:
@@ -163,13 +160,13 @@ class RtClient(object):
                     begin = time.time()
                 else:
                     time.sleep(0.1)
-            except:
+            except Exception:
                 pass
 
         return ''.join(buf)
 
     def _send_fiff_command(self, command, data=None):
-        """Send a command through the data connection as a fiff tag
+        """Send a command through the data connection as a fiff tag.
 
         Parameters
         ----------
@@ -198,7 +195,7 @@ class RtClient(object):
         self._data_sock.sendall(msg)
 
     def get_measurement_info(self):
-        """Get the measurement information
+        """Get the measurement information.
 
         Returns
         -------
@@ -218,7 +215,7 @@ class RtClient(object):
             directory.append(tag)
             buff.append(this_buff)
             if tag.kind == FIFF.FIFF_BLOCK_END and tag.type == FIFF.FIFFT_INT:
-                val = np.fromstring(this_buff[-4:], dtype=">i4")
+                val = np.frombuffer(this_buff[-4:], dtype=">i4")
                 if val == FIFF.FIFFB_MEAS_INFO:
                     break
 
@@ -231,7 +228,7 @@ class RtClient(object):
         return info
 
     def set_client_alias(self, alias):
-        """Set client alias
+        """Set client alias.
 
         Parameters
         ----------
@@ -241,7 +238,7 @@ class RtClient(object):
         self._send_fiff_command(MNE_RT_SET_CLIENT_ALIAS, alias)
 
     def get_client_id(self):
-        """Get the client ID
+        """Get the client ID.
 
         Returns
         -------
@@ -254,23 +251,23 @@ class RtClient(object):
         tag, buff = _recv_tag_raw(self._data_sock)
         if (tag.kind == FIFF.FIFF_MNE_RT_CLIENT_ID and
                 tag.type == FIFF.FIFFT_INT):
-            client_id = int(np.fromstring(buff[-4:], dtype=">i4"))
+            client_id = int(np.frombuffer(buff[-4:], dtype=">i4"))
         else:
             raise RuntimeError('wrong tag received')
 
-        return  client_id
+        return client_id
 
     def start_measurement(self):
-        """Start the measurement"""
+        """Start the measurement."""
         cmd = 'start %d' % self._client_id
         self._send_command(cmd)
 
     def stop_measurement(self):
-        """Stop the measurement"""
+        """Stop the measurement."""
         self._send_command('stop-all')
 
     def start_receive_thread(self, nchan):
-        """Start the receive thread
+        """Start the receive thread.
 
         If the measurement has not been started, it will also be started.
 
@@ -279,7 +276,6 @@ class RtClient(object):
         nchan : int
             The number of channels in the data.
         """
-
         if self._recv_thread is None:
             self.start_measurement()
 
@@ -287,8 +283,8 @@ class RtClient(object):
                                                  args=(self, nchan))
             self._recv_thread.start()
 
-    def stop_receive_thread(self, nchan, stop_measurement=False):
-        """Stop the receive thread
+    def stop_receive_thread(self, stop_measurement=False):
+        """Stop the receive thread.
 
         Parameters
         ----------
@@ -303,7 +299,7 @@ class RtClient(object):
             self.stop_measurement()
 
     def register_receive_callback(self, callback):
-        """Register a raw buffer receive callback
+        """Register a raw buffer receive callback.
 
         Parameters
         ----------
@@ -315,18 +311,23 @@ class RtClient(object):
             self._recv_callbacks.append(callback)
 
     def unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback
+        """Unregister a raw buffer receive callback.
+
+        Parameters
+        ----------
+        callback : function
+            The callback to unregister.
         """
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)
 
     def _push_raw_buffer(self, raw_buffer):
-        """Push raw buffer to clients using callbacks"""
+        """Push raw buffer to clients using callbacks."""
         for callback in self._recv_callbacks:
             callback(raw_buffer)
 
     def read_raw_buffer(self, nchan):
-        """Read a single buffer with raw data
+        """Read a single buffer with raw data.
 
         Parameters
         ----------
@@ -351,7 +352,7 @@ class RtClient(object):
         return raw_buffer
 
     def raw_buffers(self, nchan):
-        """Return an iterator over raw buffers
+        """Return an iterator over raw buffers.
 
         Parameters
         ----------

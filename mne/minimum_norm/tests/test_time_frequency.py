@@ -1,12 +1,14 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_equal
 from nose.tools import assert_true
 import warnings
 
 from mne.datasets import testing
-from mne import io, find_events, Epochs, pick_types
+from mne import find_events, Epochs, pick_types
+from mne.io import read_raw_fif
+from mne.io.constants import FIFF
 from mne.utils import run_tests_if_main
 from mne.label import read_label
 from mne.minimum_norm.inverse import (read_inverse_operator,
@@ -18,7 +20,7 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
                                              compute_source_psd_epochs)
 
 
-from mne.time_frequency import multitaper_psd
+from mne.time_frequency.multitaper import psd_array_multitaper
 
 data_path = testing.data_path(download=False)
 fname_inv = op.join(data_path, 'MEG', 'sample',
@@ -31,12 +33,11 @@ warnings.simplefilter('always')
 
 @testing.requires_testing_data
 def test_tfr_with_inverse_operator():
-    """Test time freq with MNE inverse computation"""
-
+    """Test time freq with MNE inverse computation."""
     tmin, tmax, event_id = -0.2, 0.5, 1
 
     # Setup for reading the raw data
-    raw = io.Raw(fname_data)
+    raw = read_raw_fif(fname_data)
     events = find_events(raw, stim_channel='STI 014')
     inverse_operator = read_inverse_operator(fname_inv)
     inv = prepare_inverse_operator(inverse_operator, nave=1,
@@ -80,13 +81,10 @@ def test_tfr_with_inverse_operator():
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
                     preload=True)
 
-    frequencies = np.arange(7, 30, 2)  # define frequencies of interest
-    power, phase_lock = source_induced_power(epochs, inv,
-                                             frequencies, label,
-                                             baseline=(-0.1, 0),
-                                             baseline_mode='percent',
-                                             n_cycles=2, n_jobs=1,
-                                             prepared=True)
+    freqs = np.arange(7, 30, 2)  # define frequencies of interest
+    power, phase_lock = source_induced_power(
+        epochs, inv, freqs, label, baseline=(-0.1, 0), baseline_mode='percent',
+        n_cycles=2, n_jobs=1, prepared=True)
     assert_true(np.all(phase_lock > 0))
     assert_true(np.all(phase_lock <= 1))
     assert_true(np.max(power) > 10)
@@ -94,29 +92,34 @@ def test_tfr_with_inverse_operator():
 
 @testing.requires_testing_data
 def test_source_psd():
-    """Test source PSD computation in label"""
-    raw = io.Raw(fname_data)
+    """Test source PSD computation in label."""
+    raw = read_raw_fif(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
-    label = read_label(fname_label)
     tmin, tmax = 0, 20  # seconds
     fmin, fmax = 55, 65  # Hz
     n_fft = 2048
-    stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
-                             method="dSPM", tmin=tmin, tmax=tmax,
-                             fmin=fmin, fmax=fmax, pick_ori="normal",
-                             n_fft=n_fft, label=label, overlap=0.1)
-    assert_true(stc.times[0] >= fmin * 1e-3)
-    assert_true(stc.times[-1] <= fmax * 1e-3)
-    # Time max at line frequency (60 Hz in US)
-    assert_true(59e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))]
-                <= 61e-3)
+
+    assert_equal(inverse_operator['source_ori'], FIFF.FIFFV_MNE_FREE_ORI)
+
+    for pick_ori in ('normal', None):
+        stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
+                                 method="dSPM", tmin=tmin, tmax=tmax,
+                                 fmin=fmin, fmax=fmax, pick_ori=pick_ori,
+                                 n_fft=n_fft, overlap=0.1)
+
+        assert_equal(stc.shape[0], inverse_operator['nsource'])
+
+        assert_true(stc.times[0] >= fmin * 1e-3)
+        assert_true(stc.times[-1] <= fmax * 1e-3)
+        # Time max at line frequency (60 Hz in US)
+        assert_true(58e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <=
+                    61e-3)
 
 
 @testing.requires_testing_data
 def test_source_psd_epochs():
-    """Test multi-taper source PSD computation in label from epochs"""
-
-    raw = io.Raw(fname_data)
+    """Test multi-taper source PSD computation in label from epochs."""
+    raw = read_raw_fif(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
 
@@ -135,7 +138,7 @@ def test_source_psd_epochs():
                     baseline=(None, 0), reject=reject)
 
     # only look at one epoch
-    epochs.drop_bad_epochs()
+    epochs.drop_bad()
     one_epochs = epochs[:1]
 
     inv = prepare_inverse_operator(inverse_operator, nave=1,
@@ -169,8 +172,9 @@ def test_source_psd_epochs():
                                prepared=True)[0]
 
     sfreq = epochs.info['sfreq']
-    psd, freqs = multitaper_psd(stc.data, sfreq=sfreq, bandwidth=bandwidth,
-                                fmin=fmin, fmax=fmax)
+    psd, freqs = psd_array_multitaper(stc.data, sfreq=sfreq,
+                                      bandwidth=bandwidth, fmin=fmin,
+                                      fmax=fmax)
 
     assert_array_almost_equal(psd, stc_psd.data)
     assert_array_almost_equal(freqs, stc_psd.times)

@@ -1,53 +1,35 @@
-"""Mayavi/traits GUI visualization elements"""
+"""Mayavi/traits GUI visualization elements."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
-import os
 import numpy as np
 
-# allow import without traits
-try:
-    from mayavi.mlab import pipeline, text3d
-    from mayavi.modules.glyph import Glyph
-    from mayavi.modules.surface import Surface
-    from mayavi.sources.vtk_data_source import VTKDataSource
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import error
-    from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
-                            cached_property, Instance, Property, Array, Bool,
-                            Button, Color, Enum, Float, Int, List, Range, Str)
-    from traitsui.api import View, Item, Group, HGroup, VGrid, VGroup
-except:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = object
-    cached_property = on_trait_change = MlabSceneModel = Array = Bool = \
-        Button = Color = Enum = Float = Instance = Int = List = Property = \
-        Range = Str = View = Item = Group = HGroup = VGrid = VGroup = \
-        Glyph = Surface = VTKDataSource = trait_wraith
+from mayavi.mlab import pipeline, text3d
+from mayavi.modules.glyph import Glyph
+from mayavi.modules.surface import Surface
+from mayavi.sources.vtk_data_source import VTKDataSource
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from pyface.api import error
+from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
+                        Instance, Array, Bool, Button, Enum, Float, Int, List,
+                        Range, Str, RGBColor)
+from traitsui.api import View, Item, HGroup, VGrid, VGroup
+from tvtk.api import tvtk
 
+from ..surface import complete_surface_info
 from ..transforms import apply_trans
+from ..utils import SilenceStdout
+from ..viz._3d import _create_mesh_surf, _toggle_mlab_render
 
 
-headview_item = Item('headview', style='custom', show_label=False)
 headview_borders = VGroup(Item('headview', style='custom', show_label=False),
                           show_border=True, label='View')
-defaults = {'mri_fid_scale': 1e-2, 'hsp_fid_scale': 3e-2,
-            'hsp_fid_opacity': 0.3, 'hsp_points_scale': 4e-3,
-            'mri_color': (252, 227, 191), 'hsp_point_color': (255, 255, 255),
-            'lpa_color': (255, 0, 0), 'nasion_color': (0, 255, 0),
-            'rpa_color': (0, 0, 255)}
-
-
-def _testing_mode():
-    """Helper to determine if we're running tests"""
-    return (os.getenv('_MNE_GUI_TESTING_MODE', '') == 'true')
 
 
 class HeadViewController(HasTraits):
-    """
-    Set head views for Anterior-Left-Superior coordinate system
+    """Set head views for the given coordinate system.
 
     Parameters
     ----------
@@ -56,6 +38,7 @@ class HeadViewController(HasTraits):
         the x, y, and z axes. Relevant terms are: Anterior, Right, Left,
         Superior, Inferior.
     """
+
     system = Enum("RAS", "ALS", "ARI", desc="Coordinate system: directions of "
                   "the x, y, and z axis.")
 
@@ -63,6 +46,7 @@ class HeadViewController(HasTraits):
     front = Button()
     left = Button()
     top = Button()
+    interaction = Enum('Trackball', 'Terrain')
 
     scale = Float(0.16)
 
@@ -70,11 +54,13 @@ class HeadViewController(HasTraits):
 
     view = View(VGrid('0', 'top', '0', Item('scale', label='Scale',
                                             show_label=True),
-                      'right', 'front', 'left', show_labels=False, columns=4))
+                      'right', 'front', 'left', 'interaction',
+                      show_labels=False, columns=4))
 
     @on_trait_change('scene.activated')
     def _init_view(self):
         self.scene.parallel_projection = True
+        self._trackball_interactor = None
 
         # apparently scene,activated happens several times
         if self.scene.renderer:
@@ -82,54 +68,57 @@ class HeadViewController(HasTraits):
             # and apparently this does not happen by default:
             self.on_trait_change(self.scene.render, 'scale')
 
+    @on_trait_change('interaction')
+    def on_set_interaction(self, _, interaction):
+        if self.scene is None:
+            return
+        if interaction == 'Terrain':
+            # Ensure we're in the correct orientatino for the
+            # InteractorStyleTerrain to have the correct "up"
+            if self._trackball_interactor is None:
+                self._trackball_interactor = \
+                    self.scene.interactor.interactor_style
+            self.on_set_view('front', '')
+            self.scene.mlab.draw()
+            self.scene.interactor.interactor_style = \
+                tvtk.InteractorStyleTerrain()
+            self.on_set_view('front', '')
+            self.scene.mlab.draw()
+        else:  # interaction == 'trackball'
+            self.scene.interactor.interactor_style = self._trackball_interactor
+
     @on_trait_change('top,left,right,front')
     def on_set_view(self, view, _):
         if self.scene is None:
             return
 
         system = self.system
-        kwargs = None
-
-        if system == 'ALS':
-            if view == 'front':
-                kwargs = dict(azimuth=0, elevation=90, roll=-90)
-            elif view == 'left':
-                kwargs = dict(azimuth=90, elevation=90, roll=180)
-            elif view == 'right':
-                kwargs = dict(azimuth=-90, elevation=90, roll=0)
-            elif view == 'top':
-                kwargs = dict(azimuth=0, elevation=0, roll=-90)
-        elif system == 'RAS':
-            if view == 'front':
-                kwargs = dict(azimuth=90, elevation=90, roll=180)
-            elif view == 'left':
-                kwargs = dict(azimuth=180, elevation=90, roll=90)
-            elif view == 'right':
-                kwargs = dict(azimuth=0, elevation=90, roll=270)
-            elif view == 'top':
-                kwargs = dict(azimuth=90, elevation=0, roll=180)
-        elif system == 'ARI':
-            if view == 'front':
-                kwargs = dict(azimuth=0, elevation=90, roll=90)
-            elif view == 'left':
-                kwargs = dict(azimuth=-90, elevation=90, roll=180)
-            elif view == 'right':
-                kwargs = dict(azimuth=90, elevation=90, roll=0)
-            elif view == 'top':
-                kwargs = dict(azimuth=0, elevation=180, roll=90)
-        else:
+        kwargs = dict(ALS=dict(front=(0, 90, -90),
+                               left=(90, 90, 180),
+                               right=(-90, 90, 0),
+                               top=(0, 0, -90)),
+                      RAS=dict(front=(90., 90., 180),
+                               left=(180, 90, 90),
+                               right=(0., 90, 270),
+                               top=(90, 0, 180)),
+                      ARI=dict(front=(0, 90, 90),
+                               left=(-90, 90, 180),
+                               right=(90, 90, 0),
+                               top=(0, 180, 90)))
+        if system not in kwargs:
             raise ValueError("Invalid system: %r" % system)
-
-        if kwargs is None:
+        if view not in kwargs[system]:
             raise ValueError("Invalid view: %r" % view)
-
-        if not _testing_mode():
+        kwargs = dict(zip(('azimuth', 'elevation', 'roll'),
+                          kwargs[system][view]))
+        with SilenceStdout():
             self.scene.mlab.view(distance=None, reset_roll=True,
                                  figure=self.scene.mayavi_scene, **kwargs)
 
 
 class Object(HasPrivateTraits):
-    """Represents a 3d object in a mayavi scene"""
+    """Represent a 3d object in a mayavi scene."""
+
     points = Array(float, shape=(None, 3))
     trans = Array()
     name = Str
@@ -137,23 +126,15 @@ class Object(HasPrivateTraits):
     scene = Instance(MlabSceneModel, ())
     src = Instance(VTKDataSource)
 
-    color = Color()
-    rgbcolor = Property(depends_on='color')
+    # This should be Tuple, but it is broken on Anaconda as of 2016/12/16
+    color = RGBColor((1., 1., 1.))
     point_scale = Float(10, label='Point Scale')
     opacity = Range(low=0., high=1., value=1.)
     visible = Bool(True)
 
-    @cached_property
-    def _get_rgbcolor(self):
-        if hasattr(self.color, 'Get'):  # wx
-            color = tuple(v / 255. for v in self.color.Get())
-        else:
-            color = self.color.getRgbF()[:3]
-        return color
-
     @on_trait_change('trans,points')
     def _update_points(self):
-        """Update the location of the plotted points"""
+        """Update the location of the plotted points."""
         if not hasattr(self.src, 'data'):
             return
 
@@ -175,18 +156,25 @@ class Object(HasPrivateTraits):
             pts = self.points
 
         self.src.data.points = pts
+        return True
 
 
 class PointObject(Object):
-    """Represents a group of individual points in a mayavi scene"""
+    """Represent a group of individual points in a mayavi scene."""
+
     label = Bool(False, enabled_when='visible')
     text3d = List
 
     glyph = Instance(Glyph)
     resolution = Int(8)
 
+    view = View(HGroup(Item('visible', show_label=False),
+                       Item('color', show_label=False),
+                       Item('opacity')))
+
     def __init__(self, view='points', *args, **kwargs):
-        """
+        """Init.
+
         Parameters
         ----------
         view : 'points' | 'cloud'
@@ -196,7 +184,7 @@ class PointObject(Object):
         self._view = view
         super(PointObject, self).__init__(*args, **kwargs)
 
-    def default_traits_view(self):
+    def default_traits_view(self):  # noqa: D102
         color = Item('color', show_label=False)
         scale = Item('point_scale', label='Size')
         if self._view == 'points':
@@ -211,7 +199,7 @@ class PointObject(Object):
 
     @on_trait_change('label')
     def _show_labels(self, show):
-        self.scene.disable_render = True
+        _toggle_mlab_render(self, False)
         while self.text3d:
             text = self.text3d.pop()
             text.remove()
@@ -220,11 +208,10 @@ class PointObject(Object):
             fig = self.scene.mayavi_scene
             for i, pt in enumerate(np.array(self.src.data.points)):
                 x, y, z = pt
-                t = text3d(x, y, z, ' %i' % i, scale=.01, color=self.rgbcolor,
+                t = text3d(x, y, z, ' %i' % i, scale=.01, color=self.color,
                            figure=fig)
                 self.text3d.append(t)
-
-        self.scene.disable_render = False
+        _toggle_mlab_render(self, True)
 
     @on_trait_change('visible')
     def _on_hide(self):
@@ -234,32 +221,35 @@ class PointObject(Object):
     @on_trait_change('scene.activated')
     def _plot_points(self):
         """Add the points to the mayavi pipeline"""
-#         _scale = self.scene.camera.parallel_scale
-
+        if self.scene is None:
+            return
         if hasattr(self.glyph, 'remove'):
             self.glyph.remove()
         if hasattr(self.src, 'remove'):
             self.src.remove()
 
-        if not _testing_mode():
-            fig = self.scene.mayavi_scene
-        else:
-            fig = None
-
+        _toggle_mlab_render(self, False)
         x, y, z = self.points.T
-        scatter = pipeline.scalar_scatter(x, y, z)
-        glyph = pipeline.glyph(scatter, color=self.rgbcolor, figure=fig,
+        fig = self.scene.mayavi_scene
+        scatter = pipeline.scalar_scatter(x, y, z, fig=fig)
+        if not scatter.running:
+            # this can occur sometimes during testing w/ui.dispose()
+            return
+        # fig.scene.engine.current_object is scatter
+        glyph = pipeline.glyph(scatter, color=self.color,
+                               figure=fig,
                                scale_factor=self.point_scale, opacity=1.,
                                resolution=self.resolution)
+        glyph.actor.property.backface_culling = True
         self.src = scatter
         self.glyph = glyph
 
         self.sync_trait('point_scale', self.glyph.glyph.glyph, 'scale_factor')
-        self.sync_trait('rgbcolor', self.glyph.actor.property, 'color',
-                        mutual=False)
+        self.sync_trait('color', self.glyph.actor.property, mutual=False)
         self.sync_trait('visible', self.glyph)
         self.sync_trait('opacity', self.glyph.actor.property)
         self.on_trait_change(self._update_points, 'points')
+        _toggle_mlab_render(self, True)
 
 #         self.scene.camera.parallel_scale = _scale
 
@@ -272,24 +262,25 @@ class PointObject(Object):
 
 
 class SurfaceObject(Object):
-    """Represents a solid object in a mayavi scene
+    """Represent a solid object in a mayavi scene.
 
     Notes
     -----
     Doesn't automatically update plot because update requires both
     :attr:`points` and :attr:`tri`. Call :meth:`plot` after updateing both
     attributes.
-
     """
+
     rep = Enum("Surface", "Wireframe")
     tri = Array(int, shape=(None, 3))
 
     surf = Instance(Surface)
 
     view = View(HGroup(Item('visible', show_label=False),
-                       Item('color', show_label=False), Item('opacity')))
+                       Item('color', show_label=False),
+                       Item('opacity')))
 
-    def clear(self):
+    def clear(self):  # noqa: D102
         if hasattr(self.src, 'remove'):
             self.src.remove()
         if hasattr(self.surf, 'remove'):
@@ -299,33 +290,31 @@ class SurfaceObject(Object):
     @on_trait_change('scene.activated')
     def plot(self):
         """Add the points to the mayavi pipeline"""
-        _scale = self.scene.camera.parallel_scale if not _testing_mode() else 1
+        _scale = self.scene.camera.parallel_scale
         self.clear()
 
         if not np.any(self.tri):
             return
 
         fig = self.scene.mayavi_scene
-
-        x, y, z = self.points.T
-
-        if self.rep == 'Wireframe':
-            rep = 'wireframe'
-        else:
-            rep = 'surface'
-
-        src = pipeline.triangular_mesh_source(x, y, z, self.tri, figure=fig)
-        surf = pipeline.surface(src, figure=fig, color=self.rgbcolor,
-                                opacity=self.opacity,
+        surf = complete_surface_info(dict(rr=self.points, tris=self.tri),
+                                     verbose='error')
+        src = _create_mesh_surf(surf, fig=fig)
+        rep = 'wireframe' if self.rep == 'Wireframe' else 'surface'
+        surf = pipeline.surface(src, figure=fig, color=self.color,
                                 representation=rep, line_width=1)
+        surf.actor.property.backface_culling = True
 
         self.src = src
         self.surf = surf
 
         self.sync_trait('visible', self.surf, 'visible')
-        self.sync_trait('rgbcolor', self.surf.actor.property, 'color',
-                        mutual=False)
-        self.sync_trait('opacity', self.surf.actor.property, 'opacity')
+        self.sync_trait('color', self.surf.actor.property, mutual=False)
+        self.sync_trait('opacity', self.surf.actor.property)
 
-        if not _testing_mode():
-            self.scene.camera.parallel_scale = _scale
+        self.scene.camera.parallel_scale = _scale
+
+    @on_trait_change('trans,points')
+    def _update_points(self):
+        if Object._update_points(self):
+            self.src.update()  # necessary for SurfaceObject since Mayavi 4.5.0

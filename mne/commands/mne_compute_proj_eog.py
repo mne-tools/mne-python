@@ -1,13 +1,18 @@
 #!/usr/bin/env python
-"""Compute SSP/PCA projections for EOG artifacts
+r"""Compute SSP/PCA projections for EOG artifacts.
 
 You can do for example:
 
-$ mne compute_proj_eog -i sample_audvis_raw.fif --l-freq 1 --h-freq 35 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+$ mne compute_proj_eog -i sample_audvis_raw.fif \
+                       --l-freq 1 --h-freq 35 \
+                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 
 or
 
-$ mne compute_proj_eog -i sample_audvis_raw.fif --l-freq 1 --h-freq 35 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 --proj sample_audvis_ecg_proj.fif
+$ mne compute_proj_eog -i sample_audvis_raw.fif \
+                       --l-freq 1 --h-freq 35 \
+                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 \
+                       --proj sample_audvis_ecg-proj.fif
 
 to exclude ECG artifacts from projection computation.
 """
@@ -23,6 +28,7 @@ import mne
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -148,14 +154,14 @@ def run():
     eog_event_fname = prefix + '_eog-eve.fif'
 
     if average:
-        eog_proj_fname = prefix + '_eog_avg_proj.fif'
+        eog_proj_fname = prefix + '_eog_avg-proj.fif'
     else:
-        eog_proj_fname = prefix + '_eog_proj.fif'
+        eog_proj_fname = prefix + '_eog-proj.fif'
 
-    raw = mne.io.Raw(raw_in, preload=preload)
+    raw = mne.io.read_raw_fif(raw_in, preload=preload)
 
     if raw_event_fname is not None:
-        raw_event = mne.io.Raw(raw_event_fname)
+        raw_event = mne.io.read_raw_fif(raw_event_fname)
     else:
         raw_event = raw
 

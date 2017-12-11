@@ -8,17 +8,18 @@ for linear inverse operators (MNE, dSPM, sLORETA).
 PSFs describe the spread of activation from one label
 across the cortical surface.
 """
-
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+from mayavi import mlab
 
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, point_spread_function
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects/'
@@ -32,9 +33,8 @@ fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
                data_path + '/MEG/sample/labels/Vis-lh.label']
 
 
-# read forward solution (sources in surface-based coordinates)
-forward = mne.read_forward_solution(fname_fwd, force_fixed=False,
-                                    surf_ori=True)
+# read forward solution
+forward = mne.read_forward_solution(fname_fwd)
 
 # read inverse operators
 inverse_operator_eegmeg = read_inverse_operator(fname_inv_eegmeg)
@@ -50,45 +50,27 @@ method = 'MNE'  # can be 'MNE' or 'sLORETA'
 mode = 'svd'
 n_svd_comp = 1
 
-stc_psf_eegmeg, _ = point_spread_function(inverse_operator_eegmeg,
-                                          forward, method=method,
-                                          labels=labels,
-                                          lambda2=lambda2,
-                                          pick_ori='normal',
-                                          mode=mode,
-                                          n_svd_comp=n_svd_comp)
+stc_psf_eegmeg, _ = point_spread_function(
+    inverse_operator_eegmeg, forward, method=method, labels=labels,
+    lambda2=lambda2, pick_ori='normal', mode=mode, n_svd_comp=n_svd_comp)
 
-stc_psf_meg, _ = point_spread_function(inverse_operator_meg,
-                                       forward, method=method,
-                                       labels=labels,
-                                       lambda2=lambda2,
-                                       pick_ori='normal',
-                                       mode=mode,
-                                       n_svd_comp=n_svd_comp)
+stc_psf_meg, _ = point_spread_function(
+    inverse_operator_meg, forward, method=method, labels=labels,
+    lambda2=lambda2, pick_ori='normal', mode=mode, n_svd_comp=n_svd_comp)
 
 # save for viewing in mne_analyze in order of labels in 'labels'
 # last sample is average across PSFs
 # stc_psf_eegmeg.save('psf_eegmeg')
 # stc_psf_meg.save('psf_meg')
 
-from mayavi import mlab
-fmin = 0.
 time_label = "EEGMEG %d"
-fmax = stc_psf_eegmeg.data[:, 0].max()
-fmid = fmax / 2.
-brain_eegmeg = stc_psf_eegmeg.plot(surface='inflated', hemi='rh',
-                                   subjects_dir=subjects_dir,
-                                   time_label=time_label, fmin=fmin,
-                                   fmid=fmid, fmax=fmax,
+brain_eegmeg = stc_psf_eegmeg.plot(hemi='rh', subjects_dir=subjects_dir,
+                                   time_label=time_label,
                                    figure=mlab.figure(size=(500, 500)))
 
 time_label = "MEG %d"
-fmax = stc_psf_meg.data[:, 0].max()
-fmid = fmax / 2.
-brain_meg = stc_psf_meg.plot(surface='inflated', hemi='rh',
-                             subjects_dir=subjects_dir,
-                             time_label=time_label, fmin=fmin,
-                             fmid=fmid, fmax=fmax,
+brain_meg = stc_psf_meg.plot(hemi='rh', subjects_dir=subjects_dir,
+                             time_label=time_label,
                              figure=mlab.figure(size=(500, 500)))
 
 # The PSF is centred around the right auditory cortex label,

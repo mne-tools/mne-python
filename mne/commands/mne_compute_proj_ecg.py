@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-"""Compute SSP/PCA projections for ECG artifacts
+r"""Compute SSP/PCA projections for ECG artifacts.
 
 You can do for example:
 
-$ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" --l-freq 1 --h-freq 100 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+$ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" \
+                       --l-freq 1 --h-freq 100 \
+                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 """
 from __future__ import print_function
 
@@ -17,6 +19,7 @@ import mne
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -168,24 +171,23 @@ def run():
     ecg_event_fname = prefix + '_ecg-eve.fif'
 
     if average:
-        ecg_proj_fname = prefix + '_ecg_avg_proj.fif'
+        ecg_proj_fname = prefix + '_ecg_avg-proj.fif'
     else:
-        ecg_proj_fname = prefix + '_ecg_proj.fif'
+        ecg_proj_fname = prefix + '_ecg-proj.fif'
 
-    raw = mne.io.Raw(raw_in, preload=preload)
+    raw = mne.io.read_raw_fif(raw_in, preload=preload)
 
     if raw_event_fname is not None:
-        raw_event = mne.io.Raw(raw_event_fname)
+        raw_event = mne.io.read_raw_fif(raw_event_fname)
     else:
         raw_event = raw
 
     flat = None  # XXX : not exposed to the user
-    cpe = mne.preprocessing.compute_proj_ecg
-    projs, events = cpe(raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg,
-                        l_freq, h_freq, average, filter_length, n_jobs,
-                        ch_name, reject, flat, bads, avg_ref, no_proj,
-                        event_id, ecg_l_freq, ecg_h_freq, tstart,
-                        qrs_threshold, copy=False)
+    projs, events = mne.preprocessing.compute_proj_ecg(
+        raw, raw_event, tmin, tmax, n_grad, n_mag, n_eeg, l_freq, h_freq,
+        average, filter_length, n_jobs, ch_name, reject, flat, bads, avg_ref,
+        no_proj, event_id, ecg_l_freq, ecg_h_freq, tstart, qrs_threshold,
+        copy=False)
 
     raw.close()
 

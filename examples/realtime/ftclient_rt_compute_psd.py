@@ -11,20 +11,18 @@ computation of power spectra in real-time using the
 get_data_as_epoch function.
 
 """
-
-print(__doc__)
-
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.realtime import FieldTripClient
-from mne.time_frequency import compute_epochs_psd
+from mne.time_frequency import psd_welch
 
-import matplotlib.pyplot as plt
+print(__doc__)
 
 # user must provide list of bad channels because
 # FieldTrip header object does not provide that
@@ -45,7 +43,7 @@ with FieldTripClient(host='localhost', port=1972,
     n_samples = 2048  # time window on which to compute FFT
     for ii in range(20):
         epoch = rt_client.get_data_as_epoch(n_samples=n_samples, picks=picks)
-        psd, freqs = compute_epochs_psd(epoch, fmin=2, fmax=200, n_fft=n_fft)
+        psd, freqs = psd_welch(epoch, fmin=2, fmax=200, n_fft=n_fft)
 
         cmap = 'RdBu_r'
         freq_mask = freqs < 150

@@ -1,17 +1,24 @@
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 
 from .peak_finder import peak_finder
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose
-from ..filter import band_pass_filter
+from ..utils import logger, verbose, _pl
+from ..filter import filter_data
 from ..epochs import Epochs
+from ..externals.six import string_types
 
 
 @verbose
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                     filter_length='10s', ch_name=None, tstart=0,
-                    verbose=None):
-    """Locate EOG artifacts
+                    reject_by_annotation=False, verbose=None):
+    """Locate EOG artifacts.
 
     Parameters
     ----------
@@ -19,30 +26,37 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         The raw data.
     event_id : int
         The index to assign to found events.
-    low_pass : float
-        Low pass frequency.
-    high_pass : float
-        High pass frequency.
+    l_freq : float
+        Low cut-off frequency in Hz.
+    h_freq : float
+        High cut-off frequency in Hz.
     filter_length : str | int | None
         Number of taps to use for filtering.
     ch_name: str | None
         If not None, use specified channel(s) for EOG
     tstart : float
         Start detection after tstart seconds.
+    reject_by_annotation : bool
+        Whether to omit data that is annotated as bad.
     verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     eog_events : array
         Events.
     """
-
     # Getting EOG Channel
     eog_inds = _get_eog_channel_index(ch_name, raw)
     logger.info('EOG channel index for this subject is: %s' % eog_inds)
 
-    eog, _ = raw[eog_inds, :]
+    # Reject bad segments.
+    reject_by_annotation = 'omit' if reject_by_annotation else None
+    eog, times = raw.get_data(picks=eog_inds,
+                              reject_by_annotation=reject_by_annotation,
+                              return_times=True)
+    times = times * raw.info['sfreq'] + raw.first_samp
 
     eog_events = _find_eog_events(eog, event_id=event_id, l_freq=l_freq,
                                   h_freq=h_freq,
@@ -50,29 +64,33 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                                   first_samp=raw.first_samp,
                                   filter_length=filter_length,
                                   tstart=tstart)
-
+    # Map times to corresponding samples.
+    eog_events[:, 0] = np.round(times[eog_events[:, 0] -
+                                      raw.first_samp]).astype(int)
     return eog_events
 
 
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
                      filter_length='10s', tstart=0.):
-    """Helper function"""
-
+    """Find EOG events."""
     logger.info('Filtering the data to remove DC offset to help '
                 'distinguish blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
     fmax = np.minimum(45, sampling_rate / 2.0 - 0.75)  # protect Nyquist
-    filteog = np.array([band_pass_filter(x, sampling_rate, 2, fmax,
-                                         filter_length=filter_length)
-                        for x in eog])
+    filteog = np.array([filter_data(
+        x, sampling_rate, 2, fmax, None, filter_length, 0.5, 0.5,
+        phase='zero-double', fir_window='hann', fir_design='firwin2')
+        for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))
 
     indexmax = np.argmax(temp)
 
     # easier to detect peaks with filtering.
-    filteog = band_pass_filter(eog[indexmax], sampling_rate, l_freq, h_freq,
-                               filter_length=filter_length)
+    filteog = filter_data(
+        eog[indexmax], sampling_rate, l_freq, h_freq, None,
+        filter_length, 0.5, 0.5, phase='zero-double', fir_window='hann',
+        fir_design='firwin2')
 
     # detecting eog blinks and generating event file
 
@@ -88,14 +106,16 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     eog_events += n_samples_start
     n_events = len(eog_events)
     logger.info("Number of EOG events detected : %d" % n_events)
-    eog_events = np.c_[eog_events + first_samp, np.zeros(n_events),
-                       event_id * np.ones(n_events)]
+    eog_events = np.array([eog_events + first_samp,
+                           np.zeros(n_events, int),
+                           event_id * np.ones(n_events, int)]).T
 
     return eog_events
 
 
 def _get_eog_channel_index(ch_name, inst):
-    if isinstance(ch_name, str):
+    """Get EOG channel index."""
+    if isinstance(ch_name, string_types):
         # Check if multiple EOG Channels
         if ',' in ch_name:
             ch_name = ch_name.split(',')
@@ -108,8 +128,7 @@ def _get_eog_channel_index(ch_name, inst):
             raise ValueError('%s not in channel list' % ch_name)
         else:
             logger.info('Using channel %s as EOG channel%s' % (
-                        " and ".join(ch_name),
-                        '' if len(eog_inds) < 2 else 's'))
+                        " and ".join(ch_name), _pl(eog_inds)))
     elif ch_name is None:
 
         eog_inds = pick_types(inst.info, meg=False, eeg=False, stim=False,
@@ -130,19 +149,19 @@ def _get_eog_channel_index(ch_name, inst):
 
 
 @verbose
-def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
-                      tmin=-0.5, tmax=0.5, l_freq=1, h_freq=10,
-                      reject=None, flat=None,
-                      baseline=None, verbose=None):
-    """Conveniently generate epochs around EOG artifact events
+def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
+                      tmax=0.5, l_freq=1, h_freq=10, reject=None, flat=None,
+                      baseline=None, preload=True, reject_by_annotation=True,
+                      verbose=None):
+    """Conveniently generate epochs around EOG artifact events.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data
     ch_name : str
-        The name of the channel to use for ECG peak detection.
-        The argument is mandatory if the dataset contains no ECG channels.
+        The name of the channel to use for EOG peak detection.
+        The argument is mandatory if the dataset contains no EOG channels.
     event_id : int
         The index to assign to found events
     picks : array-like of int | None (default)
@@ -157,17 +176,21 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
     h_freq : float
         High pass frequency.
     reject : dict | None
-        Rejection parameters based on peak to peak amplitude.
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. You should
-        use such parameters to reject big measurement artifacts
-        and not ECG for example
+        If reject is None then no rejection is done. Example::
+
+            reject = dict(grad=4000e-13, # T / m (gradiometers)
+                          mag=4e-12, # T (magnetometers)
+                          eeg=40e-6, # V (EEG channels)
+                          eog=250e-6 # V (EOG channels)
+                          )
+
     flat : dict | None
-        Rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     baseline : tuple or list of length 2, or None
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -176,18 +199,32 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used. If None, no correction is applied.
+    preload : bool
+        Preload epochs or not.
+    reject_by_annotation : bool
+        Whether to reject based on annotations. If True (default), segments
+        whose description begins with ``'bad'`` are not used for finding
+        artifacts and epochs overlapping with them are rejected. If False, no
+        rejection based on annotations is performed.
+
+        .. versionadded:: 0.14.0
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
-    ecg_epochs : instance of Epochs
-        Data epoched around ECG r-peaks.
+    eog_epochs : instance of Epochs
+        Data epoched around EOG events.
     """
     events = find_eog_events(raw, ch_name=ch_name, event_id=event_id,
-                             l_freq=l_freq, h_freq=h_freq)
+                             l_freq=l_freq, h_freq=h_freq,
+                             reject_by_annotation=reject_by_annotation)
 
     # create epochs around EOG events
-    eog_epochs = Epochs(raw, events=events, event_id=event_id,
-                        tmin=tmin, tmax=tmax, proj=False, reject=reject,
-                        flat=flat, picks=picks, baseline=baseline,
-                        preload=True)
+    eog_epochs = Epochs(raw, events=events, event_id=event_id, tmin=tmin,
+                        tmax=tmax, proj=False, reject=reject, flat=flat,
+                        picks=picks, baseline=baseline, preload=preload,
+                        reject_by_annotation=reject_by_annotation)
     return eog_epochs

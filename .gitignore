@@ -1,5 +1,6 @@
 *.pyc
 *.pyo
+*.sh
 *.so
 *.fif
 *.tar.gz
@@ -17,6 +18,7 @@
 *.egg*
 *.tmproj
 *.png
+*.dat
 .DS_Store
 events.eve
 foo-lh.label
@@ -29,24 +31,36 @@ tmp-*.w
 tmtags
 auto_examples
 MNE-eegbci-data*
+MNE-misc-data*
 MNE-sample-data*
 MNE-somato-data*
 MNE-spm-face*
 MNE-testing-data*
+MNE-brainstorm-data*
 MEGSIM*
 build
 coverage
+.cache/
 
 dist/
 doc/_build/
-doc/build/
+doc/generated/
 doc/auto_examples/
+doc/auto_tutorials/
 doc/modules/generated/
-doc/source/generated/
+doc/sphinxext/cachedir
 pip-log.txt
 .coverage
 tags
 doc/coverages
 doc/samples
+cover
+examples/visualization/foobar.html
 
 *.orig
+
+# PyCharm
+.idea/**
+
+# sublime
+*-e

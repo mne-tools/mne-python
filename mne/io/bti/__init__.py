@@ -1,4 +1,4 @@
-"""Bti module for conversion to FIF"""
+"""BTi module for conversion to FIF."""
 
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 

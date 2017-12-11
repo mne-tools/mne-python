@@ -9,7 +9,7 @@ import subprocess
 import warnings
 import os.path as op
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_equal
 
 import mne
 from mne.utils import requires_neuromag2ft, run_tests_if_main
@@ -69,14 +69,22 @@ def test_fieldtrip_client():
                 picks = mne.pick_types(raw_info, meg='grad', eeg=False,
                                        stim=False, eog=False)
                 epoch = rt_client.get_data_as_epoch(n_samples=5, picks=picks)
-                _, n_channels, n_samples = epoch.get_data().shape
+                n_channels, n_samples = epoch.get_data().shape[1:]
+
+                epoch2 = rt_client.get_data_as_epoch(n_samples=5, picks=picks)
+                n_channels2, n_samples2 = epoch2.get_data().shape[1:]
+
+                # case of picks=None
+                epoch = rt_client.get_data_as_epoch(n_samples=5)
 
         assert_true(tmin_samp2 > tmin_samp1)
         assert_true(len(w) >= 1)
-        assert_true(n_samples == 5)
-        assert_true(n_channels == len(picks))
+        assert_equal(n_samples, 5)
+        assert_equal(n_samples2, 5)
+        assert_equal(n_channels, len(picks))
+        assert_equal(n_channels2, len(picks))
         kill_signal.put(False)  # stop the buffer
-    except:
+    except Exception:
         kill_signal.put(False)  # stop the buffer even if tests fail
         raise
 

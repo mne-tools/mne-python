@@ -13,13 +13,13 @@ formed through merging two labels.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import os
 
 import mne
 from mne.datasets import sample
 import matplotlib.pyplot as plt
+
+print(__doc__)
 
 data_path = sample.data_path()
 os.environ['SUBJECTS_DIR'] = data_path + '/subjects'
@@ -46,9 +46,9 @@ mni_rh = mne.vertex_to_mni(vtx, 1, 'sample')[0]
 # plot the activation
 plt.figure()
 plt.axes([.1, .275, .85, .625])
-hl = plt.plot(stc.times, stc_lh.data.mean(0), 'b')
-hr = plt.plot(stc.times, stc_rh.data.mean(0), 'g')
-hb = plt.plot(stc.times, stc_bh.data.mean(0), 'r')
+hl = plt.plot(stc.times, stc_lh.data.mean(0), 'b')[0]
+hr = plt.plot(stc.times, stc_rh.data.mean(0), 'g')[0]
+hb = plt.plot(stc.times, stc_bh.data.mean(0), 'r')[0]
 plt.xlabel('Time (s)')
 plt.ylabel('Source amplitude (dSPM)')
 plt.xlim(stc.times[0], stc.times[-1])

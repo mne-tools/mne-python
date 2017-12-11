@@ -1,3 +1,9 @@
+# Authors: Eric Larson <larsoner@uw.edu>
+#          Mainak Jas <mainak.jas@telecom-paristech.fr>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#
+# License: BSD (3-clause)
+
 import os
 from os import path as op
 
@@ -5,14 +11,14 @@ import numpy as np
 from numpy.polynomial import legendre
 
 from ..parallel import parallel_func
-from ..utils import logger, _get_extra_data_path
+from ..utils import logger, verbose, _get_extra_data_path
 
 
 ##############################################################################
 # FAST LEGENDRE (DERIVATIVE) POLYNOMIALS USING LOOKUP TABLE
 
 def _next_legen_der(n, x, p0, p01, p0d, p0dd):
-    """Compute the next Legendre polynomial and its derivatives"""
+    """Compute the next Legendre polynomial and its derivatives."""
     # only good for n > 1 !
     help_ = p0
     helpd = p0d
@@ -24,12 +30,12 @@ def _next_legen_der(n, x, p0, p01, p0d, p0dd):
 
 
 def _get_legen(x, n_coeff=100):
-    """Get Legendre polynomials expanded about x"""
+    """Get Legendre polynomials expanded about x."""
     return legendre.legvander(x, n_coeff - 1)
 
 
 def _get_legen_der(xx, n_coeff=100):
-    """Get Legendre polynomial derivatives expanded about x"""
+    """Get Legendre polynomial derivatives expanded about x."""
     coeffs = np.empty((len(xx), n_coeff, 3))
     for c, x in zip(coeffs, xx):
         p0s, p0ds, p0dds = c[:, 0], c[:, 1], c[:, 2]
@@ -42,9 +48,10 @@ def _get_legen_der(xx, n_coeff=100):
     return coeffs
 
 
+@verbose
 def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
-                     n_interp=20000, force_calc=False):
-    """Return a (generated) LUT of Legendre (derivative) polynomial coeffs"""
+                     n_interp=20000, force_calc=False, verbose=None):
+    """Return a (generated) LUT of Legendre (derivative) polynomial coeffs."""
     if n_interp % 2 != 0:
         raise RuntimeError('n_interp must be even')
     fname = op.join(_get_extra_data_path(), 'tables')
@@ -62,9 +69,8 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
         extra_str = ''
         lut_shape = (n_interp + 1, n_coeff)
     if not op.isfile(fname) or force_calc:
-        n_out = (n_interp // 2)
         logger.info('Generating Legendre%s table...' % extra_str)
-        x_interp = np.arange(-n_out, n_out + 1, dtype=np.float64) / n_out
+        x_interp = np.linspace(-1, 1, n_interp + 1)
         lut = leg_fun(x_interp, n_coeff).astype(np.float32)
         if not force_calc:
             with open(fname, 'wb') as fid:
@@ -80,8 +86,8 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
     if ch_type == 'meg':
         n_facts = list()  # multn, then mult, then multn * (n + 1)
         if volume_integral:
-            n_facts.append(n_fact / ((2.0 * n_fact + 1.0)
-                                     * (2.0 * n_fact + 3.0)))
+            n_facts.append(n_fact / ((2.0 * n_fact + 1.0) *
+                                     (2.0 * n_fact + 3.0)))
         else:
             n_facts.append(n_fact / (2.0 * n_fact + 1.0))
         n_facts.append(n_facts[0] / (n_fact + 1.0))
@@ -99,47 +105,44 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
     return lut, n_fact
 
 
-def _get_legen_lut_fast(x, lut):
-    """Return Legendre coefficients for given x values in -1<=x<=1"""
-    # map into table vals (works for both vals and deriv tables)
-    n_interp = (lut.shape[0] - 1.0)
-    # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
-    mm = x * (n_interp / 2.0) + 0.5 * n_interp
-    # nearest-neighbor version (could be decent enough...)
-    idx = np.round(mm).astype(int)
-    vals = lut[idx]
-    return vals
-
-
-def _get_legen_lut_accurate(x, lut):
-    """Return Legendre coefficients for given x values in -1<=x<=1"""
-    # map into table vals (works for both vals and deriv tables)
-    n_interp = (lut.shape[0] - 1.0)
-    # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
-    mm = x * (n_interp / 2.0) + 0.5 * n_interp
-    # slower, more accurate interpolation version
-    mm = np.minimum(mm, n_interp - 0.0000000001)
-    idx = np.floor(mm).astype(int)
-    w2 = mm - idx
-    w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
-    vals = (1 - w2) * lut[idx] + w2 * lut[idx + 1]
-    return vals
-
-
 def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
-    """Lead field dot products using Legendre polynomial (P_n) series"""
+    """Lead field dot products using Legendre polynomial (P_n) series."""
     # Compute the sum occurring in the evaluation.
     # The result is
     #   sums[:]    (2n+1)^2/n beta^n P_n
-    coeffs = lut_fun(ctheta)
-    betans = np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
-                        axis=1)
-    s0 = np.dot(coeffs * betans, n_fact)  # == weighted sum across cols
+    n_chunk = 50000000 // (8 * max(n_fact.shape) * 2)
+    lims = np.concatenate([np.arange(0, beta.size, n_chunk), [beta.size]])
+    s0 = np.empty(beta.shape)
+    for start, stop in zip(lims[:-1], lims[1:]):
+        coeffs = lut_fun(ctheta[start:stop])
+        betans = np.tile(beta[start:stop][:, np.newaxis], (1, n_fact.shape[0]))
+        np.cumprod(betans, axis=1, out=betans)  # run inplace
+        coeffs *= betans
+        s0[start:stop] = np.dot(coeffs, n_fact)  # == weighted sum across cols
     return s0
 
 
 def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
-    """Lead field dot products using Legendre polynomial (P_n) series"""
+    """Lead field dot products using Legendre polynomial (P_n) series.
+
+    Parameters
+    ----------
+    beta : array, shape (n_points * n_points, 1)
+        Coefficients of the integration.
+    ctheta : array, shape (n_points * n_points, 1)
+        Cosine of the angle between the sensor integration points.
+    lut_fun : callable
+        Look-up table for evaluating Legendre polynomials.
+    n_fact : array
+        Coefficients in the integration sum.
+    volume_integral : bool
+        If True, compute volume integral.
+
+    Returns
+    -------
+    sums : array, shape (4, n_points * n_points)
+        The results.
+    """
     # Compute the sums occurring in the evaluation.
     # Two point magnetometers on the xz plane are assumed.
     # The four sums are:
@@ -147,26 +150,89 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     #  * sums[:, 1]    n/(2n+1) beta^(n+1) P_n'
     #  * sums[:, 2]    n/((2n+1)(n+1)) beta^(n+1) P_n'
     #  * sums[:, 3]    n/((2n+1)(n+1)) beta^(n+1) P_n''
-    coeffs = lut_fun(ctheta)
-    beta = (np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
-                       axis=1) * beta[:, np.newaxis])
+
     # This is equivalent, but slower:
-    # sums = np.sum(beta[:, :, np.newaxis] * n_fact * coeffs, axis=1)
+    # sums = np.sum(bbeta[:, :, np.newaxis].T * n_fact * coeffs, axis=1)
     # sums = np.rollaxis(sums, 2)
-    sums = np.einsum('ij,jk,ijk->ki', beta, n_fact, coeffs)
+    # or
+    # sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta)))
+    sums = np.empty((n_fact.shape[1], len(beta)))
+    # beta can be e.g. 3 million elements, which ends up using lots of memory
+    # so we split up the computations into ~50 MB blocks
+    n_chunk = 50000000 // (8 * max(n_fact.shape) * 2)
+    lims = np.concatenate([np.arange(0, beta.size, n_chunk), [beta.size]])
+    for start, stop in zip(lims[:-1], lims[1:]):
+        bbeta = np.tile(beta[start:stop][np.newaxis], (n_fact.shape[0], 1))
+        bbeta[0] *= beta[start:stop]
+        np.cumprod(bbeta, axis=0, out=bbeta)  # run inplace
+        np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta[start:stop]),
+                  out=sums[:, start:stop])
     return sums
 
 
 ###############################################################################
 # SPHERE DOTS
 
-def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
-                        w1, w2, volume_integral, lut, n_fact, ch_type):
-    """Lead field dot product computation for M/EEG in the sphere model"""
-    ct = np.einsum('ik,jk->ij', rr1, rr2)  # outer product, sum over coords
+_meg_const = 4e-14 * np.pi  # This is \mu_0^2/4\pi
+_eeg_const = 1.0 / (4.0 * np.pi)
+
+
+def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
+                        w1, w2s, volume_integral, lut, n_fact, ch_type):
+    """Lead field dot product computation for M/EEG in the sphere model.
+
+    Parameters
+    ----------
+    r : float
+        The integration radius. It is used to calculate beta as:
+        beta = (r * r) / (lr1 * lr2).
+    rr1 : array, shape (n_points x 3)
+        Normalized position vectors of integrations points in first sensor.
+    rr2s : list
+        Normalized position vector of integration points in second sensor.
+    lr1 : array, shape (n_points x 1)
+        Magnitude of position vector of integration points in first sensor.
+    lr2s : list
+        Magnitude of position vector of integration points in second sensor.
+    cosmags1 : array, shape (n_points x 1)
+        Direction of integration points in first sensor.
+    cosmags2s : list
+        Direction of integration points in second sensor.
+    w1 : array, shape (n_points x 1) | None
+        Weights of integration points in the first sensor.
+    w2s : list
+        Weights of integration points in the second sensor.
+    volume_integral : bool
+        If True, compute volume integral.
+    lut : callable
+        Look-up table for evaluating Legendre polynomials.
+    n_fact : array
+        Coefficients in the integration sum.
+    ch_type : str
+        The channel type. It can be 'meg' or 'eeg'.
+
+    Returns
+    -------
+    result : float
+        The integration sum.
+    """
+    if w1 is None:  # operating on surface, treat independently
+        out_shape = (len(rr2s), len(rr1_orig))
+        sum_axis = 1  # operate along second axis only at the end
+    else:
+        out_shape = (len(rr2s),)
+        sum_axis = None  # operate on flattened array at the end
+    out = np.empty(out_shape)
+    rr2 = np.concatenate(rr2s)
+    lr2 = np.concatenate(lr2s)
+    cosmags2 = np.concatenate(cosmags2s)
+
+    # outer product, sum over coords
+    ct = np.einsum('ik,jk->ij', rr1_orig, rr2)
+    np.clip(ct, -1, 1, ct)
 
     # expand axes
-    rr1 = rr1[:, np.newaxis, :]  # (n_rr1, n_rr2, n_coord) e.g. 4x4x3
+    rr1 = rr1_orig[:, np.newaxis, :]  # (n_rr1, n_rr2, n_coord) e.g. 4x4x3
     rr2 = rr2[np.newaxis, :, :]
     lr1lr2 = lr1[:, np.newaxis] * lr2[np.newaxis, :]
 
@@ -177,13 +243,13 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
         sums.shape = (4,) + beta.shape
 
         # Accumulate the result, a little bit streamlined version
-        #cosmags1 = cosmags1[:, np.newaxis, :]
-        #cosmags2 = cosmags2[np.newaxis, :, :]
-        #n1c1 = np.sum(cosmags1 * rr1, axis=2)
-        #n1c2 = np.sum(cosmags1 * rr2, axis=2)
-        #n2c1 = np.sum(cosmags2 * rr1, axis=2)
-        #n2c2 = np.sum(cosmags2 * rr2, axis=2)
-        #n1n2 = np.sum(cosmags1 * cosmags2, axis=2)
+        # cosmags1 = cosmags1[:, np.newaxis, :]
+        # cosmags2 = cosmags2[np.newaxis, :, :]
+        # n1c1 = np.sum(cosmags1 * rr1, axis=2)
+        # n1c2 = np.sum(cosmags1 * rr2, axis=2)
+        # n2c1 = np.sum(cosmags2 * rr1, axis=2)
+        # n2c2 = np.sum(cosmags2 * rr2, axis=2)
+        # n1n2 = np.sum(cosmags1 * cosmags2, axis=2)
         n1c1 = np.einsum('ik,ijk->ij', cosmags1, rr1)
         n1c2 = np.einsum('ik,ijk->ij', cosmags1, rr2)
         n2c1 = np.einsum('jk,ijk->ij', cosmags2, rr1)
@@ -198,29 +264,54 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
                   (n1c2 - ct * n1c1) * (n2c1 - ct * n2c2) * sums[3])
 
         # Give it a finishing touch!
-        const = 4e-14 * np.pi  # This is \mu_0^2/4\pi
-        result *= (const / lr1lr2)
+        result *= (_meg_const / lr1lr2)
         if volume_integral:
             result *= r
     else:  # 'eeg'
-        sums = _comp_sum_eeg(beta.flatten(), ct.flatten(), lut, n_fact)
-        sums.shape = beta.shape
-
+        result = _comp_sum_eeg(beta.flatten(), ct.flatten(), lut, n_fact)
+        result.shape = beta.shape
         # Give it a finishing touch!
-        eeg_const = 1.0 / (4.0 * np.pi)
-        result = eeg_const * sums / lr1lr2
-    # new we add them all up with weights
-    if w1 is None:  # operating on surface, treat independently
-        #result = np.sum(w2[np.newaxis, :] * result, axis=1)
-        result = np.dot(result, w2)
-    else:
-        #result = np.sum((w1[:, np.newaxis] * w2[np.newaxis, :]) * result)
-        result = np.einsum('i,j,ij', w1, w2, result)
-    return result
+        result *= _eeg_const
+        result /= lr1lr2
+        # now we add them all up with weights
+    offset = 0
+    result *= np.concatenate(w2s)
+    if w1 is not None:
+        result *= w1[:, np.newaxis]
+    for ii, w2 in enumerate(w2s):
+        out[ii] = np.sum(result[:, offset:offset + len(w2)], axis=sum_axis)
+        offset += len(w2)
+    return out
 
 
 def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
-    """Perform the lead field dot product integrations"""
+    """Perform the lead field dot product integrations.
+
+    Parameters
+    ----------
+    intrad : float
+        The integration radius. It is used to calculate beta as:
+        beta = (intrad * intrad) / (r1 * r2).
+    volume : bool
+        If True, perform volume integral.
+    coils : list of dict
+        The coils.
+    r0 : array, shape (3 x 1)
+        The origin of the sphere.
+    ch_type : str
+        The channel type. It can be 'meg' or 'eeg'.
+    lut : callable
+        Look-up table for evaluating Legendre polynomials.
+    n_fact : array
+        Coefficients in the integration sum.
+    n_jobs : int
+        Number of jobs to run in parallel.
+
+    Returns
+    -------
+    products : array, shape (n_coils, n_coils)
+        The integration products.
+    """
     if ch_type == 'eeg':
         intrad *= 0.7
     # convert to normalized distances from expansion center
@@ -239,24 +330,109 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
 
 def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
                          n_fact, ch_type, idx):
-    """Helper for parallelization"""
+    """Parallelize."""
+    # all possible combinations of two magnetometers
     products = np.zeros((len(rmags), len(rmags)))
     for ci1 in idx:
-        for ci2 in range(0, ci1 + 1):
-            res = _fast_sphere_dot_r0(intrad, rmags[ci1], rmags[ci2],
-                                      rlens[ci1], rlens[ci2],
-                                      cosmags[ci1], cosmags[ci2],
-                                      ws[ci1], ws[ci2], volume, lut,
-                                      n_fact, ch_type)
-            products[ci1, ci2] = res
-            products[ci2, ci1] = res
+        ci2 = ci1 + 1
+        res = _fast_sphere_dot_r0(
+            intrad, rmags[ci1], rmags[:ci2], rlens[ci1], rlens[:ci2],
+            cosmags[ci1], cosmags[:ci2], ws[ci1], ws[:ci2], volume, lut,
+            n_fact, ch_type)
+        products[ci1, :ci2] = res
+        products[:ci2, ci1] = res
+    return products
+
+
+def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
+                   lut, n_fact):
+    """Compute lead field dot product integrations between two coil sets.
+
+    The code is a direct translation of MNE-C code found in
+    `mne_map_data/lead_dots.c`.
+
+    Parameters
+    ----------
+    intrad : float
+        The integration radius. It is used to calculate beta as:
+        beta = (intrad * intrad) / (r1 * r2).
+    volume : bool
+        If True, compute volume integral.
+    coils1 : list of dict
+        The original coils.
+    coils2 : list of dict
+        The coils to which data is being mapped.
+    r0 : array, shape (3 x 1).
+        The origin of the sphere.
+    ch_type : str
+        The channel type. It can be 'meg' or 'eeg'
+    lut : callable
+        Look-up table for evaluating Legendre polynomials.
+    n_fact : array
+        Coefficients in the integration sum.
+
+    Returns
+    -------
+    products : array, shape (n_coils, n_coils)
+        The integration products.
+    """
+    rmags1 = [coil['rmag'] - r0[np.newaxis, :] for coil in coils1]
+    rmags2 = [coil['rmag'] - r0[np.newaxis, :] for coil in coils2]
+
+    rlens1 = [np.sqrt(np.sum(r * r, axis=1)) for r in rmags1]
+    rlens2 = [np.sqrt(np.sum(r * r, axis=1)) for r in rmags2]
+
+    rmags1 = [r / rl[:, np.newaxis] for r, rl in zip(rmags1, rlens1)]
+    rmags2 = [r / rl[:, np.newaxis] for r, rl in zip(rmags2, rlens2)]
+
+    ws1 = [coil['w'] for coil in coils1]
+    ws2 = [coil['w'] for coil in coils2]
+
+    cosmags1 = [coil['cosmag'] for coil in coils1]
+    cosmags2 = [coil['cosmag'] for coil in coils2]
+
+    products = np.zeros((len(rmags1), len(rmags2)))
+    for ci1 in range(len(coils1)):
+        res = _fast_sphere_dot_r0(
+            intrad, rmags1[ci1], rmags2, rlens1[ci1], rlens2, cosmags1[ci1],
+            cosmags2, ws1[ci1], ws2, volume, lut, n_fact, ch_type)
+        products[ci1, :] = res
     return products
 
 
 def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
                      lut, n_fact, n_jobs):
-    """Compute the map construction products"""
-    virt_ref = False
+    """Compute the map construction products.
+
+    Parameters
+    ----------
+    intrad : float
+        The integration radius. It is used to calculate beta as:
+        beta = (intrad * intrad) / (r1 * r2)
+    volume : bool
+        If True, compute a volume integral.
+    coils : list of dict
+        The coils.
+    surf : dict
+        The surface on which the field is interpolated.
+    sel : array
+        Indices of the surface vertices to select.
+    r0 : array, shape (3 x 1)
+        The origin of the sphere.
+    ch_type : str
+        The channel type. It can be 'meg' or 'eeg'.
+    lut : callable
+        Look-up table for Legendre polynomials.
+    n_fact : array
+        Coefficients in the integration sum.
+    n_jobs : int
+        Number of jobs to run in parallel.
+
+    Returns
+    -------
+    products : array, shape (n_coils, n_coils)
+        The integration products.
+    """
     # convert to normalized distances from expansion center
     rmags = [coil['rmag'] - r0[np.newaxis, :] for coil in coils]
     rlens = [np.sqrt(np.sum(r * r, axis=1)) for r in rmags]
@@ -265,18 +441,22 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
     ws = [coil['w'] for coil in coils]
     rref = None
     refl = None
+    # virt_ref = False
     if ch_type == 'eeg':
         intrad *= 0.7
-        if virt_ref:
-            rref = virt_ref[np.newaxis, :] - r0[np.newaxis, :]
-            refl = np.sqrt(np.sum(rref * rref, axis=1))
-            rref /= refl[:, np.newaxis]
+        # The virtual ref code is untested and unused, so it is
+        # commented out for now
+        # if virt_ref:
+        #     rref = virt_ref[np.newaxis, :] - r0[np.newaxis, :]
+        #     refl = np.sqrt(np.sum(rref * rref, axis=1))
+        #     rref /= refl[:, np.newaxis]
 
     rsurf = surf['rr'][sel] - r0[np.newaxis, :]
     lsurf = np.sqrt(np.sum(rsurf * rsurf, axis=1))
     rsurf /= lsurf[:, np.newaxis]
     this_nn = surf['nn'][sel]
 
+    # loop over the coils
     parallel, p_fun, _ = parallel_func(_do_surface_dots_subset, n_jobs)
     prods = parallel(p_fun(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
                            this_nn, cosmags, ws, volume, lut, n_fact, ch_type,
@@ -289,20 +469,46 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
 def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
                             this_nn, cosmags, ws, volume, lut, n_fact, ch_type,
                             idx):
-    """Helper for parallelization"""
-    products = np.zeros((len(rsurf), len(rmags)))
-    for ci in idx:
-        res = _fast_sphere_dot_r0(intrad, rsurf, rmags[ci],
-                                  lsurf, rlens[ci],
-                                  this_nn, cosmags[ci],
-                                  None, ws[ci], volume, lut,
-                                  n_fact, ch_type)
-        if rref is not None:
-            vres = _fast_sphere_dot_r0(intrad, rref, rmags[ci],
-                                       refl, rlens[ci],
-                                       None, ws[ci], volume,
-                                       lut, n_fact, ch_type)
-            products[:, ci] = res - vres
-        else:
-            products[:, ci] = res
+    """Parallelize.
+
+    Parameters
+    ----------
+    refl : array | None
+        If ch_type is 'eeg', the magnitude of position vector of the
+        virtual reference (never used).
+    lsurf : array
+        Magnitude of position vector of the surface points.
+    rlens : list of arrays of length n_coils
+        Magnitude of position vector.
+    this_nn : array, shape (n_vertices, 3)
+        Surface normals.
+    cosmags : list of array.
+        Direction of the integration points in the coils.
+    ws : list of array
+        Integration weights of the coils.
+    volume : bool
+        If True, compute volume integral.
+    lut : callable
+        Look-up table for evaluating Legendre polynomials.
+    n_fact : array
+        Coefficients in the integration sum.
+    ch_type : str
+        'meg' or 'eeg'
+    idx : array, shape (n_coils x 1)
+        Index of coil.
+
+    Returns
+    -------
+    products : array, shape (n_coils, n_coils)
+        The integration products.
+    """
+    products = _fast_sphere_dot_r0(
+        intrad, rsurf, rmags, lsurf, rlens, this_nn, cosmags, None, ws,
+        volume, lut, n_fact, ch_type).T
+    if rref is not None:
+        raise NotImplementedError  # we don't ever use this, isn't tested
+        # vres = _fast_sphere_dot_r0(
+        #     intrad, rref, rmags, refl, rlens, this_nn, cosmags, None, ws,
+        #     volume, lut, n_fact, ch_type)
+        # products -= vres
     return products

@@ -11,21 +11,19 @@ accuracy is plotted
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
-import time
+import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.realtime import MockRtClient, RtEpochs
 from mne.datasets import sample
 
-import numpy as np
-import matplotlib.pyplot as plt
+print(__doc__)
 
 # Fiff file to simulate the realtime client
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.io.Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -42,7 +40,8 @@ rt_client = MockRtClient(raw)
 
 # create the real-time epochs object
 rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks, decim=1,
-                     reject=dict(grad=4000e-13, eog=150e-6))
+                     reject=dict(grad=4000e-13, eog=150e-6), baseline=None,
+                     isi_max=4.)
 
 # start the acquisition
 rt_epochs.start()
@@ -53,37 +52,50 @@ rt_client.send_data(rt_epochs, picks, tmin=0, tmax=90, buffer_size=1000)
 # Decoding in sensor space using a linear SVM
 n_times = len(rt_epochs.times)
 
-from sklearn import preprocessing
-from sklearn.svm import SVC
-from sklearn.pipeline import Pipeline
-from sklearn.cross_validation import cross_val_score, ShuffleSplit
+from sklearn import preprocessing  # noqa
+from sklearn.svm import SVC  # noqa
+from sklearn.pipeline import Pipeline  # noqa
+from sklearn.model_selection import cross_val_score, ShuffleSplit  # noqa
+from mne.decoding import Vectorizer, FilterEstimator  # noqa
 
-from mne.decoding import ConcatenateChannels, FilterEstimator
 
 scores_x, scores, std_scores = [], [], []
 
-filt = FilterEstimator(rt_epochs.info, 1, 40)
+# don't highpass filter because it's epoched data and the signal length
+# is small
+filt = FilterEstimator(rt_epochs.info, None, 40, fir_design='firwin')
 scaler = preprocessing.StandardScaler()
-concatenator = ConcatenateChannels()
+vectorizer = Vectorizer()
 clf = SVC(C=1, kernel='linear')
 
-concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
+concat_classifier = Pipeline([('filter', filt), ('vector', vectorizer),
                               ('scaler', scaler), ('svm', clf)])
+
+data_picks = mne.pick_types(rt_epochs.info, meg='grad', eeg=False, eog=True,
+                            stim=False, exclude=raw.info['bads'])
+ax = plt.subplot(111)
+ax.set_xlabel('Trials')
+ax.set_ylabel('Classification score (% correct)')
+ax.set_title('Real-time decoding')
+ax.set_xlim([min_trials, 50])
+ax.set_ylim([30, 105])
+plt.axhline(50, color='k', linestyle='--', label="Chance level")
+plt.show(block=False)
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
     print("Just got epoch %d" % (ev_num + 1))
 
     if ev_num == 0:
-        X = ev.data[None, ...]
-        y = int(ev.comment)
+        X = ev.data[None, data_picks, :]
+        y = int(ev.comment)  # the comment attribute contains the event_id
     else:
-        X = np.concatenate((X, ev.data[None, ...]), axis=0)
+        X = np.concatenate((X, ev.data[None, data_picks, :]), axis=0)
         y = np.append(y, int(ev.comment))
 
     if ev_num >= min_trials:
 
-        cv = ShuffleSplit(len(y), 5, test_size=0.2, random_state=42)
+        cv = ShuffleSplit(5, test_size=0.2, random_state=42)
         scores_t = cross_val_score(concat_classifier, X, y, cv=cv,
                                    n_jobs=1) * 100
 
@@ -92,20 +104,19 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
         scores_x.append(ev_num)
 
         # Plot accuracy
-        plt.clf()
 
-        plt.plot(scores_x[-5:], scores[-5:], '+', label="Classif. score")
-        plt.hold(True)
-        plt.plot(scores_x[-5:], scores[-5:])
-        plt.axhline(50, color='k', linestyle='--', label="Chance level")
-        hyp_limits = (np.asarray(scores[-5:]) - np.asarray(std_scores[-5:]),
-                      np.asarray(scores[-5:]) + np.asarray(std_scores[-5:]))
-        plt.fill_between(scores_x[-5:], hyp_limits[0], y2=hyp_limits[1],
-                         color='b', alpha=0.5)
-        plt.xlabel('Trials')
-        plt.ylabel('Classification score (% correct)')
-        plt.ylim([30, 105])
-        plt.title('Real-time decoding')
-        plt.show()
+        plt.plot(scores_x[-2:], scores[-2:], '-x', color='b',
+                 label="Classif. score")
+        ax.plot(scores_x[-1], scores[-1])
 
-        time.sleep(0.1)
+        hyp_limits = (np.asarray(scores) - np.asarray(std_scores),
+                      np.asarray(scores) + np.asarray(std_scores))
+        fill = plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1],
+                                color='b', alpha=0.5)
+        plt.pause(0.01)
+        plt.draw()
+        ax.collections.remove(fill)  # Remove old fill area
+
+plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1], color='b',
+                 alpha=0.5)
+plt.draw()  # Final figure

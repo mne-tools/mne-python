@@ -1,4 +1,34 @@
-"""Traits-based GUI for head-MRI coregistration"""
+# -*- coding: utf-8 -*-
+"""Traits-based GUI for head-MRI coregistration.
+
+Hierarchy
+---------
+This is the hierarchy of classes for control. Brackets like [1] denote
+properties that are set to be equivalent.
+
+::
+
+  CoregFrame: GUI for head-MRI coregistration.
+  |-- CoregModel (model): Traits object for estimating the head mri transform.
+  |   |-- MRIHeadWithFiducialsModel (mri) [1]: Represent an MRI head shape with fiducials.
+  |   |-- MRISubjectSource (subject_source) [2]: Find subjects in SUBJECTS_DIR and select one.
+  |   |-- SurfaceSource (bem): Expose points and tris of a file storing a surface.
+  |   |-- FiducialsSource (fid): Expose points of a given fiducials fif file.
+  |   +-- DigSource (hsp): Expose measurement information from a inst file.
+  |-- MlabSceneModel (scene) [3]: mayavi.core.ui.mayavi_scene
+  |-- HeadViewController (headview) [4]: Set head views for the given coordinate system.
+  |   +-- MlabSceneModel (scene) [3*]: ``HeadViewController(scene=CoregFrame.scene)``
+  |-- SubjectSelectorPanel (subject_panel): Subject selector panel
+  |   +-- MRISubjectSource (model) [2*]: ``SubjectSelectorPanel(model=self.model.mri.subject_source)``
+  |-- SurfaceObject (mri_obj) [5]: Represent a solid object in a mayavi scene.
+  |-- FiducialsPanel (fid_panel): Set fiducials on an MRI surface.
+  |   |-- MRIHeadWithFiducialsModel (model) [1*]: ``FiducialsPanel(model=CoregFrame.model.mri, headview=CoregFrame.headview)``
+  |   |-- HeadViewController (headview) [4*]: ``FiducialsPanel(model=CoregFrame.model.mri, headview=CoregFrame.headview)``
+  |   +-- SurfaceObject (hsp_obj) [5*]: ``CoregFrame.fid_panel.hsp_obj = CoregFrame.mri_obj``
+  |-- CoregPanel (coreg_panel): Coregistration panel for Head<->MRI with scaling.
+  +-- PointObject ({hsp, eeg, lpa, nasion, rpa, hsp_lpa, hsp_nasion, hsp_rpa} + _obj): Represent a group of individual points in a mayavi scene.
+
+"""  # noqa: E501
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -8,51 +38,41 @@ import os
 from ..externals.six.moves import queue
 import re
 from threading import Thread
+import traceback
 import warnings
 
 import numpy as np
 from scipy.spatial.distance import cdist
 
-# allow import without traits
-try:
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from mayavi.tools.mlab_scene_model import MlabSceneModel
-    from pyface.api import (error, confirm, warning, OK, YES, information,
-                            FileDialog, GUI)
-    from traits.api import (Bool, Button, cached_property, DelegatesTo,
-                            Directory, Enum, Float, HasTraits,
-                            HasPrivateTraits, Instance, Int, on_trait_change,
-                            Property, Str)
-    from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid,
-                              EnumEditor, Handler, Label, TextEditor)
-    from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
-    from tvtk.pyface.scene_editor import SceneEditor
-except:
-    from ..utils import trait_wraith
-    HasTraits = HasPrivateTraits = Handler = object
-    cached_property = on_trait_change = MayaviScene = MlabSceneModel =\
-        Bool = Button = DelegatesTo = Directory = Enum = Float = Instance =\
-        Int = Property = Str = View = Item = Group = HGroup = VGroup = VGrid =\
-        EnumEditor = Label = TextEditor = Action = UndoButton = CancelButton =\
-        NoButtons = SceneEditor = trait_wraith
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from mayavi.tools.mlab_scene_model import MlabSceneModel
+from pyface.api import (error, confirm, OK, YES, NO, CANCEL, information,
+                        FileDialog, GUI)
+from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
+                        Enum, Float, HasTraits, HasPrivateTraits, Instance,
+                        Int, on_trait_change, Property, Str)
+from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
+                          Handler, Label, TextEditor, Spring, InstanceEditor)
+from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
+from tvtk.pyface.scene_editor import SceneEditor
 
-
+from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import bem_fname, trans_fname
-from ..io.constants import FIFF
-from ..forward import prepare_bem_model
+from ..defaults import DEFAULTS
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
-                          translation, scaling, rotation_angles)
+                          translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
-                     _point_cloud_error)
-from ..utils import get_subjects_dir, logger
-from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
-from ._file_traits import (set_mne_root, trans_wildcard, RawSource,
-                           SubjectSelectorPanel)
-from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
-                      _testing_mode)
+                     _find_fiducials_files, _point_cloud_error)
+from ..viz._3d import _toggle_mlab_render
+from ..utils import logger, set_config
+from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel, _mm_fmt
+from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
+from ._viewer import HeadViewController, PointObject, SurfaceObject
 
+defaults = DEFAULTS['coreg']
 
-laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
+laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float,
+                                format_func=_mm_fmt)
 
 
 class CoregModel(HasPrivateTraits):
@@ -62,101 +82,120 @@ class CoregModel(HasPrivateTraits):
     -----
     Transform from head to mri space is modelled with the following steps:
 
-     * move the head shape to its nasion position
-     * rotate the head shape with user defined rotation around its nasion
-     * move the head shape by user defined translation
-     * move the head shape origin to the mri nasion
+    * move the head shape to its nasion position
+    * rotate the head shape with user defined rotation around its nasion
+    * move the head shape by user defined translation
+    * move the head shape origin to the mri nasion
 
     If MRI scaling is enabled,
 
-     * the MRI is scaled relative to its origin center (prior to any
-       transformation of the digitizer head)
-
+    * the MRI is scaled relative to its origin center (prior to any
+      transformation of the digitizer head)
 
     Don't sync transforms to anything to prevent them from being recomputed
     upon every parameter change.
     """
+
     # data sources
     mri = Instance(MRIHeadWithFiducialsModel, ())
-    hsp = Instance(RawSource, ())
+    hsp = Instance(DigSource, ())
 
     # parameters
+    guess_mri_subject = Bool(True)  # change MRI subject when dig file changes
     grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
                       "head outwards to compensate for hair on the digitizer "
                       "head shape")
     n_scale_params = Enum(0, 1, 3, desc="Scale the MRI to better fit the "
                           "subject's head shape (a new MRI subject will be "
                           "created with a name specified upon saving)")
-    scale_x = Float(1, label="Right (X)")
-    scale_y = Float(1, label="Anterior (Y)")
-    scale_z = Float(1, label="Superior (Z)")
-    rot_x = Float(0, label="Right (X)")
-    rot_y = Float(0, label="Anterior (Y)")
-    rot_z = Float(0, label="Superior (Z)")
-    trans_x = Float(0, label="Right (X)")
-    trans_y = Float(0, label="Anterior (Y)")
-    trans_z = Float(0, label="Superior (Z)")
+    scale_x = Float(1, label="R (X)")
+    scale_y = Float(1, label="A (Y)")
+    scale_z = Float(1, label="S (Z)")
+    rot_x = Float(0, label="R (X)")
+    rot_y = Float(0, label="A (Y)")
+    rot_z = Float(0, label="S (Z)")
+    trans_x = Float(0, label="R (X)")
+    trans_y = Float(0, label="A (Y)")
+    trans_z = Float(0, label="S (Z)")
 
+    # options during scaling
+    scale_labels = Bool(True, desc="whether to scale *.label files")
+    copy_annot = Bool(True, desc="whether to copy *.annot files for scaled "
+                      "subject")
     prepare_bem_model = Bool(True, desc="whether to run mne_prepare_bem_model "
                              "after scaling the MRI")
 
     # secondary to parameters
-    scale = Property(depends_on=['n_scale_params', 'scale_x', 'scale_y',
-                                 'scale_z'])
-    has_fid_data = Property(Bool, depends_on=['mri_origin', 'hsp.nasion'],
-                            desc="Required fiducials data is present.")
-    has_pts_data = Property(Bool, depends_on=['mri.points', 'hsp.points'])
+    scale = Property(
+        depends_on=['n_scale_params', 'scale_x', 'scale_y', 'scale_z'])
+    has_fid_data = Property(
+        Bool,
+        desc="Required fiducials data is present.",
+        depends_on=['mri_origin', 'hsp.nasion'])
+    has_pts_data = Property(
+        Bool,
+        depends_on=['mri.points', 'hsp.points'])
+    has_eeg_data = Property(
+        Bool,
+        depends_on=['mri.points', 'hsp.eeg_points'])
 
     # MRI dependent
-    mri_origin = Property(depends_on=['mri.nasion', 'scale'],
-                          desc="Coordinates of the scaled MRI's nasion.")
+    mri_origin = Property(
+        desc="Coordinates of the scaled MRI's nasion.",
+        depends_on=['mri.nasion', 'scale'])
 
     # target transforms
-    mri_scale_trans = Property(depends_on=['scale'])
-    head_mri_trans = Property(depends_on=['hsp.nasion', 'rot_x', 'rot_y',
-                                          'rot_z', 'trans_x', 'trans_y',
-                                          'trans_z', 'mri_origin'],
-                              desc="Transformaiton of the head shape to "
-                              "match the scaled MRI.")
+    mri_scale_trans = Property(
+        depends_on=['scale'])
+    head_mri_trans = Property(
+        desc="Transformaiton of the head shape to match the scaled MRI.",
+        depends_on=['hsp.nasion', 'rot_x', 'rot_y', 'rot_z',
+                    'trans_x', 'trans_y', 'trans_z', 'mri_origin'])
 
     # info
     subject_has_bem = DelegatesTo('mri')
     lock_fiducials = DelegatesTo('mri')
-    can_prepare_bem_model = Property(Bool, depends_on=['n_scale_params',
-                                                       'subject_has_bem'])
+    can_prepare_bem_model = Property(
+        Bool,
+        depends_on=['n_scale_params', 'subject_has_bem'])
     can_save = Property(Bool, depends_on=['head_mri_trans'])
-    raw_subject = Property(depends_on='hsp.raw_fname', desc="Subject guess "
-                           "based on the raw file name.")
+    raw_subject = Property(
+        desc="Subject guess based on the raw file name.",
+        depends_on=['hsp.inst_fname'])
 
     # transformed geometry
     processed_mri_points = Property(depends_on=['mri.points', 'grow_hair'])
-    transformed_mri_points = Property(depends_on=['processed_mri_points',
-                                                  'mri_scale_trans'])
-    transformed_hsp_points = Property(depends_on=['hsp.points',
-                                                  'head_mri_trans'])
-    transformed_mri_lpa = Property(depends_on=['mri.lpa', 'mri_scale_trans'])
+    transformed_mri_points = Property(
+        depends_on=['processed_mri_points', 'mri_scale_trans'])
+    transformed_hsp_points = Property(
+        depends_on=['hsp.points', 'head_mri_trans'])
+    transformed_mri_lpa = Property(
+        depends_on=['mri.lpa', 'mri_scale_trans'])
     transformed_hsp_lpa = Property(depends_on=['hsp.lpa', 'head_mri_trans'])
-    transformed_mri_nasion = Property(depends_on=['mri.nasion',
-                                                  'mri_scale_trans'])
-    transformed_hsp_nasion = Property(depends_on=['hsp.nasion',
-                                                  'head_mri_trans'])
-    transformed_mri_rpa = Property(depends_on=['mri.rpa', 'mri_scale_trans'])
-    transformed_hsp_rpa = Property(depends_on=['hsp.rpa', 'head_mri_trans'])
+    transformed_mri_nasion = Property(
+        depends_on=['mri.nasion', 'mri_scale_trans'])
+    transformed_hsp_nasion = Property(
+        depends_on=['hsp.nasion', 'head_mri_trans'])
+    transformed_mri_rpa = Property(
+        depends_on=['mri.rpa', 'mri_scale_trans'])
+    transformed_hsp_rpa = Property(
+        depends_on=['hsp.rpa', 'head_mri_trans'])
 
     # fit properties
-    lpa_distance = Property(depends_on=['transformed_mri_lpa',
-                                        'transformed_hsp_lpa'])
-    nasion_distance = Property(depends_on=['transformed_mri_nasion',
-                                           'transformed_hsp_nasion'])
-    rpa_distance = Property(depends_on=['transformed_mri_rpa',
-                                        'transformed_hsp_rpa'])
-    point_distance = Property(depends_on=['transformed_mri_points',
-                                          'transformed_hsp_points'])
+    lpa_distance = Property(
+        depends_on=['transformed_mri_lpa', 'transformed_hsp_lpa'])
+    nasion_distance = Property(
+        depends_on=['transformed_mri_nasion', 'transformed_hsp_nasion'])
+    rpa_distance = Property(
+        depends_on=['transformed_mri_rpa', 'transformed_hsp_rpa'])
+    point_distance = Property(
+        depends_on=['transformed_mri_points', 'transformed_hsp_points'])
 
     # fit property info strings
-    fid_eval_str = Property(depends_on=['lpa_distance', 'nasion_distance',
-                                        'rpa_distance'])
-    points_eval_str = Property(depends_on='point_distance')
+    fid_eval_str = Property(
+        depends_on=['lpa_distance', 'nasion_distance', 'rpa_distance'])
+    points_eval_str = Property(
+        depends_on=['point_distance'])
 
     @cached_property
     def _get_can_prepare_bem_model(self):
@@ -172,6 +211,11 @@ class CoregModel(HasPrivateTraits):
         return has
 
     @cached_property
+    def _get_has_eeg_data(self):
+        has = (np.any(self.mri.points) and np.any(self.hsp.eeg_points))
+        return has
+
+    @cached_property
     def _get_has_fid_data(self):
         has = (np.any(self.mri_origin) and np.any(self.hsp.nasion))
         return has
@@ -182,26 +226,19 @@ class CoregModel(HasPrivateTraits):
             return np.array(1)
         elif self.n_scale_params == 1:
             return np.array(self.scale_x)
-        else:
+        else:  # if self.n_scale_params == 3:
             return np.array([self.scale_x, self.scale_y, self.scale_z])
 
     @cached_property
     def _get_mri_scale_trans(self):
-        if np.isscalar(self.scale) or self.scale.ndim == 0:
-            if self.scale == 1:
-                return np.eye(4)
-            else:
-                s = self.scale
-                return scaling(s, s, s)
+        if self.scale.ndim == 0:
+            return scaling(self.scale, self.scale, self.scale)
         else:
             return scaling(*self.scale)
 
     @cached_property
     def _get_mri_origin(self):
-        if np.isscalar(self.scale) and self.scale == 1:
-            return self.mri.nasion
-        else:
-            return self.mri.nasion * self.scale
+        return self.mri.nasion * self.scale
 
     @cached_property
     def _get_head_mri_trans(self):
@@ -231,23 +268,20 @@ class CoregModel(HasPrivateTraits):
     def _get_processed_mri_points(self):
         if self.grow_hair:
             if len(self.mri.norms):
-                if self.n_scale_params == 0:
-                    scaled_hair_dist = self.grow_hair / 1000
-                else:
-                    scaled_hair_dist = self.grow_hair / self.scale / 1000
-
+                scaled_hair_dist = self.grow_hair / (self.scale * 1000)
                 points = self.mri.points.copy()
                 hair = points[:, 2] > points[:, 1]
                 points[hair] += self.mri.norms[hair] * scaled_hair_dist
                 return points
             else:
-                error(None, "Norms missing form bem, can't grow hair")
+                error(None, "Norms missing from bem, can't grow hair")
                 self.grow_hair = 0
         return self.mri.points
 
     @cached_property
     def _get_transformed_mri_points(self):
-        points = apply_trans(self.mri_scale_trans, self.processed_mri_points)
+        points = apply_trans(self.mri_scale_trans,
+                             self.processed_mri_points)
         return points
 
     @cached_property
@@ -295,8 +329,8 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_point_distance(self):
-        if (len(self.transformed_hsp_points) == 0
-                or len(self.transformed_mri_points) == 0):
+        if (len(self.transformed_hsp_points) == 0 or
+                len(self.transformed_mri_points) == 0):
             return
         dists = cdist(self.transformed_hsp_points, self.transformed_mri_points,
                       'euclidean')
@@ -307,35 +341,33 @@ class CoregModel(HasPrivateTraits):
     def _get_fid_eval_str(self):
         d = (self.lpa_distance * 1000, self.nasion_distance * 1000,
              self.rpa_distance * 1000)
-        txt = ("Fiducials Error: LPA %.1f mm, NAS %.1f mm, RPA %.1f mm" % d)
-        return txt
+        return 'Error: LPA=%.1f NAS=%.1f RPA=%.1f mm' % d
 
     @cached_property
     def _get_points_eval_str(self):
         if self.point_distance is None:
             return ""
-        av_dist = np.mean(self.point_distance)
-        return "Average Points Error: %.1f mm" % (av_dist * 1000)
+        av_dist = 1000 * np.mean(self.point_distance)
+        std_dist = 1000 * np.std(self.point_distance)
+        return u"Points: μ=%.1f, σ=%.1f mm" % (av_dist, std_dist)
 
     def _get_raw_subject(self):
-        # subject name guessed based on the raw file name
-        if '_' in self.hsp.raw_fname:
-            subject, _ = self.hsp.raw_fname.split('_', 1)
-            if not subject:
-                subject = None
-        else:
-            subject = None
-        return subject
+        # subject name guessed based on the inst file name
+        if '_' in self.hsp.inst_fname:
+            subject, _ = self.hsp.inst_fname.split('_', 1)
+            if subject:
+                return subject
 
     @on_trait_change('raw_subject')
     def _on_raw_subject_change(self, subject):
-        if subject in self.mri.subject_source.subjects:
-            self.mri.subject = subject
-        elif 'fsaverage' in self.mri.subject_source.subjects:
-            self.mri.subject = 'fsaverage'
+        if self.guess_mri_subject:
+            if subject in self.mri.subject_source.subjects:
+                self.mri.subject = subject
+            elif 'fsaverage' in self.mri.subject_source.subjects:
+                self.mri.subject = 'fsaverage'
 
     def omit_hsp_points(self, distance=0, reset=False):
-        """Exclude head shape points that are far away from the MRI head
+        """Exclude head shape points that are far away from the MRI head.
 
         Parameters
         ----------
@@ -361,7 +393,7 @@ class CoregModel(HasPrivateTraits):
         mri_pts = self.transformed_mri_points
         point_distance = _point_cloud_error(hsp_pts, mri_pts)
         new_sub_filter = point_distance <= distance
-        n_excluded = np.sum(new_sub_filter == False)
+        n_excluded = np.sum(new_sub_filter == False)  # noqa: E712
         logger.info("Coregistration: Excluding %i head shape points with "
                     "distance >= %.3f m.", n_excluded, distance)
 
@@ -370,7 +402,7 @@ class CoregModel(HasPrivateTraits):
         if old_filter is None:
             new_filter = new_sub_filter
         else:
-            new_filter = np.ones(len(self.hsp.raw_points), np.bool8)
+            new_filter = np.ones(len(self.hsp.points), np.bool8)
             new_filter[old_filter] = new_sub_filter
 
         # set the filter
@@ -378,7 +410,7 @@ class CoregModel(HasPrivateTraits):
             self.hsp.points_filter = new_filter
 
     def fit_auricular_points(self):
-        "Find rotation to fit LPA and RPA"
+        """Find rotation to fit LPA and RPA."""
         src_fid = np.vstack((self.hsp.lpa, self.hsp.rpa))
         src_fid -= self.hsp.nasion
 
@@ -394,7 +426,7 @@ class CoregModel(HasPrivateTraits):
         self.rot_x, self.rot_y, self.rot_z = rot
 
     def fit_fiducials(self):
-        "Find rotation and translation to fit all 3 fiducials"
+        """Find rotation and translation to fit all 3 fiducials."""
         src_fid = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
         src_fid -= self.hsp.nasion
 
@@ -410,7 +442,7 @@ class CoregModel(HasPrivateTraits):
         self.trans_x, self.trans_y, self.trans_z = est[3:]
 
     def fit_hsp_points(self):
-        "Find rotation to fit head shapes"
+        """Find rotation to fit head shapes."""
         src_pts = self.hsp.points - self.hsp.nasion
 
         tgt_pts = self.processed_mri_points - self.mri.nasion
@@ -424,7 +456,7 @@ class CoregModel(HasPrivateTraits):
         self.rot_x, self.rot_y, self.rot_z = rot
 
     def fit_scale_auricular_points(self):
-        "Find rotation and MRI scaling based on LPA and RPA"
+        """Find rotation and MRI scaling based on LPA and RPA."""
         src_fid = np.vstack((self.hsp.lpa, self.hsp.rpa))
         src_fid -= self.hsp.nasion
 
@@ -440,7 +472,7 @@ class CoregModel(HasPrivateTraits):
         self.rot_x, self.rot_y, self.rot_z = x[:3]
 
     def fit_scale_fiducials(self):
-        "Find translation, rotation and scaling based on the three fiducials"
+        """Find translation, rotation, scaling based on the three fiducials."""
         src_fid = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
         src_fid -= self.hsp.nasion
 
@@ -457,72 +489,42 @@ class CoregModel(HasPrivateTraits):
         self.trans_x, self.trans_y, self.trans_z = est[3:6]
 
     def fit_scale_hsp_points(self):
-        "Find MRI scaling and rotation to match head shape points"
+        """Find MRI scaling and rotation to match head shape points."""
         src_pts = self.hsp.points - self.hsp.nasion
-
         tgt_pts = self.processed_mri_points - self.mri.nasion
-
         if self.n_scale_params == 1:
             x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x)
             est = fit_point_cloud(src_pts, tgt_pts, rotate=True,
                                   translate=False, scale=1, x0=x0)
 
             self.scale_x = 1. / est[3]
-        else:
+        else:  # if self.n_scale_params == 3:
             x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x,
                   1. / self.scale_y, 1. / self.scale_z)
             est = fit_point_cloud(src_pts, tgt_pts, rotate=True,
                                   translate=False, scale=3, x0=x0)
             self.scale_x, self.scale_y, self.scale_z = 1. / est[3:]
-
         self.rot_x, self.rot_y, self.rot_z = est[:3]
 
-    def get_scaling_job(self, subject_to):
-        desc = 'Scaling %s' % subject_to
-        func = scale_mri
-        args = (self.mri.subject, subject_to, self.scale)
-        kwargs = dict(overwrite=True, subjects_dir=self.mri.subjects_dir)
-        return (desc, func, args, kwargs)
-
-    def get_prepare_bem_model_job(self, subject_to):
+    def get_scaling_job(self, subject_to, skip_fiducials):
+        """Find all arguments needed for the scaling worker."""
         subjects_dir = self.mri.subjects_dir
         subject_from = self.mri.subject
-
-        bem_name = 'inner_skull-bem'
-        bem_file = bem_fname.format(subjects_dir=subjects_dir,
-                                    subject=subject_from, name=bem_name)
-        if not os.path.exists(bem_file):
+        bem_names = []
+        if self.can_prepare_bem_model and self.prepare_bem_model:
             pattern = bem_fname.format(subjects_dir=subjects_dir,
-                                       subject=subject_to, name='(.+-bem)')
-            bem_dir, bem_file = os.path.split(pattern)
-            m = None
-            bem_file_pattern = re.compile(bem_file)
-            for name in os.listdir(bem_dir):
-                m = bem_file_pattern.match(name)
-                if m is not None:
-                    break
+                                       subject=subject_from, name='(.+-bem)')
+            bem_dir, pattern = os.path.split(pattern)
+            for filename in os.listdir(bem_dir):
+                match = re.match(pattern, filename)
+                if match:
+                    bem_names.append(match.group(1))
 
-            if m is None:
-                pattern = bem_fname.format(subjects_dir=subjects_dir,
-                                           subject=subject_to, name='*-bem')
-                err = ("No bem file found; looking for files matching "
-                       "%s" % pattern)
-                error(None, err)
-
-            bem_name = m.group(1)
-
-        bem_file = bem_fname.format(subjects_dir=subjects_dir,
-                                    subject=subject_to, name=bem_name)
-
-        # job
-        desc = 'mne_prepare_bem_model for %s' % subject_to
-        func = prepare_bem_model
-        args = (bem_file,)
-        kwargs = {}
-        return (desc, func, args, kwargs)
+        return (subjects_dir, subject_from, subject_to, self.scale,
+                skip_fiducials, self.scale_labels, self.copy_annot, bem_names)
 
     def load_trans(self, fname):
-        """Load the head-mri transform from a fif file
+        """Load the head-mri transform from a fif file.
 
         Parameters
         ----------
@@ -530,17 +532,21 @@ class CoregModel(HasPrivateTraits):
             File path.
         """
         info = read_trans(fname)
+        # XXX this should really ensure that its a head->MRI trans. We should
+        # add from/to logic inside read_trans, which can also then invert it
+        # if necessary. This can then be used in a number of places
+        # (maxwell_filter, forward, viz._3d, etc.)
         head_mri_trans = info['trans']
         self.set_trans(head_mri_trans)
 
     def reset(self):
-        """Reset all the parameters affecting the coregistration"""
+        """Reset all the parameters affecting the coregistration."""
         self.reset_traits(('grow_hair', 'n_scaling_params', 'scale_x',
                            'scale_y', 'scale_z', 'rot_x', 'rot_y', 'rot_z',
                            'trans_x', 'trans_y', 'trans_z'))
 
     def set_trans(self, head_mri_trans):
-        """Set rotation and translation parameters from a transformation matrix
+        """Set rotation and translation params from a transformation matrix.
 
         Parameters
         ----------
@@ -566,7 +572,7 @@ class CoregModel(HasPrivateTraits):
         self.trans_z = z
 
     def save_trans(self, fname):
-        """Save the head-mri transform as a fif file
+        """Save the head-mri transform as a fif file.
 
         Parameters
         ----------
@@ -575,33 +581,198 @@ class CoregModel(HasPrivateTraits):
         """
         if not self.can_save:
             raise RuntimeError("Not enough information for saving transform")
-        trans_matrix = self.head_mri_trans
-        trans = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
-                 'trans': trans_matrix}
-        write_trans(fname, trans)
+        write_trans(fname, Transform('head', 'mri', self.head_mri_trans))
 
 
 class CoregFrameHandler(Handler):
-    """Handler that checks for unfinished processes before closing its window
-    """
+    """Check for unfinished processes before closing its window."""
+
+    def object_title_changed(self, info):
+        """Set the title when it gets changed."""
+        info.ui.title = info.object.title
+
     def close(self, info, is_ok):
+        """Handle the close event."""
         if info.object.queue.unfinished_tasks:
             information(None, "Can not close the window while saving is still "
                         "in progress. Please wait until all MRIs are "
                         "processed.", "Saving Still in Progress")
             return False
         else:
+            # store configuration, but don't prevent from closing on error
+            try:
+                info.object.save_config()
+            except Exception as exc:
+                warnings.warn("Error saving GUI configuration:\n%s" % (exc,))
             return True
 
 
+def _make_view_coreg_panel(scrollable=False):
+    """Generate View for CoregPanel."""
+    view = View(VGroup(Item('grow_hair', show_label=True),
+                       Item('n_scale_params', label='MRI Scaling',
+                            style='custom', show_label=True,
+                            editor=EnumEditor(values={0: '1:None',
+                                                      1: '2:Uniform',
+                                                      3: '3:3-axis'},
+                                              cols=4)),
+                       VGrid(Item('scale_x', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Scale along "
+                                  "right-left axis",
+                                  enabled_when='n_scale_params > 0',
+                                  width=+50),
+                             Item('scale_x_dec',
+                                  enabled_when='n_scale_params > 0',
+                                  width=-50),
+                             Item('scale_x_inc',
+                                  enabled_when='n_scale_params > 0',
+                                  width=-50),
+                             Item('scale_step', tooltip="Scaling step",
+                                  enabled_when='n_scale_params > 0',
+                                  width=+50),
+                             Item('scale_y', editor=laggy_float_editor,
+                                  show_label=True,
+                                  enabled_when='n_scale_params > 1',
+                                  tooltip="Scale along anterior-posterior "
+                                  "axis", width=+50),
+                             Item('scale_y_dec',
+                                  enabled_when='n_scale_params > 1',
+                                  width=-50),
+                             Item('scale_y_inc',
+                                  enabled_when='n_scale_params > 1',
+                                  width=-50),
+                             Label('(Step)', width=+50),
+                             Item('scale_z', editor=laggy_float_editor,
+                                  show_label=True,
+                                  enabled_when='n_scale_params > 1',
+                                  tooltip="Scale along anterior-posterior "
+                                  "axis", width=+50),
+                             Item('scale_z_dec',
+                                  enabled_when='n_scale_params > 1',
+                                  width=-50),
+                             Item('scale_z_inc',
+                                  enabled_when='n_scale_params > 1',
+                                  width=-50),
+                             show_labels=False, show_border=True,
+                             label='Scaling', columns=4),
+                       HGroup(Item('fits_hsp_points',
+                                   enabled_when='n_scale_params',
+                                   tooltip="Rotate the digitizer head shape "
+                                   "and scale the MRI so as to minimize the "
+                                   "distance from each digitizer point to the "
+                                   "closest MRI point"),
+                              Item('fits_ap',
+                                   enabled_when='n_scale_params == 1',
+                                   tooltip="While leaving the nasion in "
+                                   "place, rotate the digitizer head shape "
+                                   "and scale the MRI so as to minimize the "
+                                   "distance of the two auricular points"),
+                              Item('fits_fid',
+                                   enabled_when='n_scale_params == 1',
+                                   tooltip="Move and rotate the digitizer "
+                                   "head shape, and scale the MRI so as to "
+                                   "minimize the distance of the three "
+                                   "fiducials."),
+                              show_labels=False),
+                       VGrid(Item('trans_x', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Move along "
+                                  "right-left axis", width=+50),
+                             Item('trans_x_dec', width=-50),
+                             Item('trans_x_inc', width=-50),
+                             Item('trans_step', tooltip="Movement step",
+                                  width=+50),
+                             Item('trans_y', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Move along "
+                                  "anterior-posterior axis", width=+50),
+                             Item('trans_y_dec', width=-50),
+                             Item('trans_y_inc', width=-50),
+                             Label('(Step)', width=+50),
+                             Item('trans_z', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Move along "
+                                  "anterior-posterior axis", width=+50),
+                             Item('trans_z_dec', width=-50),
+                             Item('trans_z_inc', width=-50),
+                             show_labels=False, show_border=True,
+                             label='Translation', columns=4),
+                       VGrid(Item('rot_x', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Rotate along "
+                                  "right-left axis", width=+50),
+                             Item('rot_x_dec', width=-50),
+                             Item('rot_x_inc', width=-50),
+                             Item('rot_step', tooltip="Rotation step",
+                                  width=+50),
+                             Item('rot_y', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Rotate along "
+                                  "anterior-posterior axis", width=+50),
+                             Item('rot_y_dec', width=-50),
+                             Item('rot_y_inc', width=-50),
+                             Label('(Step)', width=+50),
+                             Item('rot_z', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Rotate along "
+                                  "anterior-posterior axis", width=+50),
+                             Item('rot_z_dec', width=-50),
+                             Item('rot_z_inc', width=-50),
+                             show_labels=False, show_border=True,
+                             label='Rotation', columns=4),
+                       # buttons
+                       HGroup(Item('fit_hsp_points',
+                                   enabled_when='has_pts_data',
+                                   tooltip="Rotate the head shape (around the "
+                                   "nasion) so as to minimize the distance "
+                                   "from each head shape point to its closest "
+                                   "MRI point", width=10),
+                              Item('fit_ap', enabled_when='has_fid_data',
+                                   tooltip="Try to match the LPA and the RPA, "
+                                   "leaving the Nasion in place", width=10),
+                              Item('fit_fid', enabled_when='has_fid_data',
+                                   tooltip="Move and rotate the head shape so "
+                                   "as to minimize the distance between the "
+                                   "MRI and head shape fiducials", width=10),
+                              show_labels=False),
+                       HGroup(Item('load_trans', width=10),
+                              Spring(), show_labels=False),
+                       '_',
+                       Item('fid_eval_str', style='readonly'),
+                       Item('points_eval_str', style='readonly'),
+                       '_',
+                       VGroup(
+                           Item('scale_labels',
+                                label="Scale *.label files",
+                                enabled_when='n_scale_params > 0'),
+                           Item('copy_annot',
+                                label="Copy annotation files",
+                                enabled_when='n_scale_params > 0'),
+                           Item('prepare_bem_model',
+                                label="Run mne_prepare_bem_model",
+                                enabled_when='can_prepare_bem_model'),
+                           show_left=False,
+                           label='Scaling options',
+                           show_border=True),
+                       '_',
+                       HGroup(Item('save', enabled_when='can_save',
+                                   tooltip="Save the trans file and (if "
+                                   "scaling is enabled) the scaled MRI"),
+                              Item('reset_params', tooltip="Reset all "
+                                   "coregistration parameters"),
+                              show_labels=False),
+                       Item('queue_feedback', style='readonly'),
+                       Item('queue_current', style='readonly'),
+                       Item('queue_len_str', style='readonly'),
+                       show_labels=False),
+                kind='panel', buttons=[UndoButton], scrollable=scrollable)
+    return view
+
+
 class CoregPanel(HasPrivateTraits):
+    """Coregistration panel for Head<->MRI with scaling."""
+
     model = Instance(CoregModel)
 
     # parameters
     reset_params = Button(label='Reset')
     grow_hair = DelegatesTo('model')
     n_scale_params = DelegatesTo('model')
-    scale_step = Float(1.01)
+    scale_step = Float(0.01)
     scale_x = DelegatesTo('model')
     scale_x_dec = Button('-')
     scale_x_inc = Button('+')
@@ -635,6 +806,7 @@ class CoregPanel(HasPrivateTraits):
     # fitting
     has_fid_data = DelegatesTo('model')
     has_pts_data = DelegatesTo('model')
+    has_eeg_data = DelegatesTo('model')
     # fitting with scaling
     fits_hsp_points = Button(label='Fit Head Shape')
     fits_fid = Button(label='Fit Fiducials')
@@ -651,164 +823,65 @@ class CoregPanel(HasPrivateTraits):
     # saving
     can_prepare_bem_model = DelegatesTo('model')
     can_save = DelegatesTo('model')
+    scale_labels = DelegatesTo('model')
+    copy_annot = DelegatesTo('model')
     prepare_bem_model = DelegatesTo('model')
     save = Button(label="Save As...")
-    load_trans = Button
+    load_trans = Button(label='Load trans...')
     queue = Instance(queue.Queue, ())
     queue_feedback = Str('')
     queue_current = Str('')
     queue_len = Int(0)
     queue_len_str = Property(Str, depends_on=['queue_len'])
-    error = Str('')
 
-    view = View(VGroup(Item('grow_hair', show_label=True),
-                       Item('n_scale_params', label='MRI Scaling',
-                            style='custom', show_label=True,
-                            editor=EnumEditor(values={0: '1:No Scaling',
-                                                      1: '2:1 Param',
-                                                      3: '3:3 Params'},
-                                              cols=3)),
-                       VGrid(Item('scale_x', editor=laggy_float_editor,
-                                  show_label=True, tooltip="Scale along "
-                                  "right-left axis",
-                                  enabled_when='n_scale_params > 0'),
-                             Item('scale_x_dec',
-                                  enabled_when='n_scale_params > 0'),
-                             Item('scale_x_inc',
-                                  enabled_when='n_scale_params > 0'),
-                             Item('scale_step', tooltip="Scaling step",
-                                  enabled_when='n_scale_params > 0'),
-                             Item('scale_y', editor=laggy_float_editor,
-                                  show_label=True,
-                                  enabled_when='n_scale_params > 1',
-                                  tooltip="Scale along anterior-posterior "
-                                  "axis"),
-                             Item('scale_y_dec',
-                                  enabled_when='n_scale_params > 1'),
-                             Item('scale_y_inc',
-                                  enabled_when='n_scale_params > 1'),
-                             Label('(Step)'),
-                             Item('scale_z', editor=laggy_float_editor,
-                                  show_label=True,
-                                  enabled_when='n_scale_params > 1',
-                                  tooltip="Scale along anterior-posterior "
-                                  "axis"),
-                             Item('scale_z_dec',
-                                  enabled_when='n_scale_params > 1'),
-                             Item('scale_z_inc',
-                                  enabled_when='n_scale_params > 1'),
-                             show_labels=False, columns=4),
-                       HGroup(Item('fits_hsp_points',
-                                   enabled_when='n_scale_params',
-                                   tooltip="Rotate the digitizer head shape "
-                                   "and scale the MRI so as to minimize the "
-                                   "distance from each digitizer point to the "
-                                   "closest MRI point"),
-                              Item('fits_ap',
-                                   enabled_when='n_scale_params == 1',
-                                   tooltip="While leaving the nasion in "
-                                   "place, rotate the digitizer head shape "
-                                   "and scale the MRI so as to minimize the "
-                                   "distance of the two auricular points"),
-                              Item('fits_fid',
-                                   enabled_when='n_scale_params == 1',
-                                   tooltip="Move and rotate the digitizer "
-                                   "head shape, and scale the MRI so as to "
-                                   "minimize the distance of the three "
-                                   "fiducials."),
-                              show_labels=False),
-                       '_',
-                       Label("Translation:"),
-                       VGrid(Item('trans_x', editor=laggy_float_editor,
-                                  show_label=True, tooltip="Move along "
-                                  "right-left axis"),
-                             'trans_x_dec', 'trans_x_inc',
-                             Item('trans_step', tooltip="Movement step"),
-                             Item('trans_y', editor=laggy_float_editor,
-                                  show_label=True, tooltip="Move along "
-                                  "anterior-posterior axis"),
-                             'trans_y_dec', 'trans_y_inc',
-                             Label('(Step)'),
-                             Item('trans_z', editor=laggy_float_editor,
-                                  show_label=True, tooltip="Move along "
-                                  "anterior-posterior axis"),
-                             'trans_z_dec', 'trans_z_inc',
-                             show_labels=False, columns=4),
-                       Label("Rotation:"),
-                       VGrid(Item('rot_x', editor=laggy_float_editor,
-                                  show_label=True, tooltip="Rotate along "
-                                  "right-left axis"),
-                             'rot_x_dec', 'rot_x_inc',
-                             Item('rot_step', tooltip="Rotation step"),
-                             Item('rot_y', editor=laggy_float_editor,
-                                  show_label=True, tooltip="Rotate along "
-                                  "anterior-posterior axis"),
-                             'rot_y_dec', 'rot_y_inc',
-                             Label('(Step)'),
-                             Item('rot_z', editor=laggy_float_editor,
-                                  show_label=True, tooltip="Rotate along "
-                                  "anterior-posterior axis"),
-                             'rot_z_dec', 'rot_z_inc',
-                             show_labels=False, columns=4),
-                       # buttons
-                       HGroup(Item('fit_hsp_points',
-                                   enabled_when='has_pts_data',
-                                   tooltip="Rotate the head shape (around the "
-                                   "nasion) so as to minimize the distance "
-                                   "from each head shape point to its closest "
-                                   "MRI point"),
-                              Item('fit_ap', enabled_when='has_fid_data',
-                                   tooltip="Try to match the LPA and the RPA, "
-                                   "leaving the Nasion in place"),
-                              Item('fit_fid', enabled_when='has_fid_data',
-                                   tooltip="Move and rotate the head shape so "
-                                   "as to minimize the distance between the "
-                                   "MRI and head shape fiducials"),
-                              Item('load_trans', enabled_when='has_fid_data'),
-                              show_labels=False),
-                       '_',
-                       Item('fid_eval_str', style='readonly'),
-                       Item('points_eval_str', style='readonly'),
-                       '_',
-                       HGroup(Item('prepare_bem_model'),
-                              Label("Run mne_prepare_bem_model"),
-                              show_labels=False,
-                              enabled_when='can_prepare_bem_model'),
-                       HGroup(Item('save', enabled_when='can_save',
-                                   tooltip="Save the trans file and (if "
-                                   "scaling is enabled) the scaled MRI"),
-                              Item('reset_params', tooltip="Reset all "
-                                   "coregistration parameters"),
-                              show_labels=False),
-                       Item('queue_feedback', style='readonly'),
-                       Item('queue_current', style='readonly'),
-                       Item('queue_len_str', style='readonly'),
-                       show_labels=False),
-                kind='panel', buttons=[UndoButton])
+    view = _make_view_coreg_panel()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: D102
         super(CoregPanel, self).__init__(*args, **kwargs)
 
-        # setup save worker
+        # Setup scaling worker
         def worker():
             while True:
-                desc, cmd, args, kwargs = self.queue.get()
-
+                (subjects_dir, subject_from, subject_to, scale, skip_fiducials,
+                 include_labels, include_annot, bem_names) = self.queue.get()
                 self.queue_len -= 1
-                self.queue_current = 'Processing: %s' % desc
 
-                # task
+                # Scale MRI files
+                self.queue_current = 'Scaling %s...' % subject_to
                 try:
-                    cmd(*args, **kwargs)
-                except Exception as err:
-                    self.error = str(err)
-                    res = "Error in %s"
+                    scale_mri(subject_from, subject_to, scale, True,
+                              subjects_dir, skip_fiducials, include_labels,
+                              include_annot)
+                except Exception:
+                    logger.error('Error scaling %s:\n' % subject_to +
+                                 traceback.format_exc())
+                    self.queue_feedback = ('Error scaling %s (see Terminal)' %
+                                           subject_to)
+                    bem_names = ()  # skip bem solutions
                 else:
-                    res = "Done: %s"
+                    self.queue_feedback = 'Done scaling %s.' % subject_to
 
-                # finalize
+                # Precompute BEM solutions
+                for bem_name in bem_names:
+                    self.queue_current = ('Computing %s solution...' %
+                                          bem_name)
+                    try:
+                        bem_file = bem_fname.format(subjects_dir=subjects_dir,
+                                                    subject=subject_to,
+                                                    name=bem_name)
+                        bemsol = make_bem_solution(bem_file)
+                        write_bem_solution(bem_file[:-4] + '-sol.fif', bemsol)
+                    except Exception:
+                        logger.error('Error computing %s solution:\n' %
+                                     bem_name + traceback.format_exc())
+                        self.queue_feedback = ('Error computing %s solution '
+                                               '(see Terminal)' % bem_name)
+                    else:
+                        self.queue_feedback = ('Done computing %s solution.' %
+                                               bem_name)
+
+                # Finalize
                 self.queue_current = ''
-                self.queue_feedback = res % desc
                 self.queue.task_done()
 
         t = Thread(target=worker)
@@ -886,18 +959,6 @@ class CoregPanel(HasPrivateTraits):
         self.model.fit_scale_hsp_points()
         GUI.set_busy(False)
 
-    def _n_scale_params_changed(self, new):
-        if not new:
-            return
-
-        # Make sure that MNE_ROOT environment variable is set
-        if not set_mne_root(True):
-            err = ("MNE_ROOT environment variable could not be set. "
-                   "You will be able to scale MRIs, but the "
-                   "mne_prepare_bem_model tool will fail. Please install "
-                   "MNE.")
-            warning(None, err, "MNE_ROOT Not Set")
-
     def _reset_params_fired(self):
         self.model.reset()
 
@@ -930,31 +991,51 @@ class CoregPanel(HasPrivateTraits):
         if dlg.return_code != OK:
             return
         trans_file = dlg.path
-        self.model.load_trans(trans_file)
+        try:
+            self.model.load_trans(trans_file)
+        except Exception as e:
+            error(None, "Error loading trans file %s: %s (See terminal "
+                  "for details)" % (trans_file, e), "Error Loading Trans File")
+            raise
 
     def _save_fired(self):
-        if self.n_scale_params:
-            subjects_dir = self.model.mri.subjects_dir
-            subject_from = self.model.mri.subject
-            subject_to = self.model.raw_subject or self.model.mri.subject
-        else:
-            subject_to = self.model.mri.subject
+        subjects_dir = self.model.mri.subjects_dir
+        subject_from = self.model.mri.subject
 
-        # ask for target subject
+        # check that fiducials are saved
+        skip_fiducials = False
+        if self.n_scale_params and not _find_fiducials_files(subject_from,
+                                                             subjects_dir):
+            msg = ("No fiducials file has been found for {src}. If fiducials "
+                   "are not saved, they will not be available in the scaled "
+                   "MRI. Should the current fiducials be saved now? "
+                   "Select Yes to save the fiducials at "
+                   "{src}/bem/{src}-fiducials.fif. "
+                   "Select No to proceed scaling the MRI without fiducials.".
+                   format(src=subject_from))
+            title = "Save Fiducials for %s?" % subject_from
+            rc = confirm(None, msg, title, cancel=True, default=CANCEL)
+            if rc == CANCEL:
+                return
+            elif rc == YES:
+                self.model.mri.save(self.model.mri.default_fid_fname)
+            elif rc == NO:
+                skip_fiducials = True
+            else:
+                raise RuntimeError("rc=%s" % repr(rc))
+
+        # find target subject
         if self.n_scale_params:
+            subject_to = self.model.raw_subject or subject_from
             mridlg = NewMriDialog(subjects_dir=subjects_dir,
                                   subject_from=subject_from,
                                   subject_to=subject_to)
             ui = mridlg.edit_traits(kind='modal')
-            if ui.result != True:
+            if not ui.result:  # i.e., user pressed cancel
                 return
             subject_to = mridlg.subject_to
-
-        # find bem file to run mne_prepare_bem_model
-        if self.can_prepare_bem_model and self.prepare_bem_model:
-            bem_job = self.model.get_prepare_bem_model_job(subject_to)
         else:
-            bem_job = None
+            subject_to = subject_from
 
         # find trans file destination
         raw_dir = os.path.dirname(self.model.hsp.file)
@@ -966,7 +1047,7 @@ class CoregPanel(HasPrivateTraits):
             return
         trans_file = dlg.path
         if not trans_file.endswith('.fif'):
-            trans_file = trans_file + '.fif'
+            trans_file += '.fif'
             if os.path.exists(trans_file):
                 answer = confirm(None, "The file %r already exists. Should it "
                                  "be replaced?", "Overwrite File?")
@@ -977,44 +1058,33 @@ class CoregPanel(HasPrivateTraits):
         try:
             self.model.save_trans(trans_file)
         except Exception as e:
-            error(None, str(e), "Error Saving Trans File")
-            return
+            error(None, "Error saving -trans.fif file: %s (See terminal for "
+                  "details)" % (e,), "Error Saving Trans File")
+            raise
 
         # save the scaled MRI
         if self.n_scale_params:
-            job = self.model.get_scaling_job(subject_to)
+            job = self.model.get_scaling_job(subject_to, skip_fiducials)
             self.queue.put(job)
             self.queue_len += 1
 
-            if bem_job is not None:
-                self.queue.put(bem_job)
-                self.queue_len += 1
-
     def _scale_x_dec_fired(self):
-        step = 1. / self.scale_step
-        self.scale_x *= step
+        self.scale_x -= self.scale_step
 
     def _scale_x_inc_fired(self):
-        self.scale_x *= self.scale_step
-
-    def _scale_x_changed(self, old, new):
-        if self.n_scale_params == 1:
-            self.scale_y = new
-            self.scale_z = new
+        self.scale_x += self.scale_step
 
     def _scale_y_dec_fired(self):
-        step = 1. / self.scale_step
-        self.scale_y *= step
+        self.scale_y -= self.scale_step
 
     def _scale_y_inc_fired(self):
-        self.scale_y *= self.scale_step
+        self.scale_y += self.scale_step
 
     def _scale_z_dec_fired(self):
-        step = 1. / self.scale_step
-        self.scale_z *= step
+        self.scale_z -= self.scale_step
 
     def _scale_z_inc_fired(self):
-        self.scale_z *= self.scale_step
+        self.scale_z += self.scale_step
 
     def _trans_x_dec_fired(self):
         self.trans_x -= self.trans_step
@@ -1036,6 +1106,8 @@ class CoregPanel(HasPrivateTraits):
 
 
 class NewMriDialog(HasPrivateTraits):
+    """New MRI dialog."""
+
     # Dialog to determine target subject name for a scaled MRI
     subjects_dir = Directory
     subject_to = Str
@@ -1055,7 +1127,6 @@ class NewMriDialog(HasPrivateTraits):
                 Item('overwrite', enabled_when='can_overwrite', tooltip="If a "
                      "subject with the chosen name exists, delete the old "
                      "subject"),
-                width=500,
                 buttons=[CancelButton,
                          Action(name='OK', enabled_when='can_save')])
 
@@ -1078,7 +1149,10 @@ class NewMriDialog(HasPrivateTraits):
 
     @on_trait_change('subject_to_dir,overwrite')
     def update_dialog(self):
-        if not self.subject_to:
+        if not self.subject_from:
+            # weird trait state that occurs even when subject_from is set
+            return
+        elif not self.subject_to:
             self.feedback = "No subject specified..."
             self.can_save = False
             self.can_overwrite = False
@@ -1101,8 +1175,9 @@ class NewMriDialog(HasPrivateTraits):
             self.can_overwrite = False
 
 
-def _make_view(tabbed=False, split=False, scene_width=-1):
-    """Create a view for the CoregFrame
+def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
+               scrollable=True):
+    """Create a view for the CoregFrame.
 
     Parameters
     ----------
@@ -1114,53 +1189,59 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
         unnecessary for wx backend).
     scene_width : int
         Specify a minimum width for the 3d scene (in pixels).
+    scrollable : bool
+        Make the coregistration panel vertically scrollable (default True).
 
-    returns
+    Returns
     -------
     view : traits View
         View object for the CoregFrame.
     """
-    view_options = VGroup(Item('headview', style='custom'), 'view_options',
-                          show_border=True, show_labels=False, label='View')
+    scene = VGroup(
+        Item('scene', show_label=False,
+             editor=SceneEditor(scene_class=MayaviScene),
+             dock='vertical', width=scene_width, height=scene_height),
+        VGroup(
+            Item('headview', style='custom'),
+            'view_options',
+            show_border=True, show_labels=False, label='View'))
 
-    scene = VGroup(Item('scene', show_label=False,
-                        editor=SceneEditor(scene_class=MayaviScene),
-                        dock='vertical', width=500),
-                   view_options)
+    data_panel = VGroup(
+        VGroup(Item('subject_panel', style='custom'), label="MRI Subject",
+               show_border=True, show_labels=False),
+        VGroup(Item('lock_fiducials', style='custom',
+                    editor=EnumEditor(cols=2, values={False: '2:Edit',
+                                                      True: '1:Lock'}),
+                    enabled_when='fid_ok'),
+               HGroup('hsp_always_visible',
+                      Label("Always Show Head Shape Points"),
+                      show_labels=False),
+               Item('fid_panel', style='custom'),
+               label="MRI Fiducials",  show_border=True, show_labels=False),
+        VGroup(Item('raw_src', style="custom"),
+               HGroup('guess_mri_subject',
+                      Label('Guess MRI Subject from File Name'),
+                      show_labels=False),
+               HGroup(Item('distance', show_label=False, width=20),
+                      'omit_points', 'reset_omit_points', show_labels=False),
+               Item('omitted_info', style='readonly', show_label=False),
+               label='Head Shape Source (Raw/Epochs/Evoked/DigMontage)',
+               show_border=True, show_labels=False),
+        show_labels=False, label="Data Source")
 
-    data_panel = VGroup(VGroup(Item('subject_panel', style='custom'),
-                               label="MRI Subject", show_border=True,
-                               show_labels=False),
-                        VGroup(Item('lock_fiducials', style='custom',
-                                    editor=EnumEditor(cols=2,
-                                                      values={False: '2:Edit',
-                                                              True: '1:Lock'}),
-                                    enabled_when='fid_ok'),
-                               HGroup('hsp_always_visible',
-                                      Label("Always Show Head Shape Points"),
-                                      show_labels=False),
-                               Item('fid_panel', style='custom'),
-                               label="MRI Fiducials", show_border=True,
-                               show_labels=False),
-                        VGroup(Item('raw_src', style="custom"),
-                               HGroup(Item('distance', show_label=True),
-                                      'omit_points', 'reset_omit_points',
-                                      show_labels=False),
-                               Item('omitted_info', style='readonly',
-                                    show_label=False),
-                               label='Head Shape Source (Raw)',
-                               show_border=True, show_labels=False),
-                        show_labels=False, label="Data Source")
+    # Setting `scrollable=True` for a Group does not seem to have any effect
+    # (macOS), in order to be effective the parameter has to be set for a View
+    # object; hence we use a special InstanceEditor to set the parameter
+    # programmatically:
+    coreg_panel = VGroup(
+        # width=410 is optimized for macOS to avoid a horizontal scroll-bar;
+        # might benefit from platform-specific values
+        Item('coreg_panel', style='custom', width=410 if scrollable else 1,
+             editor=InstanceEditor(view=_make_view_coreg_panel(scrollable))),
+        label="Coregistration", show_border=not scrollable, show_labels=False,
+        enabled_when="fid_panel.locked")
 
-    coreg_panel = VGroup(Item('coreg_panel', style='custom'),
-                         label="Coregistration", show_border=True,
-                         show_labels=False,
-                         enabled_when="fid_panel.locked")
-
-    if split:
-        main_layout = 'split'
-    else:
-        main_layout = 'normal'
+    main_layout = 'split' if split else 'normal'
 
     if tabbed:
         main = HGroup(scene,
@@ -1171,25 +1252,32 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
         main = HGroup(data_panel, scene, coreg_panel, show_labels=False,
                       layout=main_layout)
 
+    # Here we set the width and height to impossibly small numbers to force the
+    # window to be as tight as possible
     view = View(main, resizable=True, handler=CoregFrameHandler(),
-                buttons=NoButtons)
+                buttons=NoButtons, width=scene_width, height=scene_height)
     return view
 
 
 class ViewOptionsPanel(HasTraits):
+    """View options panel."""
+
     mri_obj = Instance(SurfaceObject)
     hsp_obj = Instance(PointObject)
-    view = View(VGroup(Item('mri_obj', style='custom',  # show_border=True,
-                            label="MRI Head Surface"),
-                       Item('hsp_obj', style='custom',  # show_border=True,
-                            label="Head Shape Points")),
+    eeg_obj = Instance(PointObject)
+    view = View(VGroup(Item('mri_obj', style='custom',
+                            label="MRI head"),
+                       Item('hsp_obj', style='custom',
+                            label="Head shape"),
+                       Item('eeg_obj', style='custom',
+                            label='EEG')),
                 title="View Options")
 
 
 class CoregFrame(HasTraits):
-    """GUI for head-MRI coregistration
-    """
-    model = Instance(CoregModel, ())
+    """GUI for head-MRI coregistration."""
+
+    model = Instance(CoregModel)
 
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)
@@ -1197,24 +1285,29 @@ class CoregFrame(HasTraits):
     subject_panel = Instance(SubjectSelectorPanel)
     fid_panel = Instance(FiducialsPanel)
     coreg_panel = Instance(CoregPanel)
+    view_options_panel = Instance(ViewOptionsPanel)
+
     raw_src = DelegatesTo('model', 'hsp')
+    guess_mri_subject = DelegatesTo('model')
 
     # Omit Points
-    distance = Float(5., label="Distance [mm]", desc="Maximal distance for "
-                     "head shape points from MRI in mm")
-    omit_points = Button(label='Omit Points', desc="Omit head shape points "
+    distance = Float(5., desc="maximal distance for head shape points from "
+                     "MRI in mm")
+    omit_points = Button(label='Omit [mm]', desc="to omit head shape points "
                          "for the purpose of the automatic coregistration "
                          "procedure.")
-    reset_omit_points = Button(label='Reset Omission', desc="Reset the "
+    reset_omit_points = Button(label='Reset', desc="to reset the "
                                "omission of head shape points to include all.")
     omitted_info = Property(Str, depends_on=['model.hsp.n_omitted'])
 
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
     hsp_always_visible = Bool(False, label="Always Show Head Shape")
+    title = Str('MNE Coreg')
 
     # visualization
     hsp_obj = Instance(PointObject)
+    eeg_obj = Instance(PointObject)
     mri_obj = Instance(SurfaceObject)
     lpa_obj = Instance(PointObject)
     nasion_obj = Instance(PointObject)
@@ -1228,53 +1321,95 @@ class CoregFrame(HasTraits):
 
     picker = Instance(object)
 
-    view_options_panel = Instance(ViewOptionsPanel)
-
     # Processing
     queue = DelegatesTo('coreg_panel')
 
     view = _make_view()
 
+    def _model_default(self):
+        return CoregModel(
+            scale_labels=self._config.get(
+                'MNE_COREG_SCALE_LABELS', 'true') == 'true',
+            copy_annot=self._config.get(
+                'MNE_COREG_COPY_ANNOT', 'true') == 'true',
+            prepare_bem_model=self._config.get(
+                'MNE_COREG_PREPARE_BEM', 'true') == 'true')
+
     def _subject_panel_default(self):
         return SubjectSelectorPanel(model=self.model.mri.subject_source)
 
     def _fid_panel_default(self):
-        panel = FiducialsPanel(model=self.model.mri, headview=self.headview)
-        return panel
+        return FiducialsPanel(model=self.model.mri, headview=self.headview)
 
     def _coreg_panel_default(self):
-        panel = CoregPanel(model=self.model)
-        return panel
+        return CoregPanel(model=self.model)
 
     def _headview_default(self):
         return HeadViewController(scene=self.scene, system='RAS')
 
-    def __init__(self, raw=None, subject=None, subjects_dir=None):
-        super(CoregFrame, self).__init__()
+    def __init__(self, raw=None, subject=None, subjects_dir=None,
+                 guess_mri_subject=True, head_opacity=1.,
+                 head_high_res=True, trans=None, config=None):  # noqa: D102
+        self._config = config or {}
+        super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
+        self.subject_panel.model.use_high_res_head = head_high_res
+        if not 0 <= head_opacity <= 1:
+            raise ValueError(
+                "head_opacity needs to be a floating point number between 0 "
+                "and 1, got %r" % (head_opacity,))
+        self._initial_head_opacity = head_opacity
 
-        subjects_dir = get_subjects_dir(subjects_dir)
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
             self.model.mri.subjects_dir = subjects_dir
-
-        if subject is not None:
-            self.model.mri.subject = subject
 
         if raw is not None:
             self.model.hsp.file = raw
 
+        if subject is not None:
+            if subject not in self.model.mri.subject_source.subjects:
+                msg = "%s is not a valid subject. " % subject
+                # no subjects -> ['']
+                if any(self.model.mri.subject_source.subjects):
+                    ss = ', '.join(self.model.mri.subject_source.subjects)
+                    msg += ("The following subjects have been found: %s "
+                            "(subjects_dir=%s). " %
+                            (ss, self.model.mri.subjects_dir))
+                else:
+                    msg += ("No subjects were found in subjects_dir=%s. " %
+                            self.model.mri.subjects_dir)
+                msg += ("Make sure all MRI subjects have head shape files "
+                        "(run $ mne make_scalp_surfaces).")
+                raise ValueError(msg)
+            self.model.mri.subject = subject
+        if trans is not None:
+            try:
+                self.model.load_trans(trans)
+            except Exception as e:
+                error(None, "Error loading trans file %s: %s (See terminal "
+                      "for details)" % (trans, e), "Error Loading Trans File")
+
+    @on_trait_change('subject_panel.subject')
+    def _set_title(self):
+        self.title = '%s - MNE Coreg' % self.model.mri.subject
+
     @on_trait_change('scene.activated')
     def _init_plot(self):
-        self.scene.disable_render = True
+        _toggle_mlab_render(self, False)
 
         lpa_color = defaults['lpa_color']
         nasion_color = defaults['nasion_color']
         rpa_color = defaults['rpa_color']
 
         # MRI scalp
-        color = defaults['mri_color']
+        color = defaults['head_color']
         self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
                                      color=color, tri=self.model.mri.tris,
-                                     scene=self.scene)
+                                     scene=self.scene, name="MRI Scalp",
+                                     # opacity=self._initial_head_opacity,
+                                     # setting opacity here causes points to be
+                                     # [[0, 0, 0]] -- why??
+                                     )
+        self.mri_obj.opacity = self._initial_head_opacity
         # on_trait_change was unreliable, so link it another way:
         self.model.mri.on_trait_change(self._on_mri_src_change, 'tris')
         self.model.sync_trait('transformed_mri_points', self.mri_obj, 'points',
@@ -1284,64 +1419,75 @@ class CoregFrame(HasTraits):
         # MRI Fiducials
         point_scale = defaults['mri_fid_scale']
         self.lpa_obj = PointObject(scene=self.scene, color=lpa_color,
-                                   point_scale=point_scale)
+                                   point_scale=point_scale, name='LPA')
         self.model.mri.sync_trait('lpa', self.lpa_obj, 'points', mutual=False)
         self.model.sync_trait('scale', self.lpa_obj, 'trans', mutual=False)
 
         self.nasion_obj = PointObject(scene=self.scene, color=nasion_color,
-                                      point_scale=point_scale)
+                                      point_scale=point_scale, name='Nasion')
         self.model.mri.sync_trait('nasion', self.nasion_obj, 'points',
                                   mutual=False)
         self.model.sync_trait('scale', self.nasion_obj, 'trans', mutual=False)
 
         self.rpa_obj = PointObject(scene=self.scene, color=rpa_color,
-                                   point_scale=point_scale)
+                                   point_scale=point_scale, name='RPA')
         self.model.mri.sync_trait('rpa', self.rpa_obj, 'points', mutual=False)
         self.model.sync_trait('scale', self.rpa_obj, 'trans', mutual=False)
 
         # Digitizer Head Shape
-        color = defaults['hsp_point_color']
-        point_scale = defaults['hsp_points_scale']
+        color = defaults['extra_color']
+        point_scale = defaults['extra_scale']
         p = PointObject(view='cloud', scene=self.scene, color=color,
-                        point_scale=point_scale, resolution=5)
+                        point_scale=point_scale, resolution=5, name='HSP')
         self.hsp_obj = p
         self.model.hsp.sync_trait('points', p, mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
+        # Digitizer EEG
+        color = defaults['eeg_color']
+        point_scale = defaults['eeg_scale']
+        p = PointObject(view='cloud', scene=self.scene, color=color,
+                        point_scale=point_scale, resolution=5, name='EEG')
+        self.eeg_obj = p
+        self.model.hsp.sync_trait('eeg_points', p, 'points', mutual=False)
+        self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
+        self.sync_trait('hsp_visible', p, 'visible', mutual=False)
+
         # Digitizer Fiducials
-        point_scale = defaults['hsp_fid_scale']
-        opacity = defaults['hsp_fid_opacity']
+        point_scale = defaults['dig_fid_scale']
+        opacity = defaults['dig_fid_opacity']
         p = PointObject(scene=self.scene, color=lpa_color, opacity=opacity,
-                        point_scale=point_scale)
+                        point_scale=point_scale, name='HSP-LPA')
         self.hsp_lpa_obj = p
         self.model.hsp.sync_trait('lpa', p, 'points', mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         p = PointObject(scene=self.scene, color=nasion_color, opacity=opacity,
-                        point_scale=point_scale)
+                        point_scale=point_scale, name='HSP-Nasion')
         self.hsp_nasion_obj = p
         self.model.hsp.sync_trait('nasion', p, 'points', mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         p = PointObject(scene=self.scene, color=rpa_color, opacity=opacity,
-                        point_scale=point_scale)
+                        point_scale=point_scale, name='HSP-RPA')
         self.hsp_rpa_obj = p
         self.model.hsp.sync_trait('rpa', p, 'points', mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         on_pick = self.scene.mayavi_scene.on_mouse_pick
-        if not _testing_mode():
-            self.picker = on_pick(self.fid_panel._on_pick, type='cell')
+        self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
-        self.scene.disable_render = False
-
+        _toggle_mlab_render(self, True)
+        self.scene.render()
+        self.scene.camera.focal_point = (0., 0., 0.)
         self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
-                                                   hsp_obj=self.hsp_obj)
+                                                   hsp_obj=self.hsp_obj,
+                                                   eeg_obj=self.eeg_obj)
 
     @cached_property
     def _get_hsp_visible(self):
@@ -1385,3 +1531,28 @@ class CoregFrame(HasTraits):
 
     def _view_options_fired(self):
         self.view_options_panel.edit_traits()
+
+    def save_config(self, home_dir=None):
+        """Write configuration values."""
+        set_config('MNE_COREG_GUESS_MRI_SUBJECT',
+                   str(self.model.guess_mri_subject).lower(),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_HEAD_HIGH_RES',
+                   str(self.model.mri.use_high_res_head).lower(),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_HEAD_OPACITY',
+                   str(self.mri_obj.opacity),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_SCALE_LABELS',
+                   str(self.model.scale_labels).lower(),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_COPY_ANNOT',
+                   str(self.model.copy_annot).lower(),
+                   home_dir, set_env=False)
+        set_config('MNE_COREG_PREPARE_BEM',
+                   str(self.model.prepare_bem_model).lower(),
+                   home_dir, set_env=False)
+        if self.model.mri.subjects_dir:
+            set_config('MNE_COREG_SUBJECTS_DIR',
+                       self.model.mri.subjects_dir,
+                       home_dir, set_env=False)

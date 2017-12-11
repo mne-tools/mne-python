@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-"""Clean a raw file from EOG and ECG artifacts with PCA (ie SSP)
+"""Clean a raw file from EOG and ECG artifacts with PCA (ie SSP).
+
+You can do for example:
+
+$ mne clean_eog_ecg -i in_raw.fif -o clean_raw.fif -e -c
 """
 from __future__ import print_function
 
@@ -17,28 +21,28 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
                   ecg_proj_fname=None, eog_proj_fname=None,
                   ecg_event_fname=None, eog_event_fname=None, in_path='.',
                   quiet=False):
-    """Clean ECG from raw fif file
+    """Clean ECG from raw fif file.
 
     Parameters
     ----------
-    in_fif_fname : string
+    in_fif_fname : str
         Raw fif File
-    eog_event_fname : string
+    eog_event_fname : str
         name of EOG event file required.
     eog : bool
         Reject or not EOG artifacts.
     ecg : bool
         Reject or not ECG artifacts.
-    ecg_event_fname : string
+    ecg_event_fname : str
         name of ECG event file required.
-    in_path :
+    in_path : str
         Path where all the files are.
     """
     if not eog and not ecg:
         raise Exception("EOG and ECG cannot be both disabled")
 
     # Reading fif File
-    raw_in = mne.io.Raw(in_fif_fname)
+    raw_in = mne.io.read_raw_fif(in_fif_fname)
 
     if in_fif_fname.endswith('_raw.fif') or in_fif_fname.endswith('-raw.fif'):
         prefix = in_fif_fname[:-8]
@@ -48,9 +52,9 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
     if out_fif_fname is None:
         out_fif_fname = prefix + '_clean_ecg_eog_raw.fif'
     if ecg_proj_fname is None:
-        ecg_proj_fname = prefix + '_ecg_proj.fif'
+        ecg_proj_fname = prefix + '_ecg-proj.fif'
     if eog_proj_fname is None:
-        eog_proj_fname = prefix + '_eog_proj.fif'
+        eog_proj_fname = prefix + '_eog-proj.fif'
     if ecg_event_fname is None:
         ecg_event_fname = prefix + '_ecg-eve.fif'
     if eog_event_fname is None:
@@ -67,7 +71,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
         command = ('mne_process_raw', '--cd', in_path, '--raw', in_fif_fname,
                    '--events', ecg_event_fname, '--makeproj',
                    '--projtmin', '-0.08', '--projtmax', '0.08',
-                   '--saveprojtag', '_ecg_proj', '--projnmag', '2',
+                   '--saveprojtag', '_ecg-proj', '--projnmag', '2',
                    '--projngrad', '1', '--projevent', '999', '--highpass', '5',
                    '--lowpass', '35', '--projmagrej', '4000',
                    '--projgradrej', '3000')
@@ -80,7 +84,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
         command = ('mne_process_raw', '--cd', in_path, '--raw', in_fif_fname,
                    '--events', eog_event_fname, '--makeproj',
                    '--projtmin', '-0.15', '--projtmax', '0.15',
-                   '--saveprojtag', '_eog_proj', '--projnmag', '2',
+                   '--saveprojtag', '_eog-proj', '--projnmag', '2',
                    '--projngrad', '2', '--projevent', '998', '--lowpass', '35',
                    '--projmagrej', '4000', '--projgradrej', '3000')
         mne.utils.run_subprocess(command, **kwargs)
@@ -101,6 +105,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
 
 
 def run():
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)

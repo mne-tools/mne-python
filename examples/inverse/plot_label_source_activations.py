@@ -3,22 +3,23 @@
 Extracting the time series of activations in a label
 ====================================================
 
-We first apply a dSPM inverse operator to get signed activations
-in a label (with positive and negative values) and we then
-compare different strategies to average the times series
-in a label. We compare a simple average, with an averaging
-using the dipoles normal (flip mode) and then a PCA,
+We first apply a dSPM inverse operator to get signed activations in a label
+(with positive and negative values) and we then compare different strategies
+to average the times series in a label. We compare a simple average, with an
+averaging using the dipoles normal (flip mode) and then a PCA,
 also using a sign flip.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, apply_inverse
+
+print(__doc__)
 
 data_path = sample.data_path()
 label = 'Aud-lh'
@@ -50,7 +51,6 @@ pca = stc.extract_label_time_course(label, src, mode='pca_flip')
 print("Number of vertices : %d" % len(stc_label.data))
 
 # View source activations
-import matplotlib.pyplot as plt
 plt.figure()
 plt.plot(1e3 * stc_label.times, stc_label.data.T, 'k', linewidth=0.5)
 h0, = plt.plot(1e3 * stc_label.times, mean.T, 'r', linewidth=3)

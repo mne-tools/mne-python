@@ -1,0 +1,29 @@
+environment:
+  global:
+      PYTHON: "C:\\conda"
+      CONDA_ENVIRONMENT: "environment.yml"
+      PIP_DEPENDENCIES: "codecov pytest-faulthandler"
+  matrix:
+      - PYTHON_VERSION: "2.7"
+        PYTHON_ARCH: "64"
+
+install:
+  - "git clone git://github.com/astropy/ci-helpers.git"
+  - "powershell ci-helpers/appveyor/install-miniconda.ps1"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "activate test"
+  - "pip uninstall -yq mne"
+  - "python setup.py develop"
+  - "python -c \"import mne; print(mne.sys_info())\""
+  - "SET MNE_FORCE_SERIAL=true"  # otherwise joblib will bomb
+  - "SET MNE_LOGGING_LEVEL=warning"
+  - "python -c \"import mne; mne.datasets.testing.data_path()\""
+
+build: false  # Not a C# project, build stuff at the test step instead.
+
+test_script:
+  # Run the project tests, but (sadly) exclude ones that take a long time
+  - "py.test -m \"not ultraslowtest\" mne --cov=mne"
+
+on_success:
+  - "codecov"

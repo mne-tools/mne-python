@@ -12,8 +12,6 @@ are used which produces strong connectvitiy in the right occipital sensors.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 from scipy import linalg
 
@@ -22,6 +20,8 @@ from mne import io
 from mne.connectivity import spectral_connectivity
 from mne.datasets import sample
 
+print(__doc__)
+
 ###############################################################################
 # Set parameters
 data_path = sample.data_path()
@@ -29,7 +29,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = io.Raw(raw_fname)
+raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 # Add a bad channel
@@ -37,10 +37,10 @@ raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG gradiometers
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
-                        exclude='bads')
+                       exclude='bads')
 
 # Create epochs for the visual condition
-event_id, tmin, tmax = 3, -0.2, 0.5
+event_id, tmin, tmax = 3, -0.2, 1.5  # need a long enough epoch for 5 cycles
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
 
@@ -49,10 +49,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 fmin, fmax = 3., 9.
 sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
-con, freqs, times, n_epochs, n_tapers = spectral_connectivity(epochs,
-    method='pli', mode='multitaper', sfreq=sfreq,
-    fmin=fmin, fmax=fmax, faverage=True, tmin=tmin,
-    mt_adaptive=False, n_jobs=2)
+con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+    epochs, method='pli', mode='multitaper', sfreq=sfreq, fmin=fmin, fmax=fmax,
+    faverage=True, tmin=tmin, mt_adaptive=False, n_jobs=1)
 
 # the epochs contain an EOG channel, which we remove now
 ch_names = epochs.ch_names
@@ -64,10 +63,7 @@ con = con[idx][:, idx]
 con = con[:, :, 0]
 
 # Now, visualize the connectivity in 3D
-try:
-    from enthought.mayavi import mlab
-except:
-    from mayavi import mlab
+from mayavi import mlab  # noqa
 
 mlab.figure(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
 

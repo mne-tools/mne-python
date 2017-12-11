@@ -6,42 +6,44 @@ Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 Decoding of motor imagery applied to EEG data decomposed using CSP.
 Here the classifier is applied to features extracted on CSP filtered signals.
 
-See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
+See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]_. The EEGBCI
+dataset is documented in [2]_. The data set is available at PhysioNet [3]_.
 
-The EEGBCI dataset is documented in [2]
-The data set is available at PhysioNet [3]
+References
+----------
 
-[1] Zoltan J. Koles. The quantitative extraction and topographic mapping
-    of the abnormal components in the clinical EEG. Electroencephalography
-    and Clinical Neurophysiology, 79(6):440--447, December 1991.
-
-[2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
-    Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface
-    (BCI) System. IEEE TBME 51(6):1034-1043
-
-[3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
-    Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
-    PhysioToolkit, and PhysioNet: Components of a New Research Resource for
-    Complex Physiologic Signals. Circulation 101(23):e215-e220
+.. [1] Zoltan J. Koles. The quantitative extraction and topographic mapping
+       of the abnormal components in the clinical EEG. Electroencephalography
+       and Clinical Neurophysiology, 79(6):440--447, December 1991.
+.. [2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N.,
+       Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface
+       (BCI) System. IEEE TBME 51(6):1034-1043.
+.. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG,
+       Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
+       PhysioToolkit, and PhysioNet: Components of a New Research Resource for
+       Complex Physiologic Signals. Circulation 101(23):e215-e220.
 """
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import Epochs, pick_types
-from mne.io import concatenate_raws
-from mne.io.edf import read_raw_edf
-from mne.datasets import eegbci
-from mne.event import find_events
-from mne.decoding import CSP
-from mne.layouts import read_layout
+from sklearn.pipeline import Pipeline
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.model_selection import ShuffleSplit, cross_val_score
 
-###############################################################################
-## Set parameters and read data
+from mne import Epochs, pick_types, find_events
+from mne.channels import read_layout
+from mne.io import concatenate_raws, read_raw_edf
+from mne.datasets import eegbci
+from mne.decoding import CSP
+
+print(__doc__)
+
+# #############################################################################
+# # Set parameters and read data
 
 # avoid classification of evoked responses by using epochs that start 1s after
 # cue onset.
@@ -51,14 +53,15 @@ subject = 1
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
-raw_files = [read_raw_edf(f, tal_channel=-1, preload=True) for f in raw_fnames]
+raw_files = [read_raw_edf(f, preload=True, stim_channel='auto') for f in
+             raw_fnames]
 raw = concatenate_raws(raw_files)
 
-# strip channel names
-raw.info['ch_names'] = [chn.strip('.') for chn in raw.info['ch_names']]
+# strip channel names of "." characters
+raw.rename_channels(lambda x: x.strip('.'))
 
 # Apply band-pass filter
-raw.filter(7., 30., method='iir')
+raw.filter(7., 30., fir_design='firwin', skip_by_annotation='edge')
 
 events = find_events(raw, shortest_event=0, stim_channel='STI 014')
 
@@ -68,30 +71,26 @@ picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
 # Read epochs (train will be done only between 1 and 2s)
 # Testing will be done with a running classifier
 epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                baseline=None, preload=True, add_eeg_ref=False)
-epochs_train = epochs.crop(tmin=1., tmax=2., copy=True)
+                baseline=None, preload=True)
+epochs_train = epochs.copy().crop(tmin=1., tmax=2.)
 labels = epochs.events[:, -1] - 2
 
 ###############################################################################
 # Classification with linear discrimant analysis
 
-from sklearn.lda import LDA
-from sklearn.cross_validation import ShuffleSplit
-
-# Assemble a classifier
-svc = LDA()
-csp = CSP(n_components=4, reg=None, log=True)
-
 # Define a monte-carlo cross-validation generator (reduce variance):
-cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
 scores = []
 epochs_data = epochs.get_data()
 epochs_data_train = epochs_train.get_data()
+cv = ShuffleSplit(10, test_size=0.2, random_state=42)
+cv_split = cv.split(epochs_data_train)
+
+# Assemble a classifier
+lda = LinearDiscriminantAnalysis()
+csp = CSP(n_components=4, reg=None, log=True, norm_trace=False)
 
 # Use scikit-learn Pipeline with cross_val_score function
-from sklearn.pipeline import Pipeline
-from sklearn.cross_validation import cross_val_score
-clf = Pipeline([('CSP', csp), ('SVC', svc)])
+clf = Pipeline([('CSP', csp), ('LDA', lda)])
 scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
 
 # Printing the results
@@ -103,14 +102,9 @@ print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
 
-evoked = epochs.average()
-evoked.data = csp.patterns_.T
-evoked.times = np.arange(evoked.data.shape[0])
-
 layout = read_layout('EEG1005')
-evoked.plot_topomap(times=[0, 1, 2, 61, 62, 63], ch_type='eeg', layout=layout,
-                    scale_time=1, time_format='%i', scale=1,
-                    unit='Patterns (AU)', size=1.5)
+csp.plot_patterns(epochs.info, layout=layout, ch_type='eeg',
+                  units='Patterns (AU)', size=1.5)
 
 ###############################################################################
 # Look at performance over time
@@ -122,20 +116,20 @@ w_start = np.arange(0, epochs_data.shape[2] - w_length, w_step)
 
 scores_windows = []
 
-for train_idx, test_idx in cv:
+for train_idx, test_idx in cv_split:
     y_train, y_test = labels[train_idx], labels[test_idx]
 
     X_train = csp.fit_transform(epochs_data_train[train_idx], y_train)
     X_test = csp.transform(epochs_data_train[test_idx])
 
     # fit classifier
-    svc.fit(X_train, y_train)
+    lda.fit(X_train, y_train)
 
     # running classifier: test classifier on sliding window
     score_this_window = []
     for n in w_start:
         X_test = csp.transform(epochs_data[test_idx][:, :, n:(n + w_length)])
-        score_this_window.append(svc.score(X_test, y_test))
+        score_this_window.append(lda.score(X_test, y_test))
     scores_windows.append(score_this_window)
 
 # Plot scores over time

@@ -3,84 +3,106 @@
 Compute LCMV beamformer on evoked data
 ======================================
 
-Compute LCMV beamformer solutions on evoked dataset for three different choices
-of source orientation and stores the solutions in stc files for visualisation.
-
+Compute LCMV beamformer solutions on an evoked dataset for three different
+choices of source orientation and store the solutions in stc files for
+visualisation.
 """
-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+# sphinx_gallery_thumbnail_number = 3
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw
 from mne.beamformer import lcmv
+
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
 label_name = 'Aud-lh'
 fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
+subjects_dir = data_path + '/subjects'
 
 ###############################################################################
 # Get epochs
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
-raw = Raw(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
-left_temporal_channels = mne.read_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
-                       exclude='bads', selection=left_temporal_channels)
+                       exclude='bads')
+
+# Pick the channels of interest
+raw.pick_channels([raw.ch_names[pick] for pick in picks])
+# Re-normalize our empty-room projectors, so they are fine after subselection
+raw.info.normalize_proj()
 
 # Read epochs
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), preload=True,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                    baseline=(None, 0), preload=True, proj=True,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()
 
-forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
+forward = mne.read_forward_solution(fname_fwd)
+forward = mne.convert_forward_solution(forward, surf_ori=True)
 
-noise_cov = mne.read_cov(fname_cov)
-noise_cov = mne.cov.regularize(noise_cov, evoked.info,
-                               mag=0.05, grad=0.05, eeg=0.1, proj=True)
+# Compute regularized noise and data covariances
+noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
+data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
+                                  method='shrunk')
+evoked.plot()
 
-data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
-
-plt.close('all')
+###############################################################################
+# Run beamformers and look at maximum outputs
 
 pick_oris = [None, 'normal', 'max-power']
 names = ['free', 'normal', 'max-power']
-descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
-                'orientation']
+descriptions = ['Free orientation, voxel: %i', 'Normal orientation, voxel: %i',
+                'Max-power orientation, voxel: %i']
 colors = ['b', 'k', 'r']
 
+fig, ax = plt.subplots(1)
+max_voxs = list()
 for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
-    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
-               pick_ori=pick_ori)
+    # compute unit-noise-gain beamformer with whitening of the leadfield and
+    # data (enabled by passing a noise covariance matrix)
+    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.05,
+               pick_ori=pick_ori, weight_norm='unit-noise-gain',
+               max_ori_out='signed')
 
-    # Save result in stc files
-    stc.save('lcmv-' + name)
+    # View activation time-series in maximum voxel at 100 ms:
+    time_idx = stc.time_as_index(0.1)
+    max_idx = np.argmax(stc.data[:, time_idx])
+    # we know these are all left hemi, so we can just use vertices[0]
+    max_voxs.append(stc.vertices[0][max_idx])
+    ax.plot(stc.times, stc.data[max_idx, :], color, label=desc % max_idx)
 
-    # View activation time-series
-    data, times, _ = mne.label_time_courses(fname_label, "lcmv-" + name +
-                                            "-lh.stc")
-    plt.plot(1e3 * times, np.mean(data, axis=0), color, hold=True, label=desc)
+ax.set(xlabel='Time (ms)', ylabel='LCMV value', ylim=(-0.8, 2.2),
+       title='LCMV in maximum voxel')
+ax.legend()
+mne.viz.utils.plt_show()
 
-plt.xlabel('Time (ms)')
-plt.ylabel('LCMV value')
-plt.ylim(-0.8, 2.2)
-plt.title('LCMV in %s' % label_name)
-plt.legend()
-plt.show()
+###############################################################################
+# We can also look at the spatial distribution
+
+# take absolute value for plotting
+np.abs(stc.data, out=stc.data)
+
+# Plot last stc in the brain in 3D with PySurfer if available
+brain = stc.plot(hemi='lh', subjects_dir=subjects_dir,
+                 initial_time=0.1, time_unit='s')
+brain.show_view('lateral')
+for color, vertex in zip(colors, max_voxs):
+    brain.add_foci([vertex], coords_as_verts=True, scale_factor=0.5,
+                   hemi='lh', color=color)
