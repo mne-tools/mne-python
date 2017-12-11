@@ -1733,7 +1733,7 @@ def test_drop_epochs():
 
     # Bound checks
     assert_raises(IndexError, epochs.drop, [len(epochs.events)])
-    assert_raises(IndexError, epochs.drop, [-1])
+    assert_raises(IndexError, epochs.drop, [-len(epochs.events) - 1])
     assert_raises(ValueError, epochs.drop, [[1, 2], [3, 4]])
 
     # Test selection attribute
@@ -2012,6 +2012,10 @@ def test_array_epochs():
                   event_id)
     assert_raises(ValueError, EpochsArray, data, info, events, tmin,
                   dict(a=1))
+    assert_raises(ValueError, EpochsArray, data, info, events, tmin,
+                  selection=[1])
+    # should be fine
+    EpochsArray(data, info, events, tmin, selection=np.arange(len(events)) + 5)
 
     # saving
     temp_fname = op.join(tempdir, 'test-epo.fif')
@@ -2226,8 +2230,11 @@ def test_metadata():
     event_id = {'zero': 0, 'one': 1}
     epochs = EpochsArray(data, info, metadata=meta,
                          events=events, event_id=event_id)
+    indices = np.arange(len(epochs))  # expected indices
+    assert_array_equal(epochs.metadata.index, indices)
 
     assert len(epochs[[1, 2]].events) == len(epochs[[1, 2]].metadata)
+    assert_array_equal(epochs[[1, 2]].metadata.index, indices[[1, 2]])
     assert len(epochs['one']) == 5
 
     # Construction
@@ -2261,6 +2268,15 @@ def test_metadata():
     with pytest.raises(KeyError):
         epochs['blah == "yo"']
 
+    assert_array_equal(epochs.selection, indices)
+    epochs.drop(0)
+    assert_array_equal(epochs.selection, indices[1:])
+    assert_array_equal(epochs.metadata.index, indices[1:])
+    epochs.drop([0, -1])
+    assert_array_equal(epochs.selection, indices[2:-1])
+    assert_array_equal(epochs.metadata.index, indices[2:-1])
+    assert_array_equal(len(epochs), 7)  # originally 10
+
     # I/O
     # Make sure values don't change with I/O
     tempdir = _TempDir()
@@ -2271,7 +2287,8 @@ def test_metadata():
     assert_metadata_equal(epochs.metadata, epochs_read.metadata)
     epochs_arr = EpochsArray(epochs._data, epochs.info, epochs.events,
                              tmin=0, event_id=epochs.event_id,
-                             metadata=epochs.metadata)
+                             metadata=epochs.metadata,
+                             selection=epochs.selection)
     assert_metadata_equal(epochs.metadata, epochs_arr.metadata)
 
     with pytest.raises(TypeError):  # Needs to be a dataframe
@@ -2321,6 +2338,28 @@ def test_metadata():
     epochs_one_nopandas_read = read_epochs(temp_one_fname)
     assert_metadata_equal(epochs_one_nopandas_read.metadata,
                           epochs_one.metadata)
+
+    # gh-4820
+    raw_data = np.random.randn(10, 1000)
+    info = mne.create_info(10, 1000.)
+    raw = mne.io.RawArray(raw_data, info)
+    events = [[0, 0, 1], [100, 0, 1], [200, 0, 1], [300, 0, 1]]
+    metadata = DataFrame([dict(idx=idx) for idx in range(len(events))])
+    epochs = mne.Epochs(raw, events=events, tmin=-.050, tmax=.100,
+                        metadata=metadata)
+    epochs.drop_bad()
+    assert len(epochs) == len(epochs.metadata)
+
+    # gh-4821
+    epochs.metadata['new_key'] = 1
+    assert_array_equal(epochs['new_key == 1'].get_data(),
+                       epochs.get_data())
+    # ensure bad user changes break things
+    epochs.metadata.drop(index=[2], inplace=True)
+    assert len(epochs.metadata) == len(epochs) - 1
+    with pytest.raises(ValueError,
+                       match='metadata must have the same number of rows .*'):
+        epochs['new_key == 1']
 
 
 def assert_metadata_equal(got, exp):

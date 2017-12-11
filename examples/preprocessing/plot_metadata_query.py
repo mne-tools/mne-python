@@ -63,8 +63,11 @@ def plot_query_results(query):
 # First we'll create our metadata object. This should be a
 # :class:`pandas.DataFrame` with each row corresponding to an event.
 #
-# .. warning:: The Dataframe Index can change during MNE I/O operations, so
-#              do not rely on it to query your metadata.
+# .. warning:: The Dataframe index will be controlled by MNE to track
+#              ``epochs.selection``, so do not manually set this value.
+#              Also, while some inplace operations on ``epochs.metadata`` are
+#              possible, do not manually drop or add rows, as this will
+#              create inconsistency between the metadata and actual data.
 
 metadata = {'event_time': events[:, 0] / raw.info['sfreq'],
             'trial_number': range(len(events)),
