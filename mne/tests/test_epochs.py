@@ -30,7 +30,8 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
 from mne.utils import (_TempDir, requires_pandas, run_tests_if_main,
-                       requires_version, _check_pandas_installed)
+                       requires_version, _check_pandas_installed,
+                       catch_logging)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
@@ -2282,7 +2283,9 @@ def test_metadata():
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'tmp-epo.fif')
     temp_one_fname = op.join(tempdir, 'tmp-one-epo.fif')
-    epochs.save(temp_fname)
+    with catch_logging() as log:
+        epochs.save(temp_fname, verbose=True)
+    assert log.getvalue() == ''  # assert no junk from metadata setting
     epochs_read = read_epochs(temp_fname, preload=True)
     assert_metadata_equal(epochs.metadata, epochs_read.metadata)
     epochs_arr = EpochsArray(epochs._data, epochs.info, epochs.events,

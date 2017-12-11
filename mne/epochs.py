@@ -431,7 +431,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self._metadata
 
     @metadata.setter
-    def metadata(self, metadata):
+    @verbose
+    def metadata(self, metadata, verbose=None):
         metadata = self._check_metadata(metadata, reset_index=True)
         if metadata is not None:
             if _check_pandas_installed(strict=False):
@@ -1498,7 +1499,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 metadata.index = pd.UInt64Index(epochs.selection)
             else:
                 metadata = np.array(epochs.metadata, 'object')[select].tolist()
-            epochs.metadata = metadata  # will reset the index for us
+
+            # will reset the index for us
+            BaseEpochs.metadata.fset(epochs, metadata, verbose=False)
         if epochs.preload:
             # ensure that each Epochs instance owns its own data so we can
             # resize later if necessary
@@ -1564,7 +1567,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         new._raw = raw
         return new
 
-    def save(self, fname, split_size='2GB'):
+    @verbose
+    def save(self, fname, split_size='2GB', verbose=True):
         """Save epochs in a fif file.
 
         Parameters
@@ -1580,6 +1584,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Note: Due to FIFF file limitations, the maximum split size is 2GB.
 
             .. versionadded:: 0.10.0
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Notes
         -----

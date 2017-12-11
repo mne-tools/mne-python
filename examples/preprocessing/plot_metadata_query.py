@@ -63,8 +63,8 @@ def plot_query_results(query):
 # First we'll create our metadata object. This should be a
 # :class:`pandas.DataFrame` with each row corresponding to an event.
 #
-# .. warning:: The Dataframe index will be controlled by MNE to track
-#              ``epochs.selection``, so do not manually set this value.
+# .. warning:: Do not set or change the Dataframe index of ``epochs.metadata``.
+#              It will be controlled by MNE to mirror ``epochs.selection``.
 #              Also, while some inplace operations on ``epochs.metadata`` are
 #              possible, do not manually drop or add rows, as this will
 #              create inconsistency between the metadata and actual data.
