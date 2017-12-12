@@ -1664,7 +1664,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     ----------
     ch_names : list of str | int
         Channel names. If an int, a list of channel names will be created
-        from :func:`range(ch_names) <range>`.
+        from ``range(ch_names)``.
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str

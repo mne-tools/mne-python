@@ -153,9 +153,11 @@ def head_pos_to_trans_rot_t(quats):
 def _get_hpi_info(info, verbose=None):
     """Get HPI information from raw."""
     if len(info['hpi_meas']) == 0 or \
-            ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
+            ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]) or \
+            info.get('hpi_subsystem') is None:
         raise RuntimeError('Appropriate cHPI information not found in'
-                           'raw.info["hpi_meas"], cannot process cHPI')
+                           'info["hpi_meas"] and info["hpi_subsystem"], '
+                           'cannot process cHPI')
     hpi_coils = sorted(info['hpi_meas'][-1]['hpi_coils'],
                        key=lambda x: x['number'])  # ascending (info) order
 

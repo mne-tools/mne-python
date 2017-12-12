@@ -139,7 +139,7 @@ evoked_r_aud.plot_joint(title='right auditory', times=[.09, .20],
 # We plot a MEG channel with a strong auditory response.
 #
 # For move advanced plotting using :func:`mne.viz.plot_compare_evokeds`.
-# See also :ref:`metadata_epochs`.
+# See also :ref:`sphx_glr_auto_tutorials_plot_metadata_epochs.py`.
 conditions = ["Left Auditory", "Right Auditory", "Left visual", "Right visual"]
 evoked_dict = dict()
 for condition in conditions:

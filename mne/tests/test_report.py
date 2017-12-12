@@ -9,6 +9,7 @@ import os.path as op
 import shutil
 import warnings
 
+import numpy as np
 from nose.tools import assert_true, assert_equal, assert_raises
 import pytest
 
@@ -17,7 +18,7 @@ from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
-                       requires_PIL, run_tests_if_main)
+                       run_tests_if_main)
 from mne.viz import plot_alignment
 
 import matplotlib
@@ -47,7 +48,6 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_PIL
 def test_render_report():
     """Test rendering -*.fif files for mne report."""
     tempdir = _TempDir()
@@ -142,13 +142,14 @@ def test_render_report():
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir, on_error='raise')
 
+    # ndarray support smoke test
+    report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
+
 
 @testing.requires_testing_data
 @requires_mayavi
-@requires_PIL
 def test_render_add_sections():
     """Test adding figures/images to section."""
-    from PIL import Image
     tempdir = _TempDir()
     import matplotlib.pyplot as plt
     report = Report(subjects_dir=subjects_dir)
@@ -166,15 +167,12 @@ def test_render_add_sections():
     # need to recreate because calls above change size
     fig = plt.plot([1, 2], [1, 2])[0].figure
 
-    # Check add_images_to_section with png and then gif
+    # Check add_images_to_section with png
     img_fname = op.join(tempdir, 'testimage.png')
     fig.savefig(img_fname)
     report.add_images_to_section(fnames=[img_fname],
                                  captions=['evoked response'])
 
-    im = Image.open(img_fname)
-    op.join(tempdir, 'testimage.gif')
-    im.save(img_fname)  # matplotlib does not support gif
     report.add_images_to_section(fnames=[img_fname],
                                  captions=['evoked response'])
 
@@ -267,6 +265,8 @@ def test_add_slider_to_section():
                   [figs, figs])
     assert_raises(ValueError, report.add_slider_to_section, figs, ['wug'])
     assert_raises(TypeError, report.add_slider_to_section, figs, 'wug')
+    # need at least 2
+    assert_raises(ValueError, report.add_slider_to_section, figs[:1], 'wug')
 
 
 def test_validate_input():
