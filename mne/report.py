@@ -922,8 +922,8 @@ class Report(object):
         ----------
         figs : list of figures.
             Each figure in the list can be an instance of
-            `matplotlib.figure.Figure`, `mayavi.core.api.Scene`,
-            or `numpy.ndarray`.
+            :class:`matplotlib.figure.Figure`,
+            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
         captions : list of str
             A list of captions to the figures.
         section : str
@@ -1081,8 +1081,9 @@ class Report(object):
         ----------
         figs : list of figures.
             Each figure in the list can be an instance of
-            `matplotlib.figure.Figure`, `mayavi.core.api.Scene`, or
-            `numpy.ndarray`. Must have at least 2 elements.
+            :class:`matplotlib.figure.Figure`,
+            :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
+            Must have at least 2 elements.
         captions : list of str | list of float | None
             A list of captions to the figures. If float, a str will be
             constructed as `%f s`. If None, it will default to
