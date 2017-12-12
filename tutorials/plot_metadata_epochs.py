@@ -8,7 +8,7 @@ Demonstrating pandas-style string querying with Epochs metadata.
 For related uses of :class:`mne.Epochs`, see the starting tutorial
 :ref:`sphx_glr_auto_tutorials_plot_object_epochs.py`.
 
-Sometimes you've got a more complex trials structure that cannot be easily
+Sometimes you may have a complex trial structure that cannot be easily
 summarized as a set of unique integers. In this case, it may be useful to use
 the ``metadata`` attribute of :class:`mne.Epochs` objects. This must be a
 :class:`pandas.DataFrame` where each row corresponds to an epoch, and each

@@ -280,11 +280,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                         pass
 
             values = list(self.event_id.values())
-            selected = np.in1d(events[:, 2], values)
+            selected = np.where(np.in1d(events[:, 2], values))[0]
             if selection is None:
-                self.selection = np.where(selected)[0]
+                selection = selected
             else:
-                self.selection = selection
+                selection = np.array(selection, int)
+            if selection.shape != (len(selected),):
+                raise ValueError('selection must be shape %s got shape %s'
+                                 % (selected.shape, selection.shape))
+            self.selection = selection
             if drop_log is None:
                 self.drop_log = [list() if k in self.selection else ['IGNORED']
                                  for k in range(len(events))]
@@ -396,13 +400,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 self._data[ii] = np.dot(self._projector, epoch)
         self._filename = str(filename) if filename is not None else filename
 
-    @property
-    def metadata(self):
-        """Get a copy of the metadata."""
-        return deepcopy(self._metadata)
-
-    @metadata.setter
-    def metadata(self, metadata):
+    def _check_metadata(self, metadata=None, reset_index=False):
+        """Check metadata consistency."""
+        # reset_index=False will not copy!
+        metadata = self.metadata if metadata is None else metadata
         if metadata is not None:
             pd = _check_pandas_installed(strict=False)
             if pd is not False:
@@ -413,13 +414,30 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     raise ValueError('metadata must have the same number of '
                                      'rows (%d) as events (%d)'
                                      % (len(metadata), len(self.events)))
-                metadata = metadata.reset_index(drop=True)  # makes a copy, too
-                n_col = metadata.shape[1]
+                if reset_index:
+                    metadata = metadata.reset_index(drop=True)  # makes a copy
+                    metadata.index = self.selection
             else:
                 if not isinstance(metadata, list):
                     raise TypeError('metdata must be a list, got %s'
                                     % (type(metadata),))
-                metadata = deepcopy(metadata)
+                if reset_index:
+                    metadata = deepcopy(metadata)
+        return metadata
+
+    @property
+    def metadata(self):
+        """Get the metadata."""
+        return self._metadata
+
+    @metadata.setter
+    @verbose
+    def metadata(self, metadata, verbose=None):
+        metadata = self._check_metadata(metadata, reset_index=True)
+        if metadata is not None:
+            if _check_pandas_installed(strict=False):
+                n_col = metadata.shape[1]
+            else:
                 n_col = len(metadata[0])
             n_col = ' with %d columns' % n_col
         else:
@@ -1105,14 +1123,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if indices.dtype == bool:
             indices = np.where(indices)[0]
+        try_idx = np.where(indices < 0, indices + len(self.events), indices)
 
-        out_of_bounds = (indices < 0) | (indices >= len(self.events))
+        out_of_bounds = (try_idx < 0) | (try_idx >= len(self.events))
         if out_of_bounds.any():
             first = indices[out_of_bounds][0]
             raise IndexError("Epoch index %d is out of bounds" % first)
-        keep = np.setdiff1d(np.arange(len(self.events)), indices)
+        keep = np.setdiff1d(np.arange(len(self.events)), try_idx)
         self._getitem(keep, reason, copy=False, drop_event_id=False)
-        count = len(indices)
+        count = len(try_idx)
         logger.info('Dropped %d epoch%s' % (count, _pl(count)))
         return self
 
@@ -1214,12 +1233,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             logger.info("%d bad epochs dropped" % (n_events - len(good_idx)))
 
             # Now update our properties
-            if len(good_idx) == 0:  # silly fix for old numpy index error
-                self.selection = np.array([], int)
-                self.events = np.empty((0, 3))
-            else:
-                self.selection = self.selection[good_idx]
-                self.events = np.atleast_2d(self.events[good_idx])
+            self._getitem(good_idx, None, copy=False, drop_event_id=False)
 
             # adjust the data size if there is a reason to (output or update)
             if out or self.preload:
@@ -1381,8 +1395,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             pd = _check_pandas_installed(strict=False)
             # See if the query can be done
             if pd is not False:
+                self._check_metadata()
                 try:
-                    # Try metadata matching
+                    # Try metadata
                     mask = self.metadata.eval(keys[0], engine='python').values
                 except Exception as exp:
                     msg += (' The epochs.metadata Pandas query did not '
@@ -1461,24 +1476,32 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             item = [item]
 
         # Convert string to indices
-        if isinstance(item, (list, tuple)) and \
+        if isinstance(item, (list, tuple)) and len(item) > 0 and \
                 isinstance(item[0], string_types):
             select = epochs._keys_to_idx(item)
+        elif isinstance(item, slice):
+            select = item
         else:
-            select = item if isinstance(item, slice) else np.atleast_1d(item)
+            select = np.atleast_1d(item)
+            if len(select) == 0:
+                select = np.array([], int)
 
         key_selection = epochs.selection[select]
-        for k in np.setdiff1d(epochs.selection, key_selection):
-            epochs.drop_log[k] = [reason]
+        if reason is not None:
+            for k in np.setdiff1d(epochs.selection, key_selection):
+                epochs.drop_log[k] = [reason]
         epochs.selection = key_selection
         epochs.events = np.atleast_2d(epochs.events[select])
         if epochs.metadata is not None:
             pd = _check_pandas_installed(strict=False)
             if pd is not False:
                 metadata = epochs.metadata.iloc[select]
+                metadata.index = epochs.selection
             else:
                 metadata = np.array(epochs.metadata, 'object')[select].tolist()
-            epochs.metadata = metadata  # will reset the index for us
+
+            # will reset the index for us
+            BaseEpochs.metadata.fset(epochs, metadata, verbose=False)
         if epochs.preload:
             # ensure that each Epochs instance owns its own data so we can
             # resize later if necessary
@@ -1544,7 +1567,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         new._raw = raw
         return new
 
-    def save(self, fname, split_size='2GB'):
+    @verbose
+    def save(self, fname, split_size='2GB', verbose=True):
         """Save epochs in a fif file.
 
         Parameters
@@ -1560,6 +1584,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Note: Due to FIFF file limitations, the maximum split size is 2GB.
 
             .. versionadded:: 0.10.0
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more).
 
         Notes
         -----
@@ -1873,8 +1901,7 @@ class Epochs(BaseEpochs):
         subsets of data, see :meth:`mne.Epochs.__getitem__`.
         When a subset of the epochs is created in this (or any other
         supported) manner, the metadata object is subsetted in the same manner.
-        MNE does not guarantee that the Dataframe Index is consistent, so do
-        not rely on it, but only on the columns.
+        MNE will modify the row indices to match ``epochs.selection``.
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
@@ -2048,6 +2075,11 @@ class EpochsArray(BaseEpochs):
         See :class:`mne.Epochs` docstring for details.
 
         .. versionadded:: 0.16
+    selection : ndarray | None
+        The selection compared to the original set of epochs.
+        Can be None to use ``np.arange(len(events))``.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -2074,7 +2106,7 @@ class EpochsArray(BaseEpochs):
     def __init__(self, data, info, events=None, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True,
-                 on_missing='error', metadata=None,
+                 on_missing='error', metadata=None, selection=None,
                  verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
@@ -2096,12 +2128,11 @@ class EpochsArray(BaseEpochs):
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
-        super(EpochsArray, self).__init__(info, data, events, event_id, tmin,
-                                          tmax, baseline, reject=reject,
-                                          flat=flat, reject_tmin=reject_tmin,
-                                          reject_tmax=reject_tmax, decim=1,
-                                          metadata=metadata,
-                                          proj=proj, on_missing=on_missing)
+        super(EpochsArray, self).__init__(
+            info, data, events, event_id, tmin, tmax, baseline, reject=reject,
+            flat=flat, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
+            decim=1, metadata=metadata, selection=selection, proj=proj,
+            on_missing=on_missing)
         if len(events) != np.in1d(self.events[:, 2],
                                   list(self.event_id.values())).sum():
             raise ValueError('The events must only contain event numbers from '
