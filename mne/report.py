@@ -47,9 +47,10 @@ def _ndarray_to_fig(img):
     """Convert to MPL figure, adapted from matplotlib.image.imsave."""
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_agg import FigureCanvasAgg
-    fig = Figure(dpi=100, frameon=False)
+    figsize = np.array(img.shape[:2][::-1]) / 100.
+    fig = Figure(dpi=100, figsize=figsize, frameon=False)
     FigureCanvasAgg(fig)
-    fig.figimage(img, resize=True)
+    fig.figimage(img)
     return fig
 
 
