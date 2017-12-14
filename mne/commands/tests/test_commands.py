@@ -18,7 +18,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_show_info)
 from mne.datasets import testing, sample
 from mne.io import read_raw_fif
-from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
+from mne.utils import (run_tests_if_main, _TempDir, requires_mne,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        ArgvSetter)
 
@@ -181,7 +181,6 @@ def test_maxfilter():
 
 @pytest.mark.slowtest
 @requires_mayavi
-@requires_PIL
 @testing.requires_testing_data
 def test_report():
     """Test mne report."""

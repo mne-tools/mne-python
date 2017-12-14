@@ -1059,8 +1059,6 @@ requires_pysurfer = partial(requires_module, name='PySurfer',
                             call="""import warnings
 with warnings.catch_warnings(record=True):
     from surfer import Brain""")
-requires_PIL = partial(requires_module, name='PIL',
-                       call='from PIL import Image')
 requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'

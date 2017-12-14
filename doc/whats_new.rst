@@ -27,7 +27,7 @@ Changelog
 
 - Reduce memory consumption and do not require data to be loaded in :meth:`mne.Epochs.apply_baseline` by `Eric Larson`_
 
-- Add option ``render_bem`` to :meth:`mne.Report.parse_folder` by `Eric Larson`_
+- Add option ``render_bem`` to :meth:`mne.report.Report.parse_folder` by `Eric Larson`_
 
 - Add to :func:`mne.viz.plot_alignment` plotting of coordinate frame axes via ``show_axes`` and terrain-style interaction via ``interaction``, by `Eric Larson`_
 
@@ -39,9 +39,9 @@ Changelog
 
 - Add possibility to concatenate `mne.Annotations` objects with ``+`` or ``+=`` operators by `Clemens Brunner`_
 
-- Add support for MaxShield raw files in :class:`mne.Report` by `Eric Larson`_
+- Add support for MaxShield raw files in :class:`mne.report.Report` by `Eric Larson`_
 
-- Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :class:`mne.io.egi.egimff.RawMff` by `Fede Raimondo`_
+- Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :func:`mne.io.read_raw_egi` by `Federico Raimondo`_
 
 - Add support for multiple head position files and plotting of sensors in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
@@ -70,6 +70,7 @@ Bug
 
 - Fix bug in :class:`mne.Epochs` when passing events as list with ``event_id=None``  by `Alex Gramfort`_
 
+- Fix bug in :meth:`mne.report.Report.add_figs_to_section` when passing :class:`numpy.ndarray` by `Eric Larson`_
 
 API
 ~~~

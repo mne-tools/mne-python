@@ -512,9 +512,10 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
         # and then plot the contours on top
         for surf in surfs:
-            ax.tricontour(surf['rr'][:, inds[0]], surf['rr'][:, inds[1]],
-                          surf['tris'], surf['rr'][:, inds[2]],
-                          levels=[sl], colors='yellow', linewidths=2.0)
+            with warnings.catch_warnings(record=True):  # no contours
+                ax.tricontour(surf['rr'][:, inds[0]], surf['rr'][:, inds[1]],
+                              surf['tris'], surf['rr'][:, inds[2]],
+                              levels=[sl], colors='yellow', linewidths=2.0)
         if img_output is not None:
             ax.set_xticks([])
             ax.set_yticks([])
@@ -1252,7 +1253,7 @@ def _limits_to_control_points(clim, stc_data, colormap):
         if clim['kind'] == 'percent':
             ctrl_pts = np.percentile(np.abs(stc_data),
                                      list(np.abs(clim[limit_key])))
-        elif clim['kind'] == 'value':
+        elif clim['kind'].startswith('value'):  # permit "values"
             ctrl_pts = np.array(clim[limit_key])
             if (np.diff(ctrl_pts) < 0).any():
                 raise ValueError('value colormap limits must be strictly '
@@ -1261,7 +1262,7 @@ def _limits_to_control_points(clim, stc_data, colormap):
             raise ValueError('If clim is a dict, clim[kind] must be '
                              ' "value" or "percent"')
     else:
-        raise ValueError('"clim" must be "auto" or dict')
+        raise ValueError('"clim" must be "auto" or dict, got %s' % (clim,))
     if len(ctrl_pts) != 3:
         raise ValueError('"lims" or "pos_lims" is length %i. It must be length'
                          ' 3' % len(ctrl_pts))
