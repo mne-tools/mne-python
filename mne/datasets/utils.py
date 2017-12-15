@@ -261,8 +261,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         visual_92_categories=[
             'https://osf.io/8ejrs/download',
             'https://osf.io/t4yjp/download'],
-        mtrf='https://superb-dca2.dl.sourceforge.net/project/aespa/'
-             'mTRF_1.5.zip',
+        mtrf='https://osf.io/h85s2/download',
         kiloword='https://osf.io/qkvf9/download',
         fieldtrip_cmc='https://osf.io/j9b6s/download',
     )
@@ -272,6 +271,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fieldtrip_cmc='SubjectCMC.zip',
         kiloword='MNE-kiloword-data.tar.gz',
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
+        mtrf='mTRF_1.5.zip',
         multimodal='MNE-multimodal-data.tar.gz',
         sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
