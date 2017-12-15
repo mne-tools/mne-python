@@ -156,10 +156,10 @@ def _triage_write(key, value, root, comp_kw, where,
         _create_titled_dataset(root, key, title, np.atleast_1d(value))
     elif isinstance(value, string_types):
         if isinstance(value, text_type):  # unicode
-            value = np.fromstring(value.encode('utf-8'), np.uint8)
+            value = np.frombuffer(value.encode('utf-8'), np.uint8)
             title = 'unicode'
         else:
-            value = np.fromstring(value.encode('ASCII'), np.uint8)
+            value = np.frombuffer(value.encode('ASCII'), np.uint8)
             title = 'ascii'
         _create_titled_dataset(root, key, title, value, comp_kw)
     elif isinstance(value, np.ndarray):
