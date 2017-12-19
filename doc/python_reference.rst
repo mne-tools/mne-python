@@ -456,6 +456,7 @@ Events
    merge_events
    parse_config
    pick_events
+   read_annotations
    read_events
    write_events
    concatenate_epochs
