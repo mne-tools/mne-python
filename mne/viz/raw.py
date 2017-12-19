@@ -272,7 +272,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                         analog=False)
         sr, sp = _annotations_starts_stops(raw, ('edge', 'bad_acq_skip'),
                                            invert=True)
-        filt_bounds = np.unique([sr, sp])
+        filt_bounds = np.unique(np.concatenate([sr, sp]))
 
     # make a copy of info, remove projection (for now)
     info = raw.info.copy()
