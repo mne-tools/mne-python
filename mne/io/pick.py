@@ -75,9 +75,9 @@ def channel_type(info, idx):
 
     for t, rules in get_channel_types().items():
         for key, vals in rules.items():
-            if isinstance(vals, int) and ch[key] != vals:
+            if isinstance(vals, int) and ch.get(key, None) != vals:
                 break
-            elif isinstance(vals, list) and ch[key] not in vals:
+            elif isinstance(vals, list) and ch.get(key, None) not in vals:
                 break
         else:
             return t
