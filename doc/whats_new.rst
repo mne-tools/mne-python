@@ -45,6 +45,8 @@ Changelog
 
 - Add support for multiple head position files and plotting of sensors in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
+- Add :func:`mne.io.pick.get_channel_types` which returns all available channel types in MNE by `Clemens Brunner`_
+
 Bug
 ~~~
 
