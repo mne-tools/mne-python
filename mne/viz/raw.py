@@ -1011,6 +1011,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                     ys += [0, ylim[0], np.nan]
                 line.set_xdata(xs)
                 line.set_ydata(ys)
+                line.set_zorder(0)
             else:
                 line.set_xdata([])
                 line.set_ydata([])
