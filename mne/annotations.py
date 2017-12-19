@@ -210,8 +210,11 @@ def _sync_onset(raw, onset, inverse=False):
     return annot_start
 
 
-def _annotations_starts_stops(raw, kinds, name='unknown'):
-    """Get starts and stops from given kinds."""
+def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
+    """Get starts and stops from given kinds.
+
+    onsets and ends are inclusive.
+    """
     if not isinstance(kinds, (string_types, list, tuple)):
         raise TypeError('%s must be str, list, or tuple, got %s'
                         % (type(kinds), name))
@@ -220,14 +223,24 @@ def _annotations_starts_stops(raw, kinds, name='unknown'):
     elif not all(isinstance(kind, string_types) for kind in kinds):
         raise TypeError('All entries in %s must be str' % (name,))
     if raw.annotations is None:
-        return np.array([], int), np.array([], int)
-    idxs = [idx for idx, desc in enumerate(raw.annotations.description)
-            if any(desc.upper().startswith(kind.upper())
-                   for kind in kinds)]
-    onsets = raw.annotations.onset[idxs]
-    onsets = _sync_onset(raw, onsets)
-    ends = onsets + raw.annotations.duration[idxs]
-    order = np.argsort(onsets)
-    onsets = raw.time_as_index(onsets[order])
-    ends = raw.time_as_index(ends[order])
+        onsets, ends = np.array([], int), np.array([], int)
+    else:
+        idxs = [idx for idx, desc in enumerate(raw.annotations.description)
+                if any(desc.upper().startswith(kind.upper())
+                       for kind in kinds)]
+        onsets = raw.annotations.onset[idxs]
+        onsets = _sync_onset(raw, onsets)
+        ends = onsets + raw.annotations.duration[idxs]
+        order = np.argsort(onsets)
+        onsets = raw.time_as_index(onsets[order], use_rounding=True)
+        ends = raw.time_as_index(ends[order], use_rounding=True)
+    if invert:
+        # We invert the relationship (i.e., get segments that do not satisfy)
+        if len(onsets) == 0 or onsets[0] != 0:
+            onsets = np.concatenate([[0], onsets])
+            ends = np.concatenate([[0], ends])
+        if len(ends) == 1 or ends[-1] != len(raw.times):
+            onsets = np.concatenate([onsets, [len(raw.times)]])
+            ends = np.concatenate([ends, [len(raw.times)]])
+        onsets, ends = ends[:-1], onsets[1:]
     return onsets, ends

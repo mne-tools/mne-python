@@ -228,8 +228,8 @@ FIFF.FIFF_SUBJ_LAST_NAME    = 403  # Last name of the subject
 FIFF.FIFF_SUBJ_BIRTH_DAY    = 404  # Birthday of the subject
 FIFF.FIFF_SUBJ_SEX          = 405  # Sex of the subject
 FIFF.FIFF_SUBJ_HAND         = 406  # Handedness of the subject
-FIFF.FIFF_SUBJ_WEIGHT       = 407  # Weight of the subject
-FIFF.FIFF_SUBJ_HEIGHT       = 408  # Height of the subject
+FIFF.FIFF_SUBJ_WEIGHT       = 407  # Weight of the subject in kg
+FIFF.FIFF_SUBJ_HEIGHT       = 408  # Height of the subject in m
 FIFF.FIFF_SUBJ_COMMENT      = 409  # Comment about the subject
 FIFF.FIFF_SUBJ_HIS_ID       = 410  # ID used in the Hospital Information System
 

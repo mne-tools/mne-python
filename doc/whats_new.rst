@@ -43,6 +43,10 @@ Changelog
 
 - Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :func:`mne.io.read_raw_egi` by `Federico Raimondo`_
 
+- Add support for reading subject height and weight in ``info['subject_info']`` by `Eric Larson`_
+
+- Improve online filtering of raw data when plotting with :meth:`mne.io.Raw.plot` to filter in segments in accordance with the default ``skip_by_annotation=('edge', 'bad_acq_skip')`` of :meth:`mne.io.Raw.filter` to avoid edge ringing by `Eric Larson`_
+
 - Add support for multiple head position files and plotting of sensors in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
 Bug
@@ -73,6 +77,12 @@ Bug
 - Fix bug in :class:`mne.Epochs` when passing events as list with ``event_id=None``  by `Alex Gramfort`_
 
 - Fix bug in :meth:`mne.report.Report.add_figs_to_section` when passing :class:`numpy.ndarray` by `Eric Larson`_
+
+- Fix bug in :class:`Annotations` where annotations that extend to the end of a recording were not extended properly by `Eric Larson`_
+
+- Fix bug in :meth:`mne.io.Raw.filter` to properly raw data with acquisition skips in separate segments by `Eric Larson`_
+
+- Fix support for writing FIF files with acquisition skips by using empty buffers rather than writing zeros by `Eric Larson`_
 
 API
 ~~~

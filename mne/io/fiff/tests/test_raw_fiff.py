@@ -6,7 +6,6 @@
 from copy import deepcopy
 from functools import partial
 import itertools as itt
-import os
 import os.path as op
 import warnings
 
@@ -17,6 +16,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 import pytest
 
 from mne.datasets import testing
+from mne.filter import filter_data
 from mne.io.constants import FIFF
 from mne.io import RawArray, concatenate_raws, read_raw_fif
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
@@ -53,9 +53,54 @@ hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 @testing.requires_testing_data
 def test_acq_skip():
     """Test treatment of acquisition skips."""
-    raw = read_raw_fif(skip_fname)
+    raw = read_raw_fif(skip_fname, preload=True)
+    picks = [1, 2, 10]
     assert_equal(len(raw.times), 17000)
-    assert_equal(len(raw.annotations), 3)  # there are 3 skips
+    annotations = raw.annotations
+    assert_equal(len(annotations), 3)  # there are 3 skips
+    assert_allclose(annotations.onset, [2, 7, 11])
+    assert_allclose(annotations.duration, [2., 2., 3.])  # inclusive!
+    data, times = raw.get_data(
+        picks, reject_by_annotation='omit', return_times=True)
+    expected_data, expected_times = zip(raw[picks, :2000],
+                                        raw[picks, 4000:7000],
+                                        raw[picks, 9000:11000],
+                                        raw[picks, 14000:17000])
+    expected_times = np.concatenate(list(expected_times), axis=-1)
+    assert_allclose(times, expected_times)
+    expected_data = list(expected_data)
+    assert_allclose(data, np.concatenate(expected_data, axis=-1), atol=1e-22)
+
+    # Check that acquisition skips are handled properly in filtering
+    kwargs = dict(l_freq=None, h_freq=50., fir_design='firwin')
+    raw_filt = raw.copy().filter(picks=picks, **kwargs)
+    for data in expected_data:
+        filter_data(data, raw.info['sfreq'], copy=False, **kwargs)
+    data = raw_filt.get_data(picks, reject_by_annotation='omit')
+    assert_allclose(data, np.concatenate(expected_data, axis=-1), atol=1e-22)
+
+    # Check that acquisition skips are handled properly during I/O
+    tempdir = _TempDir()
+    fname = op.join(tempdir, 'test_raw.fif')
+    raw.save(fname, fmt=raw.orig_format)
+    # first: file size should not increase much (orig data is missing
+    # 7 of 17 buffers, so if we write them out it should increase the file
+    # size quite a bit.
+    orig_size = op.getsize(skip_fname)
+    new_size = op.getsize(fname)
+    max_size = int(1.05 * orig_size)  # almost the same + annotations
+    assert new_size < max_size, (new_size, max_size)
+    raw_read = read_raw_fif(fname)
+    assert raw_read.annotations is not None
+    assert_allclose(raw.times, raw_read.times)
+    assert_allclose(raw_read[:][0], raw[:][0], atol=1e-17)
+    # Saving with a bad buffer length emits warning
+    raw.pick_channels(raw.ch_names[:2])
+    with pytest.warns(None) as w:
+        raw.save(fname, buffer_size_sec=0.5, overwrite=True)
+    assert len(w) == 0
+    with pytest.warns(RuntimeWarning, match='did not fit evenly'):
+        raw.save(fname, buffer_size_sec=2., overwrite=True)
 
 
 def test_fix_types():
@@ -1182,11 +1227,11 @@ def test_save():
     assert_raises(IOError, raw.save, fif_fname)
 
     # test abspath support and annotations
-    sfreq = raw.info['sfreq']
     annot = Annotations([10], [5], ['test'],
-                        raw.info['meas_date'] + raw.first_samp / sfreq)
+                        raw.info['meas_date'] +
+                        raw.first_samp / raw.info['sfreq'])
     raw.annotations = annot
-    new_fname = op.join(op.abspath(op.curdir), 'break-raw.fif')
+    new_fname = op.join(op.abspath(op.curdir), 'break_raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
     new_raw = read_raw_fif(op.join(tempdir, new_fname), preload=False)
     assert_raises(ValueError, new_raw.save, new_fname)
@@ -1195,8 +1240,14 @@ def test_save():
     assert_array_equal(annot.description, new_raw.annotations.description)
     assert_equal(annot.orig_time, new_raw.annotations.orig_time)
 
-    # test that annotations are in sync after cropping and concatenating
+
+@testing.requires_testing_data
+def test_annotation_crop():
+    """Test annotation sync after cropping and concatenating."""
+    tempdir = _TempDir()
+    new_fname = op.join(op.abspath(op.curdir), 'break_raw.fif')
     annot = Annotations([5., 11., 15.], [2., 1., 3.], ['test', 'test', 'test'])
+    raw = read_raw_fif(fif_fname, preload=False)
     raw.annotations = annot
     with warnings.catch_warnings(record=True) as w:
         r1 = raw.copy().crop(2.5, 7.5)
@@ -1211,17 +1262,18 @@ def test_save():
     assert_array_almost_equal([2., 2.5, 1.], durations[:3], decimal=2)
 
     # test annotation clipping
+    sfreq = raw.info['sfreq']
     annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',
                         raw.info['meas_date'] + raw.first_samp / sfreq - 1.)
     with warnings.catch_warnings(record=True) as w:  # outside range
         raw.annotations = annot
     assert_true(all('data range' in str(ww.message) for ww in w))
-    assert_array_almost_equal(raw.annotations.duration, [1., 1.], decimal=3)
+    assert_allclose(raw.annotations.duration,
+                    [1., 1. + 1. / raw.info['sfreq']], atol=1e-3)
 
     # make sure we can overwrite the file we loaded when preload=True
     new_raw = read_raw_fif(op.join(tempdir, new_fname), preload=True)
     new_raw.save(op.join(tempdir, new_fname), overwrite=True)
-    os.remove(new_fname)
 
 
 @testing.requires_testing_data

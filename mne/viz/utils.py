@@ -1853,7 +1853,8 @@ def _plot_annotations(raw, params):
         params['ax_hscroll'].fill_betweenx(
             (0., 1.), annot_start, annot_end, alpha=0.3,
             color=params['segment_colors'][dscr])
-    params['segments'] = np.array(segments)
+    # Adjust half a sample backward to make it clear what is included
+    params['segments'] = np.array(segments) - 0.5 / raw.info['sfreq']
     params['annot_description'] = descriptions
 
 

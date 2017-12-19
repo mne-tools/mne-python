@@ -12,6 +12,7 @@ from warnings import warn
 
 import numpy as np
 
+from ..annotations import _annotations_starts_stops
 from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type)
@@ -60,8 +61,14 @@ def _update_raw_data(params):
     if params['remove_dc'] is True:
         data -= np.mean(data, axis=1)[:, np.newaxis]
     if params['ba'] is not None:
-        data[data_picks] = filtfilt(params['ba'][0], params['ba'][1],
-                                    data[data_picks], axis=1, padlen=0)
+        # filter with the same defaults as `raw.filter`, except
+        # we might as well actually filter the bad segments, too
+        these_bounds = np.unique(
+            np.maximum(np.minimum(params['filt_bounds'], start), stop))
+        for start_, stop_ in zip(these_bounds[:-1], these_bounds[1:]):
+            data[data_picks, start_:stop:] = \
+                filtfilt(params['ba'][0], params['ba'][1],
+                         data[data_picks, start_:stop_], axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
         data[di] /= params['scalings'][params['types'][di]]
@@ -243,7 +250,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # figure out the IIR filtering parameters
     nyq = raw.info['sfreq'] / 2.
     if highpass is None and lowpass is None:
-        ba = None
+        ba = filt_bounds = None
     else:
         filtorder = int(filtorder)
         if filtorder <= 0:
@@ -263,6 +270,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                  % (lowpass, highpass))
             ba = butter(filtorder, [highpass / nyq, lowpass / nyq], 'bandpass',
                         analog=False)
+        sr, sp = _annotations_starts_stops(raw, ('edge', 'bad_acq_skip'),
+                                           invert=True)
+        filt_bounds = np.unique([sr, sp])
 
     # make a copy of info, remove projection (for now)
     info = raw.info.copy()
@@ -352,7 +362,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False,
                   group_by=group_by, orig_inds=inds.copy(), decim=decim,
-                  data_picks=data_picks)
+                  data_picks=data_picks, filt_bounds=filt_bounds)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
