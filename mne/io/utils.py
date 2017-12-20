@@ -9,7 +9,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-
+import os
 from ..externals.six import b
 from .constants import FIFF
 
@@ -138,6 +138,13 @@ def _blk_read_lims(start, stop, buf_len):
         d_lims[bi] = [d_sidx, d_eidx]
         r_lims[bi] = [r_sidx, r_eidx]
     return block_start_idx, r_lims, d_lims
+
+
+def _file_size(fname):
+    """Get the file size in bytes"""
+    with open(fname, 'rb') as f:
+        f.seek(0, os.SEEK_END)
+        return f.tell()
 
 
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
