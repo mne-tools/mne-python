@@ -23,7 +23,7 @@ from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
 from ..channels.montage import read_montage, _set_montage, Montage
 from .compensator import set_current_comp, make_compensator
-from .write import (start_file, end_file, start_block, end_block, write_nop,
+from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, write_name_list, _get_split_size)
@@ -2215,10 +2215,10 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
             elif n_current_skip > 0:
                 # Write out an empty buffer instead of data
                 write_int(fid, FIFF.FIFF_DATA_SKIP, n_current_skip)
-                # This NOP is probably optional (MaxFilter does not do it)
-                # but the acquisition machines have it, so might as well...
-                for ii in range(n_current_skip):
-                    write_nop(fid)
+                # These two NOPs appear to be optional (MaxFilter does not do
+                # it, but some acquisition machines do) so let's not bother.
+                # write_nop(fid)
+                # write_nop(fid)
                 n_current_skip = 0
         data, times = raw[use_picks, first:last]
         assert len(times) == last - first
