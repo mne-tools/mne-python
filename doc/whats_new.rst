@@ -47,6 +47,8 @@ Changelog
 
 - Add option to unset a montage by passing `None` to :meth:`mne.io.Raw.set_montage` by `Clemens Brunner`_
 
+- Add :func:`mne.io.pick.get_channel_types` which returns all available channel types in MNE by `Clemens Brunner`_
+
 Bug
 ~~~
 
