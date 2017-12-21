@@ -879,9 +879,8 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                 warn('Did not set %s channel positions:\n%s'
                      % (len(did_not_set), ', '.join(did_not_set)))
     elif montage is None:
-        loc = np.zeros(12)
         for ch in info['chs']:
-            ch['loc'] = loc.copy()
+            ch['loc'] = np.zeros(12)
         if set_dig:
             info['dig'] = None
     else:
