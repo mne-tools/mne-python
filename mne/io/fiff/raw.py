@@ -21,7 +21,8 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
-from ...annotations import Annotations, _combine_annotations, _sync_onset
+from ...annotations import (Annotations, _combine_annotations, _sync_onset,
+                            _read_annotations)
 
 from ...event import AcqParserFIF
 from ...utils import check_fname, logger, verbose, warn
@@ -154,31 +155,7 @@ class Raw(BaseRaw):
             #   Read the measurement info
 
             info, meas = read_meas_info(fid, tree, clean_bads=True)
-
-            annotations = None
-            annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
-            if len(annot_data) > 0:
-                annot_data = annot_data[0]
-                for k in range(annot_data['nent']):
-                    kind = annot_data['directory'][k].kind
-                    pos = annot_data['directory'][k].pos
-                    orig_time = None
-                    tag = read_tag(fid, pos)
-                    if kind == FIFF.FIFF_MNE_BASELINE_MIN:
-                        onset = tag.data
-                        if onset is None:
-                            break  # bug in 0.14 wrote empty annotations
-                    elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
-                        duration = tag.data - onset
-                    elif kind == FIFF.FIFF_COMMENT:
-                        description = tag.data.split(':')
-                        description = [d.replace(';', ':') for d in
-                                       description]
-                    elif kind == FIFF.FIFF_MEAS_DATE:
-                        orig_time = float(tag.data)
-                if onset is not None:
-                    annotations = Annotations(onset, duration, description,
-                                              orig_time)
+            annotations = _read_annotations(fid, tree)
 
             #   Locate the data of interest
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)

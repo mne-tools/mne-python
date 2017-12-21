@@ -12,8 +12,8 @@ from numpy.testing import (assert_equal, assert_array_equal,
 
 import numpy as np
 
-from mne import create_info, Epochs
-from mne.utils import run_tests_if_main
+from mne import create_info, Epochs, read_annotations
+from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.annotations import Annotations, _sync_onset
 from mne.datasets import testing
@@ -26,6 +26,8 @@ fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 def test_annotations():
     """Test annotation class."""
     raw = read_raw_fif(fif_fname)
+    assert raw.annotations is None
+    assert_raises(ValueError, read_annotations, fif_fname)
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat('test', 10)
@@ -97,6 +99,16 @@ def test_annotations():
     raw.annotations.delete(-1)
     assert_array_almost_equal(raw.annotations.onset, [45., 2. + last_time],
                               decimal=2)
+
+    # Test IO
+    tempdir = _TempDir()
+    fname = op.join(tempdir, 'test-annot.fif')
+    raw.annotations.save(fname)
+    annot_read = read_annotations(fname)
+    for attr in ('onset', 'duration', 'orig_time'):
+        assert_allclose(getattr(annot_read, attr),
+                        getattr(raw.annotations, attr))
+    assert_array_equal(annot_read.description, raw.annotations.description)
 
 
 @testing.requires_testing_data

@@ -45,6 +45,8 @@ Changelog
 
 - Add support for multiple head position files and plotting of sensors in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
+- Add ability to read and write :class:`Annotations` separate from :class:`mne.io.Raw` instances via :meth:`Annotations.save` and :func:`read_annotations` by `Eric Larson`_
+
 - Add option to unset a montage by passing `None` to :meth:`mne.io.Raw.set_montage` by `Clemens Brunner`_
 
 - Add :func:`mne.io.pick.get_channel_types` which returns all available channel types in MNE by `Clemens Brunner`_

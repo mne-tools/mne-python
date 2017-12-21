@@ -26,9 +26,9 @@ from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string, write_name_list, _get_split_size)
+                    write_id, write_string, _get_split_size)
 
-from ..annotations import _annotations_starts_stops
+from ..annotations import _annotations_starts_stops, _write_annotations
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels, _filt_check_picks,
                       _filt_update_info)
@@ -2306,16 +2306,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     # Annotations
     #
     if annotations is not None and len(annotations.onset) > 0:
-        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
-        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, annotations.onset)
-        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
-                    annotations.duration + annotations.onset)
-        # To allow : in description, they need to be replaced for serialization
-        write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
-                                                 annotations.description])
-        if annotations.orig_time is not None:
-            write_double(fid, FIFF.FIFF_MEAS_DATE, annotations.orig_time)
-        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+        _write_annotations(fid, annotations)
 
     #
     # Start the raw data
