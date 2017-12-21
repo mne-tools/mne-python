@@ -480,8 +480,8 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        montage : instance of Montage or DigMontage
-            The montage to use.
+        montage : instance of Montage | instance of DigMontage | None
+            The montage to use (None removes any location information).
         set_dig : bool
             If True, update the digitization information (``info['dig']``)
             in addition to the channel positions (``info['chs'][idx]['loc']``).

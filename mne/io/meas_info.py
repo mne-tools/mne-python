@@ -1723,7 +1723,6 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     info['meas_date'] = np.array([0, 0], np.int32)
-    loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
             raise TypeError('each entry in ch_names must be a string')
@@ -1733,7 +1732,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
-        chan_info = dict(loc=loc.copy(), unit_mul=0, range=1., cal=1.,
+        chan_info = dict(loc=np.zeros(12), unit_mul=0, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)

@@ -778,8 +778,8 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     ----------
     info : instance of Info
         The measurement info to update.
-    montage : instance of Montage | instance of DigMontage
-        The montage to apply.
+    montage : instance of Montage | instance of DigMontage | None
+        The montage to apply (None removes any location information).
     update_ch_names : bool
         If True, overwrite the info channel names with the ones from montage.
         Defaults to False.
@@ -878,6 +878,11 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             if len(did_not_set) > 0:
                 warn('Did not set %s channel positions:\n%s'
                      % (len(did_not_set), ', '.join(did_not_set)))
+    elif montage is None:
+        for ch in info['chs']:
+            ch['loc'] = np.zeros(12)
+        if set_dig:
+            info['dig'] = None
     else:
         raise TypeError("Montage must be a 'Montage' or 'DigMontage' "
                         "instead of '%s'." % type(montage))
