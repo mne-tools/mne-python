@@ -75,14 +75,12 @@ def channel_type(info, idx):
 
     for t, rules in get_channel_types().items():
         for key, vals in rules.items():
-            if isinstance(vals, int) and ch.get(key, None) != vals:
-                break
-            elif isinstance(vals, list) and ch.get(key, None) not in vals:
+            if ch.get(key, None) not in np.array(vals):
                 break
         else:
             return t
 
-    raise Exception('Unknown channel type')
+    raise ValueError('Unknown channel type for {}'.format(ch["ch_name"]))
 
 
 def pick_channels(ch_names, include, exclude=[]):
