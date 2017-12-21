@@ -102,7 +102,7 @@ def test_annotations():
 
     # Test IO
     tempdir = _TempDir()
-    fname = op.join(tempdir, 'test.fif')
+    fname = op.join(tempdir, 'test-annot.fif')
     raw.annotations.save(fname)
     annot_read = read_annotations(fname)
     for attr in ('onset', 'duration', 'orig_time'):
