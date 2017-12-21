@@ -1723,7 +1723,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     info['meas_date'] = np.array([0, 0], np.int32)
-    loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
+    loc = np.zeros(12)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
             raise TypeError('each entry in ch_names must be a string')
