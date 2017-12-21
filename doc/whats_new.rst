@@ -45,6 +45,8 @@ Changelog
 
 - Add support for multiple head position files and plotting of sensors in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
+- Add option to unset a montage by passing `None` to :meth:`mne.io.Raw.set_montage` by `Clemens Brunner`_
+
 Bug
 ~~~
 
