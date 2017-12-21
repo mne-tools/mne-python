@@ -73,10 +73,11 @@ def channel_type(info, idx):
     """
     ch = info['chs'][idx]
 
+    # iterate through all defined channel types until we find a match with ch
     for t, rules in get_channel_types().items():
-        for key, vals in rules.items():
+        for key, vals in rules.items():  # all keys must match the values
             if ch.get(key, None) not in np.array(vals):
-                break
+                break  # not channel type t, go to next iteration
         else:
             return t
 
