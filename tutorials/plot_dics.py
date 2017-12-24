@@ -241,7 +241,8 @@ mlab.title('MNE-dSPM inverse (RMS)', height=0.9)
 csd_signal = csd_epochs(epochs['signal'], mode='cwt_morlet', frequencies=[10])
 
 # Compute the DICS powermap.
-filters = make_dics(epochs.info, fwd, csd_signal, reg=0.05, pick_ori='max-power')
+filters = make_dics(epochs.info, fwd, csd_signal, reg=0.05,
+                    pick_ori='max-power')
 power, f = apply_dics_csd(csd_signal, filters)
 
 # Plot the DICS power map.

@@ -61,30 +61,30 @@ def _make_csd():
     names = ['CH1', 'CH2', 'CH3']
     tmin, tmax = (0., 1.)
     data = np.arange(6. * n_freqs).reshape(n_freqs, 6).T
-    return CrossSpectralDensity(data, names, tmin, tmax, frequencies)
+    return CrossSpectralDensity(data, names, tmin, tmax, frequencies, 1)
 
 
 def test_csd():
     """Test constructing a CrossSpectralDensity."""
     csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'], tmin=0, tmax=1,
-                               frequencies=1)
+                               frequencies=1, n_fft=1)
     assert_array_equal(csd._data, [[1], [2], [3]])  # Conversion to 2D array
     assert_array_equal(csd.frequencies, [1])  # Conversion to 1D array
 
     # Channels don't match
     raises(ValueError, CrossSpectralDensity, [1, 2, 3],
-           ['CH1', 'CH2', 'Too many!'], tmin=0, tmax=1, frequencies=1)
+           ['CH1', 'CH2', 'Too many!'], tmin=0, tmax=1, frequencies=1, n_fft=1)
     raises(ValueError, CrossSpectralDensity, [1, 2, 3], ['too little'],
-           tmin=0, tmax=1, frequencies=1)
+           tmin=0, tmax=1, frequencies=1, n_fft=1)
 
     # Frequencies don't match
     raises(ValueError, CrossSpectralDensity,
            [[1, 2], [3, 4], [5, 6]], ['CH1', 'CH2'],
-           tmin=0, tmax=1, frequencies=1)
+           tmin=0, tmax=1, frequencies=1, n_fft=1)
 
     # Invalid dims
     raises(ValueError, CrossSpectralDensity, [[[1]]], ['CH1'], tmin=0, tmax=1,
-           frequencies=1)
+           frequencies=1, n_fft=1)
 
 
 def test_csd_repr():

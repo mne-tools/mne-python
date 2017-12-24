@@ -178,7 +178,7 @@ class CrossSpectralDensity(object):
         csd_out = CrossSpectralDensity(data=new_data, names=self.names,
                                        tmin=self.tmin, tmax=self.tmax,
                                        frequencies=new_frequencies,
-                                       is_sum=True)
+                                       is_sum=True, n_fft=self.n_fft)
         return csd_out
 
     def mean(self, fmin=None, fmax=None):
@@ -500,6 +500,7 @@ def pick_channels_csd(csd, include=[], exclude=[]):
         tmax=csd.tmax,
         frequencies=csd.frequencies,
         is_sum=csd.is_sum,
+        n_fft=csd.n_fft,
     )
 
 
