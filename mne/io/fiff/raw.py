@@ -127,10 +127,11 @@ class Raw(BaseRaw):
                     if self.annotations is None:
                         self.annotations = Annotations((), (), ())
                     start = skip['first'] - first_samp + offset
-                    stop = skip['last'] - first_samp - 1 + offset
+                    stop = skip['last'] - first_samp + offset
                     self.annotations.append(
                         _sync_onset(self, start / self.info['sfreq']),
-                        (stop - start) / self.info['sfreq'], 'BAD_ACQ_SKIP')
+                        (stop - start + 1) / self.info['sfreq'],
+                        'BAD_ACQ_SKIP')
         if preload:
             self._preload_data(preload)
         else:

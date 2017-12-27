@@ -114,12 +114,18 @@ def test_annotations():
 @testing.requires_testing_data
 def test_raw_reject():
     """Test raw data getter with annotation reject."""
-    info = create_info(['a', 'b', 'c', 'd', 'e'], 100, ch_types='eeg')
+    sfreq = 100.
+    info = create_info(['a', 'b', 'c', 'd', 'e'], sfreq, ch_types='eeg')
     raw = RawArray(np.ones((5, 15000)), info)
     with warnings.catch_warnings(record=True):  # one outside range
         raw.annotations = Annotations([2, 100, 105, 148], [2, 8, 5, 8], 'BAD')
-    data = raw.get_data([0, 1, 3, 4], 100, 11200, 'omit')
-    assert_array_equal(data.shape, (4, 9900))
+    data, times = raw.get_data([0, 1, 3, 4], 100, 11200,  # 1-112 sec
+                               'omit', return_times=True)
+    bad_times = np.concatenate([np.arange(200, 400),
+                                np.arange(10000, 10800),
+                                np.arange(10500, 11000)])
+    expected_times = np.setdiff1d(np.arange(100, 11200), bad_times) / sfreq
+    assert_allclose(times, expected_times)
 
     # with orig_time and complete overlap
     raw = read_raw_fif(fif_fname)
@@ -133,7 +139,7 @@ def test_raw_reject():
     data, times = raw.get_data(range(10), 0, 6000, 'NaN', True)
     assert_array_equal(data.shape, (10, 6000))
     assert_equal(times[-1], raw.times[5999])
-    assert_true(np.isnan(data[:, 313:613]).all())  # 1s -2s
+    assert_true(np.isnan(data[:, 314:613]).all())  # 1s -2s
     assert_true(not np.isnan(data[:, 614].any()))
     assert_array_equal(data[:, -100:], raw[:10, 5900:6000][0])
     assert_array_equal(raw.get_data(), raw[:][0])
@@ -183,6 +189,31 @@ def test_annotation_filtering():
     mask = np.concatenate((np.zeros(1000), np.ones(2000), np.zeros(1000)))
     expected_data = raws_concat[0][0][0] * mask
     assert_allclose(raw[0][0][0], expected_data, atol=1e-14)
+
+    # Let's try another one
+    raw = raws[0].copy()
+    raw.annotations = Annotations([0.], [0.5], ['BAD_ACQ_SKIP'])
+    my_data, times = raw.get_data(reject_by_annotation='omit',
+                                  return_times=True)
+    assert_allclose(times, raw.times[500:])
+    assert my_data.shape == (1, 500)
+    raw_filt = raw.copy().filter(skip_by_annotation='bad_acq_skip',
+                                 **kwargs_stop)
+    expected = data.copy()
+    expected[:, 500:] = 0
+    assert_allclose(raw_filt[:][0], expected, atol=1e-14)
+
+    raw = raws[0].copy()
+    raw.annotations = Annotations([0.5], [0.5], ['BAD_ACQ_SKIP'])
+    my_data, times = raw.get_data(reject_by_annotation='omit',
+                                  return_times=True)
+    assert_allclose(times, raw.times[:500])
+    assert my_data.shape == (1, 500)
+    raw_filt = raw.copy().filter(skip_by_annotation='bad_acq_skip',
+                                 **kwargs_stop)
+    expected = data.copy()
+    expected[:, :500] = 0
+    assert_allclose(raw_filt[:][0], expected, atol=1e-14)
 
 
 def test_annotation_omit():

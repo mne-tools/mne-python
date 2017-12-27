@@ -45,11 +45,11 @@ class Tag(object):
         self.data = None
 
     def __repr__(self):  # noqa: D105
-        out = ("kind: %s - type: %s - size: %s - next: %s - pos: %s"
+        out = ("<Tag  |  kind %s - type %s - size %s - next %s - pos %s"
                % (self.kind, self.type, self.size, self.next, self.pos))
         if hasattr(self, 'data'):
-            out += " - data: %s" % self.data
-        out += "\n"
+            out += " - data %s" % self.data
+        out += ">"
         return out
 
     def __cmp__(self, tag):  # noqa: D105
@@ -460,6 +460,19 @@ _call_dict = {
     FIFF.FIFFT_DIR_ENTRY_STRUCT: _read_dir_entry_struct,
     FIFF.FIFFT_JULIAN: _read_julian,
 }
+_call_dict_names = {
+    FIFF.FIFFT_STRING: 'str',
+    FIFF.FIFFT_COMPLEX_FLOAT: 'c8',
+    FIFF.FIFFT_COMPLEX_DOUBLE: 'c16',
+    FIFF.FIFFT_ID_STRUCT: 'ids',
+    FIFF.FIFFT_DIG_POINT_STRUCT: 'dps',
+    FIFF.FIFFT_COORD_TRANS_STRUCT: 'cts',
+    FIFF.FIFFT_CH_INFO_STRUCT: 'cis',
+    FIFF.FIFFT_OLD_PACK: 'op_',
+    FIFF.FIFFT_DIR_ENTRY_STRUCT: 'dir',
+    FIFF.FIFFT_JULIAN: 'jul',
+    FIFF.FIFFT_VOID: 'nul',  # 0
+}
 
 #  Append the simple types
 _simple_dict = {
@@ -474,6 +487,7 @@ _simple_dict = {
 }
 for key, dtype in _simple_dict.items():
     _call_dict[key] = partial(_read_simple, dtype=dtype)
+    _call_dict_names[key] = dtype
 
 
 def read_tag(fid, pos=None, shape=None, rlims=None):
