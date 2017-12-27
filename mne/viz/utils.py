@@ -25,7 +25,7 @@ from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
-                       _pick_data_channels)
+                       _pick_data_channels, _DATA_CH_TYPES_SPLIT)
 from ..utils import verbose, set_config, warn
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
@@ -619,7 +619,7 @@ def _radio_clicked(label, params):
     channels = params['selections'][label]
     ax_topo = params['fig_selection'].get_axes()[1]
     types = np.array([], dtype=int)
-    for this_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr'):
+    for this_type in _DATA_CH_TYPES_SPLIT:
         if this_type in params['types']:
             types = np.concatenate(
                 [types, np.where(np.array(params['types']) == this_type)[0]])
@@ -930,9 +930,9 @@ def _mouse_click(event, params):
 
 def _handle_topomap_bads(ch_name, params):
     """Color channels in selection topomap when selecting bads."""
-    for type in ('mag', 'grad', 'eeg', 'seeg', 'hbo', 'hbr'):
-        if type in params['types']:
-            types = np.where(np.array(params['types']) == type)[0]
+    for t in _DATA_CH_TYPES_SPLIT:
+        if t in params['types']:
+            types = np.where(np.array(params['types']) == t)[0]
             break
     color_ind = np.where(np.array(
         params['info']['ch_names'])[types] == ch_name)[0]
@@ -1361,7 +1361,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
     ch_indices = channel_indices_by_type(info)
-    allowed_types = ['mag', 'grad', 'eeg', 'seeg', 'ecog']
+    allowed_types = _DATA_CH_TYPES_SPLIT
     if ch_type is None:
         for this_type in allowed_types:
             if _contains_ch_type(info, this_type):
@@ -2025,8 +2025,7 @@ def _setup_butterfly(params):
         types = np.array(params['types'])[params['orig_inds']]
         if params['group_by'] in ['type', 'original']:
             inds = params['inds']
-            eeg = 'seeg' if 'seeg' in types else 'eeg'
-            labels = [t for t in ['grad', 'mag', eeg, 'eog', 'ecg']
+            labels = [t for t in _DATA_CH_TYPES_SPLIT + ['eog', 'ecg']
                       if t in types] + ['misc']
             ticks = np.arange(5, 5 * (len(labels) + 1), 5)
             offs = {l: t for (l, t) in zip(labels, ticks)}
