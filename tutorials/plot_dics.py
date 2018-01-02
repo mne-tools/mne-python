@@ -46,7 +46,7 @@ trans_fname = op.join(meg_path, 'sample_audvis_raw-trans.fif')
 fwd_fname = op.join(meg_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 
 # Seed for the random number generator
-np.random.seed(42)
+rand = np.random.RandomState(42)
 
 ###############################################################################
 # Data simulation
@@ -74,13 +74,13 @@ def coh_signal_gen():
     n_times = len(times)
 
     # Generate an oscillator with varying frequency and phase lag.
-    iflaw = base_freq / sfreq + t_rand * np.random.randn(n_times)
+    iflaw = base_freq / sfreq + t_rand * rand.randn(n_times)
     signal = np.exp(1j * 2.0 * np.pi * np.cumsum(iflaw))
     signal *= np.conj(signal[0])
     signal = signal.real
 
     # Add some random fluctuations to the signal.
-    signal += std * np.random.randn(n_times)
+    signal += std * rand.randn(n_times)
     signal *= 1e-7
 
     return signal
@@ -171,7 +171,7 @@ fwd_fixed = mne.convert_forward_solution(fwd, force_fixed=True)
 sensor_data = mne.apply_forward_raw(fwd_fixed, stc, info).get_data()
 
 # We're going to add some noise to the sensor data
-noise = np.random.randn(*sensor_data.shape)
+noise = rand.randn(*sensor_data.shape)
 
 # Scale the noise to be in the ballpark of MEG data
 noise_scaling = np.linalg.norm(sensor_data) / np.linalg.norm(noise)
@@ -240,10 +240,8 @@ mlab.title('MNE-dSPM inverse (RMS)', height=0.9)
 # signal.
 csd_signal = csd_epochs(epochs['signal'], mode='cwt_morlet', frequencies=[10])
 
-# Compute the DICS powermap. For this simulated dataset, we need a lot of
-# regularization for the beamformer to behave properly. For real recordings,
-# this amount of regularization is probably too much.
-filters = make_dics(epochs.info, fwd, csd_signal, reg=1, pick_ori='max-power')
+# Compute the DICS powermap.
+filters = make_dics(epochs.info, fwd, csd_signal, reg=0.05, pick_ori='max-power')
 power, f = apply_dics_csd(csd_signal, filters)
 
 # Plot the DICS power map.
