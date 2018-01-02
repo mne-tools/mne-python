@@ -800,7 +800,7 @@ def csd_array(X, sfreq, t0=0, mode='multitaper', fmin=0, fmax=np.inf,
     elif mode == 'cwt_morlet':
         # Construct the appropriate Morlet wavelets
         wavelets = morlet(sfreq, frequencies, cwt_n_cycles)
-        n_fft = n_times
+        n_fft = 1  # _csd_morlet averages across time instead of summing
 
         # Slice X to the requested time window + half the length of the longest
         # wavelet.
