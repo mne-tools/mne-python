@@ -156,7 +156,8 @@ def test_make_dics():
     assert filters['subject'] == fwd_free['src'][0]['subject_his_id']
     assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
-    assert filters['leadfield_norm'] == 'dipole'
+    assert filters['mode'] == 'scalar'
+    assert not filters['normalize_leadfield']
     assert filters['weight_norm'] == 'unit-noise-gain'
     _test_weight_norm(filters)
 
@@ -180,21 +181,21 @@ def test_make_dics():
     assert not np.iscomplexobj(filters['weights'])
     _test_weight_norm(filters)
 
-    # Test leadfield normalization. With 'dipole' normalization, power of a
+    # Test leadfield normalization. In 'vector' mode, the power of a
     # unit-noise CSD should be 1, even without weight normalization.
     csd_noise = csd.copy()
     inds = np.triu_indices(csd.n_series)
     # Using [:, :] syntax for in-place broadcasting
     csd_noise._data[:, :] = np.eye(csd.n_series)[inds][:, np.newaxis]
     filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
-                        leadfield_norm='dipole', pick_ori=None,
-                        weight_norm=None)
+                        mode='vector', weight_norm=None,
+                        normalize_leadfield=True)
     w = filters['weights'][0][:3]
     assert_allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-6, atol=0)
 
     # Test turning off both leadfield and weight normalization
     filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
-                        leadfield_norm=None, weight_norm=None)
+                        weight_norm=None, normalize_leadfield=False)
     w = filters['weights'][0][:3]
     assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
 
@@ -218,7 +219,8 @@ def test_apply_dics_csd():
 
     # Try different types of forward models
     for fwd in [fwd_free, fwd_surf, fwd_fixed]:
-        filters = make_dics(epochs.info, fwd, csd, label=label, reg=reg)
+        filters = make_dics(epochs.info, fwd, csd, label=label, reg=reg,
+                            mode='vector')
         power, f = apply_dics_csd(csd, filters)
         assert f == [10, 20]
 
@@ -228,38 +230,47 @@ def test_apply_dics_csd():
         # Is the signal stronger at 20 Hz than 10?
         assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
-    # Try picking different orientations
+    # Try picking different orientations and modes
     for pick_ori in [None, 'normal', 'max-power']:
-        filters = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
-                            pick_ori=pick_ori, weight_norm='unit-noise-gain')
-        power, f = apply_dics_csd(csd, filters)
-        assert f == [10, 20]
-        assert np.argmax(power.data[:, 1]) == source_ind
-        assert power.data[source_ind, 1] > power.data[source_ind, 0]
+        for mode in ['vector', 'scalar']:
+            # Scalar mode needs more regularization for this toy dataset
+            if mode == 'scalar':
+                reg_ = 5
+            else:
+                reg_ = reg
 
-        # Test unit-noise-gain weighting
-        noise_power, f = apply_dics_csd(csd_noise, filters)
-        assert np.allclose(noise_power.data, 1)
+            filters = make_dics(epochs.info, fwd_surf, csd, label=label,
+                                reg=reg_, pick_ori=pick_ori, mode=mode,
+                                weight_norm='unit-noise-gain')
+            power, f = apply_dics_csd(csd, filters)
+            assert f == [10, 20]
+            assert np.argmax(power.data[:, 1]) == source_ind
+            assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
-        # Test filter without weighting, this should still work on our simple
-        # simulated data.
-        filters = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
-                            pick_ori=pick_ori, weight_norm=None)
-        power, f = apply_dics_csd(csd, filters)
-        assert f == [10, 20]
-        assert np.argmax(power.data[:, 1]) == source_ind
-        assert power.data[source_ind, 1] > power.data[source_ind, 0]
+            # Test unit-noise-gain weighting
+            noise_power, f = apply_dics_csd(csd_noise, filters)
+            assert np.allclose(noise_power.data, 1)
+
+            # Test filter with leadfield normalization instead of weight
+            # normalization
+            filters = make_dics(epochs.info, fwd_surf, csd, label=label,
+                                reg=reg_, pick_ori=pick_ori, mode=mode,
+                                weight_norm=None, normalize_leadfield=True)
+            power, f = apply_dics_csd(csd, filters)
+            assert f == [10, 20]
+            assert np.argmax(power.data[:, 1]) == source_ind
+            assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test using a real-valued filter
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
-                             real_filter=True)
+                             real_filter=True, mode='vector')
     power, f = apply_dics_csd(csd, filters_real)
     assert f == [10, 20]
     assert np.argmax(power.data[:, 1]) == source_ind
     assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
     # Test computing source power on a volume source space
-    filters_vol = make_dics(epochs.info, fwd_vol, csd, reg=reg)
+    filters_vol = make_dics(epochs.info, fwd_vol, csd, reg=reg, mode='vector')
     power, f = apply_dics_csd(csd, filters_vol)
     vol_source_ind = 3851  # FIXME: not make this hardcoded
     assert f == [10, 20]
@@ -267,7 +278,6 @@ def test_apply_dics_csd():
     assert power.data[vol_source_ind, 1] > power.data[vol_source_ind, 0]
 
 
-@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_apply_dics_timeseries():
     """Test DICS applied to timeseries data."""
@@ -275,7 +285,7 @@ def test_apply_dics_timeseries():
     epochs, evoked, csd, source_vertno = _simulate_data(fwd_fixed)
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
     source_ind = vertices.tolist().index(source_vertno)
-    reg = 2  # Lots of regularization for our toy dataset
+    reg = 5  # Lots of regularization for our toy dataset
 
     multiple_filters = make_dics(evoked.info, fwd_surf, csd, label=label,
                                  reg=reg)
@@ -303,47 +313,19 @@ def test_apply_dics_timeseries():
     assert_array_equal(stcs[0].vertices[1], filters['vertices'][1])
     assert_allclose(stcs[0].times, epochs.times)
 
+    # Did we find the source?
+    stc = (stcs[0] ** 2).mean()
+    assert np.argmax(stc.data) == source_ind
+
+    # Apply filters to evoked
+    stc = apply_dics(evoked, filters)
+    stc = (stc ** 2).mean()
+    assert np.argmax(stc.data) == source_ind
+
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = cp.deepcopy(evoked)
     evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
     raises(ValueError, apply_dics, evoked_ch, filters)
-
-    # Try different types of forward models
-    for fwd in [fwd_free, fwd_surf, fwd_fixed]:
-        filters = make_dics(evoked.info, fwd, csd20, label=label, reg=reg)
-
-        # Apply filters to evoked
-        stc = apply_dics(evoked, filters)
-        stc = (stc ** 2).mean()
-        assert np.argmax(stc.data) == source_ind
-
-        # Apply filters to epochs
-        stcs = apply_dics_epochs(epochs, filters)
-        stc = (stcs[0] ** 2).mean()
-        assert np.argmax(stc.data) == source_ind
-
-    # Try picking different orientations
-    for pick_ori in [None, 'normal', 'max-power']:
-        filters = make_dics(evoked.info, fwd_surf, csd20, label=label, reg=reg,
-                            pick_ori=pick_ori)
-
-        # Apply to evoked
-        stc = apply_dics(evoked, filters)
-        stc = (stc ** 2).mean()
-        assert np.argmax(stc.data) == source_ind
-
-        # Apply to epochs
-        stcs = apply_dics_epochs(epochs, filters)
-        stc = (stcs[0] ** 2).mean()
-        assert np.argmax(stc.data) == source_ind
-
-    # Test using a real-valued filter
-    filters_real = make_dics(evoked.info, fwd_surf, csd20, label=label,
-                             reg=reg, real_filter=True)
-    assert not np.iscomplexobj(filters_real['weights'])
-    stc = apply_dics(evoked, filters_real)
-    stc = (stc ** 2).mean()
-    assert np.argmax(stc.data) == source_ind
 
     # Test whether projections are applied, by adding a custom projection
     filters_noproj = make_dics(evoked.info, fwd_surf, csd20, label=label)
@@ -393,7 +375,8 @@ def test_tf_dics():
     # Compute DICS for two time windows and two frequencies
     for mode in ['fourier', 'multitaper', 'cwt_morlet']:
         stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
-                       mode=mode, freq_bins=freq_bins, frequencies=frequencies,
+                       csd_mode=mode, freq_bins=freq_bins,
+                       beamformer_mode='vector', frequencies=frequencies,
                        decim=10, reg=reg, label=label)
 
         # Did we find the true source at 20 Hz?
@@ -414,7 +397,8 @@ def test_tf_dics():
                          frequencies=[frequencies[1]], tmin=time_window[0],
                          tmax=time_window[1], decim=10)
         csd._data /= csd.n_fft
-        filters = make_dics(epochs.info, fwd_surf, csd, reg=reg, label=label)
+        filters = make_dics(epochs.info, fwd_surf, csd, reg=reg, mode='vector',
+                            label=label)
         stc_source_power, _ = apply_dics_csd(csd, filters)
         source_power.append(stc_source_power.data)
 
@@ -423,7 +407,7 @@ def test_tf_dics():
 
     # Test using noise csds. We're going to use identity matrices. That way, if
     # all the computations are done correctly, there should be no effect if
-    # `leadfield_norm='dipole'`.
+    # `beamformer_mode='vector'`.
     noise_csd = csd.copy()
     inds = np.triu_indices(csd.n_series)
     # Using [:, :] syntax for in-place broadcasting
@@ -431,8 +415,9 @@ def test_tf_dics():
     noise_csd.n_fft = 2  # Dividing by n_fft should yield an identity CSD
     noise_csds = [noise_csd, noise_csd]  # Two frequency bins
     stcs_norm = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
-                        mode='cwt_morlet', frequencies=frequencies,
-                        noise_csds=noise_csds, decim=10, reg=reg, label=label)
+                        csd_mode='cwt_morlet', frequencies=frequencies,
+                        noise_csds=noise_csds, decim=10, reg=reg,
+                        beamformer_mode='vector', label=label)
     assert_allclose(stcs_norm[0].data, stcs[0].data, atol=0)
     assert_allclose(stcs_norm[1].data, stcs[1].data, atol=0)
 
@@ -450,16 +435,17 @@ def test_tf_dics():
 
     # Test if incorrect number of mt_bandwidths is detected
     raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
-           win_lengths=win_lengths, freq_bins=[frequencies], mode='multitaper',
-           mt_bandwidths=[20, 30])
+           win_lengths=win_lengths, freq_bins=[frequencies],
+           csd_mode='multitaper', mt_bandwidths=[20, 30])
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch.
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
-                       mode='cwt_morlet', frequencies=frequencies,
-                       subtract_evoked=True, reg=reg, label=label, decim=20)
+                       csd_mode='cwt_morlet', frequencies=frequencies,
+                       subtract_evoked=True, reg=reg, beamformer_mode='vector',
+                       label=label, decim=20)
     assert len(w) == 60  # One warning for each vertex
     assert np.all(np.isnan(stcs[0].data))
 

@@ -59,11 +59,10 @@ forward = mne.read_forward_solution(fname_fwd)
 csd = csd_epochs(epochs, mode='cwt_morlet', tmin=0, tmax=0.5, decim=20,
                  frequencies=np.linspace(6, 10, 4))
 
-# Compute DICS spatial filter and estimate source power
-filters = make_dics(epochs.info, forward, csd)
+# Compute DICS spatial filter and estimate source power.
+filters = make_dics(epochs.info, forward, csd, reg=0.5)
 stc, freqs = apply_dics_csd(csd, filters)
 
-message = 'DICS source power at %0.1f Hz' % freqs[0]
-brain = stc.plot(surface='white', hemi='rh', subjects_dir=subjects_dir,
+message = 'DICS source power in the 6-10 Hz frequency band'
+brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                  time_label=message)
-brain.show_view('lateral')

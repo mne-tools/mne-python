@@ -10,6 +10,8 @@
 import numbers
 
 import numpy as np
+from scipy import linalg
+from numpy.linalg import multi_dot
 
 from ..utils import logger, verbose, warn, deprecated
 from ..forward import _subject_from_forward
@@ -17,7 +19,7 @@ from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc
 from ..time_frequency import csd_epochs
 from ._lcmv import (_prepare_beamformer_input, _setup_picks, _reg_pinv,
-                    _check_proj_match, _pick_channels_spatial_filter)
+                    _eig_inv, _check_proj_match, _pick_channels_spatial_filter)
 from ..externals import six
 
 
@@ -28,9 +30,10 @@ deprecation_text = ('Please use the `make_dics` and `apply_dics_*` functions '
 
 @verbose
 def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
-              leadfield_norm='dipole', weight_norm='unit-noise-gain',
-              real_filter=False, verbose=None):
-    """Compute Dynamic Imaging of Coherent Sources (DICS) spatial filter.
+              mode='scalar', weight_norm='unit-noise-gain',
+              normalize_leadfield=False, real_filter=False, reduce_rank=False,
+              verbose=None):
+    """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
     Parameters
     ----------
@@ -59,19 +62,22 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 spectral power.
 
 
-    leadfield_norm : None | 'dipole' | 'point'
-        How to normalize the leadfield. None means no normalization is
-        performed, 'dipole' means each dipole is normalized independently, and
-        'point' means all dipoles defined at a source point (typically 3) will
-        be normalized simultaneously. Defaults to 'dipole'.
+    mode : 'scalar' | 'vector'
+        Whether to compute a scalar or vector beamformer. Defaults to 'scalar'.
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
         beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
         Defaults to 'unit-noise-gain'.
+    normalize_leadfield : bool
+        Whether to normalize the leadfield. Defaults to False.
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a single sphere model for MEG.
     verbose : bool, str, int, or None
         If not ``None``, override default verbose level (see
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>` for
@@ -94,6 +100,12 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 Projections used to compute the beamformer.
             'vertices' : list of ndarray
                 Vertices for which the filter weights were computed.
+            'mode' : 'scalar' | 'vector'
+                Whether the filters represent a scalar or vector beamformer.
+            'weight_norm' : None | 'unit-noise-gain'
+                The normalization of the weights.
+            'normalize_leadfield' : bool
+                Whether the leadfield was normalized
             'n_orient' : int
                 Number of source orientations defined in the forward model.
             'subject' : str
@@ -125,9 +137,26 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     if pick_ori not in allowed_ori:
         raise ValueError('"pick_ori" should be one of %s.' % allowed_ori)
 
+    # Leadfield rank and optional rank reduction
+    if reduce_rank and not pick_ori == 'max-power':
+        raise NotImplementedError(
+            'The computation of spatial filters with rank reduction using '
+            'reduce_rank parameter is only implemented with '
+            'pick_ori=="max-power".'
+        )
+
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
     n_freqs = len(frequencies)
     n_orient = forward['sol']['ncol'] // forward['nsource']
+
+    # Determine how to normalize the leadfield
+    if normalize_leadfield:
+        if mode == 'scalar':
+            leadfield_norm = 'point'
+        elif mode == 'vector':
+            leadfield_norm = 'dipole'
+    else:
+        leadfield_norm = None  # No normalization
 
     picks = _setup_picks(info=info, forward=forward)
     _, ch_names, proj, vertices, G = _prepare_beamformer_input(
@@ -158,6 +187,10 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
         Cm_inv, _ = _reg_pinv(Cm, reg, rcond='auto')
 
+        if (pick_ori == 'max-power' and weight_norm == 'unit-noise-gain' and
+                mode == 'scalar'):
+            Cm_inv_sq = Cm_inv.dot(Cm_inv)
+
         # Compute spatial filters
         W = np.dot(G.T, Cm_inv)
 
@@ -171,18 +204,48 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
             # Normalize the spatial filters
             if Wk.ndim == 2 and len(Wk) > 1:
                 # Free source orientation
-                # Officially, the formula calls for inv(Ck) @ Wk.
-                # However, since Ck is most likely rank deficient, the
-                # following is more stable in practice.
-                Wk /= np.diag(Ck)[:, np.newaxis]
+                if mode == 'vector':
+                    # Invert each dipole separately
+                    Wk /= np.diag(Ck)[:, np.newaxis]
+                elif mode == 'scalar':
+                    # Invert all dipoles simultaneously
+                    Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
             else:
                 # Fixed source orientation
                 Wk /= Ck
 
             if pick_ori == 'max-power':
-                # Compute spectral power by applying the spatial filters to the
-                # CSD matrix.
-                power = Wk.dot(Cm).dot(Wk.T)
+                # Compute spectral power, so we can pick the orientation that
+                # maximizes this power.
+                if mode == 'scalar' and weight_norm == 'unit-noise-gain':
+                    # Use Eq. 4.47 from [2]_
+                    tmp = multi_dot((Gk.T, Cm_inv_sq, Gk))
+                    if reduce_rank:
+                        # Use pseudo inverse computation setting smallest
+                        # component to zero if the leadfield is not full rank
+                        tmp_inv = _eig_inv(tmp, tmp.shape[0] - 1)
+                    else:
+                        # Use straight inverse with full rank leadfield
+                        try:
+                            tmp_inv = linalg.inv(tmp)
+                        except np.linalg.linalg.LinAlgError:
+                            raise ValueError(
+                                'Singular matrix detected when estimating '
+                                'DICS filters. Consider reducing the rank '
+                                'of the leadfield by using reduce_rank=True.'
+                            )
+                    power = multi_dot((tmp_inv, Wk, Gk))
+
+                elif mode == 'vector' and weight_norm == 'unit-noise-gain':
+                    # First make the filters unit gain, then apply them to the
+                    # CSD matrix to compute power.
+                    norm = np.sqrt(np.sum(Wk ** 2, axis=1))
+                    Wk_norm = Wk / norm[:, np.newaxis]
+                    power = Wk_norm.dot(Cm).dot(Wk_norm.T)
+                else:
+                    # Compute spectral power by applying the spatial filters to
+                    # the CSD matrix.
+                    power = Wk.dot(Cm).dot(Wk.T)
 
                 # Compute the direction of max power
                 u, s, _ = np.linalg.svd(power.real)
@@ -216,9 +279,10 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     subject = _subject_from_forward(forward)
     filters = dict(weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
                    vertices=vertices, subject=subject,
-                   pick_ori=pick_ori, leadfield_norm=leadfield_norm,
+                   pick_ori=pick_ori, mode=mode,
                    weight_norm=weight_norm,
-                   n_orient=n_orient if pick_ori is None else 1)
+                   normalize_leadfield=normalize_leadfield, n_orient=n_orient
+                   if pick_ori is None else 1)
 
     return filters
 
@@ -275,9 +339,9 @@ def apply_dics(evoked, filters, verbose=None):
     .. warning:: The result of this function is meant as an intermediate step
                  for further processing (such as computing connectivity). If
                  you are interested in estimating source time courses, use an
-                 LCMV beamformer instead. If you are interested in estimating
-                 spectral power at the source level, use
-                 :func:`dics_source_power`.
+                 LCMV beamformer (:func:`make_lcmv`, :func:`apply_lcmv`)
+                 instead. If you are interested in estimating spectral power at
+                 the source level, use :func:`dics_source_power`.
     .. warning:: This implementation has not been heavily tested so please
                  report any issues or suggestions.
 
@@ -328,9 +392,9 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     .. warning:: The result of this function is meant as an intermediate step
                  for further processing (such as computing connectivity). If
                  you are interested in estimating source time courses, use an
-                 LCMV beamformer instead. If you are interested in estimating
-                 spectral power at the source level, use
-                 ::func::`dics_source_power`.
+                 LCMV beamformer (:func:`make_lcmv`, :func:`apply_lcmv`)
+                 instead. If you are interested in estimating spectral power at
+                 the source level, use :func:`dics_source_power`.
     .. warning:: This implementation has not been heavily tested so please
                  report any issue or suggestions.
 
@@ -850,12 +914,14 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
 
 
 @verbose
-def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
-            freq_bins=None, frequencies=None, noise_csds=None, n_ffts=None,
-            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True,
-            cwt_n_cycles=7, decim=1, subtract_evoked=False, reg=0.05,
-            label=None, pick_ori=None, leadfield_norm='dipole',
-            weight_norm='unit-noise-gain', real_filter=False, verbose=None):
+def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
+            csd_mode='fourier', freq_bins=None, frequencies=None,
+            noise_csds=None, n_ffts=None, mt_bandwidths=None,
+            mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
+            subtract_evoked=False, reg=0.05, label=None, pick_ori=None,
+            beamformer_mode='scalar', weight_norm='unit-noise-gain',
+            normalize_leadfield=False, real_filter=False, reduce_rank=False,
+            verbose=None):
     """5D time-frequency beamforming based on DICS.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -880,7 +946,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
     win_lengths : list of float
         Time window lengths in seconds. One time window length should be
         provided for each frequency bin.
-    mode : 'fourier' | 'multitaper' | 'cwt_morlet'
+    csd_mode : 'fourier' | 'multitaper' | 'cwt_morlet'
         Spectrum estimation mode. Defaults to 'fourier'.
     freq_bins : list of tuples of float
         Start and end point of frequency bins of interest.
@@ -942,20 +1008,22 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
                 filters are computer for the orientation that maximizes
                 spectral power.
 
-    leadfield_norm : None | 'dipole' | 'point'
-        How to normalize the leadfield. None means no normalization is
-        performed, 'dipole' means each dipole is normalized independently, and
-        'point' means all dipoles defined at a source point (typically 3) will
-        be normalized simultaneously. Defaults to 'dipole'.
+    beamformer_mode : 'scalar' | 'vector'
+        Whether to compute a scalar or vector beamformer. Defaults to 'scalar'.
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
         beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
         Defaults to 'unit-noise-gain'.
+    normalize_leadfield : bool
+        Whether to normalize the leadfield. Defaults to False.
     real_filter : bool
-        If True, take only the real part of the part of the
-        cross-spectral-density matrices to compute real filters.
-        Defaults to False.
+        If ``True``, take only the real part of the cross-spectral-density
+        matrices to compute real filters. Defaults to ``False``.
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a single sphere model for MEG.
     verbose : bool | str | int | None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -985,12 +1053,12 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
     if pick_ori not in allowed_ori:
         raise ValueError('"pick_ori" should be one of %s.' % allowed_ori)
 
-    if mode == 'cwt_morlet' and frequencies is None:
+    if csd_mode == 'cwt_morlet' and frequencies is None:
         raise ValueError('In "cwt_morlet" mode, the "frequencies" parameter '
                          'should be used.')
-    elif mode != 'cwt_morlet' and freq_bins is None:
+    elif csd_mode != 'cwt_morlet' and freq_bins is None:
         raise ValueError('In "%s" mode, the "freq_bins" parameter should be '
-                         'used.' % mode)
+                         'used.' % csd_mode)
 
     if frequencies is not None:
         # Make sure frequencies are always in the form of a list of frequency
@@ -1037,7 +1105,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
             noise_csd = noise_csds[i_freq].copy()
             noise_csd._data /= noise_csd.n_fft
 
-        if mode == 'cwt_morlet':
+        if csd_mode == 'cwt_morlet':
             freq_bin = frequencies[i_freq]
             fmin = np.min(freq_bin)
             fmax = np.max(freq_bin)
@@ -1081,13 +1149,14 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
                 win_tmax = win_tmax
 
                 # Calculating data CSD in current time window
-                if mode == 'cwt_morlet':
-                    csd = csd_epochs(epochs, mode=mode, frequencies=freq_bin,
-                                     tmin=win_tmin, tmax=win_tmax, decim=decim)
+                if csd_mode == 'cwt_morlet':
+                    csd = csd_epochs(epochs, mode=csd_mode,
+                                     frequencies=freq_bin, tmin=win_tmin,
+                                     tmax=win_tmax, decim=decim)
                 else:
-                    csd = csd_epochs(epochs, mode=mode, fmin=fmin, fmax=fmax,
-                                     tmin=win_tmin, tmax=win_tmax, n_fft=n_fft,
-                                     mt_bandwidth=mt_bandwidth,
+                    csd = csd_epochs(epochs, mode=csd_mode, fmin=fmin,
+                                     fmax=fmax, tmin=win_tmin, tmax=win_tmax,
+                                     n_fft=n_fft, mt_bandwidth=mt_bandwidth,
                                      mt_low_bias=mt_low_bias)
 
                 # Scale data CSD to allow data and noise CSDs to have different
@@ -1096,8 +1165,10 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, mode='fourier',
 
                 filters = make_dics(epochs.info, forward, csd, reg=reg,
                                     label=label, pick_ori=pick_ori,
-                                    leadfield_norm=leadfield_norm,
+                                    mode=beamformer_mode,
                                     weight_norm=weight_norm,
+                                    normalize_leadfield=normalize_leadfield,
+                                    reduce_rank=reduce_rank,
                                     real_filter=real_filter)
                 stc, _ = apply_dics_csd(csd, filters)
 
