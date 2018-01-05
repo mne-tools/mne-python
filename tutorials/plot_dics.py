@@ -28,7 +28,7 @@ from matplotlib import pyplot as plt
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, compute_source_psd_epochs
+from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.time_frequency import csd_epochs
 from mne.beamformer import make_dics, apply_dics_csd
 
@@ -217,10 +217,13 @@ epochs.plot()
 cov = mne.compute_covariance(epochs['noise'])
 inv = make_inverse_operator(epochs.info, fwd, cov)
 
-# Apply the inverse model to the trial that also contains the signal and
-# compute the PSD at the source level.
-s = compute_source_psd_epochs(epochs['signal'], inv, fmin=9, fmax=11)
-s = s[0]  # A list of source estimates was returned
+# Apply the inverse model to the trial that also contains the signal.
+s = apply_inverse(epochs['signal'].average(), inv)
+
+# Take the root-mean square along the time dimension and plot the result.
+s_rms = (s ** 2).mean()
+brain = s_rms.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
+                   size=400)
 
 # Plot the result
 brain = s.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
