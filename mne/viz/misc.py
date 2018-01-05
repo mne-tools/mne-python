@@ -974,7 +974,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
         csd_mats = []
         for i in range(len(csd.frequencies)):
-            cm = csd.get_matrix(index=i)[ind][:, ind]
+            cm = csd.get_data(index=i)[ind][:, ind]
             if mode == 'csd':
                 cm = np.abs(cm)
             elif mode == 'coh':
