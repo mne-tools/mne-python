@@ -540,13 +540,14 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     if info['projs']:
         G = np.dot(proj, G)
 
-    # Pick after applying the projections
+    # Pick after applying the projections. This makes a copy of G, so further
+    # operations can be safely done in-place.
     G = G[picks_forward]
     proj = proj[np.ix_(picks_forward, picks_forward)]
 
     # Normalize the leadfield if requested
     if leadfield_norm == 'dipole':
-        G = G / np.linalg.norm(G, axis=0)
+        G /= np.linalg.norm(G, axis=0)
     elif leadfield_norm == 'point':
         depth_prior = np.sum(G ** 2, axis=0)
         if is_free_ori:
@@ -557,7 +558,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
         if is_free_ori:
             depth_prior = np.repeat(depth_prior, 3)
         source_weighting = np.sqrt(1. / depth_prior)
-        G = G * source_weighting[np.newaxis, :]
+        G *= source_weighting[np.newaxis, :]
     elif leadfield_norm is not None:
         raise ValueError('Got invalid value for "leadfield_norm". Valid '
                          'values are: "dipole", "point" or None.')

@@ -180,7 +180,7 @@ def test_csd_pick_frequency():
     csd2 = csd.pick_frequency(freq=2)
     assert csd2.frequencies == [2]
     assert_array_equal(
-        csd2.get_matrix(),
+        csd2.get_data(),
         [[6, 7, 8],
          [7, 9, 10],
          [8, 10, 11]]
@@ -189,7 +189,7 @@ def test_csd_pick_frequency():
     csd2 = csd.pick_frequency(index=1)
     assert csd2.frequencies == [2]
     assert_array_equal(
-        csd2.get_matrix(),
+        csd2.get_data(),
         [[6, 7, 8],
          [7, 9, 10],
          [8, 10, 11]]
@@ -206,13 +206,13 @@ def test_csd_pick_frequency():
     raises(ValueError, csd.pick_frequency, freq=2, index=1)
 
 
-def test_csd_get_matrix():
-    """Test the get_matrix method of CrossSpectralDensity."""
+def test_csd_get_data():
+    """Test the get_data method of CrossSpectralDensity."""
     csd = _make_csd()
 
     # CSD matrix corresponding to 2 Hz.
     assert_array_equal(
-        csd.get_matrix(frequency=2),
+        csd.get_data(frequency=2),
         [[6, 7, 8],
          [7, 9, 10],
          [8, 10, 11]]
@@ -220,7 +220,7 @@ def test_csd_get_matrix():
 
     # Mean CSD matrix
     assert_array_equal(
-        csd.mean().get_matrix(),
+        csd.mean().get_data(),
         [[9, 10, 11],
          [10, 12, 13],
          [11, 13, 14]]
@@ -228,18 +228,18 @@ def test_csd_get_matrix():
 
     # Average across frequency bins, select bin
     assert_array_equal(
-        csd.mean(fmin=[1, 3], fmax=[2, 4]).get_matrix(index=1),
+        csd.mean(fmin=[1, 3], fmax=[2, 4]).get_data(index=1),
         [[15, 16, 17],
          [16, 18, 19],
          [17, 19, 20]]
     )
 
     # Invalid inputs
-    raises(ValueError, csd.get_matrix)
-    raises(ValueError, csd.get_matrix, frequency=1, index=1)
-    raises(IndexError, csd.get_matrix, frequency=15)
-    raises(ValueError, csd.mean().get_matrix, frequency=1)
-    raises(IndexError, csd.mean().get_matrix, index=15)
+    raises(ValueError, csd.get_data)
+    raises(ValueError, csd.get_data, frequency=1, index=1)
+    raises(IndexError, csd.get_data, frequency=15)
+    raises(ValueError, csd.mean().get_data, frequency=1)
+    raises(IndexError, csd.mean().get_data, index=15)
 
 
 @requires_h5py
@@ -295,8 +295,8 @@ def _test_csd_on_artificial_data(csd):
     assert csd._data.shape == (6, 3)  # Only upper triangle of CSD matrix
 
     # Extract CSD ndarrays. Diagonals are PSDs.
-    csd_10 = csd.get_matrix(index=0)
-    csd_22 = csd.get_matrix(index=2)
+    csd_10 = csd.get_data(index=0)
+    csd_22 = csd.get_data(index=2)
     power_10 = np.diag(csd_10)
     power_22 = np.diag(csd_22)
 
@@ -319,7 +319,7 @@ def _test_csd_on_artificial_data(csd):
 
     # Check that electrodes/frequency combinations with signal have more
     # power than frequencies without signal.
-    power_15 = np.diag(csd.get_matrix(index=1))
+    power_15 = np.diag(csd.get_data(index=1))
     assert np.all(power_10 > power_15)
     assert np.all(power_22[[0, -1]] > power_15[[0, -1]])
 

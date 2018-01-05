@@ -11,7 +11,6 @@ import numbers
 
 import numpy as np
 from scipy import linalg
-from numpy.linalg import multi_dot
 
 from ..utils import logger, verbose, warn, deprecated
 from ..forward import _subject_from_forward
@@ -174,7 +173,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
             logger.info('    computing DICS spatial filter at %sHz (%d/%d)' %
                         (freq, i + 1, n_freqs))
 
-        Cm = csd.get_matrix(index=i)
+        Cm = csd.get_data(index=i)
 
         if real_filter:
             Cm = Cm.real
@@ -219,7 +218,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 # maximizes this power.
                 if mode == 'scalar' and weight_norm == 'unit-noise-gain':
                     # Use Eq. 4.47 from [2]_
-                    tmp = multi_dot((Gk.T, Cm_inv_sq, Gk))
+                    tmp = np.dot(Gk.T, np.dot(Cm_inv_sq, Gk))
                     if reduce_rank:
                         # Use pseudo inverse computation setting smallest
                         # component to zero if the leadfield is not full rank
@@ -234,7 +233,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                                 'DICS filters. Consider reducing the rank '
                                 'of the leadfield by using reduce_rank=True.'
                             )
-                    power = multi_dot((tmp_inv, Wk, Gk))
+                    power = np.dot(tmp_inv, np.dot(Wk, Gk))
 
                 elif mode == 'vector' and weight_norm == 'unit-noise-gain':
                     # First make the filters unit gain, then apply them to the
@@ -504,7 +503,7 @@ def apply_dics_csd(csd, filters, verbose=None):
             logger.info('    applying DICS spatial filter at %sHz (%d/%d)' %
                         (freq, i + 1, n_freqs))
 
-        Cm = csd.get_matrix(index=i)
+        Cm = csd.get_data(index=i)
         Cm = Cm[csd_picks, :][:, csd_picks]
         W = filters['weights'][i]
 
@@ -538,8 +537,8 @@ def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     is_free_ori, _, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
-    Cm = data_csd.get_matrix(index=0)
-    Cm_noise = noise_csd.get_matrix(index=0)
+    Cm = data_csd.get_data(index=0)
+    Cm_noise = noise_csd.get_data(index=0)
 
     # Take real part of Cm to compute real filters
     if real_filter:
@@ -861,7 +860,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
             logger.info('    computing DICS spatial filter %d out of %d' %
                         (i + 1, n_freqs))
 
-        Cm = data_csds.get_matrix(index=i)
+        Cm = data_csds.get_data(index=i)
 
         # Take real part of Cm to compute real filters
         if real_filter:
@@ -877,8 +876,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
         W = np.dot(G.T, Cm_inv)
 
         # Make new copies of the CSDs that are not converted to real values
-        data_Cm = data_csds.get_matrix(index=i)
-        noise_Cm = noise_csds.get_matrix(index=i)
+        data_Cm = data_csds.get_data(index=i)
+        noise_Cm = noise_csds.get_data(index=i)
 
         # Apply spatial filters to CSDs
         for k in range(n_sources):

@@ -27,7 +27,7 @@ class CrossSpectralDensity(object):
     stored as a vector.
 
     This object can store multiple CSD matrices: one for each frequency.
-    Use ``.get_matrix(freq)`` to obtain an CSD matrix as an ndarray.
+    Use ``.get_data(freq)`` to obtain an CSD matrix as an ndarray.
 
     Parameters
     ----------
@@ -52,9 +52,6 @@ class CrossSpectralDensity(object):
         List of projectors to apply to timeseries data when using this CSD
         object to compute a DICS beamformer. Defaults to None, which means no
         projectors will be applied.
-    is_sum : bool
-        Whether the CSD matrix represents a sum (or average) across
-        frequencies. Defaults to False.
 
     See Also
     --------
@@ -62,8 +59,8 @@ class CrossSpectralDensity(object):
     csd_array
     """
 
-    def __init__(self, data, names, tmin, tmax, frequencies, n_fft, projs=None,
-                 is_sum=False):
+    def __init__(self, data, names, tmin, tmax, frequencies, n_fft,
+                 projs=None):
         data = np.asarray(data)
         if data.ndim == 1:
             data = data[:, np.newaxis]
@@ -88,12 +85,18 @@ class CrossSpectralDensity(object):
 
         self.n_fft = n_fft
         self.projs = cp.deepcopy(projs)
-        self.is_sum = is_sum
 
     @property
     def n_series(self):
         """Number of time series defined in this CSD object."""
         return len(self.names)
+
+    @property
+    def is_sum(self):
+        """Whether the CSD matrix represents a sum (or average) of freqs."""
+        # If the CSD is an average, the frequencies will be stored as a list
+        # of lists (or like-like objects) instead of plain numbers.
+        return not isinstance(self.frequencies[0], numbers.Number)
 
     def __repr__(self):  # noqa: D105
         # Make a pretty string representation of the frequencies
@@ -178,7 +181,7 @@ class CrossSpectralDensity(object):
         csd_out = CrossSpectralDensity(data=new_data, names=self.names,
                                        tmin=self.tmin, tmax=self.tmax,
                                        frequencies=new_frequencies,
-                                       is_sum=True, n_fft=self.n_fft)
+                                       n_fft=self.n_fft)
         return csd_out
 
     def mean(self, fmin=None, fmax=None):
@@ -255,7 +258,7 @@ class CrossSpectralDensity(object):
 
         See Also
         --------
-        get_matrix
+        get_data
         """
         if freq is None and index is None:
             raise ValueError('Use either the "freq" or "index" parameter to '
@@ -269,7 +272,7 @@ class CrossSpectralDensity(object):
 
         return self[index]
 
-    def get_matrix(self, frequency=None, index=None):
+    def get_data(self, frequency=None, index=None):
         """Get the CSD matrix for a given frequency as NumPy array.
 
         If there is only one matrix defined in the CSD object, calling this
@@ -321,7 +324,6 @@ class CrossSpectralDensity(object):
         self.names = state['names']
         self.frequencies = state['frequencies']
         self.n_fft = state['n_fft']
-        self.is_sum = state['is_sum']
 
     def __getstate__(self):  # noqa: D105
         return dict(
@@ -331,7 +333,6 @@ class CrossSpectralDensity(object):
             names=self.names,
             frequencies=self.frequencies,
             n_fft=self.n_fft,
-            is_sum=self.is_sum,
         )
 
     def __getitem__(self, sel):  # noqa: D105
@@ -340,7 +341,6 @@ class CrossSpectralDensity(object):
             tmax=self.tmax,
             frequencies=np.atleast_1d(self.frequencies)[sel].tolist(),
             n_fft=self.n_fft,
-            is_sum=self.is_sum,
         )
 
     def save(self, fname):
@@ -499,7 +499,6 @@ def pick_channels_csd(csd, include=[], exclude=[]):
         tmin=csd.tmin,
         tmax=csd.tmax,
         frequencies=csd.frequencies,
-        is_sum=csd.is_sum,
         n_fft=csd.n_fft,
     )
 
@@ -870,7 +869,7 @@ def csd_array(X, sfreq, t0=0, mode='multitaper', fmin=0, fmax=np.inf,
 
     return CrossSpectralDensity(csds_mean, names=names, tmin=times[0],
                                 tmax=times[-1], frequencies=frequencies,
-                                n_fft=n_fft, projs=projs, is_sum=fsum)
+                                n_fft=n_fft, projs=projs)
 
 
 def _compute_mt_params(n_times, sfreq, mode, mt_bandwidth, mt_low_bias,

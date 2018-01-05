@@ -57,7 +57,7 @@ rand = np.random.RandomState(42)
 # We'll use this function to generate our two signals.
 
 sfreq = 50.  # Sampling frequency of the generated signal
-times = np.arange(10 * sfreq) / sfreq  # 10 seconds of signal
+times = np.arange(10. * sfreq) / sfreq  # 10 seconds of signal
 
 
 def coh_signal_gen():
@@ -70,7 +70,7 @@ def coh_signal_gen():
     """
     t_rand = 0.001  # Variation in the instantaneous frequency of the signal
     std = 0.1  # Std-dev of the random fluctuations added to the signal
-    base_freq = 10  # Base frequency of the oscillators in Hertz
+    base_freq = 10.  # Base frequency of the oscillators in Hertz
     n_times = len(times)
 
     # Generate an oscillator with varying frequency and phase lag.
@@ -85,40 +85,41 @@ def coh_signal_gen():
 
     return signal
 
+
 ###############################################################################
 # Let's simulate two timeseries and plot some basic information about them.
 signal1 = coh_signal_gen()
 signal2 = coh_signal_gen()
 
-plt.figure(figsize=(8, 4))
+fig, axes = plt.subplots(2, 2, figsize=(8, 4))
 
 # Plot the timeseries
-plt.subplot(221)
-plt.plot(times, signal1)
-plt.xlabel('Time (s)')
-plt.title('Signal 1')
-plt.subplot(222)
-plt.plot(times, signal2)
-plt.xlabel('Time (s)')
-plt.title('Signal 2')
+ax = axes[0][0]
+ax.plot(times, signal1)
+ax.set_xlabel('Time (s)')
+ax.set_title('Signal 1')
+ax = axes[0][1]
+ax.plot(times, signal2)
+ax.set_xlabel('Time (s)')
+ax.set_title('Signal 2')
 
 # Power spectrum of the first timeseries
 f, p = welch(signal1, fs=sfreq, nperseg=128, nfft=256)
-plt.subplot(223)
-plt.plot(f[:100], p[:100])  # Only plot the first 30 frequencies
-plt.xlabel('Frequency (Hz)')
-plt.ylabel('Power')
-plt.title('Power spectrum of signal 1')
+ax = axes[1][0]
+ax.plot(f[:100], p[:100])  # Only plot the first 30 frequencies
+ax.set_xlabel('Frequency (Hz)')
+ax.set_ylabel('Power')
+ax.set_title('Power spectrum of signal 1')
 
 # Compute the coherence between the two timeseries
 f, coh = coherence(signal1, signal2, fs=sfreq, nperseg=100, noverlap=64)
-plt.subplot(224)
-plt.plot(f[:50], coh[:50])
-plt.xlabel('Frequency (Hz)')
-plt.ylabel('Coherence')
-plt.title('Coherence between the timeseries')
+ax = axes[1][1]
+ax.plot(f[:50], coh[:50])
+ax.set_xlabel('Frequency (Hz)')
+ax.set_ylabel('Coherence')
+ax.set_title('Coherence between the timeseries')
 
-plt.tight_layout()
+fig.tight_layout()
 
 ###############################################################################
 # Now we put the signals at two locations on the cortex. We construct a
@@ -135,7 +136,7 @@ stc = mne.SourceEstimate(
     np.vstack((signal1, signal2)),  # The two signals
     vertices=[[source_vert1], [source_vert2]],  # Their locations
     tmin=0,
-    tstep=1 / sfreq,
+    tstep=1. / sfreq,
     subject='sample',  # We use the brain model of the MNE-Sample dataset
 )
 
@@ -143,7 +144,7 @@ stc = mne.SourceEstimate(
 # Before we simulate the sensor-level data, let's define a signal-to-noise
 # ratio. You are encouraged to play with this parameter and see the effect of
 # noise on our results.
-SNR = 1  # Signal-to-noise ratio. Decrease to add more noise.
+snr = 1  # Signal-to-noise ratio. Decrease to add more noise.
 
 ###############################################################################
 # Now we run the signal through the forward model to obtain simulated sensor
@@ -178,7 +179,7 @@ noise_scaling = np.linalg.norm(sensor_data) / np.linalg.norm(noise)
 noise *= noise_scaling
 
 # Mix noise and signal with the given signal-to-noise ratio.
-sensor_data = SNR * sensor_data + noise
+sensor_data = snr * sensor_data + noise
 
 ###############################################################################
 # We create an :class:`mne.EpochsArray` object containing two trials: one with
