@@ -42,7 +42,6 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     these filters to a CSD matrix (see :func:`apply_dics_csd`), the source
     power can be estimated for each source point.
 
-    The filter can operate in two modes: ``'scalar'`` and ``'vector'``,
     Parameters
     ----------
     info : dict
@@ -68,7 +67,6 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
             'max-power' :
                 filters are computer for the orientation that maximizes
                 spectral power.
-
 
     mode : 'scalar' | 'vector'
         Whether to compute a scalar or vector beamformer. This determines how
