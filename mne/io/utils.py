@@ -175,7 +175,7 @@ def read_str(fid, count=1):
     """Read string from a binary file in a python version compatible way."""
     dtype = np.dtype('>S%i' % count)
     string = fid.read(dtype.itemsize)
-    data = np.fromstring(string, dtype=dtype)[0]
+    data = np.frombuffer(string, dtype=dtype)[0]
     bytestr = b('').join([data[0:data.index(b('\x00')) if
                           b('\x00') in data else count]])
 

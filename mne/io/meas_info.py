@@ -1153,6 +1153,12 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_SUBJ_HAND:
                 tag = read_tag(fid, pos)
                 si['hand'] = int(tag.data)
+            elif kind == FIFF.FIFF_SUBJ_WEIGHT:
+                tag = read_tag(fid, pos)
+                si['weight'] = tag.data
+            elif kind == FIFF.FIFF_SUBJ_HEIGHT:
+                tag = read_tag(fid, pos)
+                si['height'] = tag.data
     info['subject_info'] = si
 
     hpi_subsystem = dir_tree_find(meas_info, FIFF.FIFFB_HPI_SUBSYSTEM)
@@ -1434,6 +1440,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_int(fid, FIFF.FIFF_SUBJ_SEX, si['sex'])
         if si.get('hand') is not None:
             write_int(fid, FIFF.FIFF_SUBJ_HAND, si['hand'])
+        if si.get('weight') is not None:
+            write_float(fid, FIFF.FIFF_SUBJ_WEIGHT, si['weight'])
+        if si.get('height') is not None:
+            write_float(fid, FIFF.FIFF_SUBJ_HEIGHT, si['height'])
         end_block(fid, FIFF.FIFFB_SUBJECT)
 
     if info.get('hpi_subsystem') is not None:
@@ -1723,7 +1733,6 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          '(%s != %s)' % (len(ch_types), nchan))
     info = _empty_info(sfreq)
     info['meas_date'] = np.array([0, 0], np.int32)
-    loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
             raise TypeError('each entry in ch_names must be a string')
@@ -1733,7 +1742,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
-        chan_info = dict(loc=loc.copy(), unit_mul=0, range=1., cal=1.,
+        chan_info = dict(loc=np.zeros(12), unit_mul=0, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)

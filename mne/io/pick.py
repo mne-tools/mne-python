@@ -14,6 +14,46 @@ from ..utils import logger, verbose
 from ..externals.six import string_types
 
 
+def get_channel_types():
+    """Return all known channel types.
+
+    Returns
+    -------
+    channel_types : dict
+        The keys contain the channel types, and the values contain the
+        corresponding values in the info['chs'][idx] dictionary.
+    """
+    return dict(grad=dict(kind=FIFF.FIFFV_MEG_CH,
+                          unit=FIFF.FIFF_UNIT_T_M),
+                mag=dict(kind=FIFF.FIFFV_MEG_CH,
+                         unit=FIFF.FIFF_UNIT_T),
+                ref_meg=dict(kind=FIFF.FIFFV_REF_MEG_CH),
+                eeg=dict(kind=FIFF.FIFFV_EEG_CH),
+                stim=dict(kind=FIFF.FIFFV_STIM_CH),
+                eog=dict(kind=FIFF.FIFFV_EOG_CH),
+                emg=dict(kind=FIFF.FIFFV_EMG_CH),
+                ecg=dict(kind=FIFF.FIFFV_ECG_CH),
+                resp=dict(kind=FIFF.FIFFV_RESP_CH),
+                misc=dict(kind=FIFF.FIFFV_MISC_CH),
+                exci=dict(kind=FIFF.FIFFV_EXCI_CH),
+                ias=dict(kind=FIFF.FIFFV_IAS_CH),
+                syst=dict(kind=FIFF.FIFFV_SYST_CH),
+                seeg=dict(kind=FIFF.FIFFV_SEEG_CH),
+                bio=dict(kind=FIFF.FIFFV_BIO_CH),
+                chpi=dict(kind=[FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1,
+                                FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
+                                FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
+                                FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G,
+                                FIFF.FIFFV_HPI_ERR, FIFF.FIFFV_HPI_MOV]),
+                dipole=dict(kind=FIFF.FIFFV_DIPOLE_WAVE),
+                gof=dict(kind=FIFF.FIFFV_GOODNESS_FIT),
+                ecog=dict(kind=FIFF.FIFFV_ECOG_CH),
+                hbo=dict(kind=FIFF.FIFFV_FNIRS_CH,
+                         coil_type=FIFF.FIFFV_COIL_FNIRS_HBO),
+                hbr=dict(kind=FIFF.FIFFV_FNIRS_CH,
+                         coil_type=FIFF.FIFFV_COIL_FNIRS_HBR))
+
+
 def channel_type(info, idx):
     """Get channel type.
 
@@ -31,55 +71,17 @@ def channel_type(info, idx):
            'seeg' | 'bio' | 'chpi' | 'dipole' | 'gof' | 'ecog' | 'hbo' | 'hbr'
         Type of channel
     """
-    kind = info['chs'][idx]['kind']
-    if kind == FIFF.FIFFV_MEG_CH:
-        if info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T_M:
-            return 'grad'
-        elif info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T:
-            return 'mag'
-    elif kind == FIFF.FIFFV_REF_MEG_CH:
-        return 'ref_meg'
-    elif kind == FIFF.FIFFV_EEG_CH:
-        return 'eeg'
-    elif kind == FIFF.FIFFV_STIM_CH:
-        return 'stim'
-    elif kind == FIFF.FIFFV_EOG_CH:
-        return 'eog'
-    elif kind == FIFF.FIFFV_EMG_CH:
-        return 'emg'
-    elif kind == FIFF.FIFFV_ECG_CH:
-        return 'ecg'
-    elif kind == FIFF.FIFFV_RESP_CH:
-        return 'resp'
-    elif kind == FIFF.FIFFV_MISC_CH:
-        return 'misc'
-    elif kind == FIFF.FIFFV_EXCI_CH:
-        return 'exci'
-    elif kind == FIFF.FIFFV_IAS_CH:
-        return 'ias'
-    elif kind == FIFF.FIFFV_SYST_CH:
-        return 'syst'
-    elif kind == FIFF.FIFFV_SEEG_CH:
-        return 'seeg'
-    elif kind == FIFF.FIFFV_BIO_CH:
-        return 'bio'
-    elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
-                  FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
-                  FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
-                  FIFF.FIFFV_HPI_MOV]:
-        return 'chpi'  # channels relative to head position monitoring
-    elif kind == FIFF.FIFFV_DIPOLE_WAVE:
-        return 'dipole'
-    elif kind == FIFF.FIFFV_GOODNESS_FIT:
-        return 'gof'
-    elif kind == FIFF.FIFFV_ECOG_CH:
-        return 'ecog'
-    elif kind == FIFF.FIFFV_FNIRS_CH:
-        if info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBO:
-            return 'hbo'
-        elif info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR:
-            return 'hbr'
-    raise Exception('Unknown channel type')
+    ch = info['chs'][idx]
+
+    # iterate through all defined channel types until we find a match with ch
+    for t, rules in get_channel_types().items():
+        for key, vals in rules.items():  # all keys must match the values
+            if ch.get(key, None) not in np.array(vals):
+                break  # not channel type t, go to next iteration
+        else:
+            return t
+
+    raise ValueError('Unknown channel type for {}'.format(ch["ch_name"]))
 
 
 def pick_channels(ch_names, include, exclude=[]):

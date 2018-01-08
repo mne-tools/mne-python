@@ -47,6 +47,15 @@ def _get_split_size(split_size):
     return split_size
 
 
+def write_nop(fid, last=False):
+    """Write a FIFF_NOP."""
+    fid.write(np.array(FIFF.FIFF_NOP, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tostring())
+    fid.write(np.array(0, dtype='>i4').tostring())
+    next_ = FIFF.FIFFV_NEXT_NONE if last else FIFF.FIFFV_NEXT_SEQ
+    fid.write(np.array(next_, dtype='>i4').tostring())
+
+
 def write_int(fid, kind, data):
     """Write a 32-bit integer tag to a fif file."""
     data_size = 4
@@ -275,11 +284,7 @@ def check_fiff_length(fid, close=True):
 
 def end_file(fid):
     """Write the closing tags to a fif file and closes the file."""
-    data_size = 0
-    fid.write(np.array(FIFF.FIFF_NOP, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_NONE, dtype='>i4').tostring())
+    write_nop(fid, last=True)
     check_fiff_length(fid)
     fid.close()
 

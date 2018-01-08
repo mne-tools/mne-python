@@ -26,9 +26,9 @@ from .compensator import set_current_comp, make_compensator
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id, write_string, write_name_list, _get_split_size)
+                    write_id, write_string, _get_split_size)
 
-from ..annotations import _annotations_starts_stops
+from ..annotations import _annotations_starts_stops, _write_annotations
 from ..filter import (filter_data, notch_filter, resample, next_fast_len,
                       _resample_stim_channels, _filt_check_picks,
                       _filt_update_info)
@@ -703,9 +703,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                         duration = annotations.duration[ind] + onset
                         annotations.duration[ind] = duration
                         annotations.onset[ind] = self.times[0] - offset
-                elif onset + annotations.duration[ind] > self.times[-1]:
+                elif (onset + annotations.duration[ind] >
+                      self.times[-1] + 1.1 / self.info['sfreq']):
+                    # We have to permit onset+duration to appear to go one past
+                    # the last sample in order to actually include the last
+                    # sample...
                     limited += 1
-                    annotations.duration[ind] = self.times[-1] - onset
+                    annotations.duration[ind] = (self.times[-1] +
+                                                 1. / self.info['sfreq'] -
+                                                 onset)
             annotations.onset = np.delete(annotations.onset, omit_ind)
             annotations.duration = np.delete(annotations.duration, omit_ind)
             annotations.description = np.delete(annotations.description,
@@ -1093,7 +1099,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
-               skip_by_annotation='edge', pad='reflect_limited', verbose=None):
+               skip_by_annotation=('edge', 'bad_acq_skip'),
+               pad='reflect_limited', verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -1195,9 +1202,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             with the given string will not be included in filtering, and
             segments on either side of the given excluded annotated segment
             will be filtered separately (i.e., as independent signals).
-            The default (``'edge'``) will separately filter any
-            segments that were concatenated by :func:`mne.concatenate_raws`
-            or :meth:`mne.io.Raw.append`. To disable, provide an empty list.
+            The default (``('edge', 'bad_acq_skip')`` will separately filter
+            any segments that were concatenated by :func:`mne.concatenate_raws`
+            or :meth:`mne.io.Raw.append`, or separated during acquisition.
+            To disable, provide an empty list.
 
             .. versionadded:: 0.16.
         pad : str
@@ -1235,15 +1243,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         update_info, picks = _filt_check_picks(self.info, picks,
                                                l_freq, h_freq)
         # Deal with annotations
-        onsets, ends = _annotations_starts_stops(self, skip_by_annotation,
-                                                 'skip_by_annotation')
-        if len(onsets) == 0 or onsets[0] != 0:
-            onsets = np.concatenate([[0], onsets])
-            ends = np.concatenate([[0], ends])
-        if len(ends) == 1 or ends[-1] != len(self.times):
-            onsets = np.concatenate([onsets, [len(self.times)]])
-            ends = np.concatenate([ends, [len(self.times)]])
-        for start, stop in zip(ends[:-1], onsets[1:]):
+        onsets, ends = _annotations_starts_stops(
+            self, skip_by_annotation, 'skip_by_annotation', invert=True)
+        for start, stop in zip(onsets, ends):
             filter_data(
                 self._data[:, start:stop], self.info['sfreq'], l_freq, h_freq,
                 picks, filter_length, l_trans_bandwidth, h_trans_bandwidth,
@@ -2186,9 +2188,38 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                          'value for split size: %s plus enough bytes for '
                          'the chosen buffer_size' % pos_prev)
     next_file_buffer = 2 ** 20  # extra cushion for last few post-data tags
-    for first in range(start, stop, buffer_size):
-        # Write blocks <= buffer_size in size
-        last = min(first + buffer_size, stop)
+
+    # Check to see if this has acquisition skips and, if so, if we can
+    # write out empty buffers instead of zeroes
+    firsts = list(range(start, stop, buffer_size))
+    lasts = np.array(firsts) + buffer_size
+    if lasts[-1] > stop:
+        lasts[-1] = stop
+    sk_onsets, sk_ends = _annotations_starts_stops(raw, 'bad_acq_skip')
+    do_skips = False
+    if len(sk_onsets) > 0:
+        if np.in1d(sk_onsets, firsts).all() and np.in1d(sk_ends, lasts).all():
+            do_skips = True
+        else:
+            if part_idx == 0:
+                warn('Acquisition skips detected but did not fit evenly into '
+                     'output buffer_size, will be written as zeroes.')
+
+    n_current_skip = 0
+    for first, last in zip(firsts, lasts):
+        if do_skips:
+            if ((first >= sk_onsets) & (last <= sk_ends)).any():
+                # Track how many we have
+                n_current_skip += 1
+                continue
+            elif n_current_skip > 0:
+                # Write out an empty buffer instead of data
+                write_int(fid, FIFF.FIFF_DATA_SKIP, n_current_skip)
+                # These two NOPs appear to be optional (MaxFilter does not do
+                # it, but some acquisition machines do) so let's not bother.
+                # write_nop(fid)
+                # write_nop(fid)
+                n_current_skip = 0
         data, times = raw[use_picks, first:last]
         assert len(times) == last - first
 
@@ -2306,16 +2337,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     # Annotations
     #
     if annotations is not None and len(annotations.onset) > 0:
-        start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
-        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, annotations.onset)
-        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
-                    annotations.duration + annotations.onset)
-        # To allow : in description, they need to be replaced for serialization
-        write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
-                                                 annotations.description])
-        if annotations.orig_time is not None:
-            write_double(fid, FIFF.FIFF_MEAS_DATE, annotations.orig_time)
-        end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+        _write_annotations(fid, annotations)
 
     #
     # Start the raw data

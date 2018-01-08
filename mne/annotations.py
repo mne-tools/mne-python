@@ -8,8 +8,14 @@ from copy import deepcopy
 
 import numpy as np
 
-from .utils import _pl
+from .utils import _pl, check_fname
 from .externals.six import string_types
+from .io.write import (start_block, end_block, write_float, write_name_list,
+                       write_double, start_file)
+from .io.constants import FIFF
+from .io.open import fiff_open
+from .io.tree import dir_tree_find
+from .io.tag import read_tag
 
 
 class Annotations(object):
@@ -152,6 +158,22 @@ class Annotations(object):
         self.duration = np.delete(self.duration, idx)
         self.description = np.delete(self.description, idx)
 
+    def save(self, fname):
+        """Save annotations to FIF.
+
+        Typically annotations get saved in the FIF file for raw data
+        (e.g., as ``raw.annotations``), but this offers the possibility
+        to also save them to disk separately.
+
+        Parameters
+        ----------
+        fname : str
+            The filename to use.
+        """
+        check_fname(fname, 'annotations', ('-annot.fif', '-annot.fif.gz'))
+        with start_file(fname) as fid:
+            _write_annotations(fid, self)
+
 
 def _combine_annotations(annotations, last_samps, first_samps, sfreq,
                          meas_date):
@@ -210,8 +232,11 @@ def _sync_onset(raw, onset, inverse=False):
     return annot_start
 
 
-def _annotations_starts_stops(raw, kinds, name='unknown'):
-    """Get starts and stops from given kinds."""
+def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
+    """Get starts and stops from given kinds.
+
+    onsets and ends are inclusive.
+    """
     if not isinstance(kinds, (string_types, list, tuple)):
         raise TypeError('%s must be str, list, or tuple, got %s'
                         % (type(kinds), name))
@@ -220,14 +245,83 @@ def _annotations_starts_stops(raw, kinds, name='unknown'):
     elif not all(isinstance(kind, string_types) for kind in kinds):
         raise TypeError('All entries in %s must be str' % (name,))
     if raw.annotations is None:
-        return np.array([], int), np.array([], int)
-    idxs = [idx for idx, desc in enumerate(raw.annotations.description)
-            if any(desc.upper().startswith(kind.upper())
-                   for kind in kinds)]
-    onsets = raw.annotations.onset[idxs]
-    onsets = _sync_onset(raw, onsets)
-    ends = onsets + raw.annotations.duration[idxs]
-    order = np.argsort(onsets)
-    onsets = raw.time_as_index(onsets[order])
-    ends = raw.time_as_index(ends[order])
+        onsets, ends = np.array([], int), np.array([], int)
+    else:
+        idxs = [idx for idx, desc in enumerate(raw.annotations.description)
+                if any(desc.upper().startswith(kind.upper())
+                       for kind in kinds)]
+        onsets = raw.annotations.onset[idxs]
+        onsets = _sync_onset(raw, onsets)
+        ends = onsets + raw.annotations.duration[idxs]
+        order = np.argsort(onsets)
+        onsets = raw.time_as_index(onsets[order], use_rounding=True)
+        ends = raw.time_as_index(ends[order], use_rounding=True)
+    if invert:
+        # We invert the relationship (i.e., get segments that do not satisfy)
+        if len(onsets) == 0 or onsets[0] != 0:
+            onsets = np.concatenate([[0], onsets])
+            ends = np.concatenate([[0], ends])
+        if len(ends) == 1 or ends[-1] != len(raw.times):
+            onsets = np.concatenate([onsets, [len(raw.times)]])
+            ends = np.concatenate([ends, [len(raw.times)]])
+        onsets, ends = ends[:-1], onsets[1:]
     return onsets, ends
+
+
+def _write_annotations(fid, annotations):
+    """Write annotations."""
+    start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+    write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, annotations.onset)
+    write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
+                annotations.duration + annotations.onset)
+    # To allow : in description, they need to be replaced for serialization
+    write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
+                                             annotations.description])
+    if annotations.orig_time is not None:
+        write_double(fid, FIFF.FIFF_MEAS_DATE, annotations.orig_time)
+    end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
+
+
+def read_annotations(fname):
+    """Read annotations from a FIF file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename.
+    """
+    ff, tree, _ = fiff_open(fname, preload=False)
+    with ff as fid:
+        annotations = _read_annotations(fid, tree)
+    if annotations is None:
+        raise ValueError('No annotations found in file:\n%s' % (fname,))
+    return annotations
+
+
+def _read_annotations(fid, tree):
+    """Read annotations."""
+    annotations = None
+    annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
+    if len(annot_data) > 0:
+        annot_data = annot_data[0]
+        for k in range(annot_data['nent']):
+            kind = annot_data['directory'][k].kind
+            pos = annot_data['directory'][k].pos
+            orig_time = None
+            tag = read_tag(fid, pos)
+            if kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                onset = tag.data
+                if onset is None:
+                    break  # bug in 0.14 wrote empty annotations
+            elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                duration = tag.data - onset
+            elif kind == FIFF.FIFF_COMMENT:
+                description = tag.data.split(':')
+                description = [d.replace(';', ':') for d in
+                               description]
+            elif kind == FIFF.FIFF_MEAS_DATE:
+                orig_time = float(tag.data)
+        if onset is not None:
+            annotations = Annotations(onset, duration, description,
+                                      orig_time)
+    return annotations
