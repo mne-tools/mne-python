@@ -30,7 +30,7 @@ def _svd_cov(cov, data):
 @verbose
 def oversampled_temporal_projection(raw, duration=10., picks=None,
                                     verbose=None):
-    """Denoise MEG channels using leave-one-out temporal projection
+    """Denoise MEG channels using leave-one-out temporal projection.
 
     Parameters
     ----------
