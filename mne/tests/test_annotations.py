@@ -99,9 +99,33 @@ def test_annotations():
     raw.annotations = mne.Annotations(onset, duration, description,
                                       orig_time=raw.info['meas_date'])
 
-    raw_cropped = raw.copy().crop(raw.times[-1] / 2. + 2., None)
-    assert_array_equal(raw_cropped.annotations.description,
-                       raw.annotations.description[len(onset) // 2:])
+    split_time = raw.times[-1] / 2. + 2.
+    split_idx = len(onset) // 2
+    raw_cropped_left = raw.copy().crop(0., split_time - 1. / raw.info['sfreq'])
+    assert_array_equal(raw_cropped_left.annotations.description,
+                       raw.annotations.description[:split_idx])
+    assert_allclose(raw_cropped_left.annotations.duration,
+                    raw.annotations.duration[:split_idx])
+    assert_allclose(raw_cropped_left.annotations.onset,
+                    raw.annotations.onset[:split_idx])
+    raw_cropped_right = raw.copy().crop(split_time, None)
+    assert_array_equal(raw_cropped_right.annotations.description,
+                       raw.annotations.description[split_idx:])
+    assert_allclose(raw_cropped_right.annotations.duration,
+                    raw.annotations.duration[split_idx:])
+    assert_allclose(raw_cropped_right.annotations.onset,
+                    raw.annotations.onset[split_idx:])
+    raw_concat = mne.concatenate_raws([raw_cropped_left, raw_cropped_right])
+    assert_allclose(raw_concat.times, raw.times)
+    assert_allclose(raw_concat[:][0], raw[:][0], atol=1e-20)
+    # Get rid of the boundary events
+    raw_concat.annotations.delete(len(onset) // 2)
+    raw_concat.annotations.delete(len(onset) // 2)
+    # Ensure we annotations survive round-trip crop->concat
+    for attr in ('description', 'onset', 'duration'):
+        assert_array_equal(getattr(raw_concat.annotations, attr),
+                           getattr(raw.annotations, attr),
+                           err_msg='Failed for %s:' % (attr,))
 
     raw.annotations = None  # undo
 
