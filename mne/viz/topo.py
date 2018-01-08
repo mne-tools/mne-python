@@ -645,8 +645,9 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     noise_cov : instance of Covariance | str | None
         Noise covariance used to whiten the data while plotting.
         Whitened data channels names are shown in italic.
+        Can be a string to load a covariance from disk.
 
-        .. versionadded:: 0.16
+        .. versionadded:: 0.16.0
 
     Returns
     -------

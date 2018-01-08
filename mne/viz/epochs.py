@@ -748,13 +748,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         larger than ``info['lowpass']`` (e.g., a 40 Hz lowpass will result in
         at least a 120 Hz displayed sample rate).
 
-        .. versionadded:: 0.15
+        .. versionadded:: 0.15.0
     noise_cov : instance of Covariance | str | None
         Noise covariance used to whiten the data while plotting.
         Whitened data channels are scaled by ``scalings['whitened']``,
         and their channel names are shown in italic.
+        Can be a string to load a covariance from disk.
 
-        .. versionadded:: 0.16
+        .. versionadded:: 0.16.0
 
     Returns
     -------

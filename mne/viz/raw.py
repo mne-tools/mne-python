@@ -217,13 +217,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Noise covariance used to whiten the data while plotting.
         Whitened data channels are scaled by ``scalings['whitened']``,
         and their channel names are shown in italic.
+        Can be a string to load a covariance from disk.
 
-        .. versionadded:: 0.16
+        .. versionadded:: 0.16.0
     event_id : dict | None
         Event IDs used to show at event markers (default None shows
         theh event numbers).
 
-        .. versionadded:: 0.16
+        .. versionadded:: 0.16.0
 
     Returns
     -------

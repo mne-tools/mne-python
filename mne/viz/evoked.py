@@ -588,8 +588,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     noise_cov : instance of Covariance | str | None
         Noise covariance used to whiten the data while plotting.
         Whitened data channel names are shown in italic.
+        Can be a string to load a covariance from disk.
 
-        .. versionadded:: 0.16
+        .. versionadded:: 0.16.0
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -675,8 +676,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     noise_cov : instance of Covariance | str | None
         Noise covariance used to whiten the data while plotting.
         Whitened data channel names are shown in italic.
+        Can be a string to load a covariance from disk.
 
-        .. versionadded:: 0.16
+        .. versionadded:: 0.16.0
     show : bool
         Show figure if True.
 
@@ -875,7 +877,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
     evoked : instance of mne.Evoked
         The evoked response.
     noise_cov : list | instance of Covariance | str
-        The noise covariance.
+        The noise covariance. Can be a string to load a covariance from disk.
     show : bool
         Show figure if True.
     rank : dict of int | None
