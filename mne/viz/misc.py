@@ -1011,4 +1011,5 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
         figs.append(fig)
 
+    plt_show(show)
     return figs
