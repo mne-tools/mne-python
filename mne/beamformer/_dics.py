@@ -34,6 +34,15 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
               verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
+    This is a beamformer filter that can be used to estimate the source power
+    at a specific frequency range [1]_. It does this by constructing a spatial
+    filter for each source point.  The computation of these filters is very
+    similar to those of the LCMV beamformer (:func:`make_lcmv`), but instead of
+    operating on a covariance matrix, the CSD matrix is used. When applying
+    these filters to a CSD matrix (see :func:`apply_dics_csd`), the source
+    power can be estimated for each source point.
+
+    The filter can operate in two modes: ``'scalar'`` and ``'vector'``,
     Parameters
     ----------
     info : dict
@@ -62,7 +71,13 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
 
     mode : 'scalar' | 'vector'
-        Whether to compute a scalar or vector beamformer. Defaults to 'scalar'.
+        Whether to compute a scalar or vector beamformer. This determines how
+        the filter deals with source spaces in "free" orientation. Such source
+        spaces define three orthogonal dipoles at each source point. A scalar
+        beamformer considers these dipoles simultaneously and computes the
+        filter with a matrix inverse. A vector beamformer considers each dipole
+        individually and computes the filter with a regular division.
+        Defaults to 'scalar'.
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
@@ -112,7 +127,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     See Also
     --------
-    apply_dics, dics, dics_epochs
+    apply_dics_csd, tf_dics
 
     Notes
     -----
