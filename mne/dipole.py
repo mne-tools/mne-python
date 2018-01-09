@@ -597,6 +597,7 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     """Compute the forward solution and do other nice stuff."""
     B = _compute_forwards_meeg(rr, fwd_data, n_jobs, verbose=False)
     B = np.concatenate(B, axis=1)
+    assert np.isfinite(B).all()
     B_orig = B.copy()
 
     # Apply projection and whiten (cov has projections already)

@@ -496,7 +496,9 @@ def test_fif_dig_montage():
             # C actually says it's unknown, but it's not (?):
             # assert_equal(ch_py['coord_frame'], ch_c['coord_frame'])
             assert_equal(ch_py['coord_frame'], FIFF.FIFFV_COORD_HEAD)
-            assert_allclose(ch_py['loc'], ch_c['loc'], atol=1e-7)
+            c_loc = ch_c['loc'].copy()
+            c_loc[c_loc == 0] = np.nan
+            assert_allclose(ch_py['loc'], c_loc, atol=1e-7)
         assert_dig_allclose(raw_bv.info, evoked.info)
 
     # Roundtrip of non-FIF start

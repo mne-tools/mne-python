@@ -533,7 +533,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     ax.set_xlabel(xlabel)
     ax.set_ylabel('Events id')
 
-    ax.grid('on')
+    ax.grid(True)
 
     fig = fig if fig is not None else plt.gcf()
     if event_id is not None:

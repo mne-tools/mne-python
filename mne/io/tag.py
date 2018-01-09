@@ -196,7 +196,9 @@ def _coil_trans_to_loc(coil_trans):
 
 def _loc_to_eeg_loc(loc):
     """Convert a loc to an EEG loc."""
-    if loc[3:6].any():
+    if not np.isfinite(loc[:3]).all():
+        raise RuntimeError('Missing EEG channel location')
+    if np.isfinite(loc[3:6]).all() and (loc[3:6]).any():
         return np.array([loc[0:3], loc[3:6]]).T
     else:
         return loc[0:3][:, np.newaxis].copy()
