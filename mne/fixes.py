@@ -1219,3 +1219,19 @@ class BaseEstimator(object):
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
     # ``if type(self).__module__.startswith('sklearn.')``.
+
+
+###############################################################################
+# NumPy einsum backward compat (allow "optimize" arg and fix 1.14.0 bug)
+# XXX eventually we should hand-tune our `einsum` calls given our array sizes!
+
+_has_optimize = (LooseVersion(np.__version__) >= '1.12')
+
+
+def einsum(*args, **kwargs):
+    if 'optimize' in kwargs:
+        if not _has_optimize:
+            kwargs.pop('optimize')
+    elif _has_optimize:
+        kwargs['optimize'] = False
+    return np.einsum(*args, **kwargs)

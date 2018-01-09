@@ -29,7 +29,7 @@ from ..io.write import _generate_meas_id, _date_now
 from ..io import _loc_to_coil_trans, BaseRaw
 from ..io.pick import pick_types, pick_info
 from ..utils import verbose, logger, _clean_names, warn, _time_mask, _pl
-from ..fixes import _get_args, _safe_svd, _get_sph_harm
+from ..fixes import _get_args, _safe_svd, _get_sph_harm, einsum
 from ..externals.six import string_types
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -1073,11 +1073,11 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
                         orders_pos_neg.append(-order)
                     for gr, oo in zip(grads_pos_neg, orders_pos_neg):
                         # Gradients dotted w/integration point weighted normals
-                        gr = np.einsum('ij,ij->i', gr, cosmags)
+                        gr = einsum('ij,ij->i', gr, cosmags)
                         vals = np.bincount(bins, gr, len(coils))
                         spc[:, _deg_ord_idx(degree, oo)] = -vals
                 else:
-                    grads = np.einsum('ij,ij->i', grads, ezs)
+                    grads = einsum('ij,ij->i', grads, ezs)
                     v = (np.bincount(bins, grads.real, len(coils)) +
                          1j * np.bincount(bins, grads.imag, len(coils)))
                     spc[:, _deg_ord_idx(degree, order)] = -v
@@ -1244,7 +1244,7 @@ def _integrate_points(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
                       cosmags, bins, n_coils):
     """Integrate points in spherical coords."""
     grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
-    grads = np.einsum('ij,ij->i', grads, cosmags)
+    grads = einsum('ij,ij->i', grads, cosmags)
     return np.bincount(bins, grads, n_coils)
 
 

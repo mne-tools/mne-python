@@ -23,6 +23,7 @@ from scipy import linalg
 
 from ..defaults import DEFAULTS
 from ..externals.six import BytesIO, string_types, advance_iterator
+from ..fixes import einsum
 from ..io import _loc_to_coil_trans, Info
 from ..io.pick import pick_types
 from ..io.constants import FIFF
@@ -140,8 +141,8 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
     trans, rot, t = head_pos_to_trans_rot_t(pos)  # also ensures pos is okay
     # trans, rot, and t are for dev_head_t, but what we really want
     # is head_dev_t (i.e., where the head origin is in device coords)
-    use_trans = np.einsum('ijk,ik->ij', rot[:, :3, :3].transpose([0, 2, 1]),
-                          -trans) * 1000
+    use_trans = einsum('ijk,ik->ij', rot[:, :3, :3].transpose([0, 2, 1]),
+                       -trans) * 1000
     use_rot = rot.transpose([0, 2, 1])
     use_quats = -pos[:, 1:4]  # inverse (like doing rot.T)
     if cmap == 'viridis' and not check_version('matplotlib', '1.5'):

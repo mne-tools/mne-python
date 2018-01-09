@@ -16,7 +16,7 @@ from copy import deepcopy
 from numpy import sin, cos
 from scipy import linalg
 
-from .fixes import _get_sph_harm
+from .fixes import _get_sph_harm, einsum
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
@@ -755,7 +755,7 @@ def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
     trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
                       [s_as * s_ps, c_as, c_ps * s_as],
                       [c_ps, np.zeros_like(c_as), -s_ps]])
-    cart_grads = np.einsum('ijk,kj->ki', trans, sph_grads)
+    cart_grads = einsum('ijk,kj->ki', trans, sph_grads)
     return cart_grads
 
 

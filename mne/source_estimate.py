@@ -15,6 +15,7 @@ from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
 from .filter import resample
+from .fixes import einsum
 from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
@@ -1953,7 +1954,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
             cortex.
         """
         normals = np.vstack([s['nn'][v] for s, v in zip(src, self.vertices)])
-        data_norm = np.einsum('ijk,ij->ik', self.data, normals)
+        data_norm = einsum('ijk,ij->ik', self.data, normals)
         return SourceEstimate(data_norm, self.vertices, self.tmin, self.tstep,
                               self.subject, self.verbose)
 

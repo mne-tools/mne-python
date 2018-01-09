@@ -28,6 +28,7 @@ from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
 from .utils import verbose, logger, run_subprocess, get_subjects_dir, warn, _pl
+from .fixes import einsum
 from .externals.six import string_types
 
 
@@ -97,9 +98,9 @@ def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     l2 = np.linalg.norm(v2, axis=1)
     l3 = np.linalg.norm(v3, axis=1)
     ss = l1 * l2 * l3
-    ss += np.einsum('ij,ij,i->i', v1, v2, l3)
-    ss += np.einsum('ij,ij,i->i', v1, v3, l2)
-    ss += np.einsum('ij,ij,i->i', v2, v3, l1)
+    ss += einsum('ij,ij,i->i', v1, v2, l3)
+    ss += einsum('ij,ij,i->i', v1, v3, l2)
+    ss += einsum('ij,ij,i->i', v2, v3, l1)
     solids = np.arctan2(triples, ss)
 
     # We *could* subselect the good points from v1, v2, v3, triples, solids,

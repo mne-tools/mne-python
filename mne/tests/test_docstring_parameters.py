@@ -216,6 +216,7 @@ combine_transforms
 design_mne_c_filter
 detrend
 dir_tree_find
+einsum
 fast_cross_3d
 fiff_open
 find_outliers

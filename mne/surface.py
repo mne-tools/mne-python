@@ -25,7 +25,7 @@ from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir, warn
 from .externals.six import string_types
-from .fixes import _serialize_volume_info, _get_read_geometry
+from .fixes import _serialize_volume_info, _get_read_geometry, einsum
 
 
 ###############################################################################
@@ -269,8 +269,8 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False):
                        coords[:, 1]])
     out = (weights, tri_idx)
     if project_rrs:  #
-        out += (np.einsum('ij,jik->jk', weights,
-                          surf['rr'][surf['tris'][tri_idx]]),)
+        out += (einsum('ij,jik->jk', weights,
+                       surf['rr'][surf['tris'][tri_idx]]),)
     if return_nn:
         out += (surf_geom['nn'][tri_idx],)
     return out
@@ -976,9 +976,9 @@ def _get_tri_supp_geom(surf):
     r12 = surf['rr'][surf['tris'][:, 1], :] - r1
     r13 = surf['rr'][surf['tris'][:, 2], :] - r1
     r1213 = np.array([r12, r13]).swapaxes(0, 1)
-    a = np.einsum('ij,ij->i', r12, r12)
-    b = np.einsum('ij,ij->i', r13, r13)
-    c = np.einsum('ij,ij->i', r12, r13)
+    a = einsum('ij,ij->i', r12, r12)
+    b = einsum('ij,ij->i', r13, r13)
+    c = einsum('ij,ij->i', r12, r13)
     mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
     mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
     nn = fast_cross_3d(r12, r13)
@@ -1077,11 +1077,11 @@ def _find_nearest_tri_pt(rr, tri_geom, pt_tris=None, run_all=True):
         pt_tris = slice(len(tri_geom['r1']))
     rrs = rr - tri_geom['r1'][pt_tris]
     tri_nn = tri_geom['nn'][pt_tris]
-    vect = np.einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
+    vect = einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
     mats = tri_geom['mat'][pt_tris]
     # This einsum is equivalent to doing:
     # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
-    pqs = np.einsum('ijk,ik->ji', mats, vect)
+    pqs = einsum('ijk,ik->ji', mats, vect)
     found = False
     dists = np.sum(rrs * tri_nn, axis=1)
 
@@ -1290,9 +1290,9 @@ def _get_solids(tri_rrs, fros):
         triples = _fast_cross_nd_sum(vs[0], vs[1], vs[2])
         ls = np.linalg.norm(vs, axis=3)
         ss = np.prod(ls, axis=0)
-        ss += np.einsum('ijk,ijk,ij->ij', vs[0], vs[1], ls[2])
-        ss += np.einsum('ijk,ijk,ij->ij', vs[0], vs[2], ls[1])
-        ss += np.einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
+        ss += einsum('ijk,ijk,ij->ij', vs[0], vs[1], ls[2])
+        ss += einsum('ijk,ijk,ij->ij', vs[0], vs[2], ls[1])
+        ss += einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
         tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
     return tot_angle
 
