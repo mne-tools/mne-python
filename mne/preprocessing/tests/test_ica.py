@@ -290,14 +290,14 @@ def test_ica_additional():
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
-    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+    epochs = Epochs(raw, events, None, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
+    epochs.decimate(3, verbose='error')
+    assert len(epochs) == 4
     # test if n_components=None works
-    with warnings.catch_warnings(record=True):
-        ica = ICA(n_components=None,
-                  max_pca_components=None,
-                  n_pca_components=None, random_state=0)
-        ica.fit(epochs, picks=picks, decim=3)
+    ica = ICA(n_components=None, max_pca_components=None,
+              n_pca_components=None, random_state=0)
+    ica.fit(epochs)
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
                         eog=True, exclude='bads')
@@ -612,11 +612,9 @@ def test_run_ica():
     params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
     for idx, ch_name in product(*params):
-        warnings.simplefilter('always')
-        with warnings.catch_warnings(record=True):
-            run_ica(raw, n_components=2, start=0, stop=6, start_find=0,
-                    stop_find=5, ecg_ch=ch_name, eog_ch=ch_name,
-                    skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
+        run_ica(raw, n_components=2, start=0, stop=0.5, start_find=0,
+                stop_find=5, ecg_ch=ch_name, eog_ch=ch_name,
+                skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
 
 
 @requires_sklearn
