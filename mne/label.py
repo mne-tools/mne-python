@@ -1897,7 +1897,7 @@ def _write_annot(fname, annot, ctab, names):
         # write dummy color table name
         table_name = 'MNE-Python Colortable'
         np.array(len(table_name), dtype='>i4').tofile(fid)
-        np.fromstring(table_name, dtype=np.uint8).tofile(fid)
+        np.frombuffer(table_name.encode('ascii'), dtype=np.uint8).tofile(fid)
 
         # number of entries to write
         np.array(n_entries, dtype='>i4').tofile(fid)
@@ -1906,7 +1906,7 @@ def _write_annot(fname, annot, ctab, names):
         for ii, (name, color) in enumerate(zip(names, ctab)):
             np.array(ii, dtype='>i4').tofile(fid)
             np.array(len(name), dtype='>i4').tofile(fid)
-            np.fromstring(name, dtype=np.uint8).tofile(fid)
+            np.frombuffer(name.encode('ascii'), dtype=np.uint8).tofile(fid)
             np.array(color[:4], dtype='>i4').tofile(fid)
 
 
