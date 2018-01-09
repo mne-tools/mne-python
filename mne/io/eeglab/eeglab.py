@@ -105,8 +105,9 @@ def _get_info(eeg, montage, eog=()):
     if montage is None:
         info = create_info(ch_names, eeg.srate, ch_types='eeg')
     else:
-        _check_update_montage(info, montage, path=path,
-                              update_ch_names=update_ch_names)
+        _check_update_montage(
+            info, montage, path=path, update_ch_names=update_ch_names,
+            raise_missing=False)
 
     info['buffer_size_sec'] = 1.  # reasonable default
     # update the info dict
@@ -339,10 +340,12 @@ class RawEEGLAB(BaseRaw):
         last_samps = [eeg.pnts - 1]
         info = _get_info(eeg, montage, eog=eog)
 
+        loc = np.empty(12)
+        loc.fill(np.nan)
         stim_chan = dict(ch_name='STI 014', coil_type=FIFF.FIFFV_COIL_NONE,
                          kind=FIFF.FIFFV_STIM_CH, logno=len(info["chs"]) + 1,
                          scanno=len(info["chs"]) + 1, cal=1., range=1.,
-                         loc=np.zeros(12), unit=FIFF.FIFF_UNIT_NONE,
+                         loc=loc, unit=FIFF.FIFF_UNIT_NONE,
                          unit_mul=0., coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
         info['chs'].append(stim_chan)
         info._update_redundant()

@@ -153,7 +153,9 @@ def _convert_channel_info(res4, t, use_eeg_pos):
     this_comp = None
     for k, cch in enumerate(res4['chs']):
         cal = float(1. / (cch['proper_gain'] * cch['qgain']))
-        ch = dict(scanno=k + 1, range=1., cal=cal, loc=np.zeros(12),
+        loc = np.empty(12)
+        loc.fill(np.nan)
+        ch = dict(scanno=k + 1, range=1., cal=cal, loc=loc,
                   unit_mul=FIFF.FIFF_UNITM_NONE, ch_name=cch['ch_name'][:15],
                   coil_type=FIFF.FIFFV_COIL_NONE)
         del k

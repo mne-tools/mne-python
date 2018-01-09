@@ -187,7 +187,7 @@ def test_io_set():
                                      chanlocs[i]['X'],
                                      chanlocs[i]['Z']]))
     # position of the last channel should be zero
-    assert_array_equal(raw.info['chs'][-1]['loc'][:3], np.array([0., 0., 0.]))
+    assert_array_equal(raw.info['chs'][-1]['loc'][:3], [np.nan] * 3)
 
     # test reading channel names from set and positions from montage
     with warnings.catch_warnings(record=True) as w:
@@ -198,7 +198,7 @@ def test_io_set():
     assert_equal(len(w), 1)
 
     # when montage was passed - channel positions should be taken from there
-    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [0., 0., 0.],
+    correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [np.nan] * 3,
                    [0., 0.99977915, -0.02101571]]
     for ch_ind in range(3):
         assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],

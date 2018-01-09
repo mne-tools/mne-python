@@ -107,7 +107,7 @@ def test_auto_topomap_coords():
     # Remove electrode position information, use digitization points from now
     # on.
     for ch in info['chs']:
-        ch['loc'].fill(0)
+        ch['loc'].fill(np.nan)
 
     l1 = _auto_topomap_coords(info, picks)
     assert_allclose(l1, l0, atol=1e-3)

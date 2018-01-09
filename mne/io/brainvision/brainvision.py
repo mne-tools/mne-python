@@ -711,9 +711,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             kind = FIFF.FIFFV_EEG_CH
             coil_type = FIFF.FIFFV_COIL_EEG
             unit = FIFF.FIFF_UNIT_V
+        loc = np.empty(12)
+        loc.fill(np.nan)
         info['chs'].append(dict(
             ch_name=ch_name, coil_type=coil_type, kind=kind, logno=idx + 1,
-            scanno=idx + 1, cal=cals[idx], range=ranges[idx], loc=np.zeros(12),
+            scanno=idx + 1, cal=cals[idx], range=ranges[idx], loc=loc,
             unit=unit, unit_mul=0.,  # always zero- mne manual pg. 273
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 

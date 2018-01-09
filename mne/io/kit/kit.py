@@ -213,10 +213,12 @@ class RawKIT(BaseRaw):
 
             # modify info
             nchan = self._raw_extras[0]['nchan'] + 1
+            loc = np.empty(12)
+            loc.fill(np.nan)
             info['chs'].append(dict(
                 cal=KIT.CALIB_FACTOR, logno=nchan, scanno=nchan, range=1.0,
                 unit=FIFF.FIFF_UNIT_NONE, unit_mul=0, ch_name='STI 014',
-                coil_type=FIFF.FIFFV_COIL_NONE, loc=np.zeros(12),
+                coil_type=FIFF.FIFFV_COIL_NONE, loc=loc,
                 kind=FIFF.FIFFV_STIM_CH))
             info._update_redundant()
 

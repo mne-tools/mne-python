@@ -1270,12 +1270,14 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         data = np.array([out[1], out[3]])
         out_info = deepcopy(info)
         loc = np.concatenate([pos, ori, np.zeros(6)])
+        empty_loc = np.empty(12)
+        empty_loc.fill(np.nan)
         out_info['chs'] = [
             dict(ch_name='dip 01', loc=loc, kind=FIFF.FIFFV_DIPOLE_WAVE,
                  coord_frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_AM,
                  coil_type=FIFF.FIFFV_COIL_DIPOLE,
                  unit_mul=0, range=1, cal=1., scanno=1, logno=1),
-            dict(ch_name='goodness', loc=np.zeros(12),
+            dict(ch_name='goodness', loc=empty_loc,
                  kind=FIFF.FIFFV_GOODNESS_FIT, unit=FIFF.FIFF_UNIT_AM,
                  coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                  coil_type=FIFF.FIFFV_COIL_NONE,
