@@ -2257,22 +2257,22 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True):
     if noise_cov is not None and use_noise_cov:
         # any channels in noise_cov['bads'] but not in info['bads'] get
         # set to zero
-        # XXX This call mimics what is done in compute_whitener... should
-        # probably allow for other channel types, too (e.g., ECoG)!
+        # XXX This picking call mimics what is done in compute_whitener...
+        # should probably allow for other channel types, too (e.g., ECoG)!
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
         pick_names = [info['ch_names'][pick] for pick in picks]
         missing_names = set(pick_names) - set(noise_cov['names'])
-        missing_picks = [pick_names.index(miss) for miss in missing_names]
-        use_picks = np.setdiff1d(picks, missing_picks)
-        use_info = pick_info(info, use_picks)
+        missing_names = missing_names.union(noise_cov['bads'])
+        omit_mask = np.array([pick in missing_names for pick in pick_names])
+        projector[picks[omit_mask]] = np.nan  # remove lines
+        picks = picks[~omit_mask]
+        del pick_names, omit_mask, missing_names
+        use_info = pick_info(info, picks)
         whitener, whitened_ch_names = compute_whitener(
             noise_cov, use_info, verbose=False)
-        idx = np.array([info['ch_names'].index(ch_name)
-                        for ch_name in whitened_ch_names])
-        projector[idx, idx[:, np.newaxis]] = whitener
-        idx = [info['ch_names'].index(ch_name) for ch_name in missing_names]
-        projector[idx] = np.nan  # remove the line
+        assert whitened_ch_names == [info['ch_names'][pick] for pick in picks]
+        projector[picks, picks[:, np.newaxis]] = whitener
     elif proj:
         projector, _ = setup_proj(info, add_eeg_ref=False, verbose=False)
     return projector, whitened_ch_names

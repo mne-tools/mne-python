@@ -71,7 +71,6 @@ def _update_raw_data(params):
                          data[data_picks, start_:stop_], axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
-        data[di] /= params['scalings'][params['types'][di]]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
             norm = float(max(data[di]))
