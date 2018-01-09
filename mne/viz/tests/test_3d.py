@@ -12,7 +12,7 @@ import warnings
 
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
