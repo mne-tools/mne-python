@@ -282,46 +282,69 @@ def _write_annotations(fid, annotations):
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
-def read_annotations(fname):
+def read_annotations(fname, on_empty='empty'):
     """Read annotations from a FIF file.
 
     Parameters
     ----------
     fname : str
         The filename.
+    on_empty : bool
+        How to handle empty annotations that are read from disk. Can be
+        ``'raise'`` to raise an error, None to return ``None``, or
+        ``'empty'`` (default) to return an empty :class:`mne.Annotations`
+        object.
+
+    Returns
+    -------
+    annot : instance of Annotations | None
+        The annotations.
     """
     ff, tree, _ = fiff_open(fname, preload=False)
     with ff as fid:
         annotations = _read_annotations(fid, tree)
+    if not (on_empty is None or isinstance(on_empty, string_types)):
+        raise TypeError('on_empty must be None or a string, got %s'
+                        % (type(on_empty),))
     if annotations is None:
-        raise ValueError('No annotations found in file:\n%s' % (fname,))
+        raise IOError('No annotation data found in file "%s"' % fname)
+    if len(annotations) == 0 and on_empty != 'empty':
+        if on_empty is None:
+            annotations = None
+        elif on_empty == 'raise':
+            raise ValueError('No annotations found in file:\n%s' % (fname,))
+        else:
+            raise ValueError('on_empty must be None, "raise", or "empty", '
+                             'got %s' % (on_empty,))
     return annotations
 
 
 def _read_annotations(fid, tree):
     """Read annotations."""
-    annotations = None
     annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
-    if len(annot_data) > 0:
+    if len(annot_data) == 0:
+        annotations = None
+    else:
         annot_data = annot_data[0]
-        for k in range(annot_data['nent']):
-            kind = annot_data['directory'][k].kind
-            pos = annot_data['directory'][k].pos
-            orig_time = None
+        orig_time = None
+        onset, duration, description = list(), list(), list()
+        for ent in annot_data['directory']:
+            kind = ent.kind
+            pos = ent.pos
             tag = read_tag(fid, pos)
             if kind == FIFF.FIFF_MNE_BASELINE_MIN:
                 onset = tag.data
-                if onset is None:
-                    break  # bug in 0.14 wrote empty annotations
+                onset = list() if onset is None else onset
             elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
-                duration = tag.data - onset
+                duration = tag.data
+                duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
                 description = tag.data.split(':')
                 description = [d.replace(';', ':') for d in
                                description]
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = float(tag.data)
-        if onset is not None:
-            annotations = Annotations(onset, duration, description,
-                                      orig_time)
+        assert len(onset) == len(duration) == len(description)
+        annotations = Annotations(onset, duration, description,
+                                  orig_time)
     return annotations
