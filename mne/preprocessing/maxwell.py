@@ -848,7 +848,7 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
     """Regularize a decomposition matrix."""
     # ALWAYS regularize the out components according to norm, since
     # gradiometer-only setups (e.g., KIT) can have zero first-order
-    # components
+    # (homogeneous field) components
     int_order, ext_order = exp['int_order'], exp['ext_order']
     n_in, n_out = _get_n_moments([int_order, ext_order])
     t_str = '%8.3f' % t
@@ -908,8 +908,13 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
     # KIT gradiometers are marked as having units T, not T/M (argh)
     # We need a separate variable for this because KIT grads should be
     # treated mostly like magnetometers (e.g., scaled by 100) for reg
-    mag_or_fine[np.array([ch['coil_type'] & 0xFFFF == FIFF.FIFFV_COIL_KIT_GRAD
-                          for ch in meg_info['chs']], bool)] = False
+    coil_types = np.array([ch['coil_type'] for ch in meg_info['chs']])
+    mag_or_fine[(coil_types & 0xFFFF) == FIFF.FIFFV_COIL_KIT_GRAD] = False
+    # The same thing goes for CTF gradiometers...
+    ctf_grads = [FIFF.FIFFV_COIL_CTF_GRAD,
+                 FIFF.FIFFV_COIL_CTF_REF_GRAD,
+                 FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD]
+    mag_or_fine[np.in1d(coil_types, ctf_grads)] = False
     msg = ('    Processing %s gradiometers and %s magnetometers'
            % (len(grad_picks), len(mag_picks)))
     n_kit = len(mag_picks) - mag_or_fine.sum()
