@@ -12,7 +12,7 @@ import warnings
 
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
@@ -305,7 +305,7 @@ def test_limits_to_control_points():
         # thresholded maps
         stc._data.fill(0.)
         plot_source_estimates(stc, **kwargs)
-        assert_equal(len(w), 1)
+        assert any('All data were zero' in str(ww.message) for ww in w)
     mlab.close(all=True)
 
 

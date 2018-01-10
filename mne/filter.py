@@ -622,8 +622,8 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
 
     >>> iir_params = dict(b=np.ones((10)), a=[1, 0], padlen=0)
     >>> iir_params = construct_iir_filter(iir_params, return_copy=False)
-    >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))
-    (array([ 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]), [1, 0], 0)
+    >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))  # doctest:+SKIP
+    (array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]), [1, 0], 0)
 
     For more information, see the tutorials :ref:`tut_background_filtering`
     and :ref:`tut_artifacts_filter`.

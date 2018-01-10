@@ -23,6 +23,7 @@ from ..utils import logger, verbose, _pl
 from ..parallel import parallel_func
 from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import pick_types
+from ..fixes import einsum
 
 
 # #############################################################################
@@ -240,8 +241,8 @@ def _bem_specify_els(bem, els, mults):
     ws = np.concatenate([el['w'] for el in els])
     tri_weights, tri_idx = _project_onto_surface(rrs, scalp)
     tri_weights *= ws
-    weights = np.einsum('ij,jik->jk', tri_weights,
-                        bem['solution'][scalp['tris'][tri_idx]])
+    weights = einsum('ij,jik->jk', tri_weights,
+                     bem['solution'][scalp['tris'][tri_idx]])
     # there are way more vertices than electrodes generally, so let's iterate
     # over the electrodes
     edges = np.concatenate([[0], np.cumsum([len(el['w']) for el in els])])
@@ -315,11 +316,10 @@ def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
     diff_norm = np.sum(diff * diff, axis=1)
     diff_norm *= np.sqrt(diff_norm)  # Position difference magnitude cubed
     diff_norm[diff_norm == 0] = 1  # avoid nans
-    if mri_Q is None:  # save time when mri_Q=np.eye(3) (e.g., MEG sensors)
-        return diff / diff_norm[:, np.newaxis, :]
-    else:  # get components in each direction (e.g., EEG sensors)
-        return np.einsum('ijk,mj->imk', diff, mri_Q) / diff_norm[:,
-                                                                 np.newaxis, :]
+    if mri_Q is not None:  # save time when mri_Q=np.eye(3) (e.g., MEG sensors)
+        diff = einsum('ijk,mj->imk', diff, mri_Q)
+    diff /= diff_norm[:, np.newaxis, :]
+    return diff
 
 
 # This function has been refactored to process all points simultaneously
@@ -486,7 +486,7 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     for bi in range(len(bounds) - 1):
         # v0 in Hamalainen et al., 1989 == v_inf in Mosher, et al., 1999
         v0s = _bem_inf_pots(mri_rr[bounds[bi]:bounds[bi + 1]], bem_rr, mri_Q)
-        v0s.shape = (v0s.shape[0] * 3, v0s.shape[2])
+        v0s = np.reshape(v0s, (v0s.shape[0] * 3, v0s.shape[2]))
         B[3 * bounds[bi]:3 * bounds[bi + 1]] = np.dot(v0s, sol)
     return B
 

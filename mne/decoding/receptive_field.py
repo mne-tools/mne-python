@@ -395,12 +395,12 @@ def _delay_time_series(X, tmin, tmax, sfreq, fill_mean=False):
     >>> sfreq = 10.
     >>> x = np.arange(1, 6)
     >>> x_del = _delay_time_series(x, tmin, tmax, sfreq)
-    >>> print(x_del)
-    [[ 2.  1.  0.  0.]
-     [ 3.  2.  1.  0.]
-     [ 4.  3.  2.  1.]
-     [ 5.  4.  3.  2.]
-     [ 0.  5.  4.  3.]]
+    >>> print(x_del)  # doctest:+SKIP
+    [[2. 1. 0. 0.]
+     [3. 2. 1. 0.]
+     [4. 3. 2. 1.]
+     [5. 4. 3. 2.]
+     [0. 5. 4. 3.]]
     """
     _check_delayer_params(tmin, tmax, sfreq)
     delays = _times_to_delays(tmin, tmax, sfreq)
