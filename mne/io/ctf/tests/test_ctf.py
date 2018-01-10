@@ -158,10 +158,17 @@ def test_read_ctf():
             for key in ('loc',):
                 if c1['ch_name'] == 'RMSP' and 'catch-alp-good-f' in fname:
                     continue
-                assert_allclose(c1[key][:3], c2[key][:3], atol=1e-6, rtol=1e-4,
+                if (c2[key][:3] == 0.).all():
+                    check = [np.nan] * 3
+                else:
+                    check = c2[key][:3]
+                assert_allclose(c1[key][:3], check, atol=1e-6, rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
-                assert_allclose(c1[key][9:12], c2[key][9:12], atol=1e-6,
-                                rtol=1e-4,
+                if (c2[key][3:] == 0.).all():
+                    check = [np.nan] * 3
+                else:
+                    check = c2[key][9:12]
+                assert_allclose(c1[key][9:12], check, atol=1e-6, rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
             raw.info['dig'] = raw.info['dig'][:-10]

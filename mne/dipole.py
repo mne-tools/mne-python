@@ -597,6 +597,7 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     """Compute the forward solution and do other nice stuff."""
     B = _compute_forwards_meeg(rr, fwd_data, n_jobs, verbose=False)
     B = np.concatenate(B, axis=1)
+    assert np.isfinite(B).all()
     B_orig = B.copy()
 
     # Apply projection and whiten (cov has projections already)
@@ -1275,7 +1276,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                  coord_frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_AM,
                  coil_type=FIFF.FIFFV_COIL_DIPOLE,
                  unit_mul=0, range=1, cal=1., scanno=1, logno=1),
-            dict(ch_name='goodness', loc=np.zeros(12),
+            dict(ch_name='goodness', loc=np.full(12, np.nan),
                  kind=FIFF.FIFFV_GOODNESS_FIT, unit=FIFF.FIFF_UNIT_AM,
                  coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                  coil_type=FIFF.FIFFV_COIL_NONE,

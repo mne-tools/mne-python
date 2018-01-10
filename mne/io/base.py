@@ -2488,7 +2488,8 @@ def concatenate_raws(raws, preload=None, events_list=None):
         return raws[0], events
 
 
-def _check_update_montage(info, montage, path=None, update_ch_names=False):
+def _check_update_montage(info, montage, path=None, update_ch_names=False,
+                          raise_missing=True):
     """Help eeg readers to add montage."""
     if montage is not None:
         if not isinstance(montage, (string_types, Montage)):
@@ -2505,11 +2506,11 @@ def _check_update_montage(info, montage, path=None, update_ch_names=False):
                        FIFF.FIFFV_STIM_CH)
             for ch in info['chs']:
                 if not ch['kind'] in exclude:
-                    if np.unique(ch['loc']).size == 1:
+                    if not np.isfinite(ch['loc'][:3]).all():
                         missing_positions.append(ch['ch_name'])
 
             # raise error if positions are missing
-            if missing_positions:
+            if missing_positions and raise_missing:
                 raise KeyError(
                     "The following positions are missing from the montage "
                     "definitions: %s. If those channels lack positions "
