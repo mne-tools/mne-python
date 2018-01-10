@@ -88,6 +88,8 @@ Bug
 
 - Fix bug in :meth:`mne.io.Raw.filter` to properly raw data with acquisition skips in separate segments by `Eric Larson`_
 
+- Fix bug in :func:`mne.preprocessing.maxwell_filter` where homogeneous fields were not removed for CTF systems by `Eric Larson`_
+
 - Fix support for writing FIF files with acquisition skips by using empty buffers rather than writing zeros by `Eric Larson`_
 
 API
