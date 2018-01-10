@@ -340,12 +340,10 @@ class RawEEGLAB(BaseRaw):
         last_samps = [eeg.pnts - 1]
         info = _get_info(eeg, montage, eog=eog)
 
-        loc = np.empty(12)
-        loc.fill(np.nan)
         stim_chan = dict(ch_name='STI 014', coil_type=FIFF.FIFFV_COIL_NONE,
                          kind=FIFF.FIFFV_STIM_CH, logno=len(info["chs"]) + 1,
                          scanno=len(info["chs"]) + 1, cal=1., range=1.,
-                         loc=loc, unit=FIFF.FIFF_UNIT_NONE,
+                         loc=np.full(12, np.nan), unit=FIFF.FIFF_UNIT_NONE,
                          unit_mul=0., coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
         info['chs'].append(stim_chan)
         info._update_redundant()

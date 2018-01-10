@@ -153,9 +153,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
     this_comp = None
     for k, cch in enumerate(res4['chs']):
         cal = float(1. / (cch['proper_gain'] * cch['qgain']))
-        loc = np.empty(12)
-        loc.fill(np.nan)
-        ch = dict(scanno=k + 1, range=1., cal=cal, loc=loc,
+        ch = dict(scanno=k + 1, range=1., cal=cal, loc=np.full(12, np.nan),
                   unit_mul=FIFF.FIFF_UNITM_NONE, ch_name=cch['ch_name'][:15],
                   coil_type=FIFF.FIFFV_COIL_NONE)
         del k
@@ -209,7 +207,7 @@ def _convert_channel_info(res4, t, use_eeg_pos):
             else:
                 ex, ey = _get_plane_vectors(ez)
             # Transform into a Neuromag-like device coordinate system
-            loc[:] = np.concatenate([
+            ch['loc'] = np.concatenate([
                 apply_trans(t['t_ctf_dev_dev'], r0),
                 apply_trans(t['t_ctf_dev_dev'], ex, move=False),
                 apply_trans(t['t_ctf_dev_dev'], ey, move=False),
@@ -246,16 +244,16 @@ def _convert_channel_info(res4, t, use_eeg_pos):
             if use_eeg_pos:
                 # EEG electrode coordinates may be present but in the
                 # CTF head frame
-                loc[:3] = cch['coil']['pos'][0]
-                loc[3:6] = 0.  # XXX Fix fwd!
-                if not _at_origin(loc[:3]):
+                ch['loc'][:3] = cch['coil']['pos'][0]
+                if not _at_origin(ch['loc'][:3]):
                     if t['t_ctf_head_head'] is None:
                         warn('EEG electrode (%s) location omitted because of '
                              'missing HPI information' % ch['ch_name'])
-                        loc.fill(np.nan)
+                        ch['loc'].fill(np.nan)
                         coord_frame = FIFF.FIFFV_COORD_CTF_HEAD
                     else:
-                        loc[:3] = apply_trans(t['t_ctf_head_head'], loc[:3])
+                        ch['loc'][:3] = apply_trans(
+                            t['t_ctf_head_head'], ch['loc'][:3])
             neeg += 1
             ch.update(logno=neeg, kind=FIFF.FIFFV_EEG_CH,
                       unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame)

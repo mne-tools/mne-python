@@ -270,8 +270,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     eegs = [idx for idx, ch in enumerate(chs) if
             ch['coil_type'] == FIFF.FIFFV_COIL_EEG]
     coords = _topo_to_sphere(pos, eegs)
-    locs = np.empty((len(chs), 12), dtype=float)
-    locs.fill(np.nan)
+    locs = np.full((len(chs), 12), np.nan)
     locs[:, :3] = coords
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)
