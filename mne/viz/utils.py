@@ -2172,7 +2172,7 @@ def _setup_ax_spines(axes, vlines, tmin, tmax, invert_y=False,
         axes.spines['top'].set_bounds(tmin, tmax)
 
     axes.tick_params(direction='out')
-    axes.tick_params(right="off")
+    axes.tick_params(right=False)
 
     current_ymin = axes.get_ylim()[0]
 
