@@ -62,6 +62,8 @@ def test_array_raw():
     types.append('foo')
     assert_raises(KeyError, create_info, ch_names, sfreq, types)
     types[-1] = 'eog'
+    # bad entry - now is corrected, by reassigning to misc
+    # types.append('eog')
     # default type
     info = create_info(ch_names, sfreq)
     assert_equal(info['chs'][0]['kind'], _kind_dict['misc'][0])
