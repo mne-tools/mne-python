@@ -10,7 +10,7 @@
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from copy import deepcopy
 import json
 import os.path as op
@@ -897,7 +897,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if len(self.event_id) == 1:
             comment = next(iter(self.event_id.keys()))
         else:
-            count = np.bincount(self.events[:, 2])
+            count = Counter(self.events[:, 2])
             comments = list()
             for key, value in self.event_id.items():
                 comments.append('%.2f * %s' % (
