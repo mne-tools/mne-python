@@ -282,18 +282,13 @@ def _write_annotations(fid, annotations):
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
-def read_annotations(fname, on_empty='empty'):
+def read_annotations(fname):
     """Read annotations from a FIF file.
 
     Parameters
     ----------
     fname : str
         The filename.
-    on_empty : bool
-        How to handle empty annotations that are read from disk. Can be
-        ``'raise'`` to raise an error, None to return ``None``, or
-        ``'empty'`` (default) to return an empty :class:`mne.Annotations`
-        object.
 
     Returns
     -------
@@ -303,19 +298,8 @@ def read_annotations(fname, on_empty='empty'):
     ff, tree, _ = fiff_open(fname, preload=False)
     with ff as fid:
         annotations = _read_annotations(fid, tree)
-    if not (on_empty is None or isinstance(on_empty, string_types)):
-        raise TypeError('on_empty must be None or a string, got %s'
-                        % (type(on_empty),))
     if annotations is None:
         raise IOError('No annotation data found in file "%s"' % fname)
-    if len(annotations) == 0 and on_empty != 'empty':
-        if on_empty is None:
-            annotations = None
-        elif on_empty == 'raise':
-            raise ValueError('No annotations found in file:\n%s' % (fname,))
-        else:
-            raise ValueError('on_empty must be None, "raise", or "empty", '
-                             'got %s' % (on_empty,))
     return annotations
 
 

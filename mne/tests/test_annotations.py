@@ -111,10 +111,8 @@ def test_annotations():
     assert_array_equal(annot_read.description, raw.annotations.description)
     annot = Annotations((), (), ())
     annot.save(fname)
-    assert_raises(ValueError, read_annotations, fname)
-    annot = read_annotations(fname, on_empty=None)
-    assert annot is None
-    annot = read_annotations(fname, on_empty='empty')
+    assert_raises(IOError, read_annotations, fif_fname)  # none in old raw
+    annot = read_annotations(fname)
     assert isinstance(annot, Annotations)
     assert len(annot) == 0
     # Test that empty annotations can be saved with an object
