@@ -268,6 +268,12 @@ def test_add_slider_to_section():
     # need at least 2
     assert_raises(ValueError, report.add_slider_to_section, figs[:1], 'wug')
 
+    # Smoke test that SVG w/unicode can be added
+    report = Report()
+    fig, ax = plt.subplots()
+    ax.set_xlabel(u'μ')
+    report.add_slider_to_section([fig] * 2, image_format='svg')
+
 
 def test_validate_input():
     """Test Report input validation."""
