@@ -727,7 +727,7 @@ def _read_annotations_eeglab(eeg):
         description = [str(eeg.event.type)]
         onset = [eeg.event.latency]
         if hasattr(eeg.event, 'duration'):
-            duration = event.duration
+            duration = eeg.event.duration
         else:
             duration = np.zeros(1)
 
