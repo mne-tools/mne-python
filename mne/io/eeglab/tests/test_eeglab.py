@@ -18,6 +18,7 @@ from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.eeglab.eeglab import read_events_eeglab
+from mne.io.eeglab import read_annotations_eeglab
 from mne.datasets import testing
 from mne.utils import _TempDir, run_tests_if_main
 
@@ -251,5 +252,16 @@ def test_degenerate():
         assert_raises(NotImplementedError, read_epochs_eeglab,
                       bad_epochs_fname)
     assert_equal(len(w), 1)
+
+
+@requires_version('scipy', '0.12')
+@testing.requires_testing_data
+def test_eeglab_annotations():
+    """Test reading annotations in EEGLAB files"""
+    for fname in [raw_fname_onefile, raw_fname]:
+        annotations = read_annotations_eeglab(fname)
+        assert len(annotations) == 154
+        assert set(annotations.description) == set(['rt', 'square'])
+        assert np.all(annotations.duration == 0.)
 
 run_tests_if_main()
