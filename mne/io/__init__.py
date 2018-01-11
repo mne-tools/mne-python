@@ -25,6 +25,7 @@ from . import edf
 from . import egi
 from . import fiff
 from . import kit
+from . import neo
 from . import nicolet
 from . import eeglab
 from . import pick
@@ -38,6 +39,7 @@ from .edf import read_raw_edf, find_edf_events
 from .egi import read_raw_egi
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
+from .neo import read_raw_micromed_neo, read_raw_brainvision_neo
 from .nicolet import read_raw_nicolet
 from .artemis123 import read_raw_artemis123
 from .eeglab import read_raw_eeglab, read_epochs_eeglab, read_events_eeglab
