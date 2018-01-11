@@ -2,13 +2,15 @@
 from os import path as op
 import math
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_almost_equal
+from numpy.testing import (assert_allclose, assert_array_almost_equal,
+                           assert_array_equal)
 
 from nose.tools import assert_equal, assert_true
 
 from mne import concatenate_raws
 from mne.datasets import testing
 from mne.io import read_raw_fif
+from mne import find_events, Annotations
 from mne.utils import _TempDir
 
 
@@ -137,3 +139,61 @@ def test_time_index():
     # Test new (rounding) indexing behavior
     new_inds = raw.time_as_index(raw.times, use_rounding=True)
     assert(len(set(new_inds)) == len(new_inds))
+
+
+@testing.requires_testing_data
+def test_events_from_annot():
+    raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
+                        'data', 'test_raw.fif')
+    raw = read_raw_fif(raw_fname)
+    events = find_events(raw)
+    event_id = {
+        'Auditory/Left': 1,
+        'Auditory/Right': 2,
+        'Visual/Left': 3,
+        'Visual/Right': 4,
+        'Visual/Smiley': 32,
+        'Motor/Button': 5
+    }
+    event_map = {v: k for k, v in event_id.items()}
+    raw.annotations = Annotations(
+        onset=raw.times[events[:, 0] - raw.first_samp],
+        duration=np.zeros(len(events)),
+        description=[event_map[vv] for vv in events[:, 2]])
+
+    events2, event_id2 = raw.events_from_annot(
+        event_id=event_id, regexp=None)
+    assert_array_equal(events, events2)
+    assert_equal(event_id, event_id2)
+
+    events3, event_id3 = raw.events_from_annot(
+        event_id=None, regexp=None)
+
+    assert_array_equal(events[:, 0], events3[:, 0])
+    assert_equal(event_id.keys(), event_id3.keys())
+
+    first = np.unique(events3[:, 2])
+    second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)
+    assert_array_equal(first, second)
+
+    first = np.unique(list(event_id3.values()))
+    second = np.arange(1, len(event_id) + 1, 1).astype(first.dtype)
+    assert_array_equal(first, second)
+
+    events4, event_id4 = raw.events_from_annot(
+        event_id=None, regexp='.*Left')
+
+    expected_event_id4 = {k: v for k, v in event_id.items() if 'Left' in k}
+    assert_equal(event_id4.keys(), expected_event_id4.keys())
+
+    expected_events4 = events[(events[:, 2] == 1) | (events[:, 2] == 3)]
+    assert_array_equal(expected_events4[:, 0], events4[:, 0])
+
+    events5, event_id5 = raw.events_from_annot(
+        event_id=event_id, regexp='.*Left')
+
+    expected_event_id5 = {k: v for k, v in event_id.items() if 'Left' in k}
+    assert_equal(event_id5, expected_event_id5)
+
+    expected_events5 = events[(events[:, 2] == 1) | (events[:, 2] == 3)]
+    assert_array_equal(expected_events5, events5)

@@ -931,6 +931,60 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return data, times
         return data
 
+    def events_from_annot(self, event_id=None, regexp=None):
+        """Get events and event id from Annotatations.
+
+        .. note:: Some EEG systems come with multiple annotation channels
+                  such that different annotations can share time stamps.
+                  As a result, events will have to be filtered before
+                  constructing epochs for which unique time indices are
+                  required.
+
+        Parameters
+        ----------
+        event_id : dict | None
+            Dictionary of string keys and integer values as used in mne.Epochs
+            to map annotation descriptions to integer event codes. If None,
+            All event descriptions are mapped and assigned arbitrary unique
+            integer values. Else, only the keys passed will be mapped and
+            the events output will be limited to the annotations matching the
+            events.
+        regexp : str | None
+            String used for regular expression matching of descriptions.
+            If not None, only matching events are returned.
+
+        Returns
+        -------
+        """
+        import re
+        inds = self.time_as_index(
+            self.annotations.onset, use_rounding=True) + self.first_samp
+
+        unique_keys = np.unique(self.annotations.description)
+        if regexp is not None:
+            pat = re.compile(regexp)
+            unique_keys = [kk for kk in unique_keys if pat.match(kk)]
+
+        if event_id is None:
+            event_id_ = dict(
+                zip(unique_keys,
+                    np.arange(len(unique_keys)).astype(np.int) + 1))
+        else:
+            event_id_ = {k: v for k, v in event_id.items()
+                         if k in unique_keys}
+
+        event_sel = [ii for ii, kk in
+                     enumerate(self.annotations.description)
+                     if kk in event_id_]
+        if len(event_sel) == 0:
+            raise ValueError('Could not find any of the events you specified.')
+        values = [event_id_[kk] for kk in
+                  self.annotations.description[event_sel]]
+        previous_value = np.zeros(len(event_sel))
+        inds = inds[event_sel]
+        events = np.c_[inds, previous_value, values].astype(int)
+        return events, event_id_
+
     @verbose
     def apply_function(self, fun, picks=None, dtype=None,
                        n_jobs=1, *args, **kwargs):
