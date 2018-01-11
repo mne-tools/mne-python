@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
@@ -267,6 +268,12 @@ def test_add_slider_to_section():
     assert_raises(TypeError, report.add_slider_to_section, figs, 'wug')
     # need at least 2
     assert_raises(ValueError, report.add_slider_to_section, figs[:1], 'wug')
+
+    # Smoke test that SVG w/unicode can be added
+    report = Report()
+    fig, ax = plt.subplots()
+    ax.set_xlabel(u'μ')
+    report.add_slider_to_section([fig] * 2, image_format='svg')
 
 
 def test_validate_input():

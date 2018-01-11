@@ -87,9 +87,8 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         _scale_mpl_figure(fig, scale)
     logger.debug('Saving figure %s with dpi %s'
                  % (fig.get_size_inches(), fig.get_dpi()))
-    # We don't use bbox_inches='tight' here because it can break
-    # newer matplotlib, and should only save a little bit of space
-    fig.savefig(output, format=image_format, dpi=fig.get_dpi())
+    fig.savefig(output, format=image_format, dpi=fig.get_dpi(),
+                bbox_to_inches='tight')
     plt.close(fig)
     output = output.getvalue()
     return (output if image_format == 'svg' else
@@ -395,7 +394,7 @@ def _build_html_image(img, id, div_klass, img_klass, caption=None,
                     % (img_klass, img))
     else:
         html.append(u'<div style="text-align:center;" class="%s">%s</div>'
-                    % (img_klass, img))
+                    % (img_klass, img.decode('utf-8')))
     html.append(u'</div>')
     if caption:
         html.append(u'<h4>%s</h4>' % caption)
@@ -429,7 +428,7 @@ slider_full_template = Template(u"""
         <div class="row">
             <div class="col-md-6 col-md-offset-3">
                 <div id="{{slider_id}}"></div>
-                <ul class="thumbnails">
+                <ul class="thumbnail">
                     {{image_html}}
                 </ul>
                 {{html}}
@@ -1190,7 +1189,7 @@ class Report(object):
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
         html.append(u'<div id="%s"></div>' % slider_id)
-        html.append(u'<ul class="thumbnails">')
+        html.append(u'<ul class="thumbnail">')
         # Render the slices
         html.append(u'\n'.join(slices))
         html.append(u'</ul>')
@@ -1465,7 +1464,7 @@ class Report(object):
                       limits=None, n_jobs=1):
         """Render mri without bem contours (only PNG)."""
         html = []
-        html.append(u'<div class="row">')
+        html.append(u'<div class="thumbnail">')
         # Axial
         limits = limits or {}
         axial_limit = limits.get('axial')
@@ -1479,8 +1478,6 @@ class Report(object):
         html.append(
             self._render_one_axis(sagittal_slices_gen, 'sagittal',
                                   global_id, cmap, array.shape[1], n_jobs))
-        html.append(u'</div>')
-        html.append(u'<div class="row">')
         # Coronal
         coronal_limit = limits.get('coronal')
         coronal_slices_gen = _iterate_coronal_slices(array, coronal_limit)
@@ -1522,7 +1519,7 @@ class Report(object):
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
         html.append(u'<div id="%s"></div>' % slider_id)
-        html.append(u'<ul class="thumbnails">')
+        html.append(u'<ul class="thumbnail">')
         # Render the slices
         html.append(u'\n'.join(slices))
         html.append(u'</ul>')
@@ -1548,7 +1545,7 @@ class Report(object):
                   'coronal': range(0, shape[2], 2)}
         name = op.basename(image)
         html = u'<li class="mri" id="%d">\n' % global_id
-        html += u'<h2>%s</h2>\n' % name
+        html += u'<h4>%s</h4>\n' % name
         html += self._render_array(data, global_id=global_id,
                                    cmap=cmap, limits=limits, n_jobs=n_jobs)
         html += u'</li>\n'
@@ -1755,7 +1752,8 @@ class Report(object):
                 continue
         if len(surf_fnames) == 0:
             warn('No surfaces found at all, rendering empty MRI')
-            return self._render_image_png(mri_fname, cmap='gray')
+            return self._render_image_png(mri_fname, cmap='gray',
+                                          n_jobs=n_jobs)
         # XXX : find a better way to get max range of slices
         nim = nib.load(mri_fname)
         data = nim.get_data()
@@ -1773,16 +1771,13 @@ class Report(object):
         name = caption
 
         html += u'<li class="mri" id="%d">\n' % global_id
-        html += u'<h2>%s</h2>\n' % name
-        html += u'<div class="row">'
+        html += u'<h4>%s</h4>\n' % name  # all other captions are h4
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
                                           shape, 'axial', decim, n_jobs)
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
                                           shape, 'sagittal', decim, n_jobs)
-        html += u'</div><div class="row">'
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
                                           shape, 'coronal', decim, n_jobs)
-        html += u'</div>'
         html += u'</li>\n'
         return ''.join(html)
 

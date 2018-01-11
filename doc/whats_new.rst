@@ -84,6 +84,8 @@ Bug
 
 - Fix bug in :meth:`mne.report.Report.add_figs_to_section` when passing :class:`numpy.ndarray` by `Eric Larson`_
 
+- Fix bug in CSS class setting in `mne.report.Report` BEM section by `Eric Larson`_
+
 - Fix bug in :class:`Annotations` where annotations that extend to the end of a recording were not extended properly by `Eric Larson`_
 
 - Fix bug in :meth:`mne.io.Raw.filter` to properly raw data with acquisition skips in separate segments by `Eric Larson`_
