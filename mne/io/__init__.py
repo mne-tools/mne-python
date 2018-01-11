@@ -41,6 +41,7 @@ from .fiff import read_raw_fif
 from .nicolet import read_raw_nicolet
 from .artemis123 import read_raw_artemis123
 from .eeglab import read_raw_eeglab, read_epochs_eeglab, read_events_eeglab
+from .eeglab import read_annotations_eeglab
 
 # for backward compatibility
 from .fiff import Raw
