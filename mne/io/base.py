@@ -2336,7 +2336,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     # Annotations
     #
-    if annotations is not None and len(annotations.onset) > 0:
+    if annotations is not None:  # allow saving empty annotations
         _write_annotations(fid, annotations)
 
     #

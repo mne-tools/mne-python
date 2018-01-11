@@ -27,7 +27,7 @@ def test_annotations():
     """Test annotation class."""
     raw = read_raw_fif(fif_fname)
     assert raw.annotations is None
-    assert_raises(ValueError, read_annotations, fif_fname)
+    assert_raises(IOError, read_annotations, fif_fname)
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat('test', 10)
@@ -109,6 +109,23 @@ def test_annotations():
         assert_allclose(getattr(annot_read, attr),
                         getattr(raw.annotations, attr))
     assert_array_equal(annot_read.description, raw.annotations.description)
+    annot = Annotations((), (), ())
+    annot.save(fname)
+    assert_raises(IOError, read_annotations, fif_fname)  # none in old raw
+    annot = read_annotations(fname)
+    assert isinstance(annot, Annotations)
+    assert len(annot) == 0
+    # Test that empty annotations can be saved with an object
+    fname = op.join(tempdir, 'test_raw.fif')
+    raw.annotations = annot
+    raw.save(fname)
+    raw_read = read_raw_fif(fname)
+    assert isinstance(raw_read.annotations, Annotations)
+    assert len(raw_read.annotations) == 0
+    raw.annotations = None
+    raw.save(fname, overwrite=True)
+    raw_read = read_raw_fif(fname)
+    assert raw_read.annotations is None
 
 
 @testing.requires_testing_data
