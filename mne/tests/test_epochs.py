@@ -1443,7 +1443,7 @@ def test_epoch_eq():
     assert_equal(new_shapes[0] + new_shapes[1], new_shapes[2] + new_shapes[3])
     assert_raises(ValueError, combine_event_ids, epochs, ['a', 'b'], {'ab': 1})
 
-    combine_event_ids(epochs, ['a', 'b'], {'ab': 12}, copy=False)
+    combine_event_ids(epochs, ['a', 'b'], {'ab': np.int32(12)}, copy=False)
     caught = 0
     for key in ['a', 'b']:
         try:
