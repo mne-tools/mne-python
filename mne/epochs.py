@@ -13,6 +13,7 @@
 from collections import OrderedDict, Counter
 from copy import deepcopy
 import json
+import operator
 import os.path as op
 from distutils.version import LooseVersion
 
@@ -2178,8 +2179,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
         if not len(list(new_event_id.keys())) == 1:
             raise ValueError('new_event_id dict must have one entry')
     new_event_num = list(new_event_id.values())[0]
-    if not isinstance(new_event_num, int):
-        raise ValueError('new_event_id value must be an integer')
+    new_event_num = operator.index(new_event_num)
     if new_event_num in epochs.event_id.values():
         raise ValueError('new_event_id value must not already exist')
     # could use .pop() here, but if a latter one doesn't exist, we're
