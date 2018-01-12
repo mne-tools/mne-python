@@ -461,8 +461,10 @@ def test_make_inverse_operator_vector():
     stc_diff_vec = apply_inverse(diff, inv_1, method='MNE', pick_ori='vector')
     stc_vec0 = apply_inverse(evoked0, inv_1, method='MNE', pick_ori='vector')
     stc_vec1 = apply_inverse(evoked1, inv_1, method='MNE', pick_ori='vector')
-    assert_allclose(stc_diff_vec.data, (stc_vec0 - stc_vec1).data)
-    assert_allclose(stc_diff.data, (stc_vec0 - stc_vec1).magnitude().data)
+    assert_allclose(stc_diff_vec.data, (stc_vec0 - stc_vec1).data,
+                    atol=1e-20)
+    assert_allclose(stc_diff.data, (stc_vec0 - stc_vec1).magnitude().data,
+                    atol=1e-20)
 
 
 @testing.requires_testing_data

@@ -56,7 +56,7 @@ def _get_lut_id(lut, label, use_lut):
     if not use_lut:
         return 1
     assert isinstance(label, string_types)
-    mask = (lut['name'] == label.encode('utf-8'))
+    mask = (lut['name'] == label)
     assert mask.sum() == 1
     return lut['id'][mask]
 
@@ -2429,7 +2429,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
     # Get the unique label names
     lut = _get_lut()
 
-    label_names = [lut[lut['id'] == ii]['name'][0].decode('utf-8')
+    label_names = [lut[lut['id'] == ii]['name'][0]
                    for ii in np.unique(mgz_data)]
     label_colors = [[lut[lut['id'] == ii]['R'][0],
                      lut[lut['id'] == ii]['G'][0],

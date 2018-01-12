@@ -3,20 +3,23 @@
 #
 # License: BSD (3-clause)
 
+from distutils.version import LooseVersion
 import os.path as op
 import shutil
+from unittest import SkipTest
 
 import warnings
 from nose.tools import assert_raises, assert_equal, assert_true
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+from scipy import io
 
 from mne import write_events, read_epochs_eeglab, Epochs, find_events
 from mne.io import read_raw_eeglab
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.eeglab.eeglab import read_events_eeglab
 from mne.datasets import testing
-from mne.utils import _TempDir, run_tests_if_main, requires_version
+from mne.utils import _TempDir, run_tests_if_main
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 raw_fname = op.join(base_dir, 'test_raw.set')
@@ -28,11 +31,9 @@ montage = op.join(base_dir, 'test_chans.locs')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-@requires_version('scipy', '0.12')
 @testing.requires_testing_data
 def test_io_set():
     """Test importing EEGLAB .set files."""
-    from scipy import io
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # main tests, and test missing event_id
@@ -167,6 +168,11 @@ def test_io_set():
         for fld in range(4):
             chanlocs[ind][dt[fld][0]] = vals[fld]
 
+    if LooseVersion(np.__version__) == '1.14.0':
+        # There is a bug in 1.14.0 (or maybe with SciPy 1.0.0?) that causes
+        # this write to fail!
+        raise SkipTest('Need to fix bug in NumPy 1.14.0!')
+
     # save set file
     one_chanpos_fname = op.join(temp_dir, 'test_chanpos.set')
     io.savemat(one_chanpos_fname, {'EEG':
@@ -223,7 +229,12 @@ def test_io_set():
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
                            np.array([0., 0., 0.]))
 
+
+@testing.requires_testing_data
+def test_degenerate():
+    """Test some degenerate conditions."""
     # test if .dat file raises an error
+    temp_dir = _TempDir()
     eeg = io.loadmat(epochs_fname, struct_as_record=False,
                      squeeze_me=True)['EEG']
     eeg.data = 'epochs_fname.dat'
