@@ -22,7 +22,6 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
 from .bem import read_bem_surfaces, ConductorModel
-from .fixes import _get_args
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
                       _normalize_vectors, _get_solids, _triangle_neighbors,
@@ -42,13 +41,9 @@ def _get_lut():
     """Get the FreeSurfer LUT."""
     data_dir = op.join(op.dirname(__file__), 'data')
     lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
-    kwargs = dict()
-    if 'encoding' in _get_args(np.genfromtxt):
-        kwargs['encoding'] = 'ascii'
-    return np.genfromtxt(lut_fname, dtype=None,
-                         usecols=(0, 1, 2, 3, 4, 5),
-                         names=['id', 'name', 'R', 'G', 'B', 'A'],
-                         **kwargs)
+    dtype = [('id', '<i8'), ('name', 'U47'),
+             ('R', '<i8'), ('G', '<i8'), ('B', '<i8'), ('A', '<i8')]
+    return np.genfromtxt(lut_fname, dtype=dtype)
 
 
 def _get_lut_id(lut, label, use_lut):
