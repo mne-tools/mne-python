@@ -2594,8 +2594,12 @@ def sys_info(fid=None, show_paths=False):
     for li, line in enumerate(lines):
         for key in ('lapack', 'blas'):
             if line.startswith('%s_opt_info' % key):
-                libs += ['%s=' % key +
-                         lines[li + 1].split('[')[1].split("'")[1]]
+                lib = lines[li + 1]
+                if 'NOT AVAILABLE' in lib:
+                    lib = 'unknown'
+                else:
+                    lib = lib.split('[')[1].split("'")[1]
+                libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     version_texts = dict(pycuda='VERSION_TEXT')
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',
