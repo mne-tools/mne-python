@@ -1647,8 +1647,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             can be loaded with the MNE command-line tools. See raw.orig_format
             to determine the format the original data were stored in.
         overwrite : bool
-            If True, the destination file (if it exists) will be overwritten.
-            If False (default), an error will be raised if the file exists.
+            If True, the destination file (if it exists) will be overwritten,
+            data must be preloaded to overwrite. If False (default), an error
+            will be raised if the file exists.
         split_size : string | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
