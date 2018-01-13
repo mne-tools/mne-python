@@ -931,7 +931,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return data, times
         return data
 
-    def events_from_annot(self, event_id=None, regexp=None):
+    @verbose
+    def events_from_annot(self, event_id=None, regexp=None, verbose=None):
         """Get events and event_id from Annotations.
 
         .. note:: Some EEG systems come with multiple annotation channels
@@ -951,6 +952,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         regexp : str | None
             Regular expression used to filter the annotations whose
             descriptions is a match.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see
+            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
+            for more). Defaults to self.verbose.
 
         Returns
         -------
@@ -964,6 +969,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             self.annotations.onset, use_rounding=True) + self.first_samp
 
         unique_keys = np.unique(self.annotations.description)
+
+        logger.info('Annotations descriptions: %s' % unique_keys)
+
         if regexp is not None:
             pat = re.compile(regexp)
             unique_keys = [kk for kk in unique_keys if pat.match(kk)]
