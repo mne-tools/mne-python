@@ -932,7 +932,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return data
 
     def events_from_annot(self, event_id=None, regexp=None):
-        """Get events and event id from Annotatations.
+        """Get events and event_id from Annotations.
 
         .. note:: Some EEG systems come with multiple annotation channels
                   such that different annotations can share time stamps.
@@ -945,16 +945,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         event_id : dict | None
             Dictionary of string keys and integer values as used in mne.Epochs
             to map annotation descriptions to integer event codes. If None,
-            All event descriptions are mapped and assigned arbitrary unique
-            integer values. Else, only the keys passed will be mapped and
-            the events output will be limited to the annotations matching the
-            events.
+            all descriptions of annotations are mapped and assigned arbitrary
+            unique integer values. Else, only the keys present will be mapped
+            and and the annotations with other descriptions will be ignored.
         regexp : str | None
-            String used for regular expression matching of descriptions.
-            If not None, only matching events are returned.
+            Regular expression used to filter the annotations whose
+            descriptions is a match.
 
         Returns
         -------
+        events : array of int, shape (n_events, 3)
+            The events
+        event_id : dict
+            The event_id that can be used with the events array.
         """
         import re
         inds = self.time_as_index(
@@ -967,8 +970,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if event_id is None:
             event_id_ = dict(
-                zip(unique_keys,
-                    np.arange(len(unique_keys)).astype(np.int) + 1))
+                zip(unique_keys, np.arange(1, 1 + len(unique_keys))))
         else:
             event_id_ = {k: v for k, v in event_id.items()
                          if k in unique_keys}
