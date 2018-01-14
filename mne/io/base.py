@@ -1649,6 +1649,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.
+            To overwrite original file (the same one that was loaded),
+            data must be preloaded upon reading.
         split_size : string | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
