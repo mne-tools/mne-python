@@ -11,7 +11,7 @@ from collections import Mapping
 from ..utils import (_read_segments_file, _find_channels,
                      _synthesize_stim_channel)
 from ..constants import FIFF, Bunch
-from ..meas_info import _empty_info, create_info, _kind_dict
+from ..meas_info import _empty_info, create_info
 from ..base import BaseRaw, _check_update_montage
 from ...utils import logger, verbose, check_version, warn
 from ...channels.montage import Montage
@@ -67,12 +67,12 @@ def _to_loc(ll):
     if isinstance(ll, (int, float)):
         # Numeric value
         return ll
-    
+
     elif isinstance(ll, (list, tuple)) and len(ll) > 0:
         # Non-empty list or tuple
         # (Should elements be checked to ensure they're numeric?)
         return ll
-    
+
     elif hasattr(ll, 'dtype') and \
         ((np.issubdtype(ll.dtype, np.integer) or
           np.issubdtype(ll.dtype, np.float))):
@@ -285,6 +285,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
                           uint16_codec=uint16_codec)
     return epochs
 
+
 def _bunchify(mapping, name='BU'):
     """Convert mappings to Bunches recursively.
 
@@ -298,9 +299,11 @@ def _bunchify(mapping, name='BU'):
         return [_bunchify(item) for item in mapping]
     return mapping
 
+
 def _bunch_wrapper(name, **kwargs):
     """Convert mappings to Bunches."""
     return Bunch(**kwargs)
+
 
 def _hdf_data_2_strs(orig, hdf_data, lower=True):
     """ Takes string values stored as ascii values in numpy array
@@ -309,9 +312,10 @@ def _hdf_data_2_strs(orig, hdf_data, lower=True):
     ascii_vals = [orig[hdf_data[x][0]].value
                   for x in range(len(hdf_data))]
     str_list = [''.join([chr(x) for x in curr_label]).strip()
-                    for curr_label in ascii_vals]
+                for curr_label in ascii_vals]
     str_list = [x.lower() if lower else x for x in str_list]
     return str_list
+
 
 def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
     """Convert h5py obj to dict."""
@@ -341,24 +345,25 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
                 if isinstance(temp, float) and temp.is_integer():
                     temp = int(temp)
             out_dict[curr] = temp
-            
+
         elif isinstance(in_hdf[curr], h5py.Group):
             logger.info(msg)
             if curr == 'chanlocs':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
                                              indent + indent_incr)
-                chr_labels = _hdf_data_2_strs(orig, in_hdf[curr]['labels'], False)
+                chr_labels = _hdf_data_2_strs(orig, in_hdf[curr]['labels'],
+                                              False)
                 chr_types = _hdf_data_2_strs(orig, in_hdf[curr]['type'])
 
                 for ctr, (curr_label, curr_type) in enumerate(zip(chr_labels,
                                                                   chr_types)):
                     temp[ctr].labels = curr_label
                     temp[ctr].type = curr_type
-                    
+
             elif curr == 'event':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
                                              indent + indent_incr)
-                
+
                 chr_types = _hdf_data_2_strs(orig, in_hdf[curr]['type'])
                 chr_usertags = _hdf_data_2_strs(orig, in_hdf[curr]['usertags'])
 
@@ -372,7 +377,7 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
                 temp = hdf_2_dict(orig, in_hdf[curr],
                                   curr_name, indent + indent_incr)
             out_dict[curr] = temp
-            
+
         else:
             sys.exit("Unknown type")
     return out_dict
@@ -417,7 +422,6 @@ def _get_eeg_data(input_fname, uint16_codec=None):
         eeg = _bunchify(eeg_dict)
 
     return eeg
-
 
 
 class RawEEGLAB(BaseRaw):
@@ -538,7 +542,7 @@ class RawEEGLAB(BaseRaw):
                 temp = eeg.data.transpose()
                 eeg.data = temp
                 n_chan, n_times = eeg.data.shape
-                
+
             data = np.empty((n_chan + 1, n_times), dtype=np.double)
             data[:-1] = eeg.data
             data *= CAL
@@ -828,7 +832,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         # but Bunch will iterate over fields
         types = [str(eeg.event.type)]
         latencies = [eeg.event.latency]
- 
+
     if "boundary" in types and "boundary" not in event_id:
         warn("The data contains 'boundary' events, indicating data "
              "discontinuities. Be cautious of filtering and epoching around "
