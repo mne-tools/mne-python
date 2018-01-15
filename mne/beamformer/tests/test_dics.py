@@ -470,7 +470,7 @@ def test_tf_dics():
                        csd_mode='cwt_morlet', frequencies=frequencies,
                        subtract_evoked=True, reg=reg, beamformer_mode='vector',
                        label=label, decim=20)
-    assert len(w) == 60  # One warning for each vertex
+    assert len(w) >= 60  # At least one warning for each vertex
     assert np.all(np.isnan(stcs[0].data))
 
 
