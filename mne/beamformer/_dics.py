@@ -150,11 +150,11 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         raise ValueError('"pick_ori" should be one of %s.' % allowed_ori)
 
     # Leadfield rank and optional rank reduction
-    if reduce_rank and not pick_ori == 'max-power':
+    if reduce_rank and not (pick_ori == 'max-power' and mode == 'scalar'):
         raise NotImplementedError(
             'The computation of spatial filters with rank reduction using '
             'reduce_rank parameter is only implemented with '
-            'pick_ori=="max-power".'
+            'pick_ori=="max-power" and mode="scalar".'
         )
 
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
@@ -1060,10 +1060,6 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
            brain imaging (2008) Springer Science & Business Media
     """
     _check_reference(epochs)
-
-    allowed_ori = [None, 'normal', 'max-power']
-    if pick_ori not in allowed_ori:
-        raise ValueError('"pick_ori" should be one of %s.' % allowed_ori)
 
     if csd_mode == 'cwt_morlet' and frequencies is None:
         raise ValueError('In "cwt_morlet" mode, the "frequencies" parameter '

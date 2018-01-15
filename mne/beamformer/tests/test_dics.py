@@ -138,6 +138,12 @@ def test_make_dics():
     # orientation
     raises(ValueError, make_dics, epochs.info, fwd_vol, csd, pick_ori="normal")
 
+    # Test invalid combinations of parameters
+    raises(NotImplementedError, make_dics, epochs.info, fwd_free, csd,
+           reduce_rank=True, pick_ori=None)
+    raises(NotImplementedError, make_dics, epochs.info, fwd_free, csd,
+           reduce_rank=True, pick_ori='max-power', mode='vector')
+
     # Sanity checks on the returned filters
     n_freq = len(csd.frequencies)
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
@@ -264,6 +270,14 @@ def test_apply_dics_csd():
     # Test using a real-valued filter
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
                              real_filter=True, mode='vector')
+    power, f = apply_dics_csd(csd, filters_real)
+    assert f == [10, 20]
+    assert np.argmax(power.data[:, 1]) == source_ind
+    assert power.data[source_ind, 1] > power.data[source_ind, 0]
+
+    # Test rank reduction
+    filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=5,
+                             pick_ori='max-power', reduce_rank=True)
     power, f = apply_dics_csd(csd, filters_real)
     assert f == [10, 20]
     assert np.argmax(power.data[:, 1]) == source_ind
@@ -421,22 +435,32 @@ def test_tf_dics():
     assert_allclose(stcs_norm[0].data, stcs[0].data, atol=0)
     assert_allclose(stcs_norm[1].data, stcs[1].data, atol=0)
 
+    # Test invalid parameter combinations
+    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
+           win_lengths, csd_mode='fourier', freq_bins=None)
+    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
+           win_lengths, csd_mode='cwt_morlet', frequencies=None)
+
     # Test if incorrect number of noise CSDs is detected
     raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
-           win_lengths, frequencies=frequencies, noise_csds=[noise_csds[0]])
+           win_lengths, freq_bins=freq_bins, noise_csds=[noise_csds[0]])
 
     # Test if freq_bins and win_lengths incompatibility is detected
     raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
-           win_lengths=[0, 1, 2], frequencies=frequencies)
+           win_lengths=[0, 1, 2], freq_bins=freq_bins)
 
     # Test if time step exceeding window lengths is detected
     raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep=0.15,
-           win_lengths=[0.2, 0.1], frequencies=frequencies)
+           win_lengths=[0.2, 0.1], freq_bins=freq_bins)
 
+    # Test if incorrent number of n_ffts is detected
+    raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
+           win_lengths, freq_bins=freq_bins, n_ffts=[1])
+    
     # Test if incorrect number of mt_bandwidths is detected
     raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
-           win_lengths=win_lengths, freq_bins=[frequencies],
-           csd_mode='multitaper', mt_bandwidths=[20, 30])
+           win_lengths=win_lengths, freq_bins=freq_bins, csd_mode='multitaper',
+           mt_bandwidths=[20])
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch.
