@@ -456,7 +456,7 @@ def test_tf_dics():
     # Test if incorrent number of n_ffts is detected
     raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
            win_lengths, freq_bins=freq_bins, n_ffts=[1])
-    
+
     # Test if incorrect number of mt_bandwidths is detected
     raises(ValueError, tf_dics, epochs, fwd_surf, tmin, tmax, tstep,
            win_lengths=win_lengths, freq_bins=freq_bins, csd_mode='multitaper',
