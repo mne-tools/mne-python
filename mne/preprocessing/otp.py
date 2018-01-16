@@ -10,7 +10,7 @@ from scipy import linalg
 from ..io.pick import _pick_data_channels
 from ..surface import _normalize_vectors
 from ..utils import logger, verbose
-from .utils import _get_lims_COLA
+from .utils import _get_lims_cola
 
 
 def _svd_cov(cov, data):
@@ -92,7 +92,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
     picks_bad = np.array(picks_bad, int)
 
     n_samp = int(round(float(duration) * raw.info['sfreq']))
-    starts, stops, windows = _get_lims_COLA(
+    starts, stops, windows = _get_lims_cola(
         n_samp, len(raw.times), raw.info['sfreq'], picks_good)
     min_samp = (stops - starts).min()
     if min_samp < len(picks_good) - 1:

@@ -10,7 +10,7 @@ from ..utils import logger
 
 # adapted from SciPy
 
-def check_COLA(win, nperseg, noverlap, tol=1e-10):
+def check_cola(win, nperseg, noverlap, tol=1e-10):
     """Check whether the Constant OverLap Add (COLA) constraint is met."""
     nperseg = int(nperseg)
     if nperseg < 1:
@@ -27,7 +27,7 @@ def check_COLA(win, nperseg, noverlap, tol=1e-10):
     return np.max(np.abs(deviation)) < tol
 
 
-def _get_lims_COLA(n_samp, n_times, sfreq, picks):
+def _get_lims_cola(n_samp, n_times, sfreq, picks):
     from scipy.signal import get_window
     if n_samp > n_times:
         raise ValueError('Effective duration (%s) must be at most the '
@@ -38,7 +38,7 @@ def _get_lims_COLA(n_samp, n_times, sfreq, picks):
     step = n_samp // 2
     win = get_window(window, n_samp)
     n_overlap = n_samp - step
-    if not check_COLA(win, n_samp, n_overlap, tol=1e-2):
+    if not check_cola(win, n_samp, n_overlap, tol=1e-2):
         raise RuntimeError('COLA not met')
     starts = np.arange(0, n_times - n_samp + 1, step)
     stops = starts + n_samp
