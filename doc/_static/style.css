@@ -109,8 +109,8 @@ blockquote {
 /* OVERRIDES */
 div.sphx-glr-download a {
   background-color: inherit;
+  max-width: 24ex;
   background-image: inherit;
-  border-radius: inherit;
   border: 1px solid #000;
   color: inherit;
   display: inherit;

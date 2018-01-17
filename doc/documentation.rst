@@ -580,7 +580,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_examples/decoding/plot_receptive_field.rst
+    auto_examples/decoding/plot_receptive_field_mtrf.rst
 
 .. raw:: html
 
