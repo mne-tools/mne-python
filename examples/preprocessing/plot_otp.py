@@ -27,6 +27,7 @@ print(__doc__)
 # spread to other channels when performing subsequent spatial operations
 # (e.g., Maxwell filtering, SSP, or ICA).
 
+dipole_number = 1
 data_path = bst_phantom_elekta.data_path()
 raw = read_raw_fif(
     op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif'))
@@ -50,18 +51,20 @@ raw_clean.plot(order=order, n_channels=10)
 # localization across the 17 trials are in our 10-second window:
 
 def compute_bias(raw):
-    events = find_events(raw, 'STI201')[1:]  # first one has an artifact
+    events = find_events(raw, 'STI201', verbose=False)
+    events = events[1:]  # first one has an artifact
     tmin, tmax = -0.2, 0.1
-    event_id = 1
-    epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                        baseline=(None, -0.01), preload=True)
-    sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
-    cov = mne.compute_covariance(epochs, tmax=0, method='shrunk')
+    epochs = mne.Epochs(raw, events, dipole_number, tmin, tmax,
+                        baseline=(None, -0.01), preload=True, verbose=False)
+    sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None,
+                                   verbose=False)
+    cov = mne.compute_covariance(epochs, tmax=0, method='shrunk',
+                                 verbose=False)
     idx = epochs.time_as_index(0.036)[0]
     data = epochs.get_data()[:, :, idx].T
     evoked = mne.EvokedArray(data, epochs.info, tmin=0.)
-    dip = fit_dipole(evoked, cov, sphere, n_jobs=1)[0]
-    actual_pos = mne.dipole.get_phantom_dipoles()[0][0]
+    dip = fit_dipole(evoked, cov, sphere, n_jobs=1, verbose=False)[0]
+    actual_pos = mne.dipole.get_phantom_dipoles()[0][dipole_number - 1]
     misses = 1000 * np.linalg.norm(dip.pos - actual_pos, axis=-1)
     return misses
 
