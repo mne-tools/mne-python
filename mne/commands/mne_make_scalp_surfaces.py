@@ -49,10 +49,6 @@ def run():
     parser.add_option("-n", "--no-decimate", dest="no_decimate",
                       help="Disable medium and sparse decimations "
                       "(dense only)", action='store_true')
-    parser.add_option("-i", "--allow-incomplete", dest="allow_incomplete",
-                      help="Allow the head surface to be 'incomplete' "
-                      "according to the sum of solid angles check.",
-                      action='store_true')
     options, args = parser.parse_args()
 
     subject = vars(options).get('subject', os.getenv('SUBJECT'))
@@ -60,14 +56,12 @@ def run():
     if subject is None or subjects_dir is None:
         parser.print_help()
         sys.exit(1)
-    incomplete = 'warn' if options.allow_incomplete else 'raise'
     _run(subjects_dir, subject, options.force, options.overwrite,
-         options.no_decimate, options.verbose, incomplete)
+         options.no_decimate, options.verbose)
 
 
 @verbose
-def _run(subjects_dir, subject, force, overwrite, no_decimate, incomplete,
-         verbose=None):
+def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
     this_env = copy.copy(os.environ)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     this_env['SUBJECTS_DIR'] = subjects_dir
@@ -75,7 +69,7 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, incomplete,
     if 'FREESURFER_HOME' not in this_env:
         raise RuntimeError('The FreeSurfer environment needs to be set up '
                            'for this script')
-    force = '--force' if force else '--check'
+    incomplete = 'warn' if force else 'raise'
     subj_path = op.join(subjects_dir, subject)
     if not op.exists(subj_path):
         raise RuntimeError('%s does not exist. Please check your subject '
