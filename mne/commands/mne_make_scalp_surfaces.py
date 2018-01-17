@@ -49,6 +49,10 @@ def run():
     parser.add_option("-n", "--no-decimate", dest="no_decimate",
                       help="Disable medium and sparse decimations "
                       "(dense only)", action='store_true')
+    parser.add_option("-i", "--allow-incomplete", dest="allow_incomplete",
+                      help="Allow the head surface to be 'incomplete' "
+                      "according to the sum of solid angles check.",
+                      action='store_true')
     options, args = parser.parse_args()
 
     subject = vars(options).get('subject', os.getenv('SUBJECT'))
@@ -56,13 +60,14 @@ def run():
     if subject is None or subjects_dir is None:
         parser.print_help()
         sys.exit(1)
-    print(options.no_decimate)
+    incomplete = 'warn' if options.allow_incomplete else 'raise'
     _run(subjects_dir, subject, options.force, options.overwrite,
-         options.no_decimate, options.verbose)
+         options.no_decimate, options.verbose, incomplete)
 
 
 @verbose
-def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
+def _run(subjects_dir, subject, force, overwrite, no_decimate, incomplete,
+         verbose=None):
     this_env = copy.copy(os.environ)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     this_env['SUBJECTS_DIR'] = subjects_dir
@@ -104,7 +109,8 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
     surf = mne.bem._surfaces_to_bem(
-        [surf], [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1])[0]
+        [surf], [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
+        incomplete=incomplete)[0]
     mne.write_bem_surfaces(dense_fname, surf)
     levels = 'medium', 'sparse'
     tris = [] if no_decimate else [30000, 2500]
@@ -125,6 +131,6 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
             [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False)
         mne.write_bem_surfaces(dec_fname, dec_surf)
 
-is_main = (__name__ == '__main__')
-if is_main:
+
+if (__name__ == '__main__'):
     run()
