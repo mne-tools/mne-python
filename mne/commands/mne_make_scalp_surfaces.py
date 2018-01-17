@@ -122,7 +122,8 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
         _check_file(dec_fname, overwrite)
         dec_surf = mne.bem._surfaces_to_bem(
             [dict(rr=points, tris=tris)],
-            [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False)
+            [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
+            incomplete=incomplete)
         mne.write_bem_surfaces(dec_fname, dec_surf)
 
 
