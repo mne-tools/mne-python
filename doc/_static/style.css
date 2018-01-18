@@ -107,18 +107,22 @@ blockquote {
 }
 
 /* OVERRIDES */
+div.sphx-glr-download {
+  width: inherit;
+}
+div.sphx-glr-footer {
+  width: fit-content;
+}
 div.sphx-glr-download a {
   background-color: inherit;
-  max-width: 24ex;
   background-image: inherit;
   border: 1px solid #000;
   color: inherit;
-  display: inherit;
-  /* Not valid in old browser, hence we keep the line above to override */
+  width: fit-content;
   display: inherit;
   font-weight: inherit;
   padding: 0px;
-  text-align: inherit;
+  text-align: center;
 }
 div.sphx-glr-download a:hover {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 5px rgba(0,0,0,.25);
@@ -126,6 +130,59 @@ div.sphx-glr-download a:hover {
   background-image: none;
   background-color: inherit;
 }
+/* On large screens, float the download and binder buttons on the right */
+@media only screen and (min-width: 140ex) {
+    div.sphx-glr-footer-example  {
+	position: unset;
+	right: unset;
+	top: unset;
+	background: unset;
+	padding: unset;
+	border: unset;
+	max-width: unset;
+	width: fit-content;
+	}
+    div.sphx-glr-footer-example code {
+	max-width: unset;
+	overflow: unset;
+    }
+    div.sphx-glr-footer-example a {
+	max-width: unset;
+	overflow: unset;
+	padding: unset;
+    }
+    div.sphx-glr-footer-example a code span:last-child {
+	font-size: unset;
+    }
+}
+@media (min-width: 1700px) {
+    div.sphx-glr-footer-example  {
+	position: fixed;
+	right: 30px;
+	top: 150px;
+	background: rgba(200, 200, 200, 0.3);
+	padding: 0ex .5ex;
+	border: solid 1px #ccc;
+	width: 250px;
+	}
+
+    /* Avoid overflow of long file names */
+    div.sphx-glr-footer-example code {
+	max-width: 100%;
+	overflow: hidden;
+    }
+
+    div.sphx-glr-footer-example a {
+	max-width: 95%;
+	overflow: hidden;
+	padding: .5ex;
+    }
+
+    div.sphx-glr-footer-example a code span:last-child {
+	font-size: smaller;
+    }
+}
+
 .highlight pre {
     background-color: rgb(242, 249, 255) !important;
 }
