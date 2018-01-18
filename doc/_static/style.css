@@ -114,7 +114,7 @@ div.sphx-glr-footer {
   width: fit-content;
 }
 div.sphx-glr-download a {
-  background-color: inherit;
+  background-color: rgb(230, 242, 255);
   background-image: inherit;
   border: 1px solid #000;
   color: inherit;
@@ -155,7 +155,7 @@ div.sphx-glr-download a:hover {
 	font-size: unset;
     }
 }
-@media (min-width: 1700px) {
+@media (min-width: 1720px) {
     div.sphx-glr-footer-example  {
 	position: fixed;
 	right: 30px;
@@ -175,7 +175,6 @@ div.sphx-glr-download a:hover {
     div.sphx-glr-footer-example a {
 	max-width: 95%;
 	overflow: hidden;
-	padding: .5ex;
     }
 
     div.sphx-glr-footer-example a code span:last-child {
