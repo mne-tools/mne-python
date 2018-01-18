@@ -96,6 +96,8 @@ Bug
 
 - Fix support for writing FIF files with acquisition skips by using empty buffers rather than writing zeros by `Eric Larson`_
 
+- Fix bug in the ``mne make_scalp_surfaces`` command where ``--force`` (to bypass topology check failures) was ignored by `Eric Larson`_
+
 API
 ~~~
 

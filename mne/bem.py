@@ -394,7 +394,7 @@ def _order_surfaces(surfs):
     return surfs
 
 
-def _assert_complete_surface(surf):
+def _assert_complete_surface(surf, incomplete='raise'):
     """Check the sum of solid angles as seen from inside."""
     # from surface_checks.c
     tot_angle = 0.
@@ -404,10 +404,15 @@ def _assert_complete_surface(surf):
                 (_surf_name[surf['id']],
                  1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
     tot_angle = _get_solids(surf['rr'][surf['tris']], cm[np.newaxis, :])[0]
-    if np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5:
-        raise RuntimeError('Surface %s is not complete (sum of solid angles '
-                           '= %g * 4*PI instead).' %
-                           (_surf_name[surf['id']], tot_angle))
+    prop = tot_angle / (2 * np.pi)
+    if np.abs(prop - 1.0) > 1e-5:
+        msg = ('Surface %s is not complete (sum of solid angles '
+               'yielded %g, should be 1.)'
+               % (_surf_name[surf['id']], prop))
+        if incomplete == 'raise':
+            raise RuntimeError(msg)
+        else:
+            warn(msg)
 
 
 _surf_name = {
@@ -427,10 +432,10 @@ def _assert_inside(fro, to):
                            % (_surf_name[fro['id']], _surf_name[to['id']]))
 
 
-def _check_surfaces(surfs):
+def _check_surfaces(surfs, incomplete='raise'):
     """Check that the surfaces are complete and non-intersecting."""
     for surf in surfs:
-        _assert_complete_surface(surf)
+        _assert_complete_surface(surf, incomplete=incomplete)
     # Then check the topology
     for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
         logger.info('Checking that %s surface is inside %s surface...' %
@@ -462,7 +467,8 @@ def _check_thicknesses(surfs):
                      1000 * min_dist))
 
 
-def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True):
+def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
+                     incomplete='raise'):
     """Convert surfaces to a BEM."""
     # equivalent of mne_surf2bem
     # surfs can be strings (filenames) or surface dicts
@@ -493,7 +499,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True):
     surfs = _order_surfaces(surfs)
 
     # Check topology as best we can
-    _check_surfaces(surfs)
+    _check_surfaces(surfs, incomplete=incomplete)
     for surf in surfs:
         _check_surface_size(surf)
     _check_thicknesses(surfs)
