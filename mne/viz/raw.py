@@ -329,7 +329,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         # put back to original order first, then use new order
         inds = inds[reord][order]
     elif order is not None:
-        raise ValueError('Unkown order type. Got %s.' % type(order))
+        raise ValueError('Unkown order, should be array-like. '
+                         'Got "%s" (%s).' % (order, type(order)))
 
     if group_by in ['selection', 'position']:
         selections, fig_selection = _setup_browser_selection(raw, group_by)

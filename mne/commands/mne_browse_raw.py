@@ -39,9 +39,9 @@ def run():
     parser.add_option("-n", "--n_channels", dest="n_channels", type="int",
                       help="Number of channels to plot at a time",
                       default=20)
-    parser.add_option("-o", "--order", dest="order",
-                      help="Order for plotting ('type' or 'original')",
-                      default='type')
+    parser.add_option("-o", "--order", dest="group_by",
+                      help="Order to use for grouping during plotting "
+                      "('type' or 'original')", default='type')
     parser.add_option("-p", "--preload", dest="preload",
                       help="Preload raw data (for faster navigaton)",
                       default=False)
@@ -72,7 +72,7 @@ def run():
     duration = options.duration
     start = options.start
     n_channels = options.n_channels
-    order = options.order
+    group_by = options.group_by
     preload = options.preload
     show_options = options.show_options
     proj_in = options.proj_in
@@ -108,7 +108,7 @@ def run():
     lowpass = None if lowpass < 0 or filtorder <= 0 else lowpass
     filtorder = 4 if filtorder <= 0 else filtorder
     raw.plot(duration=duration, start=start, n_channels=n_channels,
-             order=order, show_options=show_options, events=events,
+             group_by=group_by, show_options=show_options, events=events,
              highpass=highpass, lowpass=lowpass, filtorder=filtorder,
              clipping=clipping)
     plt.show(block=True)
