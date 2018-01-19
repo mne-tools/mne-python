@@ -544,16 +544,14 @@ class ICA(ContainsMixin):
         """Aux function."""
         random_state = check_random_state(self.random_state)
 
+        from sklearn.decomposition import PCA
         if not check_version('sklearn', '0.18'):
-            from sklearn.decomposition import RandomizedPCA
-            # XXX fix copy==True later. Bug in sklearn, see PR #2273
-            pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
-                                copy=True, random_state=random_state)
-
+            # fix copy==True later. Bug in sklearn, see PR #2273
+            pca = PCA(n_components=max_pca_components, whiten=True, copy=True,
+                      random_state=random_state)
         else:
-            from sklearn.decomposition import PCA
-            pca = PCA(n_components=max_pca_components, copy=True, whiten=True,
-                      svd_solver='randomized', random_state=random_state)
+            pca = PCA(n_components=max_pca_components, whiten=True, copy=True,
+                      svd_solver='full', random_state=random_state)
 
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
@@ -562,7 +560,7 @@ class ICA(ContainsMixin):
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
-            # compute eplained variance manually, cf. sklearn bug
+            # compute explained variance manually, cf. sklearn bug
             # fixed in #2664
             if check_version('sklearn', '0.19'):
                 explained_variance_ratio_ = pca.explained_variance_ratio_
