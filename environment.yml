@@ -10,7 +10,7 @@ dependencies:
 - scipy
 - matplotlib
 - pyqt=5
-- vtk=7
+- vtk>=7
 - pandas
 - scikit-learn
 - h5py
