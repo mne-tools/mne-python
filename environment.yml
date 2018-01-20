@@ -26,19 +26,19 @@ dependencies:
 - numpydoc
 - flake8
 - spyder
-- nitime
-- nibabel
-- nilearn
 - pytest-sugar
 - pytest-faulthandler
 - pydocstyle
 - mayavi
-- pysurfer
 - traits
 - traitsui
 - pyface
 - sphinx_bootstrap_theme
 - pip:
+  - nitime
+  - nibabel
+  - nilearn
+  - pysurfer
   - mne
   - neo
   - git+https://github.com/sphinx-gallery/sphinx-gallery.git
