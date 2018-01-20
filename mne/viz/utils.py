@@ -2259,20 +2259,27 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True):
         # set to zero
         # XXX This picking call mimics what is done in compute_whitener...
         # should probably allow for other channel types, too (e.g., ECoG)!
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+        #
+        # Using exclude=() here makes it so that the bad channels are never
+        # plotted in whitening mode, regardless of whether or not the user
+        # clicks on the channel to change its status.
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False, exclude=())
         pick_names = [info['ch_names'][pick] for pick in picks]
         missing_names = set(pick_names) - set(noise_cov['names'])
         missing_names = missing_names.union(noise_cov['bads'])
         omit_mask = np.array([pick in missing_names for pick in pick_names])
         projector[picks[omit_mask]] = np.nan  # remove lines
-        picks = picks[~omit_mask]
-        del pick_names, omit_mask, missing_names
-        use_info = pick_info(info, picks)
+        good_picks = picks[~omit_mask]
+        del omit_mask, missing_names
+        use_info = pick_info(info, good_picks)
         whitener, whitened_ch_names = compute_whitener(
             noise_cov, use_info, verbose=False)
-        assert whitened_ch_names == [info['ch_names'][pick] for pick in picks]
-        projector[picks, picks[:, np.newaxis]] = whitener
+        assert whitened_ch_names == [info['ch_names'][pick]
+                                     for pick in good_picks]
+        # Now we need to change the set of "whitened" channel to include
+        # the bad ones, too, so that they are properly italicized.
+        whitened_ch_names = pick_names
+        projector[good_picks, good_picks[:, np.newaxis]] = whitener
     elif proj:
         projector, _ = setup_proj(info, add_eeg_ref=False, verbose=False)
     return projector, whitened_ch_names
