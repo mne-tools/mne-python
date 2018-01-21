@@ -589,6 +589,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         Noise covariance used to whiten the data while plotting.
         Whitened data channel names are shown in italic.
         Can be a string to load a covariance from disk.
+        See also :meth:`mne.Evoked.plot_white` for additional inspection
+        of noise covariance properties when whitening evoked data.
 
         .. versionadded:: 0.16.0
     verbose : bool, str, int, or None
@@ -599,6 +601,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     -------
     fig : instance of matplotlib.figure.Figure
         Figure containing the butterfly plots.
+
+    See Also
+    --------
+    mne.viz.plot_evoked_white
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=ylim, proj=proj, xlim=xlim,
