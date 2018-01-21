@@ -1353,7 +1353,9 @@ def _plot_update_epochs_proj(params, bools=None):
         data = np.dot(params['projector'], data)
     types = params['types']
     for pick, ind in enumerate(params['inds']):
-        if params['info']['ch_names'][ind] in params['whitened_ch_names']:
+        ch_name = params['info']['ch_names'][ind]
+        if ch_name in params['whitened_ch_names'] and \
+                ch_name not in params['info']['bads']:
             norm = params['scalings']['whitened']
         else:
             norm = params['scalings'][types[pick]]

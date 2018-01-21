@@ -13,7 +13,7 @@ from nose.tools import assert_raises
 import numpy as np
 from numpy.testing import assert_equal
 
-from mne import read_events, Epochs, pick_types
+from mne import read_events, Epochs, pick_types, read_cov
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, requires_version
@@ -59,8 +59,33 @@ def test_plot_epochs():
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
-    epochs.plot(noise_cov=cov_fname)
+    # covariance / whitening
+    cov = read_cov(cov_fname)
+    assert len(cov['names']) == 366  # all channels
+    assert cov['bads'] == []
+    assert epochs.info['bads'] == []  # all good
+    with warnings.catch_warnings(record=True):  # projectors
+        epochs.plot(noise_cov=cov)
     plt.close('all')
+    # add a channel to the epochs.info['bads']
+    assert 'MEG 0242' in epochs.ch_names
+    epochs.info['bads'] = ['MEG 0242']
+    with warnings.catch_warnings(record=True):  # projectors
+        epochs.plot(noise_cov=cov)
+    plt.close('all')
+    # add a channel to cov['bads']
+    assert 'MEG 0431' in epochs.ch_names
+    cov['bads'] = ['MEG 0431']
+    with warnings.catch_warnings(record=True):  # projectors
+        epochs.plot(noise_cov=cov)
+    plt.close('all')
+    # have a data channels missing from the covariance
+    cov['names'] = cov['names'][:306]
+    cov['data'] = cov['data'][:306][:306]
+    with warnings.catch_warnings(record=True):  # projectors
+        epochs.plot(noise_cov=cov)
+    plt.close('all')
+    # other options
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')
     plt.close('all')

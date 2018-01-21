@@ -71,10 +71,12 @@ def _update_raw_data(params):
                          data[data_picks, start_:stop_], axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
+        ch_name = params['info']['ch_names'][di]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
             norm = float(max(data[di]))
-        elif params['info']['ch_names'][di] in params['whitened_ch_names']:
+        elif ch_name in params['whitened_ch_names'] and \
+                ch_name not in params['info']['bads']:
             norm = params['scalings']['whitened']
         else:
             norm = params['scalings'][params['types'][di]]

@@ -2256,30 +2256,39 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True):
     whitened_ch_names = []
     if noise_cov is not None and use_noise_cov:
         # any channels in noise_cov['bads'] but not in info['bads'] get
-        # set to zero
+        # set to nan, which means that they are not plotted.
         # XXX This picking call mimics what is done in compute_whitener...
         # should probably allow for other channel types, too (e.g., ECoG)!
-        #
-        # Using exclude=() here makes it so that the bad channels are never
-        # plotted in whitening mode, regardless of whether or not the user
-        # clicks on the channel to change its status.
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False, exclude=())
-        pick_names = [info['ch_names'][pick] for pick in picks]
-        missing_names = set(pick_names) - set(noise_cov['names'])
-        missing_names = missing_names.union(noise_cov['bads'])
-        omit_mask = np.array([pick in missing_names for pick in pick_names])
-        projector[picks[omit_mask]] = np.nan  # remove lines
-        good_picks = picks[~omit_mask]
-        del omit_mask, missing_names
-        use_info = pick_info(info, good_picks)
+        data_picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                                exclude=())
+        data_names = set(info['ch_names'][pick] for pick in data_picks)
+        # these can be toggled by the user
+        bad_names = set(info['bads'])
+        # these can't in standard pipelines be enabled (we always take the
+        # union), so pretend they're not in cov at all
+        cov_names = ((set(noise_cov['names']) & set(info['ch_names'])) -
+                     set(noise_cov['bads']))
+        # Actually compute the whitener only using the difference
+        whiten_names = cov_names - bad_names
+        whiten_picks = pick_channels(info['ch_names'], whiten_names)
+        whiten_info = pick_info(info, whiten_picks)
         whitener, whitened_ch_names = compute_whitener(
-            noise_cov, use_info, verbose=False)
-        assert whitened_ch_names == [info['ch_names'][pick]
-                                     for pick in good_picks]
-        # Now we need to change the set of "whitened" channel to include
-        # the bad ones, too, so that they are properly italicized.
-        whitened_ch_names = pick_names
-        projector[good_picks, good_picks[:, np.newaxis]] = whitener
+            noise_cov, whiten_info, verbose=False)
+        assert set(whitened_ch_names) == whiten_names
+        projector[whiten_picks, whiten_picks[:, np.newaxis]] = whitener
+        # Now we need to change the set of "whitened" channels to include
+        # all data channel names so that they are properly italicized.
+        whitened_ch_names = data_names
+        # We would need to set "bad_picks" to identity to show the traces
+        # (but in gray), but here we don't need to because "projector"
+        # starts out as identity. So all that is left to do is take any
+        # *good* data channels that are not in the noise cov to be NaN
+        nan_names = data_names - (bad_names | cov_names)
+        # XXX conditional necessary because of annoying behavior of
+        # pick_channels where an empty list means "all"!
+        if len(nan_names) > 0:
+            nan_picks = pick_channels(info['ch_names'], nan_names)
+            projector[nan_picks] = np.nan
     elif proj:
         projector, _ = setup_proj(info, add_eeg_ref=False, verbose=False)
     return projector, whitened_ch_names
