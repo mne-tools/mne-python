@@ -102,7 +102,7 @@ idx = stc.time_as_index(0.088)
 plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
               title='LCMV (t=%.3f s.)' % stc.times[idx])
 
-# plot source time courses with the maximum peak amplitudes at 89 ms
+# plot source time courses with the maximum peak amplitudes at 88 ms
 plt.figure()
 plt.plot(stc.times, stc.data[np.argsort(np.max(stc.data[:, idx],
                                                axis=1))[-40:]].T)
