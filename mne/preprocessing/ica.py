@@ -175,8 +175,8 @@ class ICA(ContainsMixin):
         components with a cumulative explained variance below
         `n_pca_components`.
     noise_cov : None | instance of mne.cov.Covariance
-        Noise covariance used for whitening. If None, channels are just
-        z-scored.
+        Noise covariance used for pre-whitening. If None, channels are scaled
+        to unit variance prior to whitening.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
