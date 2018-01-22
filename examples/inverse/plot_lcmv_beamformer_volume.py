@@ -30,17 +30,16 @@ fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
 
 ###############################################################################
 # Get epochs
-event_id, tmin, tmax = 1, -0.2, 0.5
+event_id, tmin, tmax = [1, 2], -0.2, 0.5
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 events = mne.read_events(event_fname)
 
-# Set up pick list: EEG + MEG - bad channels (modify to your needs)
-left_temporal_channels = mne.read_selection('Left-temporal')
+# Set up pick list: gradiometers and magnetometers, excluding bad channels
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
-                       exclude='bads', selection=left_temporal_channels)
+                       exclude='bads')
 
 # Pick the channels of interest
 raw.pick_channels([raw.ch_names[pick] for pick in picks])
@@ -53,6 +52,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     baseline=(None, 0), preload=True, proj=proj,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()
+
+# Visualize sensor space data
+evoked.plot_joint()
 
 forward = mne.read_forward_solution(fname_fwd)
 
@@ -94,12 +96,16 @@ img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
 t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
 
 # Plotting with nilearn ######################################################
-plot_stat_map(index_img(img, 61), t1_fname, threshold=1.35,
-              title='LCMV (t=%.1f s.)' % stc.times[61])
+# Based on the visualization of the sensor space data (gradiometers), plot
+# activity at 88 ms
+idx = stc.time_as_index(0.088)
+plot_stat_map(index_img(img, idx), t1_fname, threshold=0.45,
+              title='LCMV (t=%.3f s.)' % stc.times[idx])
 
-# plot source time courses with the maximum peak amplitudes
+# plot source time courses with the maximum peak amplitudes at 89 ms
 plt.figure()
-plt.plot(stc.times, stc.data[np.argsort(np.max(stc.data, axis=1))[-40:]].T)
+plt.plot(stc.times, stc.data[np.argsort(np.max(stc.data[:, idx],
+                                               axis=1))[-40:]].T)
 plt.xlabel('Time (ms)')
 plt.ylabel('LCMV value')
 plt.show()
