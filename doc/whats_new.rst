@@ -55,6 +55,8 @@ Changelog
 
 - Add :func:`mne.io.pick.get_channel_types` which returns all available channel types in MNE by `Clemens Brunner`_
 
+- Use standard PCA instead of randomized PCA whitening prior to ICA to increase reproducibility by `Clemens Brunner`_
+
 Bug
 ~~~
 
