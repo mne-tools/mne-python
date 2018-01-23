@@ -23,12 +23,17 @@ from nilearn.image import index_img
 
 print(__doc__)
 
+# sphinx_gallery_thumbnail_number = 3
+
+
+###############################################################################
+# Data preprocessing:
+
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
 
-###############################################################################
 # Get epochs
 event_id, tmin, tmax = [1, 2], -0.2, 0.5
 
@@ -43,6 +48,7 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
 
 # Pick the channels of interest
 raw.pick_channels([raw.ch_names[pick] for pick in picks])
+
 # Re-normalize our empty-room projectors, so they are fine after subselection
 raw.info.normalize_proj()
 
@@ -56,12 +62,16 @@ evoked = epochs.average()
 # Visualize sensor space data
 evoked.plot_joint()
 
-forward = mne.read_forward_solution(fname_fwd)
+###############################################################################
+# Compute covariance matrices, fit and apply  spatial filter.
 
 # Read regularized noise covariance and compute regularized data covariance
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='shrunk')
+
+# Read forward model
+forward = mne.read_forward_solution(fname_fwd)
 
 # Compute weights of free orientation (vector) beamformer with weight
 # normalization (neural activity index, NAI). Providing a noise covariance
@@ -80,6 +90,9 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 # filter to separate data sets, e.g. when using a common spatial filter to
 # compare conditions.
 stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+
+###############################################################################
+# Plot source space activity:
 
 # take absolute values for plotting
 stc.data[:, :] = np.abs(stc.data)
