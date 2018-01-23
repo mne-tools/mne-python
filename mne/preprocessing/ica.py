@@ -546,12 +546,10 @@ class ICA(ContainsMixin):
 
         from sklearn.decomposition import PCA
         if not check_version('sklearn', '0.18'):
-            # fix copy==True later. Bug in sklearn, see PR #2273
-            pca = PCA(n_components=max_pca_components, whiten=True, copy=True,
-                      random_state=random_state)
+            pca = PCA(n_components=max_pca_components, whiten=True, copy=True)
         else:
             pca = PCA(n_components=max_pca_components, whiten=True, copy=True,
-                      svd_solver='full', random_state=random_state)
+                      svd_solver='full')
 
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
