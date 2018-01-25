@@ -1488,10 +1488,10 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     Returns
     -------
-    src : list
-        The source space. Note that this list will have length 1 for
-        compatibility reasons, as most functions expect source spaces
-        to be provided as lists).
+    src : SourceSpaces
+        A :class:`SourceSpaces` object containing one source space for each
+        entry of ``volume_labels``, or a single source space if
+        ``volume_labels`` was not specified.
 
     See Also
     --------
