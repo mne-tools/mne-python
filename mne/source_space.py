@@ -1528,7 +1528,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             raise RuntimeError('"mri" must be provided if "volume_label" is '
                                'not None')
         if not isinstance(volume_label, list):
-                volume_label = [volume_label]
+            volume_label = [volume_label]
 
         # Check that volume label is found in .mgz file
         volume_labels = get_volume_labels_from_aseg(mri)
