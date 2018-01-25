@@ -551,21 +551,10 @@ class ICA(ContainsMixin):
             pca = PCA(n_components=max_pca_components, whiten=True, copy=True,
                       svd_solver='full')
 
-        if isinstance(self.n_components, float):
-            # compute full feature variance before doing PCA
-            full_var = np.var(data, axis=1).sum()
-
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
-            # compute explained variance manually, cf. sklearn bug
-            # fixed in #2664
-            if check_version('sklearn', '0.19'):
-                explained_variance_ratio_ = pca.explained_variance_ratio_
-            else:
-                explained_variance_ratio_ = pca.explained_variance_ / full_var
-            del full_var
-            n_components_ = np.sum(explained_variance_ratio_.cumsum() <=
+            n_components_ = np.sum(pca.explained_variance_ratio_.cumsum() <=
                                    self.n_components)
             if n_components_ < 1:
                 raise RuntimeError('One PCA component captures most of the '
@@ -590,9 +579,8 @@ class ICA(ContainsMixin):
         self.pca_components_ = pca.components_
         self.pca_explained_variance_ = exp_var = pca.explained_variance_
         if not check_version('sklearn', '0.16'):
-            # unwhiten pca components and put scaling in unmixing matrix later.
-            # sklearn before 0.16 applied the whitening to the components
-            # but not the new PCA class.
+            # sklearn < 0.16 did not apply whitening to the components, so we
+            # need to do this manually
             self.pca_components_ *= np.sqrt(exp_var[:, None])
         del pca
         # update number of components
@@ -602,15 +590,13 @@ class ICA(ContainsMixin):
             if self.n_pca_components > len(self.pca_components_):
                 self.n_pca_components = len(self.pca_components_)
 
-        # Take care of ICA
+        # take care of ICA
         if self.method == 'fastica':
-            from sklearn.decomposition import FastICA  # to avoid strong dep.
-            ica = FastICA(whiten=False,
-                          random_state=random_state, **self.fit_params)
+            from sklearn.decomposition import FastICA
+            ica = FastICA(whiten=False, random_state=random_state,
+                          **self.fit_params)
             ica.fit(data[:, sel])
-            # get unmixing and add scaling
-            self.unmixing_matrix_ = getattr(ica, 'components_',
-                                            'unmixing_matrix_')
+            self.unmixing_matrix_ = ica.components_
         elif self.method in ('infomax', 'extended-infomax'):
             self.unmixing_matrix_ = infomax(data[:, sel],
                                             random_state=random_state,
