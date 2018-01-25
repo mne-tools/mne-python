@@ -693,7 +693,7 @@ def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
     else:
         weights = np.array(weights)
         quats = np.array(quats)
-        weights /= weights.sum()
+        weights = weights / weights.sum().astype(float)  # int -> float
         avg_quat = _average_quats(quats[:, :3], weights)
         avg_t = np.dot(weights, quats[:, 3:6])
         avg_trans = np.vstack([
