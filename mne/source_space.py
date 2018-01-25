@@ -1902,7 +1902,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
         # Filter out points too far from volume region voxels
         dists = _compute_nearest(rr_voi, sp['rr'], return_dists=True)[1]
         # Maximum distance from center of mass of a voxel to any of its corners
-        maxdist = np.linalg.norm(trans[:3, :3].sum(0) / 2.)
+        maxdist = linalg.norm(trans[:3, :3].sum(0) / 2.)
         bads = np.where(dists > maxdist)[0]
 
         # Update source info
