@@ -1360,7 +1360,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
     Returns
     -------
-    src : list
+    src : SourceSpaces
         The source space for each hemisphere.
 
     See Also
