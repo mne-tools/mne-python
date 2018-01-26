@@ -72,8 +72,7 @@ def test_scale_mri():
     src = mne.setup_source_space('fsaverage', 'ico0', subjects_dir=tempdir,
                                  add_dist=False)
     write_source_spaces(path % 'ico-0', src)
-    mri = os.path.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
-    vsrc = mne.setup_volume_source_space('fsaverage', pos=50, mri=mri,
+    vsrc = mne.setup_volume_source_space('fsaverage', pos=50,
                                          subjects_dir=tempdir)
     write_source_spaces(path % 'vol-50', vsrc)
 
@@ -90,8 +89,6 @@ def test_scale_mri():
                 "Source space ico-0 was not scaled")
     vsrc_s = mne.read_source_spaces(spath % 'vol-50')
     pt = np.array([0.12, 0.41, -0.22])
-    assert_array_almost_equal(apply_trans(vsrc_s[0]['src_mri_t'], pt * scale),
-                              apply_trans(vsrc[0]['src_mri_t'], pt))
     scale_labels('flachkopf', subjects_dir=tempdir)
 
     # add distances to source space
