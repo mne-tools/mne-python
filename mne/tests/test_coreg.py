@@ -85,10 +85,9 @@ def test_scale_mri():
                 "Scaling fsaverage failed")
     spath = os.path.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
-    assert_true(os.path.exists(spath % 'ico-0'),
-                "Source space ico-0 was not scaled")
-    vsrc_s = mne.read_source_spaces(spath % 'vol-50')
-    pt = np.array([0.12, 0.41, -0.22])
+    for tag in ('ico-0', 'vol-50'):
+        assert_true(os.path.exists(spath % tag),
+                    "Source space %s was not scaled" % tag)
     scale_labels('flachkopf', subjects_dir=tempdir)
 
     # add distances to source space
