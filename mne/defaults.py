@@ -46,6 +46,7 @@ DEFAULTS = dict(
         extra_scale=4e-3,
         eeg_scale=4e-3, eegp_scale=20e-3, eegp_height=0.1,
         ecog_scale=5e-3,
+        seeg_scale=5e-3,
         hpi_scale=15e-3,
 
         head_color=(0.988, 0.89, 0.74),
@@ -53,6 +54,7 @@ DEFAULTS = dict(
         extra_color=(1., 1., 1.),
         eeg_color=(1., 0.596, 0.588), eegp_color=(0.839, 0.15, 0.16),
         ecog_color=(1., 1., 1.),
+        seeg_color=(1., 1., .3),
         lpa_color=(1., 0., 0.),
         nasion_color=(0., 1., 0.),
         rpa_color=(0., 0., 1.),

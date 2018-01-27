@@ -59,6 +59,8 @@ Changelog
 
 - Use standard PCA instead of randomized PCA whitening prior to ICA to increase reproducibility by `Clemens Brunner`_
 
+- Plot sEEG electrodes in :func:`mne.viz.plot_alignment` by `Alex Gramfort`_
+
 Bug
 ~~~
 
