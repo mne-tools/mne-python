@@ -346,9 +346,8 @@ def test_apply_inverse_operator():
 
     # Test that no errors are raised with loose inverse ops and picking normals
     noise_cov = read_cov(fname_cov)
-    fwd_orig = make_forward_solution(evoked.info, fname_trans, src_fname,
-                                     fname_bem, eeg=False, mindist=5.0)
-    inv_op2 = make_inverse_operator(evoked.info, fwd_orig, noise_cov, loose=1,
+    fwd = read_forward_solution_meg(fname_fwd)
+    inv_op2 = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1,
                                     fixed='auto', depth=None)
     apply_inverse(evoked, inv_op2, 1 / 9., method='MNE',
                   pick_ori='normal')
