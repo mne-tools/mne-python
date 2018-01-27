@@ -344,6 +344,14 @@ def test_apply_inverse_operator():
     assert_true(label_stc.subject == 'sample')
     assert_allclose(stc_label.data, label_stc.data)
 
+    # Test that no errors are raised with loose inverse ops and picking normals
+    noise_cov = read_cov(fname_cov)
+    fwd = read_forward_solution_meg(fname_fwd)
+    inv_op2 = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1,
+                                    fixed='auto', depth=None)
+    apply_inverse(evoked, inv_op2, 1 / 9., method='MNE',
+                  pick_ori='normal')
+
     # Test we get errors when using custom ref or no average proj is present
     evoked.info['custom_ref_applied'] = True
     assert_raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
