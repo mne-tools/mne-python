@@ -21,6 +21,7 @@ from mne.io.eeglab.eeglab import read_events_eeglab
 from mne.io.eeglab import read_annotations_eeglab
 from mne.datasets import testing
 from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import requires_version
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 raw_fname = op.join(base_dir, 'test_raw.set')
