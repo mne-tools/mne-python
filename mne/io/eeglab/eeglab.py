@@ -726,10 +726,7 @@ def _read_annotations_eeglab(eeg):
         # only one event - TypeError: 'mat_struct' object is not iterable
         description = [str(eeg.event.type)]
         onset = [eeg.event.latency]
-        if hasattr(eeg.event, 'duration'):
-            duration = eeg.event.duration
-        else:
-            duration = np.zeros(1)
+        duration = getattr(eeg.event, 'duration', np.zeros(1))
 
     return Annotations(onset=onset, duration=duration, description=description)
 
@@ -738,7 +735,7 @@ def read_annotations_eeglab(fname, uint16_codec=None):
     r"""Create Annotations from EEGLAB file.
 
     This function reads the event attribute from the EEGLAB
-    structure and make an ``Annotations`` object.
+    structure and makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
