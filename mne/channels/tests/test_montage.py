@@ -555,6 +555,13 @@ def test_set_montage():
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
 
+    # test if set_montage works with a string argument
+    raw1 = read_raw_fif(fif_fname)
+    raw1.set_montage('mgh60')
+    raw1_pos = np.array([ch['loc'][:3] for ch in raw1.info['chs']
+                         if ch['ch_name'].startswith('EEG')])
+    assert_allclose(new_pos, raw1_pos)
+
 
 def _check_roundtrip(montage, fname):
     """Check roundtrip writing."""
