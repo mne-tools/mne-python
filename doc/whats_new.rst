@@ -61,8 +61,9 @@ Changelog
 
 - Plot sEEG electrodes in :func:`mne.viz.plot_alignment` by `Alex Gramfort`_
 
-- Add function :func:`mne.io.read_annotations_eeglab` to allow loading annotations from EEGLAB files, by `Alex Gramfort`_.
+- Add function :func:`mne.io.read_annotations_eeglab` to allow loading annotations from EEGLAB files, by `Alex Gramfort`_
 
+- :meth:`mne.io.Raw.set_montage` now accepts a string as its ``montage`` argument; this will set a builtin montage, by `Clemens Brunner`_
 
 Bug
 ~~~
