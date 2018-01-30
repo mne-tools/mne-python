@@ -19,8 +19,8 @@ from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
-                       _check_excludes_includes, _PICK_TYPES_KEYS,
-                       channel_indices_by_type)
+                       _PICK_TYPES_KEYS, channel_indices_by_type,
+                       pick_channels)
 
 
 def _get_meg_system(info):
@@ -697,9 +697,8 @@ class UpdateChannelsMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        _check_excludes_includes(ch_names)
-        idx = [self.ch_names.index(c) for c in ch_names if c in self.ch_names]
-        self._pick_drop_channels(idx)
+        self._pick_drop_channels(
+            pick_channels(self.info['ch_names'], ch_names))
         return self
 
     def drop_channels(self, ch_names):
