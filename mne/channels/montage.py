@@ -789,7 +789,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     -----
     This function will change the info variable in place.
     """
-    if isinstance(montage, str):  # load builtin montage
+    if isinstance(montage, string_types):  # load builtin montage
         montage = read_montage(montage)
 
     if isinstance(montage, Montage):
