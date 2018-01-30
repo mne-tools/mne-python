@@ -1,16 +1,14 @@
 name: mne
 channels:
 - defaults
-- clinicalgraphics  # Needed for VTK
 dependencies:
-- python=3.6.1
+- python>=3.6
 - pip
 - mkl
 - numpy
 - scipy
 - matplotlib
-- pyqt=5
-- vtk>=7
+- pyqt>=5
 - pandas
 - scikit-learn
 - h5py
@@ -28,9 +26,12 @@ dependencies:
 - spyder
 - pip:
   - mne
-  - "git+https://github.com/enthought/traits.git@a7a83182048c08923953e302658b51b68c802132"
-  - "git+https://github.com/enthought/pyface.git@13a064de48adda3c880350545717d8cf8929afad"
-  - "git+https://github.com/enthought/traitsui.git@ee8ef0a34dfc1db18a8e2c0301cc18d96b7a3e2f"
+  # The Qt5 on conda is 5.6.1, which has some nasty bugs...
+  - pyqt5
+  - vtk>=8
+  - "git+https://github.com/enthought/traits.git@a99b3f64d50c5f7f28ffc01bf69419b061f9e976"
+  - "git+https://github.com/enthought/pyface.git@6a0cac149d56293482bb828a7d98122667c773be"
+  - "git+https://github.com/enthought/traitsui.git@e366ad3886d3c39bedb96e83bab447d31c4ab725"
   - "git+https://github.com/enthought/mayavi.git"
   - "git+https://github.com/nipy/PySurfer.git"
   - nitime
