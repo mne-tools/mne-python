@@ -1,16 +1,16 @@
 name: mne
 channels:
+- conda-forge  # Needed for VTK
 - defaults
-- clinicalgraphics  # Needed for VTK
 dependencies:
-- python=3.6.1
+- python>=3.6
 - pip
 - mkl
 - numpy
 - scipy
 - matplotlib
 - pyqt=5
-- vtk>=7
+- vtk>=8
 - pandas
 - scikit-learn
 - h5py
