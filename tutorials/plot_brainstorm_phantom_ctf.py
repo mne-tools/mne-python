@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 =======================================
-Brainstorm CTF phantom tutorial dataset
+Brainstorm CTF phantom dataset tutorial
 =======================================
 
 Here we compute the evoked from raw for the Brainstorm CTF phantom

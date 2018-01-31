@@ -27,6 +27,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import _to_const
+from ..transforms import invert_transform
 from ..utils import logger, verbose, warn, object_diff
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
@@ -930,6 +931,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 dev_head_t = cand
+            elif cand['from'] == FIFF.FIFFV_COORD_HEAD and \
+                    cand['to'] == FIFF.FIFFV_COORD_DEVICE:
+                # this reversal can happen with BabyMEG data
+                dev_head_t = invert_transform(cand)
             elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
                     cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 ctf_head_t = cand

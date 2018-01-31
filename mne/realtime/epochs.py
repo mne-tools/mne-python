@@ -105,7 +105,8 @@ class RtEpochs(BaseEpochs):
         Example (also default values)::
 
             find_events = dict(output='onset', consecutive='increasing',
-                               min_duration=0, mask=0, mask_type='not_and')
+                               min_duration=0, mask=0, mask_type='not_and',
+                               verbose='ERROR')
 
         See :func:`mne.find_events` for detailed explanation of these options.
     verbose : bool, str, int, or None
@@ -165,7 +166,8 @@ class RtEpochs(BaseEpochs):
         self._find_events_kwargs = dict(output='onset',
                                         consecutive='increasing',
                                         min_duration=0, mask=0,
-                                        mask_type='not_and')
+                                        mask_type='not_and',
+                                        verbose='ERROR')
         # update default options if dictionary is provided
         if find_events is not None:
             self._find_events_kwargs.update(find_events)
@@ -299,7 +301,6 @@ class RtEpochs(BaseEpochs):
         raw_buffer : array of float, shape=(nchan, n_times)
             The raw buffer.
         """
-        verbose = 'ERROR'
         sfreq = self.info['sfreq']
         n_samp = len(self._raw_times)
 
@@ -322,11 +323,10 @@ class RtEpochs(BaseEpochs):
             data = np.atleast_2d(data)
             buff_events = _find_events(data,
                                        self._first_samp - raw_buffer.shape[1],
-                                       verbose=verbose,
                                        **self._find_events_kwargs)
         else:
             data = np.atleast_2d(data)
-            buff_events = _find_events(data, self._first_samp, verbose=verbose,
+            buff_events = _find_events(data, self._first_samp,
                                        **self._find_events_kwargs)
 
         events = self._event_backlog

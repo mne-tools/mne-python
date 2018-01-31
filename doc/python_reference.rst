@@ -57,6 +57,7 @@ Reading raw data
   anonymize_info
   find_edf_events
   read_events_eeglab
+  read_annotations_eeglab
   read_raw_artemis123
   read_raw_bti
   read_raw_cnt
@@ -360,6 +361,7 @@ Projections:
    ica_find_eog_events
    infomax
    maxwell_filter
+   oversampled_temporal_projection
    read_ica
    run_ica
    corrmap

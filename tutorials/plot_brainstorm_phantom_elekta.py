@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ==========================================
-Brainstorm Elekta phantom tutorial dataset
+Brainstorm Elekta phantom dataset tutorial
 ==========================================
 
 Here we compute the evoked from raw for the Brainstorm Elekta phantom
