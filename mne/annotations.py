@@ -56,7 +56,6 @@ class Annotations(object):
         the annotations with raw data if their acquisiton is started at the
         same time.
 
-
     Notes
     -----
     If ``orig_time`` is None, the annotations are synced to the start of the
