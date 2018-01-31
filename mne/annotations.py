@@ -41,7 +41,7 @@ class Annotations(object):
     ----------
     onset : array of float, shape (n_annotations,)
         Annotation time onsets relative to the ``orig_time``, the starting time
-        of annotation acquisition.
+        of annotation acquisition (in seconds).
     duration : array of float, shape (n_annotations,)
         Durations of the annotations in seconds.
     description : array of str, shape (n_annotations,) | str
