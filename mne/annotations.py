@@ -301,6 +301,43 @@ def read_annotations(fname):
         raise IOError('No annotation data found in file "%s"' % fname)
     return annotations
 
+def read_brainstorm_annotations(fname, orig_time=None):
+    """Read annotations from a Brainstorm events_ file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename
+    orig_time : meas_date
+        The 0 timestamp
+
+    Returns
+    -------
+    annot : instance of Annotations | None
+        The annotations.
+    """
+    from scipy import io
+    list_annot = []
+    onsets = []
+    durations = []
+    descriptions = []
+    annot_data = io.loadmat(fname)
+
+    for label, _, _, _, times, _, _ in annot_data['events'][0]:
+        n_annot = len(times[0])
+        onsets.append(times[0])
+        print(times.shape)
+        if times.shape[0] == 2:
+            durations.append(times[1] - times[0])
+        else:
+            durations.append(np.zeros(n_annot))
+        descriptions += [str(label[0])] * n_annot
+
+    onsets = np.concatenate(onsets)
+    durations = np.concatenate(durations)
+    annotations = Annotations(onsets, durations, descriptions, orig_time=orig_time)
+
+    return annotations
 
 def _read_annotations(fid, tree):
     """Read annotations."""
