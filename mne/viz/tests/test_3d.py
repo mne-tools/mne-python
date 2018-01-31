@@ -191,15 +191,16 @@ def test_plot_alignment():
                        subjects_dir=subjects_dir, src=sample_src)
         mlab.close(all=True)
     # EEG only with strange options
-    evoked_eeg_ecog = evoked.copy().pick_types(meg=False, eeg=True)
-    evoked_eeg_ecog.info['projs'] = []  # "remove" avg proj
-    evoked_eeg_ecog.set_channel_types({'EEG 001': 'ecog'})
+    evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
+    evoked_eeg_ecog_seeg.set_channel_types({'EEG 001': 'ecog',
+                                            'EEG 002': 'seeg'})
     with warnings.catch_warnings(record=True) as w:
-        plot_alignment(evoked_eeg_ecog.info, subject='sample',
+        plot_alignment(evoked_eeg_ecog_seeg.info, subject='sample',
                        trans=trans_fname, subjects_dir=subjects_dir,
                        surfaces=['white', 'outer_skin', 'outer_skull'],
                        meg=['helmet', 'sensors'],
-                       eeg=['original', 'projected'], ecog=True)
+                       eeg=['original', 'projected'], ecog=True, seeg=True)
     mlab.close(all=True)
     assert_true(['Cannot plot MEG' in str(ww.message) for ww in w])
 

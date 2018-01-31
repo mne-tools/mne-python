@@ -53,7 +53,17 @@ Changelog
 
 - Add option to unset a montage by passing `None` to :meth:`mne.io.Raw.set_montage` by `Clemens Brunner`_
 
+- Add sensor denoising via :func:`mne.preprocessing.oversampled_temporal_projection` by `Eric Larson`_
+
 - Add ``mne.io.pick.get_channel_types`` which returns all available channel types in MNE by `Clemens Brunner`_
+
+- Use standard PCA instead of randomized PCA whitening prior to ICA to increase reproducibility by `Clemens Brunner`_
+
+- Plot sEEG electrodes in :func:`mne.viz.plot_alignment` by `Alex Gramfort`_
+
+- Add function :func:`mne.io.read_annotations_eeglab` to allow loading annotations from EEGLAB files, by `Alex Gramfort`_
+
+- :meth:`mne.io.Raw.set_montage` now accepts a string as its ``montage`` argument; this will set a builtin montage, by `Clemens Brunner`_
 
 Bug
 ~~~
@@ -91,6 +101,8 @@ Bug
 - Fix bug in :meth:`mne.io.Raw.filter` to properly raw data with acquisition skips in separate segments by `Eric Larson`_
 
 - Fix bug in :func:`mne.preprocessing.maxwell_filter` where homogeneous fields were not removed for CTF systems by `Eric Larson`_
+
+- Fix computation of average quaternions in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
 
 - Fix bug in writing ``raw.annotations`` where empty annotations could not be written to disk, by `Eric Larson`_
 

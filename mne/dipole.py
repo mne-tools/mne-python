@@ -1287,6 +1287,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                     'experimenter', 'hpi_subsystem', 'proj_id', 'proj_name',
                     'subject_info']:
             out_info[key] = None
+        out_info['bads'] = []
         out_info._update_redundant()
         out_info._check_consistency()
         dipoles = DipoleFixed(out_info, data, times, evoked.nave,

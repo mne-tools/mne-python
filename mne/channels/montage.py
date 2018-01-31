@@ -778,8 +778,9 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     ----------
     info : instance of Info
         The measurement info to update.
-    montage : instance of Montage | instance of DigMontage | None
-        The montage to apply (None removes any location information).
+    montage : instance of Montage | instance of DigMontage | str | None
+        The montage to apply (None removes any location information). If
+        montage is a string, a builtin montage with that name will be used.
     update_ch_names : bool
         If True, overwrite the info channel names with the ones from montage.
         Defaults to False.
@@ -788,6 +789,9 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     -----
     This function will change the info variable in place.
     """
+    if isinstance(montage, string_types):  # load builtin montage
+        montage = read_montage(montage)
+
     if isinstance(montage, Montage):
         if update_ch_names:
             info['chs'] = list()
@@ -884,5 +888,5 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         if set_dig:
             info['dig'] = None
     else:
-        raise TypeError("Montage must be a 'Montage' or 'DigMontage' "
-                        "instead of '%s'." % type(montage))
+        raise TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "
+                        "'None' instead of '%s'." % type(montage))

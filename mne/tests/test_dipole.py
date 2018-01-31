@@ -215,6 +215,9 @@ def test_dipole_fitting_fixed():
     assert_allclose(dip_fixed.data[1, t_idx], gof)
     assert_allclose(resid, resid_fixed[:, [t_idx]])
     _check_roundtrip_fixed(dip_fixed)
+    # bad resetting
+    evoked.info['bads'] = [evoked.ch_names[3]]
+    dip_fixed, resid_fixed = fit_dipole(evoked, cov, sphere, pos=pos, ori=ori)
     # Degenerate conditions
     evoked_nan = evoked.copy().crop(0, 0)
     evoked_nan.data[0, 0] = None

@@ -420,6 +420,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
                             pad_stop=pad_stop, merge=merge)
 
 
+@verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0, mask=None,
                  uint_cast=False, mask_type='and', initial_event=False):
