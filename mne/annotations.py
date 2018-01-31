@@ -48,7 +48,7 @@ class Annotations(object):
         the annotations with raw data if their acquisiton is started at the
         same time.
     onset : array of float, shape (n_annotations,)
-        The starting time of annotation in seconds after ``orig_time``.
+        The starting time of annotations in seconds after ``orig_time``.
     duration : array of float, shape (n_annotations,)
         Durations of the annotations in seconds.
     description : array of str, shape (n_annotations,) | str
