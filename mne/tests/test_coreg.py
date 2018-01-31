@@ -1,5 +1,6 @@
 from glob import glob
 import os
+from shutil import copyfile
 
 from nose.tools import assert_equal, assert_raises, assert_true, assert_is_not
 import numpy as np
@@ -61,6 +62,11 @@ def test_scale_mri():
     create_default_subject(update=True, subjects_dir=tempdir)
     assert_true(os.path.exists(fid_path), "Updating fsaverage")
 
+    # copy MRI file from sample data
+    path = os.path.join('%s', 'fsaverage', 'mri', 'orig.mgz')
+    sample_sdir = os.path.join(mne.datasets.sample.data_path(), 'subjects')
+    copyfile(path % sample_sdir, path % tempdir)
+
     # remove redundant label files
     label_temp = os.path.join(tempdir, 'fsaverage', 'label', '*.label')
     label_paths = glob(label_temp)
@@ -72,8 +78,10 @@ def test_scale_mri():
     src = mne.setup_source_space('fsaverage', 'ico0', subjects_dir=tempdir,
                                  add_dist=False)
     write_source_spaces(path % 'ico-0', src)
-    vsrc = mne.setup_volume_source_space('fsaverage', pos=50,
-                                         subjects_dir=tempdir)
+    mri = os.path.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
+    vsrc = mne.setup_volume_source_space('fsaverage', pos=50, mri=mri,
+                                         subjects_dir=tempdir,
+                                         add_interpolator=False)
     write_source_spaces(path % 'vol-50', vsrc)
 
     # scale fsaverage
@@ -85,9 +93,12 @@ def test_scale_mri():
                 "Scaling fsaverage failed")
     spath = os.path.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
-    for tag in ('ico-0', 'vol-50'):
-        assert_true(os.path.exists(spath % tag),
-                    "Source space %s was not scaled" % tag)
+    assert_true(os.path.exists(spath % 'ico-0'),
+                "Source space ico-0 was not scaled")
+    vsrc_s = mne.read_source_spaces(spath % 'vol-50')
+    pt = np.array([0.12, 0.41, -0.22])
+    assert_array_almost_equal(apply_trans(vsrc_s[0]['src_mri_t'], pt * scale),
+                              apply_trans(vsrc[0]['src_mri_t'], pt))
     scale_labels('flachkopf', subjects_dir=tempdir)
 
     # add distances to source space
