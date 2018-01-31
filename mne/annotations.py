@@ -39,15 +39,6 @@ class Annotations(object):
 
     Parameters
     ----------
-    onset : array of float, shape (n_annotations,)
-        Annotation time onsets relative to the ``orig_time``, the starting time
-        of annotation acquisition (in seconds).
-    duration : array of float, shape (n_annotations,)
-        Durations of the annotations in seconds.
-    description : array of str, shape (n_annotations,) | str
-        Array of strings containing description for each annotation. If a
-        string, all the annotations are given the same description. To reject
-        epochs, use description starting with keyword 'bad'. See example above.
     orig_time : float | int | instance of datetime | array of int | None
         A POSIX Timestamp, datetime or an array containing the timestamp as the
         first element and microseconds as the second element. Determines the
@@ -56,6 +47,15 @@ class Annotations(object):
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
         the annotations with raw data if their acquisiton is started at the
         same time.
+    onset : array of float, shape (n_annotations,)
+        The starting time of annotation in seconds after ``orig_time``.
+    duration : array of float, shape (n_annotations,)
+        Durations of the annotations in seconds.
+    description : array of str, shape (n_annotations,) | str
+        Array of strings containing description for each annotation. If a
+        string, all the annotations are given the same description. To reject
+        epochs, use description starting with keyword 'bad'. See example above.
+
 
     Notes
     -----
