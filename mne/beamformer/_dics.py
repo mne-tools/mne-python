@@ -22,9 +22,10 @@ from ._lcmv import (_prepare_beamformer_input, _setup_picks, _reg_pinv,
 from ..externals import six
 
 
-deprecation_text = ('Please use the `make_dics` and `apply_dics_*` functions '
-                    'instead. These functions use a new implementation of '
-                    'DICS that has been more thoroughly tested.')
+deprecation_text = ('This function will be removed in 0.17, please use the '
+                    '`make_dics` and `apply_dics_*` functions instead. These '
+                    'functions use a new implementation of DICS that has been '
+                    'more thoroughly tested.')
 
 
 @verbose
@@ -535,7 +536,6 @@ def apply_dics_csd(csd, filters, verbose=None):
                       tmin=0, tstep=1, subject=subject), frequencies)
 
 
-@deprecated(deprecation_text)
 def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
                     label=None, picks=None, pick_ori=None, real_filter=False,
                     verbose=None):
