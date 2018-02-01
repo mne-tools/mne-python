@@ -1050,7 +1050,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
 
     # initialize figure
     if fig is None:
-        fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(800, 800))
+        fig = mlab.figure(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain' and fig.scene is not None:
         fig.scene.interactor.interactor_style = \
             tvtk.InteractorStyleTerrain()
