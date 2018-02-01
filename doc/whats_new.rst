@@ -65,6 +65,8 @@ Changelog
 
 - :meth:`mne.io.Raw.set_montage` now accepts a string as its ``montage`` argument; this will set a builtin montage, by `Clemens Brunner`_
 
+- Add 4D BTi phantom dataset by :func:`mne.datasets.phantom_4dbti`, by `Alex Gramfort`_
+
 Bug
 ~~~
 
