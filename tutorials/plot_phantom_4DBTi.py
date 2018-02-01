@@ -64,6 +64,7 @@ print("errors (mm) : %s" % errors)
 ###############################################################################
 # Plot the dipoles in 3D
 
+
 def plot_pos(pos, color=(0., 0., 0.)):
     mlab.points3d(pos[:, 0], pos[:, 1], pos[:, 2], scale_factor=0.005,
                   color=color)
