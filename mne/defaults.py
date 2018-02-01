@@ -9,8 +9,8 @@ from copy import deepcopy
 DEFAULTS = dict(
     color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m', emg='k',
                ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k',
-               exci='k', ias='k', syst='k', seeg='k', dipole='k', gof='k',
-               bio='k', ecog='k', hbo='darkblue', hbr='b'),
+               exci='k', ias='k', syst='k', seeg='saddlebrown', dipole='k',
+               gof='k', bio='k', ecog='k', hbo='darkblue', hbr='b'),
     units=dict(eeg='uV', grad='fT/cm', mag='fT', eog='uV', misc='AU',
                seeg='uV', dipole='nAm', gof='GOF', emg='uV', ecg='uV',
                bio='uV', ecog='uV', hbo='uM', hbr='uM'),
