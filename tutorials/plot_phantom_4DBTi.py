@@ -31,8 +31,7 @@ raw_fname = op.join(data_path, '%d/e,rfhp1.0Hz')
 dipoles = list()
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
 
-# t0 = 0.022  # peak of the response
-t0 = 0.07
+t0 = 0.07  # peak of the response
 
 pos = np.empty((4, 3))
 
@@ -70,7 +69,7 @@ def plot_pos(pos, color=(0., 0., 0.)):
                   color=color)
 
 
-mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[], dig=True)
+mne.viz.plot_alignment(evoked.info, bem=sphere, surfaces=[])
 # Plot the position of the actual dipole
 plot_pos(actual_pos, color=(1., 0., 0.))
 # Plot the position of the estimated dipole
