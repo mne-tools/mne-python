@@ -228,7 +228,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
         'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
         'mtrf': 'MNE_DATASETS_MTRF_PATH',
-        'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH'
+        'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH',
+        'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH'
     }[name]
 
     path = _get_path(path, key, name)
@@ -264,6 +265,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         mtrf='https://osf.io/h85s2/download',
         kiloword='https://osf.io/qkvf9/download',
         fieldtrip_cmc='https://osf.io/j9b6s/download',
+        phantom_4dbti='https://osf.io/v2brw/download',
     )
     # filename of the resulting downloaded archive (only needed if the URL
     # name does not match resulting filename)
@@ -279,6 +281,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         testing='mne-testing-data-%s.tar.gz' % releases['testing'],
         visual_92_categories=['MNE-visual_92_categories-data-part1.tar.gz',
                               'MNE-visual_92_categories-data-part2.tar.gz'],
+        phantom_4dbti='MNE-phantom-4DBTi.zip',
     )
     # original folder names that get extracted (only needed if the
     # archive does not extract the right folder name; e.g., usually GitHub)
@@ -297,7 +300,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='MNE-sample-data',
         testing='MNE-testing-data',
         visual_92_categories='MNE-visual_92_categories-data',
-        fieldtrip_cmc='MNE-fieldtrip_cmc-data'
+        fieldtrip_cmc='MNE-fieldtrip_cmc-data',
+        phantom_4dbti='MNE-phantom-4DBTi',
     )
     hashes = dict(
         brainstorm=dict(
@@ -317,7 +321,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                               '203410a98afc9df9ae8ba9f933370e20'],
         kiloword='3a124170795abbd2e48aae8727e719a8',
         mtrf='273a390ebbc48da2c3184b01a82e4636',
-        fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c'
+        fieldtrip_cmc='6f9fd6520f9a66e20994423808d2528c',
+        phantom_4dbti='f1d96f81d46480d0cc52a7ba4f125367'
     )
     assert set(hashes.keys()) == set(urls.keys())
     url = urls[name]
@@ -507,6 +512,7 @@ def has_dataset(name):
         'testing': 'MNE-testing-data',
         'visual_92_categories': 'MNE-visual_92_categories-data',
         'kiloword': 'MNE-kiloword-data',
+        'phantom_4dbti': 'MNE-phantom-4DBTi',
     }[name]
     archive_name = None
     if name == 'brainstorm':
