@@ -766,6 +766,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if start < 0:
                     raise ValueError('start must be >= -%s' % nchan)
             stop = item[0].stop if item[0].stop is not None else nchan
+            if stop < 0:
+                stop += nchan
+                if stop < 0:
+                    raise ValueError('stop must be >= -%s' % nchan)
             step = item[0].step if item[0].step is not None else 1
             sel = list(range(start, stop, step))
         else:
