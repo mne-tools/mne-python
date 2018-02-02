@@ -539,8 +539,7 @@ def apply_dics_csd(csd, filters, verbose=None):
 def _apply_old_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
                     label=None, picks=None, pick_ori=None, real_filter=False,
                     verbose=None):
-    """Old implementation of Dynamic Imaging of Coherent Sources (DICS).
-    """
+    """Old implementation of Dynamic Imaging of Coherent Sources (DICS)."""
     from scipy import linalg  # Local import to keep 'import mne' fast
 
     if len(noise_csd.frequencies) > 1 or len(data_csd.frequencies) > 1:
