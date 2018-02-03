@@ -85,8 +85,7 @@ def test_pick_refs():
 
 
 def test_pick_channels_regexp():
-    """Test pick with regular expression
-    """
+    """Test pick with regular expression."""
     ch_names = ['MEG 2331', 'MEG 2332', 'MEG 2333']
     assert_array_equal(pick_channels_regexp(ch_names, 'MEG ...1'), [0])
     assert_array_equal(pick_channels_regexp(ch_names, 'MEG ...[2-3]'), [1, 2])
@@ -94,8 +93,7 @@ def test_pick_channels_regexp():
 
 
 def test_pick_seeg_ecog():
-    """Test picking with sEEG and ECoG
-    """
+    """Test picking with sEEG and ECoG."""
     names = 'A1 A2 Fz O OTp1 OTp2 E1 OTp3 E2 E3'.split()
     types = 'mag mag eeg eeg seeg seeg ecog seeg ecog ecog'.split()
     info = create_info(names, 1024., types)
@@ -121,8 +119,7 @@ def test_pick_seeg_ecog():
 
 
 def test_pick_chpi():
-    """Test picking cHPI
-    """
+    """Test picking cHPI."""
     # Make sure we don't mis-classify cHPI channels
     info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
     channel_types = set([channel_type(info, idx)
@@ -254,6 +251,11 @@ def test_picks_by_channels():
 
     # pick_types type check
     assert_raises(ValueError, raw.pick_types, eeg='string')
+
+    # duplicate check
+    names = ['MEG 002', 'MEG 002']
+    assert len(pick_channels(raw.info['ch_names'], names)) == 1
+    assert len(raw.copy().pick_channels(names)[0][0]) == 1
 
 
 def test_clean_info_bads():
