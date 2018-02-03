@@ -5,11 +5,10 @@
 ============================================
 
 Here we read 4DBTi epochs data obtained with a spherical phantom
-using 4 different dipole locations. For each condition we
+using four different dipole locations. For each condition we
 compute evoked data and compute dipole fits.
 
 Data are provided by Jean-Michel Badier from MEG center in Marseille, France.
-
 """
 
 # Authors: Alex Gramfort <alexandre.gramfort@inria.fr>
