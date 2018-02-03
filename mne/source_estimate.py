@@ -381,6 +381,8 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None,
                                  tstep=tstep, subject=subject)
     elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
             and len(vertices) == 1:
+        if vector:
+            data = data.reshape((-1, 3, data.shape[-1]))
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
     elif isinstance(vertices, list) and len(vertices) > 2:
