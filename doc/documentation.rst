@@ -173,6 +173,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_brainstorm_auditory.rst
     auto_tutorials/plot_brainstorm_phantom_ctf.rst
     auto_tutorials/plot_brainstorm_phantom_elekta.rst
+    auto_tutorials/plot_phantom_4DBTi.rst
     auto_examples/datasets/plot_brainstorm_data.rst
     auto_examples/datasets/plot_megsim_data.rst
     auto_examples/datasets/plot_megsim_data_single_trial.rst

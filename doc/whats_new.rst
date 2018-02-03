@@ -65,6 +65,10 @@ Changelog
 
 - :meth:`mne.io.Raw.set_montage` now accepts a string as its ``montage`` argument; this will set a builtin montage, by `Clemens Brunner`_
 
+- Add 4D BTi phantom dataset :func:`mne.datasets.phantom_4dbti`, by `Alex Gramfort`_
+
+- Changed the background color to grey in :func:`mne.viz.plot_alignment` to make helmet more visible, by `Alex Gramfort`_
+
 - Add :meth:`mne.io.Raw.reorder_channels`, :meth:`mne.Evoked.reorder_channels`, etc. to reorder channels, by `Eric Larson`_
 
 Bug

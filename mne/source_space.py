@@ -1360,7 +1360,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
     Returns
     -------
-    src : list
+    src : SourceSpaces
         The source space for each hemisphere.
 
     See Also
@@ -1488,10 +1488,10 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     Returns
     -------
-    src : list
-        The source space. Note that this list will have length 1 for
-        compatibility reasons, as most functions expect source spaces
-        to be provided as lists).
+    src : SourceSpaces
+        A :class:`SourceSpaces` object containing one source space for each
+        entry of ``volume_labels``, or a single source space if
+        ``volume_labels`` was not specified.
 
     See Also
     --------
@@ -1528,7 +1528,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             raise RuntimeError('"mri" must be provided if "volume_label" is '
                                'not None')
         if not isinstance(volume_label, list):
-                volume_label = [volume_label]
+            volume_label = [volume_label]
 
         # Check that volume label is found in .mgz file
         volume_labels = get_volume_labels_from_aseg(mri)
@@ -1902,7 +1902,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
         # Filter out points too far from volume region voxels
         dists = _compute_nearest(rr_voi, sp['rr'], return_dists=True)[1]
         # Maximum distance from center of mass of a voxel to any of its corners
-        maxdist = np.linalg.norm(trans[:3, :3].sum(0) / 2.)
+        maxdist = linalg.norm(trans[:3, :3].sum(0) / 2.)
         bads = np.where(dists > maxdist)[0]
 
         # Update source info
