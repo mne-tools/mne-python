@@ -916,6 +916,15 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     -------
     fig : instance of matplotlib.pyplot.Figure or list
         The figure object(s).
+
+    Notes
+    -----
+    When run in interactive mode ``plot_ica_components`` allows to reject
+    components by clicking on their title label. The state of each component
+    is signalled with label color: gray - rejected; black - retained. It is
+    also possible to open component properties by clicking on the component
+    topomap. This option is only available when an mne object (Raw or Epochs)
+    has been supplied to ``inst`` keyword argument.
     """
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
