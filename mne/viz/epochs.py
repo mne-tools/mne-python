@@ -1269,7 +1269,7 @@ def _plot_traces(params):
                            params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['butterfly_scale']
-        labels = np.empty(20, dtype='S15')
+        labels = np.empty(20, dtype='U15')
         labels.fill('')
         ticks = ax.get_yticks()
         idx_offset = 1
