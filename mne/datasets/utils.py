@@ -530,7 +530,7 @@ def _download_all_example_data(verbose=True):
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm, megsim,
                    eegbci, multimodal, hf_sef, mtrf, fieldtrip_cmc,
-                   kiloword)
+                   kiloword, phantom_4dbti)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -541,6 +541,7 @@ def _download_all_example_data(verbose=True):
     mtrf.data_path()
     fieldtrip_cmc.data_path()
     kiloword.data_path()
+    phantom_4dbti.data_path()
     sys.argv += ['--accept-brainstorm-license']
     try:
         brainstorm.bst_raw.data_path()
