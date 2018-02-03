@@ -1269,44 +1269,49 @@ def _plot_traces(params):
                            params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['butterfly_scale']
-        labels = np.empty(20, dtype='S15')
-        labels.fill('')
+        labels = [''] * 20
         ticks = ax.get_yticks()
         idx_offset = 1
+        # XXX eventually these scale factors should use "scalings"
+        # of some sort
         if 'grad' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[0]) *
-                                               params['scalings']['grad'] *
-                                               1e13 * factor)
+                labels[idx] = ((ticks[idx] - offsets[0]) *
+                               params['scalings']['grad'] *
+                               1e13 * factor)
             idx_offset += 4
         if 'mag' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[1]) *
-                                               params['scalings']['mag'] *
-                                               1e15 * factor)
+                labels[idx] = ((ticks[idx] - offsets[1]) *
+                               params['scalings']['mag'] *
+                               1e15 * factor)
             idx_offset += 4
         if 'eeg' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[2]) *
-                                               params['scalings']['eeg'] *
-                                               1e6 * factor)
+                labels[idx] = ((ticks[idx] - offsets[2]) *
+                               params['scalings']['eeg'] *
+                               1e6 * factor)
             idx_offset += 4
         if 'eog' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[3]) *
-                                               params['scalings']['eog'] *
-                                               1e6 * factor)
+                labels[idx] = ((ticks[idx] - offsets[3]) *
+                               params['scalings']['eog'] *
+                               1e6 * factor)
             idx_offset += 4
         if 'ecg' in params['types']:
-            labels[idx_offset + 1] = '0.00'
+            labels[idx_offset + 1] = 0.
             for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[4]) *
-                                               params['scalings']['ecg'] *
-                                               1e6 * factor)
+                labels[idx] = ((ticks[idx] - offsets[4]) *
+                               params['scalings']['ecg'] *
+                               1e6 * factor)
+        # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
+        for li, label in enumerate(labels):
+            if isinstance(label, float) and float(str(label)) == round(label):
+                labels[li] = int(round(label))
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
         ax.set_yticklabels(tick_list, fontsize=12)
