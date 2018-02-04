@@ -47,7 +47,7 @@ layout_name = 'custom_layout.lout'
 
 mat = loadmat(path_data)
 ch_names = mat['ch_names'].tolist()
-elec = mat['elec']
+elec = mat['elec']  # electrode coordinates in meters
 dig_ch_pos = dict(zip(ch_names, elec))
 mon = mne.channels.DigMontage(dig_ch_pos=dig_ch_pos)
 info = mne.create_info(ch_names, 1000., 'ecog', montage=mon)

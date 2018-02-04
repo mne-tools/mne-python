@@ -44,7 +44,7 @@ class Montage(object):
     Parameters
     ----------
     pos : array, shape (n_channels, 3)
-        The positions of the channels in 3d.
+        The positions of the channels in 3d given in meters.
     ch_names : list
         The channel names.
     kind : str
@@ -403,7 +403,7 @@ class DigMontage(object):
     dev_head_t : array, shape (4, 4)
         A Device-to-Head transformation matrix.
     dig_ch_pos : dict
-        Dictionary of channel positions.
+        Dictionary of channel positions given in meters.
 
         .. versionadded:: 0.12
 
