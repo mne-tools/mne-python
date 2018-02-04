@@ -87,10 +87,10 @@ def test_plot_ica_components():
                               .reshape((2, 2)).mean(axis=0))
         # first click adds to exclude
         _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
-        assert_true(ica_idx in ica.exclude)
+        assert ica_idx in ica.exclude
         # clicking again removes from exclude
         _fake_click(fig, fig.axes[1], title_pos_midpoint, xform='pix')
-        assert_true(ica_idx not in ica.exclude)
+        assert ica_idx not in ica.exclude
 
         # test topo click
         # ---------------
