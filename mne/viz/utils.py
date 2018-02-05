@@ -384,7 +384,8 @@ def _prepare_trellis(n_cells, max_col):
     else:
         nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
 
-    fig, axes = plt.subplots(nrow, ncol, figsize=(7.4, 1.5 * nrow + 1))
+    fig, axes = plt.subplots(nrow, ncol, figsize=(1.3 * ncol + 1,
+                                                  1.5 * nrow + 1))
     axes = [axes] if ncol == nrow == 1 else axes.flatten()
     for ax in axes[n_cells:]:  # hide unused axes
         # XXX: Previously done by ax.set_visible(False), but because of mpl
@@ -1164,6 +1165,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
         x, y = ax.transData.transform_point(point)
+    elif xform == 'pix':
+        x, y = point
     else:
         raise ValueError('unknown transform')
     if kind == 'press':

@@ -916,6 +916,15 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     -------
     fig : instance of matplotlib.pyplot.Figure or list
         The figure object(s).
+
+    Notes
+    -----
+    When run in interactive mode, ``plot_ica_components`` allows to reject
+    components by clicking on their title label. The state of each component
+    is indicated by its label color (gray: rejected; black: retained). It is
+    also possible to open component properties by clicking on the component
+    topomap (this option is only available when the ``inst`` argument is
+    supplied).
     """
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
@@ -971,9 +980,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     if merge_grads:
         from ..channels.layout import _merge_grad_data
+    titles = list()
     for ii, data_, ax in zip(picks, data, axes):
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
-        ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs)
+        titles.append(ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs))
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
@@ -993,16 +1003,41 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                 ax.CB = DraggableColorbar(cbar, im)
         _hide_frame(ax)
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.88, bottom=0.)
     fig.canvas.draw()
+
+    # add title selection interactivity
+    def onclick_title(event, ica=ica, titles=titles):
+        # check if any title was pressed
+        title_pressed = None
+        for title in titles:
+            if title.contains(event)[0]:
+                title_pressed = title
+                break
+        # title was pressed -> identify the IC
+        if title_pressed is not None:
+            label = title_pressed.get_text()
+            ic = int(label[-3:])
+            # add or remove IC from exclude depending on current state
+            if ic in ica.exclude:
+                ica.exclude.remove(ic)
+                title_pressed.set_color('k')
+            else:
+                ica.exclude.append(ic)
+                title_pressed.set_color('gray')
+            fig.canvas.draw()
+    fig.canvas.mpl_connect('button_press_event', onclick_title)
+
+    # add plot_properties interactivity only if inst was passed
     if isinstance(inst, (BaseRaw, BaseEpochs)):
-        def onclick(event, ica=ica, inst=inst):
+        def onclick_topo(event, ica=ica, inst=inst):
             # check which component to plot
-            label = event.inaxes.get_label()
-            if label.startswith('ICA'):
-                ic = int(label[-3:])
-                ica.plot_properties(inst, picks=ic, show=True)
-        fig.canvas.mpl_connect('button_press_event', onclick)
+            if event.inaxes is not None:
+                label = event.inaxes.get_label()
+                if label.startswith('ICA'):
+                    ic = int(label[-3:])
+                    ica.plot_properties(inst, picks=ic, show=True)
+        fig.canvas.mpl_connect('button_press_event', onclick_topo)
 
     plt_show(show)
     return fig

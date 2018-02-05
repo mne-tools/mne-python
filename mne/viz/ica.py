@@ -926,7 +926,7 @@ def _label_clicked(pos, params):
     if line_idx >= len(params['picks']):
         return
     ic_idx = [params['picks'][line_idx]]
-    if params['types'][ic_idx[0]] != 'misc':
+    if params['types'][line_idx] != 'misc':
         warn('Can only plot ICA components.')
         return
     types = list()
@@ -962,6 +962,6 @@ def _label_clicked(pos, params):
             plot_topomap(data_.flatten(), pos, axes=ax, show=False)
             _hide_frame(ax)
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.88, bottom=0.)
     fig.canvas.draw()
     plt_show(True)
