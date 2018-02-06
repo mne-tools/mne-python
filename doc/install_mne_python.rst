@@ -80,7 +80,7 @@ Install Python and MNE-Python
 
      **Windows users:** If Mayavi plotting in Jupyter Notebooks doesn't work  
      well, using the IPython magic ``%gui qt`` after importing  
-     MNE/Mayavi/PySurfer may
+     MNE/Mayavi/PySurfer should
      `help <https://github.com/ipython/ipython/issues/10384>`_.
    
      .. code:: ipython
