@@ -28,7 +28,7 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
-                    _handle_decim, _setup_plot_projector,
+                    _handle_decim, _setup_plot_projector, _check_cov,
                     _set_ax_label_style)
 from .evoked import _plot_lines
 
@@ -262,7 +262,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from scipy.signal import butter
-    from ..cov import read_cov
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
     scalings = _handle_default('scalings_plot_raw', scalings)
@@ -375,9 +374,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
                            % key)
     decim, data_picks = _handle_decim(info, decim, lowpass)
-
-    if isinstance(noise_cov, string_types):
-        noise_cov = read_cov(noise_cov)
+    noise_cov = _check_cov(noise_cov, info)
 
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))

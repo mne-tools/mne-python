@@ -2309,6 +2309,16 @@ def _set_ax_label_style(ax, params, italicize=True):
                 text.set_style('italic' if whitened else 'normal')
 
 
+def _check_sss(info):
+    """Check SSS history in info."""
+    ch_used = [ch for ch in ['eeg', 'grad', 'mag']
+               if _contains_ch_type(info, ch)]
+    has_meg = 'mag' in ch_used and 'grad' in ch_used
+    has_sss = (has_meg and len(info['proc_history']) > 0 and
+               info['proc_history'][0].get('max_info') is not None)
+    return ch_used, has_meg, has_sss
+
+
 def _triage_rank_sss(info, covs, rank=None, scalings=None):
     from ..cov import _estimate_rank_meeg_cov
     if rank is None:
@@ -2319,11 +2329,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
     # Only look at good channels
     picks = pick_types(info, meg=True, eeg=True, ref_meg=False, exclude='bads')
     info = pick_info(info, picks)
-    ch_used = [ch for ch in ['eeg', 'grad', 'mag']
-               if _contains_ch_type(info, ch)]
-    has_meg = 'mag' in ch_used and 'grad' in ch_used
-    has_sss = (has_meg and len(info['proc_history']) > 0 and
-               info['proc_history'][0].get('max_info') is not None)
+    ch_used, has_meg, has_sss = _check_sss(info)
     if has_sss:
         if 'mag' in rank or 'grad' in rank:
             raise ValueError('When using SSS, pass "meg" to set the rank '
@@ -2334,7 +2340,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
                          'for "mag" and "grad" (do not use "meg").')
 
     picks_list = _picks_by_type(info, meg_combined=has_sss)
-    if has_meg and has_sss:
+    if has_sss:
         # reduce ch_used to combined mag grad
         ch_used = list(zip(*picks_list))[0]
     # order pick list by ch_used (required for compat with plot_evoked)
@@ -2416,3 +2422,20 @@ def _match_proj_type(proj, ch_names):
     proj_ch_names = proj['data']['col_names']
     select = any(kk in ch_names for kk in proj_ch_names)
     return select
+
+
+def _check_cov(noise_cov, info):
+    """Check the noise_cov for whitening and issue an SSS warning."""
+    from ..cov import read_cov, Covariance
+    if noise_cov is None:
+        return None
+    if isinstance(noise_cov, string_types):
+        noise_cov = read_cov(noise_cov)
+    if not isinstance(noise_cov, Covariance):
+        raise TypeError('noise_cov must be a str or Covariance, got %s'
+                        % (type(noise_cov),))
+    if _check_sss(info)[2]:  # has_sss
+        warn('Data have been processed with SSS, which changes the relative '
+             'scaling of magnetometers and gradiometers when viewing data '
+             'whitened by a noise covariance')
+    return noise_cov

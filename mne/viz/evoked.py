@@ -22,7 +22,7 @@ from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
-                    _setup_vmin_vmax, _grad_pair_pick_and_name,
+                    _setup_vmin_vmax, _grad_pair_pick_and_name, _check_cov,
                     _validate_if_list_of_axes, _triage_rank_sss)
 from ..utils import logger, _clean_names, warn, _pl, verbose
 from ..io.pick import _DATA_CH_TYPES_SPLIT
@@ -193,7 +193,6 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         interactive.
     """
     import matplotlib.pyplot as plt
-    from ..cov import read_cov
     info = evoked.info
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
@@ -252,8 +251,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%d: %s)' % (len(axes), len(ch_types_used),
                                              sorted(ch_types_used)))
-    if isinstance(noise_cov, string_types):
-        noise_cov = read_cov(noise_cov)
+    noise_cov = _check_cov(noise_cov, info)
     projector, whitened_ch_names = _setup_plot_projector(
         info, noise_cov, proj=proj is True, nave=evoked.nave)
     evoked = evoked.copy()

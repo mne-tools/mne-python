@@ -21,8 +21,8 @@ from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
-                    DraggableColorbar, _set_ax_facecolor, _setup_ax_spines)
-from ..externals.six import string_types
+                    DraggableColorbar, _set_ax_facecolor, _setup_ax_spines,
+                    _check_cov)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -655,7 +655,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Images of evoked responses at sensor locations
     """
     import matplotlib.pyplot as plt
-    from ..cov import whiten_evoked, read_cov
+    from ..cov import whiten_evoked
 
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
@@ -679,8 +679,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not all((e.times == times).all() for e in evoked):
         raise ValueError('All evoked.times must be the same')
 
-    if isinstance(noise_cov, string_types):
-        noise_cov = read_cov(noise_cov)
+    noise_cov = _check_cov(noise_cov, evoked[0].info)
     if noise_cov is not None:
         evoked = [whiten_evoked(e, noise_cov) for e in evoked]
     else:

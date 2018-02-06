@@ -16,7 +16,8 @@ from numpy.testing import assert_raises, assert_allclose
 from nose.tools import assert_true
 import pytest
 
-from mne import read_events, Epochs, pick_types, read_cov
+from mne import (read_events, Epochs, pick_types, read_cov, compute_covariance,
+                 make_fixed_length_events)
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.utils import run_tests_if_main, catch_logging
@@ -33,6 +34,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
+raw_sss_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 0.1
@@ -72,16 +74,34 @@ def _get_epochs_delayed_ssp():
     return epochs_delayed_ssp
 
 
+def test_plot_evoked_cov():
+    """Test plot_evoked with noise_cov."""
+    import matplotlib.pyplot as plt
+    evoked = _get_epochs().average()
+    cov = read_cov(cov_fname)
+    cov['projs'] = []  # avoid warnings
+    evoked.plot(noise_cov=cov)
+    with pytest.raises(TypeError, match='Covariance'):
+        evoked.plot(noise_cov=1.)
+    with pytest.raises(IOError, match='No such file'):
+        evoked.plot(noise_cov='nonexistent-cov.fif')
+    raw = read_raw_fif(raw_sss_fname)
+    events = make_fixed_length_events(raw)
+    epochs = Epochs(raw, events)
+    cov = compute_covariance(epochs)
+    evoked_sss = epochs.average()
+    with warnings.catch_warnings(record=True) as w:
+        evoked_sss.plot(noise_cov=cov)
+    plt.close('all')
+    assert any('relative scal' in str(ww.message) for ww in w)
+
+
 @pytest.mark.slowtest
 def test_plot_evoked():
     """Test plotting of evoked."""
     import matplotlib.pyplot as plt
     rng = np.random.RandomState(0)
     evoked = _get_epochs().average()
-
-    evoked.plot(noise_cov=cov_fname)
-    plt.close('all')
-
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo')
     # Test a click
     ax = fig.get_axes()[0]
