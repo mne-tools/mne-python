@@ -27,6 +27,18 @@ For analysis talk, join the `MNE mailing list`_. File specific feature
 requests or bug reports `on GitHub <https://github.com/mne-tools/mne-python/issues/>`_.
 You can also chat with developers `on Gitter <https://gitter.im/mne-tools/mne-python>`_.
 
+I can't get Mayavi/3D plotting to work under Windows.
+-----------------------------------------------------
+If Mayavi plotting in Jupyter Notebooks doesn't work
+well, using the IPython magic ``%gui qt`` after importing MNE/Mayavi/PySurfer 
+should `help <https://github.com/ipython/ipython/issues/10384>`_.
+   
+.. code:: ipython
+   
+   from mayavi import mlab
+   %gui qt
+
+
 .. _cite:
 
 How do I cite MNE?
