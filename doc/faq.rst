@@ -21,7 +21,15 @@ Help! I can't get Python and MNE-Python working!
 Check out our section on how to get Anaconda up and running over at the
 :ref:`getting started page <install_python_and_mne_python>`.
 
-**Windows users:** If Mayavi plotting in Jupyter Notebooks doesn't work  
+I still can't get it to work!
+-----------------------------
+For analysis talk, join the `MNE mailing list`_. File specific feature
+requests or bug reports `on GitHub <https://github.com/mne-tools/mne-python/issues/>`_.
+You can also chat with developers `on Gitter <https://gitter.im/mne-tools/mne-python>`_.
+
+I can't get Mayavi/3D plotting to work under Windows.
+-----------------------------------------------------
+If Mayavi plotting in Jupyter Notebooks doesn't work
 well, using the IPython magic ``%gui qt`` after importing MNE/Mayavi/PySurfer 
 should `help <https://github.com/ipython/ipython/issues/10384>`_.
    
@@ -30,11 +38,6 @@ should `help <https://github.com/ipython/ipython/issues/10384>`_.
    from mayavi import mlab
    %gui qt
 
-I still can't get it to work!
------------------------------
-For analysis talk, join the `MNE mailing list`_. File specific feature
-requests or bug reports `on GitHub <https://github.com/mne-tools/mne-python/issues/>`_.
-You can also chat with developers `on Gitter <https://gitter.im/mne-tools/mne-python>`_.
 
 .. _cite:
 
