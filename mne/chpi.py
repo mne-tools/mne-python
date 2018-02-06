@@ -433,14 +433,10 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
         The sin amplitudes matching each cHPI frequency
             or None if this time window should be skipped
     """
+    # No need to detrend the data because our model has a DC term
     with use_log_level(False):
         # loads good channels
-        meg_chpi_data = raw[hpi['meg_picks'], time_sl][0]
-
-    mchpi_data = np.tile(np.mean(meg_chpi_data, axis=1, keepdims=True),
-                         (1, meg_chpi_data.shape[1]))
-    mchpi_data = mchpi_data.reshape(meg_chpi_data.shape)
-    this_data = meg_chpi_data - mchpi_data
+        this_data = raw[hpi['meg_picks'], time_sl][0]
 
     # which HPI coils to use
     # other then erroring I don't see this getting used elsewhere?
@@ -475,24 +471,27 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
                                  full_matrices=False)
         # the first component holds the predominant phase direction
         # (so ignore the second, effectively doing s[1] = 0):
-        X[[fi, fi + n_freqs], :] = np.outer(u[:, 0] * s[0], vt[0])
         sin_fit[fi, :] = vt[0]
+        # Do not modify X, however, because it will break the signal
+        # reconstruction step.
 
-    data_diff = np.dot(model, X).T - this_data
-    data_diff_sq = np.linalg.norm(data_diff, axis=1)
+    data_diff_sq = np.dot(model, X).T - this_data
     data_diff_sq *= data_diff_sq
+    data_diff_sq = np.sum(data_diff_sq, axis=-1)
 
     # compute amplitude correlation (for logging), protect against zero
-    norm = np.linalg.norm(this_data, axis=1)
-    norm *= norm  # sum of squares
+    norm = this_data
+    del this_data
+    norm *= norm
+    norm = np.sum(norm, axis=-1)
     norm_sum = norm.sum()
     norm_sum = np.inf if norm_sum == 0 else norm_sum
     norm[norm == 0] = np.inf
-    g_sin = 1 - np.sqrt(data_diff_sq.sum() / norm_sum)
-    g_chan = 1 - np.sqrt(data_diff_sq / norm)
+    g_sin = 1 - data_diff_sq.sum() / norm_sum
+    g_chan = 1 - data_diff_sq / norm
     logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
-                 '(%s chnls > 0.90)' % (fit_time, g_sin,
-                                        (g_chan > 0.90).sum()))
+                 '(%s chnls > 0.95)' % (fit_time, g_sin,
+                                        (g_chan > 0.95).sum()))
 
     return sin_fit
 
@@ -654,6 +653,9 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
         # check if data has sufficiently changed
         if last['sin_fit'] is not None:  # first iteration
+            # The sign of our fits is arbitrary
+            flips = np.sign((sin_fit * last['sin_fit']).sum(-1, keepdims=True))
+            sin_fit *= flips
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
             if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \
