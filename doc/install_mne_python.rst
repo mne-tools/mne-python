@@ -62,9 +62,6 @@ Install Python and MNE-Python
                   <pre><span></span><span class="gp">$</span> curl -O https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml<br><span class="gp">$</span> conda env create -f environment.yml<br><span class="gp">$</span> source activate mne</pre>
                 </div>
               </div>
-              <p>If Mayavi plotting in Jupyter Notebooks doesn't work well, using the IPython magic <code class="docutils literal"><span class="pre">%gui qt</span></code> after importing MNE/Mayavi/PySurfer may 
-              <a class="reference external" href="https://github.com/ipython/ipython/issues/10384">help</a>.
-              </p>
             </div>
           </div>
         </div>
@@ -75,6 +72,18 @@ Install Python and MNE-Python
       >>> import mne
 
   If you get a new prompt with no error messages, you should be good to go!
+
+  .. note::
+
+     **Windows users:** If Mayavi plotting in Jupyter Notebooks doesn't work  
+     well, using the IPython magic `%gui qt` after importing  
+     MNE/Mayavi/PySurfer may
+     `help <https://github.com/ipython/ipython/issues/10384>`_.
+   
+     .. code:: ipython
+   
+        from mayavi import mlab
+        %gui qt
 
 * For advanced topics like how to get NVIDIA :ref:`CUDA` support or if you're
   having trouble, visit :ref:`advanced_setup`.
