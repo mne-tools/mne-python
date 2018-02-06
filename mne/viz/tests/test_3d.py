@@ -13,6 +13,7 @@ import warnings
 from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_raises
+import pytest
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
@@ -75,6 +76,8 @@ def test_plot_head_positions():
         assert_raises(ValueError, plot_head_positions, ['pos'])
         assert_raises(ValueError, plot_head_positions, pos[:, :9])
     assert_raises(ValueError, plot_head_positions, pos, 'foo')
+    with pytest.raises(ValueError, match='shape'):
+        plot_head_positions(pos, axes=1.)
     plt.close('all')
 
 

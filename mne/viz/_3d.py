@@ -76,7 +76,8 @@ def _fiducial_coords(points, coord_frame=None):
 
 
 def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
-                        show=True, destination=None, info=None):
+                        show=True, destination=None, info=None, color='k',
+                        axes=None):
     """Plot head positions.
 
     Parameters
@@ -107,7 +108,15 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         showing the MEG sensors.
 
         .. versionadded:: 0.16
+    color : color object
+        The color to use for lines in ``mode == 'traces'`` and quiver
+        arrows in ``mode == 'field'``.
 
+        .. versionadded:: 0.16
+    axes : array-like, shape (3, 2)
+        The matplotlib axes to use. Only used for ``mode == 'traces'``.
+
+        .. versionadded:: 0.16
 
     Returns
     -------
@@ -163,12 +172,20 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
                 surf['rr'] *= 1000.
     helmet_color = (0.0, 0.0, 0.6)
     if mode == 'traces':
-        fig, axes = plt.subplots(3, 2, sharex=True)
+        if axes is None:
+            axes = plt.subplots(3, 2, sharex=True)[1]
+        else:
+            axes = np.array(axes)
+        if axes.shape != (3, 2):
+            raise ValueError('axes must have shape (3, 2), got %s'
+                             % (axes.shape,))
+        fig = axes[0, 0].figure
+
         labels = ['xyz', ('$q_1$', '$q_2$', '$q_3$')]
         for ii, (quat, coord) in enumerate(zip(use_quats.T, use_trans.T)):
-            axes[ii, 0].plot(t, coord, 'k', lw=1., zorder=3)
+            axes[ii, 0].plot(t, coord, color, lw=1., zorder=3)
             axes[ii, 0].set(ylabel=labels[0][ii], xlim=t[[0, -1]])
-            axes[ii, 1].plot(t, quat, 'k', lw=1., zorder=3)
+            axes[ii, 1].plot(t, quat, color, lw=1., zorder=3)
             axes[ii, 1].set(ylabel=labels[1][ii], xlim=t[[0, -1]])
             for b in borders[:-1]:
                 for jj in range(2):
@@ -233,6 +250,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
         from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
+
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
         pts = use_trans[:, np.newaxis]
@@ -257,8 +275,8 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
                           destination[2, 3],
                           destination[dir_idx[d], 0],
                           destination[dir_idx[d], 1],
-                          destination[dir_idx[d], 2], color='k', length=length,
-                          **kwargs)
+                          destination[dir_idx[d], 2], color=color,
+                          length=length, **kwargs)
         mins = use_trans.min(0)
         maxs = use_trans.max(0)
         if surf is not None:
