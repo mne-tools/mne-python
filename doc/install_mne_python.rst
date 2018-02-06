@@ -73,10 +73,13 @@ Install Python and MNE-Python
 
   If you get a new prompt with no error messages, you should be good to go!
 
+* For advanced topics like how to get NVIDIA :ref:`CUDA` support or if you're
+  having trouble, visit :ref:`advanced_setup`.
+
   .. note::
 
      **Windows users:** If Mayavi plotting in Jupyter Notebooks doesn't work  
-     well, using the IPython magic `%gui qt` after importing  
+     well, using the IPython magic ``%gui qt`` after importing  
      MNE/Mayavi/PySurfer may
      `help <https://github.com/ipython/ipython/issues/10384>`_.
    
@@ -84,6 +87,3 @@ Install Python and MNE-Python
    
         from mayavi import mlab
         %gui qt
-
-* For advanced topics like how to get NVIDIA :ref:`CUDA` support or if you're
-  having trouble, visit :ref:`advanced_setup`.
