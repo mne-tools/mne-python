@@ -16,18 +16,16 @@ from numbers import Integral
 
 import numpy as np
 
-from ..io.pick import (channel_type, pick_types, _picks_by_type,
-                       _pick_data_channels, _VALID_CHANNEL_TYPES,
-                       channel_indices_by_type)
+from ..io.pick import (channel_type, _pick_data_channels,
+                       _VALID_CHANNEL_TYPES, channel_indices_by_type)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax, _grad_pair_pick_and_name,
-                    _validate_if_list_of_axes)
+                    _validate_if_list_of_axes, _triage_rank_sss)
 from ..utils import logger, _clean_names, warn, _pl, verbose
-from ..io.pick import pick_info, _DATA_CH_TYPES_SPLIT
-from ..io.proc_history import _get_rank_sss
+from ..io.pick import _DATA_CH_TYPES_SPLIT
 
 from .topo import _plot_evoked_topo
 from .utils import COLORS, _setup_ax_spines, _setup_plot_projector
@@ -256,8 +254,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                                              sorted(ch_types_used)))
     if isinstance(noise_cov, string_types):
         noise_cov = read_cov(noise_cov)
-    projector, whitened_ch_names = _setup_plot_projector(info, noise_cov,
-                                                         proj=proj is True)
+    projector, whitened_ch_names = _setup_plot_projector(
+        info, noise_cov, proj=proj is True, nave=evoked.nave)
     evoked = evoked.copy()
     if len(whitened_ch_names) > 0:
         unit = False
@@ -591,6 +589,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         Can be a string to load a covariance from disk.
         See also :meth:`mne.Evoked.plot_white` for additional inspection
         of noise covariance properties when whitening evoked data.
+        For data processed with SSS, the effective dependence between
+        magnetometers and gradiometers may introduce differences in scaling,
+        consider using :meth:`mne.Evoked.plot_white`.
 
         .. versionadded:: 0.16.0
     verbose : bool, str, int, or None
@@ -864,19 +865,13 @@ def _plot_update_evoked(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
+@verbose
+def plot_evoked_white(evoked, noise_cov, show=True, rank=None, verbose=None):
     """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
-    [1]_. If one single covariance object is passed, the GFP panel (bottom)
-    will depict different sensor types. If multiple covariance objects are
-    passed as a list, the left column will display the whitened evoked
-    responses for each channel based on the whitener from the noise covariance
-    that has the highest log-likelihood. The left column will depict the
-    whitened GFPs based on each estimator separately for each sensor type.
-    Instead of numbers of channels the GFP display shows the estimated rank.
-    Note. The rank estimation will be printed by the logger for each noise
-    covariance estimator that is passed.
+    [1]_. This function is especially useful for investigating noise
+    covariance properties to determine if data are properly whitened.
 
     Parameters
     ----------
@@ -894,11 +889,35 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
         specified separately. If only one is specified, the other one gets
         estimated. Note. The rank estimation will be printed by the logger for
         each noise covariance estimator that is passed.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
         The figure object containing the plot.
+
+    See Also
+    --------
+    mne.Evoked.plot
+
+    Notes
+    -----
+    If baseline signals match the assumption of Gaussian white noise,
+    values should be centered at 0, and be within 2 standard deviations
+    for 95% of the time points. For the global field power (GFP),
+    we expect it to fluctuate around a value of 1.
+
+    If one single covariance object is passed, the GFP panel (bottom)
+    will depict different sensor types. If multiple covariance objects are
+    passed as a list, the left column will display the whitened evoked
+    responses for each channel based on the whitener from the noise covariance
+    that has the highest log-likelihood. The left column will depict the
+    whitened GFPs based on each estimator separately for each sensor type.
+    Instead of numbers of channels the GFP display shows the estimated rank.
+    Note. The rank estimation will be printed by the logger
+    (if ``verbose=True``) for each noise covariance estimator that is passed.
 
     References
     ----------
@@ -908,35 +927,6 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None):
     """
     return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
                               scalings=None, rank=rank, show=show)
-
-
-def _match_proj_type(proj, ch_names):
-    """See if proj should be counted."""
-    proj_ch_names = proj['data']['col_names']
-    select = any(kk in ch_names for kk in proj_ch_names)
-    return select
-
-
-def _check_estimated_rank(this_estimated_rank, this_picks, this_info, evoked,
-                          cov, ch_type, has_meg, has_sss):
-    """Compare estimated against expected rank."""
-    expected_rank = len(this_picks)
-    expected_rank_reduction = 0
-    if has_meg and has_sss and ch_type == 'meg':
-        sss_rank = _get_rank_sss(evoked)
-        expected_rank_reduction += (expected_rank - sss_rank)
-    n_ssp = sum(_match_proj_type(pp, this_info['ch_names'])
-                for pp in cov['projs'])
-    expected_rank_reduction += n_ssp
-    expected_rank -= expected_rank_reduction
-    if this_estimated_rank != expected_rank:
-        logger.debug(
-            'For (%s) the expected and estimated rank diverge '
-            '(%i VS %i). \nThis may lead to surprising reults. '
-            '\nPlease consider using the `rank` parameter to '
-            'manually specify the spatial degrees of freedom.' % (
-                ch_type, expected_rank, this_estimated_rank
-            ))
 
 
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
@@ -956,40 +946,13 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     """
     from ..cov import whiten_evoked, read_cov  # recursive import
-    from ..cov import _estimate_rank_meeg_cov
     import matplotlib.pyplot as plt
-    if scalings is None:
-        scalings = dict(mag=1e12, grad=1e11, eeg=1e5)
-    if rank is None:
-        rank = {}
-    ch_used = [ch for ch in ['eeg', 'grad', 'mag'] if ch in evoked]
-    has_meg = 'mag' in ch_used and 'grad' in ch_used
 
     if isinstance(noise_cov, string_types):
         noise_cov = read_cov(noise_cov)
     if not isinstance(noise_cov, (list, tuple)):
         noise_cov = [noise_cov]
 
-    if 'meg' in rank and ('grad' in rank or 'mag' in rank):
-        raise ValueError('Either pass rank for mag and/or grad or for meg')
-
-    has_sss = False
-    if len(evoked.info['proc_history']) > 0:
-        # if SSSed, mags and grad are not longer independent
-        # for correct display of the whitening we will drop the cross-terms
-        # (the gradiometer * magnetometer covariance)
-        has_sss = (evoked.info['proc_history'][0].get('max_info') is not
-                   None and has_meg)
-    if has_sss:
-        logger.info('SSS has been applied to data. Showing mag and grad '
-                    'whitening jointly.')
-        if 'mag' in rank or 'grad' in rank:
-            raise ValueError('When using SSS separate rank values for mag or '
-                             'grad are meaningless.')
-    else:
-        if 'meg' in rank:
-            raise ValueError('When not using SSS separate rank values for mag '
-                             'or grad must be passed separately.')
     evoked = evoked.copy()  # handle ref meg
     passive_idx = [idx for idx, proj in enumerate(evoked.info['projs'])
                    if not proj['active']]
@@ -997,61 +960,17 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     for idx in passive_idx[::-1]:  # reverse order so idx does not change
         evoked.del_proj(idx)
 
-    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
-                       exclude='bads')
-    evoked.pick_channels([evoked.ch_names[k] for k in picks])
-    # important to re-pick. will otherwise crash on systems with ref channels
-    # as first sensor block
-    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
-                       exclude='bads')
-
-    picks_list = _picks_by_type(evoked.info, meg_combined=has_sss)
-    if has_meg and has_sss:
-        # reduce ch_used to combined mag grad
-        ch_used = list(zip(*picks_list))[0]
-    # order pick list by ch_used (required for compat with plot_evoked)
-    picks_list = [x for x, y in sorted(zip(picks_list, ch_used))]
-    n_ch_used = len(ch_used)
-
-    # make sure we use the same rank estimates for GFP and whitening
-
-    picks_list2 = [k for k in picks_list]
-    # add meg picks if needed.
-    if 'grad' in evoked and 'mag' in evoked:
-        # append ("meg", picks_meg)
-        picks_list2 += _picks_by_type(evoked.info, meg_combined=True)
-
-    rank_list = []  # rank dict for each cov
-    for cov in noise_cov:
-        this_rank = {}
-        C = cov['data'].copy()
-        # assemble rank dict for this cov, such that we have meg
-        for ch_type, this_picks in picks_list2:
-            # if we have already estimates / values for mag/grad but not
-            # a value for meg, combine grad and mag.
-            if ('mag' in this_rank and 'grad' in this_rank and
-                    'meg' not in rank):
-                this_rank['meg'] = this_rank['mag'] + this_rank['grad']
-                # and we're done here
-                break
-
-            if rank.get(ch_type) is None:
-                this_info = pick_info(evoked.info, this_picks)
-                idx = np.ix_(this_picks, this_picks)
-                this_estimated_rank = _estimate_rank_meeg_cov(
-                    C[idx], this_info, scalings)
-                _check_estimated_rank(
-                    this_estimated_rank, this_picks, this_info, evoked,
-                    cov, ch_type, has_meg, has_sss)
-                this_rank[ch_type] = this_estimated_rank
-            elif rank.get(ch_type) is not None:
-                this_rank[ch_type] = rank[ch_type]
-
-        rank_list.append(this_rank)
+    evoked.pick_types(meg=True, eeg=True, ref_meg=False, exclude='bads')
+    n_ch_used, rank_list, picks_list, has_sss = _triage_rank_sss(
+        evoked.info, noise_cov, rank, scalings)
+    del rank, scalings
+    if has_sss:
+        logger.info('SSS has been applied to data. Showing mag and grad '
+                    'whitening jointly.')
 
     # get one whitened evoked per cov
-    evokeds_white = [whiten_evoked(evoked, n, picks, rank=r)
-                     for n, r in zip(noise_cov, rank_list)]
+    evokeds_white = [whiten_evoked(evoked, cov, picks=None, rank=r)
+                     for cov, r in zip(noise_cov, rank_list)]
 
     def whitened_gfp(x, rank=None):
         """Whitened Global Field Power.
@@ -1106,9 +1025,12 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                               hline=[-1.96, 1.96], show=False)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
-            ax.plot(times, evokeds_white[0].data[picks].T, color='k')
+            ax.plot(times, evokeds_white[0].data[picks].T, color='k',
+                    lw=0.5)
             for hline in [-1.96, 1.96]:
-                ax.axhline(hline, color='red', linestyle='--')
+                ax.axhline(hline, color='red', linestyle='--', lw=2)
+            ax.set(title='{0} ({1} channels)'.format(titles_[ch_type],
+                                                     len(picks)))
 
     # Now plot the GFP for all covs if indicated.
     for evoked_white, noise_cov, rank_, color in iter_gfp:
@@ -1130,12 +1052,11 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             gfp = whitened_gfp(data, rank=this_rank)
             ax.plot(times, gfp,
                     label=label if n_columns > 1 else title,
-                    color=color if n_columns > 1 else ch_colors[ch])
-            ax.set_xlabel('times [ms]')
-            ax.set_ylabel('GFP [chi^2]')
-            ax.set_xlim(times[0], times[-1])
-            ax.set_ylim(0, 10)
-            ax.axhline(1, color='red', linestyle='--')
+                    color=color if n_columns > 1 else ch_colors[ch],
+                    lw=0.5)
+            ax.set(xlabel='times [ms]', ylabel='GFP [chi^2]',
+                   xlim=[times[0], times[-1]], ylim=(0, 10))
+            ax.axhline(1, color='red', linestyle='--', lw=2.)
             if n_columns > 1:
                 i += 1
 

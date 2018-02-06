@@ -26,9 +26,11 @@ from ..defaults import _handle_default
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
-                       pick_types, pick_info)
+                       pick_types, pick_info, _picks_by_type)
+from ..io.proc_history import _get_rank_sss
 from ..io.proj import setup_proj
-from ..utils import verbose, set_config, warn
+from ..utils import logger, verbose, set_config, warn
+
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -2250,7 +2252,8 @@ def _grad_pair_pick_and_name(info, picks):
     return picks, ch_names
 
 
-def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True):
+def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
+                          nave=1):
     from ..cov import compute_whitener
     projector = np.eye(len(info['ch_names']))
     whitened_ch_names = []
@@ -2272,8 +2275,10 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True):
         whiten_names = cov_names - bad_names
         whiten_picks = pick_channels(info['ch_names'], whiten_names)
         whiten_info = pick_info(info, whiten_picks)
+        rank = _triage_rank_sss(whiten_info, [noise_cov])[1][0]
         whitener, whitened_ch_names = compute_whitener(
-            noise_cov, whiten_info, verbose=False)
+            noise_cov, whiten_info, rank=rank, verbose=False)
+        whitener *= np.sqrt(nave)  # proper scaling for Evoked data
         assert set(whitened_ch_names) == whiten_names
         projector[whiten_picks, whiten_picks[:, np.newaxis]] = whitener
         # Now we need to change the set of "whitened" channels to include
@@ -2294,10 +2299,6 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True):
     return projector, whitened_ch_names
 
 
-def _get_plotting_whitener(params):
-    """Get a whitening matrix that can be dotted with an entire data array."""
-
-
 def _set_ax_label_style(ax, params, italicize=True):
     import matplotlib.text
     for tick in params['ax'].get_yaxis().get_major_ticks():
@@ -2306,3 +2307,112 @@ def _set_ax_label_style(ax, params, italicize=True):
                 whitened = text.get_text() in params['whitened_ch_names']
                 whitened = whitened and italicize
                 text.set_style('italic' if whitened else 'normal')
+
+
+def _triage_rank_sss(info, covs, rank=None, scalings=None):
+    from ..cov import _estimate_rank_meeg_cov
+    if rank is None:
+        rank = dict()
+    if scalings is None:
+        scalings = dict(mag=1e12, grad=1e11, eeg=1e5)
+
+    # Only look at good channels
+    picks = pick_types(info, meg=True, eeg=True, ref_meg=False, exclude='bads')
+    info = pick_info(info, picks)
+    ch_used = [ch for ch in ['eeg', 'grad', 'mag']
+               if _contains_ch_type(info, ch)]
+    has_meg = 'mag' in ch_used and 'grad' in ch_used
+    has_sss = (has_meg and len(info['proc_history']) > 0 and
+               info['proc_history'][0].get('max_info') is not None)
+    if has_sss:
+        if 'mag' in rank or 'grad' in rank:
+            raise ValueError('When using SSS, pass "meg" to set the rank '
+                             '(separate rank values for "mag" or "grad" are '
+                             'meaningless).')
+    elif 'meg' in rank:
+        raise ValueError('When not using SSS, pass separate rank values '
+                         'for "mag" and "grad" (do not use "meg").')
+
+    picks_list = _picks_by_type(info, meg_combined=has_sss)
+    if has_meg and has_sss:
+        # reduce ch_used to combined mag grad
+        ch_used = list(zip(*picks_list))[0]
+    # order pick list by ch_used (required for compat with plot_evoked)
+    picks_list = [x for x, y in sorted(zip(picks_list, ch_used))]
+    n_ch_used = len(ch_used)
+
+    # make sure we use the same rank estimates for GFP and whitening
+
+    picks_list2 = [k for k in picks_list]
+    # add meg picks if needed.
+    if has_meg:
+        # append ("meg", picks_meg)
+        picks_list2 += _picks_by_type(info, meg_combined=True)
+
+    rank_list = []  # rank dict for each cov
+    for cov in covs:
+        # We need to add the covariance projectors, compute the projector,
+        # and apply it, just like we will do in prepare_noise_cov, otherwise
+        # we risk the rank estimates being incorrect (i.e., if the projectors
+        # do not match).
+        info_proj = info.copy()
+        info_proj['projs'] += cov['projs']
+        this_rank = {}
+        C = cov['data'].copy()
+        # assemble rank dict for this cov, such that we have meg
+        for ch_type, this_picks in picks_list2:
+            # if we have already estimates / values for mag/grad but not
+            # a value for meg, combine grad and mag.
+            if ('mag' in this_rank and 'grad' in this_rank and
+                    'meg' not in rank):
+                this_rank['meg'] = this_rank['mag'] + this_rank['grad']
+                # and we're done here
+                break
+
+            if rank.get(ch_type) is None:
+                this_info = pick_info(info_proj, this_picks)
+                idx = np.ix_(this_picks, this_picks)
+                projector = setup_proj(this_info, add_eeg_ref=False)[0]
+                this_C = C[idx]
+                if projector is not None:
+                    this_C = np.dot(np.dot(projector, this_C), projector.T)
+                this_estimated_rank = _estimate_rank_meeg_cov(
+                    this_C, this_info, scalings)
+                _check_estimated_rank(
+                    this_estimated_rank, this_picks, this_info, info,
+                    cov, ch_type, has_meg, has_sss)
+                this_rank[ch_type] = this_estimated_rank
+            elif rank.get(ch_type) is not None:
+                this_rank[ch_type] = rank[ch_type]
+
+        rank_list.append(this_rank)
+    return n_ch_used, rank_list, picks_list, has_sss
+
+
+def _check_estimated_rank(this_estimated_rank, this_picks, this_info, info,
+                          cov, ch_type, has_meg, has_sss):
+    """Compare estimated against expected rank."""
+    expected_rank = len(this_picks)
+    expected_rank_reduction = 0
+    if has_meg and has_sss and ch_type == 'meg':
+        sss_rank = _get_rank_sss(info)
+        expected_rank_reduction += (expected_rank - sss_rank)
+    n_ssp = sum(_match_proj_type(pp, this_info['ch_names'])
+                for pp in cov['projs'])
+    expected_rank_reduction += n_ssp
+    expected_rank -= expected_rank_reduction
+    if this_estimated_rank != expected_rank:
+        logger.debug(
+            'For (%s) the expected and estimated rank diverge '
+            '(%i VS %i). \nThis may lead to surprising reults. '
+            '\nPlease consider using the `rank` parameter to '
+            'manually specify the spatial degrees of freedom.' % (
+                ch_type, expected_rank, this_estimated_rank
+            ))
+
+
+def _match_proj_type(proj, ch_names):
+    """See if proj should be counted."""
+    proj_ch_names = proj['data']['col_names']
+    select = any(kk in ch_names for kk in proj_ch_names)
+    return select

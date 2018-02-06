@@ -20,7 +20,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
-from .viz.evoked import (_plot_evoked_white, plot_evoked_joint,
+from .viz.evoked import (plot_evoked_white, plot_evoked_joint,
                          _animate_evoked_topomap)
 
 from .externals.six import string_types
@@ -358,53 +358,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
 
-    def plot_white(self, noise_cov, show=True, rank=None):
-        """Plot whitened evoked response.
-
-        Plots the whitened evoked response and the whitened GFP as described in
-        [1]_. If one single covariance object is passed, the GFP panel (bottom)
-        will depict different sensor types. If multiple covariance objects are
-        passed as a list, the left column will display the whitened evoked
-        responses for each channel based on the whitener from the noise
-        covariance that has the highest log-likelihood. The left column will
-        depict the whitened GFPs based on each estimator separately for each
-        sensor type. Instead of numbers of channels the GFP display shows the
-        estimated rank. The rank estimation will be printed by the logger for
-        each noise covariance estimator that is passed.
-
-
-        Parameters
-        ----------
-        noise_cov : list | instance of Covariance | str
-            The noise covariance as computed by ``mne.cov.compute_covariance``.
-        show : bool
-            Whether to show the figure or not. Defaults to True.
-        rank : dict of int | None
-            Dict of ints where keys are 'eeg', 'meg', mag' or 'grad'. If None,
-            the rank is detected automatically. Defaults to None. 'mag' or
-            'grad' cannot be specified jointly with 'meg'. For SSS'd data,
-            only 'meg' is valid. For non-SSS'd data, 'mag' and/or 'grad' must
-            be specified separately. If only one is specified, the other one
-            gets estimated. Note. The rank estimation will be printed by the
-            logger for each noise covariance estimator that is passed.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-            The figure object containing the plot.
-
-        References
-        ----------
-        .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-               covariance estimation and spatial whitening of MEG and EEG
-               signals, vol. 108, 328-342, NeuroImage.
-
-        Notes
-        -----
-        .. versionadded:: 0.9.0
-        """
-        return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
-                                  rank=rank, show=show)
+    @copy_function_doc_to_method_doc(plot_evoked_white)
+    def plot_white(self, noise_cov, show=True, rank=None, verbose=None):
+        return plot_evoked_white(self, noise_cov=noise_cov,
+                                 rank=rank, show=show, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(self, times="peaks", title='', picks=None,

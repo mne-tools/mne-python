@@ -219,6 +219,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whitened data channels are scaled by ``scalings['whitened']``,
         and their channel names are shown in italic.
         Can be a string to load a covariance from disk.
+        See also :meth:`mne.Evoked.plot_white` for additional inspection
+        of noise covariance properties when whitening evoked data.
+        For data processed with SSS, the effective dependence between
+        magnetometers and gradiometers may introduce differences in scaling,
+        consider using :meth:`mne.Evoked.plot_white`.
 
         .. versionadded:: 0.16.0
     event_id : dict | None

@@ -325,10 +325,9 @@ def _get_rank_sss(inst):
         The numerical rank as predicted by the number of SSS
         components.
     """
-    if not isinstance(inst, dict):
-        info = inst.info
-    else:
-        info = inst
+    from .meas_info import Info
+    info = inst if isinstance(inst, Info) else inst.info
+    del inst
 
     max_infos = list()
     for proc_info in info.get('proc_history', list()):
