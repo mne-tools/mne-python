@@ -197,7 +197,7 @@ def test_calculate_chpi_positions():
     raw_no_chpi = read_raw_fif(test_fif_fname)
     assert_raises(RuntimeError, _calculate_chpi_positions, raw_no_chpi)
     raw_bad = raw.copy()
-    raw_bad.info['hpi_subsystem'] = None
+    del raw_bad.info['hpi_meas'][0]['hpi_coils'][0]['coil_freq']
     assert_raises(RuntimeError, _calculate_chpi_positions, raw_bad)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
