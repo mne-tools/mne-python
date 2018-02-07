@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Functions to plot evoked M/EEG data (besides topographies)."""
 from __future__ import print_function
 
@@ -865,11 +866,12 @@ def _plot_update_evoked(params, bools):
 
 @verbose
 def plot_evoked_white(evoked, noise_cov, show=True, rank=None, verbose=None):
-    """Plot whitened evoked response.
+    u"""Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
     [1]_. This function is especially useful for investigating noise
-    covariance properties to determine if data are properly whitened.
+    covariance properties to determine if data are properly whitened (e.g.,
+    achieving expected values in line with model assumptions, see Notes below).
 
     Parameters
     ----------
@@ -904,7 +906,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, verbose=None):
     -----
     If baseline signals match the assumption of Gaussian white noise,
     values should be centered at 0, and be within 2 standard deviations
-    for 95% of the time points. For the global field power (GFP),
+    (±1.96) for 95% of the time points. For the global field power (GFP),
     we expect it to fluctuate around a value of 1.
 
     If one single covariance object is passed, the GFP panel (bottom)
