@@ -47,7 +47,7 @@ Changelog
 
 - Improve online filtering of raw data when plotting with :meth:`mne.io.Raw.plot` to filter in segments in accordance with the default ``skip_by_annotation=('edge', 'bad_acq_skip')`` of :meth:`mne.io.Raw.filter` to avoid edge ringing by `Eric Larson`_
 
-- Add support for multiple head position files and plotting of sensors in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
+- Add support for multiple head position files, plotting of sensors, and control of plotting color and axes in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
 - Add ability to read and write :class:`Annotations` separate from :class:`mne.io.Raw` instances via :meth:`Annotations.save` and :func:`read_annotations` by `Eric Larson`_
 
