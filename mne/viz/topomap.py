@@ -669,7 +669,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         cont = None  # can't make contours for constant-valued functions
     else:
         cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
-                          linewidths=linewidth)
+                          linewidths=linewidth / 2)
     if no_contours and cont is not None:
         for col in cont.collections:
             col.set_visible(False)
