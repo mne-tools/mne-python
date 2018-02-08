@@ -1674,7 +1674,7 @@ class Report(object):
         """Render cov."""
         global_id = self._get_id()
         cov = read_cov(cov_fname)
-        fig, _ = plot_cov(cov, info_fname, show=False)
+        fig = plot_cov(cov, info_fname, show=False)
         img = _fig_to_img(fig, image_format)
         caption = 'Covariance : %s (n_samples: %s)' % (cov_fname, cov.nfree)
         show = True

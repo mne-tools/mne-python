@@ -108,30 +108,38 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
     import matplotlib.pyplot as plt
 
-    fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
-                                 figsize=(2.5 * len(idx_names), 2.7))
+    n_subplot_rows = 2 if show_svd else 1
+
+    fig_cov, axes = plt.subplots(n_subplot_rows, len(idx_names), squeeze=False,
+                                 figsize=(3.8 * len(idx_names),
+                                          3.7 * n_subplot_rows))
     for k, (idx, name, _, _) in enumerate(idx_names):
-        axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
-                          cmap='RdBu_r')
+        im = axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
+                               cmap='RdBu_r')
         axes[0, k].set(title=name)
+
+        if colorbar:
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(axes[0, k])
+            cax = divider.append_axes("right", size="5.5%", pad=0.05)
+            plt.colorbar(im, cax=cax, format='%.0e')
+
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
 
-    fig_svd = None
     if show_svd:
-        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False)
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
             # Protect against true zero singular values
             s[s <= 0] = 1e-10 * s[s > 0].min()
             s = np.sqrt(s) * scaling
-            axes[0, k].plot(s)
-            axes[0, k].set(ylabel='Noise std (%s)' % unit, yscale='log',
-                           xlabel='Eigenvalue index', title=name)
-        tight_layout(fig=fig_svd)
+            axes[1, k].plot(s)
+            axes[1, k].set(ylabel='Noise std (%s)' % unit, yscale='log',
+                           xlabel='Eigenvalue index')
+    tight_layout(fig=fig_cov)
 
     plt_show(show)
-    return fig_cov, fig_svd
+    return fig_cov
 
 
 def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,

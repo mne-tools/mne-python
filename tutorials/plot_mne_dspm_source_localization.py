@@ -48,7 +48,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 noise_cov = mne.compute_covariance(
     epochs, tmax=0., method=['shrunk', 'empirical'])
 
-fig_cov, fig_spectra = mne.viz.plot_cov(noise_cov, raw.info)
+fig_cov = mne.viz.plot_cov(noise_cov, raw.info)
 
 ###############################################################################
 # Compute the evoked response
