@@ -1024,8 +1024,13 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
         raise ValueError('origin must be a 3-element array')
     if disp:
         origin_str = ', '.join(['%0.1f' % (o * 1000) for o in origin])
-        logger.info('    Using origin %s mm in the %s frame'
-                    % (origin_str, coord_frame))
+        msg = ('    Using origin %s mm in the %s frame'
+               % (origin_str, coord_frame))
+        if coord_frame == 'meg' and info['dev_head_t'] is not None:
+            o_dev = apply_trans(info['dev_head_t'], origin)
+            origin_str = ', '.join('%0.1f' % (o * 1000,) for o in o_dev)
+            msg += ' (%s mm in the head frame)' % (origin_str,)
+        logger.info(msg)
     return origin
 
 

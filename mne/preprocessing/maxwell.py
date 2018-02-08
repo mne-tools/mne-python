@@ -336,7 +336,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     # Determine/check the origin of the expansion
     origin = _check_origin(origin, info, coord_frame, disp=True)
-    origin.setflags(write=False)
+    # Convert to the head frame
+    if coord_frame == 'meg' and info['dev_head_t'] is not None:
+        origin_head = apply_trans(info['dev_head_t'], origin)
+    else:
+        origin_head = origin
+    orig_origin, orig_coord_frame = origin, coord_frame
+    del origin, coord_frame
+    origin_head.setflags(write=False)
     n_in, n_out = _get_n_moments([int_order, ext_order])
 
     #
@@ -369,7 +376,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     #
     # Translate to destination frame (always use non-fine-cal bases)
     #
-    exp = dict(origin=origin, int_order=int_order, ext_order=0)
+    exp = dict(origin=origin_head, int_order=int_order, ext_order=0)
     all_coils = _prep_mf_coils(info, ignore_ref)
     S_recon = _trans_sss_basis(exp, all_coils, recon_trans, coil_scale)
     exp['ext_order'] = ext_order
@@ -542,9 +549,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     # Update info
     if not st_only:
         info['dev_head_t'] = recon_trans  # set the reconstruction transform
-    _update_sss_info(raw_sss, origin, int_order, ext_order, len(good_picks),
-                     coord_frame, sss_ctc, sss_cal, max_st, reg_moments_0,
-                     st_only)
+    _update_sss_info(raw_sss, orig_origin, int_order, ext_order,
+                     len(good_picks), orig_coord_frame, sss_ctc, sss_cal,
+                     max_st, reg_moments_0, st_only)
     logger.info('[done]')
     return raw_sss
 
