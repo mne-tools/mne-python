@@ -160,7 +160,11 @@ script:
         fi;
         USE_DIRS="";
         for DIR in ${MNE_DIRS}; do
-          USE_DIRS="mne/${DIR}/tests ${USE_DIRS}";
+          if [ "${DIR}" == "." ]; then
+            USE_DIRS="mne/tests ${USE_DIRS}";
+          else
+            USE_DIRS="mne/${DIR}/ ${USE_DIRS}";
+          fi;
         done;
       fi;
     - echo py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
