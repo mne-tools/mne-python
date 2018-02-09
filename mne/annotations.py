@@ -318,7 +318,6 @@ def read_brainstorm_annotations(fname, orig_time=None):
         The annotations.
     """
     from scipy import io
-    list_annot = []
     onsets = []
     durations = []
     descriptions = []
@@ -335,8 +334,8 @@ def read_brainstorm_annotations(fname, orig_time=None):
 
     onsets = np.concatenate(onsets)
     durations = np.concatenate(durations)
-    annotations = Annotations(onsets, durations, descriptions, orig_time=orig_time)
-
+    annotations = Annotations(onsets, durations, descriptions,
+                              orig_time=orig_time)
     return annotations
 
 
