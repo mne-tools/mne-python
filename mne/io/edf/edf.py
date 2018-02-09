@@ -425,10 +425,6 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
         cals[idx] = 1
     if 'stim_data' in edf_info and stim_channel == 'auto':  # For GDF events.
         cals = np.append(cals, 1)
-    # Check that stimulus channel exists in dataset
-    if not ('stim_data' in edf_info or
-            'EDF Annotations' in ch_names) and stim_channel == 'auto':
-        stim_channel = None if ext == 'gdf' else -1
     if stim_channel is not None:
         stim_channel = _check_stim_channel(stim_channel, ch_names, include)
 
@@ -494,12 +490,12 @@ def _get_info(fname, stim_channel, annot, annotmap, eog, misc, exclude,
             edf_info['units'][idx] = 1
             if isinstance(stim_channel, str):
                 stim_channel = idx
-        elif tal_channel is not None and idx in tal_channel:
+        if tal_channel is not None and idx in tal_channel:
             chan_info['range'] = 1
             chan_info['cal'] = 1
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
             pick_mask[idx] = False
         chs.append(chan_info)
     edf_info['stim_channel'] = stim_channel
