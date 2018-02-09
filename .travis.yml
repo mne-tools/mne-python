@@ -161,7 +161,7 @@ script:
         USE_DIRS="";
         for DIR in ${MNE_DIRS}; do
           if [ "${DIR}" == "." ]; then
-            USE_DIRS="mne/tests ${USE_DIRS}";
+            USE_DIRS="mne/tests mne/*.py ${USE_DIRS}";
           else
             USE_DIRS="mne/${DIR}/ ${USE_DIRS}";
           fi;
