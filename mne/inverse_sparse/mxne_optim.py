@@ -71,7 +71,7 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     -------
     >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print(Y)
+    >>> print(Y)  # doctest:+SKIP
     [[ 0.  4.  3.  0.  0.]
      [ 0.  4.  3.  0.  0.]
      [ 0.  0.  0.  0.  0.]
@@ -145,7 +145,7 @@ def prox_l1(Y, alpha, n_orient):
     -------
     >>> Y = np.tile(np.array([1, 2, 3, 2, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print(Y)
+    >>> print(Y)  # doctest:+SKIP
     [[ 1.  2.  3.  2.  0.]
      [ 1.  2.  3.  2.  0.]
      [ 0.  0.  0.  0.  0.]
