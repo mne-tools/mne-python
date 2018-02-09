@@ -318,25 +318,25 @@ def read_brainstorm_annotations(fname, orig_time=None):
         The annotations.
     """
     from scipy import io
-    onsets = []
-    durations = []
-    descriptions = []
-    annot_data = io.loadmat(fname)
 
-    for label, _, _, _, times, _, _ in annot_data['events'][0]:
-        n_annot = len(times[0])
-        onsets.append(times[0])
-        if times.shape[0] == 2:
-            durations.append(times[1] - times[0])
+    def get_duration_from_times(t):
+        if t.shape[0] == 2:
+            return t[1] - t[0]
         else:
-            durations.append(np.zeros(n_annot))
+            return np.zeros(len(t[0]))
+
+    annot_data = io.loadmat(fname)
+    onsets, durations, descriptions = (list(), list(), list())
+    for label, _, _, _, times, _, _ in annot_data['events'][0]:
+        onsets.append(times[0])
+        durations.append(get_duration_from_times(times))
+        n_annot = len(times[0])
         descriptions += [str(label[0])] * n_annot
 
-    onsets = np.concatenate(onsets)
-    durations = np.concatenate(durations)
-    annotations = Annotations(onsets, durations, descriptions,
-                              orig_time=orig_time)
-    return annotations
+    return Annotations(onsets=np.concatenate(onsets),
+                       durations=np.concatenate(durations),
+                       descriptions=descriptions,
+                       orig_time=orig_time)
 
 
 def _read_annotations(fid, tree):
