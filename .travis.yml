@@ -26,11 +26,12 @@ matrix:
           env: CONDA_ENVIRONMENT="environment.yml"
                SPLIT=1
 
+        # OSX
         - os: osx
-         env: CONDA_ENVIRONMENT="environment.yml"
+          env: CONDA_ENVIRONMENT="environment.yml"
               SPLIT=0
         - os: osx
-         env: CONDA_ENVIRONMENT="environment.yml"
+          env: CONDA_ENVIRONMENT="environment.yml"
               SPLIT=1
 
         # 2.7 + non-default stim channel
