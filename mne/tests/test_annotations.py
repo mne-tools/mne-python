@@ -16,6 +16,7 @@ from mne import create_info, Epochs, read_annotations
 from mne.utils import run_tests_if_main, _TempDir
 from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.annotations import Annotations, _sync_onset
+from mne.annotations import read_brainstorm_annotations
 from mne.datasets import testing
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
@@ -126,6 +127,16 @@ def test_annotations():
     raw.save(fname, overwrite=True)
     raw_read = read_raw_fif(fname)
     assert raw_read.annotations is None
+
+
+@testing.requires_testing_data
+def test_read_brainstorm_annotations():
+    """Test reading for Brainstorm events file"""
+    fname = op.join(data_dir, 'events_sample_audvis_raw_bst.mat')
+    annot = read_brainstorm_annotations(fname)
+    assert len(annot) == 238
+    assert annot.onset.min() > 40  # takes into account first_samp
+    assert np.unique(annot.description).size == 5
 
 
 @testing.requires_testing_data
