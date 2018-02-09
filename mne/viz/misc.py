@@ -16,6 +16,7 @@ from glob import glob
 from itertools import cycle
 import os.path as op
 import warnings
+from collections import defaultdict
 
 import numpy as np
 from scipy import linalg
@@ -25,7 +26,7 @@ from ..externals.six import string_types
 from ..io.proj import make_projector
 from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import logger, verbose, get_subjects_dir, warn
-from ..io.pick import pick_types
+from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
 
@@ -66,25 +67,26 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     """
     if exclude == 'bads':
         exclude = info['bads']
+    picks_list = \
+        _picks_by_type(info, meg_combined=False, ref_meg=False,
+                       exclude=exclude)
+    picks_by_type = dict(picks_list)
+
     ch_names = [n for n in cov.ch_names if n not in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
-    info_ch_names = info['ch_names']
-    sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude=exclude)
-    sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
-                         exclude=exclude)
-    sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
-                          exclude=exclude)
-    idx_eeg = [ch_names.index(info_ch_names[c])
-               for c in sel_eeg if info_ch_names[c] in ch_names]
-    idx_mag = [ch_names.index(info_ch_names[c])
-               for c in sel_mag if info_ch_names[c] in ch_names]
-    idx_grad = [ch_names.index(info_ch_names[c])
-                for c in sel_grad if info_ch_names[c] in ch_names]
 
-    idx_names = [(idx_eeg, 'EEG covariance', 'uV', 1e6),
-                 (idx_grad, 'Gradiometers', 'fT/cm', 1e13),
-                 (idx_mag, 'Magnetometers', 'fT', 1e15)]
+    info_ch_names = info['ch_names']
+    idx_by_type = defaultdict(list)
+    for ch_type, sel in picks_by_type.items():
+        idx_by_type[ch_type] = [ch_names.index(info_ch_names[c])
+                                for c in sel if info_ch_names[c] in ch_names]
+
+    idx_names = [(idx_by_type['eeg'], 'EEG covariance', 'uV', 1e6),
+                 (idx_by_type['grad'], 'Gradiometers', 'fT/cm', 1e13),
+                 (idx_by_type['mag'], 'Magnetometers', 'fT', 1e15),
+                 (idx_by_type['seeg'], 'SEEG covariance', 'mV', 1e3),
+                 (idx_by_type['ecog'], 'ECoG covariance', 'uV', 1e6),
+                 ]
     idx_names = [(idx, name, unit, scaling)
                  for idx, name, unit, scaling in idx_names if len(idx) > 0]
 

@@ -18,7 +18,8 @@ from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
-                      _picks_by_type, _pick_data_channels)
+                      _picks_by_type, _pick_data_channels,
+                      _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
 from .io.meas_info import read_bad_channels, _simplify_info, create_info
@@ -503,6 +504,11 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
         'pca': {'iter_n_components': None},
         'factor_analysis': {'iter_n_components': None}
     }
+
+    for ch_type in _DATA_CH_TYPES_SPLIT:
+        if ch_type not in _method_params['diagonal_fixed']:
+            _method_params['diagonal_fixed'][ch_type] = 0.0
+
     if isinstance(method_params, dict):
         for key, values in method_params.items():
             if key not in _method_params:
