@@ -230,7 +230,6 @@ def test_io_set():
         assert_equal(raw.info['chs'][i]['ch_name'], ch_names[i])
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
                            np.array([np.nan, np.nan, np.nan]))
-    1 / 0  # BOOM!
 
 
 @testing.requires_testing_data
