@@ -229,7 +229,7 @@ def test_io_set():
     for i in range(3):
         assert_equal(raw.info['chs'][i]['ch_name'], ch_names[i])
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
-                           np.array([0., 0., 0.]))
+                           np.array([np.nan, np.nan, np.nan]))
 
 
 @testing.requires_testing_data
