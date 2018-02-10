@@ -1,7 +1,7 @@
 """
-================
- XDAWN Denoising
-================
+===============
+XDAWN Denoising
+===============
 
 XDAWN filters are trained from epochs, signal is projected in the sources
 space and then projected back in the sensor space using only the first two

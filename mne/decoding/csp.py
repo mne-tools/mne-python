@@ -56,7 +56,7 @@ class CSP(TransformerMixin, BaseEstimator):
         magnitude variations in the EEG between individuals. It is not applied
         in more recent work [2]_, [3]_ and can have a negative impact on
         patterns ordering.
-    method_params : dict | None
+    cov_method_params : dict | None
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
@@ -92,7 +92,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
                  transform_into='average_power', norm_trace=False,
-                 method_params=None):
+                 cov_method_params=None):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
@@ -126,7 +126,7 @@ class CSP(TransformerMixin, BaseEstimator):
         if not isinstance(norm_trace, bool):
             raise ValueError('norm_trace must be a bool.')
         self.norm_trace = norm_trace
-        self.method_params = method_params
+        self.cov_method_params = cov_method_params
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
@@ -169,14 +169,15 @@ class CSP(TransformerMixin, BaseEstimator):
                 class_ = np.transpose(X[y == this_class], [1, 0, 2])
                 class_ = class_.reshape(n_channels, -1)
                 cov = _regularized_covariance(
-                    class_, reg=self.reg, method_params=self.method_params)
+                    class_, reg=self.reg, method_params=self.cov_method_params)
                 weight = sum(y == this_class)
             elif self.cov_est == "epoch":
                 class_ = X[y == this_class]
                 cov = np.zeros((n_channels, n_channels))
                 for this_X in class_:
                     cov += _regularized_covariance(
-                        this_X, reg=self.reg, method_params=self.method_params)
+                        this_X, reg=self.reg,
+                        method_params=self.cov_method_params)
                 cov /= len(class_)
                 weight = len(class_)
 
@@ -694,7 +695,7 @@ class SPoC(CSP):
         If 'average_power' then self.transform will return the average power of
         each spatial filter. If 'csp_space' self.transform will return the data
         in CSP space. Defaults to 'average_power'.
-    method_params : dict | None
+    cov_method_params : dict | None
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
@@ -723,12 +724,12 @@ class SPoC(CSP):
     """
 
     def __init__(self, n_components=4, reg=None, log=None,
-                 transform_into='average_power', method_params=None):
+                 transform_into='average_power', cov_method_params=None):
         """Init of SPoC."""
         super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
                                    cov_est="epoch", norm_trace=False,
                                    transform_into=transform_into,
-                                   method_params=method_params)
+                                   cov_method_params=cov_method_params)
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
         # concatenation of all epochs from the same class.
@@ -771,7 +772,7 @@ class SPoC(CSP):
         covs = np.empty((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
             covs[ii] = _regularized_covariance(
-                epoch, reg=self.reg, method_params=self.method_params)
+                epoch, reg=self.reg, method_params=self.cov_method_params)
 
         C = covs.mean(0)
         Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)
