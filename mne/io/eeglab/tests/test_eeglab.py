@@ -228,8 +228,8 @@ def test_io_set():
     # test that channel names have been loaded but not channel positions
     for i in range(3):
         assert_equal(raw.info['chs'][i]['ch_name'], ch_names[i])
-        assert_array_equal(raw.info['chs'][i]['loc'][:3], [np.nan] * 3)
-
+        assert_array_equal(raw.info['chs'][i]['loc'][:3],
+                           np.array([np.nan, np.nan, np.nan]))
 
 @testing.requires_testing_data
 def test_degenerate():

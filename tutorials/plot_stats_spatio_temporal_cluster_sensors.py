@@ -95,7 +95,7 @@ plt.title('Between-sensor adjacency')
 # set cluster threshold
 threshold = 50.0  # very high, but the test is quite sensitive on this data
 # set family-wise p-value
-p_accept = 0.001
+p_accept = 0.01
 
 cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
                                              threshold=threshold, tail=1,

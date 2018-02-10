@@ -118,6 +118,8 @@ Bug
 
 - Fix bug in the ``mne make_scalp_surfaces`` command where ``--force`` (to bypass topology check failures) was ignored by `Eric Larson`_
 
+- Fix bug in :func:`mne.preprocessing.maxwell_filter` when providing ``origin`` in ``'meg'`` coordinate frame for recordings with a MEG to head transform (i.e., non empty-room recordings) by `Eric Larson`_
+
 API
 ~~~
 

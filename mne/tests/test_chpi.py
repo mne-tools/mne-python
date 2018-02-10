@@ -188,7 +188,8 @@ def test_calculate_chpi_positions():
     # something.
     raw_dec = _decimate_chpi(raw, 15)
     with catch_logging() as log:
-        py_quats = _calculate_chpi_positions(raw_dec, verbose='debug')
+        py_quats = _calculate_chpi_positions(raw_dec, t_step_max=1.,
+                                             verbose='debug')
     assert_true(log.getvalue().startswith('HPIFIT'))
     _assert_quats(py_quats, mf_quats, dist_tol=0.004, angle_tol=2.5)
 
@@ -196,7 +197,7 @@ def test_calculate_chpi_positions():
     raw_no_chpi = read_raw_fif(test_fif_fname)
     assert_raises(RuntimeError, _calculate_chpi_positions, raw_no_chpi)
     raw_bad = raw.copy()
-    raw_bad.info['hpi_subsystem'] = None
+    del raw_bad.info['hpi_meas'][0]['hpi_coils'][0]['coil_freq']
     assert_raises(RuntimeError, _calculate_chpi_positions, raw_bad)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:

@@ -427,6 +427,14 @@ def test_basic():
                 for x in [raw_sss, sss_erm_std]]
         assert_equal(vals[0], vals[1])
 
+    # Two equivalent things: at device origin in device coords (0., 0., 0.)
+    # and at device origin at head coords info['dev_head_t'][:3, 3]
+    raw_sss_meg = maxwell_filter(
+        raw, coord_frame='meg', origin=(0., 0., 0.))
+    raw_sss_head = maxwell_filter(
+        raw, origin=raw.info['dev_head_t']['trans'][:3, 3])
+    assert_meg_snr(raw_sss_meg, raw_sss_head, 100., 900.)
+
     # Check against SSS functions from proc_history
     sss_info = raw_sss.info['proc_history'][0]['max_info']
     assert_equal(_get_n_moments(int_order),
