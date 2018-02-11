@@ -24,6 +24,7 @@ from mne.externals.six import iterbytes
 from mne.utils import run_tests_if_main, requires_pandas, _TempDir
 from mne.io import read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.io.pick import channel_type
 from mne.io.edf.edf import _parse_tal_channel, find_edf_events
 from mne.event import find_events
 
@@ -72,6 +73,12 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][0]['loc']).any())
     assert_true((raw_py.info['chs'][25]['loc']).any())
     assert_true((raw_py.info['chs'][63]['loc']).any())
+
+
+def test_bdf_stim_channel():
+    """Test if last channel is detected as STIM by default."""
+    raw_py = _test_raw_reader(read_raw_edf, input_fname=bdf_path)
+    assert_true(channel_type(raw_py.info, raw_py.info["nchan"] - 1) == 'stim')
 
 
 @testing.requires_testing_data
@@ -244,6 +251,10 @@ def test_edf_annotations():
 
 def test_edf_stim_channel():
     """Test stim channel for edf file."""
+    # test if stim channel is automatically detected
+    raw = read_raw_edf(edf_path, preload=True)
+    assert_true(channel_type(raw.info, raw.info["nchan"] - 1) == 'stim')
+
     raw = read_raw_edf(edf_stim_channel_path, preload=True,
                        stim_channel=-1)
     true_data = np.loadtxt(edf_txt_stim_channel_path).T
