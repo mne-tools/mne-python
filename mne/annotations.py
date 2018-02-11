@@ -333,9 +333,9 @@ def read_brainstorm_annotations(fname, orig_time=None):
         n_annot = len(times[0])
         descriptions += [str(label[0])] * n_annot
 
-    return Annotations(onsets=np.concatenate(onsets),
-                       durations=np.concatenate(durations),
-                       descriptions=descriptions,
+    return Annotations(onset=np.concatenate(onsets),
+                       duration=np.concatenate(durations),
+                       description=descriptions,
                        orig_time=orig_time)
 
 
