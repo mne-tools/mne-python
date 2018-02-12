@@ -622,6 +622,11 @@ def test_compute_covariance_auto_reg():
 
     assert_equal(set([c['method'] for c in cov3]), set(methods))
 
+    cov4 = compute_covariance(epochs, method=methods,
+                              method_params=method_params, projs=None,
+                              return_estimators=False)
+    assert cov3[0]['method'] == cov4['method']  # ordering
+
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')
 

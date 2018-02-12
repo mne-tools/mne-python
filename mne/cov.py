@@ -836,21 +836,17 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         # add extra info
         cov.update(method=this_method, **data)
         covs.append(cov)
+    covs.sort(key=lambda c: c['loglik'], reverse=True)
 
     if len(covs) > 1:
         msg = ['log-likelihood on unseen data (descending order):']
-        logliks = [(c['method'], c['loglik']) for c in covs]
-        logliks.sort(reverse=True, key=lambda c: c[1])
-        for k, v in logliks:
-            msg.append('%s: %0.3f' % (k, v))
+        for c in covs:
+            msg.append('%s: %0.3f' % (c['method'], c['loglik']))
         logger.info('\n   '.join(msg))
-
-    if len(covs) > 1:
         if return_estimators:
             out = covs
-            out.sort(key=lambda c: c['loglik'], reverse=True)
         else:
-            out = sorted(covs, lambda c: c['loglik'])[-1]
+            out = covs[0]
             logger.info('selecting best estimator: {0}'.format(out['method']))
     else:
         out = covs[0]
