@@ -4,7 +4,7 @@
 Computing covariance matrix
 ===========================
 
-Many methods in MNE, including e.g. source estimation and some classification
+Many methods in MNE, including source estimation and some classification
 algorithms, require covariance estimations from the recordings.
 In this tutorial we cover the basics of sensor covariance computations and
 construct a noise covariance matrix that can be used when computing the
