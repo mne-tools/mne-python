@@ -254,25 +254,35 @@ def _triangle_coords(r, geom, best):
     return x, y, z
 
 
-def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False):
+def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
+                          method='accurate'):
     """Project points onto (scalp) surface."""
     surf_geom = _get_tri_supp_geom(surf)
     coords = np.empty((len(rrs), 3))
     tri_idx = np.empty((len(rrs),), int)
-    for ri, rr in enumerate(rrs):
-        # Get index of closest tri on scalp BEM to electrode position
-        tri_idx[ri] = _find_nearest_tri_pt(rr, surf_geom)[2]
-        # Calculate a linear interpolation between the vertex values to
-        # get coords of pt projected onto closest triangle
-        coords[ri] = _triangle_coords(rr, surf_geom, tri_idx[ri])
-    weights = np.array([1. - coords[:, 0] - coords[:, 1], coords[:, 0],
-                       coords[:, 1]])
-    out = (weights, tri_idx)
-    if project_rrs:  #
-        out += (einsum('ij,jik->jk', weights,
-                       surf['rr'][surf['tris'][tri_idx]]),)
-    if return_nn:
-        out += (surf_geom['nn'][tri_idx],)
+    if method == 'accurate':
+        for ri, rr in enumerate(rrs):
+            # Get index of closest tri on scalp BEM to electrode position
+            tri_idx[ri] = _find_nearest_tri_pt(rr, surf_geom)[2]
+            # Calculate a linear interpolation between the vertex values to
+            # get coords of pt projected onto closest triangle
+            coords[ri] = _triangle_coords(rr, surf_geom, tri_idx[ri])
+        weights = np.array([1. - coords[:, 0] - coords[:, 1], coords[:, 0],
+                           coords[:, 1]])
+        out = (weights, tri_idx)
+        if project_rrs:  #
+            out += (einsum('ij,jik->jk', weights,
+                           surf['rr'][surf['tris'][tri_idx]]),)
+        if return_nn:
+            out += (surf_geom['nn'][tri_idx],)
+    else:  # nearest neighbor
+        assert project_rrs
+        idx = _compute_nearest(surf['rr'], rrs)
+        out = (None, None, surf['rr'][idx])
+        if return_nn:
+            nn = _accumulate_normals(surf['tris'], surf_geom['nn'],
+                                     len(surf['rr']))
+            out += (nn[idx],)
     return out
 
 
@@ -980,7 +990,9 @@ def _get_tri_supp_geom(surf):
     b = einsum('ij,ij->i', r13, r13)
     c = einsum('ij,ij->i', r12, r13)
     mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
-    mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
+    norm = (a * b - c * c)
+    norm[norm == 0] = 1.  # avoid divide by zero
+    mat /= norm[:, np.newaxis, np.newaxis]
     nn = fast_cross_3d(r12, r13)
     _normalize_vectors(nn)
     return dict(r1=r1, r12=r12, r13=r13, r1213=r1213,

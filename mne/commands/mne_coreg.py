@@ -6,6 +6,7 @@
 example usage:  $ mne coreg
 """
 
+import os.path as op
 import sys
 
 import mne
@@ -45,6 +46,9 @@ def run():
                       help="Use a low-resolution head surface.")
     parser.add_option('--trans', dest='trans', default=None,
                       help='Head<->MRI transform FIF file ("-trans.fif")')
+    parser.add_option('--project-eeg', dest='project_eeg',
+                      action='store_true', default=False,
+                      help="Project EEG electrodes to the head surface")
     parser.add_option('--verbose', action='store_true', dest='verbose',
                       help='Turn on verbose mode.')
 
@@ -61,18 +65,17 @@ def run():
         head_high_res = None
 
     with ETSContext():
-        mne.gui.coregistration(options.tabbed,
-                               inst=options.inst,
-                               subject=options.subject,
-                               subjects_dir=options.subjects_dir,
-                               guess_mri_subject=options.guess_mri_subject,
-                               head_opacity=options.head_opacity,
-                               head_high_res=head_high_res,
-                               trans=options.trans,
-                               scrollable=True,
-                               verbose=options.verbose)
+        # expanduser allows ~ for --subjects-dir
+        mne.gui.coregistration(
+            options.tabbed, inst=options.inst, subject=options.subject,
+            subjects_dir=op.expanduser(options.subjects_dir),
+            guess_mri_subject=options.guess_mri_subject,
+            head_opacity=options.head_opacity, head_high_res=head_high_res,
+            trans=op.expanduser(options.trans), scrollable=True,
+            project_eeg=options.project_eeg, verbose=options.verbose)
     if is_main:
         sys.exit(0)
+
 
 is_main = (__name__ == '__main__')
 if is_main:
