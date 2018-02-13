@@ -164,7 +164,6 @@ class Object(HasPrivateTraits):
             pts = self.points
 
         # Do the projection if required
-        nn = None
         if self.project_to_surface and len(self.project_to_points) > 1:
             surf = dict(rr=np.array(self.project_to_points),
                         tris=np.array(self.project_to_tris))
@@ -172,8 +171,8 @@ class Object(HasPrivateTraits):
             pts, nn = _project_onto_surface(
                     pts, surf, project_rrs=True, return_nn=True,
                     method=method)[2:4]
+            self.src.data.point_data.normals = nn
         self.src.data.points = pts
-        self.src.data.point_data.normals = nn
         self.src.data.point_data.update()
         return True
 
