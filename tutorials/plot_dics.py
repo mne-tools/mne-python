@@ -27,6 +27,7 @@ from mayavi import mlab
 from matplotlib import pyplot as plt
 
 import mne
+from mne.simulation import simulate_raw
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.time_frequency import csd_epochs
@@ -42,8 +43,12 @@ mri_path = op.join(subjects_dir, 'sample')
 
 # Filenames for various files we'll be using
 meg_path = op.join(data_path, 'MEG', 'sample')
+raw_fname = op.join(meg_path, 'sample_audvis_raw.fif')
 trans_fname = op.join(meg_path, 'sample_audvis_raw-trans.fif')
+src_fname = op.join(mri_path, 'bem/sample-oct-6-src.fif')
+bem_fname = op.join(mri_path, 'bem/sample-5120-5120-5120-bem-sol.fif')
 fwd_fname = op.join(meg_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
+cov_fname = op.join(meg_path, 'sample_audvis-cov.fif')
 
 # Seed for the random number generator
 rand = np.random.RandomState(42)
@@ -81,7 +86,9 @@ def coh_signal_gen():
 
     # Add some random fluctuations to the signal.
     signal += std * rand.randn(n_times)
-    signal *= 1e-7
+
+    # Scale the signal to be in the right order of magnitude
+    signal *= 5e-7
 
     return signal
 
@@ -124,16 +131,25 @@ fig.tight_layout()
 ###############################################################################
 # Now we put the signals at two locations on the cortex. We construct a
 # :class:`mne.SourceEstimate` object to store them in.
+# 
+# The timeseries will have a part where the signal is active and a part where
+# it is not. The techniques we'll be using in this tutorial depend on being
+# able to contrast data that contains the signal of interest versus data that
+# does not (i.e. it contains only noise).
 
 # The locations on the cortex where the signal will originate from. These
 # locations are indicated as vertex numbers.
 source_vert1 = 146374
 source_vert2 = 33830
 
+# The timeseries at each vertex: one part signal, one part silence
+timeseries1 = np.hstack([signal1, np.zeros_like(signal1)])
+timeseries2 = np.hstack([signal2, np.zeros_like(signal2)])
+
 # Construct a SourceEstimate object that describes the signal at the cortical
 # level.
 stc = mne.SourceEstimate(
-    np.vstack((signal1, signal2)),  # The two signals
+    np.vstack((timeseries1, timeseries2)),  # The two timeseries
     vertices=[[source_vert1], [source_vert2]],  # Their locations
     tmin=0,
     tstep=1. / sfreq,
@@ -150,50 +166,31 @@ snr = 1  # Signal-to-noise ratio. Decrease to add more noise.
 # Now we run the signal through the forward model to obtain simulated sensor
 # data. To save computation time, we'll only simulate gradiometer data. You can
 # try simulating other types of sensors as well.
+#
+# Some noise is added based on the noise covariance matrix from the sample
+# dataset.
 
-# Load the forward model
-fwd = mne.read_forward_solution(fwd_fname)
+# This is the raw file we're going to use as template for the simulated data.
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = raw.crop(0, 20).resample(sfreq)  # Trim to 20 seconds at 50 Hz.
+raw = raw.pick_types(meg='grad')  # Use only gradiometers
 
-# Use only gradiometers
-fwd = mne.pick_types_forward(fwd, meg='grad', eeg=False, exclude='bads')
-
-# Create an info object that holds information about the sensors (their
-# location, etc.).
-info = mne.create_info(fwd['info']['ch_names'], sfreq, ch_types='grad')
-info.update(fwd['info'])
-
-# To simulate the data, we need a version of the forward solution where each
-# source has a "fixed" orientation, i.e. pointing orthogonally to the surface
-# of the cortex.
-fwd_fixed = mne.convert_forward_solution(fwd, force_fixed=True)
-
-# Now we can run our simulated signal through the forward model, obtaining
-# simulated sensor data.
-sensor_data = mne.apply_forward_raw(fwd_fixed, stc, info).get_data()
-
-# We're going to add some noise to the sensor data
-noise = rand.randn(*sensor_data.shape)
-
-# Scale the noise to be in the ballpark of MEG data
-noise_scaling = np.linalg.norm(sensor_data) / np.linalg.norm(noise)
-noise *= noise_scaling
-
-# Mix noise and signal with the given signal-to-noise ratio.
-sensor_data = snr * sensor_data + noise
+# Simulate the raw data 
+raw = simulate_raw(raw, stc, trans=trans_fname, src=src_fname, bem=bem_fname,
+                   cov=cov_fname)
 
 ###############################################################################
-# We create an :class:`mne.EpochsArray` object containing two trials: one with
-# just noise and one with both noise and signal. The techniques we'll be
-# using in this tutorial depend on being able to contrast data that contains
-# the signal of interest versus data that does not.
-epochs = mne.EpochsArray(
-    data=np.concatenate(
-        (noise[np.newaxis, :, :],
-         sensor_data[np.newaxis, :, :]),
-        axis=0),
-    info=info,
-    events=np.array([[0, 0, 1], [10, 0, 2]]),
-    event_id=dict(noise=1, signal=2),
+# We create an :class:`mne.Epochs` object containing two trials: one with
+# both noise and signal and one with just noise
+
+t0 = raw.first_samp  # First sample int the data
+t10 = t0 + int(10 * sfreq) - 1  # Sample just before the 10 second mark
+epochs = mne.Epochs(
+    raw,
+    events=np.array([[t0, 0, 1], [t10, 0, 2]]),
+    event_id=dict(signal=1, noise=2),
+    tmin=0, tmax=10,
+    preload=True,
 )
 
 # Plot the simulated data
@@ -214,7 +211,8 @@ epochs.plot()
 # Computing the inverse using MNE-dSPM:
 
 # Estimating the noise covariance on the trial that only contains noise.
-cov = mne.compute_covariance(epochs['noise'])
+cov = mne.read_cov(cov_fname)
+fwd = mne.read_forward_solution(fwd_fname)
 inv = make_inverse_operator(epochs.info, fwd, cov)
 
 # Apply the inverse model to the trial that also contains the signal.
@@ -244,8 +242,9 @@ mlab.title('MNE-dSPM inverse (RMS)', height=0.9)
 # signal.
 csd_signal = csd_epochs(epochs['signal'], mode='cwt_morlet', frequencies=[10])
 
-# Compute the DICS powermap.
-filters = make_dics(epochs.info, fwd, csd_signal, reg=0.05,
+# Compute the DICS powermap. An important parameter for this is the
+# regularization, which is set quite high for this toy example.
+filters = make_dics(epochs.info, fwd, csd_signal, reg=0.2,
                     pick_ori='max-power')
 power, f = apply_dics_csd(csd_signal, filters)
 
