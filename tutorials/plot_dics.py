@@ -131,7 +131,7 @@ fig.tight_layout()
 ###############################################################################
 # Now we put the signals at two locations on the cortex. We construct a
 # :class:`mne.SourceEstimate` object to store them in.
-# 
+#
 # The timeseries will have a part where the signal is active and a part where
 # it is not. The techniques we'll be using in this tutorial depend on being
 # able to contrast data that contains the signal of interest versus data that
@@ -175,7 +175,7 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw = raw.crop(0, 20).resample(sfreq)  # Trim to 20 seconds at 50 Hz.
 raw = raw.pick_types(meg='grad')  # Use only gradiometers
 
-# Simulate the raw data 
+# Simulate the raw data
 raw = simulate_raw(raw, stc, trans=trans_fname, src=src_fname, bem=bem_fname,
                    cov=cov_fname)
 
