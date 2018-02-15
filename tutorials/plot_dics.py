@@ -169,7 +169,7 @@ snr = 1.  # Signal-to-noise ratio. Decrease to add more noise.
 # sample dataset, scaled to implement the desired SNR.
 
 cov = mne.read_cov(cov_fname)
-cov['data'] /= np.sqrt(snr)
+cov['data'] /= snr ** 2
 
 # This is the raw file we're going to use as template for the simulated data.
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
