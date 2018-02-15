@@ -169,8 +169,8 @@ class Object(HasPrivateTraits):
                         tris=np.array(self.project_to_tris))
             method = 'accurate' if len(surf['rr']) <= 20484 else 'nearest'
             pts, nn = _project_onto_surface(
-                    pts, surf, project_rrs=True, return_nn=True,
-                    method=method)[2:4]
+                pts, surf, project_rrs=True, return_nn=True,
+                method=method)[2:4]
             self.src.data.point_data.normals = nn
         self.src.data.points = pts
         self.src.data.point_data.update()
