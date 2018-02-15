@@ -177,7 +177,8 @@ raw = raw.crop(0, 20).resample(sfreq)  # Trim to 20 seconds at 50 Hz.
 raw = raw.pick_types(meg='grad')  # Use only gradiometers
 
 # Simulate the raw data
-raw = simulate_raw(raw, stc, trans_fname, src_fname, bem_fname, cov=cov)
+raw = simulate_raw(raw, stc, trans_fname, src_fname, bem_fname, cov=cov,
+                   random_state=rand)
 
 ###############################################################################
 # We create an :class:`mne.Epochs` object containing two trials: one with
