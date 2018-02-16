@@ -76,6 +76,8 @@ Changelog
 Bug
 ~~~
 
+- Fix bug in :func:`mne.viz.plot_cov` to add colorbar to covariance plots by `Nathalie Gayraud`_ and `Alex Gramfort`_
+
 - Fix bug in :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` to allow :func:`mne.decoding.cross_val_multiscore` to automatically detect whether the `base_estimator` is a classifier and use a `StratifiedKFold` instead of a `KFold` when `cv` is not specified, by `Jean-Remi King`_
 
 - Fix bug in :func:`mne.set_eeg_reference` to remove an average reference projector when setting the reference to ``[]`` (i.e. do not change the existing reference) by `Clemens Brunner`_
@@ -2568,3 +2570,5 @@ of commits):
 .. _Alejandro Weinstein: http://ocam.cl
 
 .. _Emily Stephen: http://github.com/emilyps14
+
+.. _Nathalie Gayraud: https://github.com/ngayraud
