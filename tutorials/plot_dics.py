@@ -87,8 +87,9 @@ def coh_signal_gen():
     # Add some random fluctuations to the signal.
     signal += std * rand.randn(n_times)
 
-    # Scale the signal to be in the right order of magnitude
-    signal *= 5e-7
+    # Scale the signal to be in the right order of magnitude (~500 nAm)
+    # to achieve a SNR of 1 with our noise covariance matrix.
+    signal *= 500e-9
 
     return signal
 
@@ -102,30 +103,27 @@ fig, axes = plt.subplots(2, 2, figsize=(8, 4))
 
 # Plot the timeseries
 ax = axes[0][0]
-ax.plot(times, signal1)
-ax.set_xlabel('Time (s)')
-ax.set_title('Signal 1')
+ax.plot(times, 1e9 * signal1, lw=0.5)
+ax.set(xlabel='Time (s)', xlim=times[[0, -1]], ylabel='Amplitude (Am)',
+       title='Signal 1')
 ax = axes[0][1]
-ax.plot(times, signal2)
-ax.set_xlabel('Time (s)')
-ax.set_title('Signal 2')
+ax.plot(times, 1e9 * signal2, lw=0.5)
+ax.set(xlabel='Time (s)', xlim=times[[0, -1]], title='Signal 2')
 
 # Power spectrum of the first timeseries
 f, p = welch(signal1, fs=sfreq, nperseg=128, nfft=256)
 ax = axes[1][0]
-ax.plot(f[:100], p[:100])  # Only plot the first 30 frequencies
-ax.set_xlabel('Frequency (Hz)')
-ax.set_ylabel('Power')
-ax.set_title('Power spectrum of signal 1')
+# Only plot the first 100 frequencies
+ax.plot(f[:100], 20 * np.log10(p[:100]), lw=1.)
+ax.set(xlabel='Frequency (Hz)', xlim=f[[0, 99]],
+       ylabel='Power (dB)', title='Power spectrum of signal 1')
 
 # Compute the coherence between the two timeseries
 f, coh = coherence(signal1, signal2, fs=sfreq, nperseg=100, noverlap=64)
 ax = axes[1][1]
-ax.plot(f[:50], coh[:50])
-ax.set_xlabel('Frequency (Hz)')
-ax.set_ylabel('Coherence')
-ax.set_title('Coherence between the timeseries')
-
+ax.plot(f[:50], coh[:50], lw=1.)
+ax.set(xlabel='Frequency (Hz)', xlim=f[[0, 49]], ylabel='Coherence',
+       title='Coherence between the timeseries')
 fig.tight_layout()
 
 ###############################################################################
@@ -160,15 +158,18 @@ stc = mne.SourceEstimate(
 # Before we simulate the sensor-level data, let's define a signal-to-noise
 # ratio. You are encouraged to play with this parameter and see the effect of
 # noise on our results.
-snr = 1  # Signal-to-noise ratio. Decrease to add more noise.
+snr = 1.  # Signal-to-noise ratio. Decrease to add more noise.
 
 ###############################################################################
 # Now we run the signal through the forward model to obtain simulated sensor
 # data. To save computation time, we'll only simulate gradiometer data. You can
 # try simulating other types of sensors as well.
 #
-# Some noise is added based on the noise covariance matrix from the sample
-# dataset.
+# Some noise is added based on the baseline noise covariance matrix from the
+# sample dataset, scaled to implement the desired SNR.
+
+cov = mne.read_cov(cov_fname)
+cov['data'] /= snr ** 2
 
 # This is the raw file we're going to use as template for the simulated data.
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
@@ -176,8 +177,8 @@ raw = raw.crop(0, 20).resample(sfreq)  # Trim to 20 seconds at 50 Hz.
 raw = raw.pick_types(meg='grad')  # Use only gradiometers
 
 # Simulate the raw data
-raw = simulate_raw(raw, stc, trans=trans_fname, src=src_fname, bem=bem_fname,
-                   cov=cov_fname)
+raw = simulate_raw(raw, stc, trans_fname, src_fname, bem_fname, cov=cov,
+                   random_state=rand)
 
 ###############################################################################
 # We create an :class:`mne.Epochs` object containing two trials: one with
@@ -211,7 +212,6 @@ epochs.plot()
 # Computing the inverse using MNE-dSPM:
 
 # Estimating the noise covariance on the trial that only contains noise.
-cov = mne.read_cov(cov_fname)
 fwd = mne.read_forward_solution(fwd_fname)
 inv = make_inverse_operator(epochs.info, fwd, cov)
 
