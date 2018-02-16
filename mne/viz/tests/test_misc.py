@@ -85,7 +85,7 @@ def test_plot_cov():
     raw = _get_raw()
     cov = read_cov(cov_fname)
     with warnings.catch_warnings(record=True):  # bad proj
-        cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
+        fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
 
 
 @testing.requires_testing_data

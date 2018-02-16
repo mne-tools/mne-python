@@ -60,8 +60,9 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     Returns
     -------
     fig_cov : instance of matplotlib.pyplot.Figure
-        The covariance plot and SVD spectra plot of the covariance if
-        show_svd=True.
+        The covariance plot
+    fig_svd : instance of matplotlib.pyplot.Figure | None
+        The SVD spectra plot of the covariance.
     """
     if exclude == 'bads':
         exclude = info['bads']
@@ -107,11 +108,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
     import matplotlib.pyplot as plt
 
-    n_subplot_rows = 2 if show_svd else 1
-
-    fig_cov, axes = plt.subplots(n_subplot_rows, len(idx_names), squeeze=False,
-                                 figsize=(3.8 * len(idx_names),
-                                          3.7 * n_subplot_rows))
+    fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
+                                 figsize=(3.8 * len(idx_names), 3.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
         im = axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
                                cmap='RdBu_r')
@@ -126,19 +124,23 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
 
+    fig_svd = None
     if show_svd:
+        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False,
+                                     figsize=(3.8 * len(idx_names), 3.7))
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
             # Protect against true zero singular values
             s[s <= 0] = 1e-10 * s[s > 0].min()
             s = np.sqrt(s) * scaling
-            axes[1, k].plot(s)
-            axes[1, k].set(ylabel='Noise std (%s)' % unit, yscale='log',
+            axes[0, k].plot(s)
+            axes[0, k].set(ylabel='Noise std (%s)' % unit, yscale='log',
                            xlabel='Eigenvalue index')
     tight_layout(fig=fig_cov)
 
     plt_show(show)
-    return fig_cov
+
+    return fig_cov, fig_svd
 
 
 def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
