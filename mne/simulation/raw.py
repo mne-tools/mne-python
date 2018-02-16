@@ -185,7 +185,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     if not isinstance(stc, _BaseSourceEstimate):
         raise TypeError('stc must be a SourceEstimate')
     if not np.allclose(info['sfreq'], 1. / stc.tstep):
-        raise ValueError('stc and info must have same sample rate')
+        raise ValueError('stc (%s) and info (%s) must have same sample rate'
+                         % (1. / stc.tstep, info['sfreq']))
     if len(stc.times) <= 2:  # to ensure event encoding works
         raise ValueError('stc must have at least three time points')
 
