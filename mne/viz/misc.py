@@ -135,8 +135,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             s = np.sqrt(s) * scaling
             axes[0, k].plot(s)
             axes[0, k].set(ylabel='Noise std (%s)' % unit, yscale='log',
-                           xlabel='Eigenvalue index')
-    tight_layout(fig=fig_cov)
+                           xlabel='Eigenvalue index', title=name)
+        tight_layout(fig=fig_svd)
 
     plt_show(show)
 
