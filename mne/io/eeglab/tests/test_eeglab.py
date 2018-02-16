@@ -231,6 +231,7 @@ def test_io_set():
         assert_array_equal(raw.info['chs'][i]['loc'][:3],
                            np.array([np.nan, np.nan, np.nan]))
 
+
 @testing.requires_testing_data
 def test_degenerate():
     """Test some degenerate conditions."""
