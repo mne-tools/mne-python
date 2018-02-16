@@ -107,11 +107,14 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
                         'channels.')
 
     import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
 
     fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
                                  figsize=(3.8 * len(idx_names), 3.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
+        vlim = np.max(np.abs(C[idx][:, idx]))
         im = axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
+                               norm=Normalize(vmin=-vlim, vmax=vlim),
                                cmap='RdBu_r')
         axes[0, k].set(title=name)
 
