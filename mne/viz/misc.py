@@ -60,7 +60,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     Returns
     -------
     fig_cov : instance of matplotlib.pyplot.Figure
-        The covariance plot
+        The covariance plot.
     fig_svd : instance of matplotlib.pyplot.Figure | None
         The SVD spectra plot of the covariance.
     """
