@@ -391,8 +391,10 @@ class DigSource(HasPrivateTraits):
     @cached_property
     def _get_eeg_points(self):
         if self._info:
-            return np.array([d['r'] for d in self._info['dig'] if
-                             d['kind'] == FIFF.FIFFV_POINT_EEG])
+            out = [d['r'] for d in self._info['dig'] if
+                   d['kind'] == FIFF.FIFFV_POINT_EEG]
+            out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+            return out
         else:
             return np.empty((0, 3))
 
