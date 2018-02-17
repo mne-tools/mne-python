@@ -138,6 +138,12 @@ def test_read_brainstorm_annotations():
     assert annot.onset.min() > 40  # takes into account first_samp
     assert np.unique(annot.description).size == 5
 
+    # Now test with orig_time
+    orig_time = np.array([1038942070, 720100], dtype=np.int32)
+    annot = read_brainstorm_annotations(fname, orig_time=orig_time)
+    orig_time_as_scalar = orig_time[0] + orig_time[1] / 1000000.
+    assert annot.orig_time == orig_time_as_scalar
+
 
 @testing.requires_testing_data
 def test_raw_reject():
