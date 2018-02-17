@@ -1367,7 +1367,10 @@ def _get_extra_data_path(home_dir=None):
     if home_dir is None:
         # this has been checked on OSX64, Linux64, and Win32
         if 'nt' == os.name.lower():
-            home_dir = os.getenv('USERPROFILE')
+            if op.isdir(op.join(os.getenv('APPDATA'), '.mne')):
+                home_dir = os.getenv('APPDATA')
+            else:
+                home_dir = os.getenv('USERPROFILE')
         else:
             # This is a more robust way of getting the user's home folder on
             # Linux platforms (not sure about OSX, Unix or BSD) than checking
