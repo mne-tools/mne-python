@@ -231,7 +231,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
         J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
         applied and projected (RAP) MUSIC. Signal Processing, IEEE Trans. 47, 2
         (February 1999), 332-340.
-        DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
+        DOI=10.1109/78.740118 https://doi.org/10.1109/78.740118
 
         Mosher, J.C.; Leahy, R.M., EEG and MEG source localization using
         recursively applied (RAP) MUSIC, Signals, Systems and Computers, 1996.

@@ -11,7 +11,7 @@ References
 ----------
 .. [1] Khan S, Cohen D (2013). Note: Magnetic noise from the inner wall of
    a magnetically shielded room. Review of Scientific Instruments 84:56101.
-   http://dx.doi.org/10.1063/1.4802845
+   https://doi.org/10.1063/1.4802845
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
