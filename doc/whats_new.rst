@@ -120,6 +120,9 @@ Bug
 
 - Fix bug in :func:`mne.preprocessing.maxwell_filter` when providing ``origin`` in ``'meg'`` coordinate frame for recordings with a MEG to head transform (i.e., non empty-room recordings) by `Eric Larson`_
 
+- Fix bug in :func:`mne.viz.plot_cov` that ignored ``colorbar`` argument by `Nathalie Gayraud`_
+
+
 API
 ~~~
 
@@ -2568,3 +2571,5 @@ of commits):
 .. _Alejandro Weinstein: http://ocam.cl
 
 .. _Emily Stephen: http://github.com/emilyps14
+
+.. _Nathalie Gayraud: https://github.com/ngayraud

@@ -107,19 +107,30 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
                         'channels.')
 
     import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
 
     fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
-                                 figsize=(2.5 * len(idx_names), 2.7))
+                                 figsize=(3.8 * len(idx_names), 3.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
-        axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
-                          cmap='RdBu_r')
+        vlim = np.max(np.abs(C[idx][:, idx]))
+        im = axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
+                               norm=Normalize(vmin=-vlim, vmax=vlim),
+                               cmap='RdBu_r')
         axes[0, k].set(title=name)
+
+        if colorbar:
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(axes[0, k])
+            cax = divider.append_axes("right", size="5.5%", pad=0.05)
+            plt.colorbar(im, cax=cax, format='%.0e')
+
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
 
     fig_svd = None
     if show_svd:
-        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False)
+        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False,
+                                     figsize=(3.8 * len(idx_names), 3.7))
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
             # Protect against true zero singular values
@@ -131,6 +142,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         tight_layout(fig=fig_svd)
 
     plt_show(show)
+
     return fig_cov, fig_svd
 
 
