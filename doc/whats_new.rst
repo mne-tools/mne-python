@@ -76,8 +76,6 @@ Changelog
 Bug
 ~~~
 
-- Fix bug in :func:`mne.viz.plot_cov` to add colorbar to covariance plots by `Nathalie Gayraud`_ and `Alex Gramfort`_
-
 - Fix bug in :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` to allow :func:`mne.decoding.cross_val_multiscore` to automatically detect whether the `base_estimator` is a classifier and use a `StratifiedKFold` instead of a `KFold` when `cv` is not specified, by `Jean-Remi King`_
 
 - Fix bug in :func:`mne.set_eeg_reference` to remove an average reference projector when setting the reference to ``[]`` (i.e. do not change the existing reference) by `Clemens Brunner`_
@@ -121,6 +119,9 @@ Bug
 - Fix bug in the ``mne make_scalp_surfaces`` command where ``--force`` (to bypass topology check failures) was ignored by `Eric Larson`_
 
 - Fix bug in :func:`mne.preprocessing.maxwell_filter` when providing ``origin`` in ``'meg'`` coordinate frame for recordings with a MEG to head transform (i.e., non empty-room recordings) by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_cov` that ignored ``colorbar`` argument by `Nathalie Gayraud`_
+
 
 API
 ~~~
