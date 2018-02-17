@@ -309,8 +309,14 @@ def read_brainstorm_annotations(fname, orig_time=None):
     ----------
     fname : str
         The filename
-    orig_time : meas_date
-        The 0 timestamp
+    orig_time : float | int | instance of datetime | array of int | None
+        A POSIX Timestamp, datetime or an array containing the timestamp as the
+        first element and microseconds as the second element. Determines the
+        starting time of annotation acquisition. If None (default),
+        starting time is determined from beginning of raw data acquisition.
+        In general, ``raw.info['meas_date']`` (or None) can be used for syncing
+        the annotations with raw data if their acquisiton is started at the
+        same time.
 
     Returns
     -------
