@@ -302,6 +302,49 @@ def read_annotations(fname):
     return annotations
 
 
+def read_brainstorm_annotations(fname, orig_time=None):
+    """Read annotations from a Brainstorm events_ file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename
+    orig_time : float | int | instance of datetime | array of int | None
+        A POSIX Timestamp, datetime or an array containing the timestamp as the
+        first element and microseconds as the second element. Determines the
+        starting time of annotation acquisition. If None (default),
+        starting time is determined from beginning of raw data acquisition.
+        In general, ``raw.info['meas_date']`` (or None) can be used for syncing
+        the annotations with raw data if their acquisiton is started at the
+        same time.
+
+    Returns
+    -------
+    annot : instance of Annotations | None
+        The annotations.
+    """
+    from scipy import io
+
+    def get_duration_from_times(t):
+        if t.shape[0] == 2:
+            return t[1] - t[0]
+        else:
+            return np.zeros(len(t[0]))
+
+    annot_data = io.loadmat(fname)
+    onsets, durations, descriptions = (list(), list(), list())
+    for label, _, _, _, times, _, _ in annot_data['events'][0]:
+        onsets.append(times[0])
+        durations.append(get_duration_from_times(times))
+        n_annot = len(times[0])
+        descriptions += [str(label[0])] * n_annot
+
+    return Annotations(onset=np.concatenate(onsets),
+                       duration=np.concatenate(durations),
+                       description=descriptions,
+                       orig_time=orig_time)
+
+
 def _read_annotations(fid, tree):
     """Read annotations."""
     annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)

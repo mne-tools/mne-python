@@ -73,6 +73,8 @@ Changelog
 
 - Add ability to exclude components interactively by clicking on their labels in :meth:`mne.preprocessing.ICA.plot_components` by `Mikołaj Magnuski`_
 
+- Add reader for manual annotations of raw data produced by Brainstorm by `Anne-Sophie Dubarry`_
+
 Bug
 ~~~
 
@@ -2573,3 +2575,5 @@ of commits):
 .. _Emily Stephen: http://github.com/emilyps14
 
 .. _Nathalie Gayraud: https://github.com/ngayraud
+
+.. _Anne-Sophie Dubarry: https://github.com/annesodub
