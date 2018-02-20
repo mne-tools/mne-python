@@ -163,7 +163,7 @@ def test_make_dics():
     assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
     assert filters['mode'] == 'scalar'
-    assert not filters['normalize_leadfield']
+    assert not filters['normalize_fwd']
     assert filters['weight_norm'] == 'unit-noise-gain'
     _test_weight_norm(filters)
 
@@ -187,7 +187,7 @@ def test_make_dics():
     assert not np.iscomplexobj(filters['weights'])
     _test_weight_norm(filters)
 
-    # Test leadfield normalization. In 'vector' mode, the power of a
+    # Test forward normalization. In 'vector' mode, the power of a
     # unit-noise CSD should be 1, even without weight normalization.
     csd_noise = csd.copy()
     inds = np.triu_indices(csd.n_series)
@@ -195,13 +195,13 @@ def test_make_dics():
     csd_noise._data[:, :] = np.eye(csd.n_series)[inds][:, np.newaxis]
     filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
                         mode='vector', weight_norm=None,
-                        normalize_leadfield=True)
+                        normalize_fwd=True)
     w = filters['weights'][0][:3]
     assert_allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-6, atol=0)
 
-    # Test turning off both leadfield and weight normalization
+    # Test turning off both forward and weight normalization
     filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
-                        weight_norm=None, normalize_leadfield=False)
+                        weight_norm=None, normalize_fwd=False)
     w = filters['weights'][0][:3]
     assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
 
@@ -257,11 +257,11 @@ def test_apply_dics_csd():
             noise_power, f = apply_dics_csd(csd_noise, filters)
             assert np.allclose(noise_power.data, 1)
 
-            # Test filter with leadfield normalization instead of weight
+            # Test filter with forward normalization instead of weight
             # normalization
             filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                                 reg=reg_, pick_ori=pick_ori, mode=mode,
-                                weight_norm=None, normalize_leadfield=True)
+                                weight_norm=None, normalize_fwd=True)
             power, f = apply_dics_csd(csd, filters)
             assert f == [10, 20]
             assert np.argmax(power.data[:, 1]) == source_ind
@@ -464,13 +464,10 @@ def test_tf_dics():
 
     # Test if subtracting evoked responses yields NaN's, since we only have one
     # epoch.
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
-                       csd_mode='cwt_morlet', frequencies=frequencies,
-                       subtract_evoked=True, reg=reg, beamformer_mode='vector',
-                       label=label, decim=20)
-    assert len(w) >= 60  # At least one warning for each vertex
+    stcs = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
+                   csd_mode='cwt_morlet', frequencies=frequencies,
+                   subtract_evoked=True, reg=reg, beamformer_mode='vector',
+                   label=label, decim=20)
     assert np.all(np.isnan(stcs[0].data))
 
 

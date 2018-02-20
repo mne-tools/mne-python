@@ -31,7 +31,7 @@ deprecation_text = ('This function will be removed in 0.17, please use the '
 @verbose
 def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
               mode='scalar', weight_norm='unit-noise-gain',
-              normalize_leadfield=False, real_filter=False, reduce_rank=False,
+              normalize_fwd=False, real_filter=False, reduce_rank=False,
               verbose=None):
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
@@ -82,8 +82,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
         beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
         Defaults to 'unit-noise-gain'.
-    normalize_leadfield : bool
-        Whether to normalize the leadfield. Defaults to False.
+    normalize_fwd : bool
+        Whether to normalize the forward solution. Defaults to False.
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
@@ -117,8 +117,8 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                 Whether the filters represent a scalar or vector beamformer.
             'weight_norm' : None | 'unit-noise-gain'
                 The normalization of the weights.
-            'normalize_leadfield' : bool
-                Whether the leadfield was normalized
+            'normalize_fwd' : bool
+                Whether the forward solution was normalized
             'n_orient' : int
                 Number of source orientations defined in the forward model.
             'subject' : str
@@ -163,7 +163,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     n_orient = forward['sol']['ncol'] // forward['nsource']
 
     # Determine how to normalize the leadfield
-    if normalize_leadfield:
+    if normalize_fwd:
         if mode == 'scalar':
             leadfield_norm = 'point'
         elif mode == 'vector':
@@ -294,7 +294,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
                    vertices=vertices, subject=subject,
                    pick_ori=pick_ori, mode=mode,
                    weight_norm=weight_norm,
-                   normalize_leadfield=normalize_leadfield, n_orient=n_orient
+                   normalize_fwd=normalize_fwd, n_orient=n_orient
                    if pick_ori is None else 1)
 
     return filters
@@ -931,7 +931,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
             mt_adaptive=False, mt_low_bias=True, cwt_n_cycles=7, decim=1,
             subtract_evoked=False, reg=0.05, label=None, pick_ori=None,
             beamformer_mode='scalar', weight_norm='unit-noise-gain',
-            normalize_leadfield=False, real_filter=False, reduce_rank=False,
+            normalize_fwd=False, real_filter=False, reduce_rank=False,
             verbose=None):
     """5D time-frequency beamforming based on DICS.
 
@@ -1026,8 +1026,8 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
         beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
         Defaults to 'unit-noise-gain'.
-    normalize_leadfield : bool
-        Whether to normalize the leadfield. Defaults to False.
+    normalize_fwd : bool
+        Whether to normalize the forward solution. Defaults to False.
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
@@ -1174,7 +1174,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
                                     label=label, pick_ori=pick_ori,
                                     mode=beamformer_mode,
                                     weight_norm=weight_norm,
-                                    normalize_leadfield=normalize_leadfield,
+                                    normalize_fwd=normalize_fwd,
                                     reduce_rank=reduce_rank,
                                     real_filter=real_filter)
                 stc, _ = apply_dics_csd(csd, filters)

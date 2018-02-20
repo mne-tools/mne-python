@@ -31,7 +31,7 @@ class CrossSpectralDensity(object):
 
     Parameters
     ----------
-    data : ndarray, shape ((n_series**2 + n_series) / 2, n_frequencies)
+    data : ndarray, shape ((n_channels**2 + n_channels) / 2, n_frequencies)
         For each frequency, the cross-spectral density matrix in vector format.
     names : list of string
         List of string descriptions for each time series (e.g. channel names)
@@ -87,7 +87,7 @@ class CrossSpectralDensity(object):
         self.projs = cp.deepcopy(projs)
 
     @property
-    def n_series(self):
+    def n_channels(self):
         """Number of time series defined in this CSD object."""
         return len(self.names)
 
@@ -112,8 +112,8 @@ class CrossSpectralDensity(object):
 
         return (
             '<CrossSpectralDensity  |  '
-            'n_series={}, time={} to {} s, frequencies={}>'
-        ).format(self.n_series, self.tmin, self.tmax, freq_str)
+            'n_channels={}, time={} to {} s, frequencies={}>'
+        ).format(self.n_channels, self.tmin, self.tmax, freq_str)
 
     def sum(self, fmin=None, fmax=None):
         """Calculate the sum CSD in the given frequency range(s).
@@ -649,11 +649,9 @@ def csd_array(X, sfreq, t0=0, mode='multitaper', fmin=0, fmax=np.inf,
 
     Parameters
     ----------
-    X : array-like, shape (n_replicates, n_series, n_times)
-        The time series data consisting of n_replicated separate observations
-        of signals with n_series components and of length n_times. For example,
-        n_replicates could be the number of epochs, and n_series the number of
-        vertices in a source-space.
+    X : array-like, shape (n_epochs, n_channels, n_times)
+        The time series data consisting of n_epochs separate observations
+        of signals with n_channels time-series of length n_times.
     sfreq : float
         Sampling frequency of observations.
     t0 : float
@@ -750,13 +748,13 @@ def csd_array(X, sfreq, t0=0, mode='multitaper', fmin=0, fmax=np.inf,
 
     X = np.asarray(X, dtype=float)
     if X.ndim != 3:
-        raise ValueError("X must be n_replicates x n_series x n_times.")
+        raise ValueError("X must be n_replicates x n_channels x n_times.")
 
-    n_replicates, n_series, n_times = X.shape
+    n_replicates, n_channels, n_times = X.shape
     tstep = 1. / sfreq
     times = np.arange(n_times) * tstep + t0
     if names is None:
-        names = ['SERIES%03d' % (i + 1) for i in range(n_series)]
+        names = ['SERIES%03d' % (i + 1) for i in range(n_channels)]
 
     if tmin is not None and tmin < times[0] - tstep:
         raise ValueError('tmin should be larger than the smallest data time '
@@ -830,7 +828,7 @@ def csd_array(X, sfreq, t0=0, mode='multitaper', fmin=0, fmax=np.inf,
 
     n_freqs = len(frequencies)
     n_freqs_in_csd = 1 if fsum else n_freqs
-    csds_mean = np.zeros((n_series * (n_series + 1) // 2, n_freqs_in_csd),
+    csds_mean = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs_in_csd),
                          dtype=np.complex)
 
     # Compute CSD for each trial
@@ -949,9 +947,9 @@ def _csd_multitaper(X, sfreq, n_times, window_fun, eigvals, freq_mask,
 
     Parameters
     ----------
-    X : ndarray, shape (n_series, n_times)
-        The time series data consisting of n_series components (e.g. channels
-        or vertices) and of length n_times.
+    X : ndarray, shape (n_channels, n_times)
+        The time series data consisting of n_channels time-series of length
+        n_times.
     sfreq : float
         The sampling frequency of the data in Hertz.
     n_times : int
@@ -1025,9 +1023,9 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, decim=1):
 
     Parameters
     ----------
-    data : ndarray, shape (n_series, n_times)
-        The time series data consisting of n_series components (e.g. channels
-        or vertices) and of length n_times.
+    data : ndarray, shape (n_channels, n_times)
+        The time series data consisting of n_channels time-series of length
+        n_times.
     sfreq : float
         The sampling frequency of the data in Hertz.
     wavelets : list of ndarray
@@ -1046,7 +1044,7 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, decim=1):
 
     Returns
     -------
-    csd : ndarray, shape ((n_series**2 + n_series) / 2 , n_wavelets)
+    csd : ndarray, shape ((n_channels**2 + n_channels) / 2 , n_wavelets)
         For each wavelet, the upper triangle of the cross spectral density
         matrix.
 
@@ -1071,8 +1069,8 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, decim=1):
     psds_conj = np.conj(psds)
 
     # Compute the spectral density between all pairs of series
-    n_series = data.shape[0]
-    csds = np.vstack([psds[[i]] * psds_conj[i:] for i in range(n_series)])
+    n_channels = data.shape[0]
+    csds = np.vstack([psds[[i]] * psds_conj[i:] for i in range(n_channels)])
 
     # Average along time dimension
     csds = csds.mean(axis=2)
