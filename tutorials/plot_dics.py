@@ -63,6 +63,7 @@ rand = np.random.RandomState(42)
 
 sfreq = 50.  # Sampling frequency of the generated signal
 times = np.arange(10. * sfreq) / sfreq  # 10 seconds of signal
+n_times = len(times)
 
 
 def coh_signal_gen():
@@ -79,17 +80,16 @@ def coh_signal_gen():
     n_times = len(times)
 
     # Generate an oscillator with varying frequency and phase lag.
-    iflaw = base_freq / sfreq + t_rand * rand.randn(n_times)
-    signal = np.exp(1j * 2.0 * np.pi * np.cumsum(iflaw))
-    signal *= np.conj(signal[0])
-    signal = signal.real
+    signal = np.sin(2.0 * np.pi *
+                    (base_freq * np.arange(n_times) / sfreq +
+                     np.cumsum(t_rand * rand.randn(n_times))))
 
     # Add some random fluctuations to the signal.
     signal += std * rand.randn(n_times)
 
-    # Scale the signal to be in the right order of magnitude (~500 nAm)
-    # to achieve a SNR of 1 with our noise covariance matrix.
-    signal *= 500e-9
+    # Scale the signal to be in the right order of magnitude (~100 nAm)
+    # for MEG data.
+    signal *= 100e-9
 
     return signal
 
@@ -168,34 +168,46 @@ snr = 1.  # Signal-to-noise ratio. Decrease to add more noise.
 # Some noise is added based on the baseline noise covariance matrix from the
 # sample dataset, scaled to implement the desired SNR.
 
-cov = mne.read_cov(cov_fname)
-cov['data'] /= snr ** 2
+# Read the info from the sample dataset. This defines the location of the
+# sensors and such.
+info = mne.io.read_info(raw_fname)
+info.update(sfreq=sfreq, bads=[])
 
-# This is the raw file we're going to use as template for the simulated data.
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw = raw.crop(0, 20).resample(sfreq)  # Trim to 20 seconds at 50 Hz.
-raw = raw.pick_types(meg='grad')  # Use only gradiometers
+# Only use gradiometers
+picks = mne.pick_types(info, meg='grad', stim=True, exclude=())
+mne.pick_info(info, picks, copy=False)
 
-# Simulate the raw data
+# This is the raw object that will be used as a template for the simulation.
+raw = mne.io.RawArray(np.zeros((info['nchan'], len(stc.times))), info)
+
+# Define a covariance matrix for the simulated noise. In this tutorial, we use
+# a simple diagonal matrix.
+cov = mne.cov.make_ad_hoc_cov(info)
+cov['data'] *= (20. / snr) ** 2  # Scale the noise to achieve the desired SNR
+
+# Simulate the raw data, with a lowpass filter on the noise
 raw = simulate_raw(raw, stc, trans_fname, src_fname, bem_fname, cov=cov,
-                   random_state=rand)
+                   random_state=rand, iir_filter=[4, -4, 0.8])
+
 
 ###############################################################################
 # We create an :class:`mne.Epochs` object containing two trials: one with
 # both noise and signal and one with just noise
 
-t0 = raw.first_samp  # First sample int the data
-t10 = t0 + int(10 * sfreq) - 1  # Sample just before the 10 second mark
+t0 = raw.first_samp  # First sample in the data
+t1 = t0 + n_times - 1  # Sample just before the second trial
 epochs = mne.Epochs(
     raw,
-    events=np.array([[t0, 0, 1], [t10, 0, 2]]),
+    events=np.array([[t0, 0, 1], [t1, 0, 2]]),
     event_id=dict(signal=1, noise=2),
     tmin=0, tmax=10,
     preload=True,
 )
 
-# Plot the simulated data
-epochs.plot()
+# Plot some of the channels of the simulated data that are situated above one
+# of our simulated sources.
+picks = mne.pick_channels(epochs.ch_names, mne.read_selection('Left-frontal'))
+epochs.plot(picks=picks)
 
 ###############################################################################
 # Power mapping
@@ -211,7 +223,7 @@ epochs.plot()
 ###############################################################################
 # Computing the inverse using MNE-dSPM:
 
-# Estimating the noise covariance on the trial that only contains noise.
+# Compute the inverse operator
 fwd = mne.read_forward_solution(fwd_fname)
 inv = make_inverse_operator(epochs.info, fwd, cov)
 
@@ -219,7 +231,7 @@ inv = make_inverse_operator(epochs.info, fwd, cov)
 s = apply_inverse(epochs['signal'].average(), inv)
 
 # Take the root-mean square along the time dimension and plot the result.
-s_rms = (s ** 2).mean()
+s_rms = np.sqrt((s ** 2).mean())
 brain = s_rms.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
                    size=400)
 
@@ -242,10 +254,8 @@ mlab.title('MNE-dSPM inverse (RMS)', height=0.9)
 # signal.
 csd_signal = csd_epochs(epochs['signal'], mode='cwt_morlet', frequencies=[10])
 
-# Compute the DICS powermap. An important parameter for this is the
-# regularization, which is set quite high for this toy example. For real data,
-# you may want to lower this to around 0.05.
-filters = make_dics(epochs.info, fwd, csd_signal, reg=0.5,
+# Compute the DICS powermap.
+filters = make_dics(epochs.info, fwd, csd_signal, reg=0.05,
                     pick_ori='max-power')
 power, f = apply_dics_csd(csd_signal, filters)
 
@@ -265,7 +275,8 @@ mlab.title('DICS power map at %.1f Hz' % f[0], height=0.9)
 # Excellent! Both methods found our two simulated sources. Of course, with a
 # signal-to-noise ratio (SNR) of 1, is isn't very hard to find them. You can
 # try playing with the SNR and see how the MNE-dSPM and DICS results hold up in
-# the presence of increasing noise.
+# the presence of increasing noise. In the presence of more noise, you may need
+# to increase the regularization parameter of the DICS beamformer.
 
 ###############################################################################
 # References
