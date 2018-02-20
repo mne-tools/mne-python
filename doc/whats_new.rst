@@ -124,6 +124,8 @@ Bug
 
 - Fix bug in :func:`mne.viz.plot_cov` that ignored ``colorbar`` argument by `Nathalie Gayraud`_
 
+- Fix bug when reading event latencies (in samples) from eeglab files didn't translate indices to 0-based python indexing by `Mikołaj Magnuski`_
+
 
 API
 ~~~
