@@ -233,11 +233,7 @@ s = apply_inverse(epochs['signal'].average(), inv)
 # Take the root-mean square along the time dimension and plot the result.
 s_rms = np.sqrt((s ** 2).mean())
 brain = s_rms.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
-                   size=400)
-
-# Plot the result
-brain = s.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
-               size=400)
+                   size=600)
 
 # Indicate the true locations of the source activity on the plot.
 brain.add_foci(source_vert1, coords_as_verts=True, hemi='lh')
@@ -255,13 +251,12 @@ mlab.title('MNE-dSPM inverse (RMS)', height=0.9)
 csd_signal = csd_epochs(epochs['signal'], mode='cwt_morlet', frequencies=[10])
 
 # Compute the DICS powermap.
-filters = make_dics(epochs.info, fwd, csd_signal, reg=0.05,
-                    pick_ori='max-power')
+filters = make_dics(info, fwd, csd_signal, reg=0.05, pick_ori='max-power')
 power, f = apply_dics_csd(csd_signal, filters)
 
 # Plot the DICS power map.
 brain = power.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=2,
-                   size=400)
+                   size=600)
 
 # Indicate the true locations of the source activity on the plot.
 brain.add_foci(source_vert1, coords_as_verts=True, hemi='lh')
