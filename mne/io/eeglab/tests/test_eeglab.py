@@ -125,7 +125,7 @@ def test_io_set():
                                event_id=event_id, preload=True)
 
     # test that sample indices are read python-wise (zero-based)
-    assert find_events(test_raw)[0, 0] == eeg.event[0].latency - 1
+    assert find_events(test_raw)[0, 0] == round(eeg.event[0].latency) - 1
 
     # test overlapping events
     overlap_fname = op.join(temp_dir, 'test_overlap_event.set')
