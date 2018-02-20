@@ -831,7 +831,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.05,
     interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
     from scipy import linalg
-    if data_csds.n_series != noise_csds.n_series:
+    if data_csds.n_channels != noise_csds.n_channels:
         raise ValueError('One noise CSD matrix should be provided for each '
                          'data CSD matrix and vice versa. All CSD matrices '
                          'should have identical shape.')
