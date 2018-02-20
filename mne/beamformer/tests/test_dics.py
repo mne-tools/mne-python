@@ -149,7 +149,7 @@ def test_make_dics():
     vertices = np.intersect1d(label.vertices, fwd_free['src'][0]['vertno'])
     n_verts = len(vertices)
     n_orient = 3
-    n_channels = csd.n_series
+    n_channels = csd.n_channels
 
     filters = make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
     assert filters['weights'].shape == (n_freq, n_verts * n_orient, n_channels)
@@ -190,9 +190,9 @@ def test_make_dics():
     # Test forward normalization. In 'vector' mode, the power of a
     # unit-noise CSD should be 1, even without weight normalization.
     csd_noise = csd.copy()
-    inds = np.triu_indices(csd.n_series)
+    inds = np.triu_indices(csd.n_channels)
     # Using [:, :] syntax for in-place broadcasting
-    csd_noise._data[:, :] = np.eye(csd.n_series)[inds][:, np.newaxis]
+    csd_noise._data[:, :] = np.eye(csd.n_channels)[inds][:, np.newaxis]
     filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
                         mode='vector', weight_norm=None,
                         normalize_fwd=True)
@@ -219,9 +219,9 @@ def test_apply_dics_csd():
     # Construct an identity "noise" CSD, which we will use to test the
     # 'unit-noise-gain' setting.
     csd_noise = csd.copy()
-    inds = np.triu_indices(csd.n_series)
+    inds = np.triu_indices(csd.n_channels)
     # Using [:, :] syntax for in-place broadcasting
-    csd_noise._data[:, :] = np.eye(csd.n_series)[inds][:, np.newaxis]
+    csd_noise._data[:, :] = np.eye(csd.n_channels)[inds][:, np.newaxis]
 
     # Try different types of forward models
     for fwd in [fwd_free, fwd_surf, fwd_fixed]:
@@ -423,9 +423,9 @@ def test_tf_dics():
     # all the computations are done correctly, there should be no effect if
     # `beamformer_mode='vector'`.
     noise_csd = csd.copy()
-    inds = np.triu_indices(csd.n_series)
+    inds = np.triu_indices(csd.n_channels)
     # Using [:, :] syntax for in-place broadcasting
-    noise_csd._data[:, :] = 2 * np.eye(csd.n_series)[inds][:, np.newaxis]
+    noise_csd._data[:, :] = 2 * np.eye(csd.n_channels)[inds][:, np.newaxis]
     noise_csd.n_fft = 2  # Dividing by n_fft should yield an identity CSD
     noise_csds = [noise_csd, noise_csd]  # Two frequency bins
     stcs_norm = tf_dics(epochs, fwd_surf, tmin, tmax, tstep, win_lengths,
