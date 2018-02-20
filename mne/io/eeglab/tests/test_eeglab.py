@@ -121,8 +121,11 @@ def test_io_set():
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     op.join(temp_dir, 'test_one_event.fdt'))
     event_id = {eeg.event[0].type: 1}
-    read_raw_eeglab(input_fname=one_event_fname, montage=montage,
-                    event_id=event_id, preload=True)
+    test_raw = read_raw_eeglab(input_fname=one_event_fname, montage=montage,
+                               event_id=event_id, preload=True)
+
+    # test that sample indices are read python-wise (zero-based)
+    assert mne.find_events(test_raw)[0, -1] == eeg.event[0].latency - 1
 
     # test overlapping events
     overlap_fname = op.join(temp_dir, 'test_overlap_event.set')

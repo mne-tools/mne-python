@@ -717,7 +717,7 @@ def _read_annotations_eeglab(eeg):
         description = []
     elif isinstance(eeg.event, np.ndarray):
         description = [str(event.type) for event in eeg.event]
-        onset = [event.latency for event in eeg.event]
+        onset = [event.latency - 1 for event in eeg.event]
         if (len(onset) > 0) and hasattr(eeg.event[0], 'duration'):
             duration = [event.duration for event in eeg.event]
         else:
@@ -725,7 +725,7 @@ def _read_annotations_eeglab(eeg):
     else:
         # only one event - TypeError: 'mat_struct' object is not iterable
         description = [str(eeg.event.type)]
-        onset = [eeg.event.latency]
+        onset = [eeg.event.latency - 1]
         duration = getattr(eeg.event, 'duration', np.zeros(1))
 
     return Annotations(onset=onset, duration=duration, description=description)
