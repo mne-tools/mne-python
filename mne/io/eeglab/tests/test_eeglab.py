@@ -130,7 +130,7 @@ def test_io_set():
     negative_latency_fname = op.join(temp_dir, 'test_negative_latency.set')
     evnts = eeg.event[0]
     evnts.latency = 0
-    io.savemat(one_event_fname, {'EEG':
+    io.savemat(negative_latency_fname, {'EEG':
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': evnt,
