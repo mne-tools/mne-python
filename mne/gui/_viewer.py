@@ -139,8 +139,8 @@ class Object(HasPrivateTraits):
     opacity = Range(low=0., high=1., value=1.)
     visible = Bool(True)
 
-    # don't put project_to_points here, just always set project_to_tris second
-    @on_trait_change('trans,points,project_to_surface,project_to_tris')  # noqa: E501
+    # don't put project_to_tris here, just always set project_to_points second
+    @on_trait_change('trans,points,project_to_surface,project_to_points')
     def _update_points(self):
         """Update the location of the plotted points."""
         if not hasattr(self.src, 'data'):

@@ -64,14 +64,20 @@ def run():
     else:
         head_high_res = None
 
+    # expanduser allows ~ for --subjects-dir
+    subjects_dir = options.subjects_dir
+    if subjects_dir is not None:
+        subjects_dir = op.expanduser(subjects_dir)
+    trans = options.trans
+    if trans is not None:
+        trans = op.expanduser(trans)
     with ETSContext():
-        # expanduser allows ~ for --subjects-dir
         mne.gui.coregistration(
             options.tabbed, inst=options.inst, subject=options.subject,
-            subjects_dir=op.expanduser(options.subjects_dir),
+            subjects_dir=subjects_dir,
             guess_mri_subject=options.guess_mri_subject,
             head_opacity=options.head_opacity, head_high_res=head_high_res,
-            trans=op.expanduser(options.trans), scrollable=True,
+            trans=trans, scrollable=True,
             project_eeg=options.project_eeg, verbose=options.verbose)
     if is_main:
         sys.exit(0)

@@ -1457,9 +1457,9 @@ class CoregFrame(HasTraits):
         self.model.hsp.sync_trait('eeg_points', p, 'points', mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
-        self.model.mri.sync_trait('points', p, 'project_to_points',
-                                  mutual=False)
         self.model.mri.sync_trait('tris', p, 'project_to_tris', mutual=False)
+        self.model.sync_trait('transformed_mri_points', p, 'project_to_points',
+                              mutual=False)
 
         # Digitizer Fiducials
         point_scale = defaults['dig_fid_scale']
