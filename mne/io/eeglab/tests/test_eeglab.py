@@ -118,7 +118,8 @@ def test_io_set():
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': eeg.event[0],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
-    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'), one_event_fname)
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    one_event_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
     test_raw = read_raw_eeglab(input_fname=one_event_fname, montage=montage,
                                event_id=event_id, preload=True)
@@ -135,7 +136,8 @@ def test_io_set():
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                 'epoch': eeg.epoch, 'event': evnt,
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
-    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'), negative_latency_fname)
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    negative_latency_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
     assert_raises(ValueError, read_raw_eeglab, montage=montage, preload=True,
                   event_id=event_id, input_fname=negative_latency_fname)
@@ -148,7 +150,8 @@ def test_io_set():
                 'nbchan': eeg.nbchan, 'data': 'test_overlap_event.fdt',
                 'epoch': eeg.epoch, 'event': [eeg.event[0], eeg.event[0]],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
-    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'), overlap_fname)
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    overlap_fname.replace('.set', '.fdt'))
     event_id = {'rt': 1, 'square': 2}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
