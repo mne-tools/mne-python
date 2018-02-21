@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
 from distutils.version import LooseVersion
 import os.path as op
 import shutil
@@ -119,10 +120,28 @@ def test_io_set():
                 'epoch': eeg.epoch, 'event': eeg.event[0],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
-                    op.join(temp_dir, 'test_one_event.fdt'))
+                    one_event_fname.replace('.set', '.fdt'))
     event_id = {eeg.event[0].type: 1}
-    read_raw_eeglab(input_fname=one_event_fname, montage=montage,
-                    event_id=event_id, preload=True)
+    test_raw = read_raw_eeglab(input_fname=one_event_fname, montage=montage,
+                               event_id=event_id, preload=True)
+
+    # test that sample indices are read python-wise (zero-based)
+    assert find_events(test_raw)[0, 0] == round(eeg.event[0].latency) - 1
+
+    # test negative event latencies
+    negative_latency_fname = op.join(temp_dir, 'test_negative_latency.set')
+    evnts = deepcopy(eeg.event[0])
+    evnts.latency = 0
+    io.savemat(negative_latency_fname, {'EEG':
+               {'trials': eeg.trials, 'srate': eeg.srate,
+                'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
+                'epoch': eeg.epoch, 'event': evnts,
+                'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+    shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
+                    negative_latency_fname.replace('.set', '.fdt'))
+    event_id = {eeg.event[0].type: 1}
+    assert_raises(ValueError, read_raw_eeglab, montage=montage, preload=True,
+                  event_id=event_id, input_fname=negative_latency_fname)
 
     # test overlapping events
     overlap_fname = op.join(temp_dir, 'test_overlap_event.set')
@@ -132,7 +151,7 @@ def test_io_set():
                 'epoch': eeg.epoch, 'event': [eeg.event[0], eeg.event[0]],
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
-                    op.join(temp_dir, 'test_overlap_event.fdt'))
+                    overlap_fname.replace('.set', '.fdt'))
     event_id = {'rt': 1, 'square': 2}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')

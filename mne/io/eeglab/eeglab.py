@@ -670,6 +670,10 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         logger.info('No events found, returning empty stim channel ...')
         return np.zeros((0, 3))
 
+    if (latencies < 0).any():
+        raise ValueError('At least one event sample index is negative. Please'
+                         ' check if EEG.event.sample values are correct.')
+
     not_in_event_id = set(x for x in types if x not in event_id)
     not_purely_numeric = set(x for x in not_in_event_id if not x.isdigit())
     no_numbers = set([x for x in not_purely_numeric
@@ -717,7 +721,7 @@ def _read_annotations_eeglab(eeg):
         description = []
     elif isinstance(eeg.event, np.ndarray):
         description = [str(event.type) for event in eeg.event]
-        onset = [event.latency for event in eeg.event]
+        onset = [event.latency - 1 for event in eeg.event]
         if (len(onset) > 0) and hasattr(eeg.event[0], 'duration'):
             duration = [event.duration for event in eeg.event]
         else:
@@ -725,7 +729,7 @@ def _read_annotations_eeglab(eeg):
     else:
         # only one event - TypeError: 'mat_struct' object is not iterable
         description = [str(eeg.event.type)]
-        onset = [eeg.event.latency]
+        onset = [eeg.event.latency - 1]
         duration = getattr(eeg.event, 'duration', np.zeros(1))
 
     return Annotations(onset=onset, duration=duration, description=description)
