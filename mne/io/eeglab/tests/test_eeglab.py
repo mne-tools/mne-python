@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
 from distutils.version import LooseVersion
 import os.path as op
 import shutil
@@ -129,7 +130,7 @@ def test_io_set():
 
     # test negative event latencies
     negative_latency_fname = op.join(temp_dir, 'test_negative_latency.set')
-    evnts = eeg.event[0]
+    evnts = deepcopy(eeg.event[0])
     evnts.latency = 0
     io.savemat(negative_latency_fname, {'EEG':
                {'trials': eeg.trials, 'srate': eeg.srate,
