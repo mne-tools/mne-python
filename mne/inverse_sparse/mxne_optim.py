@@ -973,11 +973,11 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha_space, alpha_time,
     converged = False
     d_obj = -np.Inf
 
-    for i in xrange(maxit):
+    for i in range(maxit):
         val_norm_l21_tf = 0.0
         val_norm_l1_tf = 0.0
         max_diff = 0.0
-        for j in xrange(n_positions):
+        for j in range(n_positions):
             ids = j * n_orient
             ide = ids + n_orient
 
@@ -1066,7 +1066,7 @@ def _tf_mixed_norm_solver_bcd_active_set(
     else:
         active_set = np.zeros(n_sources, dtype=np.bool)
         active = list()
-        for i in xrange(n_positions):
+        for i in range(n_positions):
             if np.any(Z_init[i * n_orient:(i + 1) * n_orient]):
                 active_set[i * n_orient:(i + 1) * n_orient] = True
                 active.append(i)
@@ -1148,7 +1148,7 @@ def compute_alpha_max(G, M, phi, alpha_space, alpha_time, n_orient):
         from scipy.optimize import brentq
         rho = alpha_time / (alpha_space + alpha_time)
         alpha_max = 0.0
-        for idx in xrange(n_positions):
+        for idx in range(n_positions):
             idx_k = slice(n_orient * idx, n_orient * (idx + 1))
             GTM = np.abs(np.dot(G[:, idx_k].T, M)) ** 2.
             GTM = np.sqrt(np.sum(GTM, axis=0))
