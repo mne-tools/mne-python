@@ -134,7 +134,7 @@ def test_io_set():
     io.savemat(negative_latency_fname, {'EEG':
                {'trials': eeg.trials, 'srate': eeg.srate,
                 'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
-                'epoch': eeg.epoch, 'event': evnt,
+                'epoch': eeg.epoch, 'event': evnts,
                 'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     negative_latency_fname.replace('.set', '.fdt'))
