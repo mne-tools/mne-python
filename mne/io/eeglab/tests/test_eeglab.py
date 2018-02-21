@@ -143,7 +143,6 @@ def test_io_set():
     assert_raises(ValueError, read_raw_eeglab, montage=montage, preload=True,
                   event_id=event_id, input_fname=negative_latency_fname)
 
-
     # test overlapping events
     overlap_fname = op.join(temp_dir, 'test_overlap_event.set')
     io.savemat(overlap_fname, {'EEG':
