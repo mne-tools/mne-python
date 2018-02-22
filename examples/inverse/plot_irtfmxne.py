@@ -23,14 +23,14 @@ tstep = np.array([4, 2])
 alpha, rho = 30., 0.05
 alpha_space = (1. - rho) * alpha
 alpha_time = alpha * rho
-alpha_space = 25.
-alpha_time = 3.5
+# alpha_space = 25.
+# alpha_time = 3.5
 
 window = 0.01
 
 loose = 1.0
 depth = 0.9
-depth_method='col'
+depth_method='vestal'
 maxit = 10000
 tol = 1e-6
 
