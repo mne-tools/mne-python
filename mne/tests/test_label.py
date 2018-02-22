@@ -15,7 +15,7 @@ from mne.datasets import testing
 from mne import (read_label, stc_to_label, read_source_estimate,
                  read_source_spaces, grow_labels, read_labels_from_annot,
                  write_labels_to_annot, split_label, spatial_tris_connectivity,
-                 read_surface)
+                 read_surface, random_parcellation)
 from mne.label import Label, _blend_colors, label_sign_flip
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main)
@@ -766,6 +766,42 @@ def test_grow_labels():
     l0 = l01 + l02
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
+
+
+@testing.requires_testing_data
+def test_random_parcellation():
+    """Test generation of random cortical parcellation."""
+    hemis = [0, 1]
+    n_parcel = 50
+    surface = 'white'
+    subject = 'sample'
+
+    # Parcellation
+    labels = random_parcellation(subject, n_parcel, hemis, subjects_dir, surface=surface)
+
+    # test number of labels
+    assert_equal(len(labels),n_parcel)
+
+    hemis = np.array(['lh' if h == 0 else 'rh' for h in hemis])
+    for hemi in set(hemis):
+        vertices_total = []
+        for label in labels:
+            if label.hemi == hemi:
+                # test that labels are not empty
+                assert_true(len(label.vertices) > 0)
+
+                # vertices of hemi covered by labels
+                vertices_total = np.append(vertices_total, label.vertices)
+
+        # test that labels don't intersect
+        assert_equal(len(np.unique(vertices_total)), len(vertices_total))
+
+        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.' +
+                             surface)
+        vert, _ = read_surface(surf_fname)
+
+        # Test that labels cover whole surface
+        assert_array_equal(np.sort(vertices_total), np.arange(len(vert)))
 
 
 @testing.requires_testing_data
