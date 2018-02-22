@@ -91,7 +91,7 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
                 bbox_to_inches='tight')
     plt.close(fig)
     output = output.getvalue()
-    return (output if image_format == 'svg' else
+    return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
 
 
