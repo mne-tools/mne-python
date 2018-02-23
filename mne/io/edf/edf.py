@@ -660,7 +660,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         fid.seek(0, 2)
         n_bytes = fid.tell()
         n_data_bytes = n_bytes - header_nbytes
-        total_samps = (n_data_bytes // 3 if subtype == '24BIT'
+        total_samps = (n_data_bytes // 3 if subtype == 'bdf'
                        else n_data_bytes // 2)
         read_records = total_samps // np.sum(n_samps)
         if n_records != read_records:
