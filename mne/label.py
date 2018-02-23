@@ -1710,7 +1710,7 @@ def random_parcellation(subject, n_parcel, hemis, subjects_dir=None,
 
 
 def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs):
-    """Random cortex parcellation"""
+    """Random cortex parcellation."""
     labels = []
     parcel_size = np.floor((len(vertices_[hemis[0]]) +
                             len(vertices_[hemis[1]])) / n_parcel)
