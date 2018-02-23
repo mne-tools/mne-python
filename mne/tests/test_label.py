@@ -777,10 +777,11 @@ def test_random_parcellation():
     subject = 'sample'
 
     # Parcellation
-    labels = random_parcellation(subject, n_parcel, hemis, subjects_dir, surface=surface)
+    labels = random_parcellation(subject, n_parcel, hemis, subjects_dir,
+                                 surface=surface)
 
     # test number of labels
-    assert_equal(len(labels),n_parcel)
+    assert_equal(len(labels), n_parcel)
 
     hemis = np.array(['lh' if h == 0 else 'rh' for h in hemis])
     for hemi in set(hemis):

@@ -1712,7 +1712,7 @@ def random_parcellation(subject, n_parcel, hemis, subjects_dir=None,
 def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs):
     """Random cortex parcellation"""
     labels = []
-    parcel_size = np.floor((len(vertices_[hemis[0]]) +
+    parcel_size = np.floor((len(vertices_[hemis[0]]) + 
                             len(vertices_[hemis[1]]))/n_parcel)
     parc_both = []
     for hemi in set(hemis):
@@ -1730,7 +1730,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs):
         edge = [s]  # queue of vertices to process
         parc[s] = label_idx
         label_size = 1
-        rest = len(parc)-1
+        rest = len(parc) - 1
         # grow from sources
         while rest:
             if not edge:
@@ -1805,7 +1805,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs):
         # convert parc to labels
         for i in xrange(n_labels):
             vertices = np.nonzero(parc == label_id[i])[0]
-            name = 'label_'+str(i)
+            name = 'label_' + str(i)
             label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
             labels.append(label_)
         parc_both += [parc]
