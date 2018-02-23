@@ -33,7 +33,7 @@ from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
 from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info, mesh_edges,
-                       _complete_sphere_surf)
+                       _complete_sphere_surf, _normalize_vectors)
 from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
@@ -421,9 +421,7 @@ def _create_mesh_surf(surf, fig=None, scalars=None):
     mlab = _import_mlab()
     nn = surf['nn'].copy()
     # make absolutely sure these are normalized for Mayavi
-    norm = np.sum(nn * nn, axis=1)
-    mask = norm > 0
-    nn[mask] /= norm[mask][:, np.newaxis]
+    _normalize_vectors(nn)
     x, y, z = surf['rr'].T
     with warnings.catch_warnings(record=True):  # traits
         mesh = mlab.pipeline.triangular_mesh_source(

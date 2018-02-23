@@ -49,6 +49,9 @@ def run():
     parser.add_option('--project-eeg', dest='project_eeg',
                       action='store_true', default=False,
                       help="Project EEG electrodes to the head surface")
+    parser.add_option('--orient-points',
+                      action='store_true', default=False, dest='orient',
+                      help='Orient points to the surface.')
     parser.add_option('--verbose', action='store_true', dest='verbose',
                       help='Turn on verbose mode.')
 
@@ -77,7 +80,7 @@ def run():
             subjects_dir=subjects_dir,
             guess_mri_subject=options.guess_mri_subject,
             head_opacity=options.head_opacity, head_high_res=head_high_res,
-            trans=trans, scrollable=True,
+            trans=trans, scrollable=True, orient_points=options.orient,
             project_eeg=options.project_eeg, verbose=options.verbose)
     if is_main:
         sys.exit(0)

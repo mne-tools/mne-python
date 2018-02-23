@@ -38,8 +38,8 @@ def combine_kit_markers():
 def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=None,
                    scene_height=None, head_opacity=None, head_high_res=None,
-                   trans=None, scrollable=True, project_eeg=False,
-                   verbose=None):
+                   trans=None, scrollable=True, project_eeg=None,
+                   orient_points=False, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -89,8 +89,12 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
     project_eeg : bool
-        If True (default False), project EEG electrodes to nearest
-        head surface vertex.
+        If True (default False), project EEG electrodes to the head surface.
+
+        .. versionadded:: 0.16
+    orient_points : bool
+        If True (default False), orient EEG electrode and head shape points
+        to the head surface.
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
@@ -122,6 +126,10 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
             subjects_dir = config['SUBJECTS_DIR']
         elif 'MNE_COREG_SUBJECTS_DIR' in config:
             subjects_dir = config['MNE_COREG_SUBJECTS_DIR']
+    if project_eeg is None:
+        scene_height = config.get('MNE_COREG_PROJECT_EEG', False)
+    if orient_points is None:
+        orient_points = config.get('MNE_COREG_PROJECT_EEG', False)
     head_opacity = float(head_opacity)
     scene_width = int(scene_width)
     scene_height = int(scene_height)
@@ -132,7 +140,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     view = _make_view(tabbed, split, scene_width, scene_height, scrollable)
     frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
                        head_opacity, head_high_res, trans, config,
-                       project_eeg=project_eeg)
+                       project_eeg=project_eeg, orient_points=orient_points)
     return _initialize_gui(frame, view)
 
 

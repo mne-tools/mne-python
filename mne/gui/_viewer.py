@@ -14,12 +14,13 @@ from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import error
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         Instance, Array, Bool, Button, Enum, Float, Int, List,
-                        Range, Str, RGBColor)
+                        Range, Str, RGBColor, Property, cached_property)
 from traitsui.api import View, Item, HGroup, VGrid, VGroup
 from tvtk.api import tvtk
 
 from ..defaults import DEFAULTS
-from ..surface import complete_surface_info, _project_onto_surface
+from ..surface import (complete_surface_info, _project_onto_surface,
+                       _normalize_vectors)
 from ..transforms import apply_trans
 from ..utils import SilenceStdout
 from ..viz._3d import _create_mesh_surf, _toggle_mlab_render
@@ -129,6 +130,8 @@ class Object(HasPrivateTraits):
     project_to_points = Array(float, shape=(None, 3))
     project_to_tris = Array(int, shape=(None, 3))
     project_to_surface = Bool(False, label='Project')
+    orient_to_surface = Bool(False, label='Orient')
+    scale_by_distance = Bool(False, label='Dist.')
 
     scene = Instance(MlabSceneModel, ())
     src = Instance(VTKDataSource)
@@ -140,7 +143,7 @@ class Object(HasPrivateTraits):
     visible = Bool(True)
 
     # don't put project_to_tris here, just always set project_to_points second
-    @on_trait_change('trans,points,project_to_surface,project_to_points')
+    @on_trait_change('trans,points')
     def _update_points(self):
         """Update the location of the plotted points."""
         if not hasattr(self.src, 'data'):
@@ -164,23 +167,35 @@ class Object(HasPrivateTraits):
             pts = self.points
 
         # Do the projection if required
-        if self.project_to_surface and len(self.project_to_points) > 1:
+        if len(self.project_to_points) > 1:
             surf = dict(rr=np.array(self.project_to_points),
                         tris=np.array(self.project_to_tris))
             method = 'accurate' if len(surf['rr']) <= 20484 else 'nearest'
-            pts, nn = _project_onto_surface(
+            proj_pts, proj_nn = _project_onto_surface(
                 pts, surf, project_rrs=True, return_nn=True,
                 method=method)[2:4]
+            vec = pts - proj_pts  # point to the surface
+            if self.project_to_surface:
+                pts = proj_pts
+                nn = proj_nn
+            else:
+                nn = vec.copy()
+                _normalize_vectors(nn)
+            # With this, a point on the surface is of size 0.5*point_scale
+            scalars = 0.5 + 250 * np.linalg.norm(vec, axis=-1)
+            self.src.data.point_data.scalars = scalars
             self.src.data.point_data.normals = nn
-        self.src.data.points = pts
         self.src.data.point_data.update()
+        self.src.data.points = pts
         return True
 
 
 class PointObject(Object):
     """Represent a group of individual points in a mayavi scene."""
 
-    label = Bool(False, enabled_when='visible')
+    label = Bool(False)
+    projectable = Bool(False)  # set based on type of points
+    orientable = Property(depends_on=['project_to_points', 'project_to_tris'])
     text3d = List
 
     glyph = Instance(Glyph)
@@ -190,7 +205,7 @@ class PointObject(Object):
                        Item('color', show_label=False),
                        Item('opacity')))
 
-    def __init__(self, view='points', projectable=False, *args, **kwargs):
+    def __init__(self, view='points', *args, **kwargs):
         """Init.
 
         Parameters
@@ -200,12 +215,15 @@ class PointObject(Object):
             or a point cloud.
         """
         self._view = view
-        self._projectable = projectable
         super(PointObject, self).__init__(*args, **kwargs)
 
     def default_traits_view(self):  # noqa: D102
         color = Item('color', show_label=False)
         scale = Item('point_scale', label='Size')
+        orient = Item('orient_to_surface',
+                      enabled_when='orientable and not project_to_surface')
+        dist = Item('scale_by_distance',
+                    enabled_when='orientable and not project_to_surface')
         if self._view == 'points':
             visible = Item('visible', label='Show', show_label=True)
             views = (visible, color, scale, 'label')
@@ -214,8 +232,10 @@ class PointObject(Object):
             views = (visible, color, scale)
         else:
             raise ValueError("PointObject(view = %r)" % self._view)
-        if self._projectable:
-            views = views + (Item('project_to_surface', show_label=True),)
+        views += (dist,)
+        views = views + (Item('project_to_surface', show_label=True,
+                              enabled_when='projectable'),)
+        views += (orient,)
         return View(HGroup(*views))
 
     @on_trait_change('label')
@@ -263,6 +283,7 @@ class PointObject(Object):
                                mode='sphere')
         glyph.actor.property.backface_culling = True
         glyph.glyph.glyph.vector_mode = 'use_normal'
+        glyph.glyph.glyph.clamping = False
         self.src = scatter
         self.glyph = glyph
 
@@ -271,20 +292,20 @@ class PointObject(Object):
         self.sync_trait('visible', self.glyph)
         self.sync_trait('opacity', self.glyph.actor.property)
         self.on_trait_change(self._update_points, 'points')
-        self._update_project_to_surface()
+        self._update_markers()
         _toggle_mlab_render(self, True)
 
 #         self.scene.camera.parallel_scale = _scale
 
-    @on_trait_change('project_to_surface')
-    def _update_project_to_surface(self):
+    @on_trait_change('project_to_surface,orient_to_surface,scale_by_distance')
+    def _update_markers(self):
         if not self.glyph:
             return
         defaults = DEFAULTS['coreg']
         gs = self.glyph.glyph.glyph_source
         res = getattr(gs.glyph_source, 'theta_resolution',
                       getattr(gs.glyph_source, 'resolution', None))
-        if self.project_to_surface:
+        if self.project_to_surface or self.orient_to_surface:
             gs.glyph_source = tvtk.CylinderSource()
             gs.glyph_source.height = defaults['eegp_height']
             gs.glyph_source.center = (0., -defaults['eegp_height'], 0)
@@ -293,7 +314,10 @@ class PointObject(Object):
             gs.glyph_source = tvtk.SphereSource()
             gs.glyph_source.phi_resolution = res
             gs.glyph_source.theta_resolution = res
-        self.glyph.glyph.scale_mode = 'data_scaling_off'
+        if self.scale_by_distance:
+            self.glyph.glyph.scale_mode = 'scale_by_scalar'
+        else:
+            self.glyph.glyph.scale_mode = 'data_scaling_off'
 
     def _resolution_changed(self, new):
         if not self.glyph:
@@ -305,6 +329,15 @@ class PointObject(Object):
             gs.theta_resolution = new
         else:
             gs.resolution = new
+
+    @cached_property
+    def _get_orientable(self):
+        orientable = (len(self.project_to_points) > 0 and
+                      len(self.project_to_tris) > 0)
+        return orientable
+
+
+# XXX eventually we should update the normals whenever "points" is changed
 
 
 class SurfaceObject(Object):
