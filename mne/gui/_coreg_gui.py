@@ -331,7 +331,7 @@ class CoregModel(HasPrivateTraits):
     def _get_point_distance(self):
         if (len(self.transformed_hsp_points) == 0 or
                 len(self.transformed_mri_points) == 0):
-            return
+            return None
         dists = cdist(self.transformed_hsp_points, self.transformed_mri_points,
                       'euclidean')
         dists = np.min(dists, 1)
@@ -1349,10 +1349,12 @@ class CoregFrame(HasTraits):
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
                  guess_mri_subject=True, head_opacity=1.,
-                 head_high_res=True, trans=None, config=None):  # noqa: D102
+                 head_high_res=True, trans=None, config=None,
+                 project_eeg=False):  # noqa: D102
         self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.subject_panel.model.use_high_res_head = head_high_res
+        self._initial_project_eeg = project_eeg
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
@@ -1448,11 +1450,16 @@ class CoregFrame(HasTraits):
         color = defaults['eeg_color']
         point_scale = defaults['eeg_scale']
         p = PointObject(view='cloud', scene=self.scene, color=color,
-                        point_scale=point_scale, resolution=5, name='EEG')
+                        point_scale=point_scale, resolution=20, name='EEG',
+                        projectable=True,
+                        project_to_surface=self._initial_project_eeg)
         self.eeg_obj = p
         self.model.hsp.sync_trait('eeg_points', p, 'points', mutual=False)
         self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
+        self.model.mri.sync_trait('tris', p, 'project_to_tris', mutual=False)
+        self.model.sync_trait('transformed_mri_points', p, 'project_to_points',
+                              mutual=False)
 
         # Digitizer Fiducials
         point_scale = defaults['dig_fid_scale']

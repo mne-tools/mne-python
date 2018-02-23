@@ -21,7 +21,7 @@ from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
 from ..io.meas_info import _empty_info
 from ..io.open import fiff_open, dir_tree_find
-from ..surface import read_surface
+from ..surface import read_surface, complete_surface_info
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
@@ -155,7 +155,7 @@ class SurfaceSource(HasTraits):
 
     file = File(exists=True, filter=['*.fif', '*.*'])
     points = Array(shape=(None, 3), value=np.empty((0, 3)))
-    norms = Array
+    norms = Array(shape=(None, 3), value=np.empty((0, 3)))
     tris = Array(shape=(None, 3), value=np.empty((0, 3)))
 
     @on_trait_change('file')
@@ -164,22 +164,21 @@ class SurfaceSource(HasTraits):
         if op.exists(self.file):
             if self.file.endswith('.fif'):
                 bem = read_bem_surfaces(self.file, verbose=False)[0]
-                self.points = bem['rr']
-                self.norms = bem['nn']
-                self.tris = bem['tris']
             else:
                 try:
-                    points, tris = read_surface(self.file)
-                    points /= 1e3
-                    self.points = points
-                    self.norms = []
-                    self.tris = tris
+                    bem = read_surface(self.file, return_dict=True)[2]
+                    bem['rr'] *= 1e-3
+                    complete_surface_info(bem, copy=False)
                 except Exception:
-                    error(message="Error loading surface from %s (see "
-                                  "Terminal for details).",
+                    error(parent=None,
+                          message="Error loading surface from %s (see "
+                                  "Terminal for details)." % self.file,
                           title="Error Loading Surface")
                     self.reset_traits(['file'])
                     raise
+            self.points = bem['rr']
+            self.norms = bem['nn']
+            self.tris = bem['tris']
         else:
             self.points = np.empty((0, 3))
             self.norms = np.empty((0, 3))

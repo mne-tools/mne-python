@@ -73,6 +73,8 @@ Changelog
 
 - Add ability to exclude components interactively by clicking on their labels in :meth:`mne.preprocessing.ICA.plot_components` by `Mikołaj Magnuski`_
 
+- Add projection of EEG electrodes to the head surface in ``mne coreg`` / :func:`mne.gui.coregistration` by `Eric Larson`_
+
 - Add reader for manual annotations of raw data produced by Brainstorm by `Anne-Sophie Dubarry`_
 
 Bug

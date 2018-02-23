@@ -65,6 +65,7 @@ def test_coreg_model():
     assert_allclose(model.hsp.rpa, [[+7.527e-2, 0, 5.588e-9]], 1e-4)
     assert_allclose(model.hsp.nasion, [[+3.725e-9, 1.026e-1, 4.191e-9]], 1e-4)
     assert_true(model.has_fid_data)
+    assert len(model.hsp.eeg_points) > 1
 
     lpa_distance = model.lpa_distance
     nasion_distance = model.nasion_distance
@@ -160,6 +161,7 @@ def test_coreg_gui():
                       subjects_dir=subjects_dir)
 
         from pyface.api import GUI
+        from tvtk.api import tvtk
         gui = GUI()
 
         # avoid modal dialog if SUBJECTS_DIR is set to a directory that
@@ -175,6 +177,11 @@ def test_coreg_gui():
         frame.model.mri.rpa = [[0.08, 0, 0]]
         assert_true(frame.model.mri.fid_ok)
         frame.raw_src.file = raw_path
+        assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
+                          tvtk.SphereSource)
+        frame.view_options_panel.eeg_obj.project_to_surface = True
+        assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
+                          tvtk.CylinderSource)
 
         # grow hair (high-res head has no norms)
         assert_true(frame.model.mri.use_high_res_head)
