@@ -1664,28 +1664,28 @@ def random_parcellation(subject, n_parcel, hemis, subjects_dir=None,
                         surface='white'):
     """Generate random cortex parcellation by growing labels.
 
-        This function generates a number of labels which don't intersect and
-        cover the whole surface. Regions are growing around randomly chosen
-        seeds.
+    This function generates a number of labels which don't intersect and
+    cover the whole surface. Regions are growing around randomly chosen
+    seeds.
 
-        Parameters
-        ----------
-        subject : string
-            Name of the subject as in SUBJECTS_DIR.
-        n_parcel : int
-            Total number of cortical parcels
-        hemis : array | int
-            Hemispheres to use for the labels (0: left, 1: right).
-        subjects_dir : string
-            Path to SUBJECTS_DIR if not set in the environment.
-        surface : string
-            The surface used to grow the labels, defaults to the white surface.
+    Parameters
+    ----------
+    subject : string
+        Name of the subject as in SUBJECTS_DIR.
+    n_parcel : int
+        Total number of cortical parcels
+    hemis : array | int
+        Hemispheres to use for the labels (0: left, 1: right).
+    subjects_dir : string
+        Path to SUBJECTS_DIR if not set in the environment.
+    surface : string
+        The surface used to grow the labels, defaults to the white surface.
 
-        Returns
-        -------
-        labels : list of Label
-            Random cortex parcellation
-        """
+    Returns
+    -------
+    labels : list of Label
+        Random cortex parcellation
+    """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     hemis = np.atleast_1d(hemis)
     hemis = np.array(['lh' if h == 0 else 'rh' for h in hemis])
@@ -1712,8 +1712,8 @@ def random_parcellation(subject, n_parcel, hemis, subjects_dir=None,
 def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs):
     """Random cortex parcellation"""
     labels = []
-    parcel_size = np.floor((len(vertices_[hemis[0]]) + 
-                            len(vertices_[hemis[1]]))/n_parcel)
+    parcel_size = np.floor((len(vertices_[hemis[0]]) +
+                            len(vertices_[hemis[1]])) / n_parcel)
     parc_both = []
     for hemi in set(hemis):
         graph = graphs[hemi]  # distance graph
