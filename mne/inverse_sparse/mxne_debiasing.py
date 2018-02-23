@@ -14,7 +14,6 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     """Find the largest singular value for the matrix kron(C.T, A).
 
     It uses power iterations.
-
     Parameters
     ----------
     A : array
@@ -25,12 +24,10 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
         Maximum number of iterations
     random_state : int | RandomState | None
         Random state for random number generation
-
     Returns
     -------
     L : float
         largest singular value
-
     Notes
     -----
     http://en.wikipedia.org/wiki/Power_iteration
@@ -59,16 +56,13 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
     """Compute scaling to correct amplitude bias.
 
     It solves the following optimization problem using FISTA:
-
     min 1/2 * (|| M - GDX ||fro)^2
     s.t. D >= 1 and D is a diagonal matrix
-
     Reference for the FISTA algorithm:
     Amir Beck and Marc Teboulle
     A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse
     Problems, SIAM J. Imaging Sci., 2(1), 183-202. (20 pages)
     http://epubs.siam.org/doi/abs/10.1137/080716542
-
     Parameters
     ----------
     M : array

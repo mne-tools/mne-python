@@ -30,7 +30,6 @@ window = 0.01
 
 loose = 1.0
 depth = 0.9
-depth_method='vestal'
 maxit = 10000
 tol = 1e-6
 
@@ -41,8 +40,8 @@ evoked.resample(1000.)
 out = tf_mixed_norm(
     evoked, forward, noise_cov, alpha_space, alpha_time, loose=loose,
     depth=depth, maxit=maxit, tol=tol, wsize=wsize, tstep=tstep,
-    window=window, n_tfmxne_iter=1000, return_residual=True,
-    depth_method=depth_method, verbose=True)
+    window=window, n_tfmxne_iter=100, return_residual=True,
+    verbose=True)
 
 stc = out[0]
 residual = out[-1]
