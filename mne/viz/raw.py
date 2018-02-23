@@ -989,7 +989,8 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                     label.set_color('black')
             else:
                 # set label color
-                this_color = bad_color if ch_name in info['bads'] else 'black'
+                this_color = (bad_color if ch_name in info['bads'] else
+                              this_color)
                 labels[ii].set_color(this_color)
             lines[ii].set_zorder(this_z)
         else:
