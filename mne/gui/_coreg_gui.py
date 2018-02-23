@@ -1407,6 +1407,7 @@ class CoregFrame(HasTraits):
         self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
                                      color=color, tri=self.model.mri.tris,
                                      scene=self.scene, name="MRI Scalp",
+                                     block_behind=False,
                                      # opacity=self._initial_head_opacity,
                                      # setting opacity here causes points to be
                                      # [[0, 0, 0]] -- why??

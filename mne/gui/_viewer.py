@@ -321,16 +321,23 @@ class SurfaceObject(Object):
     tri = Array(int, shape=(None, 3))
 
     surf = Instance(Surface)
+    surf_rear = Instance(Surface)
 
     view = View(HGroup(Item('visible', show_label=False),
                        Item('color', show_label=False),
                        Item('opacity')))
+
+    def __init__(self, block_behind=False, **kwargs):  # noqa: D102
+        self._block_behind = block_behind
+        super(SurfaceObject, self).__init__(**kwargs)
 
     def clear(self):  # noqa: D102
         if hasattr(self.src, 'remove'):
             self.src.remove()
         if hasattr(self.surf, 'remove'):
             self.surf.remove()
+        if hasattr(self.surf_rear, 'remove'):
+            self.surf_rear.remove()
         self.reset_traits(['src', 'surf'])
 
     @on_trait_change('scene.activated')
@@ -345,18 +352,26 @@ class SurfaceObject(Object):
         fig = self.scene.mayavi_scene
         surf = complete_surface_info(dict(rr=self.points, tris=self.tri),
                                      verbose='error')
-        src = _create_mesh_surf(surf, fig=fig)
+        self.src = _create_mesh_surf(surf, fig=fig)
         rep = 'wireframe' if self.rep == 'Wireframe' else 'surface'
-        surf = pipeline.surface(src, figure=fig, color=self.color,
-                                representation=rep, line_width=1)
+        surf = pipeline.surface(
+            self.src, figure=fig, color=self.color, representation=rep,
+            line_width=1)
         surf.actor.property.backface_culling = True
-
-        self.src = src
         self.surf = surf
-
         self.sync_trait('visible', self.surf, 'visible')
         self.sync_trait('color', self.surf.actor.property, mutual=False)
         self.sync_trait('opacity', self.surf.actor.property)
+        if self._block_behind:
+            surf_rear = pipeline.surface(
+                self.src, figure=fig, color=self.color, representation=rep,
+                line_width=1)
+            surf_rear.actor.property.frontface_culling = True
+            self.surf_rear = surf_rear
+            self.sync_trait('color', self.surf_rear.actor.property,
+                            mutual=False)
+            self.sync_trait('visible', self.surf_rear, 'visible')
+            self.surf_rear.actor.property.opacity = 1.
 
         self.scene.camera.parallel_scale = _scale
 
