@@ -772,6 +772,7 @@ Source Space Data
    grade_to_tris
    grade_to_vertices
    grow_labels
+   random_parcellation
    label_sign_flip
    morph_data
    morph_data_precomputed
