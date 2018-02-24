@@ -135,7 +135,7 @@ evoked_r_aud.plot_joint(title='right auditory', times=[.09, .20],
 # First, we load in the evoked objects into a dictionary, setting the keys to
 # '/'-separated tags (as we can do with event_ids for epochs). Then, we plot
 # with :func:`mne.viz.plot_compare_evokeds`.
-# The plot is styled with dictionary arguments, again using "/"-separated tags.
+# The plot is styled with dict arguments, again using "/"-separated tags.
 # We plot a MEG channel with a strong auditory response.
 #
 # For move advanced plotting using :func:`mne.viz.plot_compare_evokeds`.
@@ -178,10 +178,8 @@ mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
 # We now compute the field maps to project MEG and EEG data to MEG helmet
 # and scalp surface.
 #
-# To do this we'll need coregistration information. See
-# :ref:`tut_forward` for more details.
-#
-# Here we just illustrate usage.
+# To do this, we need coregistration information. See
+# :ref:`tut_forward` for more details. Here we just illustrate usage.
 
 subjects_dir = data_path + '/subjects'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
