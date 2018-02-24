@@ -269,6 +269,8 @@ class DigSource(HasPrivateTraits):
     # EEG
     eeg_points = Property(depends_on='_info',
                           desc="EEG sensor coordinates (N x 3 array)")
+    hpi_points = Property(depends_on='_info',
+                          desc='HPI coil coordinates (N x 3 array)')
 
     view = View(VGroup(Item('file'),
                        Item('inst_fname', show_label=False, style='readonly')))
@@ -391,7 +393,19 @@ class DigSource(HasPrivateTraits):
     def _get_eeg_points(self):
         if self._info:
             out = [d['r'] for d in self._info['dig'] if
-                   d['kind'] == FIFF.FIFFV_POINT_EEG]
+                   d['kind'] == FIFF.FIFFV_POINT_EEG and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+            out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+            return out
+        else:
+            return np.empty((0, 3))
+
+    @cached_property
+    def _get_hpi_points(self):
+        if self._info:
+            out = [d['r'] for d in self._info['dig'] if
+                   d['kind'] == FIFF.FIFFV_POINT_HPI and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
             out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
             return out
         else:

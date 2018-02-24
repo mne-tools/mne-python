@@ -57,6 +57,11 @@ def run():
                       action='store_true', default=None,
                       dest='scale_by_distance',
                       help='Scale points by distance from the surface.')
+    parser.add_option('--mark-inside',
+                      action='store_true', default=None,
+                      dest='mark_inside',
+                      help='Mark points inside the head using a different '
+                      'color.')
     parser.add_option('--verbose', action='store_true', dest='verbose',
                       help='Turn on verbose mode.')
 
@@ -88,7 +93,7 @@ def run():
             trans=trans, scrollable=True, project_eeg=options.project_eeg,
             orient_to_surface=options.orient_to_surface,
             scale_by_distance=options.scale_by_distance,
-            verbose=options.verbose)
+            mark_inside=options.mark_inside, verbose=options.verbose)
     if is_main:
         sys.exit(0)
 

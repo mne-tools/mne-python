@@ -21,6 +21,7 @@ from tvtk.api import tvtk
 from ..defaults import DEFAULTS
 from ..surface import (complete_surface_info, _project_onto_surface,
                        _normalize_vectors)
+from ..source_space import _points_outside_surface
 from ..transforms import apply_trans
 from ..utils import SilenceStdout
 from ..viz._3d import _create_mesh_surf, _toggle_mlab_render
@@ -132,12 +133,14 @@ class Object(HasPrivateTraits):
     project_to_surface = Bool(False, label='Project')
     orient_to_surface = Bool(False, label='Orient')
     scale_by_distance = Bool(False, label='Dist.')
+    mark_inside = Bool(False, label='Mark')
 
     scene = Instance(MlabSceneModel, ())
     src = Instance(VTKDataSource)
 
     # This should be Tuple, but it is broken on Anaconda as of 2016/12/16
     color = RGBColor((1., 1., 1.))
+    inside_color = RGBColor((0., 0., 0.))
     point_scale = Float(10, label='Point Scale')
     opacity = Range(low=0., high=1., value=1.)
     visible = Bool(True)
@@ -181,10 +184,15 @@ class Object(HasPrivateTraits):
             else:
                 nn = vec.copy()
                 _normalize_vectors(nn)
-            # With this, a point on the surface is of size 0.5*point_scale
-            scalars = 0.5 + 250 * np.linalg.norm(vec, axis=-1)
+            if self.mark_inside:
+                scalars = _points_outside_surface(pts, surf).astype(int)
+            else:
+                scalars = np.ones(len(pts))
+            # With this, a point exactly on the surface is of size point_scale
+            dist = np.linalg.norm(vec, axis=-1, keepdims=True)
+            self.src.data.point_data.normals = (250 * dist + 1) * nn
             self.src.data.point_data.scalars = scalars
-            self.src.data.point_data.normals = nn
+            self.glyph.actor.mapper.scalar_range = [0., 1.]
         self.src.data.point_data.update()
         self.src.data.points = pts
         return True
@@ -224,6 +232,8 @@ class PointObject(Object):
                       enabled_when='orientable and not project_to_surface')
         dist = Item('scale_by_distance',
                     enabled_when='orientable and not project_to_surface')
+        mark = Item('mark_inside',
+                    enabled_when='orientable and not project_to_surface')
         if self._view == 'points':
             visible = Item('visible', label='Show', show_label=True)
             views = (visible, color, scale, 'label')
@@ -235,7 +245,7 @@ class PointObject(Object):
         views += (dist,)
         views = views + (Item('project_to_surface', show_label=True,
                               enabled_when='projectable'),)
-        views += (orient,)
+        views += (orient, mark)
         return View(HGroup(*views))
 
     @on_trait_change('label')
@@ -284,6 +294,11 @@ class PointObject(Object):
         glyph.actor.property.backface_culling = True
         glyph.glyph.glyph.vector_mode = 'use_normal'
         glyph.glyph.glyph.clamping = False
+
+        glyph.actor.mapper.color_mode = 'map_scalars'
+        glyph.actor.mapper.scalar_mode = 'use_point_data'
+        glyph.actor.mapper.use_lookup_table_scalar_range = False
+
         self.src = scatter
         self.glyph = glyph
 
@@ -291,15 +306,33 @@ class PointObject(Object):
         self.sync_trait('color', self.glyph.actor.property, mutual=False)
         self.sync_trait('visible', self.glyph)
         self.sync_trait('opacity', self.glyph.actor.property)
+        self.sync_trait('mark_inside', self.glyph.actor.mapper,
+                        'scalar_visibility')
         self.on_trait_change(self._update_points, 'points')
         self._update_markers()
+        self._update_colors()
         _toggle_mlab_render(self, True)
+        # self.scene.camera.parallel_scale = _scale
 
-#         self.scene.camera.parallel_scale = _scale
+    @on_trait_change('color,inside_color')
+    def _update_colors(self):
+        if self.glyph is None:
+            return
+        # inside_color is the surface color, let's try to get far
+        # from that
+        inside = np.array(self.inside_color)
+        # if it's too close to gray, just use black:
+        if np.mean(np.abs(inside - 0.5)) < 0.2:
+            inside.fill(0.)
+        else:
+            inside = 1 - inside
+        colors = np.array([tuple(inside) + (1,),
+                           tuple(self.color) + (1,)]) * 255.
+        self.glyph.module_manager.scalar_lut_manager.lut.table = colors
 
     @on_trait_change('project_to_surface,orient_to_surface,scale_by_distance')
     def _update_markers(self):
-        if not self.glyph:
+        if self.glyph is None:
             return
         defaults = DEFAULTS['coreg']
         gs = self.glyph.glyph.glyph_source
@@ -315,7 +348,7 @@ class PointObject(Object):
             gs.glyph_source.phi_resolution = res
             gs.glyph_source.theta_resolution = res
         if self.scale_by_distance:
-            self.glyph.glyph.scale_mode = 'scale_by_scalar'
+            self.glyph.glyph.scale_mode = 'scale_by_vector'
         else:
             self.glyph.glyph.scale_mode = 'data_scaling_off'
 

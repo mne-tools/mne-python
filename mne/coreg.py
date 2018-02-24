@@ -31,7 +31,6 @@ from .utils import get_config, get_subjects_dir, logger, pformat
 from .viz._3d import _fiducial_coords
 from .externals.six.moves import zip
 
-
 # some path templates
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 subject_dirname = os.path.join('{subjects_dir}', '{subject}')

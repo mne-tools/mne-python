@@ -1298,13 +1298,16 @@ class ViewOptionsPanel(HasTraits):
     mri_obj = Instance(SurfaceObject)
     hsp_obj = Instance(PointObject)
     eeg_obj = Instance(PointObject)
+    hpi_obj = Instance(PointObject)
     view = View(VGroup(Item('mri_obj', style='custom',
                             label="MRI"),
                        Item('hsp_obj', style='custom',
                             label="Extra"),
                        Item('eeg_obj', style='custom',
-                            label='EEG')),
-                title="View Options")
+                            label='EEG'),
+                       Item('hpi_obj', style='custom',
+                            label='HPI'),
+                       ), title="View Options")
 
 
 class CoregFrame(HasTraits):
@@ -1325,6 +1328,7 @@ class CoregFrame(HasTraits):
     project_to_surface = DelegatesTo('eeg_obj')
     orient_to_surface = DelegatesTo('hsp_obj')
     scale_by_distance = DelegatesTo('hsp_obj')
+    mark_inside = DelegatesTo('hsp_obj')
 
     # Omit Points
     distance = Float(5., desc="maximal distance for head shape points from "
@@ -1342,9 +1346,10 @@ class CoregFrame(HasTraits):
     title = Str('MNE Coreg')
 
     # visualization
+    mri_obj = Instance(SurfaceObject)
     hsp_obj = Instance(PointObject)
     eeg_obj = Instance(PointObject)
-    mri_obj = Instance(SurfaceObject)
+    hpi_obj = Instance(PointObject)
     lpa_obj = Instance(PointObject)
     nasion_obj = Instance(PointObject)
     rpa_obj = Instance(PointObject)
@@ -1387,13 +1392,14 @@ class CoregFrame(HasTraits):
                  guess_mri_subject=True, head_opacity=1.,
                  head_high_res=True, trans=None, config=None,
                  project_eeg=False, orient_to_surface=False,
-                 scale_by_distance=False):  # noqa: D102
+                 scale_by_distance=False, mark_inside=False):  # noqa: D102
         self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.model.mri.subject_source.show_high_res_head = head_high_res
         self._initial_project_eeg = project_eeg
         self._initial_orient_to_surface = orient_to_surface
         self._initial_scale_by_distance = scale_by_distance
+        self._initial_mark_inside = mark_inside
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
@@ -1449,7 +1455,7 @@ class CoregFrame(HasTraits):
             # opacity=self._initial_head_opacity,
             # setting opacity here causes points to be
             # [[0, 0, 0]] -- why??
-            )
+        )
         self.mri_obj.opacity = self._initial_head_opacity
         self.fid_panel.hsp_obj = self.mri_obj
 
@@ -1471,9 +1477,10 @@ class CoregFrame(HasTraits):
         # Digitizer Head Shape
         kwargs = dict(view='cloud', scene=self.scene, resolution=20,
                       orient_to_surface=self._initial_orient_to_surface,
-                      scale_by_distance=self._initial_scale_by_distance)
+                      scale_by_distance=self._initial_scale_by_distance,
+                      mark_inside=self._initial_mark_inside)
         self.hsp_obj = PointObject(
-            color=defaults['extra_color'], name='HSP',
+            color=defaults['extra_color'], name='Extra',
             point_scale=defaults['extra_scale'], **kwargs)
         self.model.hsp.sync_trait('points', self.hsp_obj, mutual=False)
 
@@ -1484,11 +1491,21 @@ class CoregFrame(HasTraits):
             project_to_surface=self._initial_project_eeg, **kwargs)
         self.model.hsp.sync_trait('eeg_points', self.eeg_obj, 'points',
                                   mutual=False)
-        for p in (self.hsp_obj, self.eeg_obj):
+
+        # Digitizer HPI
+        self.hpi_obj = PointObject(
+            color=defaults['hpi_color'], name='HPI',
+            point_scale=defaults['hpi_scale'], **kwargs)
+        self.model.hsp.sync_trait('hpi_points', self.hpi_obj, 'points',
+                                  mutual=False)
+        for p in (self.hsp_obj, self.eeg_obj, self.hpi_obj):
             self.model.mri.bem_low_res.sync_trait('tris', p, 'project_to_tris',
                                                   mutual=False)
             self.model.sync_trait('transformed_low_res_mri_points',
                                   p, 'project_to_points', mutual=False)
+            p.inside_color = self.mri_obj.color
+            self.mri_obj.sync_trait('color', p, 'inside_color',
+                                    mutual=False)
 
         # Digitizer Fiducials
         point_scale = defaults['dig_fid_scale']
@@ -1510,7 +1527,7 @@ class CoregFrame(HasTraits):
                                   mutual=False)
 
         # All points share these
-        for p in (self.hsp_obj, self.eeg_obj,
+        for p in (self.hsp_obj, self.eeg_obj, self.hpi_obj,
                   self.hsp_lpa_obj, self.hsp_nasion_obj, self.hsp_rpa_obj):
             self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
             self.sync_trait('hsp_visible', p, 'visible', mutual=False)
@@ -1523,9 +1540,9 @@ class CoregFrame(HasTraits):
         _toggle_mlab_render(self, True)
         self.scene.render()
         self.scene.camera.focal_point = (0., 0., 0.)
-        self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
-                                                   hsp_obj=self.hsp_obj,
-                                                   eeg_obj=self.eeg_obj)
+        self.view_options_panel = ViewOptionsPanel(
+            mri_obj=self.mri_obj, hsp_obj=self.hsp_obj, eeg_obj=self.eeg_obj,
+            hpi_obj=self.hpi_obj)
 
     @cached_property
     def _get_hsp_visible(self):
@@ -1619,3 +1636,5 @@ class CoregFrame(HasTraits):
                    str(self.orient_to_surface).lower())
         set_config('MNE_COREG_SCALE_BY_DISTANCE',
                    str(self.scale_by_distance).lower())
+        set_config('MNE_COREG_MARK_INSIDE',
+                   str(self.mark_inside).lower())
