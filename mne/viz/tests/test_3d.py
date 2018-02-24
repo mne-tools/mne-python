@@ -337,7 +337,8 @@ def test_stc_mpl():
                  colormap='Reds')
         fig = stc.plot(subjects_dir=subjects_dir, time_unit='ms', views='dor',
                        hemi='lh', smoothing_steps=2, subject='sample',
-                       backend='matplotlib', spacing='ico2', time_viewer=True)
+                       backend='matplotlib', spacing='ico2', time_viewer=True,
+                       colormap='mne')
         time_viewer = fig.time_viewer
         _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
         time_viewer.canvas.key_press_event('ctrl+right')
@@ -414,6 +415,9 @@ def test_plot_vec_source_estimates():
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
         stc.plot('sample', subjects_dir=subjects_dir)
+        with pytest.raises(ValueError, match='use pos_lims'):
+            stc.plot('sample', subjects_dir=subjects_dir,
+                     clim=dict(pos_lims=[1, 2, 3]))
 
 
 run_tests_if_main()

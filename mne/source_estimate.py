@@ -1959,7 +1959,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
                               self.subject, self.verbose)
 
     @copy_function_doc_to_method_doc(plot_vector_source_estimates)
-    def plot(self, subject=None, hemi='lh', colormap='hot', time_label='auto',
+    def plot(self, subject=None, hemi='lh', colormap='auto', time_label='auto',
              smoothing_steps=10, transparent=None, brain_alpha=0.4,
              overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
              time_viewer=False, subjects_dir=None, figure=None, views='lat',

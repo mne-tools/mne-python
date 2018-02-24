@@ -1,6 +1,4 @@
 """
-.. _tut_stats_cluster_source_rANOVA:
-
 ======================================================================
 Repeated measures ANOVA on source data with spatio-temporal clustering
 ======================================================================
@@ -73,7 +71,7 @@ epochs.equalize_event_counts(event_id)
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
+method = "dSPM"  # use dSPM method (could also be MNE, sLORETA, or eLORETA)
 inverse_operator = read_inverse_operator(fname_inv)
 
 # we'll only use one hemisphere to speed up this example
@@ -170,7 +168,7 @@ n_times = X[0].shape[1]
 n_conditions = 4
 
 ###############################################################################
-# A stat_fun must deal with a variable number of input arguments.
+# A ``stat_fun`` must deal with a variable number of input arguments.
 #
 # Inside the clustering function each condition will be passed as flattened
 # array, necessitated by the clustering procedure. The ANOVA however expects an
@@ -179,15 +177,15 @@ n_conditions = 4
 # The following function catches the list input and swaps the first and the
 # second dimension, and finally calls ANOVA.
 #
-# Note. for further details on this ANOVA function consider the
-# corresponding
-# :ref:`time-frequency tutorial <tut_stats_cluster_sensor_rANOVA_tfr>`.
+# .. note:: For further details on this ANOVA function consider the
+#           corresponding
+#           :ref:`time-frequency tutorial <sphx_glr_auto_tutorials_plot_stats_cluster_time_frequency_repeated_measures_anova.py>`.  # noqa: E501
 
 
 def stat_fun(*args):
+    # get f-values only.
     return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
                      effects=effects, return_pvals=return_pvals)[0]
-    # get f-values only.
 
 
 ###############################################################################

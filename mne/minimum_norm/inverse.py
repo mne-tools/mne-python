@@ -9,6 +9,7 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
+from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
 from ..io.constants import FIFF
 from ..io.open import fiff_open
@@ -473,7 +474,8 @@ def _check_ch_names(inv, info):
 
 
 @verbose
-def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
+def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
+                             method_params=None, verbose=None):
     """Prepare an inverse operator for actually computing the inverse.
 
     Parameters
@@ -484,8 +486,12 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
         Number of averages (scales the noise covariance).
     lambda2 : float
         The regularization factor. Recommended to be 1 / SNR**2.
-    method : "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -570,14 +576,28 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
     #
     #   Finally, compute the noise-normalization factors
     #
-    if method in ["dSPM", 'sLORETA']:
+    inv['noisenorm'] = []
+    if method != 'MNE':
+        logger.info('    Computing noise-normalization factors (%s)...'
+                    % method)
+    if method == 'eLORETA':
+        _compute_eloreta(inv, lambda2, method_params)
+    elif method != 'MNE':
+        # Here we have::
+        #
+        #     inv['reginv'] = sing / (sing ** 2 + lambda2)
+        #
+        # where ``sing`` are the singular values of the whitened gain matrix.
         if method == "dSPM":
-            logger.info('    Computing noise-normalization factors '
-                        '(dSPM)...')
+            # dSPM normalization
             noise_weight = inv['reginv']
-        else:
-            logger.info('    Computing noise-normalization factors '
-                        '(sLORETA)...')
+        elif method == 'sLORETA':
+            # sLORETA normalization is given by the square root of the
+            # diagonal entries of the resolution matrix R, which is
+            # the product of the inverse and forward operators as:
+            #
+            #     w = diag(diag(R)) ** 0.5
+            #
             noise_weight = (inv['reginv'] *
                             np.sqrt((1. + inv['sing'] ** 2 / lambda2)))
         noise_norm = np.zeros(inv['eigen_leads']['nrow'])
@@ -629,8 +649,8 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     label : Label | None
         Restricts the source estimates to a given label. If None,
         source estimates will be computed for the entire source space.
-    method : "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use mininum norm, dSPM, sLORETA, or eLORETA.
     pick_ori : None | "normal" | "vector"
         Which orientation to pick (only matters in the case of 'normal').
 
@@ -641,7 +661,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         estimate.
     noise_norm : array, shape (n_vertices, n_samples) | (3 * n_vertices, n_samples)
         Normalization to apply to the source estimate in order to obtain dSPM
-        or LORETA solutions.
+        or sLORETA solutions.
     vertices : list of length 2
         Vertex numbers for lh and rh hemispheres that correspond to the
         vertices in the source estimate. When the label parameter has been
@@ -653,8 +673,10 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     """  # noqa: E501
     eigen_leads = inv['eigen_leads']['data']
     source_cov = inv['source_cov']['data'][:, None]
-    if method != "MNE":
+    if method in ('dSPM', 'sLORETA'):
         noise_norm = inv['noisenorm'][:, None]
+    else:
+        noise_norm = None
 
     src = inv['src']
     vertno = _get_vertno(src)
@@ -701,26 +723,23 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         #
         #     R^0.5 has been already factored in
         #
-        logger.info('(eigenleads already weighted)...')
+        logger.info('    Eigenleads already weighted ... ')
         K = np.dot(eigen_leads, trans)
     else:
         #
         #     R^0.5 has to be factored in
         #
-        logger.info('(eigenleads need to be weighted)...')
+        logger.info('    Eigenleads need to be weighted ...')
         K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
-
-    if method == "MNE":
-        noise_norm = None
 
     return K, noise_norm, vertno, source_nn
 
 
 def _check_method(method):
     """Check the method."""
-    if method not in ["MNE", "dSPM", "sLORETA"]:
-        raise ValueError('method parameter should be "MNE" or "dSPM" '
-                         'or "sLORETA".')
+    if method not in ['MNE', 'dSPM', 'sLORETA', 'eLORETA']:
+        raise ValueError('method parameter should be "MNE", "dSPM", '
+                         '"sLORETA" or "eLORETA", got %s.' % (method,))
 
 
 def _check_ori(pick_ori, source_ori):
@@ -783,7 +802,8 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
-                  pick_ori=None, prepared=False, label=None, verbose=None):
+                  pick_ori=None, prepared=False, label=None,
+                  method_params=None, verbose=None):
     """Apply inverse operator to evoked data.
 
     Parameters
@@ -791,12 +811,11 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     evoked : Evoked object
         Evoked data.
     inverse_operator: instance of InverseOperator
-        Inverse operator returned from `mne.read_inverse_operator`,
-        `prepare_inverse_operator` or `make_inverse_operator`.
+        Inverse operator.
     lambda2 : float
         The regularization parameter.
-    method : "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
     pick_ori : None | "normal" | "vector"
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
@@ -806,10 +825,14 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         :class:`mne.VectorSourceEstimate` object. This is only implemented when
         working with loose orientations.
     prepared : bool
-        If True, do not call `prepare_inverse_operator`.
+        If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
         Restricts the source estimates to a given label. If None,
         source estimates will be computed for the entire source space.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes for details.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -823,6 +846,50 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     --------
     apply_inverse_raw : Apply inverse operator to raw object
     apply_inverse_epochs : Apply inverse operator to epochs object
+
+    Notes
+    -----
+    Currently only the ``method='eLORETA'`` has additional options.
+    It performs an iterative fit with a convergence criterion, so you can
+    pass a ``method_params`` :class:`dict` with string keys mapping to values
+    for:
+
+        'eps' : float
+            The convergence epsilon (default 1e-6).
+        'max_iter' : int
+            The maximum number of iterations (default 20).
+            If less regularization is applied, more iterations may be
+            necessary.
+        'force_equal' : bool
+            Force all eLORETA weights for each direction for a given
+            location equal. The default is None, which means ``True`` for
+            loose-orientation inverses and ``False`` for free- and
+            fixed-orientation inverses. See below.
+
+    The eLORETA paper [1]_ defines how to compute inverses for fixed- and
+    free-orientation inverses. In the free orientation case, the X/Y/Z
+    orientation triplet for each location is effectively multiplied by a
+    3x3 weight matrix. This is the behavior obtained with
+    ``force_equal=False`` parameter.
+
+    However, other noise normalization methods (dSPM, sLORETA) multiply all
+    orientations for a given location by a single value.
+    Using ``force_equal=True`` mimics this behavior by modifying the iterative
+    algorithm to choose uniform weights (equivalent to a 3x3 diagonal matrix
+    with equal entries).
+
+    It is necessary to use ``force_equal=True``
+    with loose orientation inverses (e.g., ``loose=0.2``), otherwise the
+    solution resembles a free-orientation inverse (``loose=1.0``).
+    It is thus recommended to use ``force_equal=True`` for loose orientation
+    and ``force_equal=False`` for free orientation inverses. This is the
+    behavior used when the parameter ``force_equal=None`` (default behavior).
+
+    References
+    ----------
+    .. [1] Pascual-Marqui RD (2007). Discrete, 3D distributed, linear imaging
+           methods of electric neuronal activity. Part 1: exact, zero error
+           localization. arXiv:0710.3341
     """
     _check_reference(evoked)
     _check_method(method)
@@ -835,15 +902,17 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     _check_ch_names(inverse_operator, evoked.info)
 
     if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
+                                       method_params)
     else:
         inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
+    logger.info('Applying inverse operator to "%s"...' % (evoked.comment,))
+    logger.info('    Picked %d channels from the data' % len(sel))
+    logger.info('    Computing inverse...')
     K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
                                                         pick_ori)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
@@ -852,11 +921,11 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                    FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
 
     if is_free_ori and pick_ori != 'vector':
-        logger.info('combining the current components...')
+        logger.info('    Combining the current components...')
         sol = combine_xyz(sol)
 
     if noise_norm is not None:
-        logger.info('(dSPM)...')
+        logger.info('    %s...' % (method,))
         if is_free_ori and pick_ori == 'vector':
             noise_norm = noise_norm.repeat(3, axis=0)
         sol *= noise_norm
@@ -876,7 +945,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_ori=None, buffer_size=None,
-                      prepared=False, verbose=None):
+                      prepared=False, method_params=None, verbose=None):
     """Apply inverse operator to Raw data.
 
     Parameters
@@ -884,12 +953,11 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     raw : Raw object
         Raw data.
     inverse_operator : dict
-        Inverse operator returned from `mne.read_inverse_operator`,
-        `prepare_inverse_operator` or `make_inverse_operator`.
+        Inverse operator.
     lambda2 : float
         The regularization parameter.
-    method : "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
     label : Label | None
         Restricts the source estimates to a given label. If None,
         source estimates will be computed for the entire source space.
@@ -919,7 +987,11 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Note that this setting has no effect for fixed-orientation inverse
         operators.
     prepared : bool
-        If True, do not call `prepare_inverse_operator`.
+        If True, do not call :func:`prepare_inverse_operator`.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -944,15 +1016,17 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     #   Set up the inverse according to the parameters
     #
     if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
+                                       method_params)
     else:
         inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(raw.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
+    logger.info('Applying inverse to raw...')
+    logger.info('    Picked %d channels from the data' % len(sel))
+    logger.info('    Computing inverse...')
 
     data, times = raw[sel, start:stop]
 
@@ -968,7 +1042,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
         n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
-        logger.info('computing inverse and combining the current '
+        logger.info('    computing inverse and combining the current '
                     'components (using %d segments)...' % (n_seg))
 
         # Allocate space for inverse solution
@@ -983,12 +1057,12 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                 sol_chunk = combine_xyz(sol_chunk)
             sol[:, pos:pos + buffer_size] = sol_chunk
 
-            logger.info('segment %d / %d done..'
+            logger.info('        segment %d / %d done..'
                         % (pos / buffer_size + 1, n_seg))
     else:
         sol = np.dot(K, data)
         if is_free_ori and pick_ori != 'vector':
-            logger.info('combining the current components...')
+            logger.info('    combining the current components...')
             sol = combine_xyz(sol)
 
     if noise_norm is not None:
@@ -1008,7 +1082,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
-                              prepared=False, verbose=None):
+                              prepared=False, method_params=None,
+                              verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _check_method(method)
     _check_ori(pick_ori, inverse_operator['source_ori'])
@@ -1019,7 +1094,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     #   Set up the inverse according to the parameters
     #
     if not prepared:
-        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
+                                       method_params)
     else:
         inv = inverse_operator
     #
@@ -1075,7 +1151,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
-                         return_generator=False, prepared=False, verbose=None):
+                         return_generator=False, prepared=False,
+                         method_params=None, verbose=None):
     """Apply inverse operator to Epochs.
 
     Parameters
@@ -1083,12 +1160,11 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     epochs : Epochs object
         Single trial epochs.
     inverse_operator : dict
-        Inverse operator returned from `mne.read_inverse_operator`,
-        `prepare_inverse_operator` or `make_inverse_operator`.
+        Inverse operator.
     lambda2 : float
         The regularization parameter.
-    method : "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use mininum norm, dSPM (default), sLORETA, or eLORETA.
     label : Label | None
         Restricts the source estimates to a given label. If None,
         source estimates will be computed for the entire source space.
@@ -1107,7 +1183,11 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
     prepared : bool
-        If True, do not call `prepare_inverse_operator`.
+        If True, do not call :func:`prepare_inverse_operator`.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+
+        .. versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1122,10 +1202,10 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     apply_inverse_raw : Apply inverse operator to raw object
     apply_inverse : Apply inverse operator to evoked object
     """
-    stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
-                                     method=method, label=label, nave=nave,
-                                     pick_ori=pick_ori, verbose=verbose,
-                                     prepared=prepared)
+    stcs = _apply_inverse_epochs_gen(
+        epochs, inverse_operator, lambda2, method=method, label=label,
+        nave=nave, pick_ori=pick_ori, verbose=verbose, prepared=prepared,
+        method_params=method_params)
 
     if not return_generator:
         # return a list
@@ -1522,7 +1602,7 @@ def compute_rank_inverse(inv):
 
     Parameters
     ----------
-    inv : dict
+    inv : instance of InverseOperator
         The inverse operator.
 
     Returns

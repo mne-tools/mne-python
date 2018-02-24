@@ -1239,25 +1239,9 @@ def _sensor_shape(coil):
     return rrs, tris
 
 
-def _limits_to_control_points(clim, stc_data, colormap):
-    """Convert limits (values or percentiles) to control points.
-
-    Note: If using 'mne', generate cmap control points for a directly
-    mirrored cmap for simplicity (i.e., no normalization is computed to account
-    for a 2-tailed mne cmap).
-
-    Parameters
-    ----------
-    clim : str | dict
-        Desired limits use to set cmap control points.
-
-    Returns
-    -------
-    ctrl_pts : list (length 3)
-        Array of floats corresponding to values to use as cmap control points.
-    colormap : str
-        The colormap.
-    """
+def _limits_to_control_points(clim, stc_data, colormap, transparent,
+                              fmt='mayavi', allow_pos_lims=True):
+    """Convert limits (values or percentiles) to control points."""
     # Based on type of limits specified, get cmap control points
     if colormap == 'auto':
         if clim == 'auto':
@@ -1275,6 +1259,8 @@ def _limits_to_control_points(clim, stc_data, colormap):
         limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
         if colormap != 'auto' and limit_key not in clim.keys():
             raise KeyError('"pos_lims" must be used with "mne" colormap')
+        if 'pos_lims' in clim and not allow_pos_lims:
+            raise ValueError('Cannot use pos_lims for clim')
         clim['kind'] = clim.get('kind', 'percent')
         if clim['kind'] == 'percent':
             ctrl_pts = np.percentile(np.abs(stc_data),
@@ -1307,7 +1293,17 @@ def _limits_to_control_points(clim, stc_data, colormap):
             bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
             ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
 
-    return ctrl_pts, colormap
+    # Construct cmap manually if 'mne' and get cmap bounds
+    # and triage transparent argument
+    if colormap in ('mne', 'mne_analyze'):
+        colormap = mne_analyze_colormap(ctrl_pts, format=fmt)
+        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
+        transparent = False if transparent is None else transparent
+    else:
+        scale_pts = ctrl_pts
+        transparent = True if transparent is None else transparent
+
+    return ctrl_pts, colormap, scale_pts, transparent
 
 
 def _handle_time(time_label, time_unit, times):
@@ -1420,9 +1416,8 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     if views not in kwargs:
         raise ValueError("views must be one of ['lat', 'med', 'fos', 'cau', "
                          "'dor' 'ven', 'fro', 'par']. Got %s." % views)
-    ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
-    if colormap == 'auto':
-        colormap = mne_analyze_colormap(clim, format='matplotlib')
+    ctrl_pts, colormap, _, _ = _limits_to_control_points(
+        clim, stc.data, colormap, transparent=False, fmt='matplotlib')
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
@@ -1495,7 +1490,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
-                          colormap='auto', time_label='auto',
+                          colormap='hot', time_label='auto',
                           smoothing_steps=10, transparent=None, alpha=1.0,
                           time_viewer=False, subjects_dir=None, figure=None,
                           views='lat', colorbar=True, clim='auto',
@@ -1523,8 +1518,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
         Name of colormap to use or a custom look up table. If array, must
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
-        based on whether 'lims' or 'pos_lims' are specified in `clim`.
+        0 and 255. Default is 'hot'.
     time_label : str | callable | None
         Format of the time label (a format string, a function that maps
         floating point time values to strings, or None for no label). The
@@ -1564,12 +1558,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             ``lims`` : list | np.ndarray | tuple of float, 3 elements
                 Note: Only use this if 'colormap' is not 'mne'.
                 Left, middle, and right bound for colormap.
-            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
-                Note: Only use this if 'colormap' is 'mne'.
-                Left, middle, and right bound for colormap. Positive values
-                will be mirrored directly across zero during colormap
-                construction to obtain negative control points.
 
+        Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
+        ``pos_lims``, as the surface plot must show the magnitude.
     cortex : str or tuple
         Specifies how binarized curvature values are rendered.
         Either the name of a preset PySurfer cortex colorscheme (one of
@@ -1661,17 +1652,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
-    ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
-
-    # Construct cmap manually if 'mne' and get cmap bounds
-    # and triage transparent argument
-    if colormap in ('mne', 'mne_analyze'):
-        colormap = mne_analyze_colormap(ctrl_pts)
-        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
-        transparent = False if transparent is None else transparent
-    else:
-        scale_pts = ctrl_pts
-        transparent = True if transparent is None else transparent
+    ctrl_pts, colormap, scale_pts, transparent = _limits_to_control_points(
+        clim, stc.data, colormap, transparent)
 
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
@@ -1733,7 +1715,7 @@ def _get_ps_kwargs(initial_time, require='0.6'):
     return initial_time, ad_kwargs, sd_kwargs
 
 
-def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
+def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='auto',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
                                  overlay_alpha=None, vector_alpha=1.0,
@@ -1763,7 +1745,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
         Name of colormap to use or a custom look up table. If array, must
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255. Defaults to 'hot'.
+        0 and 255. If 'auto' (default), either 'hot' or 'mne' will be chosen
+        based on whether 'lims' or 'pos_lims' are specified in ``clim``.
     time_label : str | callable | None
         Format of the time label (a format string, a function that maps
         floating point time values to strings, or None for no label). The
@@ -1863,8 +1846,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
-    scale_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
-    transparent = True if transparent is None else transparent
+    scale_pts, colormap, scale_points, transparent = _limits_to_control_points(
+        clim, stc.data, colormap, transparent, allow_pos_lims=False)
 
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
