@@ -1322,6 +1322,9 @@ class CoregFrame(HasTraits):
 
     raw_src = DelegatesTo('model', 'hsp')
     guess_mri_subject = DelegatesTo('model')
+    project_to_surface = DelegatesTo('eeg_obj')
+    orient_to_surface = DelegatesTo('hsp_obj')
+    scale_by_distance = DelegatesTo('hsp_obj')
 
     # Omit Points
     distance = Float(5., desc="maximal distance for head shape points from "
@@ -1383,12 +1386,14 @@ class CoregFrame(HasTraits):
     def __init__(self, raw=None, subject=None, subjects_dir=None,
                  guess_mri_subject=True, head_opacity=1.,
                  head_high_res=True, trans=None, config=None,
-                 project_eeg=False, orient_points=False):  # noqa: D102
+                 project_eeg=False, orient_to_surface=False,
+                 scale_by_distance=False):  # noqa: D102
         self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.model.mri.subject_source.show_high_res_head = head_high_res
         self._initial_project_eeg = project_eeg
-        self._initial_orient_points = orient_points
+        self._initial_orient_to_surface = orient_to_surface
+        self._initial_scale_by_distance = scale_by_distance
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
@@ -1465,7 +1470,8 @@ class CoregFrame(HasTraits):
 
         # Digitizer Head Shape
         kwargs = dict(view='cloud', scene=self.scene, resolution=20,
-                      orient_to_surface=self._initial_orient_points)
+                      orient_to_surface=self._initial_orient_to_surface,
+                      scale_by_distance=self._initial_scale_by_distance)
         self.hsp_obj = PointObject(
             color=defaults['extra_color'], name='HSP',
             point_scale=defaults['extra_scale'], **kwargs)
@@ -1592,6 +1598,8 @@ class CoregFrame(HasTraits):
         set_config('MNE_COREG_HEAD_OPACITY',
                    str(self.mri_obj.opacity),
                    home_dir, set_env=False)
+        # 'MNE_COREG_SCENE_WIDTH'
+        # 'MNE_COREG_SCENE_HEIGHT'
         set_config('MNE_COREG_SCALE_LABELS',
                    str(self.model.scale_labels).lower(),
                    home_dir, set_env=False)
@@ -1605,3 +1613,9 @@ class CoregFrame(HasTraits):
             set_config('MNE_COREG_SUBJECTS_DIR',
                        self.model.mri.subjects_dir,
                        home_dir, set_env=False)
+        set_config('MNE_COREG_PROJECT_EEG',
+                   str(self.project_to_surface).lower())
+        set_config('MNE_COREG_ORIENT_TO_SURFACE',
+                   str(self.orient_to_surface).lower())
+        set_config('MNE_COREG_SCALE_BY_DISTANCE',
+                   str(self.scale_by_distance).lower())

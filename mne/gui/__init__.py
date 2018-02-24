@@ -39,7 +39,8 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=None,
                    scene_height=None, head_opacity=None, head_high_res=None,
                    trans=None, scrollable=True, project_eeg=None,
-                   orient_points=False, verbose=None):
+                   orient_to_surface=None, scale_by_distance=None,
+                   verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -88,13 +89,18 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         The transform file to use.
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
-    project_eeg : bool
-        If True (default False), project EEG electrodes to the head surface.
+    project_eeg : bool | None
+        If True (default None), project EEG electrodes to the head surface.
 
         .. versionadded:: 0.16
-    orient_points : bool
-        If True (default False), orient EEG electrode and head shape points
+    orient_to_surface : bool | None
+        If True (default None), orient EEG electrode and head shape points
         to the head surface.
+
+        .. versionadded:: 0.16
+    scale_by_distance : bool | None
+        If True (default None), scale the digitization points by their
+        distance from the scalp surface.
 
         .. versionadded:: 0.16
     verbose : bool, str, int, or None
@@ -103,6 +109,10 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
 
     Notes
     -----
+    Many parameters (e.g., ``project_eeg``, ``orient_points``, etc.) take
+    None as a parameter, which means that the default will be read from
+    the MNE-Python configuration file (which gets saved when exiting).
+
     Step by step instructions for the coregistrations can be accessed as
     slides, `for subjects with structural MRI
     <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
@@ -127,9 +137,13 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         elif 'MNE_COREG_SUBJECTS_DIR' in config:
             subjects_dir = config['MNE_COREG_SUBJECTS_DIR']
     if project_eeg is None:
-        scene_height = config.get('MNE_COREG_PROJECT_EEG', False)
-    if orient_points is None:
-        orient_points = config.get('MNE_COREG_PROJECT_EEG', False)
+        project_eeg = config.get('MNE_COREG_PROJECT_EEG', '') == 'true'
+    if orient_to_surface is None:
+        orient_to_surface = (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') ==
+                             'true')
+    if scale_by_distance is None:
+        scale_by_distance = (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') ==
+                             'true')
     head_opacity = float(head_opacity)
     scene_width = int(scene_width)
     scene_height = int(scene_height)
@@ -140,7 +154,9 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     view = _make_view(tabbed, split, scene_width, scene_height, scrollable)
     frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
                        head_opacity, head_high_res, trans, config,
-                       project_eeg=project_eeg, orient_points=orient_points)
+                       project_eeg=project_eeg,
+                       orient_to_surface=orient_to_surface,
+                       scale_by_distance=scale_by_distance)
     return _initialize_gui(frame, view)
 
 
