@@ -11,7 +11,6 @@ from mayavi.modules.glyph import Glyph
 from mayavi.modules.surface import Surface
 from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
-from pyface.api import error
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         Instance, Array, Bool, Button, Enum, Float, Int, List,
                         Range, Str, RGBColor, Property, cached_property)
@@ -22,7 +21,6 @@ from ..defaults import DEFAULTS
 from ..surface import (complete_surface_info, _project_onto_surface,
                        _normalize_vectors)
 from ..source_space import _points_outside_surface
-from ..transforms import apply_trans
 from ..utils import SilenceStdout
 from ..viz._3d import _create_mesh_surf, _toggle_mlab_render
 
@@ -124,7 +122,6 @@ class Object(HasPrivateTraits):
 
     points = Array(float, shape=(None, 3))
     nn = Array(float, shape=(None, 3))
-    trans = Array()
     name = Str
 
     # projection onto a surface
@@ -150,28 +147,13 @@ class Object(HasPrivateTraits):
     visible = Bool(True)
 
     # don't put project_to_tris here, just always set project_to_points second
-    @on_trait_change('trans,points,project_to_surface,mark_inside')
+    @on_trait_change('points,project_to_surface,mark_inside')
     def _update_points(self):
         """Update the location of the plotted points."""
         if not hasattr(self.src, 'data'):
             return
 
-        trans = self.trans
-        if np.any(trans):
-            if trans.ndim == 0 or trans.shape == (3,) or trans.shape == (1, 3):
-                pts = self.points * trans
-            elif trans.shape == (3, 3):
-                pts = np.dot(self.points, trans.T)
-            elif trans.shape == (4, 4):
-                pts = apply_trans(trans, self.points)
-            else:
-                err = ("trans must be a scalar, a length 3 sequence, or an "
-                       "array of shape (1,3), (3, 3) or (4, 4). "
-                       "Got %s" % str(trans))
-                error(None, err, "Display Error")
-                raise ValueError(err)
-        else:
-            pts = self.points
+        pts = self.points
 
         # Do the projection if required
         if len(self.project_to_points) > 1 and len(pts) > 0:
@@ -444,7 +426,7 @@ class SurfaceObject(Object):
 
         self.scene.camera.parallel_scale = _scale
 
-    @on_trait_change('trans,points')
+    @on_trait_change('points')
     def _update_points(self):
         if Object._update_points(self):
             self.src.update()  # necessary for SurfaceObject since Mayavi 4.5.0

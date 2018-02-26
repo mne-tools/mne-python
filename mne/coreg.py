@@ -13,7 +13,6 @@ import stat
 import sys
 import re
 import shutil
-from warnings import warn
 from functools import reduce
 
 import numpy as np
@@ -285,7 +284,8 @@ def _trans_from_params(param_info, params):
 
 
 def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
-                       scale=False, tol=None, x0=None, out='trans'):
+                       scale=False, tol=None, x0=None, out='trans',
+                       weights=None):
     """Find a transform between matched sets of points.
 
     This minimizes the squared distance between two matching sets of points.
@@ -318,24 +318,29 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         the fit parameters; 'trans' returns a transformation matrix of shape
         (4, 4).
 
-
     Returns
     -------
-    One of the following, depending on the ``out`` parameter:
-
-    trans : array, shape = (4, 4)
+    trans : array, shape (4, 4)
         Transformation that, if applied to src_pts, minimizes the squared
-        distance to tgt_pts.
-    params : array, shape = (n_params, )
-        A single tuple containing the translation, rotation and scaling
-        parameters in that order.
+        distance to tgt_pts. Only returned if out=='trans'.
+    params : array, shape (n_params, )
+        A single tuple containing the rotation, translation, and scaling
+        parameters in that order (as applicable).
     """
+    # XXX eventually this should be refactored with the cHPI fitting code,
+    # which use fmin_cobyla with constraints
     from scipy.optimize import leastsq
     src_pts = np.atleast_2d(src_pts)
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
         raise ValueError("src_pts and tgt_pts must have same shape (got "
                          "{0}, {1})".format(src_pts.shape, tgt_pts.shape))
+    if weights is not None:
+        weights = np.array(weights, float)
+        if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
+            raise ValueError("weights (shape=%s) must be None or have shape "
+                             "(%s,)" % (weights.shape, src_pts.shape[0],))
+        weights = weights[:, np.newaxis]
 
     rotate = bool(rotate)
     translate = bool(translate)
@@ -349,23 +354,21 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
             est = dot(src_pts, trans.T)
-            return (tgt_pts - est).ravel()
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
         if x0 is None:
             x0 = (0, 0, 0)
-    elif param_info == (True, False, 1):
-        def error(x):
-            rx, ry, rz, s = x
-            trans = rotation3d(rx, ry, rz) * s
-            est = dot(src_pts, trans.T)
-            return (tgt_pts - est).ravel()
-        if x0 is None:
-            x0 = (0, 0, 0, 1)
     elif param_info == (True, True, 0):
         def error(x):
             rx, ry, rz, tx, ty, tz = x
             trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            est = dot(src_pts, trans.T)
-            return (tgt_pts - est[:, :3]).ravel()
+            est = dot(src_pts, trans.T)[:, :3]
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
         if x0 is None:
             x0 = (0, 0, 0, 0, 0, 0)
     elif param_info == (True, True, 1):
@@ -373,10 +376,25 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz, tx, ty, tz, s = x
             trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
                                  scaling(s, s, s)))
-            est = dot(src_pts, trans.T)
-            return (tgt_pts - est[:, :3]).ravel()
+            est = dot(src_pts, trans.T)[:, :3]
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
         if x0 is None:
             x0 = (0, 0, 0, 0, 0, 0, 1)
+    elif param_info == (True, True, 3):
+        def error(x):
+            rx, ry, rz, tx, ty, tz, sx, sy, sz = x
+            trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
+                                 scaling(sx, sy, sz)))
+            est = dot(src_pts, trans.T)[:, :3]
+            d = tgt_pts - est
+            if weights is not None:
+                d *= weights
+            return d.ravel()
+        if x0 is None:
+            x0 = (0, 0, 0, 0, 0, 0, 1, 1, 1)
     else:
         raise NotImplementedError(
             "The specified parameter combination is not implemented: "
@@ -401,172 +419,6 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         return x
     elif out == 'trans':
         return trans
-    else:
-        raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
-                         "'trans'." % out)
-
-
-def _point_cloud_error(src_pts, tgt_pts):
-    """Find the distance from each source point to its closest target point.
-
-    Parameters
-    ----------
-    src_pts : array, shape = (n, 3)
-        Source points.
-    tgt_pts : array, shape = (m, 3)
-        Target points.
-
-    Returns
-    -------
-    dist : array, shape = (n, )
-        For each point in ``src_pts``, the distance to the closest point in
-        ``tgt_pts``.
-    """
-    from scipy.spatial.distance import cdist
-    Y = cdist(src_pts, tgt_pts, 'euclidean')
-    dist = Y.min(axis=1)
-    return dist
-
-
-def _point_cloud_error_balltree(src_pts, tgt_tree):
-    """Find the distance from each source point to its closest target point.
-
-    Uses sklearn.neighbors.BallTree for greater efficiency
-
-    Parameters
-    ----------
-    src_pts : array, shape = (n, 3)
-        Source points.
-    tgt_tree : sklearn.neighbors.BallTree
-        BallTree of the target points.
-
-    Returns
-    -------
-    dist : array, shape = (n, )
-        For each point in ``src_pts``, the distance to the closest point in
-        ``tgt_pts``.
-    """
-    dist, _ = tgt_tree.query(src_pts)
-    return dist.ravel()
-
-
-def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
-                    scale=0, x0=None, leastsq_args={}, out='params'):
-    """Find a transform between unmatched sets of points.
-
-    This minimizes the squared distance from each source point to its closest
-    target point, using :func:`scipy.optimize.leastsq` to find a
-    transformation using rotation, translation, and scaling (in that order).
-
-    Parameters
-    ----------
-    src_pts : array, shape = (n, 3)
-        Points to which the transform should be applied.
-    tgt_pts : array, shape = (m, 3)
-        Points to which src_pts should be fitted. Each point in tgt_pts should
-        correspond to the point in src_pts with the same index.
-    rotate : bool
-        Allow rotation of the ``src_pts``.
-    translate : bool
-        Allow translation of the ``src_pts``.
-    scale : 0 | 1 | 3
-        Number of scaling parameters. With 0, points are not scaled. With 1,
-        points are scaled by the same factor along all axes. With 3, points are
-        scaled by a separate factor along each axis.
-    x0 : None | tuple
-        Initial values for the fit parameters.
-    leastsq_args : dict
-        Additional parameters to submit to :func:`scipy.optimize.leastsq`.
-    out : 'params' | 'trans'
-        In what format to return the estimate: 'params' returns a tuple with
-        the fit parameters; 'trans' returns a transformation matrix of shape
-        (4, 4).
-
-    Returns
-    -------
-    x : array, shape = (n_params, )
-        Estimated parameters for the transformation.
-
-    Notes
-    -----
-    Assumes that the target points form a dense enough point cloud so that
-    the distance of each src_pt to the closest tgt_pt can be used as an
-    estimate of the distance of src_pt to tgt_pts.
-    """
-    from scipy.optimize import leastsq
-    kwargs = {'epsfcn': 0.01}
-    kwargs.update(leastsq_args)
-
-    # assert correct argument types
-    src_pts = np.atleast_2d(src_pts)
-    tgt_pts = np.atleast_2d(tgt_pts)
-    translate = bool(translate)
-    rotate = bool(rotate)
-    scale = int(scale)
-
-    if translate:
-        src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-
-    try:
-        from sklearn.neighbors import BallTree
-        tgt_pts = BallTree(tgt_pts)
-        errfunc = _point_cloud_error_balltree
-    except ImportError:
-        warn("Sklearn could not be imported. Fitting points will be slower. "
-             "To improve performance, install the sklearn module.")
-        errfunc = _point_cloud_error
-
-    # for efficiency, define parameter specific error function
-    param_info = (rotate, translate, scale)
-    if param_info == (True, False, 0):
-        x0 = x0 or (0, 0, 0)
-
-        def error(x):
-            rx, ry, rz = x
-            trans = rotation3d(rx, ry, rz)
-            est = dot(src_pts, trans.T)
-            err = errfunc(est, tgt_pts)
-            return err
-    elif param_info == (True, False, 1):
-        x0 = x0 or (0, 0, 0, 1)
-
-        def error(x):
-            rx, ry, rz, s = x
-            trans = rotation3d(rx, ry, rz) * s
-            est = dot(src_pts, trans.T)
-            err = errfunc(est, tgt_pts)
-            return err
-    elif param_info == (True, False, 3):
-        x0 = x0 or (0, 0, 0, 1, 1, 1)
-
-        def error(x):
-            rx, ry, rz, sx, sy, sz = x
-            trans = rotation3d(rx, ry, rz) * [sx, sy, sz]
-            est = dot(src_pts, trans.T)
-            err = errfunc(est, tgt_pts)
-            return err
-    elif param_info == (True, True, 0):
-        x0 = x0 or (0, 0, 0, 0, 0, 0)
-
-        def error(x):
-            rx, ry, rz, tx, ty, tz = x
-            trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            est = dot(src_pts, trans.T)
-            err = errfunc(est[:, :3], tgt_pts)
-            return err
-    else:
-        raise NotImplementedError(
-            "The specified parameter combination is not implemented: "
-            "rotate=%r, translate=%r, scale=%r" % param_info)
-
-    est, _, info, msg, _ = leastsq(error, x0, full_output=True, **kwargs)
-    logger.debug("fit_point_cloud leastsq (%i calls) info: %s", info['nfev'],
-                 msg)
-
-    if out == 'params':
-        return est
-    elif out == 'trans':
-        return _trans_from_params(param_info, est)
     else:
         raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
                          "'trans'." % out)

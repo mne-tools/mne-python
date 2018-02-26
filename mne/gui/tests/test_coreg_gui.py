@@ -98,23 +98,18 @@ def test_coreg_model():
     rpa_distance = model.rpa_distance
     avg_point_distance = np.mean(model.point_distance)
 
-    model.fit_auricular_points()
-    old_x = lpa_distance ** 2 + rpa_distance ** 2
-    new_x = model.lpa_distance ** 2 + model.rpa_distance ** 2
-    assert_true(new_x < old_x)
-
     model.fit_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
              model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
-    model.fit_hsp_points()
+    model.fit_icp()
     assert_true(np.mean(model.point_distance) < avg_point_distance)
 
     model.save_trans(trans_dst)
     trans = mne.read_trans(trans_dst)
-    assert_allclose(trans['trans'], model.head_mri_trans)
+    assert_allclose(trans['trans'], model.mri_head_t)
 
     # test restoring trans
     x, y, z, rot_x, rot_y, rot_z = .1, .2, .05, 1.5, 0.1, -1.2
@@ -124,7 +119,7 @@ def test_coreg_model():
     model.rot_x = rot_x
     model.rot_y = rot_y
     model.rot_z = rot_z
-    trans = model.head_mri_trans
+    trans = model.mri_head_t
     model.reset_traits(["trans_x", "trans_y", "trans_z", "rot_x", "rot_y",
                         "rot_z"])
     assert_equal(model.trans_x, 0)
@@ -150,7 +145,7 @@ def test_coreg_model():
     assert_equal(sdir, subjects_dir)
     assert_equal(sfrom, 'sample')
     assert_equal(sto, 'sample2')
-    assert_equal(scale, model.scale)
+    assert_allclose(scale, model.scale)
     assert_equal(skip_fiducials, False)
     # find BEM files
     bems = set()
@@ -166,6 +161,11 @@ def test_coreg_model():
     assert_true(skip_fiducials)
 
     model.load_trans(fname_trans)
+    model.save_trans(trans_dst)
+    trans = mne.read_trans(trans_dst)
+    assert_allclose(trans['trans'], model.mri_head_t)
+    assert_allclose(trans['trans'][:3, 3],
+                    [model.trans_x, model.trans_y, model.trans_z])
 
 
 def _check_ci():
@@ -267,7 +267,7 @@ def test_coreg_model_with_fsaverage():
 
     # test hsp point omission
     model.trans_y = -0.008
-    model.fit_auricular_points()
+    model.fit_fiducials()
     model.omit_hsp_points(0.02)
     assert_equal(model.hsp.n_omitted, 1)
     model.omit_hsp_points(reset=True)
@@ -278,18 +278,13 @@ def test_coreg_model_with_fsaverage():
     # scale with 1 parameter
     model.n_scale_params = 1
 
-    model.fit_scale_auricular_points()
-    old_x = lpa_distance ** 2 + rpa_distance ** 2
-    new_x = model.lpa_distance ** 2 + model.rpa_distance ** 2
-    assert_true(new_x < old_x)
-
     model.fit_scale_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
              model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
-    model.fit_scale_hsp_points()
+    model.fit_scale_icp()
     avg_point_distance_1param = np.mean(model.point_distance)
     assert_true(avg_point_distance_1param < avg_point_distance)
 
@@ -299,7 +294,7 @@ def test_coreg_model_with_fsaverage():
     assert_equal(sdir, tempdir)
     assert_equal(sfrom, 'fsaverage')
     assert_equal(sto, 'scaled')
-    assert_equal(scale, model.scale)
+    assert_allclose(scale, model.scale)
     assert_equal(set(bemsol), set(('inner_skull-bem',)))
     model.prepare_bem_model = False
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
@@ -308,7 +303,7 @@ def test_coreg_model_with_fsaverage():
 
     # scale with 3 parameters
     model.n_scale_params = 3
-    model.fit_scale_hsp_points()
+    model.fit_scale_icp()
     assert_true(np.mean(model.point_distance) < avg_point_distance_1param)
 
     # test switching raw disables point omission
