@@ -324,16 +324,17 @@ def _prepare_rerp_preds(n_samples, sfreq, events, event_id=None, tmin=-.1,
         conds += list(covariates)
 
     # time windows (per event type) are converted to sample points from times
+    # int(round()) to be safe and match Epochs constructor behavior
     if isinstance(tmin, (float, int)):
-        tmin_s = dict((cond, int(tmin * sfreq)) for cond in conds)
+        tmin_s = dict((cond, int(round(tmin * sfreq))) for cond in conds)
     else:
-        tmin_s = dict((cond, int(tmin.get(cond, -.1) * sfreq))
+        tmin_s = dict((cond, int(round(tmin.get(cond, -.1) * sfreq)))
                       for cond in conds)
     if isinstance(tmax, (float, int)):
         tmax_s = dict(
-            (cond, int((tmax * sfreq) + 1.)) for cond in conds)
+            (cond, int(round((tmax * sfreq)) + 1)) for cond in conds)
     else:
-        tmax_s = dict((cond, int((tmax.get(cond, 1.) * sfreq) + 1))
+        tmax_s = dict((cond, int(round(tmax.get(cond, 1.) * sfreq)) + 1)
                       for cond in conds)
 
     # Construct predictor matrix
