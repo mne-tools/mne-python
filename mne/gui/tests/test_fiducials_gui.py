@@ -33,7 +33,7 @@ def test_mri_model():
     assert_false(model.can_reset)
     assert_true(model.can_save)
 
-    bem_fname = os.path.basename(model.bem.file)
+    bem_fname = os.path.basename(model.bem_high_res.file)
     assert_false(model.can_reset)
     assert_equal(bem_fname, 'sample-head-dense.fif')
 
