@@ -130,6 +130,8 @@ Bug
 
 - Fix bug when reading event latencies (in samples) from eeglab files didn't translate indices to 0-based python indexing by `Mikołaj Magnuski`_
 
+- Fix consistency between :class:`mne.Epochs` and :func:`mne.statistics.linear_regression_raw` in converting between samples and times (:func:`mne.statistics.linear_regression_raw` now rounds, instead of truncating) by `Phillip Alday`_
+
 
 API
 ~~~
@@ -2526,7 +2528,7 @@ of commits):
 
 .. _Chris Mullins: http://crmullins.com
 
-.. _Phillip Alday: http://palday.bitbucket.org
+.. _Phillip Alday: https://palday.bitbucket.io
 
 .. _Andreas Hojlund: https://github.com/ahoejlund
 
