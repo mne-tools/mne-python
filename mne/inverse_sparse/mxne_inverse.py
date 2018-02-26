@@ -231,6 +231,7 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
 @verbose
 def make_stc_from_dipoles(dipoles, src, verbose=None):
     """Convert a list of spatio-temporal dipoles into a SourceEstimate.
+
     Parameters
     ----------
     dipoles : Dipole | list of instances of Dipole
@@ -240,6 +241,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
     Returns
     -------
     stc : SourceEstimate
@@ -285,8 +287,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
+
     Compute L1/L2 mixed-norm solution [1]_ or L0.5/L2 [2]_ mixed-norm
     solution on evoked data.
+
     Parameters
     ----------
     evoked : instance of Evoked or list of instances of Evoked
@@ -341,6 +345,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+
     Returns
     -------
     stc : SourceEstimate | list of SourceEstimate
@@ -348,9 +353,11 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     residual : instance of Evoked
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
+
     See Also
     --------
     tf_mixed_norm
+
     References
     ----------
     .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
@@ -583,6 +590,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
        non-stationary source activations",
        Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
        DOI: 10.1016/j.neuroimage.2012.12.051
+
     .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
        "Functional Brain Imaging with M/EEG Using Structured Sparsity in
        Time-Frequency Dictionaries",

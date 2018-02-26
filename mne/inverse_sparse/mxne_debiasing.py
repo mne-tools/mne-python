@@ -59,6 +59,7 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
     """Compute scaling to correct amplitude bias.
 
     It solves the following optimization problem using FISTA:
+
     min 1/2 * (|| M - GDX ||fro)^2
     s.t. D >= 1 and D is a diagonal matrix
 
