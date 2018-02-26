@@ -29,6 +29,10 @@ properties that are set to be equivalent.
   |-- CoregPanel (coreg_panel): Coregistration panel for Head<->MRI with scaling.
   +-- PointObject ({hsp, eeg, lpa, nasion, rpa, hsp_lpa, hsp_nasion, hsp_rpa} + _obj): Represent a group of individual points in a mayavi scene.
 
+MRI points and transformed via scaling, then by mri_head_t to the Neuromag
+head coordinate frame.
+
+Digitized points (in head coordinate frame) are never transformed.
 """  # noqa: E501
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -50,7 +54,7 @@ from pyface.api import (error, confirm, OK, YES, NO, CANCEL, information,
                         FileDialog, GUI)
 from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
                         Enum, Float, HasTraits, HasPrivateTraits, Instance,
-                        Int, on_trait_change, Property, Str)
+                        Int, on_trait_change, Property, Str, List)
 from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
                           Handler, Label, TextEditor, Spring, InstanceEditor)
 from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
@@ -61,9 +65,8 @@ from ..coreg import bem_fname, trans_fname
 from ..defaults import DEFAULTS
 from ..surface import _compute_nearest
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
-                          translation, scaling, rotation_angles, Transform)
-from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
-                     _find_fiducials_files)
+                          rotation_angles, Transform, _ensure_trans)
+from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
 from ..viz._3d import _toggle_mlab_render
 from ..utils import logger, set_config
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel, _mm_fmt
@@ -118,6 +121,10 @@ class CoregModel(HasPrivateTraits):
     trans_x = Float(0, label="R (X)")
     trans_y = Float(0, label="A (Y)")
     trans_z = Float(0, label="S (Z)")
+    parameters = List()
+    lpa_weight = Float(1., label='Relative weight for LPA')
+    nasion_weight = Float(1., label='Relative weight for Nasion')
+    rpa_weight = Float(1., label='Relative weight for RPA')
 
     # options during scaling
     scale_labels = Bool(True, desc="whether to scale *.label files")
@@ -127,31 +134,23 @@ class CoregModel(HasPrivateTraits):
                              "after scaling the MRI")
 
     # secondary to parameters
-    scale = Property(
-        depends_on=['n_scale_params', 'scale_x', 'scale_y', 'scale_z'])
+    scale = Property(depends_on=['n_scale_params'])
     has_fid_data = Property(
         Bool,
         desc="Required fiducials data is present.",
-        depends_on=['mri_origin', 'hsp.nasion'])
+        depends_on=['mri:nasion', 'hsp:nasion'])
     has_pts_data = Property(
         Bool,
-        depends_on=['mri.points', 'hsp.points'])
+        depends_on=['mri:points', 'hsp:points'])
     has_eeg_data = Property(
         Bool,
-        depends_on=['mri.points', 'hsp.eeg_points'])
-
-    # MRI dependent
-    mri_origin = Property(
-        desc="Coordinates of the scaled MRI's nasion.",
-        depends_on=['mri.nasion', 'scale'])
+        depends_on=['mri:points', 'hsp:eeg_points'])
 
     # target transforms
-    mri_scale_trans = Property(
-        depends_on=['scale'])
-    head_mri_trans = Property(
-        desc="Transformaiton of the head shape to match the scaled MRI.",
-        depends_on=['hsp.nasion', 'rot_x', 'rot_y', 'rot_z',
-                    'trans_x', 'trans_y', 'trans_z', 'mri_origin'])
+    mri_head_t = Property(
+        desc="Transformaiton of the scaled MRI to the head coordinate frame.",
+        depends_on=['parameters[]'])
+    mri_trans = Property(depends_on=['parameters[]'])  # combo
 
     # info
     subject_has_bem = DelegatesTo('mri')
@@ -159,44 +158,39 @@ class CoregModel(HasPrivateTraits):
     can_prepare_bem_model = Property(
         Bool,
         depends_on=['n_scale_params', 'subject_has_bem'])
-    can_save = Property(Bool, depends_on=['head_mri_trans'])
+    can_save = Property(Bool, depends_on=['mri_head_t'])
     raw_subject = Property(
         desc="Subject guess based on the raw file name.",
-        depends_on=['hsp.inst_fname'])
+        depends_on=['hsp:inst_fname'])
 
     # transformed geometry
     processed_high_res_mri_points = Property(
-        depends_on=['mri.bem_high_res.points', 'grow_hair'])
+        depends_on=['mri:bem_high_res:points', 'grow_hair'])
     processed_low_res_mri_points = Property(
-        depends_on=['mri.bem_low_res.points', 'grow_hair'])
+        depends_on=['mri:bem_low_res:points', 'grow_hair'])
     transformed_high_res_mri_points = Property(
-        depends_on=['processed_high_res_mri_points', 'mri_scale_trans'])
+        depends_on=['processed_high_res_mri_points', 'mri_trans'])
     transformed_low_res_mri_points = Property(
-        depends_on=['processed_low_res_mri_points', 'mri_scale_trans'])
-    transformed_hsp_points = Property(
-        depends_on=['hsp.points', 'head_mri_trans'])
+        depends_on=['processed_low_res_mri_points', 'mri_trans'])
+    nearest_transformed_low_res_mri_idx = Property(
+        depends_on=['transformed_low_res_mri_points', 'hsp:points'])
     transformed_mri_lpa = Property(
-        depends_on=['mri.lpa', 'mri_scale_trans'])
-    transformed_hsp_lpa = Property(depends_on=['hsp.lpa', 'head_mri_trans'])
+        depends_on=['mri:lpa', 'mri_trans'])
     transformed_mri_nasion = Property(
-        depends_on=['mri.nasion', 'mri_scale_trans'])
-    transformed_hsp_nasion = Property(
-        depends_on=['hsp.nasion', 'head_mri_trans'])
+        depends_on=['mri:nasion', 'mri_trans'])
     transformed_mri_rpa = Property(
-        depends_on=['mri.rpa', 'mri_scale_trans'])
-    transformed_hsp_rpa = Property(
-        depends_on=['hsp.rpa', 'head_mri_trans'])
+        depends_on=['mri:rpa', 'mri_trans'])
 
     # fit properties
     lpa_distance = Property(
-        depends_on=['transformed_mri_lpa', 'transformed_hsp_lpa'])
+        depends_on=['transformed_mri_lpa', 'hsp:lpa'])
     nasion_distance = Property(
-        depends_on=['transformed_mri_nasion', 'transformed_hsp_nasion'])
+        depends_on=['transformed_mri_nasion', 'hsp:nasion'])
     rpa_distance = Property(
-        depends_on=['transformed_mri_rpa', 'transformed_hsp_rpa'])
+        depends_on=['transformed_mri_rpa', 'hsp:rpa'])
     point_distance = Property(  # use low res points
-        depends_on=['transformed_low_res_mri_points',
-                    'transformed_hsp_points'])
+        depends_on=['nearest_transformed_low_res_mri_idx',
+                    'transformed_low_res_mri_points', 'hsp:points'])
 
     # fit property info strings
     fid_eval_str = Property(
@@ -210,7 +204,7 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_can_save(self):
-        return np.any(self.head_mri_trans != np.eye(4))
+        return np.any(self.mri_head_t != np.eye(4))
 
     @cached_property
     def _get_has_pts_data(self):
@@ -226,51 +220,22 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_has_fid_data(self):
-        has = (np.any(self.mri_origin) and np.any(self.hsp.nasion))
+        has = (np.any(self.mri.nasion) and np.any(self.hsp.nasion))
         return has
 
     @cached_property
     def _get_scale(self):
         if self.n_scale_params == 0:
             return np.array(1)
-        elif self.n_scale_params == 1:
-            return np.array(self.scale_x)
-        else:  # if self.n_scale_params == 3:
-            return np.array([self.scale_x, self.scale_y, self.scale_z])
+        return np.array([self.scale_x, self.scale_y, self.scale_z])
 
     @cached_property
-    def _get_mri_scale_trans(self):
-        if self.scale.ndim == 0:
-            return scaling(self.scale, self.scale, self.scale)
-        else:
-            return scaling(*self.scale)
-
-    @cached_property
-    def _get_mri_origin(self):
-        return self.mri.nasion * self.scale
-
-    @cached_property
-    def _get_head_mri_trans(self):
+    def _get_mri_head_t(self):
         if not self.has_fid_data:
             return np.eye(4)
-
-        # move hsp so that its nasion becomes the origin
-        x, y, z = -self.hsp.nasion[0]
-        trans = translation(x, y, z)
-
-        # rotate hsp by rotation parameters
-        rot = rotation(self.rot_x, self.rot_y, self.rot_z)
-        trans = np.dot(rot, trans)
-
-        # move hsp by translation parameters
-        transl = translation(self.trans_x, self.trans_y, self.trans_z)
-        trans = np.dot(transl, trans)
-
-        # move the hsp origin(/nasion) to the MRI's nasion
-        x, y, z = self.mri_origin[0]
-        tgt_mri_trans = translation(x, y, z)
-        trans = np.dot(tgt_mri_trans, trans)
-
+        # rotate and translate hsp
+        trans = rotation(self.rot_x, self.rot_y, self.rot_z)
+        trans[:3, 3] = [self.trans_x, self.trans_y, self.trans_z]
         return trans
 
     @cached_property
@@ -306,68 +271,63 @@ class CoregModel(HasPrivateTraits):
             return self.mri.bem_low_res.points
 
     @cached_property
+    def _get_mri_trans(self):
+        mri_scaling = np.ones(4)
+        mri_scaling[:3] = self.scale
+        return self.mri_head_t * mri_scaling
+
+    @cached_property
+    def _get_nearest_transformed_low_res_mri_idx(self):
+        return _compute_nearest(self.transformed_low_res_mri_points,
+                                self.hsp.points)
+
+    @cached_property
     def _get_transformed_low_res_mri_points(self):
-        points = apply_trans(self.mri_scale_trans,
+        points = apply_trans(self.mri_trans,
                              self.processed_low_res_mri_points)
         return points
 
     @cached_property
     def _get_transformed_high_res_mri_points(self):
-        points = apply_trans(self.mri_scale_trans,
+        points = apply_trans(self.mri_trans,
                              self.processed_high_res_mri_points)
         return points
 
     @cached_property
     def _get_transformed_mri_lpa(self):
-        return apply_trans(self.mri_scale_trans, self.mri.lpa)
+        return apply_trans(self.mri_trans, self.mri.lpa)
 
     @cached_property
     def _get_transformed_mri_nasion(self):
-        return apply_trans(self.mri_scale_trans, self.mri.nasion)
+        return apply_trans(self.mri_trans, self.mri.nasion)
 
     @cached_property
     def _get_transformed_mri_rpa(self):
-        return apply_trans(self.mri_scale_trans, self.mri.rpa)
-
-    @cached_property
-    def _get_transformed_hsp_points(self):
-        return apply_trans(self.head_mri_trans, self.hsp.points)
-
-    @cached_property
-    def _get_transformed_hsp_lpa(self):
-        return apply_trans(self.head_mri_trans, self.hsp.lpa)
-
-    @cached_property
-    def _get_transformed_hsp_nasion(self):
-        return apply_trans(self.head_mri_trans, self.hsp.nasion)
-
-    @cached_property
-    def _get_transformed_hsp_rpa(self):
-        return apply_trans(self.head_mri_trans, self.hsp.rpa)
+        return apply_trans(self.mri_trans, self.mri.rpa)
 
     @cached_property
     def _get_lpa_distance(self):
-        d = np.ravel(self.transformed_mri_lpa - self.transformed_hsp_lpa)
+        d = np.ravel(self.transformed_mri_lpa - self.hsp.lpa)
         return np.sqrt(np.dot(d, d))
 
     @cached_property
     def _get_nasion_distance(self):
-        d = np.ravel(self.transformed_mri_nasion - self.transformed_hsp_nasion)
+        d = np.ravel(self.transformed_mri_nasion - self.hsp.nasion)
         return np.sqrt(np.dot(d, d))
 
     @cached_property
     def _get_rpa_distance(self):
-        d = np.ravel(self.transformed_mri_rpa - self.transformed_hsp_rpa)
+        d = np.ravel(self.transformed_mri_rpa - self.hsp.rpa)
         return np.sqrt(np.dot(d, d))
 
     @cached_property
     def _get_point_distance(self):
-        if (len(self.transformed_hsp_points) == 0 or
+        if (len(self.hsp.points) == 0 or
                 len(self.transformed_low_res_mri_points) == 0):
             return None
-        return _compute_nearest(self.transformed_low_res_mri_points,
-                                self.transformed_hsp_points,
-                                return_dists=True)[1]
+        mri_points = self.transformed_low_res_mri_points[
+            self.nearest_transformed_low_res_mri_idx]
+        return np.linalg.norm(mri_points - self.hsp.points, axis=-1)
 
     @cached_property
     def _get_fid_eval_str(self):
@@ -421,11 +381,7 @@ class CoregModel(HasPrivateTraits):
             return
 
         # find the new filter
-        hsp_pts = self.transformed_hsp_points
-        mri_pts = self.transformed_low_res_mri_points
-        point_distance = _compute_nearest(mri_pts, hsp_pts,
-                                          return_dists=True)[1]
-        new_sub_filter = point_distance <= distance
+        new_sub_filter = self.point_distance <= distance
         n_excluded = np.sum(new_sub_filter == False)  # noqa: E712
         logger.info("Coregistration: Excluding %i head shape points with "
                     "distance >= %.3f m.", n_excluded, distance)
@@ -442,102 +398,77 @@ class CoregModel(HasPrivateTraits):
         with warnings.catch_warnings(record=True):  # comp to None in Traits
             self.hsp.points_filter = new_filter
 
-    def fit_auricular_points(self):
-        """Find rotation to fit LPA and RPA."""
-        src_fid = np.vstack((self.hsp.lpa, self.hsp.rpa))
-        src_fid -= self.hsp.nasion
-
-        tgt_fid = np.vstack((self.mri.lpa, self.mri.rpa))
-        tgt_fid -= self.mri.nasion
-        tgt_fid *= self.scale
-        tgt_fid -= [self.trans_x, self.trans_y, self.trans_z]
-
-        x0 = (self.rot_x, self.rot_y, self.rot_z)
-        rot = fit_matched_points(src_fid, tgt_fid, rotate=True,
-                                 translate=False, x0=x0, out='params')
-
-        self.rot_x, self.rot_y, self.rot_z = rot
-
     def fit_fiducials(self):
         """Find rotation and translation to fit all 3 fiducials."""
-        src_fid = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
-        src_fid -= self.hsp.nasion
-
-        tgt_fid = np.vstack((self.mri.lpa, self.mri.nasion, self.mri.rpa))
-        tgt_fid -= self.mri.nasion
-        tgt_fid *= self.scale
+        head_pts = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
+        mri_pts = np.vstack((self.mri.lpa, self.mri.nasion, self.mri.rpa))
+        mri_pts *= self.scale
+        weights = [self.lpa_weight, self.nasion_weight, self.rpa_weight]
 
         x0 = (self.rot_x, self.rot_y, self.rot_z, self.trans_x, self.trans_y,
               self.trans_z)
-        est = fit_matched_points(src_fid, tgt_fid, x0=x0, out='params')
+        est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
+                                 weights=weights)
+        self.parameters[:6] = est
 
-        self.rot_x, self.rot_y, self.rot_z = est[:3]
-        self.trans_x, self.trans_y, self.trans_z = est[3:]
+    def fit_icp(self):
+        """Find rotation and translation to fit head shapes (ICP)."""
+        head_pts = np.concatenate([
+            self.hsp.points,
+            self.hsp.lpa, self.hsp.nasion, self.hsp.rpa])
+        mri_pts = np.concatenate([
+            self.processed_low_res_mri_points[
+                self.nearest_transformed_low_res_mri_idx],
+            self.mri.lpa, self.mri.nasion, self.mri.rpa])
+        mri_pts *= self.scale
+        weights = np.ones(mri_pts.shape[0])
+        weights[-3:] = [self.lpa_weight, self.nasion_weight, self.rpa_weight]
 
-    def fit_hsp_points(self):
-        """Find rotation to fit head shapes."""
-        src_pts = self.hsp.points - self.hsp.nasion
+        x0 = (self.rot_x, self.rot_y, self.rot_z,
+              self.trans_x, self.trans_y, self.trans_z)
+        est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
+                                 weights=weights)
 
-        tgt_pts = self.processed_low_res_mri_points - self.mri.nasion
-        tgt_pts *= self.scale
-        tgt_pts -= [self.trans_x, self.trans_y, self.trans_z]
-
-        x0 = (self.rot_x, self.rot_y, self.rot_z)
-        rot = fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=False,
-                              x0=x0)
-
-        self.rot_x, self.rot_y, self.rot_z = rot
-
-    def fit_scale_auricular_points(self):
-        """Find rotation and MRI scaling based on LPA and RPA."""
-        src_fid = np.vstack((self.hsp.lpa, self.hsp.rpa))
-        src_fid -= self.hsp.nasion
-
-        tgt_fid = np.vstack((self.mri.lpa, self.mri.rpa))
-        tgt_fid -= self.mri.nasion
-        tgt_fid -= [self.trans_x, self.trans_y, self.trans_z]
-
-        x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x)
-        x = fit_matched_points(src_fid, tgt_fid, rotate=True, translate=False,
-                               scale=1, x0=x0, out='params')
-
-        self.scale_x = 1. / x[3]
-        self.rot_x, self.rot_y, self.rot_z = x[:3]
+        self.parameters[:6] = est
 
     def fit_scale_fiducials(self):
         """Find translation, rotation, scaling based on the three fiducials."""
-        src_fid = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
-        src_fid -= self.hsp.nasion
-
-        tgt_fid = np.vstack((self.mri.lpa, self.mri.nasion, self.mri.rpa))
-        tgt_fid -= self.mri.nasion
+        head_fid = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
+        mri_fid = np.vstack((self.mri.lpa, self.mri.nasion, self.mri.rpa))
+        weights = [self.lpa_weight, self.nasion_weight, self.rpa_weight]
 
         x0 = (self.rot_x, self.rot_y, self.rot_z, self.trans_x, self.trans_y,
-              self.trans_z, 1. / self.scale_x,)
-        est = fit_matched_points(src_fid, tgt_fid, rotate=True, translate=True,
-                                 scale=1, x0=x0, out='params')
+              self.trans_z, self.scale_x,)
+        est = fit_matched_points(mri_fid, head_fid, scale=1, x0=x0,
+                                 out='params', weights=weights)
 
-        self.scale_x = 1. / est[6]
-        self.rot_x, self.rot_y, self.rot_z = est[:3]
-        self.trans_x, self.trans_y, self.trans_z = est[3:6]
+        self.parameters[:] = np.concatenate([est, [est[-1]] * 2])
 
-    def fit_scale_hsp_points(self):
-        """Find MRI scaling and rotation to match head shape points."""
-        src_pts = self.hsp.points - self.hsp.nasion
-        tgt_pts = self.processed_low_res_mri_points - self.mri.nasion
+    def fit_scale_icp(self):
+        """Find MRI scaling, translation, and rotation to match HSP."""
+        head_pts = np.concatenate([
+            self.hsp.points,
+            self.hsp.lpa, self.hsp.nasion, self.hsp.rpa])
+        mri_pts = np.concatenate([
+            self.processed_low_res_mri_points[
+                self.nearest_transformed_low_res_mri_idx],
+            self.mri.lpa, self.mri.nasion, self.mri.rpa])
+        weights = np.ones(mri_pts.shape[0])
+        weights[-3:] = [self.lpa_weight, self.nasion_weight, self.rpa_weight]
         if self.n_scale_params == 1:
-            x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x)
-            est = fit_point_cloud(src_pts, tgt_pts, rotate=True,
-                                  translate=False, scale=1, x0=x0)
-
-            self.scale_x = 1. / est[3]
+            x0 = (self.rot_x, self.rot_y, self.rot_z,
+                  self.trans_x, self.trans_y, self.trans_z,
+                  self.scale_x)
+            est = fit_matched_points(mri_pts, head_pts, scale=1, x0=x0,
+                                     out='params', weights=weights)
+            est = np.concatenate([est, [est[-1]] * 2])
         else:  # if self.n_scale_params == 3:
-            x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x,
-                  1. / self.scale_y, 1. / self.scale_z)
-            est = fit_point_cloud(src_pts, tgt_pts, rotate=True,
-                                  translate=False, scale=3, x0=x0)
-            self.scale_x, self.scale_y, self.scale_z = 1. / est[3:]
-        self.rot_x, self.rot_y, self.rot_z = est[:3]
+            x0 = (self.rot_x, self.rot_y, self.rot_z,
+                  self.trans_x, self.trans_y, self.trans_z,
+                  1. / self.scale_x, 1. / self.scale_y, 1. / self.scale_z)
+            est = fit_matched_points(mri_pts, head_pts, scale=3, x0=x0,
+                                     out='params', weights=weights)
+        self.parameters[:] = est
 
     def get_scaling_job(self, subject_to, skip_fiducials):
         """Find all arguments needed for the scaling worker."""
@@ -564,13 +495,8 @@ class CoregModel(HasPrivateTraits):
         fname : str
             File path.
         """
-        info = read_trans(fname)
-        # XXX this should really ensure that its a head->MRI trans. We should
-        # add from/to logic inside read_trans, which can also then invert it
-        # if necessary. This can then be used in a number of places
-        # (maxwell_filter, forward, viz._3d, etc.)
-        head_mri_trans = info['trans']
-        self.set_trans(head_mri_trans)
+        self.set_trans(_ensure_trans(read_trans(fname, return_all=True),
+                                     'mri', 'head')['trans'])
 
     def reset(self):
         """Reset all the parameters affecting the coregistration."""
@@ -578,31 +504,17 @@ class CoregModel(HasPrivateTraits):
                            'scale_y', 'scale_z', 'rot_x', 'rot_y', 'rot_z',
                            'trans_x', 'trans_y', 'trans_z'))
 
-    def set_trans(self, head_mri_trans):
+    def set_trans(self, mri_head_t):
         """Set rotation and translation params from a transformation matrix.
 
         Parameters
         ----------
-        head_mri_trans : array, shape (4, 4)
-            Transformation matrix from head to MRI space.
+        mri_head_t : array, shape (4, 4)
+            Transformation matrix from MRI to head space.
         """
-        x, y, z = -self.mri_origin[0]
-        mri_tgt_trans = translation(x, y, z)
-        head_tgt_trans = np.dot(mri_tgt_trans, head_mri_trans)
-
-        x, y, z = self.hsp.nasion[0]
-        src_hsp_trans = translation(x, y, z)
-        src_tgt_trans = np.dot(head_tgt_trans, src_hsp_trans)
-
-        rot_x, rot_y, rot_z = rotation_angles(src_tgt_trans[:3, :3])
-        x, y, z = src_tgt_trans[:3, 3]
-
-        self.rot_x = rot_x
-        self.rot_y = rot_y
-        self.rot_z = rot_z
-        self.trans_x = x
-        self.trans_y = y
-        self.trans_z = z
+        rot_x, rot_y, rot_z = rotation_angles(mri_head_t)
+        x, y, z = mri_head_t[:3, 3]
+        self.parameters[:6] = [rot_x, rot_y, rot_z, x, y, z]
 
     def save_trans(self, fname):
         """Save the head-mri transform as a fif file.
@@ -614,7 +526,42 @@ class CoregModel(HasPrivateTraits):
         """
         if not self.can_save:
             raise RuntimeError("Not enough information for saving transform")
-        write_trans(fname, Transform('head', 'mri', self.head_mri_trans))
+        write_trans(fname, Transform('mri', 'head', self.mri_head_t))
+
+    def _parameters_items_changed(self):
+        # Update rot_x, rot_y, rot_z parameters if necessary
+        for ii, key in enumerate(('rot_x', 'rot_y', 'rot_z',
+                                  'trans_x', 'trans_y', 'trans_z',
+                                  'scale_x', 'scale_y', 'scale_z')):
+            if self.parameters[ii] != getattr(self, key):  # prevent circular
+                setattr(self, key, self.parameters[ii])
+
+    def _rot_x_changed(self):
+        self.parameters[0] = self.rot_x
+
+    def _rot_y_changed(self):
+        self.parameters[1] = self.rot_y
+
+    def _rot_z_changed(self):
+        self.parameters[2] = self.rot_z
+
+    def _trans_x_changed(self):
+        self.parameters[3] = self.trans_x
+
+    def _trans_y_changed(self):
+        self.parameters[4] = self.trans_y
+
+    def _trans_z_changed(self):
+        self.parameters[5] = self.trans_z
+
+    def _scale_x_changed(self):
+        self.parameters[6] = self.scale_x
+
+    def _scale_y_changed(self):
+        self.parameters[7] = self.scale_y
+
+    def _scale_z_changed(self):
+        self.parameters[8] = self.scale_z
 
 
 class CoregFrameHandler(Handler):
@@ -688,23 +635,16 @@ def _make_view_coreg_panel(scrollable=False):
                                   width=-50),
                              show_labels=False, show_border=True,
                              label='Scaling', columns=4),
-                       HGroup(Item('fits_hsp_points',
+                       HGroup(Item('fits_icp',
                                    enabled_when='n_scale_params',
-                                   tooltip="Rotate the digitizer head shape "
-                                   "and scale the MRI so as to minimize the "
-                                   "distance from each digitizer point to the "
-                                   "closest MRI point"),
-                              Item('fits_ap',
-                                   enabled_when='n_scale_params == 1',
-                                   tooltip="While leaving the nasion in "
-                                   "place, rotate the digitizer head shape "
-                                   "and scale the MRI so as to minimize the "
-                                   "distance of the two auricular points"),
+                                   tooltip="Rotate, translate, and scale the "
+                                   "MRI to minimize the distance from each "
+                                   "digitizer point to the closest MRI point "
+                                   "(one ICP iteration)"),
                               Item('fits_fid',
                                    enabled_when='n_scale_params == 1',
-                                   tooltip="Move and rotate the digitizer "
-                                   "head shape, and scale the MRI so as to "
-                                   "minimize the distance of the three "
+                                   tooltip="Rotate, translate, and scale the "
+                                   "MRI to minimize the distance of the three "
                                    "fiducials."),
                               show_labels=False),
                        VGrid(Item('trans_x', editor=laggy_float_editor,
@@ -748,20 +688,31 @@ def _make_view_coreg_panel(scrollable=False):
                              show_labels=False, show_border=True,
                              label='Rotation', columns=4),
                        # buttons
-                       HGroup(Item('fit_hsp_points',
+                       HGroup(Item('fit_icp',
                                    enabled_when='has_pts_data',
-                                   tooltip="Rotate the head shape (around the "
-                                   "nasion) so as to minimize the distance "
-                                   "from each head shape point to its closest "
-                                   "MRI point", width=10),
-                              Item('fit_ap', enabled_when='has_fid_data',
-                                   tooltip="Try to match the LPA and the RPA, "
-                                   "leaving the Nasion in place", width=10),
+                                   tooltip="Rotate and translate the "
+                                   "MRI to minimize the distance from each "
+                                   "digitizer point to the closest MRI point "
+                                   "(one ICP iteration)", width=10),
                               Item('fit_fid', enabled_when='has_fid_data',
-                                   tooltip="Move and rotate the head shape so "
-                                   "as to minimize the distance between the "
-                                   "MRI and head shape fiducials", width=10),
+                                   tooltip="Rotate and translate the "
+                                   "MRI to minimize the distance of the three "
+                                   "fiducials.", width=10),
                               show_labels=False),
+                       # Fitting weights
+                       VGrid(Item('lpa_weight', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Relative weight "
+                                  "for LPA", label='LPA'),
+                             Item('nasion_weight', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Relative weight "
+                                  "for nasion", label='Na.'),
+                             Item('rpa_weight', editor=laggy_float_editor,
+                                  show_label=True, tooltip="Relative weight "
+                                  "for RPA", label='RPA'),
+                             show_labels=False, show_border=True,
+                             label='Fitting weights',
+                             columns=3),
+                       # Trans
                        HGroup(Item('load_trans', width=10),
                               Spring(), show_labels=False),
                        '_',
@@ -835,19 +786,20 @@ class CoregPanel(HasPrivateTraits):
     trans_z = DelegatesTo('model')
     trans_z_dec = Button('-')
     trans_z_inc = Button('+')
+    lpa_weight = DelegatesTo('model')
+    nasion_weight = DelegatesTo('model')
+    rpa_weight = DelegatesTo('model')
 
     # fitting
     has_fid_data = DelegatesTo('model')
     has_pts_data = DelegatesTo('model')
     has_eeg_data = DelegatesTo('model')
     # fitting with scaling
-    fits_hsp_points = Button(label='Fit Head Shape')
+    fits_icp = Button(label='Fit (ICP)')
     fits_fid = Button(label='Fit Fiducials')
-    fits_ap = Button(label='Fit LPA/RPA')
     # fitting without scaling
-    fit_hsp_points = Button(label='Fit Head Shape')
+    fit_icp = Button(label='Fit (ICP)')
     fit_fid = Button(label='Fit Fiducials')
-    fit_ap = Button(label='Fit LPA/RPA')
 
     # fit info
     fid_eval_str = DelegatesTo('model')
@@ -859,7 +811,7 @@ class CoregPanel(HasPrivateTraits):
     scale_labels = DelegatesTo('model')
     copy_annot = DelegatesTo('model')
     prepare_bem_model = DelegatesTo('model')
-    save = Button(label="Save As...")
+    save = Button(label="Save Subject As...")
     load_trans = Button(label='Load trans...')
     queue = Instance(queue.Queue, ())
     queue_feedback = Str('')
@@ -871,6 +823,7 @@ class CoregPanel(HasPrivateTraits):
 
     def __init__(self, *args, **kwargs):  # noqa: D102
         super(CoregPanel, self).__init__(*args, **kwargs)
+        self.model.parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
 
         # Setup scaling worker
         def worker():
@@ -962,24 +915,14 @@ class CoregPanel(HasPrivateTraits):
         trans = np.array([self.trans_x, self.trans_y, self.trans_z])
         return trans
 
-    def _fit_ap_fired(self):
-        GUI.set_busy()
-        self.model.fit_auricular_points()
-        GUI.set_busy(False)
-
     def _fit_fid_fired(self):
         GUI.set_busy()
         self.model.fit_fiducials()
         GUI.set_busy(False)
 
-    def _fit_hsp_points_fired(self):
+    def _fit_icp_fired(self):
         GUI.set_busy()
-        self.model.fit_hsp_points()
-        GUI.set_busy(False)
-
-    def _fits_ap_fired(self):
-        GUI.set_busy()
-        self.model.fit_scale_auricular_points()
+        self.model.fit_icp()
         GUI.set_busy(False)
 
     def _fits_fid_fired(self):
@@ -987,9 +930,9 @@ class CoregPanel(HasPrivateTraits):
         self.model.fit_scale_fiducials()
         GUI.set_busy(False)
 
-    def _fits_hsp_points_fired(self):
+    def _fits_icp_fired(self):
         GUI.set_busy()
-        self.model.fit_scale_hsp_points()
+        self.model.fit_scale_icp()
         GUI.set_busy(False)
 
     def _reset_params_fired(self):
@@ -1020,8 +963,7 @@ class CoregPanel(HasPrivateTraits):
         trans_file = trans_fname.format(raw_dir=raw_dir, subject=subject)
         dlg = FileDialog(action="open", wildcard=trans_wildcard,
                          default_path=trans_file)
-        dlg.open()
-        if dlg.return_code != OK:
+        if dlg.open() != OK:
             return
         trans_file = dlg.path
         try:
@@ -1338,21 +1280,22 @@ class CoregFrame(HasTraits):
                          "procedure.")
     reset_omit_points = Button(label='Reset', desc="to reset the "
                                "omission of head shape points to include all.")
-    omitted_info = Property(Str, depends_on=['model.hsp.n_omitted'])
+    omitted_info = Property(Str, depends_on=['model:hsp:n_omitted'])
 
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
     hsp_always_visible = Bool(False, label="Always Show Head Shape")
     title = Str('MNE Coreg')
 
-    # visualization
+    # visualization (MRI)
     mri_obj = Instance(SurfaceObject)
+    mri_lpa_obj = Instance(PointObject)
+    mri_nasion_obj = Instance(PointObject)
+    mri_rpa_obj = Instance(PointObject)
+    # visualization (Digitization)
     hsp_obj = Instance(PointObject)
     eeg_obj = Instance(PointObject)
     hpi_obj = Instance(PointObject)
-    lpa_obj = Instance(PointObject)
-    nasion_obj = Instance(PointObject)
-    rpa_obj = Instance(PointObject)
     hsp_lpa_obj = Instance(PointObject)
     hsp_nasion_obj = Instance(PointObject)
     hsp_rpa_obj = Instance(PointObject)
@@ -1435,11 +1378,11 @@ class CoregFrame(HasTraits):
                 error(None, "Error loading trans file %s: %s (See terminal "
                       "for details)" % (trans, e), "Error Loading Trans File")
 
-    @on_trait_change('subject_panel.subject')
+    @on_trait_change('subject_panel:subject')
     def _set_title(self):
         self.title = '%s - MNE Coreg' % self.model.mri.subject
 
-    @on_trait_change('scene.activated')
+    @on_trait_change('scene:activated')
     def _init_plot(self):
         _toggle_mlab_render(self, False)
 
@@ -1458,21 +1401,23 @@ class CoregFrame(HasTraits):
         )
         self.mri_obj.opacity = self._initial_kwargs['head_opacity']
         self.fid_panel.hsp_obj = self.mri_obj
+        # Do not do sync_trait here, instead use notifiers elsewhere
 
         # MRI Fiducials
         point_scale = defaults['mri_fid_scale']
-        self.lpa_obj = PointObject(scene=self.scene, color=lpa_color,
-                                   point_scale=point_scale, name='LPA')
-        self.model.mri.sync_trait('lpa', self.lpa_obj, 'points', mutual=False)
-        self.nasion_obj = PointObject(scene=self.scene, color=nasion_color,
-                                      point_scale=point_scale, name='Nasion')
-        self.model.mri.sync_trait('nasion', self.nasion_obj, 'points',
-                                  mutual=False)
-        self.rpa_obj = PointObject(scene=self.scene, color=rpa_color,
-                                   point_scale=point_scale, name='RPA')
-        self.model.mri.sync_trait('rpa', self.rpa_obj, 'points', mutual=False)
-        for p in (self.lpa_obj, self.nasion_obj, self.rpa_obj):
-            self.model.sync_trait('scale', p, 'trans', mutual=False)
+        self.mri_lpa_obj = PointObject(scene=self.scene, color=lpa_color,
+                                       point_scale=point_scale, name='LPA')
+        self.model.sync_trait('transformed_mri_lpa',
+                              self.mri_lpa_obj, 'points', mutual=False)
+        self.mri_nasion_obj = PointObject(scene=self.scene, color=nasion_color,
+                                          point_scale=point_scale,
+                                          name='Nasion')
+        self.model.sync_trait('transformed_mri_nasion',
+                              self.mri_nasion_obj, 'points', mutual=False)
+        self.mri_rpa_obj = PointObject(scene=self.scene, color=rpa_color,
+                                       point_scale=point_scale, name='RPA')
+        self.model.sync_trait('transformed_mri_rpa',
+                              self.mri_rpa_obj, 'points', mutual=False)
 
         # Digitizer Head Shape
         kwargs = dict(
@@ -1530,7 +1475,6 @@ class CoregFrame(HasTraits):
         # All points share these
         for p in (self.hsp_obj, self.eeg_obj, self.hpi_obj,
                   self.hsp_lpa_obj, self.hsp_nasion_obj, self.hsp_rpa_obj):
-            self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
             self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         on_pick = self.scene.mayavi_scene.on_mouse_pick
@@ -1565,8 +1509,8 @@ class CoregFrame(HasTraits):
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(0, True)
 
-    @on_trait_change('model.transformed_high_res_mri_points')
-    def _update_mri_plot(self):
+    @on_trait_change('model:transformed_high_res_mri_points')
+    def _update_mri_obj_points(self):
         if self.mri_obj is None:
             return
         self.mri_obj.points = getattr(
@@ -1575,8 +1519,8 @@ class CoregFrame(HasTraits):
                if self.model.mri.subject_source.show_high_res_head else
                'low',))
 
-    @on_trait_change('model.mri.bem_high_res.tris,'
-                     'model.mri.subject_source.show_high_res_head')
+    @on_trait_change('model:mri:bem_high_res.tris,'
+                     'model:mri:subject_source:show_high_res_head')
     def _on_mri_src_change(self):
         if self.mri_obj is None:
             return
@@ -1589,12 +1533,12 @@ class CoregFrame(HasTraits):
             bem = self.model.mri.bem_high_res
         else:
             bem = self.model.mri.bem_low_res
-        self.mri_obj.points = bem.points
         self.mri_obj.tri = bem.tris
+        self._update_mri_obj_points()
         self.mri_obj.plot()
 
     # automatically lock fiducials if a good fiducials file is loaded
-    @on_trait_change('model.mri.fid_file')
+    @on_trait_change('model:mri:fid_file')
     def _on_fid_file_loaded(self):
         if self.model.mri.fid_file:
             self.fid_panel.locked = True

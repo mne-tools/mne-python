@@ -530,9 +530,9 @@ class SubjectSelectorPanel(HasPrivateTraits):
 
     create_fsaverage = Button(
         "Copy 'fsaverage' to subjects directory",
-        desc="Copy the files for the fsaverage subject to the subjects "
-             "directory. This button is disabled if a subject called "
-             "fsaverage already exists in the selected subjects-directory.")
+        desc="whether to copy the files for the fsaverage subject to the "
+             "subjects directory. This button is disabled if "
+             "fsaverage already exists in the selected subjects directory.")
 
     view = View(VGroup(Label('Subjects directory and subject:',
                              show_label=True),
