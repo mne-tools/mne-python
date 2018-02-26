@@ -3,15 +3,14 @@
 #
 # License: Simplified BSD
 
+from copy import deepcopy
 import numpy as np
 from scipy import linalg, signal
-from copy import deepcopy
 
 from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                _BaseSourceEstimate)
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
-                                    _check_reference, _check_loose_forward,
-                                    _to_fixed_ori)
+                                    _check_reference, _check_loose_forward)
 from ..forward import (compute_orient_prior, is_fixed_orient,
                        convert_forward_solution)
 from ..io.pick import pick_channels_evoked
@@ -113,9 +112,9 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
     return gain, gain_info, whitener, source_weighting, mask
 
 
-def _reapply_source_weighting(X, source_weighting, active_set,
-                              n_dip_per_pos):
+def _reapply_source_weighting(X, source_weighting, active_set):
     X *= source_weighting[active_set][:, None]
+
     return X
 
 
@@ -232,7 +231,6 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M, M_est,
 @verbose
 def make_stc_from_dipoles(dipoles, src, verbose=None):
     """Convert a list of spatio-temporal dipoles into a SourceEstimate.
-
     Parameters
     ----------
     dipoles : Dipole | list of instances of Dipole
@@ -242,7 +240,6 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-
     Returns
     -------
     stc : SourceEstimate
@@ -288,10 +285,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
-
     Compute L1/L2 mixed-norm solution [1]_ or L0.5/L2 [2]_ mixed-norm
     solution on evoked data.
-
     Parameters
     ----------
     evoked : instance of Evoked or list of instances of Evoked
@@ -346,7 +341,6 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-
     Returns
     -------
     stc : SourceEstimate | list of SourceEstimate
@@ -354,18 +348,15 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     residual : instance of Evoked
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
-
     See Also
     --------
     tf_mixed_norm
-
     References
     ----------
     .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
        https://doi.org/10.1088/0031-9155/57/7/1937
-
     .. [2] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
        "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
        MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
@@ -446,8 +437,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         raise Exception("No active dipoles found. alpha is too big.")
 
     # Reapply weights to have correct unit
-    X = _reapply_source_weighting(X, source_weighting,
-                                  active_set, n_dip_per_pos)
+    X = _reapply_source_weighting(X, source_weighting, active_set)
 
     outs = list()
     residual = list()
@@ -486,7 +476,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
 
 def _window_evoked(evoked, size):
-    """Window evoked (size in seconds)."""
+    """Window evoked (size in seconds)"""
     if isinstance(size, (float, int)):
         lsize = rsize = float(size)
     else:
@@ -510,27 +500,11 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   weights=None, weights_min=None, pca=True, debias=True,
                   wsize=64, tstep=4, window=0.02, n_tfmxne_iter=1,
                   return_residual=False, return_as_dipoles=False,
-                  verbose=None):
+                  return_gap=False, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
     dictionary. Works with evoked data [1]_ [2]_.
-
-    References:
-
-    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-    Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-    non-stationary source activations
-    Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
-    DOI: 10.1016/j.neuroimage.2012.12.051.
-
-    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-    Functional Brain Imaging with M/EEG Using Structured Sparsity in
-    Time-Frequency Dictionaries
-    Proceedings Information Processing in Medical Imaging
-    Lecture Notes in Computer Science, 2011, Volume 6801/2011,
-    600-611, DOI: 10.1007/978-3-642-22092-0_49
-    http://dx.doi.org/10.1007/978-3-642-22092-0_49
 
     Parameters
     ----------
@@ -540,10 +514,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    alpha_space : float
+    alpha_space : float in [0, 100]
         Regularization parameter for spatial sparsity. If larger than 100,
         then no source will be active.
-    alpha_time : float
+    alpha_time : float in [0, 100]
         Regularization parameter for temporal sparsity. It set to 0,
         no temporal regularization is applied. It this case, TF-MxNE is
         equivalent to MxNE with L21 norm.
@@ -569,6 +543,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         is less than weights_min.
     pca: bool
         If True the rank of the data is reduced to true dimension.
+    debias: bool
+        Remove coefficient amplitude bias due to L1 penalty.
     wsize: int
         Length of the STFT window in samples (must be a multiple of 4).
     tstep: int
@@ -578,12 +554,12 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
         and right window length.
-    debias: bool
-        Remove coefficient amplitude bias due to L1 penalty.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
+    return_gap : bool
+        Return final duality gap.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -607,7 +583,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
        non-stationary source activations",
        Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
        DOI: 10.1016/j.neuroimage.2012.12.051
-
     .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
        "Functional Brain Imaging with M/EEG Using Structured Sparsity in
        Time-Frequency Dictionaries",
@@ -615,6 +590,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
        Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
        DOI: 10.1007/978-3-642-22092-0_49
     """
+    _check_reference(evoked)
+
     all_ch_names = evoked.ch_names
     info = evoked.info
 
@@ -649,29 +626,23 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     logger.info('Whitening data matrix.')
     M = np.dot(whitener, M)
 
-    # Scaling to make setting of alpha easy
-    alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
-    alpha_max *= 0.01
-    gain /= alpha_max
-    source_weighting /= alpha_max
-
-    # put the forward solution in fixed orientation if it's not already
-    if loose is None and not is_fixed_orient(forward):
-        forward = deepcopy(forward)
-        _to_fixed_ori(forward)
-    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
+    # np.save('M_whitened.npy', M)
+    # np.save('gain_whitened.npy', gain)
 
     if n_tfmxne_iter == 1:
         X, active_set, E = tf_mixed_norm_solver(
             M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
             maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
-            log_objective=True, debias=debias)
+            log_objective=True, return_gap=return_gap, debias=debias)
     else:
         X, active_set, E = iterative_tf_mixed_norm_solver(
             M, gain, alpha_space, alpha_time, n_tfmxne_iter, wsize=wsize,
             tstep=tstep, maxit=maxit, tol=tol, verbose=verbose,
-            debias=debias, n_orient=n_dip_per_pos,
+            debias=debias, n_orient=n_dip_per_pos, return_gap=return_gap,
             log_objective=True)
+
+    if active_set.sum() == 0:
+        raise Exception("No active dipoles found. alpha_space is too big.")
 
     # Compute estimated whitened sensor data
     M_estimated = np.dot(gain[:, active_set], X)
@@ -682,15 +653,11 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         active_set = active_set_tmp
         del active_set_tmp
 
-    X = _reapply_source_weighting(
-        X, source_weighting, active_set, n_dip_per_pos)
+    X = _reapply_source_weighting(X, source_weighting, active_set)
 
-    if active_set.sum() == 0:
-        raise Exception("No active dipoles found. alpha_space is too big.")
-
-    # Reapply weights to have correct unit
-    Xout = _reapply_source_weighting(X, source_weighting, depth_method,
-                                     active_set, n_dip_per_pos)
+    if return_residual:
+        residual = _compute_residual(forward, evoked, X, active_set,
+                                     gain_info)
 
     if return_as_dipoles:
         out = _make_dipoles_sparse(
@@ -699,10 +666,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     else:
         out = _make_sparse_stc(
             X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'])
-
-    if return_residual:
-        residual = _compute_residual(forward, evoked, Xout, active_set,
-                                     evoked.info)
 
     logger.info('[done]')
 

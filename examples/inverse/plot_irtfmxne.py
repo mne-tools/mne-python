@@ -13,8 +13,9 @@ fwd_fname = data_path + 'mind006_051209_median01_raw-oct-6-fwd.fif'
 
 evoked = mne.read_evokeds(ave_fname, condition=0, baseline=(None, 0))
 noise_cov = mne.read_cov(cov_fname)
-forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
-                                    force_fixed=False)
+forward = mne.read_forward_solution(fwd_fname)
+forward = mne.convert_forward_solution(forward, surf_ori=True,
+                                       force_fixed=False)
 
 # Parameters
 wsize = np.array([64, 16])
@@ -23,15 +24,13 @@ tstep = np.array([4, 2])
 alpha, rho = 30., 0.05
 alpha_space = (1. - rho) * alpha
 alpha_time = alpha * rho
-# alpha_space = 25.
-# alpha_time = 3.5
 
 window = 0.01
 
 loose = 1.0
 depth = 0.9
 maxit = 10000
-tol = 1e-6
+tol = 1e-4
 
 tmin, tmax = 0.008, 0.21
 evoked.crop(tmin, tmax)
@@ -41,7 +40,7 @@ out = tf_mixed_norm(
     evoked, forward, noise_cov, alpha_space, alpha_time, loose=loose,
     depth=depth, maxit=maxit, tol=tol, wsize=wsize, tstep=tstep,
     window=window, n_tfmxne_iter=100, return_residual=True,
-    verbose=True)
+    verbose=True, debias=False)
 
 stc = out[0]
 residual = out[-1]
@@ -65,6 +64,3 @@ residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="irTF-MxNE",
                              modes=['sphere'], scale_factors=[1.])
-
-
-

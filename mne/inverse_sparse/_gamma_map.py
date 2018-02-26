@@ -7,12 +7,12 @@ from scipy import linalg
 
 from ..forward import is_fixed_orient, convert_forward_solution
 
-from ..minimum_norm.inverse import _check_reference
+from ..minimum_norm.inverse import _check_reference, _check_loose_forward
 from ..utils import logger, verbose, warn
 from ..externals.six.moves import xrange as range
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
-                           _make_dipoles_sparse, _check_loose_forward)
+                           _make_dipoles_sparse)
 
 
 @verbose
@@ -277,9 +277,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     M_estimated = np.dot(gain[:, active_set], X)
 
     # Reapply weights to have correct unit
-    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
-    X = _reapply_source_weighting(X, source_weighting,
-                                  active_set, n_dip_per_pos)
+    X = _reapply_source_weighting(X, source_weighting, active_set)
 
     if return_residual:
         residual = _compute_residual(forward, evoked, X, active_set,
