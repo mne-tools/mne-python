@@ -333,7 +333,7 @@ class RawEDF(BaseRaw):
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
     # BDF
-    if subtype in ('24BIT', 'bdf'):
+    if subtype == 'bdf':
         ch_data = np.fromfile(fid, dtype=dtype, count=samp * dtype_byte)
         ch_data = ch_data.reshape(-1, 3).astype(np.int32)
         ch_data = ((ch_data[:, 0]) +
@@ -594,9 +594,8 @@ def _read_edf_header(fname, annot, annotmap, exclude):
 
         header_nbytes = int(fid.read(8).decode())
 
-        subtype = fid.read(44).strip().decode()[:5]
-        if len(subtype) == 0:
-            subtype = os.path.splitext(fname)[1][1:].lower()
+        fid.read(44)  # reserved header field (unused here)
+        subtype = os.path.splitext(fname)[1][1:].lower()
 
         n_records = int(fid.read(8).decode())
         record_length = np.array([float(fid.read(8)), 1.])  # in seconds
@@ -669,7 +668,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
                  ' Inferring from the file size.')
             edf_info['n_records'] = n_records = read_records
 
-        if subtype in ('24BIT', 'bdf'):
+        if subtype == 'bdf':
             edf_info['dtype_byte'] = 3  # 24-bit (3 byte) integers
             edf_info['dtype_np'] = np.uint8
         else:
