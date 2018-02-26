@@ -34,7 +34,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 stc = apply_inverse(evoked, inv, lambda2, 'dSPM', pick_ori='vector')
 
-# Use peak getter to move vizualization to the time point of the peak magnitude
+# Use peak getter to move visualization to the time point of the peak magnitude
 _, peak_time = stc.magnitude().get_peak(hemi='lh')
 
 # Plot the source estimate
