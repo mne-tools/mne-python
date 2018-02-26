@@ -22,7 +22,8 @@ from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
 from ..defaults import DEFAULTS
 from ..io import write_fiducials
 from ..io.constants import FIFF
-from ..utils import get_subjects_dir, logger
+from ..surface import complete_surface_info, decimate_surface
+from ..utils import get_subjects_dir, logger, warn
 from ..viz._3d import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
@@ -182,9 +183,20 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         else:
             self.bem_high_res.file = low_res_path
         if low_res_path is None:
+            # This should be very rare!
+            warn('No low-resolution head found, decimating high resolution '
+                 'mesh (%d vertices): %s' % (len(self.bem_high_res.points),
+                                             high_res_path,))
             # Create one from the high res one, which we know we have
-            # can set the points, norms, tris attribute of the self.bem_low
-            raise NotImplementedError
+            rr, tris = decimate_surface(self.bem_high_res.points,
+                                        self.bem_high_res.tris,
+                                        n_triangles=5120)
+            surf = complete_surface_info(dict(rr=rr, tris=tris),
+                                         copy=False, verbose=False)
+            # directly set the points, norms, tris attribute of the bem_low_res
+            self.bem_low_res.points = surf['rr']
+            self.bem_low_res.tris = surf['tris']
+            self.bem_low_res.norms = surf['nn']
         else:
             self.bem_low_res.file = low_res_path
 

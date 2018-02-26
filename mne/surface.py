@@ -799,12 +799,12 @@ def _decimate_surface(points, triangles, reduction):
 def decimate_surface(points, triangles, n_triangles):
     """Decimate surface data.
 
-    Note. Requires TVTK to be installed for this to function.
+    .. note:: Requires TVTK to be installed for this to function.
 
-    Note. If an if an odd target number was requested,
-    the ``quadric decimation`` algorithm used results in the
-    next even number of triangles. For example a reduction request to 30001
-    triangles will result in 30000 triangles.
+    .. note:: If an if an odd target number was requested,
+              the ``'decimation'`` algorithm used results in the
+              next even number of triangles. For example a reduction request
+              to 30001 triangles may result in 30000 triangles.
 
     Parameters
     ----------
