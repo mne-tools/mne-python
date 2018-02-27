@@ -1462,10 +1462,12 @@ def _combine_grad(evoked, picks):
 def _check_loc_legal(loc, what='your choice'):
     """Check if loc is a legal location for MPL subordinate axes."""
     true_default = {"show_legend": 3, "show_sensors": 4}.get(what, 1)
+    if isinstance(loc, bool) and loc:
+        loc = true_default
     loc_dict = {'upper right': 1, 'upper left': 2, 'lower left': 3,
                 'lower right': 4, 'right': 5, 'center left': 6,
                 'center right': 7, 'lower center': 8, 'upper center': 9,
-                'center': 10, True: true_default}
+                'center': 10}
     loc_ = loc_dict.get(loc, loc)
     if loc_ not in range(11):
         raise ValueError(str(loc) + " is not a legal MPL loc, please supply"
