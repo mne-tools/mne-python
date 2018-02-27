@@ -1719,6 +1719,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
                          random_state=None):
     """Random cortex parcellation."""
     labels = []
+    rng = check_random_state(random_state)
     for hemi in set(hemis):
         parcel_size = len(hemis) * len(vertices_[hemi]) // n_parcel
         graph = graphs[hemi]  # distance graph
@@ -1728,7 +1729,6 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
         parc = np.full(n_vertices, -1, dtype='int32')
 
         # initialize active sources
-        rng = check_random_state(random_state)
         s = rng.choice(range(n_vertices))
         label_idx = 0
         edge = [s]  # queue of vertices to process
@@ -1737,6 +1737,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
         rest = len(parc) - 1
         # grow from sources
         while rest:
+            # if there are not free neighbors, start new parcel
             if not edge:
                 rest_idx = np.where(parc < 0)[0]
                 s = rng.choice(rest_idx)
