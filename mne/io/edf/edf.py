@@ -594,7 +594,12 @@ def _read_edf_header(fname, annot, annotmap, exclude):
 
         header_nbytes = int(fid.read(8).decode())
 
-        fid.read(44)  # reserved header field (unused here)
+        # The following 44 bytes sometimes identify the file type, but this is
+        # not guaranteed. Therefore, we skip this field and use the file
+        # extension to determine the subtype (EDF or BDF, which differ in the
+        # number of bytes they use for the data records; EDF uses 2 bytes
+        # whereas BDF uses 3 bytes).
+        fid.read(44)
         subtype = os.path.splitext(fname)[1][1:].lower()
 
         n_records = int(fid.read(8).decode())
