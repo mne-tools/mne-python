@@ -109,7 +109,6 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     # Whiten data
     M = np.dot(whitener, M)
 
-    n_orient = 1 if is_fixed_orient(forward) else 3
     X, active_set = solver(M, gain, n_orient)
     X = _reapply_source_weighting(X, source_weighting, active_set)
 
