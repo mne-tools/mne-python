@@ -89,6 +89,8 @@ def test_plot_epochs():
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')
     plt.close('all')
+    fig = epochs.plot(butterfly=True)
+    plt.close('all')
     fig = epochs.plot()
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('right')

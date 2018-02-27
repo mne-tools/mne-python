@@ -88,6 +88,11 @@ epochs.plot_image(278, cmap='interactive', sigma=1., vmin=-250, vmax=250)
 epochs.plot_image(combine='gfp', group_by='type', sigma=2., cmap="YlGnBu_r")
 
 ###############################################################################
+# You can also get an overview of all of the channels by using the
+# "butterfly" trace-plotting mode.
+epochs.plot(butterfly=True)
+
+###############################################################################
 # You also have functions for plotting channelwise information arranged into a
 # shape of the channel array. The image plotting uses automatic scaling by
 # default, but noisy channels and different channel types can cause the scaling

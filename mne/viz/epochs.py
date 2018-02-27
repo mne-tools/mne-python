@@ -683,12 +683,11 @@ def _epochs_axes_onclick(event, params):
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, show=True,
-                block=False, decim='auto', noise_cov=None):
+                block=False, group_by='type', butterfly=False, decim='auto',
+                noise_cov=None):
     """Visualize epochs.
 
-    Bad epochs can be marked with a left click on top of the epoch. Bad
-    channels can be selected by clicking the channel name on the left side of
-    the main axes. Calling this function drops all the selected bad epochs as
+    Calling this function drops all the selected bad epochs as
     well as bad epochs marked beforehand with rejection parameters.
 
     Parameters
@@ -740,6 +739,24 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Whether to halt program execution until the figure is closed.
         Useful for rejecting bad trials on the fly by clicking on an epoch.
         Defaults to False.
+    group_by : str
+        How to group channels. ``'type'`` groups by channel type,
+        ``'original'`` plots in the order of ch_names, ``'selection'`` uses
+        Elekta's channel groupings (only works for Neuromag data),
+        ``'position'`` groups the channels by the positions of the sensors.
+        ``'selection'`` and ``'position'`` modes allow custom selections by
+        using lasso selector on the topomap. Pressing ``ctrl`` key while
+        selecting allows appending to the current selection. Channels marked as
+        bad appear with red edges on the topomap. ``'type'`` and ``'original'``
+        groups the channels by type in butterfly mode whereas ``'selection'``
+        and ``'position'`` use regional grouping. ``'type'`` and ``'original'``
+        modes are overrided with ``order`` keyword.
+
+        .. versionadded:: 0.16
+    butterfly : bool
+        Whether to start in butterfly mode. Defaults to False.
+
+        .. versionadded:: 0.16
     decim : int | 'auto'
         Amount to decimate the data during display for speed purposes.
         You should only decimate if the data are sufficiently low-passed,
@@ -769,11 +786,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     Notes
     -----
+    Bad epochs can be marked with a left click on top of the epoch. Bad
+    channels can be selected by clicking the channel name on the left side of
+    the main axes.
+
     The arrow keys (up/down/left/right) can be used to navigate between
     channels and epochs and the scaling can be adjusted with - and + (or =)
     keys, but this depends on the backend matplotlib is configured to use
     (e.g., mpl.use(``TkAgg``) should work). Full screen mode can be toggled
-    with f11 key. The amount of epochs and channels per view can be adjusted
+    with F11 key. The amount of epochs and channels per view can be adjusted
     with home/end and page down/page up keys. These can also be set through
     options dialog by pressing ``o`` key. ``h`` key plots a histogram of
     peak-to-peak values along with the used rejection thresholds. Butterfly
@@ -793,7 +814,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     params = dict(epochs=epochs, info=epochs.info.copy(), t_start=0.,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
-                  use_noise_cov=noise_cov is not None)
+                  use_noise_cov=noise_cov is not None, butterfly=False,
+                  group_by=group_by)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events,
@@ -803,6 +825,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
+
+    if butterfly:
+        _prepare_butterfly(params)
+
     try:
         plt_show(show, block=block)
     except TypeError:  # not all versions have this
@@ -1097,48 +1123,22 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         for label in ax.xaxis.get_ticklabels():
             label.set_visible(False)
 
-    params.update({'fig': fig,
-                   'ax': ax,
-                   'ax2': ax2,
-                   'ax_hscroll': ax_hscroll,
-                   'ax_vscroll': ax_vscroll,
-                   'vsel_patch': vsel_patch,
-                   'hsel_patch': hsel_patch,
-                   'lines': lines,
-                   'projs': projs,
-                   'ch_names': ch_names,
-                   'n_channels': n_channels,
-                   'n_epochs': n_epochs,
-                   'scalings': scalings,
-                   'duration': duration,
-                   'ch_start': 0,
-                   'colors': colors,
-                   'def_colors': type_colors,  # don't change at runtime
-                   'picks': picks,
-                   'bads': np.array(list(), dtype=int),
-                   'data': data,
-                   'times': times,
-                   'epoch_times': epoch_times,
-                   'offsets': offsets,
-                   'labels': labels,
-                   'scale_factor': 1.0,
-                   'butterfly_scale': 1.0,
-                   'fig_proj': None,
-                   'types': np.array(types),
-                   'inds': inds,
-                   'vert_lines': list(),
-                   'vertline_t': vertline_t,
-                   'butterfly': False,
-                   'text': text,
-                   'ax_help_button': ax_help_button,  # needed for positioning
-                   'help_button': help_button,  # reference needed for clicks
-                   'fig_options': None,
-                   'settings': [True, True, epoch_nr, True],
-                   'image_plot': None,
-                   'events': events,
-                   'event_colors': event_colors,
-                   'ev_lines': list(),
-                   'ev_texts': list()})
+    params.update(
+        fig=fig, ax=ax, ax2=ax2, ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
+        vsel_patch=vsel_patch, hsel_patch=hsel_patch, lines=lines, projs=projs,
+        ch_names=ch_names, n_channels=n_channels, n_epochs=n_epochs,
+        scalings=scalings, duration=duration, ch_start=0, colors=colors,
+        def_colors=type_colors,  # don't change at runtime
+        picks=picks, bads=np.array(list(), dtype=int),
+        data=data, times=times, epoch_times=epoch_times, offsets=offsets,
+        labels=labels, scale_factor=1.0, butterfly_scale=1.0, fig_proj=None,
+        types=np.array(types), inds=inds, vert_lines=list(),
+        vertline_t=vertline_t, butterfly=False, text=text,
+        ax_help_button=ax_help_button,  # needed for positioning
+        help_button=help_button,  # reference needed for clicks
+        fig_options=None, settings=[True, True, epoch_nr, True],
+        image_plot=None, events=events, event_colors=event_colors,
+        ev_lines=list(), ev_texts=list())
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
@@ -1672,7 +1672,6 @@ def _plot_onkey(event, params):
     elif event.key == 'w':
         params['use_noise_cov'] = not params['use_noise_cov']
         _plot_update_epochs_proj(params)
-        _plot_traces(params)
     elif event.key == 'o':
         if not params['butterfly']:
             _open_options(params)
@@ -1768,6 +1767,7 @@ def _prepare_butterfly(params):
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['ax'].set_yticks(params['offsets'])
     params['butterfly'] = butterfly
+    _plot_traces(params)
 
 
 def _onpick(event, params):

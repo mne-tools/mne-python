@@ -938,12 +938,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_colors=None, show=True,
-             block=False, decim='auto', noise_cov=None):
+             block=False, group_by='type', butterfly=False, decim='auto',
+             noise_cov=None):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events,
                            event_colors=event_colors, show=show, block=block,
-                           decim=decim, noise_cov=noise_cov)
+                           group_by=group_by, butterfly=butterfly, decim=decim,
+                           noise_cov=noise_cov)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
