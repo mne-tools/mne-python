@@ -18,7 +18,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatio_temporal_tris_connectivity,
                  spatio_temporal_src_connectivity,
                  spatial_inter_hemi_connectivity,
-                 spatial_src_connectivity)
+                 spatial_src_connectivity, spatial_tris_connectivity)
 from mne.source_estimate import (compute_morph_matrix, grade_to_vertices,
                                  grade_to_tris, _get_vol_mask)
 
@@ -41,6 +41,8 @@ fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+fname_src_fs = op.join(data_path, 'subjects', 'fsaverage', 'bem',
+                       'fsaverage-ico-5-src.fif')
 fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
                       'sample-oct-4-src.fif')
 fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
@@ -938,6 +940,32 @@ def test_vol_connectivity():
     connectivity2 = spatio_temporal_src_connectivity(vol, n_times=2)
     assert_equal(connectivity2.shape, (2 * n_vertices, 2 * n_vertices))
     assert_true(np.all(connectivity2.data == 1))
+
+
+@testing.requires_testing_data
+def test_spatial_src_connectivity():
+    """Test spatial connectivity functionality."""
+    # oct
+    src = read_source_spaces(fname_src)
+    assert src[0]['dist'] is not None  # distance info
+    con = spatial_src_connectivity(src).toarray()
+    con_dist = spatial_src_connectivity(src, dist=0.01).toarray()
+    assert (con == con_dist).mean() > 0.75
+    # ico
+    src = read_source_spaces(fname_src_fs)
+    con = spatial_src_connectivity(src).tocsr()
+    con_tris = spatial_tris_connectivity(grade_to_tris(5)).tocsr()
+    assert con.shape == con_tris.shape
+    assert_array_equal(con.data, con_tris.data)
+    assert_array_equal(con.indptr, con_tris.indptr)
+    assert_array_equal(con.indices, con_tris.indices)
+    # one hemi
+    con_lh = spatial_src_connectivity(src[:1]).tocsr()
+    con_lh_tris = spatial_tris_connectivity(grade_to_tris(5)).tocsr()
+    con_lh_tris = con_lh_tris[:10242, :10242].tocsr()
+    assert_array_equal(con_lh.data, con_lh_tris.data)
+    assert_array_equal(con_lh.indptr, con_lh_tris.indptr)
+    assert_array_equal(con_lh.indices, con_lh_tris.indices)
 
 
 @requires_sklearn
