@@ -13,9 +13,9 @@ import re
 
 import numpy as np
 from scipy import linalg, sparse
-import random
 
-from .utils import get_subjects_dir, _check_subject, logger, verbose, warn
+from .utils import get_subjects_dir, _check_subject, logger, verbose, warn,\
+    check_random_state
 from .source_estimate import (morph_data, SourceEstimate, _center_of_mass,
                               spatial_src_connectivity)
 from .source_space import add_source_space_distances
@@ -1660,8 +1660,8 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
     return labels
 
 
-def random_parcellation(subject, n_parcel, hemis, subjects_dir=None,
-                        surface='white'):
+def random_parcellation(subject, n_parcel, hemi, subjects_dir=None,
+                        surface='white', random_state=None):
     """Generate random cortex parcellation by growing labels.
 
     This function generates a number of labels which don't intersect and
@@ -1673,13 +1673,17 @@ def random_parcellation(subject, n_parcel, hemis, subjects_dir=None,
     subject : string
         Name of the subject as in SUBJECTS_DIR.
     n_parcel : int
-        Total number of cortical parcels
-    hemis : array | int
-        Hemispheres to use for the labels (0: left, 1: right).
+        Total number of cortical parcels.
+    hemi : str
+        hemisphere id (ie 'lh', 'rh', 'both'). In the case
+        of 'both', both hemispheres are processed with (n_parcel // 2)
+        parcels per hemisphere.
     subjects_dir : string
         Path to SUBJECTS_DIR if not set in the environment.
     surface : string
         The surface used to grow the labels, defaults to the white surface.
+    random_state : None | int | np.random.RandomState
+        To specify the random generator state.
 
     Returns
     -------
@@ -1687,8 +1691,9 @@ def random_parcellation(subject, n_parcel, hemis, subjects_dir=None,
         Random cortex parcellation
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    hemis = np.atleast_1d(hemis)
-    hemis = np.array(['lh' if h == 0 else 'rh' for h in hemis])
+    if hemi == 'both':
+        hemi = ['lh', 'rh']
+    hemis = np.atleast_1d(hemi)
 
     # load the surfaces and create the distance graphs
     tris, vert, dist = {}, {}, {}
@@ -1699,7 +1704,8 @@ def random_parcellation(subject, n_parcel, hemis, subjects_dir=None,
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
     # create the patches
-    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist)
+    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist,
+                                  random_state)
 
     # add a unique color to each label
     colors = _n_colors(len(labels))
@@ -1709,23 +1715,21 @@ def random_parcellation(subject, n_parcel, hemis, subjects_dir=None,
     return labels
 
 
-def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs):
+def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
+                         random_state=None):
     """Random cortex parcellation."""
     labels = []
-    parcel_size = np.floor((len(vertices_[hemis[0]]) +
-                            len(vertices_[hemis[1]])) / n_parcel)
-    parc_both = []
     for hemi in set(hemis):
+        parcel_size = len(hemis) * len(vertices_[hemi]) // n_parcel
         graph = graphs[hemi]  # distance graph
         n_vertices = len(vertices_[hemi])
 
         # prepare parcellation
-        parc = np.empty(n_vertices, dtype='int32')
-        parc[:] = -1
+        parc = np.full(n_vertices, -1, dtype='int32')
 
         # initialize active sources
-        s = 0
-        s = random.choice(range(n_vertices))
+        rng = check_random_state(random_state)
+        s = rng.choice(range(n_vertices))
         label_idx = 0
         edge = [s]  # queue of vertices to process
         parc[s] = label_idx
@@ -1735,7 +1739,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs):
         while rest:
             if not edge:
                 rest_idx = np.where(parc < 0)[0]
-                s = random.choice(rest_idx)
+                s = rng.choice(rest_idx)
                 edge = [s]
                 label_idx += 1
                 label_size = 1
@@ -1783,7 +1787,7 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs):
 
         # merging
         label_id = range(n_labels)
-        while n_labels > n_parcel / 2:
+        while n_labels > n_parcel // len(hemis):
             # smallest label and its smallest neighbor
             i = np.argmin(label_sizes)
             neighbors = np.nonzero(label_conn[i, :])[0]
@@ -1808,7 +1812,6 @@ def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs):
             name = 'label_' + str(i)
             label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
             labels.append(label_)
-        parc_both += [parc]
 
     return labels
 

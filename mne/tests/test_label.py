@@ -771,19 +771,21 @@ def test_grow_labels():
 @testing.requires_testing_data
 def test_random_parcellation():
     """Test generation of random cortical parcellation."""
-    hemis = [0, 1]
+    hemi = 'both'
     n_parcel = 50
     surface = 'white'
     subject = 'sample'
+    rng = np.random.RandomState(0)
 
     # Parcellation
-    labels = random_parcellation(subject, n_parcel, hemis, subjects_dir,
-                                 surface=surface)
+    labels = random_parcellation(subject, n_parcel, hemi, subjects_dir,
+                                 surface=surface, random_state=rng)
 
     # test number of labels
     assert_equal(len(labels), n_parcel)
-
-    hemis = np.array(['lh' if h == 0 else 'rh' for h in hemis])
+    if hemi == 'both':
+        hemi = ['lh', 'rh']
+    hemis = np.atleast_1d(hemi)
     for hemi in set(hemis):
         vertices_total = []
         for label in labels:
