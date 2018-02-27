@@ -97,11 +97,6 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
 
     loose, forward = _check_loose_forward(loose, forward)
 
-    # put the forward solution in fixed orientation if it's not already
-    if loose == 0. and not is_fixed_orient(forward):
-        forward = mne.convert_forward_solution(
-            forward, surf_ori=True, force_fixed=True, copy=True, use_cps=True)
-
     # Handle depth weighting and whitening (here is no weights)
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca=False, depth=depth,
