@@ -107,30 +107,19 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
                         'channels.')
 
     import matplotlib.pyplot as plt
-    from matplotlib.colors import Normalize
 
     fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
-                                 figsize=(3.8 * len(idx_names), 3.7))
+                                 figsize=(2.5 * len(idx_names), 2.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
-        vlim = np.max(np.abs(C[idx][:, idx]))
-        im = axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
-                               norm=Normalize(vmin=-vlim, vmax=vlim),
-                               cmap='RdBu_r')
+        axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
+                          cmap='RdBu_r')
         axes[0, k].set(title=name)
-
-        if colorbar:
-            from mpl_toolkits.axes_grid1 import make_axes_locatable
-            divider = make_axes_locatable(axes[0, k])
-            cax = divider.append_axes("right", size="5.5%", pad=0.05)
-            plt.colorbar(im, cax=cax, format='%.0e')
-
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
 
     fig_svd = None
     if show_svd:
-        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False,
-                                     figsize=(3.8 * len(idx_names), 3.7))
+        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False)
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             s = linalg.svd(C[idx][:, idx], compute_uv=False)
             # Protect against true zero singular values
@@ -142,7 +131,6 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         tight_layout(fig=fig_svd)
 
     plt_show(show)
-
     return fig_cov, fig_svd
 
 
@@ -906,3 +894,122 @@ def _handle_event_colors(unique_events, color, unique_events_id):
                 warn('Color is not available for event %d. Default colors '
                      'will be used.' % this_event)
     return color
+
+
+def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
+             n_cols=None, show=True):
+    """Plot CSD matrices.
+
+    A sub-plot is created for each frequency. If an info object is passed to
+    the function, different channel types are plotted in different figures.
+
+    Parameters
+    ----------
+    csd : instance of CrossSpectralDensity
+        The CSD matrix to plot.
+    info: instance of Info | None
+        To split the figure by channel-type, provide the measurement info.
+        By default, the CSD matrix is plotted as a whole.
+    mode : 'csd' | 'coh'
+        Whether to plot the cross-spectral density ('csd', the default), or
+        the coherence ('coh') between the channels.
+    colorbar : bool
+        Whether to show a colorbar. Defaults to ``True``.
+    cmap : str | None
+        The matplotlib colormap to use. Defaults to None, which means the
+        colormap will default to matplotlib's default.
+    n_cols : int | None
+        CSD matrices are plotted in a grid. This parameter controls how
+        many matrix to plot side by side before starting a new row. By
+        default, a number will be chosen to make the grid as square as
+        possible.
+    show : bool
+        Whether to show the figure. Defaults to ``True``.
+
+    Returns
+    -------
+    fig : list of matplotlib figures
+        The figures created by this function.
+    """
+    import matplotlib.pyplot as plt
+
+    if mode not in ['csd', 'coh']:
+        raise ValueError('"mode" should be either "csd" or "coh".')
+
+    if info is not None:
+        info_ch_names = info['ch_names']
+        sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                             exclude=[])
+        sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
+                             exclude=[])
+        sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
+                              exclude=[])
+        idx_eeg = [csd.ch_names.index(info_ch_names[c])
+                   for c in sel_eeg if info_ch_names[c] in csd.ch_names]
+        idx_mag = [csd.ch_names.index(info_ch_names[c])
+                   for c in sel_mag if info_ch_names[c] in csd.ch_names]
+        idx_grad = [csd.ch_names.index(info_ch_names[c])
+                    for c in sel_grad if info_ch_names[c] in csd.ch_names]
+        indices = [idx_eeg, idx_mag, idx_grad]
+        titles = ['EEG', 'Magnetometers', 'Gradiometers']
+    else:
+        indices = [np.arange(len(csd.ch_names))]
+        if mode == 'csd':
+            titles = ['Cross-spectral density']
+        elif mode == 'coh':
+            titles = ['Coherence']
+
+    n_freqs = len(csd.frequencies)
+
+    if n_cols is None:
+        n_cols = int(np.ceil(np.sqrt(n_freqs)))
+    n_rows = int(np.ceil(n_freqs / float(n_cols)))
+
+    figs = []
+    for ind, title in zip(indices, titles):
+        if len(indices) == 0:
+            continue
+
+        fig = plt.figure(figsize=(2 * n_cols + 1, 2.2 * n_rows))
+
+        csd_mats = []
+        for i in range(len(csd.frequencies)):
+            cm = csd.get_data(index=i)[ind][:, ind]
+            if mode == 'csd':
+                cm = np.abs(cm)
+            elif mode == 'coh':
+                # Compute coherence from the CSD matrix
+                psd = np.diag(cm).real
+                cm = np.abs(cm) ** 2 / psd[np.newaxis, :] / psd[:, np.newaxis]
+            csd_mats.append(cm)
+
+        vmax = np.max(csd_mats)
+
+        axes = []
+        for i, (freq, mat) in enumerate(zip(csd.frequencies, csd_mats)):
+            ax = plt.subplot(n_rows, n_cols, i + 1)
+            im = ax.imshow(mat, interpolation='nearest', cmap=cmap, vmin=0,
+                           vmax=vmax)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            if csd.is_sum:
+                ax.set_title('%.1f-%.1f Hz.' % (np.min(freq),
+                                                np.max(freq)))
+            else:
+                ax.set_title('%.1f Hz.' % freq)
+            axes.append(ax)
+
+        plt.suptitle(title)
+        plt.subplots_adjust(top=0.8)
+
+        if colorbar:
+            cb = plt.colorbar(im, ax=axes)
+            if mode == 'csd':
+                cb.set_label('Cross-spectral density')
+            elif mode == 'coh':
+                cb.set_label('Coherence')
+
+        figs.append(fig)
+
+    plt_show(show)
+    return figs
