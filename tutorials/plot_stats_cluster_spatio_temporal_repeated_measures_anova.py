@@ -115,15 +115,14 @@ for ii, condition in enumerate(conditions):
 
 ###############################################################################
 # It's a good idea to spatially smooth the data, and for visualization
-# purposes, let's morph these to fsaverage, which is a grade 5 source space
+# purposes, let's morph these to fsaverage, which is a grade 5 ICO source space
 # with vertices 0:10242 for each hemisphere. Usually you'd have to morph
-# each subject's data separately (and you might want to use morph_data
-# instead), but here since all estimates are on 'sample' we can use one
-# morph matrix for all the heavy lifting.
+# each subject's data separately, but here since all estimates are on
+# 'sample' we can use one morph matrix for all the heavy lifting.
 
-# Read the source space we are morphing to
+# Read the source space we are morphing to (just left hemisphere)
 src = mne.read_source_spaces(src_fname)
-fsave_vertices = [s['vertno'] for s in src]
+fsave_vertices = [src[0]['vertno'], []]
 morph_mat = mne.compute_morph_matrix('sample', 'fsaverage', sample_vertices,
                                      fsave_vertices, 20, subjects_dir)
 n_vertices_fsave = morph_mat.shape[0]

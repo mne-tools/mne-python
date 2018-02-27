@@ -959,6 +959,13 @@ def test_spatial_src_connectivity():
     assert_array_equal(con.data, con_tris.data)
     assert_array_equal(con.indptr, con_tris.indptr)
     assert_array_equal(con.indices, con_tris.indices)
+    # one hemi
+    con_lh = spatial_src_connectivity(src[:1]).tocsr()
+    con_lh_tris = spatial_tris_connectivity(grade_to_tris(5)).tocsr()
+    con_lh_tris = con_lh_tris[:10242, :10242].tocsr()
+    assert_array_equal(con_lh.data, con_lh_tris.data)
+    assert_array_equal(con_lh.indptr, con_lh_tris.indptr)
+    assert_array_equal(con_lh.indices, con_lh_tris.indices)
 
 
 @requires_sklearn

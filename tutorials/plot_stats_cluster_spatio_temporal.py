@@ -38,7 +38,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 subjects_dir = data_path + '/subjects'
-src_fname = data_path + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
