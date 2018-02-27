@@ -27,8 +27,6 @@ from numpy.random import randn
 import matplotlib.pyplot as plt
 
 import mne
-from mne import (io, spatial_tris_connectivity, compute_morph_matrix,
-                 grade_to_tris)
 from mne.stats import (spatio_temporal_cluster_test, f_threshold_mway_rm,
                        f_mway_rm, summarize_clusters_stc)
 
@@ -44,12 +42,13 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 subjects_dir = data_path + '/subjects'
+src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 
 #   Setup for reading the raw data
-raw = io.read_raw_fif(raw_fname)
+raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 ###############################################################################
@@ -121,9 +120,12 @@ for ii, condition in enumerate(conditions):
 # each subject's data separately (and you might want to use morph_data
 # instead), but here since all estimates are on 'sample' we can use one
 # morph matrix for all the heavy lifting.
-fsave_vertices = [np.arange(10242), np.array([], int)]  # right hemi is empty
-morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
-                                 fsave_vertices, 20, subjects_dir)
+
+# Read the source space we are morphing to
+src = mne.read_source_spaces(src_fname)
+fsave_vertices = [s['vertno'] for s in src]
+morph_mat = mne.compute_morph_matrix('sample', 'fsaverage', sample_vertices,
+                                     fsave_vertices, 20, subjects_dir)
 n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
@@ -188,6 +190,7 @@ def stat_fun(*args):
                      effects=effects, return_pvals=return_pvals)[0]
     # get f-values only.
 
+
 ###############################################################################
 # Compute clustering statistic
 # ----------------------------
@@ -195,11 +198,9 @@ def stat_fun(*args):
 # To use an algorithm optimized for spatio-temporal clustering, we
 # just pass the spatial connectivity matrix (instead of spatio-temporal).
 
-source_space = grade_to_tris(5)
 # as we only have one hemisphere we need only need half the connectivity
-lh_source_space = source_space[source_space[:, 0] < 10242]
 print('Computing connectivity.')
-connectivity = spatial_tris_connectivity(lh_source_space)
+connectivity = mne.spatial_src_connectivity(src[:1])
 
 #    Now let's actually do the clustering. Please relax, on a small
 #    notebook and one single thread only this will take a couple of minutes ...

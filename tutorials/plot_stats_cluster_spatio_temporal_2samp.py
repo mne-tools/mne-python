@@ -21,7 +21,7 @@ import numpy as np
 from scipy import stats as stats
 
 import mne
-from mne import spatial_tris_connectivity, grade_to_tris
+from mne import spatial_src_connectivity
 from mne.stats import spatio_temporal_cluster_test, summarize_clusters_stc
 from mne.datasets import sample
 
@@ -33,13 +33,17 @@ print(__doc__)
 data_path = sample.data_path()
 stc_fname = data_path + '/MEG/sample/sample_audvis-meg-lh.stc'
 subjects_dir = data_path + '/subjects'
+src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 
 # Load stc to in common cortical space (fsaverage)
 stc = mne.read_source_estimate(stc_fname)
 stc.resample(50, npad='auto')
 
-stc = mne.morph_data('sample', 'fsaverage', stc, grade=5, smooth=20,
-                     subjects_dir=subjects_dir)
+# Read the source space we are morphing to
+src = mne.read_source_spaces(src_fname)
+fsave_vertices = [s['vertno'] for s in src]
+stc = mne.morph_data('sample', 'fsaverage', stc, grade=fsave_vertices,
+                     smooth=20, subjects_dir=subjects_dir)
 n_vertices_fsave, n_times = stc.data.shape
 tstep = stc.tstep
 
@@ -65,7 +69,7 @@ X2 = np.abs(X2)  # only magnitude
 # To use an algorithm optimized for spatio-temporal clustering, we
 # just pass the spatial connectivity matrix (instead of spatio-temporal)
 print('Computing connectivity.')
-connectivity = spatial_tris_connectivity(grade_to_tris(5))
+connectivity = spatial_src_connectivity(src)
 
 #    Note that X needs to be a list of multi-dimensional array of shape
 #    samples (subjects_k) x time x space, so we permute dimensions
