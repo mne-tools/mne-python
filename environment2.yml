@@ -24,6 +24,7 @@ dependencies:
 - numpydoc
 - flake8
 - spyder
+- numexpr
 - pip:
   - mne
   - "git+https://github.com/enthought/traits.git@a7a83182048c08923953e302658b51b68c802132"
@@ -40,3 +41,4 @@ dependencies:
   - pydocstyle
   - sphinx_bootstrap_theme
   - git+https://github.com/sphinx-gallery/sphinx-gallery.git
+  - python-picard
