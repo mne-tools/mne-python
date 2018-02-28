@@ -609,7 +609,6 @@ class ICA(ContainsMixin):
                                             **self.fit_params)
         elif self.method == 'picard':
             from picard import picard
-            print(data[:, sel].shape)
             _, W, _ = picard(data[:, sel].T, whiten=False, **self.fit_params)
             del _
             self.unmixing_matrix_ = W
