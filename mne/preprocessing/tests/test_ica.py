@@ -58,7 +58,7 @@ def _skip_check_picard(method):
     if method == 'picard':
         try:
             import picard  # noqa
-        except Exception as e:
+        except:
             raise SkipTest("Picard is not installed.")  # noqa
 
 
@@ -81,7 +81,8 @@ def test_ica_full_data_recovery(method):
     data_epochs = epochs.get_data()
     data_evoked = evoked.data
     raw.annotations = Annotations([0.5], [0.5], ['BAD'])
-    for method in ['fastica', 'picard']:
+    methods = [method]
+    for method in methods:
         stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
         for n_components, n_pca_components, ok in stuff:
             ica = ICA(n_components=n_components,
@@ -341,8 +342,8 @@ def test_ica_additional(method):
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
                         eog=True, exclude='bads')
-    epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax,
-                        picks=picks2, baseline=(None, 0), preload=True)
+    epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
+                        baseline=(None, 0), preload=True)
 
     test_cov2 = test_cov.copy()
     ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
@@ -369,8 +370,8 @@ def test_ica_additional(method):
     # test corrmap
     ica2 = ica.copy()
     ica3 = ica.copy()
-    corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks',
-            plot=True, ch_type="mag")
+    corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
+            ch_type="mag")
     corrmap([ica, ica2], (0, 0), threshold=2, plot=False, show=False)
     assert_true(ica.labels_["blinks"] == ica2.labels_["blinks"])
     assert_true(0 in ica.labels_["blinks"])
@@ -379,8 +380,8 @@ def test_ica_additional(method):
     template = components[:, 0]
     EvokedArray(components, ica.info, tmin=0.).plot_topomap([0])
 
-    corrmap([ica, ica3], template, threshold='auto', label='blinks',
-            plot=True, ch_type="mag")
+    corrmap([ica, ica3], template, threshold='auto', label='blinks', plot=True,
+            ch_type="mag")
     assert_true(ica2.labels_["blinks"] == ica3.labels_["blinks"])
 
     plt.close('all')
@@ -488,9 +489,9 @@ def test_ica_additional(method):
         ica.exclude = []
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
-        for attr in ['mixing_matrix_', 'unmixing_matrix_',
-                     'pca_components_', 'pca_mean_',
-                     'pca_explained_variance_', '_pre_whitener']:
+        for attr in ['mixing_matrix_', 'unmixing_matrix_', 'pca_components_',
+                     'pca_mean_', 'pca_explained_variance_',
+                     '_pre_whitener']:
             assert_array_almost_equal(getattr(ica, attr),
                                       getattr(ica_read, attr))
 
@@ -526,7 +527,7 @@ def test_ica_additional(method):
     for idx, ch_name in product(*params):
         ica.detect_artifacts(raw, start_find=0, stop_find=50,
                              ecg_ch=ch_name, eog_ch=ch_name,
-                             skew_criterion=idx,  var_criterion=idx,
+                             skew_criterion=idx, var_criterion=idx,
                              kurt_criterion=idx)
 
     evoked = epochs.average()
@@ -587,18 +588,18 @@ def test_ica_additional(method):
     ecg_scores = ica.score_sources(raw, target='MEG 1531',
                                    score_func='pearsonr')
 
-    with warnings.catch_warnings(record=True):  # filter attenuation warn
-        max_score_source = sources[np.abs(ecg_scores).argmax()]
-        ecg_events = ica_find_ecg_events(raw, max_score_source)
+    with warnings.catch_warnings(record=True):  # filter attenuation warning
+        ecg_events = ica_find_ecg_events(raw,
+                                         sources[np.abs(ecg_scores).argmax()])
 
     assert_true(ecg_events.ndim == 2)
 
     # eog functionality
     eog_scores = ica.score_sources(raw, target='EOG 061',
                                    score_func='pearsonr')
-    with warnings.catch_warnings(record=True):  # filter attenuation warn
-        max_score_source = sources[np.abs(eog_scores).argmax()]
-        eog_events = ica_find_eog_events(raw, max_score_source)
+    with warnings.catch_warnings(record=True):  # filter attenuation warning
+        eog_events = ica_find_eog_events(raw,
+                                         sources[np.abs(eog_scores).argmax()])
     assert_true(eog_events.ndim == 2)
 
     # Test ica fiff export
@@ -668,16 +669,15 @@ def test_ica_reject_buffer(method):
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     raw._data[2, 1000:1005] = 5e-12
-    for method in ['fastica', 'picard']:
-        ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4,
-                  method=method)
-        with catch_logging() as drop_log:
-            with warnings.catch_warnings(record=True):
-                ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
-                        tstep=0.01, verbose=True, reject_by_annotation=False)
-            assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
-        log = [l for l in drop_log.getvalue().split('\n') if 'detected' in l]
-        assert_equal(len(log), 1)
+    ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4,
+              method=method)
+    with catch_logging() as drop_log:
+        with warnings.catch_warnings(record=True):
+            ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
+                    tstep=0.01, verbose=True, reject_by_annotation=False)
+        assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
+    log = [l for l in drop_log.getvalue().split('\n') if 'detected' in l]
+    assert_equal(len(log), 1)
 
 
 @requires_sklearn
@@ -729,19 +729,18 @@ def test_bad_channels(method):
     epochs = EpochsArray(data, info)
 
     n_components = 0.9
-    for method in ['fastica', 'picard']:
-        ica = ICA(n_components=n_components, method=method)
-        for inst in [raw, epochs]:
-            for ch in chs_bad:
-                # Test case for only bad channels
-                picks_bad1 = pick_types(inst.info, meg=False,
-                                        **{str(ch): True})
-                # Test case for good and bad channels
-                picks_bad2 = pick_types(inst.info, meg=True,
-                                        **{str(ch): True})
-                assert_raises(ValueError, ica.fit, inst, picks=picks_bad1)
-                assert_raises(ValueError, ica.fit, inst, picks=picks_bad2)
-            assert_raises(ValueError, ica.fit, inst, picks=[])
+    ica = ICA(n_components=n_components, method=method)
+    for inst in [raw, epochs]:
+        for ch in chs_bad:
+            # Test case for only bad channels
+            picks_bad1 = pick_types(inst.info, meg=False,
+                                    **{str(ch): True})
+            # Test case for good and bad channels
+            picks_bad2 = pick_types(inst.info, meg=True,
+                                    **{str(ch): True})
+            assert_raises(ValueError, ica.fit, inst, picks=picks_bad1)
+            assert_raises(ValueError, ica.fit, inst, picks=picks_bad2)
+        assert_raises(ValueError, ica.fit, inst, picks=[])
 
 
 @requires_sklearn
@@ -791,19 +790,18 @@ def test_max_pca_components_none(method):
 
     tempdir = _TempDir()
     output_fname = op.join(tempdir, 'test_ica-ica.fif')
-    for method in ['fastica', 'picard']:
-        ica = ICA(max_pca_components=max_pca_components, method=method,
-                  n_components=n_components, random_state=random_state)
-        with warnings.catch_warnings(record=True):  # convergence
-            ica.fit(epochs)
-        ica.save(output_fname)
+    ica = ICA(max_pca_components=max_pca_components, method=method,
+              n_components=n_components, random_state=random_state)
+    with warnings.catch_warnings(record=True):  # convergence
+        ica.fit(epochs)
+    ica.save(output_fname)
 
-        ica = read_ica(output_fname)
+    ica = read_ica(output_fname)
 
-        # ICA.fit() replaced max_pca_components, which was previously None,
-        # with the appropriate integer value.
-        assert_equal(ica.max_pca_components, epochs.info['nchan'])
-        assert_equal(ica.n_components, 10)
+    # ICA.fit() replaced max_pca_components, which was previously None,
+    # with the appropriate integer value.
+    assert_equal(ica.max_pca_components, epochs.info['nchan'])
+    assert_equal(ica.n_components, 10)
 
 
 @requires_sklearn
