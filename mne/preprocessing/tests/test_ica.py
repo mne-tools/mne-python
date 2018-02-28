@@ -336,7 +336,8 @@ def test_ica_additional(method):
     # test if n_components=None works
     ica = ICA(n_components=None, max_pca_components=None,
               n_pca_components=None, random_state=0, method=method, max_iter=1)
-    ica.fit(epochs)
+    with warnings.catch_warnings(record=True):
+        ica.fit(epochs)
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
                         eog=True, exclude='bads')

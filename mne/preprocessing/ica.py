@@ -600,7 +600,6 @@ class ICA(ContainsMixin):
             from sklearn.decomposition import FastICA
             ica = FastICA(whiten=False, random_state=random_state,
                           **self.fit_params)
-            print(data[:, sel].shape)
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
         elif self.method in ('infomax', 'extended-infomax'):
