@@ -1042,6 +1042,14 @@ if not has_nibabel() and not has_freesurfer():
     raise ImportError
 """
 
+_picard_call = """
+required_version = '0.2'
+import picard
+version = LooseVersion(picard.__version__)
+if version < required_version:
+    raise ImportError
+"""
+
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
@@ -1070,6 +1078,7 @@ requires_ftp = partial(
 requires_nitime = partial(requires_module, name='nitime')
 requires_h5py = partial(requires_module, name='h5py')
 requires_numpydoc = partial(requires_module, name='numpydoc')
+requires_picard = partial(requires_module, name='picard', call=_picard_call)
 
 
 def check_version(library, min_version):

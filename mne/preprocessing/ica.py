@@ -132,11 +132,12 @@ class ICA(ContainsMixin):
         >> ica.fit(raw)
         >> raw.info['projs'] = projs
 
-    .. note:: Methods implemented are FastICA (default), Infomax and
-              Extended-Infomax. Infomax can be quite sensitive to differences
-              in floating point arithmetic due to exponential non-linearity.
-              Extended-Infomax seems to be more stable in this respect
-              enhancing reproducibility and stability of results.
+    .. note:: Methods implemented are FastICA (default), Infomax,
+              Extended-Infomax, and Picard. Infomax can be quite sensitive to
+              differences in floating point arithmetic due to exponential
+              non-linearity. Extended-Infomax seems to be more stable in this
+              respect enhancing reproducibility and stability of results.
+              Picard tends to be faster than the other algorithms.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.
@@ -181,7 +182,7 @@ class ICA(ContainsMixin):
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results. Defaults to None.
-    method : {'fastica', 'infomax', 'extended-infomax'}
+    method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
         The ICA method to use. Defaults to 'fastica'.
     fit_params : dict | None.
         Additional parameters passed to the ICA estimator chosen by `method`.
@@ -240,7 +241,7 @@ class ICA(ContainsMixin):
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  verbose=None):  # noqa: D102
-        methods = ('fastica', 'infomax', 'extended-infomax')
+        methods = ('fastica', 'infomax', 'extended-infomax', 'picard')
         if method not in methods:
             raise ValueError('`method` must be "%s". You passed: "%s"' %
                              ('" or "'.join(methods), method))
@@ -284,6 +285,10 @@ class ICA(ContainsMixin):
             fit_params.update({'extended': False})
         elif method == 'extended-infomax':
             fit_params.update({'extended': True})
+        elif method == 'picard':
+            update = {'ortho': True, 'fun': 'tanh', 'tol': 1e-5}
+            fit_params.update(dict((k, v) for k, v in update.items() if k
+                              not in fit_params))
         if 'max_iter' not in fit_params:
             fit_params['max_iter'] = max_iter
         self.max_iter = max_iter
@@ -601,6 +606,11 @@ class ICA(ContainsMixin):
             self.unmixing_matrix_ = infomax(data[:, sel],
                                             random_state=random_state,
                                             **self.fit_params)
+        elif self.method == 'picard':
+            from picard import picard
+            _, W, _ = picard(data[:, sel].T, whiten=False, **self.fit_params)
+            del _
+            self.unmixing_matrix_ = W.T
         self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
@@ -2038,12 +2048,12 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
 
 @verbose
 def run_ica(raw, n_components, max_pca_components=100,
-            n_pca_components=64, noise_cov=None, random_state=None,
-            picks=None, start=None, stop=None, start_find=None,
-            stop_find=None, ecg_ch=None, ecg_score_func='pearsonr',
-            ecg_criterion=0.1, eog_ch=None, eog_score_func='pearsonr',
-            eog_criterion=0.1, skew_criterion=-1, kurt_criterion=-1,
-            var_criterion=0, add_nodes=None, verbose=None):
+            n_pca_components=64, method='fastica', noise_cov=None,
+            random_state=None, picks=None, start=None, stop=None,
+            start_find=None, stop_find=None, ecg_ch=None,
+            ecg_score_func='pearsonr', ecg_criterion=0.1, eog_ch=None,
+            eog_score_func='pearsonr', eog_criterion=0.1, skew_criterion=-1,
+            kurt_criterion=-1, var_criterion=0, add_nodes=None, verbose=None):
     """Run ICA decomposition on raw data and identify artifact sources.
 
     This function implements an automated artifact removal work flow.
@@ -2085,6 +2095,8 @@ def run_ica(raw, n_components, max_pca_components=100,
         ``'n_components_'`` PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
+    method : {'fastica', 'picard'}
+        The ICA method to use. Defaults to 'fastica'.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.
@@ -2175,8 +2187,8 @@ def run_ica(raw, n_components, max_pca_components=100,
         The ICA object with detected artifact sources marked for exclusion.
     """
     ica = ICA(n_components=n_components, max_pca_components=max_pca_components,
-              n_pca_components=n_pca_components, noise_cov=noise_cov,
-              random_state=random_state, verbose=verbose)
+              n_pca_components=n_pca_components, method=method,
+              noise_cov=noise_cov, random_state=random_state, verbose=verbose)
 
     ica.fit(raw, start=start, stop=stop, picks=picks)
     logger.info('%s' % ica)
