@@ -277,7 +277,6 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     M_estimated = np.dot(gain[:, active_set], X)
 
     # Reapply weights to have correct unit
-    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     X = _reapply_source_weighting(X, source_weighting, active_set)
 
     if return_residual:
