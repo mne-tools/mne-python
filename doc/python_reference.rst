@@ -775,6 +775,7 @@ Source Space Data
    label_sign_flip
    morph_data
    morph_data_precomputed
+   random_parcellation
    read_labels_from_annot
    read_dipole
    read_label
