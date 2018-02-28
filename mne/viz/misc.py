@@ -27,7 +27,8 @@ from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import logger, verbose, get_subjects_dir, warn
 from ..io.pick import pick_types
 from ..filter import estimate_ringing_samples
-from .utils import tight_layout, COLORS, _prepare_trellis, plt_show
+from .utils import (tight_layout, COLORS, _prepare_trellis, plt_show,
+                    _handle_event_colors)
 
 
 @verbose
@@ -883,26 +884,3 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
     tight_layout()
     plt_show(show)
     return axes.figure
-
-
-def _handle_event_colors(unique_events, color, unique_events_id):
-    """Handle event colors."""
-    if color is None:
-        if len(unique_events) > len(COLORS):
-            warn('More events than colors available. You should pass a list '
-                 'of unique colors.')
-        colors = cycle(COLORS)
-        color = dict()
-        for this_event, this_color in zip(sorted(unique_events_id), colors):
-            color[this_event] = this_color
-    else:
-        for this_event in color:
-            if this_event not in unique_events_id:
-                raise ValueError('%s from color is not present in events '
-                                 'or event_id.' % this_event)
-
-        for this_event in unique_events_id:
-            if this_event not in color:
-                warn('Color is not available for event %d. Default colors '
-                     'will be used.' % this_event)
-    return color

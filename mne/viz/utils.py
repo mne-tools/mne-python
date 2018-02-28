@@ -22,14 +22,14 @@ from warnings import catch_warnings
 
 from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
-from ..defaults import _handle_default
+from ..defaults import _handle_default, DEFAULTS
 from ..io import show_fiff, Info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        pick_types, pick_info, _picks_by_type)
 from ..io.proc_history import _get_rank_sss
 from ..io.proj import setup_proj
-from ..utils import logger, verbose, set_config, warn
+from ..utils import logger, verbose, set_config, warn, get_config
 
 from ..externals.six import string_types
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
@@ -972,8 +972,8 @@ def _find_channel_idx(ch_name, params):
 
 def _draw_vert_line(xdata, params):
     """Draw vertical line."""
-    params['ax_vertline'].set_data(xdata, np.array(params['ax'].get_ylim()))
-    params['ax_hscroll_vertline'].set_data(xdata, np.array([0., 1.]))
+    params['ax_vertline'].set_xdata(xdata)
+    params['ax_hscroll_vertline'].set_xdata(xdata)
     params['vertline_t'].set_text('%0.3f' % xdata[0])
 
 
@@ -1068,11 +1068,10 @@ def _setup_browser_offsets(params, n_channels):
     offset = ylim[0] / n_channels
     params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
     params['n_channels'] = n_channels
-    params['ax'].set_yticks(params['offsets'])
-    params['ax'].set_ylim(ylim)
+    params['ax'].set(yticks=params['offsets'], ylim=ylim)
     params['vsel_patch'].set_height(n_channels)
-    line = params['ax_vertline']
-    line.set_data(line._x, np.array(params['ax'].get_ylim()))
+    if 'ax_vertline' in params:  # only raw mode has this
+        params['ax_vertline'].set_ydata(np.array(params['ax'].get_ylim()))
 
 
 class ClickableImage(object):
@@ -1924,15 +1923,14 @@ def _on_hover(event, params):
             ylim = params['ax'].get_ylim()
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
-                line = params['ax'].plot([x, x], ylim, color='r',
-                                         linewidth=3, picker=5.)[0]
+                line = params['ax'].axvline(x, ylim, color='r',
+                                            linewidth=3, picker=5.)
                 dl = DraggableLine(line, modify_callback)
                 params['segment_line'] = dl
             else:
-                params['segment_line'].set_x(x)
+                params['segment_line'].set_xdata(x)
             params['vertline_t'].set_text('%.3f' % x)
-            params['ax_vertline'].set_data(0,
-                                           np.array(params['ax'].get_ylim()))
+            params['ax_vertline'].set_xdata(0)
             params['ax'].selector.active = False
             params['fig'].canvas.draw()
             return
@@ -2024,88 +2022,98 @@ def _annotation_radio_clicked(label, radio, selector):
     selector.rectprops.update(dict(facecolor=color))
 
 
+def _get_plot_types(params):
+    return [t for t in _DATA_CH_TYPES_SPLIT + ['eog', 'ecg']
+            if t in params['types']] + ['other']
+
+
+def _update_butterfly_ticks(params):
+    ticklabels = list()
+    ticks = params['ax'].get_yticks()
+    idx_offset = 0
+    for type_ in _get_plot_types(params):
+        if type_ not in params['types']:
+            if type_ == 'other':
+                ticklabels.extend(['', 'Other', ''])
+            continue
+        local_ticks = [''] * 3
+        local_ticks[1] = '%s (%s)' % (DEFAULTS['titles_short'][type_],
+                                      DEFAULTS['units'][type_])
+        tick_offset = 3 * idx_offset + 1
+        for ii in [-1, 1]:
+            tick = ((ticks[tick_offset + ii] - ticks[tick_offset]) *
+                    params['scalings'][type_] * params['scale_factor'] *
+                    DEFAULTS['scalings'][type_])
+            assert np.isfinite(tick)
+            # Determine number of decimal points to use
+            n_dec = max(int(np.ceil(-np.log10(abs(tick)))) + 2, 0)
+            local_ticks[1 + ii] = ('%%0.%df' % (n_dec,)) % tick
+        ticklabels.extend(local_ticks)
+        idx_offset += 1
+    params['ax'].set_yticklabels(ticklabels, fontsize=12)
+
+
 def _setup_butterfly(params, mode='raw'):
     """Set butterfly view of raw plotter."""
+    if 'ica' in params:  # always leave "off"
+        return
     from matplotlib.collections import LineCollection
     butterfly = not params['butterfly']
     params['butterfly'] = butterfly
     ax = params['ax']
-    if 'ica' in params:
-        return
     if butterfly:
-        if mode == 'raw':
-            types = np.array(params['types'])[params['orig_inds']]
-            if params['group_by'] in ['type', 'original']:
-                inds = params['inds']
-                labels = [t for t in _DATA_CH_TYPES_SPLIT + ['eog', 'ecg']
-                          if t in types] + ['misc']
-                ticks = np.arange(5, 5 * (len(labels) + 1), 5)
-                offs = {l: t for (l, t) in zip(labels, ticks)}
-
-                params['offsets'] = np.zeros(len(params['types']))
-                for ind in inds:
-                    params['offsets'][ind] = offs.get(params['types'][ind],
-                                                      5 * (len(labels)))
-                ax.set_yticks(ticks)
-                params['ax'].set_ylim(5 * (len(labels) + 1), 0)
-                ax.set_yticklabels(labels)
-            else:
-                if 'selections' not in params:
-                    params['selections'] = _setup_browser_selection(
-                        params['raw'].info, 'position', selector=False)
-                sels = params['selections']
-                selections = _SELECTIONS[1:]  # Vertex not used
-                if ('Misc' in sels and len(sels['Misc']) > 0):
-                    selections += ['Misc']
-                if params['group_by'] == 'selection' and 'eeg' in types:
-                    for sel in _EEG_SELECTIONS:
-                        if sel in sels:
-                            selections += [sel]
-                picks = list()
-                for selection in selections:
-                    picks.append(sels.get(selection, list()))
-                labels = ax.yaxis.get_ticklabels()
-                for label in labels:
-                    label.set_visible(True)
-                ylim = (5. * len(picks), 0.)
-                ax.set_ylim(ylim)
-                offset = ylim[0] / (len(picks) + 1)
-                ticks = np.arange(0, ylim[0], offset)
-                ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
-                ax.set_yticks(ticks)
-                offsets = np.zeros(len(params['types']))
-
-                for group_idx, group in enumerate(picks):
-                    for idx, pick in enumerate(group):
-                        offsets[pick] = offset * (group_idx + 1)
-                params['inds'] = params['orig_inds'].copy()
-                params['offsets'] = offsets
-                ax.set_yticklabels([''] + selections, color='black',
-                                   rotation=45, va='top')
-            params['ax_vscroll'].set_visible(False)
-        else:  # epochs
-            types = set(['grad', 'mag', 'eeg', 'eog',
-                         'ecg']) & set(params['types'])
-            if len(types) < 1:
-                return
-            params['ax_vscroll'].set_visible(False)
+        if params['group_by'] in ['type', 'original']:
+            types = np.array(params['types'])
+            if mode == 'raw':
+                types = types[params['orig_inds']]
+            labels = _get_plot_types(params)
+            ticks = np.setdiff1d(np.arange(0, 4 * len(labels)),
+                                 np.arange(0, 4 * len(labels), 4))
+            assert ticks.size == len(labels) * 3
+            ax.set(yticks=ticks, ylim=(4 * len(labels), 0))
+            offs = {l: t for (l, t) in zip(labels, ticks[1::3])}
+            offsets = np.array([offs.get(
+                type_, offs['other']) for type_ in params['types']])
+        else:  # XXX I broke this and need to fix it
+            assert params['group_by'] == 'selection'
+            if 'selections' not in params:
+                params['selections'] = _setup_browser_selection(
+                    params['raw'].info, 'position', selector=False)
+            sels = params['selections']
+            selections = _SELECTIONS[1:]  # Vertex not used
+            if ('Misc' in sels and len(sels['Misc']) > 0):
+                selections += ['Misc']
+            if params['group_by'] == 'selection' and 'eeg' in types:
+                for sel in _EEG_SELECTIONS:
+                    if sel in sels:
+                        selections += [sel]
+            picks = list()
+            for selection in selections:
+                picks.append(sels.get(selection, list()))
             labels = ax.yaxis.get_ticklabels()
             for label in labels:
                 label.set_visible(True)
-            ylim = (5. * len(types), 0.)
-            ax.set_ylim(ylim)
-            offset = ylim[0] / (4. * len(types))
-            ticks = np.setdiff1d(np.arange(0, 4 * len(types)),
-                                 np.arange(0, 4 * len(types), 4)) * offset
-            assert ticks.size == len(types) * 3
+            ax.set_ylim(len(picks), 0.)
+            ticks = np.arange(0, len(picks))
+            ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
             ax.set_yticks(ticks)
-            params['offsets'] = ticks[1::3]
+            offsets = np.zeros(len(types))
+            for group_idx, group in enumerate(picks):
+                for idx, pick in enumerate(group):
+                    offsets[pick] = group_idx + 1
+            params['inds'] = params['orig_inds'].copy()
+            ax.set_yticklabels([''] + selections, color='black',
+                               rotation=45, va='top')
+        params['offsets'] = offsets
+        _update_butterfly_ticks(params)
+        if mode == 'epochs':
             while len(params['lines']) < len(params['picks']):
                 lc = LineCollection(list(), antialiased=True, linewidths=0.5,
                                     zorder=3, picker=3.)
                 ax.add_collection(lc)
                 params['lines'].append(lc)
     else:  # non-butterfly
+        _setup_browser_offsets(params, max([params['n_channels'], 1]))
         if mode == 'raw':
             params['inds'] = params['orig_inds'].copy()
             if 'fig_selection' not in params:
@@ -2113,28 +2121,20 @@ def _setup_butterfly(params, mode='raw'):
                                      len(params['lines'])):
                     params['lines'][idx].set_xdata([])
                     params['lines'][idx].set_ydata([])
-            _setup_browser_offsets(params, max([params['n_channels'], 1]))
             if 'fig_selection' in params:
                 radio = params['fig_selection'].radio
                 active_idx = _get_active_radiobutton(radio)
                 _radio_clicked(radio.labels[active_idx]._text, params)
-            params['ax_vscroll'].set_visible(True)
         else:  # epochs
             labels = params['ax'].yaxis.get_ticklabels()
             for label in labels:
-                label.set_visible(params['settings'][0])
-            params['ax_vscroll'].set_visible(True)
+                label.set_visible(params['settings']['Channel names visible'])
             while len(params['ax2'].texts) > 0:
                 params['ax2'].texts.pop()
-            n_channels = params['n_channels']
-            while len(params['lines']) > n_channels:
+            while len(params['lines']) > params['n_channels']:
                 params['ax'].collections.pop()
                 params['lines'].pop()
-            ylim = (25., 0.)
-            params['ax'].set_ylim(ylim)
-            offset = ylim[0] / n_channels
-            params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-            params['ax'].set_yticks(params['offsets'])
+    params['ax_vscroll'].set_visible(not butterfly)
     # For now, italics only work in non-grouped mode
     _set_ax_label_style(ax, params, italicize=not butterfly)
     params['plot_fun']()
@@ -2495,8 +2495,8 @@ def _setup_browser_selection(info, kind, selector=True):
     if kind == 'position':
         order = _divide_to_regions(info)
         keys = _SELECTIONS[1:]  # no 'Vertex'
-        kind = 'position'
-    elif 'selection':
+    else:
+        assert kind == 'selection'
         meg_picks = pick_types(info, meg=True, exclude=())
         if len(meg_picks) == 0 or \
                 info['chs'][meg_picks[0]]['coil_type'] not in \
@@ -2543,3 +2543,327 @@ def _setup_browser_selection(info, kind, selector=True):
         circle.set_edgecolor('gray')  # make sure the buttons are visible
 
     return order, fig_selection
+
+
+def _handle_picks(info):
+    """Handle picks."""
+    if any('ICA' in k for k in info['ch_names']):
+        picks = pick_types(info, meg=False, misc=True, ref_meg=False,
+                           exclude=[])
+    else:
+        picks = pick_types(info, meg=True, eeg=True, eog=True, ecg=True,
+                           seeg=True, ecog=True, ref_meg=False, fnirs=True,
+                           exclude=[])
+    return picks
+
+
+def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
+                               title, picks, events=None, event_colors=None,
+                               order=None):
+    """Set up the mne_browse_epochs window."""
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    from matplotlib.collections import LineCollection
+    from matplotlib.colors import colorConverter
+    from .epochs import _SETTINGS_KEYS
+
+    epochs = params['epochs']
+
+    if picks is None:
+        picks = _handle_picks(epochs.info)
+    if len(picks) < 1:
+        raise RuntimeError('No appropriate channels found. Please'
+                           ' check your picks')
+    picks = sorted(picks)
+    # Reorganize channels
+    inds = list()
+    types = list()
+    for t in ['grad', 'mag']:
+        idxs = pick_types(params['info'], meg=t, ref_meg=False, exclude=[])
+        if len(idxs) < 1:
+            continue
+        mask = np.in1d(idxs, picks, assume_unique=True)
+        inds.append(idxs[mask])
+        types += [t] * len(inds[-1])
+    for t in ['hbo', 'hbr']:
+        idxs = pick_types(params['info'], meg=False, ref_meg=False, fnirs=t,
+                          exclude=[])
+        if len(idxs) < 1:
+            continue
+        mask = np.in1d(idxs, picks, assume_unique=True)
+        inds.append(idxs[mask])
+        types += [t] * len(inds[-1])
+    pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
+    if order is None:
+        order = ['eeg', 'seeg', 'ecog', 'eog', 'ecg', 'emg', 'ref_meg', 'stim',
+                 'resp', 'misc', 'chpi', 'syst', 'ias', 'exci']
+    for ch_type in order:
+        pick_kwargs[ch_type] = True
+        idxs = pick_types(params['info'], **pick_kwargs)
+        if len(idxs) < 1:
+            continue
+        mask = np.in1d(idxs, picks, assume_unique=True)
+        inds.append(idxs[mask])
+        types += [ch_type] * len(inds[-1])
+        pick_kwargs[ch_type] = False
+    inds = np.concatenate(inds).astype(int)
+    if not len(inds) == len(picks):
+        raise RuntimeError('Some channels not classified. Please'
+                           ' check your picks')
+    ch_names = [params['info']['ch_names'][x] for x in inds]
+
+    # set up plotting
+    size = get_config('MNE_BROWSE_RAW_SIZE')
+    n_epochs = min(n_epochs, len(epochs.events))
+    duration = len(epochs.times) * n_epochs
+    n_channels = min(n_channels, len(picks))
+    if size is not None:
+        size = size.split(',')
+        size = tuple(float(s) for s in size)
+    if title is None:
+        title = epochs._name
+        if title is None or len(title) == 0:
+            title = ''
+    fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
+    fig.canvas.set_window_title('mne_browse_epochs')
+    ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
+
+    ax.annotate(title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 15),
+                ha='center', va='bottom', size=12, xycoords='axes fraction',
+                textcoords='offset points')
+    color = _handle_default('color', None)
+
+    ax.axis([0, duration, 0, 200])
+    ax2 = ax.twiny()
+    ax2.set_zorder(-1)
+    ax2.axis([0, duration, 0, 200])
+    ax_hscroll = plt.subplot2grid((10, 15), (9, 1), colspan=13)
+    ax_hscroll.get_yaxis().set_visible(False)
+    ax_hscroll.set_xlabel('Epochs')
+    ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
+    ax_vscroll.set_axis_off()
+    ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
+                                               facecolor='w', zorder=3))
+
+    ax_help_button = plt.subplot2grid((10, 15), (9, 0), colspan=1)
+    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    help_button.on_clicked(partial(_onclick_help, params=params))
+
+    # populate vertical and horizontal scrollbars
+    for ci in range(len(picks)):
+        if ch_names[ci] in params['info']['bads']:
+            this_color = params['bad_color']
+        else:
+            this_color = color[types[ci]]
+        ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
+                                                   facecolor=this_color,
+                                                   edgecolor=this_color,
+                                                   zorder=4))
+
+    vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
+                                       edgecolor='w', facecolor='w', zorder=5)
+    ax_vscroll.add_patch(vsel_patch)
+
+    ax_vscroll.set_ylim(len(types), 0)
+    ax_vscroll.set_title('Ch.')
+
+    # populate colors list
+    type_colors = [colorConverter.to_rgba(color[c]) for c in types]
+    colors = list()
+    for color_idx in range(len(type_colors)):
+        colors.append([type_colors[color_idx]] * len(epochs.events))
+    lines = list()
+    n_times = len(epochs.times)
+
+    for ch_idx in range(n_channels):
+        if len(colors) - 1 < ch_idx:
+            break
+        lc = LineCollection(list(), antialiased=True, linewidths=0.5,
+                            zorder=3, picker=3.)
+        ax.add_collection(lc)
+        lines.append(lc)
+
+    times = epochs.times
+    data = np.zeros((params['info']['nchan'], len(times) * n_epochs))
+
+    ylim = (25., 0.)  # Hardcoded 25 because butterfly has max 5 rows (5*5=25).
+    # make shells for plotting traces
+    offset = ylim[0] / n_channels
+    offsets = np.arange(n_channels) * offset + (offset / 2.)
+
+    times = np.arange(len(times) * len(epochs.events))
+    epoch_times = np.arange(0, len(times), n_times)
+
+    ax.set_yticks(offsets)
+    ax.set_ylim(ylim)
+    ticks = epoch_times + 0.5 * n_times
+    ax.set_xticks(ticks)
+    ax2.set_xticks(ticks[:n_epochs])
+    labels = list(range(1, len(ticks) + 1))  # epoch numbers
+    ax.set_xticklabels(labels)
+    xlim = epoch_times[-1] + len(epochs.times)
+    ax_hscroll.set_xlim(0, xlim)
+    vertline_t = ax_hscroll.text(0, 1, '', color='y', va='bottom', ha='right')
+
+    # fit horizontal scroll bar ticks
+    hscroll_ticks = np.arange(0, xlim, xlim / 7.0)
+    hscroll_ticks = np.append(hscroll_ticks, epoch_times[-1])
+    hticks = list()
+    for tick in hscroll_ticks:
+        hticks.append(epoch_times.flat[np.abs(epoch_times - tick).argmin()])
+    hlabels = [x / n_times + 1 for x in hticks]
+    ax_hscroll.set_xticks(hticks)
+    ax_hscroll.set_xticklabels(hlabels)
+
+    for epoch_idx in range(len(epoch_times)):
+        ax_hscroll.add_patch(mpl.patches.Rectangle((epoch_idx * n_times, 0),
+                                                   n_times, 1, facecolor='w',
+                                                   edgecolor='w', alpha=0.6))
+    hsel_patch = mpl.patches.Rectangle((0, 0), duration, 1,
+                                       edgecolor='k',
+                                       facecolor=(0.75, 0.75, 0.75),
+                                       alpha=0.25, linewidth=1, clip_on=False)
+    ax_hscroll.add_patch(hsel_patch)
+    text = ax.text(0, 0, 'blank', zorder=3, verticalalignment='baseline',
+                   ha='left', fontweight='bold')
+    text.set_visible(False)
+
+    epoch_nr = True
+    if events is not None:
+        event_set = set(events[:, 2])
+        event_colors = _handle_event_colors(event_set, event_colors, event_set)
+        epoch_nr = False  # epoch number off by default to avoid overlap
+        for label in ax.xaxis.get_ticklabels():
+            label.set_visible(False)
+
+    settings = dict((key, val) for key, val in
+                    zip(_SETTINGS_KEYS, (True, True, epoch_nr, True)))
+    params.update(
+        fig=fig, ax=ax, ax2=ax2, ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
+        vsel_patch=vsel_patch, hsel_patch=hsel_patch, lines=lines, projs=projs,
+        ch_names=ch_names, n_channels=n_channels, n_epochs=n_epochs,
+        scalings=scalings, duration=duration, ch_start=0, colors=colors,
+        def_colors=type_colors,  # don't change at runtime
+        picks=picks, bads=np.array(list(), dtype=int),
+        data=data, times=times, epoch_times=epoch_times, offsets=offsets,
+        labels=labels, scale_factor=1.0, fig_proj=None,
+        types=np.array(types), inds=inds, vert_lines=list(),
+        vertline_t=vertline_t, butterfly=False, text=text,
+        ax_help_button=ax_help_button,  # needed for positioning
+        help_button=help_button,  # reference needed for clicks
+        fig_options=None, settings=settings, close_key='escape',
+        image_plot=None, events=events, event_colors=event_colors,
+        ev_lines=list(), ev_texts=list())
+
+
+def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
+                            n_channels):
+    """Set up the mne_browse_raw window."""
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    size = get_config('MNE_BROWSE_RAW_SIZE')
+    if size is not None:
+        size = size.split(',')
+        size = tuple([float(s) for s in size])
+        size = tuple([float(s) for s in size])
+
+    fig = figure_nobar(facecolor=bgcolor, figsize=size)
+    fig.canvas.set_window_title(title if title else "Raw")
+    ax = plt.subplot2grid((10, 10), (0, 1), colspan=8, rowspan=9)
+    ax_hscroll = plt.subplot2grid((10, 10), (9, 1), colspan=8)
+    ax_hscroll.get_yaxis().set_visible(False)
+    ax_hscroll.set_xlabel('Time (s)')
+    ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
+    ax_vscroll.set_axis_off()
+    ax_help_button = plt.subplot2grid((10, 10), (0, 0), colspan=1)
+    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    help_button.on_clicked(partial(_onclick_help, params=params))
+
+    # populate vertical and horizontal scrollbars
+    info = params['info']
+    n_ch = len(inds)
+
+    if 'fig_selection' in params:
+        selections = params['selections']
+        labels = [l._text for l in params['fig_selection'].radio.labels]
+        # Flatten the selections dict to a list.
+        cis = [item for sublist in [selections[l] for l in labels] for item
+               in sublist]
+
+        for idx, ci in enumerate(cis):
+            this_color = (bad_color if info['ch_names'][ci] in
+                          info['bads'] else color)
+            if isinstance(this_color, dict):
+                this_color = this_color[params['types'][ci]]
+            ax_vscroll.add_patch(mpl.patches.Rectangle((0, idx), 1, 1,
+                                                       facecolor=this_color,
+                                                       edgecolor=this_color))
+        ax_vscroll.set_ylim(len(cis), 0)
+        n_channels = max([len(selections[labels[0]]), n_channels])
+    else:
+        for ci in range(len(inds)):
+            this_color = (bad_color if info['ch_names'][inds[ci]] in
+                          info['bads'] else color)
+            if isinstance(this_color, dict):
+                this_color = this_color[params['types'][inds[ci]]]
+            ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
+                                                       facecolor=this_color,
+                                                       edgecolor=this_color))
+        ax_vscroll.set_ylim(n_ch, 0)
+    vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
+                                       facecolor='w', edgecolor='w')
+    ax_vscroll.add_patch(vsel_patch)
+    ax_vscroll.set_title('Ch.')
+
+    hsel_patch = mpl.patches.Rectangle((params['t_start'], 0),
+                                       params['duration'], 1, edgecolor='k',
+                                       facecolor=(0.75, 0.75, 0.75),
+                                       alpha=0.25, linewidth=1, clip_on=False)
+    ax_hscroll.add_patch(hsel_patch)
+    ax_hscroll.set_xlim(params['first_time'], params['first_time'] +
+                        params['n_times'] / float(info['sfreq']))
+
+    vertline_color = (0., 0.75, 0.)
+    params['ax_vertline'] = ax.axvline(0, color=vertline_color, zorder=4, lw=1)
+    params['ax_vertline'].ch_name = ''
+    params['vertline_t'] = ax_hscroll.text(params['first_time'], 1, '',
+                                           color=vertline_color,
+                                           va='bottom', ha='right')
+    params['ax_hscroll_vertline'] = ax_hscroll.axvline(
+        0, color=vertline_color, zorder=2, lw=1)
+    # make shells for plotting traces
+    params['lines'] = [ax.plot([np.nan], antialiased=True, linewidth=0.5)[0]
+                       for _ in range(n_ch)]
+    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+    params.update(
+        fig=fig, ax=ax, ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
+        ax_help_button=ax_help_button, help_button=help_button,
+        vsel_patch=vsel_patch, hsel_patch=hsel_patch, fig_annotation=None,
+        fig_help=None, segment_line=None, close_key='escape')
+
+    _setup_browser_offsets(params, n_channels)
+    ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
+                False)
+
+
+def _handle_event_colors(unique_events, color, unique_events_id):
+    """Handle event colors."""
+    if color is None:
+        if len(unique_events) > len(COLORS):
+            warn('More events than colors available. You should pass a list '
+                 'of unique colors.')
+        colors = cycle(COLORS)
+        color = dict()
+        for this_event, this_color in zip(sorted(unique_events_id), colors):
+            color[this_event] = this_color
+    else:
+        for this_event in color:
+            if this_event not in unique_events_id:
+                raise ValueError('%s from color is not present in events '
+                                 'or event_id.' % this_event)
+
+        for this_event in unique_events_id:
+            if this_event not in color:
+                warn('Color is not available for event %d. Default colors '
+                     'will be used.' % this_event)
+    return color

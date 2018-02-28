@@ -32,17 +32,18 @@ reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id=event_id, reject=reject)
 
 # baseline noise cov, not a lot of samples
-noise_cov = mne.compute_covariance(epochs, tmax=0., method='shrunk',
+noise_cov = mne.compute_covariance(epochs, tmax=0., method='empirical',
                                    verbose='error')
 
 # butterfly mode shows the differences most clearly
 raw.plot(events=events, butterfly=True)
-raw.plot(noise_cov=noise_cov, events=events, butterfly=True)
+#raw.plot(noise_cov=noise_cov, events=events, butterfly=True)
 
 ###############################################################################
 # Epochs with whitening
 # ---------------------
 epochs.plot(butterfly=True)
+"""
 epochs.plot(noise_cov=noise_cov, butterfly=True)
 
 ###############################################################################
@@ -69,3 +70,4 @@ evoked.plot_white(noise_cov=noise_cov)
 evoked.comment = 'All trials'
 evoked.plot_topo(title='Evoked data')
 evoked.plot_topo(noise_cov=noise_cov, title='Whitened evoked data')
+"""

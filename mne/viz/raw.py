@@ -17,19 +17,19 @@ from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, channel_type)
 from ..io.meas_info import create_info
-from ..utils import verbose, get_config, _ensure_int
+from ..utils import verbose, _ensure_int
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (_toggle_options, _toggle_proj, tight_layout,
-                    _layout_figure, _plot_raw_onkey, figure_nobar, plt_show,
+                    _layout_figure, _plot_raw_onkey, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
-                    _helper_raw_resize, _select_bads, _onclick_help,
-                    _setup_browser_offsets, _compute_scalings,
+                    _helper_raw_resize, _select_bads, _compute_scalings,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _setup_browser_selection)
+                    _set_ax_label_style, _setup_browser_selection,
+                    _prepare_mne_browse_raw, _update_butterfly_ticks)
 from .evoked import _plot_lines
 
 
@@ -855,109 +855,6 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     return fig
 
 
-def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
-                            n_channels):
-    """Set up the mne_browse_raw window."""
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
-    size = get_config('MNE_BROWSE_RAW_SIZE')
-    if size is not None:
-        size = size.split(',')
-        size = tuple([float(s) for s in size])
-        size = tuple([float(s) for s in size])
-
-    fig = figure_nobar(facecolor=bgcolor, figsize=size)
-    fig.canvas.set_window_title(title if title else "Raw")
-    ax = plt.subplot2grid((10, 10), (0, 1), colspan=8, rowspan=9)
-    ax_hscroll = plt.subplot2grid((10, 10), (9, 1), colspan=8)
-    ax_hscroll.get_yaxis().set_visible(False)
-    ax_hscroll.set_xlabel('Time (s)')
-    ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
-    ax_vscroll.set_axis_off()
-    ax_help_button = plt.subplot2grid((10, 10), (0, 0), colspan=1)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(partial(_onclick_help, params=params))
-    # store these so they can be fixed on resize
-    params['fig'] = fig
-    params['ax'] = ax
-    params['ax_hscroll'] = ax_hscroll
-    params['ax_vscroll'] = ax_vscroll
-    params['ax_help_button'] = ax_help_button
-    params['help_button'] = help_button
-
-    # populate vertical and horizontal scrollbars
-    info = params['info']
-    n_ch = len(inds)
-
-    if 'fig_selection' in params:
-        selections = params['selections']
-        labels = [l._text for l in params['fig_selection'].radio.labels]
-        # Flatten the selections dict to a list.
-        cis = [item for sublist in [selections[l] for l in labels] for item
-               in sublist]
-
-        for idx, ci in enumerate(cis):
-            this_color = (bad_color if info['ch_names'][ci] in
-                          info['bads'] else color)
-            if isinstance(this_color, dict):
-                this_color = this_color[params['types'][ci]]
-            ax_vscroll.add_patch(mpl.patches.Rectangle((0, idx), 1, 1,
-                                                       facecolor=this_color,
-                                                       edgecolor=this_color))
-        ax_vscroll.set_ylim(len(cis), 0)
-        n_channels = max([len(selections[labels[0]]), n_channels])
-    else:
-        for ci in range(len(inds)):
-            this_color = (bad_color if info['ch_names'][inds[ci]] in
-                          info['bads'] else color)
-            if isinstance(this_color, dict):
-                this_color = this_color[params['types'][inds[ci]]]
-            ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
-                                                       facecolor=this_color,
-                                                       edgecolor=this_color))
-        ax_vscroll.set_ylim(n_ch, 0)
-    vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
-                                       facecolor='w', edgecolor='w')
-    ax_vscroll.add_patch(vsel_patch)
-    params['vsel_patch'] = vsel_patch
-
-    hsel_patch = mpl.patches.Rectangle((params['t_start'], 0),
-                                       params['duration'], 1, edgecolor='k',
-                                       facecolor=(0.75, 0.75, 0.75),
-                                       alpha=0.25, linewidth=1, clip_on=False)
-    ax_hscroll.add_patch(hsel_patch)
-    params['hsel_patch'] = hsel_patch
-    ax_hscroll.set_xlim(params['first_time'], params['first_time'] +
-                        params['n_times'] / float(info['sfreq']))
-
-    ax_vscroll.set_title('Ch.')
-
-    vertline_color = (0., 0.75, 0.)
-    params['ax_vertline'] = ax.plot([0, 0], ax.get_ylim(),
-                                    color=vertline_color, zorder=4)[0]
-    params['ax_vertline'].ch_name = ''
-    params['vertline_t'] = ax_hscroll.text(params['first_time'], 1, '',
-                                           color=vertline_color,
-                                           va='bottom', ha='right')
-    params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
-                                                    color=vertline_color,
-                                                    zorder=2)[0]
-    # make shells for plotting traces
-    _setup_browser_offsets(params, n_channels)
-    ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
-                False)
-
-    params['lines'] = [ax.plot([np.nan], antialiased=True, linewidth=0.5)[0]
-                       for _ in range(n_ch)]
-    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
-    params['fig_annotation'] = None
-    params['fig_help'] = None
-    params['segment_line'] = None
-
-    # default key to close window
-    params['close_key'] = 'escape'
-
-
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
                      event_color=None):
     """Plot raw traces."""
@@ -968,11 +865,11 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     if butterfly:
         n_channels = len(params['offsets'])
         ch_start = 0
-        offsets = params['offsets'][inds]
+        ch_offsets = params['offsets'][inds]
     else:
         n_channels = params['n_channels']
         ch_start = params['ch_start']
-        offsets = params['offsets']
+        ch_offsets = params['offsets']
     params['bad_color'] = bad_color
     labels = params['ax'].yaxis.get_ticklabels()
     # do the plotting
@@ -987,7 +884,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             # scale to fit
             ch_name = info['ch_names'][inds[ch_ind]]
             tick_list += [ch_name]
-            offset = offsets[ii]
+            offset = ch_offsets[ii]
             # do NOT operate in-place lest this get screwed up
             this_data = params['data'][inds[ch_ind]] * params['scale_factor']
             this_color = bad_color if ch_name in info['bads'] else color
@@ -1089,8 +986,10 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                           params['times'][0] + params['first_time'] +
                           params['duration'], False)
     if not butterfly:
-        params['ax'].set_yticklabels(tick_list, rotation=0)
+        params['ax'].set_yticklabels(tick_list, rotation=0, fontsize=12)
         _set_ax_label_style(params['ax'], params)
+    else:
+        _update_butterfly_ticks(params)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
