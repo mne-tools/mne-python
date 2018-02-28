@@ -525,10 +525,9 @@ def test_ica_additional(method):
     params += [(None, -1, slice(2), [0, 1])]  # variance, kurtosis params
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
     for idx, ch_name in product(*params):
-        ica.detect_artifacts(raw, start_find=0, stop_find=50,
-                             ecg_ch=ch_name, eog_ch=ch_name,
-                             skew_criterion=idx, var_criterion=idx,
-                             kurt_criterion=idx)
+        ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=ch_name,
+                             eog_ch=ch_name, skew_criterion=idx,
+                             var_criterion=idx, kurt_criterion=idx)
 
     evoked = epochs.average()
     evoked_data = evoked.data.copy()
@@ -591,7 +590,6 @@ def test_ica_additional(method):
     with warnings.catch_warnings(record=True):  # filter attenuation warning
         ecg_events = ica_find_ecg_events(raw,
                                          sources[np.abs(ecg_scores).argmax()])
-
     assert_true(ecg_events.ndim == 2)
 
     # eog functionality
