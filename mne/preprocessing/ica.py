@@ -600,6 +600,7 @@ class ICA(ContainsMixin):
             from sklearn.decomposition import FastICA
             ica = FastICA(whiten=False, random_state=random_state,
                           **self.fit_params)
+            print(data[:, sel].shape)
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
         elif self.method in ('infomax', 'extended-infomax'):
@@ -608,9 +609,10 @@ class ICA(ContainsMixin):
                                             **self.fit_params)
         elif self.method == 'picard':
             from picard import picard
+            print(data[:, sel].shape)
             _, W, _ = picard(data[:, sel].T, whiten=False, **self.fit_params)
             del _
-            self.unmixing_matrix_ = W.T
+            self.unmixing_matrix_ = W
         self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type

@@ -30,7 +30,7 @@ from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.tests.common import assert_naming
 from mne.utils import (catch_logging, _TempDir, requires_sklearn,
-                       requires_picard, run_tests_if_main)
+                       run_tests_if_main)
 
 # Set our plotters to test mode
 import matplotlib
@@ -57,241 +57,262 @@ except Exception:
 def _skip_check_picard(method):
     if method == 'picard':
         try:
-            import picard
+            import picard  # noqa
         except Exception as e:
-            raise SkipTest("Picard is not installed.")
+            raise SkipTest("Picard is not installed.")  # noqa
 
 
-# @requires_sklearn
-# @requires_picard
-# def test_ica_full_data_recovery():
-#     """Test recovery of full data when no source is rejected."""
-#     # Most basic recovery
-#     raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
-#     events = read_events(event_name)
-#     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-#                        eog=False, exclude='bads')[:10]
-#     with warnings.catch_warnings(record=True):  # bad proj
-#         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-#                         baseline=(None, 0), preload=True)
-#     evoked = epochs.average()
-#     n_channels = 5
-#     data = raw._data[:n_channels].copy()
-#     data_epochs = epochs.get_data()
-#     data_evoked = evoked.data
-#     raw.annotations = Annotations([0.5], [0.5], ['BAD'])
-#     for method in ['fastica', 'picard']:
-#         stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
-#         for n_components, n_pca_components, ok in stuff:
-#             ica = ICA(n_components=n_components,
-#                       max_pca_components=n_pca_components,
-#                       n_pca_components=n_pca_components,
-#                       method=method, max_iter=1)
-#             with warnings.catch_warnings(record=True):
-#                 ica.fit(raw, picks=list(range(n_channels)))
-#             raw2 = ica.apply(raw.copy(), exclude=[])
-#             if ok:
-#                 assert_allclose(data[:n_channels], raw2._data[:n_channels],
-#                                 rtol=1e-10, atol=1e-15)
-#             else:
-#                 diff = np.abs(data[:n_channels] - raw2._data[:n_channels])
-#                 assert_true(np.max(diff) > 1e-14)
+@requires_sklearn
+@pytest.mark.parametrize("method", ["fastica", "picard"])
+def test_ica_full_data_recovery(method):
+    """Test recovery of full data when no source is rejected."""
+    # Most basic recovery
+    _skip_check_picard(method)
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')[:10]
+    with warnings.catch_warnings(record=True):  # bad proj
+        epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0), preload=True)
+    evoked = epochs.average()
+    n_channels = 5
+    data = raw._data[:n_channels].copy()
+    data_epochs = epochs.get_data()
+    data_evoked = evoked.data
+    raw.annotations = Annotations([0.5], [0.5], ['BAD'])
+    for method in ['fastica', 'picard']:
+        stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
+        for n_components, n_pca_components, ok in stuff:
+            ica = ICA(n_components=n_components,
+                      max_pca_components=n_pca_components,
+                      n_pca_components=n_pca_components,
+                      method=method, max_iter=1)
+            with warnings.catch_warnings(record=True):
+                ica.fit(raw, picks=list(range(n_channels)))
+            raw2 = ica.apply(raw.copy(), exclude=[])
+            if ok:
+                assert_allclose(data[:n_channels], raw2._data[:n_channels],
+                                rtol=1e-10, atol=1e-15)
+            else:
+                diff = np.abs(data[:n_channels] - raw2._data[:n_channels])
+                assert_true(np.max(diff) > 1e-14)
 
-#             ica = ICA(n_components=n_components, method=method,
-#                       max_pca_components=n_pca_components,
-#                       n_pca_components=n_pca_components)
-#             with warnings.catch_warnings(record=True):
-#                 ica.fit(epochs, picks=list(range(n_channels)))
-#             epochs2 = ica.apply(epochs.copy(), exclude=[])
-#             data2 = epochs2.get_data()[:, :n_channels]
-#             if ok:
-#                 assert_allclose(data_epochs[:, :n_channels], data2,
-#                                 rtol=1e-10, atol=1e-15)
-#             else:
-#                 diff = np.abs(data_epochs[:, :n_channels] - data2)
-#                 assert_true(np.max(diff) > 1e-14)
+            ica = ICA(n_components=n_components, method=method,
+                      max_pca_components=n_pca_components,
+                      n_pca_components=n_pca_components)
+            with warnings.catch_warnings(record=True):
+                ica.fit(epochs, picks=list(range(n_channels)))
+            epochs2 = ica.apply(epochs.copy(), exclude=[])
+            data2 = epochs2.get_data()[:, :n_channels]
+            if ok:
+                assert_allclose(data_epochs[:, :n_channels], data2,
+                                rtol=1e-10, atol=1e-15)
+            else:
+                diff = np.abs(data_epochs[:, :n_channels] - data2)
+                assert_true(np.max(diff) > 1e-14)
 
-#             evoked2 = ica.apply(evoked.copy(), exclude=[])
-#             data2 = evoked2.data[:n_channels]
-#             if ok:
-#                 assert_allclose(data_evoked[:n_channels], data2,
-#                                 rtol=1e-10, atol=1e-15)
-#             else:
-#                 diff = np.abs(evoked.data[:n_channels] - data2)
-#                 assert_true(np.max(diff) > 1e-14)
-#     assert_raises(ValueError, ICA, method='pizza-decomposision')
-
-
-# @requires_sklearn
-# @requires_picard
-# def test_ica_rank_reduction():
-#     """Test recovery ICA rank reduction."""
-#     # Most basic recovery
-#     raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
-#     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-#                        eog=False, exclude='bads')[:10]
-#     n_components = 5
-#     max_pca_components = len(picks)
-#     for method in ['fastica', 'picard']:
-#         for n_pca_components in [6, 10]:
-#             with warnings.catch_warnings(record=True):  # non-convergence
-#                 warnings.simplefilter('always')
-#                 ica = ICA(n_components=n_components,
-#                           max_pca_components=max_pca_components,
-#                           n_pca_components=n_pca_components,
-#                           method=method, max_iter=1).fit(raw, picks=picks)
-
-#             rank_before = raw.estimate_rank(picks=picks)
-#             assert_equal(rank_before, len(picks))
-#             raw_clean = ica.apply(raw.copy())
-#             rank_after = raw_clean.estimate_rank(picks=picks)
-#             # interaction between ICA rejection and PCA components difficult
-#             # to preduct. Rank_after often seems to be 1 higher then
-#             # n_pca_components
-#             assert_true(n_components < n_pca_components <= rank_after <=
-#                         rank_before)
+            evoked2 = ica.apply(evoked.copy(), exclude=[])
+            data2 = evoked2.data[:n_channels]
+            if ok:
+                assert_allclose(data_evoked[:n_channels], data2,
+                                rtol=1e-10, atol=1e-15)
+            else:
+                diff = np.abs(evoked.data[:n_channels] - data2)
+                assert_true(np.max(diff) > 1e-14)
+    assert_raises(ValueError, ICA, method='pizza-decomposision')
 
 
-# @requires_sklearn
-# @requires_picard
-# def test_ica_reset():
-#     """Test ICA resetting."""
-#     raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
-#     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-#                        eog=False, exclude='bads')[:10]
-
-#     run_time_attrs = (
-#         '_pre_whitener',
-#         'unmixing_matrix_',
-#         'mixing_matrix_',
-#         'n_components_',
-#         'n_samples_',
-#         'pca_components_',
-#         'pca_explained_variance_',
-#         'pca_mean_'
-#     )
-#     for method in ['fastica', 'picard']:
-#         with warnings.catch_warnings(record=True):  # convergence
-#             ica = ICA(
-#                 n_components=3, max_pca_components=3, n_pca_components=3,
-#                 method=method, max_iter=1).fit(raw, picks=picks)
-
-#         assert_true(all(hasattr(ica, attr) for attr in run_time_attrs))
-#         assert_not_equal(ica.labels_, None)
-#         ica._reset()
-#         assert_true(not any(hasattr(ica, attr) for attr in run_time_attrs))
-#         assert_not_equal(ica.labels_, None)
+@requires_sklearn
+@pytest.mark.parametrize("method", ["fastica", "picard"])
+def test_ica_simple(method):
+    """Test that ICA returns the good components in a simple case"""
+    _skip_check_picard(method)
+    n_components = 3
+    n_samples = 1000
+    rng = np.random.RandomState(0)
+    S = rng.laplace(size=(n_components, n_samples))
+    A = rng.randn(n_components, n_components)
+    data = np.dot(A, S)
+    ica = ICA(n_components=n_components, method=method, random_state=0)
+    ica._fit(data, n_components, 0)
+    transform = np.dot(np.dot(ica.unmixing_matrix_, ica.pca_components_), A)
+    amari_distance = np.mean(np.sum(np.abs(transform), axis=1) /
+                             np.max(np.abs(transform), axis=1) - 1.)
+    assert amari_distance < 0.1
 
 
-# @requires_sklearn
-# @requires_picard
-# def test_ica_core():
-#     """Test ICA on raw and epochs."""
-#     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+@requires_sklearn
+@pytest.mark.parametrize("method", ["fastica", "picard"])
+def test_ica_rank_reduction(method):
+    """Test recovery ICA rank reduction."""
+    _skip_check_picard(method)
+    # Most basic recovery
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')[:10]
+    n_components = 5
+    max_pca_components = len(picks)
+    for n_pca_components in [6, 10]:
+        with warnings.catch_warnings(record=True):  # non-convergence
+            warnings.simplefilter('always')
+            ica = ICA(n_components=n_components,
+                      max_pca_components=max_pca_components,
+                      n_pca_components=n_pca_components,
+                      method=method, max_iter=1).fit(raw, picks=picks)
 
-#     # XXX. The None cases helped revealing bugs but are time consuming.
-#     test_cov = read_cov(test_cov_name)
-#     events = read_events(event_name)
-#     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-#                        eog=False, exclude='bads')
-#     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-#                     baseline=(None, 0), preload=True)
-#     noise_cov = [None, test_cov]
-#     # removed None cases to speed up...
-#     n_components = [2, 1.0]  # for future dbg add cases
-#     max_pca_components = [3]
-#     picks_ = [picks]
-#     methods = ['fastica', 'picard']
-#     iter_ica_params = product(noise_cov, n_components, max_pca_components,
-#                               picks_, methods)
+        rank_before = raw.estimate_rank(picks=picks)
+        assert_equal(rank_before, len(picks))
+        raw_clean = ica.apply(raw.copy())
+        rank_after = raw_clean.estimate_rank(picks=picks)
+        # interaction between ICA rejection and PCA components difficult
+        # to preduct. Rank_after often seems to be 1 higher then
+        # n_pca_components
+        assert_true(n_components < n_pca_components <= rank_after <=
+                    rank_before)
 
-#     # # test init catchers
-#     assert_raises(ValueError, ICA, n_components=3, max_pca_components=2)
-#     assert_raises(ValueError, ICA, n_components=2.3, max_pca_components=2)
 
-#     # test essential core functionality
-#     for n_cov, n_comp, max_n, pcks, method in iter_ica_params:
-#         # Test ICA raw
-#         ica = ICA(noise_cov=n_cov, n_components=n_comp,
-#                   max_pca_components=max_n, n_pca_components=max_n,
-#                   random_state=0, method=method, max_iter=1)
-#         assert_raises(ValueError, ica.__contains__, 'mag')
+@requires_sklearn
+@pytest.mark.parametrize("method", ["fastica", "picard"])
+def test_ica_reset(method):
+    """Test ICA resetting."""
+    _skip_check_picard(method)
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')[:10]
 
-#         print(ica)  # to test repr
+    run_time_attrs = (
+        '_pre_whitener',
+        'unmixing_matrix_',
+        'mixing_matrix_',
+        'n_components_',
+        'n_samples_',
+        'pca_components_',
+        'pca_explained_variance_',
+        'pca_mean_'
+    )
+    with warnings.catch_warnings(record=True):  # convergence
+        ica = ICA(
+            n_components=3, max_pca_components=3, n_pca_components=3,
+            method=method, max_iter=1).fit(raw, picks=picks)
 
-#         # test fit checker
-#         assert_raises(RuntimeError, ica.get_sources, raw)
-#         assert_raises(RuntimeError, ica.get_sources, epochs)
+    assert_true(all(hasattr(ica, attr) for attr in run_time_attrs))
+    assert_not_equal(ica.labels_, None)
+    ica._reset()
+    assert_true(not any(hasattr(ica, attr) for attr in run_time_attrs))
+    assert_not_equal(ica.labels_, None)
 
-#         # test decomposition
-#         with warnings.catch_warnings(record=True):  # convergence
-#             ica.fit(raw, picks=pcks, start=start, stop=stop)
-#             repr(ica)  # to test repr
-#         assert_true('mag' in ica)  # should now work without error
 
-#         # test re-fit
-#         unmixing1 = ica.unmixing_matrix_
-#         with warnings.catch_warnings(record=True):
-#             ica.fit(raw, picks=pcks, start=start, stop=stop)
-#         assert_array_almost_equal(unmixing1, ica.unmixing_matrix_)
+@requires_sklearn
+@pytest.mark.parametrize("method", ["fastica", "picard"])
+def test_ica_core(method):
+    """Test ICA on raw and epochs."""
+    _skip_check_picard(method)
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
 
-#         raw_sources = ica.get_sources(raw)
-#         # test for #3804
-#         assert_equal(raw_sources._filenames, [None])
-#         print(raw_sources)
+    # XXX. The None cases helped revealing bugs but are time consuming.
+    test_cov = read_cov(test_cov_name)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+    noise_cov = [None, test_cov]
+    # removed None cases to speed up...
+    n_components = [2, 1.0]  # for future dbg add cases
+    max_pca_components = [3]
+    picks_ = [picks]
+    methods = [method]
+    iter_ica_params = product(noise_cov, n_components, max_pca_components,
+                              picks_, methods)
 
-#         sources = raw_sources[:, :][0]
-#         assert_true(sources.shape[0] == ica.n_components_)
+    # # test init catchers
+    assert_raises(ValueError, ICA, n_components=3, max_pca_components=2)
+    assert_raises(ValueError, ICA, n_components=2.3, max_pca_components=2)
 
-#         # test preload filter
-#         raw3 = raw.copy()
-#         raw3.preload = False
-#         assert_raises(ValueError, ica.apply, raw3,
-#                       include=[1, 2])
+    # test essential core functionality
+    for n_cov, n_comp, max_n, pcks, method in iter_ica_params:
+        # Test ICA raw
+        ica = ICA(noise_cov=n_cov, n_components=n_comp,
+                  max_pca_components=max_n, n_pca_components=max_n,
+                  random_state=0, method=method, max_iter=1)
+        assert_raises(ValueError, ica.__contains__, 'mag')
 
-#         #######################################################################
-#         # test epochs decomposition
-#         ica = ICA(noise_cov=n_cov, n_components=n_comp,
-#                   max_pca_components=max_n, n_pca_components=max_n,
-#                   random_state=0, method=method)
-#         with warnings.catch_warnings(record=True):
-#             ica.fit(epochs, picks=picks)
-#         data = epochs.get_data()[:, 0, :]
-#         n_samples = np.prod(data.shape)
-#         assert_equal(ica.n_samples_, n_samples)
-#         print(ica)  # to test repr
+        print(ica)  # to test repr
 
-#         sources = ica.get_sources(epochs).get_data()
-#         assert_true(sources.shape[1] == ica.n_components_)
+        # test fit checker
+        assert_raises(RuntimeError, ica.get_sources, raw)
+        assert_raises(RuntimeError, ica.get_sources, epochs)
 
-#         assert_raises(ValueError, ica.score_sources, epochs,
-#                       target=np.arange(1))
+        # test decomposition
+        with warnings.catch_warnings(record=True):  # convergence
+            ica.fit(raw, picks=pcks, start=start, stop=stop)
+            repr(ica)  # to test repr
+        assert_true('mag' in ica)  # should now work without error
 
-#         # test preload filter
-#         epochs3 = epochs.copy()
-#         epochs3.preload = False
-#         assert_raises(ValueError, ica.apply, epochs3,
-#                       include=[1, 2])
+        # test re-fit
+        unmixing1 = ica.unmixing_matrix_
+        with warnings.catch_warnings(record=True):
+            ica.fit(raw, picks=pcks, start=start, stop=stop)
+        assert_array_almost_equal(unmixing1, ica.unmixing_matrix_)
 
-#     # test for bug with whitener updating
-#     _pre_whitener = ica._pre_whitener.copy()
-#     epochs._data[:, 0, 10:15] *= 1e12
-#     ica.apply(epochs.copy())
-#     assert_array_equal(_pre_whitener, ica._pre_whitener)
+        raw_sources = ica.get_sources(raw)
+        # test for #3804
+        assert_equal(raw_sources._filenames, [None])
+        print(raw_sources)
 
-#     # test expl. var threshold leading to empty sel
-#     ica.n_components = 0.1
-#     assert_raises(RuntimeError, ica.fit, epochs)
+        sources = raw_sources[:, :][0]
+        assert_true(sources.shape[0] == ica.n_components_)
 
-#     offender = 1, 2, 3,
-#     assert_raises(ValueError, ica.get_sources, offender)
-#     assert_raises(ValueError, ica.fit, offender)
-#     assert_raises(ValueError, ica.apply, offender)
+        # test preload filter
+        raw3 = raw.copy()
+        raw3.preload = False
+        assert_raises(ValueError, ica.apply, raw3,
+                      include=[1, 2])
+
+        #######################################################################
+        # test epochs decomposition
+        ica = ICA(noise_cov=n_cov, n_components=n_comp,
+                  max_pca_components=max_n, n_pca_components=max_n,
+                  random_state=0, method=method)
+        with warnings.catch_warnings(record=True):
+            ica.fit(epochs, picks=picks)
+        data = epochs.get_data()[:, 0, :]
+        n_samples = np.prod(data.shape)
+        assert_equal(ica.n_samples_, n_samples)
+        print(ica)  # to test repr
+
+        sources = ica.get_sources(epochs).get_data()
+        assert_true(sources.shape[1] == ica.n_components_)
+
+        assert_raises(ValueError, ica.score_sources, epochs,
+                      target=np.arange(1))
+
+        # test preload filter
+        epochs3 = epochs.copy()
+        epochs3.preload = False
+        assert_raises(ValueError, ica.apply, epochs3,
+                      include=[1, 2])
+
+    # test for bug with whitener updating
+    _pre_whitener = ica._pre_whitener.copy()
+    epochs._data[:, 0, 10:15] *= 1e12
+    ica.apply(epochs.copy())
+    assert_array_equal(_pre_whitener, ica._pre_whitener)
+
+    # test expl. var threshold leading to empty sel
+    ica.n_components = 0.1
+    assert_raises(RuntimeError, ica.fit, epochs)
+
+    offender = 1, 2, 3,
+    assert_raises(ValueError, ica.get_sources, offender)
+    assert_raises(ValueError, ica.fit, offender)
+    assert_raises(ValueError, ica.apply, offender)
 
 
 @requires_sklearn
 @pytest.mark.slowtest
-@pytest.mark.parametrize("method", ["fastica", "picard"])
+@pytest.mark.parametrize("method", ["picard", "fastica"])
 def test_ica_additional(method):
     """Test additional ICA functionality."""
     _skip_check_picard(method)
@@ -314,7 +335,7 @@ def test_ica_additional(method):
 
     # test if n_components=None works
     ica = ICA(n_components=None, max_pca_components=None,
-              n_pca_components=None, random_state=0, method=method)
+              n_pca_components=None, random_state=0, method=method, max_iter=1)
     ica.fit(epochs)
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
