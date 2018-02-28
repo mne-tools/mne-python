@@ -2024,77 +2024,119 @@ def _annotation_radio_clicked(label, radio, selector):
     selector.rectprops.update(dict(facecolor=color))
 
 
-def _setup_butterfly(params):
+def _setup_butterfly(params, mode='raw'):
     """Set butterfly view of raw plotter."""
-    from .raw import _setup_browser_selection
+    from matplotlib.collections import LineCollection
+    butterfly = not params['butterfly']
+    params['butterfly'] = butterfly
+    ax = params['ax']
     if 'ica' in params:
         return
-    butterfly = not params['butterfly']
-    ax = params['ax']
-    params['butterfly'] = butterfly
     if butterfly:
-        types = np.array(params['types'])[params['orig_inds']]
-        if params['group_by'] in ['type', 'original']:
-            inds = params['inds']
-            labels = [t for t in _DATA_CH_TYPES_SPLIT + ['eog', 'ecg']
-                      if t in types] + ['misc']
-            ticks = np.arange(5, 5 * (len(labels) + 1), 5)
-            offs = {l: t for (l, t) in zip(labels, ticks)}
+        if mode == 'raw':
+            types = np.array(params['types'])[params['orig_inds']]
+            if params['group_by'] in ['type', 'original']:
+                inds = params['inds']
+                labels = [t for t in _DATA_CH_TYPES_SPLIT + ['eog', 'ecg']
+                          if t in types] + ['misc']
+                ticks = np.arange(5, 5 * (len(labels) + 1), 5)
+                offs = {l: t for (l, t) in zip(labels, ticks)}
 
-            params['offsets'] = np.zeros(len(params['types']))
-            for ind in inds:
-                params['offsets'][ind] = offs.get(params['types'][ind],
-                                                  5 * (len(labels)))
-            ax.set_yticks(ticks)
-            params['ax'].set_ylim(5 * (len(labels) + 1), 0)
-            ax.set_yticklabels(labels)
-        else:
-            if 'selections' not in params:
-                params['selections'] = _setup_browser_selection(
-                    params['raw'], 'position', selector=False)
-            sels = params['selections']
-            selections = _SELECTIONS[1:]  # Vertex not used
-            if ('Misc' in sels and len(sels['Misc']) > 0):
-                selections += ['Misc']
-            if params['group_by'] == 'selection' and 'eeg' in types:
-                for sel in _EEG_SELECTIONS:
-                    if sel in sels:
-                        selections += [sel]
-            picks = list()
-            for selection in selections:
-                picks.append(sels.get(selection, list()))
+                params['offsets'] = np.zeros(len(params['types']))
+                for ind in inds:
+                    params['offsets'][ind] = offs.get(params['types'][ind],
+                                                      5 * (len(labels)))
+                ax.set_yticks(ticks)
+                params['ax'].set_ylim(5 * (len(labels) + 1), 0)
+                ax.set_yticklabels(labels)
+            else:
+                if 'selections' not in params:
+                    params['selections'] = _setup_browser_selection(
+                        params['raw'].info, 'position', selector=False)
+                sels = params['selections']
+                selections = _SELECTIONS[1:]  # Vertex not used
+                if ('Misc' in sels and len(sels['Misc']) > 0):
+                    selections += ['Misc']
+                if params['group_by'] == 'selection' and 'eeg' in types:
+                    for sel in _EEG_SELECTIONS:
+                        if sel in sels:
+                            selections += [sel]
+                picks = list()
+                for selection in selections:
+                    picks.append(sels.get(selection, list()))
+                labels = ax.yaxis.get_ticklabels()
+                for label in labels:
+                    label.set_visible(True)
+                ylim = (5. * len(picks), 0.)
+                ax.set_ylim(ylim)
+                offset = ylim[0] / (len(picks) + 1)
+                ticks = np.arange(0, ylim[0], offset)
+                ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+                ax.set_yticks(ticks)
+                offsets = np.zeros(len(params['types']))
+
+                for group_idx, group in enumerate(picks):
+                    for idx, pick in enumerate(group):
+                        offsets[pick] = offset * (group_idx + 1)
+                params['inds'] = params['orig_inds'].copy()
+                params['offsets'] = offsets
+                ax.set_yticklabels([''] + selections, color='black',
+                                   rotation=45, va='top')
+            params['ax_vscroll'].set_visible(False)
+        else:  # epochs
+            types = set(['grad', 'mag', 'eeg', 'eog',
+                         'ecg']) & set(params['types'])
+            if len(types) < 1:
+                return
+            params['ax_vscroll'].set_visible(False)
             labels = ax.yaxis.get_ticklabels()
             for label in labels:
                 label.set_visible(True)
-            ylim = (5. * len(picks), 0.)
+            ylim = (5. * len(types), 0.)
             ax.set_ylim(ylim)
-            offset = ylim[0] / (len(picks) + 1)
-            ticks = np.arange(0, ylim[0], offset)
-            ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+            offset = ylim[0] / (4. * len(types))
+            ticks = np.setdiff1d(np.arange(0, 4 * len(types)),
+                                 np.arange(0, 4 * len(types), 4)) * offset
+            assert ticks.size == len(types) * 3
             ax.set_yticks(ticks)
-            offsets = np.zeros(len(params['types']))
-
-            for group_idx, group in enumerate(picks):
-                for idx, pick in enumerate(group):
-                    offsets[pick] = offset * (group_idx + 1)
+            params['offsets'] = ticks[1::3]
+            while len(params['lines']) < len(params['picks']):
+                lc = LineCollection(list(), antialiased=True, linewidths=0.5,
+                                    zorder=3, picker=3.)
+                ax.add_collection(lc)
+                params['lines'].append(lc)
+    else:  # non-butterfly
+        if mode == 'raw':
             params['inds'] = params['orig_inds'].copy()
-            params['offsets'] = offsets
-            ax.set_yticklabels([''] + selections, color='black', rotation=45,
-                               va='top')
-    else:
-        params['inds'] = params['orig_inds'].copy()
-        if 'fig_selection' not in params:
-            for idx in np.arange(params['n_channels'], len(params['lines'])):
-                params['lines'][idx].set_xdata([])
-                params['lines'][idx].set_ydata([])
-        _setup_browser_offsets(params, max([params['n_channels'], 1]))
-        if 'fig_selection' in params:
-            radio = params['fig_selection'].radio
-            active_idx = _get_active_radiobutton(radio)
-            _radio_clicked(radio.labels[active_idx]._text, params)
+            if 'fig_selection' not in params:
+                for idx in np.arange(params['n_channels'],
+                                     len(params['lines'])):
+                    params['lines'][idx].set_xdata([])
+                    params['lines'][idx].set_ydata([])
+            _setup_browser_offsets(params, max([params['n_channels'], 1]))
+            if 'fig_selection' in params:
+                radio = params['fig_selection'].radio
+                active_idx = _get_active_radiobutton(radio)
+                _radio_clicked(radio.labels[active_idx]._text, params)
+            params['ax_vscroll'].set_visible(True)
+        else:  # epochs
+            labels = params['ax'].yaxis.get_ticklabels()
+            for label in labels:
+                label.set_visible(params['settings'][0])
+            params['ax_vscroll'].set_visible(True)
+            while len(params['ax2'].texts) > 0:
+                params['ax2'].texts.pop()
+            n_channels = params['n_channels']
+            while len(params['lines']) > n_channels:
+                params['ax'].collections.pop()
+                params['lines'].pop()
+            ylim = (25., 0.)
+            params['ax'].set_ylim(ylim)
+            offset = ylim[0] / n_channels
+            params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+            params['ax'].set_yticks(params['offsets'])
     # For now, italics only work in non-grouped mode
     _set_ax_label_style(ax, params, italicize=not butterfly)
-    params['ax_vscroll'].set_visible(not butterfly)
     params['plot_fun']()
 
 
@@ -2441,3 +2483,63 @@ def _check_cov(noise_cov, info):
              'scaling of magnetometers and gradiometers when viewing data '
              'whitened by a noise covariance')
     return noise_cov
+
+
+def _setup_browser_selection(info, kind, selector=True):
+    """Organize browser selections."""
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import RadioButtons
+    from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
+                             _divide_to_regions)
+    from ..utils import _get_stim_channel
+    if kind == 'position':
+        order = _divide_to_regions(info)
+        keys = _SELECTIONS[1:]  # no 'Vertex'
+        kind = 'position'
+    elif 'selection':
+        meg_picks = pick_types(info, meg=True, exclude=())
+        if len(meg_picks) == 0 or \
+                info['chs'][meg_picks[0]]['coil_type'] not in \
+                (3011, 3012, 3013, 3014, 3021, 3022, 3023, 3024):
+            raise ValueError("order='selection' only works for Neuromag MEG "
+                             "data. Use order='position' instead.")
+        order = dict()
+        try:
+            stim_ch = _get_stim_channel(None, info)
+        except ValueError:
+            stim_ch = ['']
+        keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
+        stim_ch = pick_channels(info['ch_names'], stim_ch)
+        for key in keys:
+            channels = read_selection(key, info=info)
+            picks = pick_channels(info['ch_names'], channels)
+            if len(picks) == 0:
+                continue  # omit empty selections
+            order[key] = np.concatenate([picks, stim_ch])
+
+    misc = pick_types(info, meg=False, eeg=False, stim=True, eog=True,
+                      ecg=True, emg=True, ref_meg=False, misc=True, resp=True,
+                      chpi=True, exci=True, ias=True, syst=True, seeg=False,
+                      bio=True, ecog=False, fnirs=False, exclude=())
+    if len(misc) > 0:
+        order['Misc'] = misc
+    keys = np.concatenate([keys, ['Misc']])
+    if not selector:
+        return order
+    fig_selection = figure_nobar(figsize=(2, 6), dpi=80)
+    fig_selection.canvas.set_window_title('Selection')
+    rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
+    topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
+    keys = np.concatenate([keys, ['Custom']])
+    order.update({'Custom': list()})  # custom selection with lasso
+
+    plot_sensors(info, kind='select', ch_type='all', axes=topo_ax,
+                 ch_groups=kind, title='', show=False)
+    fig_selection.radio = RadioButtons(rax, [key for key in keys
+                                             if key in order.keys()])
+
+    for circle in fig_selection.radio.circles:
+        circle.set_radius(0.02)  # make them smaller to prevent overlap
+        circle.set_edgecolor('gray')  # make sure the buttons are visible
+
+    return order, fig_selection

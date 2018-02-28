@@ -15,7 +15,7 @@ import numpy as np
 from ..annotations import _annotations_starts_stops
 from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
-                       _PICK_TYPES_KEYS, pick_channels, channel_type)
+                       _PICK_TYPES_KEYS, channel_type)
 from ..io.meas_info import create_info
 from ..utils import verbose, get_config, _ensure_int
 from ..time_frequency import psd_welch
@@ -25,11 +25,11 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _layout_figure, _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
                     _helper_raw_resize, _select_bads, _onclick_help,
-                    _setup_browser_offsets, _compute_scalings, plot_sensors,
+                    _setup_browser_offsets, _compute_scalings,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style)
+                    _set_ax_label_style, _setup_browser_selection)
 from .evoked import _plot_lines
 
 
@@ -355,7 +355,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                          'Got "%s" (%s).' % (order, type(order)))
 
     if group_by in ['selection', 'position']:
-        selections, fig_selection = _setup_browser_selection(raw, group_by)
+        selections, fig_selection = _setup_browser_selection(
+            raw.info, group_by)
         selections = {k: np.intersect1d(v, inds) for k, v in
                       selections.items()}
     elif group_by == 'original':
@@ -1200,61 +1201,3 @@ def _set_custom_selection(params):
     params['selections']['Custom'] = np.where(inds)[0]
 
     _set_radio_button(labels.index('Custom'), params=params)
-
-
-def _setup_browser_selection(raw, kind, selector=True):
-    """Organize browser selections."""
-    import matplotlib.pyplot as plt
-    from matplotlib.widgets import RadioButtons
-    from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
-                             _divide_to_regions)
-    from ..utils import _get_stim_channel
-    if kind == 'position':
-        order = _divide_to_regions(raw.info)
-        keys = _SELECTIONS[1:]  # no 'Vertex'
-        kind = 'position'
-    elif 'selection':
-        from ..io import RawFIF, RawArray
-        if not isinstance(raw, (RawFIF, RawArray)):
-            raise ValueError("order='selection' only works for Neuromag data. "
-                             "Use order='position' instead.")
-        order = dict()
-        try:
-            stim_ch = _get_stim_channel(None, raw.info)
-        except ValueError:
-            stim_ch = ['']
-        keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
-        stim_ch = pick_channels(raw.ch_names, stim_ch)
-        for key in keys:
-            channels = read_selection(key, info=raw.info)
-            picks = pick_channels(raw.ch_names, channels)
-            if len(picks) == 0:
-                continue  # omit empty selections
-            order[key] = np.concatenate([picks, stim_ch])
-
-    misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
-                      ecg=True, emg=True, ref_meg=False, misc=True, resp=True,
-                      chpi=True, exci=True, ias=True, syst=True, seeg=False,
-                      bio=True, ecog=False, fnirs=False, exclude=())
-    if len(misc) > 0:
-        order['Misc'] = misc
-    keys = np.concatenate([keys, ['Misc']])
-    if not selector:
-        return order
-    fig_selection = figure_nobar(figsize=(2, 6), dpi=80)
-    fig_selection.canvas.set_window_title('Selection')
-    rax = plt.subplot2grid((6, 1), (2, 0), rowspan=4, colspan=1)
-    topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
-    keys = np.concatenate([keys, ['Custom']])
-    order.update({'Custom': list()})  # custom selection with lasso
-
-    plot_sensors(raw.info, kind='select', ch_type='all', axes=topo_ax,
-                 ch_groups=kind, title='', show=False)
-    fig_selection.radio = RadioButtons(rax, [key for key in keys
-                                             if key in order.keys()])
-
-    for circle in fig_selection.radio.circles:
-        circle.set_radius(0.02)  # make them smaller to prevent overlap
-        circle.set_edgecolor('gray')  # make sure the buttons are visible
-
-    return order, fig_selection

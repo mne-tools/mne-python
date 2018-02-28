@@ -15,6 +15,7 @@ import copy
 
 import numpy as np
 
+from ..defaults import DEFAULTS
 from ..utils import verbose, get_config, set_config, logger, warn
 from ..io.pick import pick_types, channel_type
 from ..time_frequency import psd_multitaper
@@ -22,7 +23,7 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
-                    _grad_pair_pick_and_name, _handle_decim,
+                    _grad_pair_pick_and_name, _handle_decim, _setup_butterfly,
                     _setup_plot_projector, _set_ax_label_style)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
@@ -827,7 +828,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     params['fig'].canvas.mpl_connect('close_event', callback_close)
 
     if butterfly:
-        _prepare_butterfly(params)
+        _setup_butterfly(params, mode='epochs')
 
     try:
         plt_show(show, block=block)
@@ -1278,45 +1279,23 @@ def _plot_traces(params):
                            params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['butterfly_scale']
-        labels = [''] * 20
+        labels = [''] * 15  # 3x5
         ticks = ax.get_yticks()
-        idx_offset = 1
-        # XXX eventually these scale factors should use "scalings"
-        # of some sort
-        if 'grad' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[0]) *
-                               params['scalings']['grad'] *
-                               1e13 * factor)
-            idx_offset += 4
-        if 'mag' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[1]) *
-                               params['scalings']['mag'] *
-                               1e15 * factor)
-            idx_offset += 4
-        if 'eeg' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[2]) *
-                               params['scalings']['eeg'] *
-                               1e6 * factor)
-            idx_offset += 4
-        if 'eog' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[3]) *
-                               params['scalings']['eog'] *
-                               1e6 * factor)
-            idx_offset += 4
-        if 'ecg' in params['types']:
-            labels[idx_offset + 1] = 0.
-            for idx in [idx_offset, idx_offset + 2]:
-                labels[idx] = ((ticks[idx] - offsets[4]) *
-                               params['scalings']['ecg'] *
-                               1e6 * factor)
+        idx_offset = 0
+        kind_dict = dict(grad='Grad (fT/cm)', mag='Mag (fT)',
+                         eeg='EEG (uV)', eog='EOG (uV)', ecg='ECG (uV)')
+        for kind in ('grad', 'mag', 'eeg', 'eog', 'ecg'):
+            if kind in params['types']:
+                label_offset = 3 * idx_offset
+                labels[label_offset + 1] = kind_dict[kind]
+                for idx in [label_offset, label_offset + 2]:
+                    label = ((ticks[idx] - offsets[idx_offset]) *
+                             params['scalings'][kind] * factor *
+                             DEFAULTS['scalings'][kind])
+                    # Determine number of decimal points to use
+                    n_dec = max(int(np.ceil(-np.log10(abs(label)))) + 2, 0)
+                    labels[idx] = ('%%0.%df' % (n_dec,)) % label
+                idx_offset += 1
         # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
         for li, label in enumerate(labels):
             if isinstance(label, float) and float(str(label)) == round(label):
@@ -1352,10 +1331,11 @@ def _plot_update_epochs_proj(params, bools=None):
     start = int(params['t_start'] / len(epochs.times))
     end = start + n_epochs
     if epochs.preload:
-        data = np.concatenate(epochs.get_data()[start:end], axis=1)
+        data = epochs.get_data()[start:end]
     else:
         # this is faster than epochs.get_data()[start:end] when not preloaded
-        data = np.concatenate(epochs[start:end].get_data(), axis=1)
+        data = epochs[start:end].get_data()
+    data = np.concatenate(data, axis=1)
 
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
@@ -1667,8 +1647,7 @@ def _plot_onkey(event, params):
         if params['fig_options'] is not None:
             plt.close(params['fig_options'])
             params['fig_options'] = None
-        _prepare_butterfly(params)
-        _plot_traces(params)
+        _setup_butterfly(params, mode='epochs')
     elif event.key == 'w':
         params['use_noise_cov'] = not params['use_noise_cov']
         _plot_update_epochs_proj(params)
@@ -1681,93 +1660,6 @@ def _plot_onkey(event, params):
         _onclick_help(event, params)
     elif event.key == 'escape':
         plt.close(params['fig'])
-
-
-def _prepare_butterfly(params):
-    """Set up butterfly plot."""
-    from matplotlib.collections import LineCollection
-    butterfly = not params['butterfly']
-    if butterfly:
-        types = set(['grad', 'mag', 'eeg', 'eog',
-                     'ecg']) & set(params['types'])
-        if len(types) < 1:
-            return
-        params['ax_vscroll'].set_visible(False)
-        ax = params['ax']
-        labels = ax.yaxis.get_ticklabels()
-        for label in labels:
-            label.set_visible(True)
-        ylim = (5. * len(types), 0.)
-        ax.set_ylim(ylim)
-        offset = ylim[0] / (4. * len(types))
-        ticks = np.arange(0, ylim[0], offset)
-        ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
-        ax.set_yticks(ticks)
-        used_types = 0
-        params['offsets'] = [ticks[2]]
-        if 'grad' in types:
-            pos = (0, 1 - (ticks[2] / ylim[0]))
-            params['ax2'].annotate('Grad (fT/cm)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
-            used_types += 1
-        params['offsets'].append(ticks[2 + used_types * 4])
-        if 'mag' in types:
-            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
-            params['ax2'].annotate('Mag (fT)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
-            used_types += 1
-        params['offsets'].append(ticks[2 + used_types * 4])
-        if 'eeg' in types:
-            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
-            params['ax2'].annotate('EEG (uV)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
-            used_types += 1
-        params['offsets'].append(ticks[2 + used_types * 4])
-        if 'eog' in types:
-            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
-            params['ax2'].annotate('EOG (uV)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
-            used_types += 1
-        params['offsets'].append(ticks[2 + used_types * 4])
-        if 'ecg' in types:
-            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
-            params['ax2'].annotate('ECG (uV)', xy=pos, xytext=(-70, 0),
-                                   ha='left', size=12, va='center',
-                                   xycoords='axes fraction', rotation=90,
-                                   textcoords='offset points')
-            used_types += 1
-
-        while len(params['lines']) < len(params['picks']):
-            lc = LineCollection(list(), antialiased=True, linewidths=0.5,
-                                zorder=3, picker=3.)
-            ax.add_collection(lc)
-            params['lines'].append(lc)
-    else:  # change back to default view
-        labels = params['ax'].yaxis.get_ticklabels()
-        for label in labels:
-            label.set_visible(params['settings'][0])
-        params['ax_vscroll'].set_visible(True)
-        while len(params['ax2'].texts) > 0:
-            params['ax2'].texts.pop()
-        n_channels = params['n_channels']
-        while len(params['lines']) > n_channels:
-            params['ax'].collections.pop()
-            params['lines'].pop()
-        ylim = (25., 0.)
-        params['ax'].set_ylim(ylim)
-        offset = ylim[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['ax'].set_yticks(params['offsets'])
-    params['butterfly'] = butterfly
-    _plot_traces(params)
 
 
 def _onpick(event, params):
