@@ -1567,7 +1567,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     info : dict
         The measurement info.
     picks : array-like of int | None
-        The channels indices to include. If None the data
+        The channels indices to include. If None the MEG and EEG
         channels in info, except bad channels, are used.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
@@ -1595,6 +1595,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         Rank reduction of the whitener. Returned only if return_rank is True.
     """
     if picks is None:
+        # If this changes, we will need to change _setup_plot_projector, too:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 

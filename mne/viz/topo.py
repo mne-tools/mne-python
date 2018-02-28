@@ -21,7 +21,8 @@ from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
-                    DraggableColorbar, _set_ax_facecolor, _setup_ax_spines)
+                    DraggableColorbar, _set_ax_facecolor, _setup_ax_spines,
+                    _check_cov)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -574,7 +575,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       border='none', ylim=None, scalings=None, title=None,
                       proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
                       fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, legend=True, axes=None, show=True):
+                      merge_grads=False, legend=True, axes=None, show=True,
+                      noise_cov=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -640,6 +642,12 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Axes to plot into. If None, axes will be created.
     show : bool
         Show figure if True.
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channels names are shown in italic.
+        Can be a string to load a covariance from disk.
+
+        .. versionadded:: 0.16.0
 
     Returns
     -------
@@ -647,6 +655,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Images of evoked responses at sensor locations
     """
     import matplotlib.pyplot as plt
+    from ..cov import whiten_evoked
 
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
@@ -670,7 +679,11 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not all((e.times == times).all() for e in evoked):
         raise ValueError('All evoked.times must be the same')
 
-    evoked = [e.copy() for e in evoked]
+    noise_cov = _check_cov(noise_cov, evoked[0].info)
+    if noise_cov is not None:
+        evoked = [whiten_evoked(e, noise_cov) for e in evoked]
+    else:
+        evoked = [e.copy() for e in evoked]
     info = evoked[0].info
     ch_names = evoked[0].ch_names
     scalings = _handle_default('scalings', scalings)
@@ -690,12 +703,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         info._check_consistency()
         new_picks = list()
         for e in evoked:
-            data = _merge_grad_data(e.data[picks]) * scalings['grad']
+            data = _merge_grad_data(e.data[picks])
+            if noise_cov is None:
+                data *= scalings['grad']
             e.data = data
             new_picks.append(range(len(data)))
         picks = new_picks
         types_used = ['grad']
-        y_label = 'RMS amplitude (%s)' % _handle_default('units')['grad']
+        unit = _handle_default('units')['grad'] if noise_cov is None else 'NA'
+        y_label = 'RMS amplitude (%s)' % unit
 
     if layout is None:
         layout = find_layout(info)
@@ -720,9 +736,10 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                                 **types_used_kwargs)]
         assert isinstance(picks, list) and len(types_used) == len(picks)
 
-        for e in evoked:
-            for pick, ch_type in zip(picks, types_used):
-                e.data[pick] *= scalings[ch_type]
+        if noise_cov is None:
+            for e in evoked:
+                for pick, ch_type in zip(picks, types_used):
+                    e.data[pick] *= scalings[ch_type]
 
         if proj is True and all(e.proj is not True for e in evoked):
             evoked = [e.apply_proj() for e in evoked]
@@ -730,8 +747,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             for e in evoked:
                 _check_delayed_ssp(e)
         # Y labels for picked plots must be reconstructed
-        y_label = ['Amplitude (%s)' % _handle_default('units')[channel_type(
-            info, ch_idx)] for ch_idx in range(len(chs_in_layout))]
+        y_label = list()
+        for ch_idx in range(len(chs_in_layout)):
+            if noise_cov is None:
+                unit = _handle_default('units')[channel_type(info, ch_idx)]
+            else:
+                unit = 'NA'
+            y_label.append('Amplitude (%s)' % unit)
 
     if ylim is None:
         def set_ylim(x):

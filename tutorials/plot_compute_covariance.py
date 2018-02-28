@@ -1,8 +1,8 @@
 """
 .. _tut_compute_covariance:
 
-Computing covariance matrix
-===========================
+Computing a covariance matrix
+=============================
 
 Many methods in MNE, including source estimation and some classification
 algorithms, require covariance estimations from the recordings.
@@ -102,8 +102,7 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # described in [1]_. For this the 'auto' option can be used. With this
 # option cross-validation will be used to learn the optimal regularization:
 
-noise_cov_reg = mne.compute_covariance(epochs, tmax=0.,
-                                       method='auto')
+noise_cov_reg = mne.compute_covariance(epochs, tmax=0., method='auto')
 
 ###############################################################################
 # This procedure evaluates the noise covariance quantitatively by how well it
@@ -121,7 +120,6 @@ noise_cov_reg = mne.compute_covariance(epochs, tmax=0.,
 
 evoked = epochs.average()
 evoked.plot_white(noise_cov_reg)
-
 
 ###############################################################################
 # This plot displays both, the whitened evoked signals for each channels and
@@ -142,11 +140,12 @@ evoked.plot_white(noise_cov_reg)
 # introductory materials can be found `here <https://goo.gl/ElWrxe>`_.
 #
 # For expert use cases or debugging the alternative estimators can also be
-# compared:
+# compared (see
+# :ref:`sphx_glr_auto_examples_visualization_plot_evoked_whitening.py`)
+# and :ref:`sphx_glr_auto_examples_visualization_plot_covariance_whitening_dspm.py'):  # noqa
 
 noise_covs = mne.compute_covariance(
     epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True)
-evoked = epochs.average()
 evoked.plot_white(noise_covs)
 
 
@@ -159,7 +158,7 @@ evoked.plot_white(noise_covs)
 # Finally, let's have a look at the difference between empty room and
 # event related covariance.
 
-evoked_meg = evoked.pick_types(meg=True, eeg=False)
+evoked_meg = evoked.copy().pick_types(meg=True, eeg=False)
 noise_cov_meg = mne.pick_channels_cov(noise_cov_baseline, evoked_meg.ch_names)
 noise_cov['method'] = 'empty_room'
 noise_cov_meg['method'] = 'baseline'

@@ -16,7 +16,6 @@ from ..annotations import _annotations_starts_stops
 from ..externals.six import string_types
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels, channel_type)
-from ..io.proj import setup_proj
 from ..io.meas_info import create_info
 from ..utils import verbose, get_config, _ensure_int
 from ..time_frequency import psd_welch
@@ -29,7 +28,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
-                    _handle_decim)
+                    _handle_decim, _setup_plot_projector, _check_cov,
+                    _set_ax_label_style)
 from .evoked import _plot_lines
 
 
@@ -40,8 +40,8 @@ def _plot_update_raw_proj(params, bools):
         params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
                                    for ii in inds]
         params['proj_bools'] = bools
-    params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
-                                        verbose=False)
+    params['projector'], params['whitened_ch_names'] = _setup_plot_projector(
+        params['info'], params['noise_cov'], True, params['use_noise_cov'])
     params['update_fun']()
     params['plot_fun']()
 
@@ -71,11 +71,16 @@ def _update_raw_data(params):
                          data[data_picks, start_:stop_], axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
-        data[di] /= params['scalings'][params['types'][di]]
+        ch_name = params['info']['ch_names'][di]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
             norm = float(max(data[di]))
-            data[di] /= norm if norm > 0 else 1.
+        elif ch_name in params['whitened_ch_names'] and \
+                ch_name not in params['info']['bads']:
+            norm = params['scalings']['whitened']
+        else:
+            norm = params['scalings'][params['types'][di]]
+        data[di] /= norm if norm != 0 else 1.
     # clip
     if params['clipping'] == 'transparent':
         data[np.logical_or(data > 1, data < -1)] = np.nan
@@ -101,7 +106,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto'):
+             butterfly=False, decim='auto', noise_cov=None, event_id=None):
     """Plot raw data.
 
     Parameters
@@ -144,7 +149,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
             dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
-                 resp=1, chpi=1e-4)
+                 resp=1, chpi=1e-4, whitened=1e2)
 
     remove_dc : bool
         If True remove DC component when plotting data.
@@ -209,6 +214,23 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         the decimation that results in a sampling rate least three times
         larger than ``min(info['lowpass'], lowpass)`` (e.g., a 40 Hz lowpass
         will result in at least a 120 Hz displayed sample rate).
+    noise_cov : instance of Covariance | str | None
+        Noise covariance used to whiten the data while plotting.
+        Whitened data channels are scaled by ``scalings['whitened']``,
+        and their channel names are shown in italic.
+        Can be a string to load a covariance from disk.
+        See also :meth:`mne.Evoked.plot_white` for additional inspection
+        of noise covariance properties when whitening evoked data.
+        For data processed with SSS, the effective dependence between
+        magnetometers and gradiometers may introduce differences in scaling,
+        consider using :meth:`mne.Evoked.plot_white`.
+
+        .. versionadded:: 0.16.0
+    event_id : dict | None
+        Event IDs used to show at event markers (default None shows
+        theh event numbers).
+
+        .. versionadded:: 0.16.0
 
     Returns
     -------
@@ -234,8 +256,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     of interactively observing how each projector would affect the raw data if
     it were applied.
 
-    Annotation mode is toggled by pressing 'a' and butterfly mode by pressing
-    'b'.
+    Annotation mode is toggled by pressing 'a', butterfly mode by pressing
+    'b', and whitening mode (when ``noise_cov is not None``) by pressing 'w'.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -352,10 +374,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
             raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
                            % key)
     decim, data_picks = _handle_decim(info, decim, lowpass)
+    noise_cov = _check_cov(noise_cov, info)
+
     # set up projection and data parameters
     duration = min(raw.times[-1], float(duration))
     first_time = raw._first_time if show_first_samp else 0
     start += first_time
+    event_id_rev = {val: key for key, val in (event_id or {}).items()}
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
@@ -363,7 +388,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   event_nums=event_nums, clipping=clipping, fig_proj=None,
                   first_time=first_time, added_label=list(), butterfly=False,
                   group_by=group_by, orig_inds=inds.copy(), decim=decim,
-                  data_picks=data_picks, filt_bounds=filt_bounds)
+                  data_picks=data_picks, event_id_rev=event_id_rev,
+                  noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
+                  filt_bounds=filt_bounds)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -1033,7 +1060,8 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
         if len(event_times) <= 50:
             for ev_time, ev_num in zip(event_times, event_nums):
                 if -1 in event_color or ev_num in event_color:
-                    params['ax'].text(ev_time, -0.05, ev_num, fontsize=8,
+                    text = params['event_id_rev'].get(ev_num, ev_num)
+                    params['ax'].text(ev_time, -0.05, text, fontsize=8,
                                       ha='center')
 
     if 'segments' in params:
@@ -1061,6 +1089,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                           params['duration'], False)
     if not butterfly:
         params['ax'].set_yticklabels(tick_list, rotation=0)
+        _set_ax_label_style(params['ax'], params)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
