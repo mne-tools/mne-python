@@ -126,7 +126,7 @@ def test_ica_full_data_recovery(method):
 @requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_ica_simple(method):
-    """Test that ICA returns the good components in a simple case"""
+    """Test that ICA recovers the unmixing matrix in a simple case"""
     _skip_check_picard(method)
     n_components = 3
     n_samples = 1000
