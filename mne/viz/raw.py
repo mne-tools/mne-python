@@ -29,7 +29,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
                     _set_ax_label_style, _setup_browser_selection,
-                    _prepare_mne_browse_raw, _update_butterfly_ticks)
+                    _prepare_mne_browse_raw, _update_butterfly_ticks,
+                    _setup_proj_options)
 from .evoked import _plot_lines
 
 
@@ -259,8 +260,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     Annotation mode is toggled by pressing 'a', butterfly mode by pressing
     'b', and whitening mode (when ``noise_cov is not None``) by pressing 'w'.
     """
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
     from scipy.signal import butter
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw)
@@ -391,7 +390,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   group_by=group_by, orig_inds=inds.copy(), decim=decim,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
-                  filt_bounds=filt_bounds)
+                  filt_bounds=filt_bounds, scale_factor=1.0,
+                  type_colors=color)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -417,16 +417,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
-    params['scale_factor'] = 1.0
     # set up callbacks
-    opt_button = None
-    if len(raw.info['projs']) > 0 and not raw.proj:
-        ax_button = plt.subplot2grid((10, 10), (9, 9))
-        params['ax_button'] = ax_button
-        params['apply_proj'] = proj
-        opt_button = mpl.widgets.Button(ax_button, 'Proj')
-        callback_option = partial(_toggle_options, params=params)
-        opt_button.on_clicked(callback_option)
+    _setup_proj_options(raw, params)
     callback_key = partial(_plot_raw_onkey, params=params)
     params['fig'].canvas.mpl_connect('key_press_event', callback_key)
     callback_scroll = partial(_plot_raw_onscroll, params=params)
@@ -444,8 +436,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     # store these for use by callbacks in the options figure
     params['callback_proj'] = callback_proj
     params['callback_key'] = callback_key
-    # have to store this, or it could get garbage-collected
-    params['opt_button'] = opt_button
 
     # do initial plots
     callback_proj('none')
@@ -986,7 +976,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                           params['times'][0] + params['first_time'] +
                           params['duration'], False)
     if not butterfly:
-        params['ax'].set_yticklabels(tick_list, rotation=0, fontsize=12)
+        params['ax'].set_yticklabels(tick_list, rotation=0, fontsize=10)
         _set_ax_label_style(params['ax'], params)
     else:
         _update_butterfly_ticks(params)

@@ -18,13 +18,14 @@ import numpy as np
 from ..utils import verbose, set_config, logger, warn
 from ..io.pick import pick_types, channel_type
 from ..time_frequency import psd_multitaper
-from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
+from .utils import (tight_layout, figure_nobar, _toggle_proj,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _grad_pair_pick_and_name, _handle_decim, _setup_butterfly,
                     _setup_plot_projector, _set_ax_label_style,
-                    _prepare_mne_browse_epochs, _update_butterfly_ticks)
+                    _prepare_mne_browse_epochs, _update_butterfly_ticks,
+                    _setup_proj_options)
 from ..defaults import _handle_default
 from ..externals.six import string_types
 
@@ -823,9 +824,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
                   use_noise_cov=noise_cov is not None, butterfly=False,
-                  group_by=group_by)
+                  group_by=group_by, projs=projs)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
-    _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
+    _prepare_mne_browse_epochs(params, n_channels, n_epochs, scalings,
                                title, picks, events=events,
                                event_colors=event_colors)
     _plot_vert_lines(params)
@@ -969,18 +970,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
 def _prepare_projectors(params):
     """Set up the projectors for epochs browser."""
-    import matplotlib.pyplot as plt
-    from matplotlib.widgets import Button
-    epochs = params['epochs']
-    projs = params['projs']
-    if len(projs) > 0 and not epochs.proj:
-        ax_button = plt.subplot2grid((10, 15), (9, 14))
-        opt_button = Button(ax_button, 'Proj')
-        callback_option = partial(_toggle_options, params=params)
-        opt_button.on_clicked(callback_option)
-        params['opt_button'] = opt_button
-        params['ax_button'] = ax_button
-
+    _setup_proj_options(params['epochs'], params)
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
     params['plot_update_proj_callback'] = _plot_update_epochs_proj
@@ -1003,7 +993,7 @@ def _plot_traces(params):
         ch_start = params['ch_start']
         n_channels = params['n_channels']
     data = params['data'] * params['scale_factor']
-    offsets = params['offsets']
+    ch_offsets = params['offsets']
     lines = params['lines']
     epochs = params['epochs']
 
@@ -1023,23 +1013,8 @@ def _plot_traces(params):
         if line_idx >= len(lines):
             break
         elif ch_idx < len(params['ch_names']):
-            if butterfly:
-                ch_type = params['types'][ch_idx]
-                if ch_type == 'grad':
-                    offset = offsets[0]
-                elif ch_type == 'mag':
-                    offset = offsets[1]
-                elif ch_type == 'eeg':
-                    offset = offsets[2]
-                elif ch_type == 'eog':
-                    offset = offsets[3]
-                elif ch_type == 'ecg':
-                    offset = offsets[4]
-                else:
-                    lines[line_idx].set_segments(list())
-            else:
-                tick_list += [params['ch_names'][ch_idx]]
-                offset = offsets[line_idx]
+            offset = ch_offsets[line_idx]
+            tick_list += [params['ch_names'][ch_idx]]
 
             if params['inds'][ch_idx] in params['data_picks']:
                 this_decim = params['decim']
@@ -1070,7 +1045,7 @@ def _plot_traces(params):
                 this_color = params['colors'][ch_idx][start_idx:end_idx]
                 lines[line_idx].set_zorder(3)
                 if not butterfly:
-                    ylabels[line_idx].set_color('black')
+                    ylabels[line_idx].set_color(params['colors'][ch_idx][0])
             lines[line_idx].set_segments(segments)
             lines[line_idx].set_color(this_color)
         else:
@@ -1084,7 +1059,7 @@ def _plot_traces(params):
     if butterfly:
         _update_butterfly_ticks(params)
     else:
-        ax.set_yticklabels(tick_list, fontsize=12)
+        ax.set_yticklabels(tick_list, fontsize=10)
         _set_ax_label_style(ax, params)
 
     if params['events'] is not None:  # vertical lines for events.

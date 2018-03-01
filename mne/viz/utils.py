@@ -250,7 +250,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 def _toggle_options(event, params):
     """Toggle options (projectors) dialog."""
     import matplotlib.pyplot as plt
-    if len(params['projs']) > 0:
+    if len(params['info']['projs']) > 0:
         if params['fig_proj'] is None:
             _draw_proj_checkbox(event, params, draw_current_state=False)
         else:
@@ -265,13 +265,13 @@ def _toggle_proj(event, params):
     # read options if possible
     if 'proj_checks' in params:
         bools = [x[0].get_visible() for x in params['proj_checks'].lines]
-        for bi, (b, p) in enumerate(zip(bools, params['projs'])):
+        for bi, (b, p) in enumerate(zip(bools, params['info']['projs'])):
             # see if they tried to deactivate an active one
             if not b and p['active']:
                 bools[bi] = True
     else:
         proj = params.get('apply_proj', True)
-        bools = [proj] * len(params['projs'])
+        bools = [proj] * len(params['info']['projs'])
 
     compute_proj = False
     if 'proj_bools' not in params:
@@ -402,7 +402,7 @@ def _prepare_trellis(n_cells, max_col):
 def _draw_proj_checkbox(event, params, draw_current_state=True):
     """Toggle options (projectors) dialog."""
     from matplotlib import widgets
-    projs = params['projs']
+    projs = params['info']['projs']
     # turn on options dialog
 
     labels = [p['desc'] for p in projs]
@@ -1035,12 +1035,12 @@ def _onclick_help(event, params):
     ax.set_title('Keyboard shortcuts')
     plt.axis('off')
     ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
-    ax1.set_yticklabels(list())
+    ax1.set_yticklabels(list(), fontsize=10)
     plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', ha='right')
     plt.axis('off')
 
     ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
-    ax2.set_yticklabels(list())
+    ax2.set_yticklabels(list(), fontsize=10)
     plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
     plt.axis('off')
 
@@ -1072,6 +1072,18 @@ def _setup_browser_offsets(params, n_channels):
     params['vsel_patch'].set_height(n_channels)
     if 'ax_vertline' in params:  # only raw mode has this
         params['ax_vertline'].set_ydata(np.array(params['ax'].get_ylim()))
+
+
+def _setup_proj_options(inst, params):
+    import matplotlib as mpl
+    opt_button = None
+    if len(params['projs']) > 0 and not inst.proj:
+        ax_button = params['fig'].add_subplot(params['gridspec'][-1, -1])
+        params['ax_button'] = ax_button
+        opt_button = mpl.widgets.Button(ax_button, 'Proj')
+        callback_option = partial(_toggle_options, params=params)
+        opt_button.on_clicked(callback_option)
+    params['opt_button'] = opt_button
 
 
 class ClickableImage(object):
@@ -2028,10 +2040,13 @@ def _get_plot_types(params):
 
 
 def _update_butterfly_ticks(params):
+    from matplotlib import rcParams
     ticklabels = list()
     ticks = params['ax'].get_yticks()
     idx_offset = 0
+    colors = list()
     for type_ in _get_plot_types(params):
+        colors.extend([rcParams['ytick.color']] * 3)
         if type_ not in params['types']:
             if type_ == 'other':
                 ticklabels.extend(['', 'Other', ''])
@@ -2049,8 +2064,12 @@ def _update_butterfly_ticks(params):
             n_dec = max(int(np.ceil(-np.log10(abs(tick)))) + 2, 0)
             local_ticks[1 + ii] = ('%%0.%df' % (n_dec,)) % tick
         ticklabels.extend(local_ticks)
+        colors[tick_offset] = params['type_colors'][type_]
         idx_offset += 1
-    params['ax'].set_yticklabels(ticklabels, fontsize=12)
+    params['ax'].set_yticklabels(ticklabels, fontsize=10)
+    assert len(colors) == len(ticklabels)
+    for label, color in zip(params['ax'].get_yticklabels(), colors):
+        label.set_color(color)
 
 
 def _setup_butterfly(params, mode='raw'):
@@ -2102,8 +2121,7 @@ def _setup_butterfly(params, mode='raw'):
                 for idx, pick in enumerate(group):
                     offsets[pick] = group_idx + 1
             params['inds'] = params['orig_inds'].copy()
-            ax.set_yticklabels([''] + selections, color='black',
-                               rotation=45, va='top')
+            ax.set_yticklabels([''] + selections, color='k', fontsize=10)
         params['offsets'] = offsets
         _update_butterfly_ticks(params)
         if mode == 'epochs':
@@ -2557,13 +2575,42 @@ def _handle_picks(info):
     return picks
 
 
-def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
+def _create_figure(params, title, bgcolor, kind):
+    import matplotlib as mpl
+    size = get_config('MNE_BROWSE_RAW_SIZE')
+    if size is not None:
+        size = size.split(',')
+        size = tuple([float(s) for s in size])
+        size = tuple([float(s) for s in size])
+    fig = figure_nobar(facecolor='w', figsize=size)
+    fig.canvas.set_window_title('mne browse_' + kind)
+    gs = mpl.gridspec.GridSpec(10, 15)
+    ax = fig.add_subplot(gs[:-1, 1:-1])
+    ax.annotate(title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 15),
+                ha='center', va='bottom', size=12, xycoords='axes fraction',
+                textcoords='offset points')
+    ax_hscroll = fig.add_subplot(gs[-1, 1:-1])
+    ax_hscroll.get_yaxis().set_visible(False)
+    ax_hscroll.set_xlabel('Epochs')
+    ax_vscroll = fig.add_subplot(gs[:-1, -1])
+    ax_vscroll.set_axis_off()
+    # Do we really need this?
+    # ax_vscroll.add_patch(mpl.patches.Rectangle(
+    #     (0, 0), 1, len(picks), facecolor='w', zorder=3))
+    ax_help_button = fig.add_subplot(gs[-1, 0])
+    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    help_button.on_clicked(partial(_onclick_help, params=params))
+    params.update(gridspec=gs, help_button=help_button,
+                  ax_help_button=ax_help_button, ax=ax,
+                  ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll)
+    return fig, ax, ax_hscroll, ax_vscroll
+
+
+def _prepare_mne_browse_epochs(params, n_channels, n_epochs, scalings,
                                title, picks, events=None, event_colors=None,
                                order=None):
     """Set up the mne_browse_epochs window."""
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
-    from matplotlib.collections import LineCollection
     from matplotlib.colors import colorConverter
     from .epochs import _SETTINGS_KEYS
 
@@ -2613,41 +2660,21 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ch_names = [params['info']['ch_names'][x] for x in inds]
 
     # set up plotting
-    size = get_config('MNE_BROWSE_RAW_SIZE')
     n_epochs = min(n_epochs, len(epochs.events))
     duration = len(epochs.times) * n_epochs
     n_channels = min(n_channels, len(picks))
-    if size is not None:
-        size = size.split(',')
-        size = tuple(float(s) for s in size)
     if title is None:
         title = epochs._name
         if title is None or len(title) == 0:
             title = ''
-    fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
-    fig.canvas.set_window_title('mne_browse_epochs')
-    ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
 
-    ax.annotate(title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 15),
-                ha='center', va='bottom', size=12, xycoords='axes fraction',
-                textcoords='offset points')
-    color = _handle_default('color', None)
-
+    fig, ax, ax_hscroll, ax_vscroll = _create_figure(
+        params, title, bgcolor=None, kind='epochs')
     ax.axis([0, duration, 0, 200])
+    color = _handle_default('color', None)
     ax2 = ax.twiny()
     ax2.set_zorder(-1)
     ax2.axis([0, duration, 0, 200])
-    ax_hscroll = plt.subplot2grid((10, 15), (9, 1), colspan=13)
-    ax_hscroll.get_yaxis().set_visible(False)
-    ax_hscroll.set_xlabel('Epochs')
-    ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
-    ax_vscroll.set_axis_off()
-    ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
-                                               facecolor='w', zorder=3))
-
-    ax_help_button = plt.subplot2grid((10, 15), (9, 0), colspan=1)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(partial(_onclick_help, params=params))
 
     # populate vertical and horizontal scrollbars
     for ci in range(len(picks)):
@@ -2655,10 +2682,9 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
             this_color = params['bad_color']
         else:
             this_color = color[types[ci]]
-        ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
-                                                   facecolor=this_color,
-                                                   edgecolor=this_color,
-                                                   zorder=4))
+        ax_vscroll.add_patch(mpl.patches.Rectangle(
+            (0, ci), 1, 1, facecolor=this_color, edgecolor=this_color,
+            zorder=4))
 
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
                                        edgecolor='w', facecolor='w', zorder=5)
@@ -2678,8 +2704,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
             break
-        lc = LineCollection(list(), antialiased=True, linewidths=0.5,
-                            zorder=3, picker=3.)
+        lc = mpl.collections.LineCollection(
+            list(), antialiased=True, linewidths=0.5, zorder=3, picker=3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -2740,7 +2766,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                     zip(_SETTINGS_KEYS, (True, True, epoch_nr, True)))
     params.update(
         fig=fig, ax=ax, ax2=ax2, ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
-        vsel_patch=vsel_patch, hsel_patch=hsel_patch, lines=lines, projs=projs,
+        vsel_patch=vsel_patch, hsel_patch=hsel_patch, lines=lines,
         ch_names=ch_names, n_channels=n_channels, n_epochs=n_epochs,
         scalings=scalings, duration=duration, ch_start=0, colors=colors,
         def_colors=type_colors,  # don't change at runtime
@@ -2749,36 +2775,17 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         labels=labels, scale_factor=1.0, fig_proj=None,
         types=np.array(types), inds=inds, vert_lines=list(),
         vertline_t=vertline_t, butterfly=False, text=text,
-        ax_help_button=ax_help_button,  # needed for positioning
-        help_button=help_button,  # reference needed for clicks
         fig_options=None, settings=settings, close_key='escape',
         image_plot=None, events=events, event_colors=event_colors,
-        ev_lines=list(), ev_texts=list())
+        ev_lines=list(), ev_texts=list(), type_colors=color)
 
 
 def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels):
     """Set up the mne_browse_raw window."""
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
-    size = get_config('MNE_BROWSE_RAW_SIZE')
-    if size is not None:
-        size = size.split(',')
-        size = tuple([float(s) for s in size])
-        size = tuple([float(s) for s in size])
-
-    fig = figure_nobar(facecolor=bgcolor, figsize=size)
-    fig.canvas.set_window_title(title if title else "Raw")
-    ax = plt.subplot2grid((10, 10), (0, 1), colspan=8, rowspan=9)
-    ax_hscroll = plt.subplot2grid((10, 10), (9, 1), colspan=8)
-    ax_hscroll.get_yaxis().set_visible(False)
-    ax_hscroll.set_xlabel('Time (s)')
-    ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
-    ax_vscroll.set_axis_off()
-    ax_help_button = plt.subplot2grid((10, 10), (0, 0), colspan=1)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(partial(_onclick_help, params=params))
-
+    fig, ax, ax_hscroll, ax_vscroll = _create_figure(
+        params, title, bgcolor, 'raw')
     # populate vertical and horizontal scrollbars
     info = params['info']
     n_ch = len(inds)
@@ -2834,10 +2841,10 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     # make shells for plotting traces
     params['lines'] = [ax.plot([np.nan], antialiased=True, linewidth=0.5)[0]
                        for _ in range(n_ch)]
-    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])],
+                       fontsize=10)
     params.update(
         fig=fig, ax=ax, ax_hscroll=ax_hscroll, ax_vscroll=ax_vscroll,
-        ax_help_button=ax_help_button, help_button=help_button,
         vsel_patch=vsel_patch, hsel_patch=hsel_patch, fig_annotation=None,
         fig_help=None, segment_line=None, close_key='escape')
 
