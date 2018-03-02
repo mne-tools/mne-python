@@ -1322,7 +1322,8 @@ class AverageTFR(_BaseTFR):
             if ``None``, no customizable arguments will be passed.
             Defaults to ``None``.
         verbose : bool, str, int, or None
-            If not None, override default verbose level (see :func:`mne.verbose`).
+            If not None, override default verbose level (see
+            :func:`mne.verbose`).
 
         Returns
         -------
@@ -1349,7 +1350,7 @@ class AverageTFR(_BaseTFR):
         _, tf_data, tf_times, tf_freqs = self._plot(
             picks=picks, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
-            colorbar=False, show=show, title=title, axes=tf_ax,
+            colorbar=False, show=False, title=title, axes=tf_ax,
             layout=layout, yscale=yscale, aggregate=aggregate,
             exclude=exclude, verbose=verbose)
 
@@ -1375,19 +1376,10 @@ class AverageTFR(_BaseTFR):
                      if isinstance(timefreqs, dict) else np.array([0, 0])
                      for k in timefreqs}
 
-        vmin, vmax = _setup_vmin_vmax(tf_data, vmin, vmax)
-
         # topomap
-        contours = topomap_args.get('contours', 6)
-        locator, contours = _set_contour_locator(vmin, vmax, contours)
-
-        topomap_args_pass = {k: v for k, v in topomap_args.items() if
-                             k not in ('axes', 'show', 'colorbar')}
-        topomap_args_pass['outlines'] = (topomap_args['outlines'] if 'outlines'
-                                         in topomap_args else 'skirt')
-        topomap_args_pass['contours'] = contours
-
-        for sub_map_ax, ((time, freq), avg) in zip(map_ax, timefreqs.items()):
+        from ..viz import plot_topomap
+        titles, all_data, vlims = [], [], []
+        for ((time, freq), avg) in timefreqs.items():
             time_half_range, freq_half_range = avg / 2.
 
             if time_half_range == 0:
@@ -1401,19 +1393,45 @@ class AverageTFR(_BaseTFR):
                 sub_map_title = '(%d \u00B1 %d ms,\n%.1f \u00B1 %.1f Hz)' % \
                                 (time * 1e3, time_half_range * 1e3, freq,
                                  freq_half_range)
-            sub_map_ax.set_title(sub_map_title)
 
-            self.plot_topomap(tmin=time - time_half_range,
-                              tmax=time + time_half_range,
-                              fmin=freq - freq_half_range,
-                              fmax=freq + freq_half_range,
-                              axes=sub_map_ax, baseline=baseline, mode=mode,
-                              layout=layout, vmin=vmin, vmax=vmax, cmap=cmap,
-                              colorbar=False, show=False, **topomap_args_pass)
+            tmin = time - time_half_range
+            tmax = time + time_half_range
+            fmin = freq - freq_half_range
+            fmax = freq + freq_half_range
+
+            data, times, freqs, _, _ = _preproc_tfr(
+                tf_data, self.times, self.freqs, tmin, tmax, fmin, fmax,
+                mode, baseline, vmin, vmax, dB, self.info['sfreq'])
+            vlims.append(np.abs(tf_data).max())
+            titles.append(sub_map_title)
+            all_data.append(data)
+            print("data: ", data)
+            print(tf_data.shape, data.shape)
+        
+        if vmax is None:
+            vmax = max(vlims)
+        if vmin is None:
+            vmin = -vmax
+
+        contours = topomap_args.get('contours', 6)
+        locator, contours = _set_contour_locator(vmin, vmax, contours)
+
+        topomap_args_pass = {k: v for k, v in topomap_args.items() if
+                             k not in ('axes', 'show', 'colorbar')}
+        topomap_args_pass['outlines'] = (topomap_args['outlines'] if 'outlines'
+                                         in topomap_args else 'skirt')
+        topomap_args_pass['contours'] = contours
+
+        print(data.shape, self.info)
+        for ax, title, data in zip(map_ax, titles, all_data):
+            ax.set_title(title)
+            plot_topomap(data, self.info if layout is None else layout.pos,
+                         vmin=vmin, vmax=vmax, cmap=cmap, axes=ax, show=False,
+                         **topomap_args_pass)
 
         if colorbar:
             from matplotlib import ticker
-            cbar = plt.colorbar(map_ax[0].images[0], cax=cbar_ax)
+            cbar = plt.colorbar(sub_map_ax.images[0], cax=cbar_ax)
             if locator is None:
                 locator = ticker.MaxNLocator(nbins=5)
             cbar.locator = locator
