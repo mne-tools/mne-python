@@ -234,6 +234,11 @@ class ICA(ContainsMixin):
         A dictionary of independent component indices, grouped by types of
         independent components. This attribute is set by some of the artifact
         detection functions.
+    References
+    ----------
+    [1] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
+        Component Analysis by preconditioning with Hessian approximations.
+        arXiv:1706.08171
     """
 
     @verbose
