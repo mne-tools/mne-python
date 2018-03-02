@@ -23,8 +23,8 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _grad_pair_pick_and_name, _handle_decim, _setup_butterfly,
-                    _setup_plot_projector, _set_ax_label_style,
-                    _prepare_mne_browse_epochs, _update_butterfly_ticks,
+                    _setup_plot_projector,
+                    _prepare_mne_browse_epochs, _update_channel_ticks,
                     _setup_proj_options)
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -1056,11 +1056,7 @@ def _plot_traces(params):
                 False)
     params['ax2'].set_xlim(params['times'][0],
                            params['times'][0] + params['duration'], False)
-    if butterfly:
-        _update_butterfly_ticks(params)
-    else:
-        ax.set_yticklabels(tick_list, fontsize=10)
-        _set_ax_label_style(ax, params)
+    _update_channel_ticks(params, tick_list)
 
     if params['events'] is not None:  # vertical lines for events.
         _draw_event_lines(params)

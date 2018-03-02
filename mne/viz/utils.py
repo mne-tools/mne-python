@@ -2039,37 +2039,47 @@ def _get_plot_types(params):
             if t in params['types']] + ['other']
 
 
-def _update_butterfly_ticks(params):
+def _update_channel_ticks(params, tick_list):
     from matplotlib import rcParams
-    ticklabels = list()
-    ticks = params['ax'].get_yticks()
-    idx_offset = 0
-    colors = list()
-    for type_ in _get_plot_types(params):
-        colors.extend([rcParams['ytick.color']] * 3)
-        if type_ not in params['types']:
-            if type_ == 'other':
-                ticklabels.extend(['', 'Other', ''])
-            continue
-        local_ticks = [''] * 3
-        local_ticks[1] = '%s (%s)' % (DEFAULTS['titles_short'][type_],
-                                      DEFAULTS['units'][type_])
-        tick_offset = 3 * idx_offset + 1
-        for ii in [-1, 1]:
-            tick = ((ticks[tick_offset + ii] - ticks[tick_offset]) *
-                    params['scalings'][type_] * params['scale_factor'] *
-                    DEFAULTS['scalings'][type_])
-            assert np.isfinite(tick)
-            # Determine number of decimal points to use
-            n_dec = max(int(np.ceil(-np.log10(abs(tick)))) + 2, 0)
-            local_ticks[1 + ii] = ('%%0.%df' % (n_dec,)) % tick
-        ticklabels.extend(local_ticks)
-        colors[tick_offset] = params['type_colors'][type_]
-        idx_offset += 1
-    params['ax'].set_yticklabels(ticklabels, fontsize=10)
-    assert len(colors) == len(ticklabels)
-    for label, color in zip(params['ax'].get_yticklabels(), colors):
-        label.set_color(color)
+    if params['butterfly']:
+        ticklabels = list()
+        ticks = params['ax'].get_yticks()
+        idx_offset = 0
+        colors = list()
+        for type_ in _get_plot_types(params):
+            colors.extend([rcParams['ytick.color']] * 3)
+            if type_ not in params['types']:
+                if type_ == 'other':
+                    ticklabels.extend(['', 'Other', ''])
+                continue
+            local_ticks = [''] * 3
+            # XXX eventually this list should be all data types
+            if params['use_noise_cov'] and type_ in ('mag', 'grad', 'eeg'):
+                unit_type = 'whitened'
+            else:
+                unit_type = type_
+            local_ticks[1] = '%s (%s)' % (DEFAULTS['titles_short'][type_],
+                                          DEFAULTS['units'][unit_type])
+            tick_offset = 3 * idx_offset + 1
+            for ii in [-1, 1]:
+                tick = ((ticks[tick_offset + ii] - ticks[tick_offset]) *
+                        params['scalings'][unit_type] *
+                        params['scale_factor'] *
+                        DEFAULTS['scalings'][unit_type])
+                assert np.isfinite(tick)
+                # Determine number of decimal points to use
+                n_dec = max(int(np.ceil(-np.log10(abs(tick)))) + 2, 0)
+                local_ticks[1 + ii] = ('%%0.%df' % (n_dec,)) % tick
+            ticklabels.extend(local_ticks)
+            colors[tick_offset] = params['type_colors'][type_]
+            idx_offset += 1
+        params['ax'].set_yticklabels(ticklabels, fontsize=10)
+        assert len(colors) == len(ticklabels)
+        for label, color in zip(params['ax'].get_yticklabels(), colors):
+            label.set_color(color)
+    else:
+        params['ax'].set_yticklabels(tick_list, fontsize=10)
+    _set_ax_label_style(params['ax'], params)
 
 
 def _setup_butterfly(params, mode='raw'):
@@ -2123,7 +2133,7 @@ def _setup_butterfly(params, mode='raw'):
             params['inds'] = params['orig_inds'].copy()
             ax.set_yticklabels([''] + selections, color='k', fontsize=10)
         params['offsets'] = offsets
-        _update_butterfly_ticks(params)
+        _update_channel_ticks(params, None)
         if mode == 'epochs':
             while len(params['lines']) < len(params['picks']):
                 lc = LineCollection(list(), antialiased=True, linewidths=0.5,
@@ -2152,9 +2162,8 @@ def _setup_butterfly(params, mode='raw'):
             while len(params['lines']) > params['n_channels']:
                 params['ax'].collections.pop()
                 params['lines'].pop()
+        _set_ax_label_style(ax, params)
     params['ax_vscroll'].set_visible(not butterfly)
-    # For now, italics only work in non-grouped mode
-    _set_ax_label_style(ax, params, italicize=not butterfly)
     params['plot_fun']()
 
 
@@ -2361,14 +2370,18 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
     return projector, whitened_ch_names
 
 
-def _set_ax_label_style(ax, params, italicize=True):
-    import matplotlib.text
-    for tick in params['ax'].get_yaxis().get_major_ticks():
-        for text in tick.get_children():
-            if isinstance(text, matplotlib.text.Text):
-                whitened = text.get_text() in params['whitened_ch_names']
-                whitened = whitened and italicize
-                text.set_style('italic' if whitened else 'normal')
+def _set_ax_label_style(ax, params):
+    for text in params['ax'].get_yticklabels():
+        text_str = text.get_text()
+        if params['butterfly']:
+            # XXX eventually this should be more robust by checking
+            # which are actually whitened, allowing other channnel types,
+            # etc.
+            italicize = (text_str[:3].lower() in ('mag', 'gra', 'eeg') and
+                         len(params['whitened_ch_names']) > 0)
+        else:
+            italicize = text_str in params['whitened_ch_names']
+        text.set_style('italic' if italicize else 'normal')
 
 
 def _check_sss(info):

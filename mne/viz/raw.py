@@ -28,9 +28,8 @@ from .utils import (_toggle_options, _toggle_proj, tight_layout,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _setup_browser_selection,
-                    _prepare_mne_browse_raw, _update_butterfly_ticks,
-                    _setup_proj_options)
+                    _setup_browser_selection, _prepare_mne_browse_raw,
+                    _update_channel_ticks, _setup_proj_options)
 from .evoked import _plot_lines
 
 
@@ -975,11 +974,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
     params['ax'].set_xlim(params['times'][0] + params['first_time'],
                           params['times'][0] + params['first_time'] +
                           params['duration'], False)
-    if not butterfly:
-        params['ax'].set_yticklabels(tick_list, rotation=0, fontsize=10)
-        _set_ax_label_style(params['ax'], params)
-    else:
-        _update_butterfly_ticks(params)
+    _update_channel_ticks(params, tick_list)
     if 'fig_selection' not in params:
         params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
