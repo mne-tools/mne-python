@@ -2581,3 +2581,5 @@ of commits):
 .. _Nathalie Gayraud: https://github.com/ngayraud
 
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
+
+.. _Pierre Ablin: https://pierreablin.com
