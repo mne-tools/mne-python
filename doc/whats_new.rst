@@ -75,7 +75,7 @@ Changelog
 
 - Add reader for manual annotations of raw data produced by Brainstorm by `Anne-Sophie Dubarry`_
 
-- Add the Picard algorithm to perform ICA for :class:`mne.preprocessing.ICA`, by `Pierre Ablin`_
+- Add the Picard algorithm to perform ICA for :class:`mne.preprocessing.ICA`, by `Pierre Ablin`_ and `Alex Gramfort`_
 
 Bug
 ~~~
