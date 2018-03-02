@@ -40,7 +40,9 @@ raw.annotations = mne.Annotations([0], [10], 'BAD')
 ###############################################################################
 # 1) Fit ICA model using the FastICA algorithm.
 
-# Other available choices are `infomax` or `extended-infomax`
+# Other available choices are `picard`, `infomax` or `extended-infomax`.
+# Picard is generally faster and gives more consistent results than the other
+# algorithms.
 # We pass a float value between 0 and 1 to select n_components based on the
 # percentage of variance explained by the PCA components.
 

@@ -60,10 +60,14 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Fit ICA
 # -------
 #
-# ICA parameters:
+# First, chose the ICA method. There are currently 4 possible choices:
+# `fastica`, `picard`, `infomax` and `extended-infomax`. Picard converges
+# faster than the other algorithms, and tends to give more consistent results.
 
+method = 'fastica'
+
+# Chose other parameters
 n_components = 25  # if float, select n_components by explained variance of PCA
-method = 'fastica'  # for comparison with EEGLAB try "extended-infomax" here
 decim = 3  # we need sufficient statistics, not all time points -> saves time
 
 # we will also set state of the random number generator - ICA is a
