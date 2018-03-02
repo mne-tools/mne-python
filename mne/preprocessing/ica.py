@@ -608,7 +608,8 @@ class ICA(ContainsMixin):
                                             **self.fit_params)
         elif self.method == 'picard':
             from picard import picard
-            _, W, _ = picard(data[:, sel].T, whiten=False, **self.fit_params)
+            _, W, _ = picard(data[:, sel].T, whiten=False,
+                             random_state=random_state, **self.fit_params)
             del _
             self.unmixing_matrix_ = W
         self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
