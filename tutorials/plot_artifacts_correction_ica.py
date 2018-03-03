@@ -60,7 +60,7 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Fit ICA
 # -------
 #
-# First, chose the ICA method. There are currently 4 possible choices:
+# First, choose the ICA method. There are currently 4 possible choices:
 # `fastica`, `picard`, `infomax` and `extended-infomax`. Picard converges
 # faster than the other algorithms, and tends to give more consistent results.
 
