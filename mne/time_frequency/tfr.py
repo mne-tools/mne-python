@@ -23,7 +23,7 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
-from ..io.pick import pick_info, pick_types, _pick_data_channels
+from ..io.pick import pick_info, pick_types, _pick_data_channels, channel_type
 from ..io.meas_info import Info
 from ..utils import SizeMixin
 from .multitaper import dpss_windows
@@ -1175,6 +1175,9 @@ class AverageTFR(_BaseTFR):
         if exclude is not None:
             average_tfr.drop_channels(exclude)
 
+        if baseline is not None:
+            average_tfr.applyy_baseline(baseline, mode)
+
         data = average_tfr.data
         info = average_tfr.info
 
@@ -1224,7 +1227,7 @@ class AverageTFR(_BaseTFR):
                 fig.suptitle(title)
 
             plt_show(show)
-            return fig, data, times * 1e-3, freqs
+            return fig, average_tfr
 
     @verbose
     def plot_joint(self, picks=None, baseline=None, mode='mean',
@@ -1338,6 +1341,46 @@ class AverageTFR(_BaseTFR):
         from ..viz.topomap import _set_contour_locator
         import matplotlib.pyplot as plt
 
+        if picks is not None:
+            pick_names = [self.info['ch_names'][pick] for pick in picks]
+        else:  # only pick channels that are plotted
+            picks = _pick_data_channels(self.info, exclude=[])
+            pick_names = [self.info['ch_names'][pick] for pick in picks]
+            self.pick_channels(pick_names)
+
+        if exclude == 'bads':
+            exclude = [ch for ch in self.info['bads']
+                       if ch in self.info['ch_names']]
+        if exclude is not None:
+            self.drop_channels(exclude)
+
+        info = self.info
+        data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
+        ch_types = set(ch_type for ch_type in data_types if ch_type in self)
+
+        # if multiple sensor types: one plot per channel type, recursive call
+        if len(ch_types) > 1:
+            figs = list()
+            for this_type in ch_types:  # pick only the corresponding channel type
+                tf_ = self.copy().pick_channels(
+                    [info['ch_names'][idx] for idx in range(info['nchan'])
+                     if channel_type(info, idx) == this_type])
+                if len(set([channel_type(tf_.info, idx)
+                            for idx in range(tf_.info['nchan'])
+                            if channel_type(tf_.info, idx) in data_types])) > 1:
+                    raise RuntimeError('Possibly infinite loop due to channel '
+                                       'selection problem. This should never '
+                                       'happen! Please check your channel types.')
+                figs.append(
+                    tf_.plot_joint(
+                        picks=None, baseline=baseline, mode=mode,
+                        tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, vmin=vmin,
+                        vmax=vmax, cmap=cmap, dB=dB, colorbar=colorbar,
+                        show=False, title=title, layout=layout, yscale=yscale,
+                        aggregate=aggregate, exclude=None, timefreqs=timefreqs,
+                        topomap_args=topomap_args, verbose=verbose))
+            return figs
+
         if topomap_args is None:
             topomap_args = dict()
 
@@ -1347,7 +1390,7 @@ class AverageTFR(_BaseTFR):
         fig, tf_ax, map_ax, cbar_ax = _prepare_joint_axes(
             len(timefreqs) if timefreqs is not None else 1)
 
-        _, tf_data, tf_times, tf_freqs = self._plot(
+        fig, tfr = self._plot(
             picks=picks, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
             colorbar=False, show=False, title=title, axes=tf_ax,
@@ -1357,20 +1400,22 @@ class AverageTFR(_BaseTFR):
         if timefreqs is None:
             # find the maximum peak
             from scipy.signal import argrelmax
-            order = max((1, tf_data.shape[2] // 30))
-            peaks_idx = argrelmax(tf_data, order=order, axis=2)
+            order = max((1, tfr.data.shape[2] // 30))
+            peaks_idx = argrelmax(tfr.data, order=order, axis=2)
             if peaks_idx[0].size == 0:
-                _, p_t, p_f = np.unravel_index(tf_data.argmax(),
-                                               tf_data.shape)
-                timefreqs = [(tf_times[p_t], tf_freqs[p_f])]
+                _, p_t, p_f = np.unravel_index(tfr.data.argmax(),
+                                               tfr.data.shape)
+                timefreqs = [(tfr.times[p_t], tfr.freqs[p_f])]
             else:
-                peaks = [tf_data[0, f, t] for f, t in
+                peaks = [tfr.data[0, f, t] for f, t in
                          zip(peaks_idx[1], peaks_idx[2])]
                 peakmax_idx = np.argmax(peaks)
-                peakmax_time = tf_times[peaks_idx[2][peakmax_idx]]
-                peakmax_freq = tf_freqs[peaks_idx[1][peakmax_idx]]
+                peakmax_time = tfr.times[peaks_idx[2][peakmax_idx]]
+                peakmax_freq = tfr.freqs[peaks_idx[1][peakmax_idx]]
 
                 timefreqs = [(peakmax_time, peakmax_freq)]
+        elif len(timefreqs) == 2 and len(list(timefreqs)[0]) == 0:
+            timefreqs = [timefreqs]
 
         timefreqs = {k: np.asarray(timefreqs[k])
                      if isinstance(timefreqs, dict) else np.array([0, 0])
@@ -1383,9 +1428,9 @@ class AverageTFR(_BaseTFR):
             time_half_range, freq_half_range = avg / 2.
 
             if time_half_range == 0:
-                time = self.times[np.argmin(np.abs(self.times - time))]
+                time = tfr.times[np.argmin(np.abs(tfr.times - time))]
             if freq_half_range == 0:
-                freq = self.freqs[np.argmin(np.abs(self.freqs - freq))]
+                freq = tfr.freqs[np.argmin(np.abs(tfr.freqs - freq))]
 
             if (time_half_range == 0) and (freq_half_range == 0):
                 sub_map_title = '(%d ms,\n%.1f Hz)' % (time * 1e3, freq)
@@ -1400,14 +1445,12 @@ class AverageTFR(_BaseTFR):
             fmax = freq + freq_half_range
 
             data, times, freqs, _, _ = _preproc_tfr(
-                tf_data, self.times, self.freqs, tmin, tmax, fmin, fmax,
-                mode, baseline, vmin, vmax, dB, self.info['sfreq'])
-            vlims.append(np.abs(tf_data).max())
+                tfr.data, tfr.times, tfr.freqs, tmin, tmax, fmin, fmax,
+                None, None, vmin, vmax, None, tfr.info['sfreq'])
+            vlims.append(np.abs(data).max())
             titles.append(sub_map_title)
             all_data.append(data)
-            print("data: ", data)
-            print(tf_data.shape, data.shape)
-        
+
         if vmax is None:
             vmax = max(vlims)
         if vmin is None:
@@ -1422,16 +1465,16 @@ class AverageTFR(_BaseTFR):
                                          in topomap_args else 'skirt')
         topomap_args_pass['contours'] = contours
 
-        print(data.shape, self.info)
         for ax, title, data in zip(map_ax, titles, all_data):
             ax.set_title(title)
-            plot_topomap(data, self.info if layout is None else layout.pos,
-                         vmin=vmin, vmax=vmax, cmap=cmap, axes=ax, show=False,
+            plot_topomap(data.mean(-1).mean(-1),
+                         self.info if layout is None else layout.pos,
+                         vmin=vmin, vmax=vmax, cmap=cmap[0], axes=ax, show=False,
                          **topomap_args_pass)
 
         if colorbar:
             from matplotlib import ticker
-            cbar = plt.colorbar(sub_map_ax.images[0], cax=cbar_ax)
+            cbar = plt.colorbar(ax.images[0], cax=cbar_ax)
             if locator is None:
                 locator = ticker.MaxNLocator(nbins=5)
             cbar.locator = locator
@@ -1441,7 +1484,7 @@ class AverageTFR(_BaseTFR):
                             top=1. if title is not None else 1.2)
 
         # draw the connection lines between time series and topoplots
-        lines = [_connection_line(time_ * 1e3, fig, tf_ax, map_ax_, y=freq_)
+        lines = [_connection_line(time_, fig, tf_ax, map_ax_, y=freq_)
                  for (time_, freq_), map_ax_ in zip(timefreqs, map_ax)]
 
         fig.lines.extend(lines)
