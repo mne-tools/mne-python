@@ -1016,7 +1016,7 @@ class AverageTFR(_BaseTFR):
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
              axes=None, layout=None, yscale='auto', mask=None, alpha=0.1,
-             aggregate='mean', exclude=None, verbose=None):
+             combine='mean', exclude=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1118,7 +1118,7 @@ class AverageTFR(_BaseTFR):
             Defaults to 0.1.
 
             .. versionadded:: 0.16.0
-        aggregate : 'mean' | 'rms' | None
+        combine : 'mean' | 'rms' | None
             Type of aggregation to perform across selected channels. If
             None, plot one figure per selected channel.
         exclude : None | list of str | 'bads'
@@ -1138,14 +1138,14 @@ class AverageTFR(_BaseTFR):
                           vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
                           colorbar=colorbar, show=show, title=title,
                           axes=axes, layout=layout, yscale=yscale,
-                          aggregate=aggregate, exclude=exclude,
+                          combine=combine, exclude=exclude,
                           verbose=verbose)[0]
 
     @verbose
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
-              axes=None, layout=None, yscale='auto', aggregate='mean',
+              axes=None, layout=None, yscale='auto', combine='mean',
               exclude=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
@@ -1181,12 +1181,12 @@ class AverageTFR(_BaseTFR):
         data = average_tfr.data
         info = average_tfr.info
 
-        if aggregate == 'mean':
+        if combine == 'mean':
             data = data.mean(axis=0, keepdims=True)
-        elif aggregate == 'rms':
+        elif combine == 'rms':
             data = np.sqrt((data ** 2).mean(axis=0, keepdims=True))
-        elif aggregate is not None:
-            raise ValueError('aggregate must be None, mean or rms.')
+        elif combine is not None:
+            raise ValueError('combine must be None, mean or rms.')
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
@@ -1218,11 +1218,12 @@ class AverageTFR(_BaseTFR):
                         alpha=alpha)
 
             if title is 'auto':
-                if aggregate is None or len(info['ch_names']) == 1:
+                if combine is None or len(info['ch_names']) == 1:
                     title = info['ch_names'][0]
                 else:
                     ch_title = _format_ch_names(info['ch_names'])
-                    title = 'Aggregate (%s) of %s' % (aggregate, ch_title)
+                title = 'combine (%s) of %s' % (combine, ch_title)
+
             if title:
                 fig.suptitle(title)
 
@@ -1234,7 +1235,7 @@ class AverageTFR(_BaseTFR):
                    tmin=None, tmax=None, fmin=None, fmax=None, vmin=None,
                    vmax=None, cmap='RdBu_r', dB=False, colorbar=True,
                    show=True, title=None, layout=None, yscale='auto',
-                   aggregate='mean', exclude=None, timefreqs=None,
+                   combine='mean', exclude=None, timefreqs=None,
                    topomap_args=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s) with topomaps.
 
@@ -1242,7 +1243,7 @@ class AverageTFR(_BaseTFR):
         ----------
         picks : None | array-like of int
             The indices of the channels to plot, one figure per channel. If
-            None, plot the across-channel aggregate.
+            None, plot the across-channel aggregation.
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.
             If None do not apply it. If baseline is (a, b)
@@ -1298,7 +1299,7 @@ class AverageTFR(_BaseTFR):
             The scale of y (frequency) axis. 'linear' gives linear y axis,
             'log' leads to log-spaced y axis and 'auto' detects if frequencies
             are log-spaced and only then sets the y axis to 'log'.
-        aggregate : 'mean' | 'rms'
+        combine : 'mean' | 'rms'
             Type of aggregation to perform across selected channels.
         exclude : None | list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
@@ -1377,7 +1378,7 @@ class AverageTFR(_BaseTFR):
                         tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, vmin=vmin,
                         vmax=vmax, cmap=cmap, dB=dB, colorbar=colorbar,
                         show=False, title=title, layout=layout, yscale=yscale,
-                        aggregate=aggregate, exclude=None, timefreqs=timefreqs,
+                        combine=combine, exclude=None, timefreqs=timefreqs,
                         topomap_args=topomap_args, verbose=verbose))
             return figs
 
@@ -1394,7 +1395,7 @@ class AverageTFR(_BaseTFR):
             picks=picks, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
             colorbar=False, show=False, title=title, axes=tf_ax,
-            layout=layout, yscale=yscale, aggregate=aggregate,
+            layout=layout, yscale=yscale, combine=combine,
             exclude=exclude, verbose=verbose)
 
         if timefreqs is None:
