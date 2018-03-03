@@ -2503,3 +2503,9 @@ def _check_cov(noise_cov, info):
              'scaling of magnetometers and gradiometers when viewing data '
              'whitened by a noise covariance')
     return noise_cov
+
+
+def _check_multiple_data_channel_types(info):
+    """Check if an info instance contains multiple chan types."""
+    return len(set([channel_type(info, idx) for idx in range(info['nchan'])
+                    if channel_type(info, idx) in data_types])) > 1

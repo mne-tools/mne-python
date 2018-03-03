@@ -1213,9 +1213,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             ev_ = evoked.copy().pick_channels(
                 [info['ch_names'][idx] for idx in range(info['nchan'])
                  if channel_type(info, idx) == this_type])
-            if len(set([channel_type(ev_.info, idx)
-                        for idx in range(ev_.info['nchan'])
-                        if channel_type(ev_.info, idx) in data_types])) > 1:
+            if _check_multiple_data_channel_types(ev_.info):
                 raise RuntimeError('Possibly infinite loop due to channel '
                                    'selection problem. This should never '
                                    'happen! Please check your channel types.')
