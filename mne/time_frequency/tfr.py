@@ -2118,8 +2118,6 @@ def _centered(arr, newsize):
 def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                  baseline, vmin, vmax, dB, sfreq):
     """Aux Function to prepare tfr computation."""
-    from ..viz.utils import _setup_vmin_vmax
-
     copy = baseline is not None
     data = rescale(data, times, baseline, mode, copy=copy)
 

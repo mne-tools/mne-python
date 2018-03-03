@@ -19,7 +19,7 @@ import numpy as np
 
 from ..io.pick import (channel_type, _pick_data_channels,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
-                       _DATA_CH_TYPES_SPLIT, pick_info)
+                       _DATA_CH_TYPES_SPLIT)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -27,7 +27,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _setup_vmin_vmax, _grad_pair_pick_and_name, _check_cov,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, COLORS, _setup_ax_spines,
-                    _setup_plot_projector, _format_ch_names,
+                    _setup_plot_projector, _check_multiple_data_channel_types,
                     _prepare_joint_axes)
 from ..utils import logger, _clean_names, warn, _pl, verbose
 
@@ -35,8 +35,7 @@ from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
-from ..channels.layout import (_pair_grad_sensors, _auto_topomap_coords,
-                               find_layout)
+from ..channels.layout import _pair_grad_sensors, _auto_topomap_coords
 
 
 def _butterfly_onpick(event, params):

@@ -459,7 +459,7 @@ def test_plot():
 
 
 def test_plot_joint():
-    """Test TFR plotting."""
+    """Test TFR joint plotting."""
     import matplotlib.pyplot as plt
 
     raw = read_raw_fif(raw_fname)
@@ -485,20 +485,18 @@ def test_plot_joint():
         tfr.plot_joint(timefreqs=timefreqs, topomap_args=topomap_args)
         plt.close('all')
 
+    # test bad timefreqs
+    for timefreqs in ([(-100, 1)], tfr.times[1], [1],
+                      [(tfr.times[1], tfr.freqs[1], tfr.freqs[1])]):
+        assert_raises(ValueError, tfr.plot_joint, timefreqs)
+
     # test that the object is not internally modified
     tfr_orig = tfr.copy()
     tfr.plot_joint(baseline=(0, None), picks=[0], topomap_args=topomap_args)
+    plt.close('all')
     assert_array_equal(tfr.data, tfr_orig.data)
     assert_true(set(tfr.ch_names) == set(tfr_orig.ch_names))
     assert_true(set(tfr.times) == set(tfr_orig.times))
-    plt.close('all')
-
-    # test bad params
-    for timefreqs in (
-            [(-100, 1)], tfr.times[1], [1],
-            [(tfr.times[1], tfr.freqs[1], tfr.freqs[1])]
-        ):
-        assert_raises(ValueError, tfr.plot_joint, timefreqs)
 
 
 def test_add_channels():
