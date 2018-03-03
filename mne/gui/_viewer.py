@@ -246,11 +246,10 @@ class PointObject(Object):
             views = (visible, color, scale)
         else:
             raise ValueError("PointObject(view = %r)" % self._view)
-        views += (dist,)
-        views = views + (Item('project_to_surface', show_label=True,
-                              enabled_when='projectable'),)
-        views += (orient, mark)
-        return View(HGroup(*views))
+        group2 = HGroup(dist, Item('project_to_surface', show_label=True,
+                                   enabled_when='projectable'),
+                        orient, mark, show_left=False)
+        return View(HGroup(HGroup(*views), group2))
 
     @on_trait_change('label')
     def _show_labels(self, show):
