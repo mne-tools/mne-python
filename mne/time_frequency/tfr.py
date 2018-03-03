@@ -1249,7 +1249,7 @@ class AverageTFR(_BaseTFR):
             the epoch and 3 Hz activity 300 msec into the epoch,
 
                 timefreqs=((1, 10), (.3, 3))
-            
+
             If provided as a dictionary, (time, frequency) tuples
             are keys and (time_window, frequency_window) tuples are the
             values - indicating the width of the windows (centered on the
@@ -1420,7 +1420,7 @@ class AverageTFR(_BaseTFR):
 
         fig, tf_ax, map_ax, cbar_ax = _prepare_joint_axes(n_timefreqs)
 
-        cmap =_setup_cmap(cmap)
+        cmap = _setup_cmap(cmap)
 
         # image plot
         fig, tfr = tfr._plot(
@@ -1468,7 +1468,7 @@ class AverageTFR(_BaseTFR):
         # it would be nicer to do this earlier, but we need to do the
         # baselining etc. first, which happens in self._plot above
         for pair in list(timefreqs.keys()) + list(timefreqs.values()):
-            if not hasattr(pair, "__len__") or  len(pair) != 2:
+            if not hasattr(pair, "__len__") or len(pair) != 2:
                 raise ValueError(timefreq_error_msg + str(type(pair)))
 
         tmax, tmin = tfr.times.max(), tfr.times.min()
