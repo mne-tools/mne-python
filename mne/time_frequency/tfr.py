@@ -1350,7 +1350,10 @@ class AverageTFR(_BaseTFR):
         from ..viz.topomap import _set_contour_locator
         import matplotlib.pyplot as plt
 
-        # handle channels (picks and types)
+        #####################################
+        # Handle channels (picks and types) #
+        #####################################
+
         # it would be nicer to let this happen in self._plot,
         # but we need it here to do the loop over the remaining channel
         # types in case a user supplies `picks` that pre-select only one
@@ -1399,6 +1402,10 @@ class AverageTFR(_BaseTFR):
                         verbose=verbose, copy=False))
             return figs
 
+        ##############
+        # Image plot #
+        ##############
+
         # prepare for image plot
         fig, tf_ax, map_ax, cbar_ax = _prepare_joint_axes(
             len(timefreqs) if timefreqs is not None else 1)
@@ -1413,31 +1420,42 @@ class AverageTFR(_BaseTFR):
             layout=layout, yscale=yscale, combine=combine,
             exclude=None, copy=False, verbose=verbose)
 
+        ####################
+        # Handle timefreqs #
+        ####################
+
         # find and/or setup timefreqs
-        if timefreqs is None:
-            # find the maximum peak
-            from scipy.signal import argrelmax
-            order = max((1, tfr.data.shape[2] // 30))
-            peaks_idx = argrelmax(tfr.data, order=order, axis=2)
-            if peaks_idx[0].size == 0:
-                _, p_t, p_f = np.unravel_index(tfr.data.argmax(),
-                                               tfr.data.shape)
-                timefreqs = [(tfr.times[p_t], tfr.freqs[p_f])]
-            else:
-                peaks = [tfr.data[0, f, t] for f, t in
-                         zip(peaks_idx[1], peaks_idx[2])]
-                peakmax_idx = np.argmax(peaks)
-                peakmax_time = tfr.times[peaks_idx[2][peakmax_idx]]
-                peakmax_freq = tfr.freqs[peaks_idx[1][peakmax_idx]]
+        try:  # There are a trillin ways for this to go wrong ...
+            if timefreqs is None:
+                # find the maximum peak
+                from scipy.signal import argrelmax
+                order = max((1, tfr.data.shape[2] // 30))
+                peaks_idx = argrelmax(tfr.data, order=order, axis=2)
+                if peaks_idx[0].size == 0:
+                    _, p_t, p_f = np.unravel_index(tfr.data.argmax(),
+                                                   tfr.data.shape)
+                    timefreqs = [(tfr.times[p_t], tfr.freqs[p_f])]
+                else:
+                    peaks = [tfr.data[0, f, t] for f, t in
+                             zip(peaks_idx[1], peaks_idx[2])]
+                    peakmax_idx = np.argmax(peaks)
+                    peakmax_time = tfr.times[peaks_idx[2][peakmax_idx]]
+                    peakmax_freq = tfr.freqs[peaks_idx[1][peakmax_idx]]
 
-                timefreqs = [(peakmax_time, peakmax_freq)]
-        elif (not (isinstance(timefreqs, dict)) and
-              len(timefreqs) == 2 and len(list(timefreqs)[0]) == 0):
-            timefreqs = [timefreqs]
+                    timefreqs = [(peakmax_time, peakmax_freq)]
+            elif (not (isinstance(timefreqs, dict)) and
+                  len(timefreqs) == 2 and len(list(timefreqs)[0]) == 0):
+                timefreqs = [timefreqs]
 
-        timefreqs = {
-            k: np.asarray(timefreqs[k]) if isinstance(timefreqs, dict)
-            else np.array([0, 0]) for k in timefreqs}
+            timefreqs = {
+                k: np.asarray(timefreqs[k]) if isinstance(timefreqs, dict)
+                else np.array([0, 0]) for k in timefreqs}
+
+        except Exception:
+            raise ValueError("Supplied `timefreqs` are somehow malformed. "
+                             "Please supply None, a list of tuple pairs, "
+                             "or a dict of such tuple pairs, not " +
+                             type(timefreqs))
 
         # check if timefreqs exceed limits
         # it would be nicer to do this earlier, but we need to do the
@@ -1454,7 +1472,10 @@ class AverageTFR(_BaseTFR):
             raise ValueError("Requesting a " + error_value + " not present "
                              "in the data. Choose different `timefreqs`.")
 
-        # topomaps
+        ############
+        # Topomaps #
+        ############
+
         from ..viz import plot_topomap
         titles, all_data, vlims = [], [], []
 
@@ -1512,6 +1533,10 @@ class AverageTFR(_BaseTFR):
                          tfr.info if layout is None else layout.pos,
                          vmin=vmin, vmax=vmax, cmap=cmap[0], axes=ax,
                          show=False, **topomap_args_pass)
+
+        #############
+        # Finish up #
+        #############
 
         if colorbar:
             from matplotlib import ticker
