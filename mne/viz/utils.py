@@ -2507,5 +2507,6 @@ def _check_cov(noise_cov, info):
 
 def _check_multiple_data_channel_types(info):
     """Check if an info instance contains multiple chan types."""
+    data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
     return len(set([channel_type(info, idx) for idx in range(info['nchan'])
                     if channel_type(info, idx) in data_types])) > 1

@@ -472,18 +472,33 @@ def test_plot_joint():
 
     topomap_args = {'res': 8, 'contours': 0, 'sensors': False}
 
-    for aggregate in ('mean', 'rms', None):
+    for combine in ('mean', 'rms', None):
         tfr.plot_joint(picks=[0, 1], title='auto', colorbar=True,
-                       aggregate=aggregate, topomap_args=topomap_args)
+                       combine=combine, topomap_args=topomap_args)
         plt.close('all')
 
-    # TFR - Topomap joint plot
-    timefreqs = {(tfr.times[0], tfr.freqs[1]): (0.1, 0.5),
-                 (tfr.times[-1], tfr.freqs[-1]): (0.2, 0.6)}
+    # check various timefreqs
+    for timefreqs in (
+        {(tfr.times[0], tfr.freqs[1]): (0.1, 0.5),
+         (tfr.times[-1], tfr.freqs[-1]): (0.2, 0.6)},
+        [(tfr.times[1], tfr.freqs[1])]):
+        tfr.plot_joint(timefreqs=timefreqs, topomap_args=topomap_args)
+        plt.close('all')
 
-    tfr.plot_joint(timefreqs=timefreqs, topomap_args=topomap_args)
-
+    # test that the object is not internally modified
+    tfr_orig = tfr.copy()
+    tfr.plot_joint(baseline=(0, None), picks=[0], topomap_args=topomap_args)
+    assert_array_equal(tfr.data, tfr_orig.data)
+    assert_true(set(tfr.ch_names) == set(tfr_orig.ch_names))
+    assert_true(set(tfr.times) == set(tfr_orig.times))
     plt.close('all')
+
+    # test bad params
+    for timefreqs in (
+            [(-100, 1)], tfr.times[1], [1],
+            [(tfr.times[1], tfr.freqs[1], tfr.freqs[1])]
+        ):
+        assert_raises(ValueError, tfr.plot_joint, timefreqs)
 
 
 def test_add_channels():

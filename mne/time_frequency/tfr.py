@@ -1177,7 +1177,7 @@ class AverageTFR(_BaseTFR):
             average_tfr.drop_channels(exclude)
 
         if baseline is not None:
-            average_tfr.applyy_baseline(baseline, mode)
+            average_tfr.apply_baseline(baseline, mode)
 
         data = average_tfr.data
         info = average_tfr.info
@@ -1399,7 +1399,7 @@ class AverageTFR(_BaseTFR):
                         colorbar=colorbar, show=False, title=title,
                         layout=layout, yscale=yscale, combine=combine,
                         exclude=None, topomap_args=topomap_args,
-                        verbose=verbose, copy=False))
+                        verbose=verbose))
             return figs
 
         ##############
@@ -1407,8 +1407,18 @@ class AverageTFR(_BaseTFR):
         ##############
 
         # prepare for image plot
-        fig, tf_ax, map_ax, cbar_ax = _prepare_joint_axes(
-            len(timefreqs) if timefreqs is not None else 1)
+        timefreq_error_msg = (
+            "Supplied `timefreqs` are somehow malformed. Please supply None, "
+            "a list of tuple pairs, or a dict of such tuple pairs, not ")
+        if timefreqs is None:
+            n_timefreqs = 1
+        else:
+            try:
+                n_timefreqs = len(timefreqs)
+            except TypeError:
+                raise ValueError(timefreq_error_msg + str(type(timefreqs)))
+
+        fig, tf_ax, map_ax, cbar_ax = _prepare_joint_axes(n_timefreqs)
 
         cmap =_setup_cmap(cmap)
 
@@ -1452,14 +1462,15 @@ class AverageTFR(_BaseTFR):
                 else np.array([0, 0]) for k in timefreqs}
 
         except Exception:
-            raise ValueError("Supplied `timefreqs` are somehow malformed. "
-                             "Please supply None, a list of tuple pairs, "
-                             "or a dict of such tuple pairs, not " +
-                             type(timefreqs))
+            raise ValueError(timefreq_error_msg + str(type(timefreqs)))
 
-        # check if timefreqs exceed limits
+        # check if timefreqs exceed limits, or is not pairs
         # it would be nicer to do this earlier, but we need to do the
         # baselining etc. first, which happens in self._plot above
+        for pair in list(timefreqs.keys()) + list(timefreqs.values()):
+            if not hasattr(pair, "__len__") or  len(pair) != 2:
+                raise ValueError(timefreq_error_msg + str(type(pair)))
+
         tmax, tmin = tfr.times.max(), tfr.times.min()
         fmax, fmin = tfr.freqs.max(), tfr.freqs.min()
         for time, freq in timefreqs.keys():
