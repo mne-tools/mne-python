@@ -486,9 +486,10 @@ def test_plot_joint():
         plt.close('all')
 
     # test bad timefreqs
-    for timefreqs in ([(-100, 1)], tfr.times[1], [1],
-                      [(tfr.times[1], tfr.freqs[1], tfr.freqs[1])]):
-        assert_raises(ValueError, tfr.plot_joint, timefreqs)
+    timefreqs = [(-100, 1)], tfr.times[1], [1],\
+                 [(tfr.times[1], tfr.freqs[1], tfr.freqs[1])]
+    for these_timefreqs in timefreqs:
+        assert_raises(ValueError, tfr.plot_joint, these_timefreqs)
 
     # test that the object is not internally modified
     tfr_orig = tfr.copy()
