@@ -130,10 +130,14 @@ class Object(HasPrivateTraits):
     # projection onto a surface
     project_to_points = Array(float, shape=(None, 3))
     project_to_tris = Array(int, shape=(None, 3))
-    project_to_surface = Bool(False, label='Project')
-    orient_to_surface = Bool(False, label='Orient')
-    scale_by_distance = Bool(False, label='Dist.')
-    mark_inside = Bool(False, label='Mark')
+    project_to_surface = Bool(False, label='Project', desc='project points '
+                              'onto the surface')
+    orient_to_surface = Bool(False, label='Orient', desc='orient points '
+                             'toward the surface')
+    scale_by_distance = Bool(False, label='Dist.', desc='scale points by '
+                             'distance from the surface')
+    mark_inside = Bool(False, label='Mark', desc='mark points inside the '
+                       'surface in a different color')
 
     scene = Instance(MlabSceneModel, ())
     src = Instance(VTKDataSource)
@@ -146,7 +150,7 @@ class Object(HasPrivateTraits):
     visible = Bool(True)
 
     # don't put project_to_tris here, just always set project_to_points second
-    @on_trait_change('trans,points')
+    @on_trait_change('trans,points,project_to_surface,mark_inside')
     def _update_points(self):
         """Update the location of the plotted points."""
         if not hasattr(self.src, 'data'):
@@ -170,7 +174,7 @@ class Object(HasPrivateTraits):
             pts = self.points
 
         # Do the projection if required
-        if len(self.project_to_points) > 1:
+        if len(self.project_to_points) > 1 and len(pts) > 0:
             surf = dict(rr=np.array(self.project_to_points),
                         tris=np.array(self.project_to_tris))
             method = 'accurate' if len(surf['rr']) <= 20484 else 'nearest'
@@ -184,7 +188,7 @@ class Object(HasPrivateTraits):
             else:
                 nn = vec.copy()
                 _normalize_vectors(nn)
-            if self.mark_inside:
+            if self.mark_inside and not self.project_to_surface:
                 scalars = _points_outside_surface(pts, surf).astype(int)
             else:
                 scalars = np.ones(len(pts))

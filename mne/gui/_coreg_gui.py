@@ -1302,7 +1302,7 @@ class ViewOptionsPanel(HasTraits):
     view = View(VGroup(Item('mri_obj', style='custom',
                             label="MRI"),
                        Item('hsp_obj', style='custom',
-                            label="Extra"),
+                            label="Head shape"),
                        Item('eeg_obj', style='custom',
                             label='EEG'),
                        Item('hpi_obj', style='custom',
@@ -1332,7 +1332,7 @@ class CoregFrame(HasTraits):
 
     # Omit Points
     distance = Float(5., desc="maximal distance for head shape points from "
-                     "MRI in mm")
+                     "the surface (mm)")
     omit_points = Button(label='Omit [mm]', desc="to omit head shape points "
                          "for the purpose of the automatic coregistration "
                          "procedure.")
@@ -1396,15 +1396,15 @@ class CoregFrame(HasTraits):
         self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
         self.model.mri.subject_source.show_high_res_head = head_high_res
-        self._initial_project_eeg = project_eeg
-        self._initial_orient_to_surface = orient_to_surface
-        self._initial_scale_by_distance = scale_by_distance
-        self._initial_mark_inside = mark_inside
+        self._initial_kwargs = dict(project_eeg=project_eeg,
+                                    orient_to_surface=orient_to_surface,
+                                    scale_by_distance=scale_by_distance,
+                                    mark_inside=mark_inside,
+                                    head_opacity=head_opacity)
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
                 "and 1, got %r" % (head_opacity,))
-        self._initial_head_opacity = head_opacity
 
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
             self.model.mri.subjects_dir = subjects_dir
@@ -1452,11 +1452,11 @@ class CoregFrame(HasTraits):
         self.mri_obj = SurfaceObject(
             points=np.empty((0, 3)), color=color, tri=np.empty((0, 3)),
             scene=self.scene, name="MRI Scalp", block_behind=True,
-            # opacity=self._initial_head_opacity,
+            # opacity=self._initial_kwargs['head_opacity'],
             # setting opacity here causes points to be
             # [[0, 0, 0]] -- why??
         )
-        self.mri_obj.opacity = self._initial_head_opacity
+        self.mri_obj.opacity = self._initial_kwargs['head_opacity']
         self.fid_panel.hsp_obj = self.mri_obj
 
         # MRI Fiducials
@@ -1475,10 +1475,11 @@ class CoregFrame(HasTraits):
             self.model.sync_trait('scale', p, 'trans', mutual=False)
 
         # Digitizer Head Shape
-        kwargs = dict(view='cloud', scene=self.scene, resolution=20,
-                      orient_to_surface=self._initial_orient_to_surface,
-                      scale_by_distance=self._initial_scale_by_distance,
-                      mark_inside=self._initial_mark_inside)
+        kwargs = dict(
+            view='cloud', scene=self.scene, resolution=20,
+            orient_to_surface=self._initial_kwargs['orient_to_surface'],
+            scale_by_distance=self._initial_kwargs['scale_by_distance'],
+            mark_inside=self._initial_kwargs['mark_inside'])
         self.hsp_obj = PointObject(
             color=defaults['extra_color'], name='Extra',
             point_scale=defaults['extra_scale'], **kwargs)
@@ -1488,7 +1489,7 @@ class CoregFrame(HasTraits):
         self.eeg_obj = PointObject(
             color=defaults['eeg_color'], point_scale=defaults['eeg_scale'],
             name='EEG', projectable=True,
-            project_to_surface=self._initial_project_eeg, **kwargs)
+            project_to_surface=self._initial_kwargs['project_eeg'], **kwargs)
         self.model.hsp.sync_trait('eeg_points', self.eeg_obj, 'points',
                                   mutual=False)
 
