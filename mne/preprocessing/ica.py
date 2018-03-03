@@ -2068,12 +2068,13 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
 
 @verbose
 def run_ica(raw, n_components, max_pca_components=100,
-            n_pca_components=64, method='fastica', noise_cov=None,
+            n_pca_components=64, noise_cov=None,
             random_state=None, picks=None, start=None, stop=None,
             start_find=None, stop_find=None, ecg_ch=None,
             ecg_score_func='pearsonr', ecg_criterion=0.1, eog_ch=None,
             eog_score_func='pearsonr', eog_criterion=0.1, skew_criterion=-1,
-            kurt_criterion=-1, var_criterion=0, add_nodes=None, verbose=None):
+            kurt_criterion=-1, var_criterion=0, add_nodes=None, verbose=None,
+            method='fastica'):
     """Run ICA decomposition on raw data and identify artifact sources.
 
     This function implements an automated artifact removal work flow.
@@ -2115,8 +2116,6 @@ def run_ica(raw, n_components, max_pca_components=100,
         ``'n_components_'`` PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
-    method : {'fastica', 'picard'}
-        The ICA method to use. Defaults to 'fastica'.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.
@@ -2200,6 +2199,8 @@ def run_ica(raw, n_components, max_pca_components=100,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    method : {'fastica', 'picard'}
+        The ICA method to use. Defaults to 'fastica'.
 
     Returns
     -------
