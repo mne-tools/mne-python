@@ -479,9 +479,9 @@ def test_plot_joint():
 
     # check various timefreqs
     for timefreqs in (
-        {(tfr.times[0], tfr.freqs[1]): (0.1, 0.5),
-         (tfr.times[-1], tfr.freqs[-1]): (0.2, 0.6)},
-        [(tfr.times[1], tfr.freqs[1])]):
+            {(tfr.times[0], tfr.freqs[1]): (0.1, 0.5),
+             (tfr.times[-1], tfr.freqs[-1]): (0.2, 0.6)},
+            [(tfr.times[1], tfr.freqs[1])]):
         tfr.plot_joint(timefreqs=timefreqs, topomap_args=topomap_args)
         plt.close('all')
 
