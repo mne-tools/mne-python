@@ -118,9 +118,8 @@ plt.show()
 # You can also create a joint plot that contains both the aggregated TFR
 # across channels and topomaps at specific times and frequencies.
 
-power.plot_joint(picks=(82, 83), baseline=(-0.5, 0), mode='logratio',
-                 title='auto', combine='mean',
-                 timefreqs={(1, 10): (1, 4), (1, 19): (1, 6)})
+power.plot_joint(baseline=(-0.5, 0), mode='logratio', tmin=-.5, tmax=2,
+                 timefreqs=[(.3, 16), (.75, 16)])
 plt.show()
 
 ###############################################################################
