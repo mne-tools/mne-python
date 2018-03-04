@@ -5,6 +5,7 @@
 import os
 import os.path as op
 import re
+import shutil
 import sys
 from unittest import SkipTest
 
@@ -40,6 +41,30 @@ warnings.simplefilter('always')
 
 @testing.requires_testing_data
 @requires_mayavi
+def test_coreg_model_decimation():
+    """Test CoregModel decimation of high-res to low-res head."""
+    from mne.gui._coreg_gui import CoregModel
+    tempdir = _TempDir()
+    subject_dir = op.join(tempdir, 'sample')
+    shutil.copytree(op.join(subjects_dir, 'sample'), subject_dir)
+    # This makes the test much faster
+    shutil.move(op.join(subject_dir, 'bem', 'outer_skin.surf'),
+                op.join(subject_dir, 'surf', 'lh.seghead'))
+    for fname in ('sample-head.fif', 'sample-head-dense.fif'):
+        os.remove(op.join(subject_dir, 'bem', fname))
+
+    model = CoregModel(guess_mri_subject=False)
+    with warnings.catch_warnings(record=True) as w:
+        model.mri.subjects_dir = tempdir
+    assert model.mri.subject == 'sample'  # already set by setting subjects_dir
+    assert any('No low-resolution' in str(ww.message) for ww in w)
+    assert model.mri.bem_low_res.file == ''
+    assert len(model.mri.bem_low_res.points) == 2562
+    assert len(model.mri.bem_high_res.points) == 2562  # because we moved it
+
+
+@testing.requires_testing_data
+@requires_mayavi
 def test_coreg_model():
     """Test CoregModel."""
     from mne.gui._coreg_gui import CoregModel
@@ -48,8 +73,6 @@ def test_coreg_model():
 
     model = CoregModel()
     assert_raises(RuntimeError, model.save_trans, 'blah.fif')
-
-    model.mri.use_high_res_head = False
 
     model.mri.subjects_dir = subjects_dir
     model.mri.subject = 'sample'
@@ -66,6 +89,9 @@ def test_coreg_model():
     assert_allclose(model.hsp.nasion, [[+3.725e-9, 1.026e-1, 4.191e-9]], 1e-4)
     assert_true(model.has_fid_data)
     assert len(model.hsp.eeg_points) > 1
+
+    assert len(model.mri.bem_low_res.points) == 2562
+    assert len(model.mri.bem_high_res.points) == 267122
 
     lpa_distance = model.lpa_distance
     nasion_distance = model.nasion_distance
@@ -183,9 +209,9 @@ def test_coreg_gui():
         assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
                           tvtk.CylinderSource)
 
-        # grow hair (high-res head has no norms)
-        assert_true(frame.model.mri.use_high_res_head)
-        frame.model.mri.use_high_res_head = False
+        # grow hair (faster for low-res)
+        assert frame.model.mri.subject_source.show_high_res_head
+        frame.model.mri.subject_source.show_high_res_head = False
         frame.model.grow_hair = 40.
 
         # scale
@@ -198,7 +224,7 @@ def test_coreg_gui():
         # reset parameters
         frame.coreg_panel.reset_params = True
         assert_equal(frame.model.grow_hair, 0)
-        assert_false(frame.model.mri.use_high_res_head)
+        assert not frame.model.mri.subject_source.show_high_res_head
 
         # configuration persistence
         assert_true(frame.model.prepare_bem_model)
@@ -209,7 +235,7 @@ def test_coreg_gui():
 
         ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
         assert_false(frame.model.prepare_bem_model)
-        assert_false(frame.model.mri.use_high_res_head)
+        assert not frame.model.mri.subject_source.show_high_res_head
         ui.dispose()
         gui.process_events()
     finally:
@@ -228,7 +254,7 @@ def test_coreg_model_with_fsaverage():
                                fs_home=op.join(subjects_dir, '..'))
 
     model = CoregModel()
-    model.mri.use_high_res_head = False
+    model.mri.subject_source.show_high_res_head = False
     model.mri.subjects_dir = tempdir
     model.mri.subject = 'fsaverage'
     assert_true(model.mri.fid_ok)

@@ -31,7 +31,6 @@ from .utils import get_config, get_subjects_dir, logger, pformat
 from .viz._3d import _fiducial_coords
 from .externals.six.moves import zip
 
-
 # some path templates
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 subject_dirname = os.path.join('{subjects_dir}', '{subject}')
@@ -43,8 +42,7 @@ fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
 _head_fnames = (os.path.join(bem_dirname, 'outer_skin.surf'),
-                head_bem_fname,
-                pformat(bem_fname, name='head-medium'))
+                head_bem_fname)
 _high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
                          os.path.join(surf_dirname, 'lh.seghead'),
                          os.path.join(surf_dirname, 'lh.smseghead'))

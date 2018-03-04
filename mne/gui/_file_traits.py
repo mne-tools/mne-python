@@ -269,6 +269,8 @@ class DigSource(HasPrivateTraits):
     # EEG
     eeg_points = Property(depends_on='_info',
                           desc="EEG sensor coordinates (N x 3 array)")
+    hpi_points = Property(depends_on='_info',
+                          desc='HPI coil coordinates (N x 3 array)')
 
     view = View(VGroup(Item('file'),
                        Item('inst_fname', show_label=False, style='readonly')))
@@ -391,7 +393,19 @@ class DigSource(HasPrivateTraits):
     def _get_eeg_points(self):
         if self._info:
             out = [d['r'] for d in self._info['dig'] if
-                   d['kind'] == FIFF.FIFFV_POINT_EEG]
+                   d['kind'] == FIFF.FIFFV_POINT_EEG and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+            out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+            return out
+        else:
+            return np.empty((0, 3))
+
+    @cached_property
+    def _get_hpi_points(self):
+        if self._info:
+            out = [d['r'] for d in self._info['dig'] if
+                   d['kind'] == FIFF.FIFFV_POINT_HPI and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
             out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
             return out
         else:
@@ -434,7 +448,7 @@ class MRISubjectSource(HasPrivateTraits):
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
-    use_high_res_head = Bool(True)
+    show_high_res_head = Bool(True)
 
     # info
     can_create_fsaverage = Property(Bool, depends_on=['subjects_dir',
@@ -493,7 +507,7 @@ class MRISubjectSource(HasPrivateTraits):
 
         create_default_subject(fs_home=fs_home, subjects_dir=self.subjects_dir)
         self.refresh = True
-        self.use_high_res_head = False
+        self.show_high_res_head = False
         self.subject = 'fsaverage'
 
     @on_trait_change('subjects_dir')
@@ -512,7 +526,7 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subjects_dir = DelegatesTo('model')
     subject = DelegatesTo('model')
     subjects = DelegatesTo('model')
-    use_high_res_head = DelegatesTo('model')
+    show_high_res_head = DelegatesTo('model')
 
     create_fsaverage = Button(
         "Copy 'fsaverage' to subjects directory",
@@ -524,7 +538,7 @@ class SubjectSelectorPanel(HasPrivateTraits):
                              show_label=True),
                        HGroup('subjects_dir', show_labels=False),
                        HGroup('subject', show_labels=False),
-                       HGroup(Item('use_high_res_head',
+                       HGroup(Item('show_high_res_head',
                                    label='High Resolution Head',
                                    show_label=True)),
                        Item('create_fsaverage',
