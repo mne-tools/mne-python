@@ -1180,9 +1180,9 @@ class AverageTFR(_BaseTFR):
             average_tfr.info['sfreq'], copy=False)
 
         average_tfr.times = times
-        average_tfr.freqs= freqs
-        info = average_tfr.info
+        average_tfr.freqs = freqs
         average_tfr.data = data
+        info = average_tfr.info
 
         if combine == 'mean':
             data = data.mean(axis=0, keepdims=True)
