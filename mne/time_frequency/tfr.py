@@ -1146,7 +1146,7 @@ class AverageTFR(_BaseTFR):
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
-              axes=None, layout=None, yscale='auto', combine='mean',
+              axes=None, layout=None, yscale='auto', combine=None,
               exclude=None, copy=True, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
@@ -1154,8 +1154,6 @@ class AverageTFR(_BaseTFR):
         """
         import matplotlib.pyplot as plt
         from ..viz.topo import _imshow_tfr
-
-        times, freqs = self.times.copy(), self.freqs.copy()
 
         # channel selection
         # simply create a new tfr object(s) with the desired channel selection
@@ -1176,11 +1174,15 @@ class AverageTFR(_BaseTFR):
         if exclude is not None:
             average_tfr.drop_channels(exclude)
 
-        if baseline is not None:
-            average_tfr.apply_baseline(baseline, mode)
+        data, times, freqs, _, _ = _preproc_tfr(
+            average_tfr.data, average_tfr.times, average_tfr.freqs,
+            tmin, tmax, fmin, fmax, mode, baseline, vmin, vmax, dB,
+            average_tfr.info['sfreq'], copy=False)
 
-        data = average_tfr.data
+        average_tfr.times = times
+        average_tfr.freqs= freqs
         info = average_tfr.info
+        average_tfr.data = data
 
         if combine == 'mean':
             data = data.mean(axis=0, keepdims=True)
@@ -1189,16 +1191,16 @@ class AverageTFR(_BaseTFR):
         elif combine is not None:
             raise ValueError('combine must be None, mean or rms.')
 
-        data, times, freqs, vmin, vmax = \
-            _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
-                         baseline, vmin, vmax, dB, info['sfreq'])
-
         if isinstance(axes, list) or isinstance(axes, np.ndarray):
             if len(axes) != n_picks:
                 raise RuntimeError('There must be an axes for each picked '
                                    'channel.')
 
         tmin, tmax = times[0], times[-1]
+        if vmax is None:
+            vmax = np.abs(data).max()
+        if vmin is None:
+            vmin = -np.abs(data).max()
         if isinstance(axes, plt.Axes):
             axes = [axes]
 
@@ -1298,18 +1300,21 @@ class AverageTFR(_BaseTFR):
             The last frequency to display. If None the last frequency
             available is used.
         vmin : float | None
-            The mininum value of the color scale. If vmin is None, the data
+            The mininum value of the color scale for the image (for
+            topomaps, see `topomap_args`). If vmin is None, the data
             absolute minimum value is used.
         vmax : float | None
-            The maxinum value of the color scale. If vmax is None, the data
+            The maxinum value of the color scale for the image (for
+            topomaps, see `topomap_args`). If vmax is None, the data
             absolute maximum value is used.
         cmap : matplotlib colormap
             The colormap to use.
         dB : bool
             If True, 20*log10 is applied to the data to get dB.
         colorbar : bool
-            If true, colorbar will be added to the plot. For user defined axes,
-            the colorbar cannot be drawn. Defaults to True.
+            If true, colorbar will be added to the plot (relating to the
+            topomaps). For user defined axes, the colorbar cannot be drawn.
+            Defaults to True.
         show : bool
             Call pyplot.show() at the end.
         title : str | None
@@ -1522,15 +1527,13 @@ class AverageTFR(_BaseTFR):
             titles.append(sub_map_title)
             all_data.append(data)
 
-        if vmax is None:
-            vmax = max(vlims)
-        if vmin is None:
-            vmin = -vmax
-
         # passing args to the topomap calls
         if topomap_args is None:
             topomap_args = dict()
         contours = topomap_args.get('contours', 6)
+
+        vmin = topomap_args.get('vmin', -max(vlims))
+        vmax = topomap_args.get('vmax', max(vlims))
         locator, contours = _set_contour_locator(vmin, vmax, contours)
 
         topomap_args_pass = {k: v for k, v in topomap_args.items() if
@@ -2116,9 +2119,10 @@ def _centered(arr, newsize):
 
 
 def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
-                 baseline, vmin, vmax, dB, sfreq):
+                 baseline, vmin, vmax, dB, sfreq, copy=None):
     """Aux Function to prepare tfr computation."""
-    copy = baseline is not None
+    if copy is None:
+        copy = baseline is not None
     data = rescale(data, times, baseline, mode, copy=copy)
 
     # crop time
