@@ -1147,7 +1147,7 @@ class AverageTFR(_BaseTFR):
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
               axes=None, layout=None, yscale='auto', combine=None,
-              exclude=None, copy=True):
+              exclude=None, copy=True, verbose=verbose):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1333,7 +1333,7 @@ class AverageTFR(_BaseTFR):
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to None.
         topomap_args : None | dict
-            A dict of `kwargs` that are forwarded to `evoked.plot_topomap`
+            A dict of `kwargs` that are forwarded to `mne.viz.plot_topomap`
             to style the topomaps. `axes` and `show` are ignored. If `times`
             is not in this dict, automatic peak detection is used. Beyond that,
             if ``None``, no customizable arguments will be passed.
