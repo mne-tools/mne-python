@@ -184,7 +184,8 @@ class ICA(ContainsMixin):
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results. Defaults to None.
     method : {'fastica', 'infomax', 'extended-infomax', 'picard'}
-        The ICA method to use. Defaults to 'fastica'. For reference, see [1-4].
+        The ICA method to use. Defaults to 'fastica'. For reference, see [1]_,
+        [2]_, [3]_ and [4]_.
     fit_params : dict | None.
         Additional parameters passed to the ICA estimator chosen by `method`.
     max_iter : int, optional
@@ -238,22 +239,22 @@ class ICA(ContainsMixin):
 
     References
     ----------
-    [1] Hyvarinen, A., 1999. Fast and robust fixed-point algorithms for
-        independent component analysis. IEEE transactions on Neural Networks,
-        10(3), pp.626-634.
+    .. [1] Hyvarinen, A., 1999. Fast and robust fixed-point algorithms for
+           independent component analysis. IEEE transactions on Neural
+           Networks, 10(3), pp.626-634.
 
-    [2] Bell, A.J. and Sejnowski, T.J., 1995. An information-maximization
-        approach to blind separation and blind deconvolution. Neural
-        computation, 7(6), pp.1129-1159.
+    .. [2] Bell, A.J. and Sejnowski, T.J., 1995. An information-maximization
+           approach to blind separation and blind deconvolution. Neural
+           computation, 7(6), pp.1129-1159.
 
-    [3] Lee, T.W., Girolami, M. and Sejnowski, T.J., 1999. Independent
-        component analysis using an extended infomax algorithm for mixed
-        subgaussian and supergaussian sources. Neural computation, 11(2),
-        pp.417-441.
+    .. [3] Lee, T.W., Girolami, M. and Sejnowski, T.J., 1999. Independent
+           component analysis using an extended infomax algorithm for mixed
+           subgaussian and supergaussian sources. Neural computation, 11(2),
+           pp.417-441.
 
-    [4] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
-        Component Analysis by preconditioning with Hessian approximations.
-        arXiv:1706.08171
+    .. [4] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
+           Component Analysis by preconditioning with Hessian approximations.
+           arXiv:1706.08171
     """
 
     @verbose
