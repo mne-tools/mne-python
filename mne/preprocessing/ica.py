@@ -243,11 +243,11 @@ class ICA(ContainsMixin):
            independent component analysis. IEEE transactions on Neural
            Networks, 10(3), pp.626-634.
 
-    .. [2] Bell, A.J. and Sejnowski, T.J., 1995. An information-maximization
+    .. [2] Bell, A.J., Sejnowski, T.J., 1995. An information-maximization
            approach to blind separation and blind deconvolution. Neural
            computation, 7(6), pp.1129-1159.
 
-    .. [3] Lee, T.W., Girolami, M. and Sejnowski, T.J., 1999. Independent
+    .. [3] Lee, T.W., Girolami, M., Sejnowski, T.J., 1999. Independent
            component analysis using an extended infomax algorithm for mixed
            subgaussian and supergaussian sources. Neural computation, 11(2),
            pp.417-441.
