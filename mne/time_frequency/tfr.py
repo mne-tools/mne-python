@@ -28,9 +28,9 @@ from ..io.meas_info import Info
 from ..utils import SizeMixin
 from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
-                         _connection_line, _format_ch_names,
-                         _prepare_joint_axes, _setup_vmin_vmax,
-                         _check_multiple_data_channel_types)
+                         _connection_line, _prepare_joint_axes,
+                         _setup_vmin_vmax, _check_multiple_data_channel_types,
+                         _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
 
@@ -1147,7 +1147,7 @@ class AverageTFR(_BaseTFR):
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
               axes=None, layout=None, yscale='auto', combine=None,
-              exclude=None, copy=True, verbose=None):
+              exclude=None, copy=True):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1220,12 +1220,12 @@ class AverageTFR(_BaseTFR):
                         colorbar=colorbar, cmap=cmap, yscale=yscale, mask=mask,
                         alpha=alpha)
 
-            if title is 'auto':
+            if title is None:
                 if combine is None or len(info['ch_names']) == 1:
                     title = info['ch_names'][0]
                 else:
-                    ch_title = _format_ch_names(info['ch_names'])
-                title = 'combine (%s) of %s' % (combine, ch_title)
+                    title = _set_title_multiple_electrodes(
+                        title, combine, info["ch_names"])
 
             if title:
                 fig.suptitle(title)
@@ -1431,9 +1431,8 @@ class AverageTFR(_BaseTFR):
         fig, tfr = tfr._plot(
             picks=None, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
-            colorbar=False, show=False, title=title, axes=tf_ax,
-            layout=layout, yscale=yscale, combine=combine,
-            exclude=None, copy=False, verbose=verbose)
+            colorbar=False, show=False, title=title, axes=tf_ax, layout=layout,
+            yscale=yscale, combine=combine, exclude=None, copy=False)
 
         ####################
         # Handle timefreqs #

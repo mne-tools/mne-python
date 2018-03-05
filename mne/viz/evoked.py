@@ -28,7 +28,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, COLORS, _setup_ax_spines,
                     _setup_plot_projector, _check_multiple_data_channel_types,
-                    _prepare_joint_axes)
+                    _prepare_joint_axes, _set_title_multiple_electrodes)
 from ..utils import logger, _clean_names, warn, _pl, verbose
 
 from .topo import _plot_evoked_topo
@@ -1942,10 +1942,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             warn("ymin is all-positive, not truncating yaxis")
         ymax_bound = ax.get_ylim()[-1]
 
-    title = ", ".join(ch_names[:6]) if title is None else title
-    if len(ch_names) > 6 and gfp is False:
-        warn("More than 6 channels, truncating title ...")
-        title += ", ..."
+    title = _set_title_multiple_electrodes(
+        title, "average" if gfp is False else "gfp", ch_names)
     ax.set_title(title)
 
     current_ymin = ax.get_ylim()[0]
