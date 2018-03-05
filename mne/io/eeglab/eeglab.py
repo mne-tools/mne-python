@@ -23,7 +23,22 @@ from ...annotations import Annotations
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
 
+def _show_mat(mat_obj, spaces=""):
 
+    from scipy import io
+    for x in sorted(mat_obj._fieldnames):
+        print spaces,x," -- ", mat_obj.__dict__[x]
+        if isinstance(mat_obj.__dict__[x], io.matlab.mio5_params.mat_struct):
+            _show_mat(mat_obj.__dict__[x], spaces=spaces + '   ')
+        elif (isinstance(mat_obj.__dict__[x], np.ndarray)  and
+              len(mat_obj.__dict__[x]) > 0 and
+              isinstance(mat_obj.__dict__[x][0], io.matlab.mio5_params.mat_struct)):
+            for y in mat_obj.__dict__[x]:
+                _show_mat(y, spaces=spaces + '     ')
+        else:
+            print type(mat_obj.__dict__[x]), "\n--------------------------------------------------"
+            
+            
 def _check_fname(fname):
     """Check if the file extension is valid."""
     fmt = str(op.splitext(fname)[-1])
@@ -34,6 +49,26 @@ def _check_fname(fname):
     elif fmt != '.fdt':
         raise IOError('Expected .fdt file format. Found %s format' % fmt)
 
+def _check_for_ascii_filename(eeg, input_fname):
+
+    """Checks to see if eeg.data is array of ascii values
+       of filename. Does not check if extension is valid
+       (or if it exists), since this is handled by _check_fname"""
+    
+    if (isinstance(eeg.data, np.ndarray) and
+       len(eeg.data.shape) == 1 and
+       np.issubdtype(eeg.data.dtype, np.integer)):
+
+       fname = ''.join([chr(x) for x in eeg.data])
+       basedir = op.dirname(input_fname)
+       data_fname = op.join(basedir, fname)
+       if op.isfile(data_fname):
+           return (True, fname)
+       else:
+           return (False, "")
+    else:
+        return (False, "")
+
 
 def _check_mat_struct(fname):
     """Check if the mat struct contains 'EEG'."""
@@ -42,7 +77,7 @@ def _check_mat_struct(fname):
                            ' files.')
     from scipy import io
     try:
-        # Try to read old style Matlab file
+        # Try to read old style Matlabg file
         mat = io.whosmat(fname, struct_as_record=False, squeeze_me=True)
     except:
         # Try to read new style Matlab file
@@ -61,7 +96,6 @@ def _check_mat_struct(fname):
     elif 'EEG' not in mat[0]:
         msg = ('Unknown array in the .set file.')
         raise ValueError(msg)
-
 
 def _to_loc(ll):
     """Check if location exists."""
@@ -99,32 +133,43 @@ def _get_info(eeg, montage, eog=()):
 
     if len(eeg.chanlocs) > 0:
         pos_fields = ['X', 'Y', 'Z']
+        hdf5_flag = False
         if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
                 eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
-            has_pos = all(fld in eeg.chanlocs[0].dtype.names
-                          for fld in pos_fields)
+            try:
+                has_pos = all(fld in eeg.chanlocs[0].dtype.names
+                              for fld in pos_fields)
+            except TypeError:
+                # when stored as hdf, empty eeg.chanlocs is array([0, 0], dtype=uint64)
+                # which raises a Type Error, but we still need default chan names
+                ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+                hdf5_flag = True
         else:
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
                           for fld in pos_fields)
-        get_pos = has_pos and montage is None
-        pos_ch_names, ch_names, pos = list(), list(), list()
-        kind = 'user_defined'
-        update_ch_names = False
-        for chanloc in eeg.chanlocs:
-            ch_names.append(chanloc.labels)
-            if get_pos:
-                loc_x = _to_loc(chanloc.X)
-                loc_y = _to_loc(chanloc.Y)
-                loc_z = _to_loc(chanloc.Z)
-                locs = np.r_[-loc_y, loc_x, loc_z]
-                if not np.any(np.isnan(locs)):
-                    pos_ch_names.append(chanloc.labels)
-                    pos.append(locs)
-        n_channels_with_pos = len(pos_ch_names)
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
-        if n_channels_with_pos > 0:
-            selection = np.arange(n_channels_with_pos)
-            montage = Montage(np.array(pos), pos_ch_names, kind, selection)
+        if not hdf5_flag:
+            # If type error thrown by, presumably, hdf5 file, skip the rest
+            # of the if len(eeg.chanlocs) > 0 block
+            get_pos = has_pos and montage is None
+            pos_ch_names, ch_names, pos = list(), list(), list()
+            kind = 'user_defined'
+            update_ch_names = False
+            for chanloc in eeg.chanlocs:
+                ch_names.append(chanloc.labels)
+                if get_pos:
+                    loc_x = _to_loc(chanloc.X)
+                    loc_y = _to_loc(chanloc.Y)
+                    loc_z = _to_loc(chanloc.Z)
+                    locs = np.r_[-loc_y, loc_x, loc_z]
+                    if not np.any(np.isnan(locs)):
+                        pos_ch_names.append(chanloc.labels)
+                        pos.append(locs)
+            n_channels_with_pos = len(pos_ch_names)
+            info = create_info(ch_names, eeg.srate, ch_types='eeg')
+            if n_channels_with_pos > 0:
+                selection = np.arange(n_channels_with_pos)
+                montage = Montage(np.array(pos), pos_ch_names, kind, selection)
+                
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
@@ -306,17 +351,51 @@ def _bunch_wrapper(name, **kwargs):
     return Bunch(**kwargs)
 
 
-def _hdf_data_2_strs(orig, hdf_data, lower=True):
-    """ Takes string values stored as ascii values in numpy array
-        and returns list of human-readable strings"""
+def _bunch_data_2_strs(bunch_data, field, lower=True):
+    """ Takes string values stored as ascii values in numpy arrays
+        in bunch objects and returns list of human-readable strings"""
 
-    ascii_vals = [orig[hdf_data[x][0]].value
-                  for x in range(len(hdf_data))]
-    str_list = [''.join([chr(x) for x in curr_label]).strip()
-                for curr_label in ascii_vals]
-    str_list = [x.lower() if lower else x for x in str_list]
+    str_list = [''.join([chr(x) for x in curr_label.__dict__[field]]).strip()
+                for curr_label in bunch_data]
     return str_list
 
+def _bunch_str_conversions(bunch_data, str_conversion_fields):
+    """ Converts selected fields from bunch object from 1D array
+        aof ascii values to strs"""
+    
+    for curr_field in str_conversion_fields:
+        if (len(bunch_data) > 0 and
+            curr_field in bunch_data[0] and
+            not isinstance(bunch_data[0].__dict__[curr_field], str)):
+
+            str_data = _bunch_data_2_strs(bunch_data, curr_field)
+            for ctr, curr_str in enumerate(str_data):
+                bunch_data[ctr].__dict__[curr_field] = curr_str
+    return bunch_data
+    
+def _bunch_derefs(orig, bunch_data, deref_fields):
+    import h5py
+    
+    for curr_field in deref_fields:
+        if (len(bunch_data) > 0 and
+            curr_field in bunch_data[0] and
+            len(bunch_data[0].__dict__[curr_field]) > 0 and
+            isinstance(bunch_data[0].__dict__[curr_field][0], h5py.h5r.Reference)):
+
+            for ctr in range(len(bunch_data)):
+                try:
+                    # Ensure bunch_data[ctr].__dict__[curr_field] is iterable
+                    # before attempting to iterate over it
+                    test_iterator = iter(bunch_data[ctr].__dict__[curr_field])
+                except TypeError:
+                    x = bunch_data[ctr].__dict__[curr_field]
+                    deref = [orig[x].value.flatten()]
+                else:
+                    deref = [orig[x].value.flatten() for x in bunch_data[ctr].__dict__[curr_field]]
+ 
+                bunch_data[ctr].__dict__[curr_field] = deref
+
+    return bunch_data
 
 def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
     """Convert h5py obj to dict."""
@@ -333,7 +412,8 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
 
         msg = indent + "Converting " + curr_name
         if isinstance(in_hdf[curr], h5py.Dataset):
-            logger.info(msg)
+            suffix =  " - Dataset"
+            logger.info(msg+suffix)
             temp = in_hdf[curr].value
             if 1 in temp.shape:
                 temp = temp.flatten()
@@ -345,70 +425,125 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
                 temp = np.asscalar(temp[0])
                 if isinstance(temp, float) and temp.is_integer():
                     temp = int(temp)
+
             out_dict[curr] = temp
 
         elif isinstance(in_hdf[curr], h5py.Group):
-            logger.info(msg)
+            suffix =  " - Group"
+            logger.info(msg+suffix)
+            try:
+              for x in in_hdf[curr]:
+                  print curr,":",x,in_hdf[curr][x], in_hdf[curr][x].dtype
+            except:
+                pass
+
             if curr == 'chanlocs':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
                                              indent + indent_incr)
-                chr_labels = _hdf_data_2_strs(orig, in_hdf[curr]['labels'],
-                                              False)
-                chr_types = _hdf_data_2_strs(orig, in_hdf[curr]['type'])
+                # For some reason an empty chanloc field, which is stored as
+                # [] <type 'numpy.ndarray'> in Matlab's original set file
+                # becomes array([0, 0], dtype=uint64) when Matlab stores as HDF5 (!?)
+                # since chanloc's values all appear to be scalars or strings,
+                # each value of array[0,0] will be replaced by [].
 
-                for ctr, (curr_label, curr_type) in enumerate(zip(chr_labels,
-                                                                  chr_types)):
-                    temp[ctr].labels = curr_label
-                    temp[ctr].type = curr_type
+                temp = [{curr_key:np.array([])
+                         if np.array_equal(curr_dict[curr_key],
+                                           np.array([0, 0], dtype=np.uint64))
+                         else curr_dict[curr_key]
+                         for curr_key in curr_dict}
+                        for curr_dict in temp]
 
+                # Rebunchify temp
+                temp = [Bunch(**x) for x in temp]
+                
+                # TO DO add tests to know when to add these (& other) string fields
+                str_conversion_fields = ('type', 'labels')
+                temp = _bunch_str_conversions(temp, str_conversion_fields)
+                        
             elif curr == 'event':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
                                              indent + indent_incr)
+                
+                # TO DO add tests to know when to add these (& other) string fields
+                str_conversion_fields = ('type', 'usertags')
+                temp = _bunch_str_conversions(temp, str_conversion_fields)
+                        
+            elif curr == 'epoch':
+                
+                temp = _hlGroup_2_bunch_list(orig, in_hdf[curr],
+                                             curr_name, indent + indent_incr)
 
-                chr_types = _hdf_data_2_strs(orig, in_hdf[curr]['type'])
-                chr_usertags = _hdf_data_2_strs(orig, in_hdf[curr]['usertags'])
+                deref_fields = ('eventtype', 'eventlatency', 'eventurevent',
+                               'eventduration', 'eventvalue')   
+                temp = _bunch_derefs(orig, temp, deref_fields)
 
-                for ctr, (curr_usertag,
-                          curr_type) in enumerate(zip(chr_usertags,
-                                                      chr_types)):
-                    temp[ctr].usertags = curr_usertag
-                    temp[ctr].type = curr_type
+                for curr_elem in temp:
+                    eventtype_str = [''.join([chr(x) for x in c_evt])
+                                         for c_evt in curr_elem.eventtype]
+                    curr_elem.eventtype = ''.join(eventtype_str)
 
+                
             else:
-                temp = hdf_2_dict(orig, in_hdf[curr],
+                try:
+                  temp = hdf_2_dict(orig, in_hdf[curr],
                                   curr_name, indent + indent_incr)
+                except:
+                    import pdb
+                    pdb.set_trace()
+                    1==1
             out_dict[curr] = temp
 
         else:
             sys.exit("Unknown type")
+            
     return out_dict
 
 
 def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
+    '''Returns list of Bunch objects - A Bunch object is a 
+       dictionary-like object that exposes its keys as attributes.
+       ASSUMES: The group consists solely of arrays of HDF5 obj refs,
+       and that these refs all reference 2D numpy arrays that need to
+       be flattened to either 1D arrays or Scalars'''
+    
     import h5py
 
     try:
-        temp_dict = {ct: in_hlGroup[ct].value.flatten() for ct in in_hlGroup}
-        temp_dict = {x: [orig[y].value.flatten()[0] for y in temp_dict[x]]
-                     if isinstance(temp_dict[x][0], h5py.Reference)
-                     else temp_dict[x]
-                     for x in temp_dict}
+        # h5_values gives dict of 1D arrays of HDF obj references
+        h5_values = {ct: in_hlGroup[ct].value.flatten() for ct in in_hlGroup}
+
+        # derefs dereferences HDF obj references and cnverts arrays with
+        # shapes = (1,) to scalars. Returns adict mapping keys to lists
+        # of arrays and scalars
+        derefs = {x: [orig[y].value.flatten()
+                      if orig[y].value.flatten().shape != (1,)
+                      else orig[y].value.flatten()[0]
+                      for y in h5_values[x]]
+                     if isinstance(h5_values[x], np.ndarray) and
+                        isinstance(h5_values[x][0], h5py.Reference) 
+                     else h5_values[x]
+                     for x in h5_values}
+
+
+        
         for ct in in_hlGroup:
             msg = indent + "Converting " + tuple_name + '_' + ct
             logger.info(msg)
 
     except IOError:
-        temp_dict = {ct: [None] for ct in in_hlGroup}
+        derefs = {ct: [None] for ct in in_hlGroup}
         warn("Couldn't read", tuple_name, ". Assuming empty")
 
-    sz = len(temp_dict[temp_dict.keys()[0]])
-    bch_list = [Bunch(**{key: temp_dict[key][x] for key in temp_dict})
+    sz = len(derefs[derefs.keys()[0]])
+    bch_list = [Bunch(**{key: derefs[key][x] for key in derefs})
                 for x in range(sz)]
     return bch_list
 
 
 def _get_eeg_data(input_fname, uint16_codec=None):
     from scipy import io
+    import pdb
+    pdb.set_trace()
     try:
         # Try to read old style Matlab file
         eeg = io.loadmat(input_fname, struct_as_record=False,
@@ -493,6 +628,7 @@ class RawEEGLAB(BaseRaw):
     def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
                  verbose=None, uint16_codec=None):  # noqa: D102
+            
         basedir = op.dirname(input_fname)
         _check_mat_struct(input_fname)
         eeg = _get_eeg_data(input_fname, uint16_codec)
@@ -518,6 +654,12 @@ class RawEEGLAB(BaseRaw):
         self._create_event_ch(events, n_samples=eeg.pnts)
 
         # read the data
+        # if hdf5 data was read in, then file name might be encoded
+        # as array of ascii values of characters
+        ascii_check = _check_for_ascii_filename(eeg, input_fname)
+        if ascii_check[0]:
+            eeg.data = ascii_check[1]
+            
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
             _check_fname(data_fname)
@@ -533,8 +675,26 @@ class RawEEGLAB(BaseRaw):
                      'the .set file')
             # can't be done in standard way with preload=True because of
             # different reading path (.set file)
+
             if eeg.nbchan == 1 and len(eeg.data.shape) == 1:
                 n_chan, n_times = [1, eeg.data.shape[0]]
+            elif (len(eeg.data.shape) == 1 and
+                  eeg.nbchan != eeg.data.shape[0] and
+                  eeg.data.dtype.name == 'uint16'):
+                # hdf5 stores this string as an array of dtype uint16,
+                # where each integer is the ascii value of a character
+                # in the string
+                test_fname = ''.join([chr(x)
+                                      for x in eeg.data.flatten()])
+                data_fname = op.join(basedir, test_fname)
+                _check_fname(data_fname)
+                logger.info('Reading %s' % data_fname)
+
+                super(RawEEGLAB, self).__init__(
+                   info, preload, filenames=[data_fname], 
+                   last_samps=last_samps, orig_format='double',
+                   verbose=verbose)
+                return
             else:
                 n_chan, n_times = eeg.data.shape
 
@@ -543,6 +703,11 @@ class RawEEGLAB(BaseRaw):
                 temp = eeg.data.transpose()
                 eeg.data = temp
                 n_chan, n_times = eeg.data.shape
+            elif n_chan == n_times:
+                warn("The number of data channels equals the number")
+                warn("of data points. If data is stored usinf hdf5 ")
+                warn("format, the transpose of the data matrix will")
+                warn("be mistaken for the data matrix") 
 
             data = np.empty((n_chan + 1, n_times), dtype=np.double)
             data[:-1] = eeg.data
@@ -729,6 +894,13 @@ class EpochsEEGLAB(BaseEpochs):
                 raise ValueError('No matching events found for %s '
                                  '(event id %i)' % (key, val))
 
+        # Read data
+        # if hdf5 data was read in, then file name might be encoded
+        # as array of ascii values of characters
+        ascii_check = _check_for_ascii_filename(eeg, input_fname)
+        if ascii_check[0]:
+            eeg.data = ascii_check[1]
+            
         if isinstance(eeg.data, string_types):
             basedir = op.dirname(input_fname)
             data_fname = op.join(basedir, eeg.data)
@@ -744,6 +916,19 @@ class EpochsEEGLAB(BaseEpochs):
             data = data[np.newaxis, :]
         data = data.transpose((2, 0, 1)).astype('double')
         data *= CAL
+
+        # If data read from hdf5 file, pnts abd nbchan axes will be
+        # swapped
+        test_trials, test_nbchan, test_pnts = data.shape
+        if (eeg.nbchan == test_trials and
+            eeg.nbchan != test_nbchan):
+            data = data.transpose((1,0,2)).astype('double')
+        elif test_trials == test_nbchan:
+            warn("The number of data channels equals the number ")
+            warn("of trials. If data is stored usinf hdf5 format, ")
+            warn("the transpose of the data matrix will be mistaken ")
+            warn("for the data matrix") 
+            
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
 
