@@ -137,7 +137,8 @@ class ICA(ContainsMixin):
               differences in floating point arithmetic due to exponential
               non-linearity. Extended-Infomax seems to be more stable in this
               respect enhancing reproducibility and stability of results.
-              Picard tends to be faster than the other algorithms.
+              Picard tends to give more consistent results than the other
+              algorithms.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.
