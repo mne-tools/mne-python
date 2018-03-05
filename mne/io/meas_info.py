@@ -917,10 +917,12 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             chs.append(tag.data)
         elif kind == FIFF.FIFF_LOWPASS:
             tag = read_tag(fid, pos)
-            lowpass = float(tag.data)
+            if not np.isnan(tag.data):
+                lowpass = float(tag.data)
         elif kind == FIFF.FIFF_HIGHPASS:
             tag = read_tag(fid, pos)
-            highpass = float(tag.data)
+            if not np.isnan(tag.data):
+                highpass = float(tag.data)
         elif kind == FIFF.FIFF_MEAS_DATE:
             tag = read_tag(fid, pos)
             meas_date = tag.data
