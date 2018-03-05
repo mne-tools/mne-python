@@ -87,7 +87,9 @@ def test_coreg_model():
     assert_allclose(model.hsp.lpa, [[-7.137e-2, 0, 5.122e-9]], 1e-4)
     assert_allclose(model.hsp.rpa, [[+7.527e-2, 0, 5.588e-9]], 1e-4)
     assert_allclose(model.hsp.nasion, [[+3.725e-9, 1.026e-1, 4.191e-9]], 1e-4)
-    assert_true(model.has_fid_data)
+    assert model.has_lpa_data
+    assert model.has_nasion_data
+    assert model.has_rpa_data
     assert len(model.hsp.eeg_points) > 1
 
     assert len(model.mri.bem_low_res.points) == 2562
@@ -98,13 +100,13 @@ def test_coreg_model():
     rpa_distance = model.rpa_distance
     avg_point_distance = np.mean(model.point_distance)
 
-    model.fit_fiducials()
+    model.fit_fiducials(0)
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
              model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
-    model.fit_icp()
+    model.fit_icp(0)
     assert_true(np.mean(model.point_distance) < avg_point_distance)
 
     model.save_trans(trans_dst)
@@ -267,24 +269,31 @@ def test_coreg_model_with_fsaverage():
 
     # test hsp point omission
     model.trans_y = -0.008
-    model.fit_fiducials()
+    model.fit_fiducials(0)
     model.omit_hsp_points(0.02)
-    assert_equal(model.hsp.n_omitted, 1)
-    model.omit_hsp_points(reset=True)
-    assert_equal(model.hsp.n_omitted, 0)
-    model.omit_hsp_points(0.02, reset=True)
-    assert_equal(model.hsp.n_omitted, 1)
+    assert model.hsp.n_omitted == 1
+    model.omit_hsp_points(np.inf)
+    assert model.hsp.n_omitted == 0
+    model.omit_hsp_points(0.02)
+    assert model.hsp.n_omitted == 1
+    model.omit_hsp_points(0.01)
+    assert model.hsp.n_omitted == 4
+    model.omit_hsp_points(0.005)
+    assert model.hsp.n_omitted == 40
+    model.omit_hsp_points(0.01)
+    assert model.hsp.n_omitted == 4
+    model.omit_hsp_points(0.02)
+    assert model.hsp.n_omitted == 1
 
     # scale with 1 parameter
     model.n_scale_params = 1
-
-    model.fit_scale_fiducials()
+    model.fit_fiducials(1)
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
              model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
-    model.fit_scale_icp()
+    model.fit_icp(1)
     avg_point_distance_1param = np.mean(model.point_distance)
     assert_true(avg_point_distance_1param < avg_point_distance)
 
@@ -303,7 +312,7 @@ def test_coreg_model_with_fsaverage():
 
     # scale with 3 parameters
     model.n_scale_params = 3
-    model.fit_scale_icp()
+    model.fit_icp(3)
     assert_true(np.mean(model.point_distance) < avg_point_distance_1param)
 
     # test switching raw disables point omission
