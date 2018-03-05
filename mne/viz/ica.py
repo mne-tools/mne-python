@@ -525,7 +525,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         if len(my_range) != len(this_scores):
             raise ValueError('The length of `scores` must equal the '
                              'number of ICA components.')
-        ax.bar(my_range, this_scores, color='w', edgecolor='k')
+        ax.bar(my_range, this_scores, color='gray', edgecolor='k')
         for excl in exclude:
             ax.bar(my_range[excl], this_scores[excl], color='r', edgecolor='k')
         if axhline is not None:
