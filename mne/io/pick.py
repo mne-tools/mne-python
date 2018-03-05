@@ -758,3 +758,22 @@ def _pick_data_or_ica(info):
     else:
         picks = _pick_data_channels(info, exclude=[], with_ref_meg=True)
     return picks
+
+
+def _pick_inst(inst, picks, exclude, copy=True):
+    """Return an instance with picked and excluded channels."""
+    if copy is True:
+        inst = inst.copy()
+    if picks is not None:
+        pick_names = [inst.info['ch_names'][pick] for pick in picks]
+    else:  # only pick channels that are plotted
+        picks = _pick_data_channels(inst.info, exclude=[])
+        pick_names = [inst.info['ch_names'][pick] for pick in picks]
+    inst.pick_channels(pick_names)
+
+    if exclude == 'bads':
+        exclude = [ch for ch in inst.info['bads']
+                   if ch in inst.info['ch_names']]
+    if exclude is not None:
+        inst.drop_channels(exclude)
+    return inst

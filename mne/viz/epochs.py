@@ -23,7 +23,8 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _grad_pair_pick_and_name, _handle_decim,
-                    _setup_plot_projector, _set_ax_label_style)
+                    _setup_plot_projector, _set_ax_label_style,
+                    _get_channel_types)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -186,8 +187,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
 
-    ch_types = [channel_type(epochs.info, idx) for idx in picks]
-    if len(set(ch_types)) > 1 and group_by is None and combine is not None:
+    ch_types = _get_channel_types(epochs.info, picks=picks)
+    if len(ch_types) > 1 and group_by is None and combine is not None:
         warn("Combining over multiple channel types. "
              "Please use ``group_by``.")
     for ch_type in ch_types:

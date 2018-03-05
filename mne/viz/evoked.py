@@ -19,7 +19,7 @@ import numpy as np
 
 from ..io.pick import (channel_type, _pick_data_channels,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
-                       _DATA_CH_TYPES_SPLIT)
+                       _DATA_CH_TYPES_SPLIT, _pick_inst)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -1186,21 +1186,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # channel selection
     # simply create a new evoked object with the desired channel selection
-    evoked = evoked.copy()
-
-    if picks is not None:
-        pick_names = [evoked.info['ch_names'][pick] for pick in picks]
-    else:  # only pick channels that are plotted
-        picks = _pick_data_channels(evoked.info, exclude=[])
-        pick_names = [evoked.info['ch_names'][pick] for pick in picks]
-    evoked.pick_channels(pick_names)
-
-    if exclude == 'bads':
-        exclude = [ch for ch in evoked.info['bads']
-                   if ch in evoked.info['ch_names']]
-    if exclude is not None:
-        evoked.drop_channels(exclude)
-
+    evoked = _pick_inst(evoked, picks, exclude, copy=True)
     info = evoked.info
     ch_types = _get_channel_types(info)
 

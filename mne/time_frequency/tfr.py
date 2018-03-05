@@ -23,7 +23,8 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
-from ..io.pick import pick_info, pick_types, _pick_data_channels, channel_type
+from ..io.pick import (pick_info, pick_types, _pick_data_channels,
+                       channel_type, _pick_inst)
 from ..io.meas_info import Info
 from ..utils import SizeMixin
 from .multitaper import dpss_windows
@@ -1363,24 +1364,10 @@ class AverageTFR(_BaseTFR):
         # types in case a user supplies `picks` that pre-select only one
         # channel type.
         # Nonetheless, it should be refactored for code reuse.
-        tfr = (self.copy() if any(
-            var is not None for var in (exclude, picks, baseline)) else self)
-
-        if picks is not None:
-            pick_names = [tfr.info['ch_names'][pick] for pick in picks]
-        else:  # only pick channels that are plotted
-            picks = _pick_data_channels(tfr.info, exclude=[])
-            pick_names = [tfr.info['ch_names'][pick] for pick in picks]
-            tfr.pick_channels(pick_names)
-
-        if exclude == 'bads':
-            exclude = [ch for ch in tfr.info['bads']
-                       if ch in tfr.info['ch_names']]
-        if exclude is not None:
-            tfr.drop_channels(exclude)
-
+        copy = any(var is not None for var in (exclude, picks, baseline))
+        tfr = _pick_inst(self, picks, exclude, copy=copy)
         info = tfr.info
-        ch_types = _get_channel_types(tfr.info)
+        ch_types = _get_channel_types(info)
 
         # if multiple sensor types: one plot per channel type, recursive call
         if len(ch_types) > 1:
@@ -2246,6 +2233,8 @@ def _get_timefreqs(tfr, timefreqs):
             timefreqs = [timefreqs]
         else:
             for item in timefreqs:
+                if not hasattr(item, "__len__"):
+                    raise ValueError(timefreq_error_msg, timefreqs)
                 if len(item) != 2 or any((not isinstance(v_, (int, float))
                                           for v_ in item)):
                     raise ValueError(timefreq_error_msg, item)

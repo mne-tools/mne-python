@@ -473,7 +473,7 @@ def test_plot_joint():
     topomap_args = {'res': 8, 'contours': 0, 'sensors': False}
 
     for combine in ('mean', 'rms', None):
-        tfr.plot_joint(picks=[0, 1], title='auto', colorbar=True,
+        tfr.plot_joint(title='auto', colorbar=True,
                        combine=combine, topomap_args=topomap_args)
         plt.close('all')
 
@@ -493,7 +493,8 @@ def test_plot_joint():
 
     # test that the object is not internally modified
     tfr_orig = tfr.copy()
-    tfr.plot_joint(baseline=(0, None), picks=[0], topomap_args=topomap_args)
+    tfr.plot_joint(baseline=(0, None), exclude=[tfr.ch_names[0]],
+                   topomap_args=topomap_args)
     plt.close('all')
     assert_array_equal(tfr.data, tfr_orig.data)
     assert_true(set(tfr.ch_names) == set(tfr_orig.ch_names))
