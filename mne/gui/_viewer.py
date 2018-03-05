@@ -124,6 +124,31 @@ class Object(HasPrivateTraits):
     nn = Array(float, shape=(None, 3))
     name = Str
 
+    scene = Instance(MlabSceneModel, ())
+    src = Instance(VTKDataSource)
+
+    # This should be Tuple, but it is broken on Anaconda as of 2016/12/16
+    color = RGBColor((1., 1., 1.))
+    opacity = Range(low=0., high=1., value=1.)
+    visible = Bool(True)
+
+    def _update_points(self):
+        """Update the location of the plotted points."""
+        if not hasattr(self.src, 'data'):
+            return
+        self.src.data.points = self.points
+        return True
+
+
+class PointObject(Object):
+    """Represent a group of individual points in a mayavi scene."""
+
+    label = Bool(False)
+    projectable = Bool(False)  # set based on type of points
+    orientable = Property(depends_on=['project_to_points', 'project_to_tris'])
+    text3d = List
+    point_scale = Float(10, label='Point Scale')
+
     # projection onto a surface
     project_to_points = Array(float, shape=(None, 3))
     project_to_tris = Array(int, shape=(None, 3))
@@ -135,62 +160,7 @@ class Object(HasPrivateTraits):
                              'distance from the surface')
     mark_inside = Bool(False, label='Mark', desc='mark points inside the '
                        'surface in a different color')
-
-    scene = Instance(MlabSceneModel, ())
-    src = Instance(VTKDataSource)
-
-    # This should be Tuple, but it is broken on Anaconda as of 2016/12/16
-    color = RGBColor((1., 1., 1.))
     inside_color = RGBColor((0., 0., 0.))
-    point_scale = Float(10, label='Point Scale')
-    opacity = Range(low=0., high=1., value=1.)
-    visible = Bool(True)
-
-    # don't put project_to_tris here, just always set project_to_points second
-    @on_trait_change('points,project_to_surface,mark_inside')
-    def _update_points(self):
-        """Update the location of the plotted points."""
-        if not hasattr(self.src, 'data'):
-            return
-
-        pts = self.points
-
-        # Do the projection if required
-        if len(self.project_to_points) > 1 and len(pts) > 0:
-            surf = dict(rr=np.array(self.project_to_points),
-                        tris=np.array(self.project_to_tris))
-            method = 'accurate' if len(surf['rr']) <= 20484 else 'nearest'
-            proj_pts, proj_nn = _project_onto_surface(
-                pts, surf, project_rrs=True, return_nn=True,
-                method=method)[2:4]
-            vec = pts - proj_pts  # point to the surface
-            if self.project_to_surface:
-                pts = proj_pts
-                nn = proj_nn
-            else:
-                nn = vec.copy()
-                _normalize_vectors(nn)
-            if self.mark_inside and not self.project_to_surface:
-                scalars = _points_outside_surface(pts, surf).astype(int)
-            else:
-                scalars = np.ones(len(pts))
-            # With this, a point exactly on the surface is of size point_scale
-            dist = np.linalg.norm(vec, axis=-1, keepdims=True)
-            self.src.data.point_data.normals = (250 * dist + 1) * nn
-            self.src.data.point_data.scalars = scalars
-            self.glyph.actor.mapper.scalar_range = [0., 1.]
-        self.src.data.point_data.update()
-        self.src.data.points = pts
-        return True
-
-
-class PointObject(Object):
-    """Represent a group of individual points in a mayavi scene."""
-
-    label = Bool(False)
-    projectable = Bool(False)  # set based on type of points
-    orientable = Property(depends_on=['project_to_points', 'project_to_tris'])
-    text3d = List
 
     glyph = Instance(Glyph)
     resolution = Int(8)
@@ -298,6 +268,41 @@ class PointObject(Object):
         self._update_colors()
         _toggle_mlab_render(self, True)
         # self.scene.camera.parallel_scale = _scale
+
+    # don't put project_to_tris here, just always set project_to_points second
+    @on_trait_change('points,project_to_points,project_to_surface,mark_inside')
+    def _update_projections(self):
+        """Update the styles of the plotted points."""
+        if not hasattr(self.src, 'data'):
+            return
+        if len(self.project_to_points) <= 1 or len(self.points) == 0:
+            return
+
+        # Do the projections
+        pts = self.points
+        surf = dict(rr=np.array(self.project_to_points),
+                    tris=np.array(self.project_to_tris))
+        method = 'accurate' if len(surf['rr']) <= 20484 else 'nearest'
+        proj_pts, proj_nn = _project_onto_surface(
+            pts, surf, project_rrs=True, return_nn=True,
+            method=method)[2:4]
+        vec = pts - proj_pts  # point to the surface
+        if self.project_to_surface:
+            pts = proj_pts
+            nn = proj_nn
+        else:
+            nn = vec.copy()
+            _normalize_vectors(nn)
+        if self.mark_inside and not self.project_to_surface:
+            scalars = _points_outside_surface(pts, surf).astype(int)
+        else:
+            scalars = np.ones(len(pts))
+        # With this, a point exactly on the surface is of size point_scale
+        dist = np.linalg.norm(vec, axis=-1, keepdims=True)
+        self.src.data.point_data.normals = (250 * dist + 1) * nn
+        self.src.data.point_data.scalars = scalars
+        self.glyph.actor.mapper.scalar_range = [0., 1.]
+        self.src.data.point_data.update()
 
     @on_trait_change('color,inside_color')
     def _update_colors(self):
