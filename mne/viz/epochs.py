@@ -167,6 +167,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
         if group_by is None:
+            logger.info("No picks and no groupby, showing the first five "
+                        "channels ...")
             picks = picks[:5]  # take 5 picks to prevent spawning many figs
     else:
         picks = np.atleast_1d(picks)

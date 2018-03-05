@@ -1147,7 +1147,7 @@ class AverageTFR(_BaseTFR):
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
               axes=None, layout=None, yscale='auto', combine=None,
-              exclude=None, copy=True, verbose=verbose):
+              exclude=None, copy=True, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1386,6 +1386,8 @@ class AverageTFR(_BaseTFR):
 
         # if multiple sensor types: one plot per channel type, recursive call
         if len(ch_types) > 1:
+            logger.info("Multiple channel types selected, returning one "
+                        "figure per type.")
             figs = list()
             for this_type in ch_types:  # pick corresponding channel type
                 tf_ = tfr.copy().pick_channels(

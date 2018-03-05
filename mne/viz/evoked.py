@@ -1773,15 +1773,15 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if len(ch_types) > 1:
         logger.info("Multiple channel types selected, returning one figure "
                     "per type.")
-        figs = []
+        figs = list()
         for ii, t in enumerate(ch_types):
             picks_ = picks_by_types[t]
             title_ = "GFP, " + t if (title is None and gfp is True) else title
             figs.append(plot_compare_evokeds(
                 evokeds, picks=picks_, gfp=gfp, colors=colors,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
-                truncate_yaxis=truncate_yaxis, ylim=ylim,
-                invert_y=invert_y, axes=axes[ii], title=title_, show=show))
+                truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
+                axes=axes[ii], title=title_, show=show))
         return figs
 
     # From now on there is only 1 channel type
