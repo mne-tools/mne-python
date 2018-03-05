@@ -29,7 +29,7 @@ from ..utils import SizeMixin
 from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
-                         _setup_vmin_vmax, _check_multiple_data_channel_types,
+                         _setup_vmin_vmax, _get_channel_types,
                          _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
@@ -1380,8 +1380,7 @@ class AverageTFR(_BaseTFR):
             tfr.drop_channels(exclude)
 
         info = tfr.info
-        data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
-        ch_types = set(ch_type for ch_type in data_types if ch_type in self)
+        ch_types = _get_channel_types(tfr.info)
 
         # if multiple sensor types: one plot per channel type, recursive call
         if len(ch_types) > 1:
@@ -1392,7 +1391,7 @@ class AverageTFR(_BaseTFR):
                 tf_ = tfr.copy().pick_channels(
                     [info['ch_names'][idx] for idx in range(info['nchan'])
                      if channel_type(info, idx) == this_type])
-                if _check_multiple_data_channel_types(tf_.info):
+                if len(_get_channel_types(tfr)(tf_.info)) > 1:
                     raise RuntimeError(
                         'Possibly infinite loop due to channel selection '
                         'problem. This should never happen! Please check '

@@ -27,7 +27,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _setup_vmin_vmax, _grad_pair_pick_and_name, _check_cov,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, COLORS, _setup_ax_spines,
-                    _setup_plot_projector, _check_multiple_data_channel_types,
+                    _setup_plot_projector, _get_channel_types,
                     _prepare_joint_axes, _set_title_multiple_electrodes)
 from ..utils import logger, _clean_names, warn, _pl, verbose
 
@@ -1202,8 +1202,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
         evoked.drop_channels(exclude)
 
     info = evoked.info
-    data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
-    ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
+    ch_types = _get_channel_types(info)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
@@ -1212,7 +1211,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             ev_ = evoked.copy().pick_channels(
                 [info['ch_names'][idx] for idx in range(info['nchan'])
                  if channel_type(info, idx) == this_type])
-            if _check_multiple_data_channel_types(ev_.info):
+            if len(_get_channel_types(ev_.info)) > 1:
                 raise RuntimeError('Possibly infinite loop due to channel '
                                    'selection problem. This should never '
                                    'happen! Please check your channel types.')

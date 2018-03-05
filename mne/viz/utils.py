@@ -2505,16 +2505,17 @@ def _check_cov(noise_cov, info):
     return noise_cov
 
 
-def _check_multiple_data_channel_types(info):
-    """Check if an info instance contains multiple chan types."""
+def _get_channel_types(info):
+    """Get the data channel types in an info instance."""
     data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
-    return len(set([channel_type(info, idx) for idx in range(info['nchan'])
-                    if channel_type(info, idx) in data_types])) > 1
+    return (set([channel_type(info, idx) for idx in range(info['nchan'])
+                 if channel_type(info, idx) in data_types])) > 1
 
 
-def _set_title_multiple_electrodes(title, combine, ch_names):
-    title = ", ".join(ch_names[:6]) if title is None else title
-    if len(ch_names) > 6 and combine is not "gfp":
-        warn("More than 6 channels, truncating title ...")
+def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6):
+    "Prepare a title string for multiple electrodes."
+    title = ", ".join(ch_names[:max_chans]) if title is None else title
+    if len(ch_names) > max_chans and combine is not "gfp":
+        warn("More than {} channels, truncating title ...".format(max_chans))
         title += ", ...\n({} of {} sensors)".format(combine, len(ch_names))
     return title
