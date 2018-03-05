@@ -1391,7 +1391,7 @@ class AverageTFR(_BaseTFR):
                 tf_ = tfr.copy().pick_channels(
                     [info['ch_names'][idx] for idx in range(info['nchan'])
                      if channel_type(info, idx) == this_type])
-                if len(_get_channel_types(tfr)(tf_.info)) > 1:
+                if len(_get_channel_types(tf_.info)) > 1:
                     raise RuntimeError(
                         'Possibly infinite loop due to channel selection '
                         'problem. This should never happen! Please check '
