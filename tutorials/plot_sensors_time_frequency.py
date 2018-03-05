@@ -8,8 +8,8 @@ Frequency and time-frequency sensors analysis
 The objective is to show you how to explore the spectral content
 of your data (frequency and time-frequency). Here we'll work on Epochs.
 
-We will use the somatosensory dataset that contains so
-called event related synchronizations (ERS) / desynchronizations (ERD) in
+We will use the somatosensory dataset that contains so-called
+event related synchronizations (ERS) / desynchronizations (ERD) in
 the beta band.
 """
 

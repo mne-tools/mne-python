@@ -187,7 +187,7 @@ trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 maps = mne.make_field_map(evoked_l_aud, trans=trans_fname, subject='sample',
                           subjects_dir=subjects_dir, n_jobs=1)
 
-# explore several points in time
+# Finallyy, explore several points in time
 field_map = evoked_l_aud.plot_field(maps, time=.1)
 
 ###############################################################################
