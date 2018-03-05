@@ -1167,7 +1167,6 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         the contours. If colorbar=True, the ticks in colorbar correspond to the
         contour levels. Defaults to 6.
 
-
     Returns
     -------
     fig : matplotlib.figure.Figure

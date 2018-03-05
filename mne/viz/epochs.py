@@ -187,7 +187,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
 
-    ch_types = _get_channel_types(epochs.info, picks=picks)
+    ch_types = _get_channel_types(epochs.info, picks=picks, unique=False)
     if len(ch_types) > 1 and group_by is None and combine is not None:
         warn("Combining over multiple channel types. "
              "Please use ``group_by``.")
