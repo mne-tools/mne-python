@@ -137,8 +137,14 @@ class ICA(ContainsMixin):
               differences in floating point arithmetic due to exponential
               non-linearity. Extended-Infomax seems to be more stable in this
               respect enhancing reproducibility and stability of results.
-              Picard tends to give more consistent results than the other
-              algorithms.
+              The stopping criterion of FastICA, Infomax, Extended
+              Infomax and Picard differ, making it hard to compare different
+              tolerances level, but a rule of thumb is
+              `tol_fastica = tol_picard ** 2`. Hence, the default tolerance for
+              Picard, `1e-5`, roughly corresponds to setting `tol=1e-10` for
+              FastICA. In this case, Picard tends to be faster than the other
+              algorithms. Reducing the tolerance speeds up estimation but
+              lowers the consistency of the results.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.
