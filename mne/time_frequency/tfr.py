@@ -1161,11 +1161,10 @@ class AverageTFR(_BaseTFR):
 
         if picks is not None:
             n_picks = len(picks)
-            pick_names = [average_tfr.info['ch_names'][pick] for pick in picks]
         else:
             n_picks = 1
             picks = _pick_data_channels(average_tfr.info, exclude='bads')
-            pick_names = [average_tfr.info['ch_names'][pick] for pick in picks]
+        pick_names = [average_tfr.info['ch_names'][pick] for pick in picks]
         average_tfr.pick_channels(pick_names)
 
         if exclude == 'bads':
@@ -2240,6 +2239,8 @@ def _get_timefreqs(tfr, timefreqs):
                                           for v_ in item)):
                     raise ValueError(timefreq_error_msg, item)
     elif timefreqs is not None:
+        if not hasattr(timefreqs, "__len__"):
+            raise ValueError(timefreq_error_msg, timefreqs)
         if (len(timefreqs) == 2 and
             all([(len(v) == 1 and isinstance(v, (int, float)))
                  for v in timefreqs])):
