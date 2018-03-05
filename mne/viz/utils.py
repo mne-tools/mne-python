@@ -1634,15 +1634,6 @@ def _setup_cmap(cmap, n_axes=1, norm=False):
     return cmap
 
 
-def _format_ch_names(ch_names, n_ch=6):
-    """Format channel names into a string."""
-    ch_string = ", ".join(ch_names[:n_ch])
-    if len(ch_names) > n_ch:
-        warn('More than %d channels, truncating title ...' % n_ch)
-        ch_string += ", ..."
-    return ch_string
-
-
 def _prepare_joint_axes(n_maps, figsize=None):
     """Prepare axes for topomaps and colorbar in joint plot figure.
 
@@ -2513,7 +2504,7 @@ def _get_channel_types(info):
 
 
 def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6):
-    "Prepare a title string for multiple electrodes."
+    """Prepare a title string for multiple electrodes."""
     title = ", ".join(ch_names[:max_chans]) if title is None else title
     if len(ch_names) > max_chans and combine is not "gfp":
         warn("More than {} channels, truncating title ...".format(max_chans))
