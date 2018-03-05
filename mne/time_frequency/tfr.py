@@ -1438,42 +1438,10 @@ class AverageTFR(_BaseTFR):
         # Handle timefreqs #
         ####################
 
-        # find and/or setup timefreqs
-        try:  # There are a trillin ways for this to go wrong ...
-            if timefreqs is None:
-                # find the maximum peak
-                from scipy.signal import argrelmax
-                order = max((1, tfr.data.shape[2] // 30))
-                peaks_idx = argrelmax(tfr.data, order=order, axis=2)
-                if peaks_idx[0].size == 0:
-                    _, p_t, p_f = np.unravel_index(tfr.data.argmax(),
-                                                   tfr.data.shape)
-                    timefreqs = [(tfr.times[p_t], tfr.freqs[p_f])]
-                else:
-                    peaks = [tfr.data[0, f, t] for f, t in
-                             zip(peaks_idx[1], peaks_idx[2])]
-                    peakmax_idx = np.argmax(peaks)
-                    peakmax_time = tfr.times[peaks_idx[2][peakmax_idx]]
-                    peakmax_freq = tfr.freqs[peaks_idx[1][peakmax_idx]]
-
-                    timefreqs = [(peakmax_time, peakmax_freq)]
-            elif (not (isinstance(timefreqs, dict)) and
-                  len(timefreqs) == 2 and len(list(timefreqs)[0]) == 0):
-                timefreqs = [timefreqs]
-
-            timefreqs = {
-                k: np.asarray(timefreqs[k]) if isinstance(timefreqs, dict)
-                else np.array([0, 0]) for k in timefreqs}
-
-        except Exception:
-            raise ValueError(timefreq_error_msg + str(type(timefreqs)))
-
         # check if timefreqs exceed limits, or is not pairs
         # it would be nicer to do this earlier, but we need to do the
         # baselining etc. first, which happens in self._plot above
-        for pair in list(timefreqs.keys()) + list(timefreqs.values()):
-            if not hasattr(pair, "__len__") or len(pair) != 2:
-                raise ValueError(timefreq_error_msg + str(type(pair)))
+        timefreqs = _get_timefreqs(tfr, timefreqs)
 
         tmax, tmin = tfr.times.max(), tfr.times.min()
         fmax, fmin = tfr.freqs.max(), tfr.freqs.min()
@@ -2255,3 +2223,51 @@ def read_tfrs(fname, condition=None):
     else:
         out = [EpochsTFR(**d) for d in list(zip(*tfr_data))[1]]
     return out
+
+
+def _get_timefreqs(tfr, timefreqs):
+    # find and/or setup timefreqs
+    timefreq_error_msg = (
+        "Supplied `timefreqs` are somehow malformed. Please supply None, "
+        "a list of tuple pairs, or a dict of such tuple pairs, not: ")
+
+    if isinstance(timefreqs, dict):
+        for k, v in timefreqs.items():
+            for item in (k, v):
+                if len(item) != 2 or any((not isinstance(v_, (int, float))
+                                          for v_ in item)):
+                    raise ValueError(timefreq_error_msg, item)
+    elif timefreqs is not None:
+        if (len(timefreqs) == 2 and
+            all([(len(v) == 1 and isinstance(v, (int, float)))
+                 for v in timefreqs])):
+            timefreqs = [timefreqs]
+        else:
+            for item in timefreqs:
+                if len(item) != 2 or any((not isinstance(v_, (int, float))
+                                          for v_ in item)):
+                    raise ValueError(timefreq_error_msg, item)
+    else:
+        # find the maximum peak
+        from scipy.signal import argrelmax
+
+        order = max((1, tfr.data.shape[2] // 30))
+        peaks_idx = argrelmax(tfr.data, order=order, axis=2)
+        if peaks_idx[0].size == 0:
+            _, p_t, p_f = np.unravel_index(tfr.data.argmax(),
+                                           tfr.data.shape)
+            timefreqs = [(tfr.times[p_t], tfr.freqs[p_f])]
+        else:
+            peaks = [tfr.data[0, f, t] for f, t in
+                     zip(peaks_idx[1], peaks_idx[2])]
+            peakmax_idx = np.argmax(peaks)
+            peakmax_time = tfr.times[peaks_idx[2][peakmax_idx]]
+            peakmax_freq = tfr.freqs[peaks_idx[1][peakmax_idx]]
+
+            timefreqs = [(peakmax_time, peakmax_freq)]
+
+    timefreqs = {
+        k: np.asarray(timefreqs[k]) if isinstance(timefreqs, dict)
+        else np.array([0, 0]) for k in timefreqs}
+
+    return timefreqs

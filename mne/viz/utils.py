@@ -2512,7 +2512,6 @@ def _check_multiple_data_channel_types(info):
                     if channel_type(info, idx) in data_types])) > 1
 
 
-
 def _set_title_multiple_electrodes(title, combine, ch_names):
     title = ", ".join(ch_names[:6]) if title is None else title
     if len(ch_names) > 6 and combine is not "gfp":
