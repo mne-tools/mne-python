@@ -23,22 +23,7 @@ from ...annotations import Annotations
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
 CAL = 1e-6
 
-def _show_mat(mat_obj, spaces=""):
 
-    from scipy import io
-    for x in sorted(mat_obj._fieldnames):
-        print spaces,x," -- ", mat_obj.__dict__[x]
-        if isinstance(mat_obj.__dict__[x], io.matlab.mio5_params.mat_struct):
-            _show_mat(mat_obj.__dict__[x], spaces=spaces + '   ')
-        elif (isinstance(mat_obj.__dict__[x], np.ndarray)  and
-              len(mat_obj.__dict__[x]) > 0 and
-              isinstance(mat_obj.__dict__[x][0], io.matlab.mio5_params.mat_struct)):
-            for y in mat_obj.__dict__[x]:
-                _show_mat(y, spaces=spaces + '     ')
-        else:
-            print type(mat_obj.__dict__[x]), "\n--------------------------------------------------"
-            
-            
 def _check_fname(fname):
     """Check if the file extension is valid."""
     fmt = str(op.splitext(fname)[-1])
@@ -49,23 +34,24 @@ def _check_fname(fname):
     elif fmt != '.fdt':
         raise IOError('Expected .fdt file format. Found %s format' % fmt)
 
+
 def _check_for_ascii_filename(eeg, input_fname):
 
     """Checks to see if eeg.data is array of ascii values
        of filename. Does not check if extension is valid
        (or if it exists), since this is handled by _check_fname"""
-    
+
     if (isinstance(eeg.data, np.ndarray) and
        len(eeg.data.shape) == 1 and
        np.issubdtype(eeg.data.dtype, np.integer)):
 
-       fname = ''.join([chr(x) for x in eeg.data])
-       basedir = op.dirname(input_fname)
-       data_fname = op.join(basedir, fname)
-       if op.isfile(data_fname):
-           return (True, fname)
-       else:
-           return (False, "")
+        fname = ''.join([chr(x) for x in eeg.data])
+        basedir = op.dirname(input_fname)
+        data_fname = op.join(basedir, fname)
+        if op.isfile(data_fname):
+            return (True, fname)
+        else:
+            return (False, "")
     else:
         return (False, "")
 
@@ -97,6 +83,7 @@ def _check_mat_struct(fname):
         msg = ('Unknown array in the .set file.')
         raise ValueError(msg)
 
+
 def _to_loc(ll):
     """Check if location exists."""
     if isinstance(ll, (int, float)):
@@ -110,7 +97,7 @@ def _to_loc(ll):
 
     elif hasattr(ll, 'dtype') and \
         ((np.issubdtype(ll.dtype, np.integer) or
-          np.issubdtype(ll.dtype, np.float))):
+          np.issubdtype(ll.dtype, np.dtype(float).type))):
         # Numeric numpy array
         if isinstance(ll, np.ndarray):
             return list(ll) if ll.size > 0 else np.nan
@@ -140,8 +127,10 @@ def _get_info(eeg, montage, eog=()):
                 has_pos = all(fld in eeg.chanlocs[0].dtype.names
                               for fld in pos_fields)
             except TypeError:
-                # when stored as hdf, empty eeg.chanlocs is array([0, 0], dtype=uint64)
-                # which raises a Type Error, but we still need default chan names
+                # when stored as hdf, empty eeg.chanlocs is
+                # array([0, 0], dtype=uint64)
+                # which raises a Type Error, but we still need
+                # default chan names
                 ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
                 hdf5_flag = True
         else:
@@ -169,7 +158,6 @@ def _get_info(eeg, montage, eog=()):
             if n_channels_with_pos > 0:
                 selection = np.arange(n_channels_with_pos)
                 montage = Montage(np.array(pos), pos_ch_names, kind, selection)
-                
     elif isinstance(montage, string_types):
         path = op.dirname(montage)
     else:  # if eeg.chanlocs is empty, we still need default chan names
@@ -359,46 +347,51 @@ def _bunch_data_2_strs(bunch_data, field, lower=True):
                 for curr_label in bunch_data]
     return str_list
 
+
 def _bunch_str_conversions(bunch_data, str_conversion_fields):
     """ Converts selected fields from bunch object from 1D array
         aof ascii values to strs"""
-    
-    for curr_field in str_conversion_fields:
-        if (len(bunch_data) > 0 and
-            curr_field in bunch_data[0] and
-            not isinstance(bunch_data[0].__dict__[curr_field], str)):
 
+    for curr_field in str_conversion_fields:
+        c1 = (len(bunch_data) > 0)
+        c2 = (c1 and (curr_field in bunch_data[0]))
+        c3 = (c2 and
+              not isinstance(bunch_data[0].__dict__[curr_field], str))
+        if c3:
             str_data = _bunch_data_2_strs(bunch_data, curr_field)
             for ctr, curr_str in enumerate(str_data):
                 bunch_data[ctr].__dict__[curr_field] = curr_str
     return bunch_data
-    
+
+
 def _bunch_derefs(orig, bunch_data, deref_fields):
     """ Dereferences h5py.h5r.Reference objects. Ensures that each
         field of bunch object with dereferenced objects stores them
         in a list, even if that list has only 1 element. """
     import h5py
-    
-    for curr_field in deref_fields:
-        if (len(bunch_data) > 0 and
-            curr_field in bunch_data[0] and
-            len(bunch_data[0].__dict__[curr_field]) > 0 and
-            isinstance(bunch_data[0].__dict__[curr_field][0], h5py.h5r.Reference)):
 
+    for curr_field in deref_fields:
+        bd = bunch_data[0].__dict__[curr_field]
+        c1 = (len(bunch_data) > 0)
+        c2 = (curr_field in bunch_data[0])
+        c3 = (len(bd) > 0)
+        c4 = (isinstance(bd[0], h5py.h5r.Reference))
+        if (c1 and c2 and c3 and c4):
             for ctr in range(len(bunch_data)):
+                bd = bunch_data[ctr].__dict__[curr_field]
                 try:
                     # Ensure bunch_data[ctr].__dict__[curr_field] is iterable
                     # before attempting to iterate over it
-                    test_iterator = iter(bunch_data[ctr].__dict__[curr_field])
+                    iter(bd)
                 except TypeError:
-                    x = bunch_data[ctr].__dict__[curr_field]
-                    deref = [orig[x].value.flatten()]
+                    deref = [orig[bd].value.flatten()]
                 else:
-                    deref = [orig[x].value.flatten() for x in bunch_data[ctr].__dict__[curr_field]]
- 
+                    deref = [orig[x].value.flatten() for x in bd]
+
                 bunch_data[ctr].__dict__[curr_field] = deref
 
     return bunch_data
+
 
 def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
     """Convert h5py obj to dict."""
@@ -415,8 +408,8 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
 
         msg = indent + "Converting " + curr_name
         if isinstance(in_hdf[curr], h5py.Dataset):
-            suffix =  " - Dataset"
-            logger.info(msg+suffix)
+            suffix = " - Dataset"
+            logger.info(msg + suffix)
             temp = in_hdf[curr].value
             if 1 in temp.shape:
                 temp = temp.flatten()
@@ -432,24 +425,20 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
             out_dict[curr] = temp
 
         elif isinstance(in_hdf[curr], h5py.Group):
-            suffix =  " - Group"
-            logger.info(msg+suffix)
-            try:
-              for x in in_hdf[curr]:
-                  print curr,":",x,in_hdf[curr][x], in_hdf[curr][x].dtype
-            except:
-                pass
+            suffix = " - Group"
+            logger.info(msg + suffix)
 
             if curr == 'chanlocs':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
                                              indent + indent_incr)
                 # For some reason an empty chanloc field, which is stored as
                 # [] <type 'numpy.ndarray'> in Matlab's original set file
-                # becomes array([0, 0], dtype=uint64) when Matlab stores as HDF5 (!?)
+                # becomes array([0, 0], dtype=uint64) when Matlab
+                # stores as HDF5 (!?)
                 # Since chanloc's values all appear to be scalars or strings,
                 # each value of array[0,0] will be replaced by [].
 
-                temp = [{curr_key:np.array([])
+                temp = [{curr_key: np.array([])
                          if np.array_equal(curr_dict[curr_key],
                                            np.array([0, 0], dtype=np.uint64))
                          else curr_dict[curr_key]
@@ -458,57 +447,52 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
 
                 # Rebunchify temp
                 temp = [Bunch(**x) for x in temp]
-                
-                # TO DO add tests to know when to add these (& other) string fields
+
+                # TO DO add tests to know when to add
+                # these (& other) string fields
                 str_conversion_fields = ('type', 'labels')
                 temp = _bunch_str_conversions(temp, str_conversion_fields)
-                        
+
             elif curr == 'event':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
                                              indent + indent_incr)
-                
-                # TO DO add tests to know when to add these (& other) string fields
+
+                # TO DO add tests to know when to add
+                # these (& other) string fields
                 str_conversion_fields = ('type', 'usertags')
                 temp = _bunch_str_conversions(temp, str_conversion_fields)
-                        
+
             elif curr == 'epoch':
-                
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr],
                                              curr_name, indent + indent_incr)
 
                 deref_fields = ('eventtype', 'eventlatency', 'eventurevent',
-                               'eventduration', 'eventvalue')   
+                                'eventduration', 'eventvalue')
                 temp = _bunch_derefs(orig, temp, deref_fields)
 
                 for curr_elem in temp:
                     eventtype_str = [''.join([chr(x) for x in c_evt])
-                                         for c_evt in curr_elem.eventtype]
+                                     for c_evt in curr_elem.eventtype]
                     curr_elem.eventtype = ''.join(eventtype_str)
 
-                
             else:
-                try:
-                  temp = hdf_2_dict(orig, in_hdf[curr],
+                temp = hdf_2_dict(orig, in_hdf[curr],
                                   curr_name, indent + indent_incr)
-                except:
-                    import pdb
-                    pdb.set_trace()
-                    1==1
             out_dict[curr] = temp
 
         else:
             sys.exit("Unknown type")
-            
+
     return out_dict
 
 
 def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
-    '''Returns list of Bunch objects - A Bunch object is a 
+    '''Returns list of Bunch objects - A Bunch object is a
        dictionary-like object that exposes its keys as attributes.
        ASSUMES: The group consists solely of arrays of HDF5 obj refs,
        and that these refs all reference 2D numpy arrays that need to
        be flattened to either 1D arrays or Scalars'''
-    
+
     import h5py
 
     try:
@@ -522,13 +506,11 @@ def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
                       if orig[y].value.flatten().shape != (1,)
                       else orig[y].value.flatten()[0]
                       for y in h5_values[x]]
-                     if isinstance(h5_values[x], np.ndarray) and
-                        isinstance(h5_values[x][0], h5py.Reference) 
-                     else h5_values[x]
-                     for x in h5_values}
+                  if isinstance(h5_values[x], np.ndarray) and
+                  isinstance(h5_values[x][0], h5py.Reference)
+                  else h5_values[x]
+                  for x in h5_values}
 
-
-        
         for ct in in_hlGroup:
             msg = indent + "Converting " + tuple_name + '_' + ct
             logger.info(msg)
@@ -631,7 +613,7 @@ class RawEEGLAB(BaseRaw):
     def __init__(self, input_fname, montage, eog=(), event_id=None,
                  event_id_func='strip_to_integer', preload=False,
                  verbose=None, uint16_codec=None):  # noqa: D102
-            
+
         basedir = op.dirname(input_fname)
         _check_mat_struct(input_fname)
         eeg = _get_eeg_data(input_fname, uint16_codec)
@@ -668,7 +650,7 @@ class RawEEGLAB(BaseRaw):
                 hdf5_transpose = True
         else:
             hdf5_transpose = False
-            
+
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
             _check_fname(data_fname)
@@ -893,7 +875,7 @@ class EpochsEEGLAB(BaseEpochs):
                 hdf5_transpose = True
         else:
             hdf5_transpose = False
-            
+
         if isinstance(eeg.data, string_types):
             basedir = op.dirname(input_fname)
             data_fname = op.join(basedir, eeg.data)
@@ -913,8 +895,8 @@ class EpochsEEGLAB(BaseEpochs):
         # If data read from hdf5 file, pnts and nbchan axes will be
         # swapped
         if hdf5_transpose:
-            data = data.transpose((1,0,2)).astype('double')
-            
+            data = data.transpose((1, 0, 2)).astype('double')
+
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
 
