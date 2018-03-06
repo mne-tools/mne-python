@@ -373,6 +373,9 @@ def _bunch_str_conversions(bunch_data, str_conversion_fields):
     return bunch_data
     
 def _bunch_derefs(orig, bunch_data, deref_fields):
+    """ Dereferences h5py.h5r.Reference objects. Ensures that each
+        field of bunch object with dereferenced objects stores them
+        in a list, even if that list has only 1 element. """
     import h5py
     
     for curr_field in deref_fields:
@@ -442,7 +445,7 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
                 # For some reason an empty chanloc field, which is stored as
                 # [] <type 'numpy.ndarray'> in Matlab's original set file
                 # becomes array([0, 0], dtype=uint64) when Matlab stores as HDF5 (!?)
-                # since chanloc's values all appear to be scalars or strings,
+                # Since chanloc's values all appear to be scalars or strings,
                 # each value of array[0,0] will be replaced by [].
 
                 temp = [{curr_key:np.array([])
@@ -541,8 +544,6 @@ def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
 
 def _get_eeg_data(input_fname, uint16_codec=None):
     from scipy import io
-    import pdb
-    pdb.set_trace()
     try:
         # Try to read old style Matlab file
         eeg = io.loadmat(input_fname, struct_as_record=False,
@@ -550,6 +551,8 @@ def _get_eeg_data(input_fname, uint16_codec=None):
                          uint16_codec=uint16_codec)['EEG']
     except:
         # Try to read new style Matlab file (Version 7.3+)
+        # Note: Now eeg will be returned as a Bunch object,
+        # instead of an io.matlab.mio5_params.mat_struct object.
         import h5py  # Added to read newer Matlab files (7.3 and later)
         logger.info("Attempting to read style Matlab hdf file")
         f = h5py.File(input_fname)
@@ -653,11 +656,17 @@ class RawEEGLAB(BaseRaw):
         self._create_event_ch(events, n_samples=eeg.pnts)
 
         # read the data
-        # if hdf5 data was read in, then file name might be encoded
-        # as array of ascii values of characters
-        ascii_check = _check_for_ascii_filename(eeg, input_fname)
-        if ascii_check[0]:
-            eeg.data = ascii_check[1]
+        if isinstance(eeg, Bunch):
+            # if hdf5 data was read in, then file name might be encoded
+            # as array of ascii values of characters
+            ascii_check = _check_for_ascii_filename(eeg, input_fname)
+            if ascii_check[0]:
+                eeg.data = ascii_check[1]
+                hdf5_transpose = False
+            else:
+                hdf5_transpose = True
+        else:
+            hdf5_transpose = False
             
         if isinstance(eeg.data, string_types):
             data_fname = op.join(basedir, eeg.data)
@@ -677,36 +686,14 @@ class RawEEGLAB(BaseRaw):
 
             if eeg.nbchan == 1 and len(eeg.data.shape) == 1:
                 n_chan, n_times = [1, eeg.data.shape[0]]
-            elif (len(eeg.data.shape) == 1 and
-                  eeg.nbchan != eeg.data.shape[0] and
-                  eeg.data.dtype.name == 'uint16'):
-                # hdf5 stores this string as an array of dtype uint16,
-                # where each integer is the ascii value of a character
-                # in the string
-                test_fname = ''.join([chr(x)
-                                      for x in eeg.data.flatten()])
-                data_fname = op.join(basedir, test_fname)
-                _check_fname(data_fname)
-                logger.info('Reading %s' % data_fname)
-
-                super(RawEEGLAB, self).__init__(
-                   info, preload, filenames=[data_fname], 
-                   last_samps=last_samps, orig_format='double',
-                   verbose=verbose)
-                return
             else:
                 n_chan, n_times = eeg.data.shape
 
             # Seem to have transpose with matlab hdf storage
-            if n_chan != eeg.nbchan and n_times == eeg.nbchan:
+            if hdf5_transpose:
                 temp = eeg.data.transpose()
                 eeg.data = temp
                 n_chan, n_times = eeg.data.shape
-            elif n_chan == n_times:
-                warn("The number of data channels equals the number")
-                warn("of data points. If data is stored usinf hdf5 ")
-                warn("format, the transpose of the data matrix will")
-                warn("be mistaken for the data matrix") 
 
             data = np.empty((n_chan + 1, n_times), dtype=np.double)
             data[:-1] = eeg.data
@@ -894,11 +881,17 @@ class EpochsEEGLAB(BaseEpochs):
                                  '(event id %i)' % (key, val))
 
         # Read data
-        # if hdf5 data was read in, then file name might be encoded
-        # as array of ascii values of characters
-        ascii_check = _check_for_ascii_filename(eeg, input_fname)
-        if ascii_check[0]:
-            eeg.data = ascii_check[1]
+        if isinstance(eeg, Bunch):
+            # if hdf5 data was read in, then file name might be encoded
+            # as array of ascii values of characters
+            ascii_check = _check_for_ascii_filename(eeg, input_fname)
+            if ascii_check[0]:
+                eeg.data = ascii_check[1]
+                hdf5_transpose = False
+            else:
+                hdf5_transpose = True
+        else:
+            hdf5_transpose = False
             
         if isinstance(eeg.data, string_types):
             basedir = op.dirname(input_fname)
@@ -916,17 +909,10 @@ class EpochsEEGLAB(BaseEpochs):
         data = data.transpose((2, 0, 1)).astype('double')
         data *= CAL
 
-        # If data read from hdf5 file, pnts abd nbchan axes will be
+        # If data read from hdf5 file, pnts and nbchan axes will be
         # swapped
-        test_trials, test_nbchan, test_pnts = data.shape
-        if (eeg.nbchan == test_trials and
-            eeg.nbchan != test_nbchan):
+        if hdf5_transpose:
             data = data.transpose((1,0,2)).astype('double')
-        elif test_trials == test_nbchan:
-            warn("The number of data channels equals the number ")
-            warn("of trials. If data is stored usinf hdf5 format, ")
-            warn("the transpose of the data matrix will be mistaken ")
-            warn("for the data matrix") 
             
         assert data.shape == (eeg.trials, eeg.nbchan, eeg.pnts)
         tmin, tmax = eeg.xmin, eeg.xmax
