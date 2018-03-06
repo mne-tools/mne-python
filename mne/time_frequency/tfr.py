@@ -1434,11 +1434,11 @@ class AverageTFR(_BaseTFR):
                 freq = tfr.freqs[np.argmin(np.abs(tfr.freqs - freq))]
 
             if (time_half_range == 0) and (freq_half_range == 0):
-                sub_map_title = '(%d ms,\n%.1f Hz)' % (time * 1e3, freq)
+                sub_map_title = '(%.2f s,\n%.1f Hz)' % (time, freq)
             else:
-                sub_map_title = '(%d \u00B1 %d ms,\n%.1f \u00B1 %.1f Hz)' % \
-                                (time * 1e3, time_half_range * 1e3, freq,
-                                 freq_half_range)
+                sub_map_title = \
+                    '(%.1f \u00B1 %.1f s,\n%.1f \u00B1 %.1f Hz)' % \
+                    (time, time_half_range, freq, freq_half_range)
 
             tmin = time - time_half_range
             tmax = time + time_half_range
@@ -1491,7 +1491,8 @@ class AverageTFR(_BaseTFR):
 
         # draw the connection lines between time series and topoplots
         lines = [_connection_line(time_, fig, tf_ax, map_ax_, y=freq_)
-                 for (time_, freq_), map_ax_ in zip(timefreqs, map_ax)]
+                 for (time_, freq_), map_ax_ in
+                 zip(timefreqs_array[order], map_ax)]
         fig.lines.extend(lines)
 
         plt_show(show)
