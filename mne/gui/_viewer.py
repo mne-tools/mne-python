@@ -14,7 +14,7 @@ from mayavi.tools.mlab_scene_model import MlabSceneModel
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         Instance, Array, Bool, Button, Enum, Float, Int, List,
                         Range, Str, RGBColor, Property, cached_property)
-from traitsui.api import View, Item, HGroup, VGrid, VGroup
+from traitsui.api import View, Item, HGroup, VGrid, VGroup, Spring, TextEditor
 from tvtk.api import tvtk
 
 from ..defaults import DEFAULTS
@@ -27,6 +27,34 @@ from ..viz._3d import _create_mesh_surf, _toggle_mlab_render
 
 headview_borders = VGroup(Item('headview', style='custom', show_label=False),
                           show_border=True, label='View')
+
+
+def _m_fmt(x):
+    """Format data in units of meters (likely in the mm range)."""
+    return '%0.5f' % x
+
+
+laggy_float_editor_m = TextEditor(auto_set=False, enter_set=True,
+                                  evaluate=float, format_func=_m_fmt)
+
+laggy_float_editor_mm = TextEditor(auto_set=False, enter_set=True,
+                                   evaluate=float,
+                                   format_func=lambda x: '%0.1f' % x)
+
+_BUTTON_WIDTH = -1
+_RAD_WIDTH = -70  # radian floats
+_M_WIDTH = _RAD_WIDTH  # m floats
+_MM_WIDTH = _RAD_WIDTH  # mm floats
+_INC_BUTTON_WIDTH = -20  # inc/dec buttons
+_SCALE_WIDTH = -50  # scale floats
+_WEIGHT_WIDTH = -40  # weight floats
+_RAD_STEP_WIDTH = -50
+_M_STEP_WIDTH = _RAD_STEP_WIDTH
+# width is optimized for macOS to avoid a horizontal scroll-bar;
+# might benefit from platform-specific values
+_COREG_WIDTH = -275
+_TEXT_WIDTH = -240
+_SHOW_BORDER = False
 
 
 class HeadViewController(HasTraits):
@@ -47,16 +75,21 @@ class HeadViewController(HasTraits):
     front = Button()
     left = Button()
     top = Button()
-    interaction = Enum('Trackball', 'Terrain')
+    interaction = Enum('trackball', 'terrain')
 
     scale = Float(0.16)
 
     scene = Instance(MlabSceneModel)
 
-    view = View(VGrid('0', 'top', '0', Item('scale', label='Scale',
-                                            show_label=True),
-                      'right', 'front', 'left', 'interaction',
-                      show_labels=False, columns=4))
+    view = View(VGroup(
+        VGrid('0', 'top', '0',
+              'right', 'front', 'left', columns=3, show_labels=False),
+        '_',
+        VGroup(Item('scale', label='Scale', editor=laggy_float_editor_m,
+                    width=_M_WIDTH), Spring(),
+               Item('interaction', label='Interaction'), Spring(),
+               columns=2),
+        show_labels=False))
 
     @on_trait_change('scene.activated')
     def _init_view(self):
@@ -73,7 +106,7 @@ class HeadViewController(HasTraits):
     def on_set_interaction(self, _, interaction):
         if self.scene is None:
             return
-        if interaction == 'Terrain':
+        if interaction == 'terrain':
             # Ensure we're in the correct orientatino for the
             # InteractorStyleTerrain to have the correct "up"
             if self._trackball_interactor is None:
@@ -112,6 +145,7 @@ class HeadViewController(HasTraits):
             raise ValueError("Invalid view: %r" % view)
         kwargs = dict(zip(('azimuth', 'elevation', 'roll'),
                           kwargs[system][view]))
+        kwargs['focalpoint'] = (0., 0., 0.)
         with SilenceStdout():
             self.scene.mlab.view(distance=None, reset_roll=True,
                                  figure=self.scene.mayavi_scene, **kwargs)
@@ -134,16 +168,16 @@ class Object(HasPrivateTraits):
 
     def _update_points(self):
         """Update the location of the plotted points."""
-        if not hasattr(self.src, 'data'):
-            return
-        self.src.data.points = self.points
-        return True
+        if hasattr(self.src, 'data'):
+            self.src.data.points = self.points
+            return True
 
 
 class PointObject(Object):
     """Represent a group of individual points in a mayavi scene."""
 
     label = Bool(False)
+    label_scale = Float(0.01)
     projectable = Bool(False)  # set based on type of points
     orientable = Property(depends_on=['project_to_points', 'project_to_tris'])
     text3d = List
@@ -178,29 +212,33 @@ class PointObject(Object):
             Whether the view options should be tailored to individual points
             or a point cloud.
         """
+        assert view in ('points', 'cloud', 'arrow')
         self._view = view
         super(PointObject, self).__init__(*args, **kwargs)
 
     def default_traits_view(self):  # noqa: D102
         color = Item('color', show_label=False)
-        scale = Item('point_scale', label='Size')
+        scale = Item('point_scale', label='Size', width=_M_WIDTH,
+                     editor=laggy_float_editor_m)
         orient = Item('orient_to_surface',
                       enabled_when='orientable and not project_to_surface')
         dist = Item('scale_by_distance',
                     enabled_when='orientable and not project_to_surface')
         mark = Item('mark_inside',
                     enabled_when='orientable and not project_to_surface')
-        if self._view == 'points':
+        if self._view == 'arrow':
+            visible = Item('visible', label='Show', show_label=False)
+            return View(HGroup(visible, scale, 'opacity', 'label', Spring()))
+        elif self._view == 'points':
             visible = Item('visible', label='Show', show_label=True)
             views = (visible, color, scale, 'label')
-        elif self._view == 'cloud':
+        else:
+            assert self._view == 'cloud'
             visible = Item('visible', show_label=False)
             views = (visible, color, scale)
-        else:
-            raise ValueError("PointObject(view = %r)" % self._view)
         group2 = HGroup(dist, Item('project_to_surface', show_label=True,
                                    enabled_when='projectable'),
-                        orient, mark, show_left=False)
+                        orient, mark, Spring(), show_left=False)
         return View(HGroup(HGroup(*views), group2))
 
     @on_trait_change('label')
@@ -210,13 +248,18 @@ class PointObject(Object):
             text = self.text3d.pop()
             text.remove()
 
-        if show:
+        if show and len(self.src.data.points) > 0:
             fig = self.scene.mayavi_scene
-            for i, pt in enumerate(np.array(self.src.data.points)):
-                x, y, z = pt
-                t = text3d(x, y, z, ' %i' % i, scale=.01, color=self.color,
-                           figure=fig)
-                self.text3d.append(t)
+            if self._view == 'arrow':  # for axes
+                x, y, z = self.src.data.points[0]
+                self.text3d.append(text3d(
+                    x, y, z, self.name, scale=self.label_scale,
+                    color=self.color, figure=fig))
+            else:
+                for i, (x, y, z) in enumerate(np.array(self.src.data.points)):
+                    self.text3d.append(text3d(
+                        x, y, z, ' %i' % i, scale=self.label_scale,
+                        color=self.color, figure=fig))
         _toggle_mlab_render(self, True)
 
     @on_trait_change('visible')
@@ -242,13 +285,16 @@ class PointObject(Object):
             # this can occur sometimes during testing w/ui.dispose()
             return
         # fig.scene.engine.current_object is scatter
+        mode = 'arrow' if self._view == 'arrow' else 'sphere'
         glyph = pipeline.glyph(scatter, color=self.color,
                                figure=fig, scale_factor=self.point_scale,
                                opacity=1., resolution=self.resolution,
-                               mode='sphere')
+                               mode=mode)
         glyph.actor.property.backface_culling = True
         glyph.glyph.glyph.vector_mode = 'use_normal'
         glyph.glyph.glyph.clamping = False
+        if mode == 'arrow':
+            glyph.glyph.glyph_source.glyph_position = 'tail'
 
         glyph.actor.mapper.color_mode = 'map_scalars'
         glyph.actor.mapper.scalar_mode = 'use_point_data'
@@ -264,7 +310,8 @@ class PointObject(Object):
         self.sync_trait('mark_inside', self.glyph.actor.mapper,
                         'scalar_visibility')
         self.on_trait_change(self._update_points, 'points')
-        self._update_markers()
+        self._update_marker_scaling()
+        self._update_marker_type()
         self._update_colors()
         _toggle_mlab_render(self, True)
         # self.scene.camera.parallel_scale = _scale
@@ -275,6 +322,11 @@ class PointObject(Object):
         """Update the styles of the plotted points."""
         if not hasattr(self.src, 'data'):
             return
+        if self._view == 'arrow':
+            self.src.data.point_data.normals = self.nn
+            self.src.data.point_data.update()
+            return
+        # projections
         if len(self.project_to_points) <= 1 or len(self.points) == 0:
             return
 
@@ -320,9 +372,10 @@ class PointObject(Object):
                            tuple(self.color) + (1,)]) * 255.
         self.glyph.module_manager.scalar_lut_manager.lut.table = colors
 
-    @on_trait_change('project_to_surface,orient_to_surface,scale_by_distance')
-    def _update_markers(self):
-        if self.glyph is None:
+    @on_trait_change('project_to_surface,orient_to_surface')
+    def _update_marker_type(self):
+        # not implemented for arrow
+        if self.glyph is None or self._view == 'arrow':
             return
         defaults = DEFAULTS['coreg']
         gs = self.glyph.glyph.glyph_source
@@ -337,6 +390,11 @@ class PointObject(Object):
             gs.glyph_source = tvtk.SphereSource()
             gs.glyph_source.phi_resolution = res
             gs.glyph_source.theta_resolution = res
+
+    @on_trait_change('scale_by_distance')
+    def _update_marker_scaling(self):
+        if self.glyph is None:
+            return
         if self.scale_by_distance:
             self.glyph.glyph.scale_mode = 'scale_by_vector'
         else:
@@ -345,22 +403,20 @@ class PointObject(Object):
     def _resolution_changed(self, new):
         if not self.glyph:
             return
-
         gs = self.glyph.glyph.glyph_source.glyph_source
         if isinstance(gs, tvtk.SphereSource):
             gs.phi_resolution = new
             gs.theta_resolution = new
-        else:
+        elif isinstance(gs, tvtk.CylinderSource):
             gs.resolution = new
+        else:  # ArrowSource
+            gs.tip_resolution = new
+            gs.shaft_resolution = new
 
     @cached_property
     def _get_orientable(self):
-        orientable = (len(self.project_to_points) > 0 and
-                      len(self.project_to_tris) > 0)
-        return orientable
-
-
-# XXX eventually we should update the normals whenever "points" is changed
+        return (len(self.project_to_points) > 0 and
+                len(self.project_to_tris) > 0)
 
 
 class SurfaceObject(Object):
@@ -434,4 +490,10 @@ class SurfaceObject(Object):
     @on_trait_change('points')
     def _update_points(self):
         if Object._update_points(self):
+            # Eventually we should update the normals, but it is
+            # a bit slow for the high-res surfaces and has little impact
+            # on visualization or "grow_hair", so don't bother for now.
+            # surf = complete_surface_info(dict(rr=self.points, tris=self.tri),
+            #                              verbose='error')
+            # self.src.data.point_data.normals = surf['nn']
             self.src.update()  # necessary for SurfaceObject since Mayavi 4.5.0

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """File data sources for traits GUIs."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -13,8 +14,10 @@ from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
                         on_trait_change, Array, Bool, Button, DelegatesTo,
                         Directory, Enum, Event, File, Instance, Int, List,
                         Property, Str)
-from traitsui.api import View, Item, VGroup, HGroup, Label
+from traitsui.api import View, Item, VGroup, Label
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
+
+from ._viewer import _TEXT_WIDTH
 
 from ..bem import read_bem_surfaces
 from ..io.constants import FIFF
@@ -272,8 +275,10 @@ class DigSource(HasPrivateTraits):
     hpi_points = Property(depends_on='_info',
                           desc='HPI coil coordinates (N x 3 array)')
 
-    view = View(VGroup(Item('file'),
-                       Item('inst_fname', show_label=False, style='readonly')))
+    view = View(VGroup(Label('Raw/Epochs/Evoked/DigMontage:',
+                             show_label=True, width=_TEXT_WIDTH),
+                       Item('file', width=_TEXT_WIDTH),
+                       show_labels=False))
 
     @cached_property
     def _get_n_omitted(self):
@@ -448,7 +453,6 @@ class MRISubjectSource(HasPrivateTraits):
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
-    show_high_res_head = Bool(True)
 
     # info
     can_create_fsaverage = Property(Bool, depends_on=['subjects_dir',
@@ -507,7 +511,6 @@ class MRISubjectSource(HasPrivateTraits):
 
         create_default_subject(fs_home=fs_home, subjects_dir=self.subjects_dir)
         self.refresh = True
-        self.show_high_res_head = False
         self.subject = 'fsaverage'
 
     @on_trait_change('subjects_dir')
@@ -526,23 +529,22 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subjects_dir = DelegatesTo('model')
     subject = DelegatesTo('model')
     subjects = DelegatesTo('model')
-    show_high_res_head = DelegatesTo('model')
 
     create_fsaverage = Button(
-        "Copy 'fsaverage' to subjects directory",
+        u"Copy fsaverage⇨SUBJECTS_DIR",
         desc="whether to copy the files for the fsaverage subject to the "
              "subjects directory. This button is disabled if "
              "fsaverage already exists in the selected subjects directory.")
 
-    view = View(VGroup(Label('Subjects directory and subject:',
-                             show_label=True),
-                       HGroup('subjects_dir', show_labels=False),
-                       HGroup('subject', show_labels=False),
-                       HGroup(Item('show_high_res_head',
-                                   label='High Resolution Head',
-                                   show_label=True)),
+    view = View(VGroup(Label('SUBJECTS_DIR:',
+                             show_label=True, width=_TEXT_WIDTH),
+                       Item('subjects_dir', width=_TEXT_WIDTH),
+                       Label('Subject:',
+                             show_label=True, width=_TEXT_WIDTH),
+                       Item('subject', width=_TEXT_WIDTH),
                        Item('create_fsaverage',
-                            enabled_when='can_create_fsaverage'),
+                            enabled_when='can_create_fsaverage',
+                            width=_TEXT_WIDTH),
                        show_labels=False))
 
     def _create_fsaverage_fired(self):
