@@ -768,6 +768,116 @@ def norm_l1_tf(Z, shape, n_orient):
     return l1_norm
 
 
+def norm_epsilon(Y, rho):
+    """Dual norm of rho * L2 norm + (1 - rho) * L1 norm, evaluated at Y.
+
+    This is the unique solution in nu of
+    norm(prox_l1(Y, nu * rho), ord=2) = (1 - rho) * nu
+
+    Parameters
+    ----------
+    Y : array, shape (n_atoms,)
+        The input data.
+    rho : float sctrictly between 0 and 1
+        Tradeoff between L2 and L1 regularization.
+
+    Returns
+    -------
+    nu : float
+        The value of the dual norm evaluated at Y.
+
+    References
+    ----------
+    .. [1] E. Ndiaye, O. Fercoq, A. Gramfort, J. Salmon,
+       "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
+       Information Processing Systems (NIPS), 2016.
+    """
+    # since the solution is invariant to flipped signs in Y, all entries
+    # of Y are assumed positive
+    norm_inf_Y = np.max(Y)
+    if rho == 0:
+        # dual norm of L1 is Linf
+        return norm_inf_Y
+    elif rho == 1.:
+        # dual norm of L2 is L2
+        return np.sqrt((Y ** 2).sum())  # TODO Y is always real
+
+    if norm_inf_Y == 0.:
+        return 0.
+
+    K = (Y > rho * norm_inf_Y).sum()
+    if K == 1:
+        return norm_inf_Y
+
+    # TODO here we would only need the K largest values
+    Y[::-1].sort()
+
+    p_sum = 0.  # partial sum
+    p_sum_2 = 0.  # partial sum of squares
+    lower = 0.
+
+    for k in range(K - 1):
+        p_sum += Y[k]
+        p_sum_2 += Y[k] ** 2
+        upper = (p_sum_2 / Y[k + 1] ** 2 - 2. * p_sum /
+                 Y[k + 1] + k + 1)
+        if lower <= (1. - rho) ** 2 / rho ** 2 < upper:
+            j = k + 1
+            break
+        lower = upper
+    else:
+        j = K
+
+    denom = (rho ** 2 * j - (1. - rho) ** 2)
+    if np.abs(denom) < 1e-10:
+        return p_sum ** 2 / 2. * rho * p_sum
+    else:
+        # if (rho * p_sum) ** 2 - p_sum_2 * denom < 0:
+            # print((rho * p_sum) ** 2 - p_sum_2 * denom)
+        # TODO prove that we cannot get a negative value in the sqrt
+        return (rho * p_sum - np.sqrt((rho * p_sum) ** 2 -
+                p_sum_2 * denom)) / denom
+
+
+def norm_epsilon_inf(G, R, phi, rho, n_orient):
+    """epsilon-inf norm of phi(np.dot(G.T, R)).
+
+    Parameters
+    ----------
+    G : array, shape (n_sensors, n_sources)
+        Gain matrix a.k.a. lead field.
+    R : array, shape (n_sensors, n_times)
+        Residuals.
+    phi : instance of _Phi
+        The TF operator.
+    rho : float strictly between 0 and 1
+        Parameter controlling the tradeoff between L21 and L1 regularization.
+    n_orient : int
+        Number of dipoles per location (typically 1 or 3).
+
+    Returns
+    -------
+    nu : float
+        The maximum value of the epsilon norms over groups of n_orient dipoles.
+    """
+    n_positions = G.shape[1] // n_orient
+    GTRPhi = np.abs(phi(np.dot(G.T, R))) ** 2
+    # norm over orientations:
+    GTRPhi = np.sqrt(np.sum(GTRPhi.reshape((n_orient, -1), order='F'),
+                     axis=0)).reshape((n_positions, -1), order='F')
+
+    nu = 0.
+    for idx in range(n_positions):
+        GTRPhi_ = GTRPhi[idx]
+        # norm_epsilon(GTRPhi_, rho) < max(GTRPhi_), so might skip this group:
+        if nu < np.max(GTRPhi_) / rho:
+            norm_eps = norm_epsilon(GTRPhi_, rho)
+            if norm_eps > nu:
+                nu = norm_eps
+
+    return nu
+
+
 def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
                n_orient, highest_d_obj):
     """Duality gap for the time-frequency mixed norm inverse problem.
