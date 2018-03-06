@@ -2205,11 +2205,14 @@ def read_tfrs(fname, condition=None):
                              'The file contains "{1}""'
                              .format(condition, " or ".join(keys)))
         out = AverageTFR(**tfr_dict[condition])
-    elif is_average:
-        out = [AverageTFR(**d) for d in list(zip(*tfr_data))[1]]
     else:
-        out = [EpochsTFR(**d) for d in list(zip(*tfr_data))[1]]
+        inst = AverageTFR if is_average else EpochsTFR
+        out = [inst(**d) for d in list(zip(*tfr_data))[1]]
     return out
+
+
+def _is_numeric(n):
+    return isinstance(n, (int, float))
 
 
 def _get_timefreqs(tfr, timefreqs):
@@ -2218,22 +2221,20 @@ def _get_timefreqs(tfr, timefreqs):
     timefreq_error_msg = (
         "Supplied `timefreqs` are somehow malformed. Please supply None, "
         "a list of tuple pairs, or a dict of such tuple pairs, not: ")
-
-    is_numeric = lambda x: isinstance(x, (int, float))
     if isinstance(timefreqs, dict):
         for k, v in timefreqs.items():
             for item in (k, v):
-                if len(item) != 2 or any((not is_numeric(n) for n in item)):
+                if len(item) != 2 or any((not _is_numeric(n) for n in item)):
                     raise ValueError(timefreq_error_msg, item)
     elif timefreqs is not None:
         if not hasattr(timefreqs, "__len__"):
             raise ValueError(timefreq_error_msg, timefreqs)
-        if len(timefreqs) == 2 and all([(is_numeric(v)) for v in timefreqs]):
+        if len(timefreqs) == 2 and all((_is_numeric(v) for v in timefreqs)):
             timefreqs = [timefreqs]  # stick a pair of numbers in a list
         else:
             for item in timefreqs:
                 if (hasattr(item, "__len__") and len(item) == 2 and
-                        all((is_numeric(n) for n in item))):
+                        all((_is_numeric(n) for n in item))):
                     pass
                 else:
                     raise ValueError(timefreq_error_msg, item)
