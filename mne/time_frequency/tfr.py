@@ -1420,7 +1420,11 @@ class AverageTFR(_BaseTFR):
         # over all topomaps. First, one loop over all timefreqs to collect
         # vlims. Then, find the max vlims and in a second loop over timefreqs,
         # do the actual plotting.
-        for ((time, freq), avg) in timefreqs.items():
+        timefreqs_array = np.array([np.array(keys) for keys in timefreqs])
+        order = timefreqs_array[:, 0].argsort()  # sort by time
+
+        for time, freq in timefreqs_array[order]:
+            avg = timefreqs[(time, freq)]
             # set up symmetric windows
             time_half_range, freq_half_range = avg / 2.
 
