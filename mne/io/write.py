@@ -411,7 +411,7 @@ def _generate_meas_id():
     id_ = dict()
     id_['version'] = FIFF.FIFFC_VERSION
     id_['machid'] = get_machid()
-    id_['secs'], id_['usecs'] = _date_now()
+    id_['secs'], id_['usecs'] = np.array([0, 0], dtype='int32')
     return id_
 
 
