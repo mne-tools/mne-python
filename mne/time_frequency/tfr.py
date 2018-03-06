@@ -2213,40 +2213,39 @@ def read_tfrs(fname, condition=None):
 
 
 def _get_timefreqs(tfr, timefreqs):
-    # find and/or setup timefreqs
+    """Find and/or setup timefreqs for `tfr.plot_joint`."""
+    # Input check
     timefreq_error_msg = (
         "Supplied `timefreqs` are somehow malformed. Please supply None, "
         "a list of tuple pairs, or a dict of such tuple pairs, not: ")
 
+    is_numeric = lambda x: isinstance(x, (int, float))
     if isinstance(timefreqs, dict):
         for k, v in timefreqs.items():
             for item in (k, v):
-                if len(item) != 2 or any((not isinstance(v_, (int, float))
-                                          for v_ in item)):
+                if len(item) != 2 or any((not is_numeric(n) for n in item)):
                     raise ValueError(timefreq_error_msg, item)
     elif timefreqs is not None:
         if not hasattr(timefreqs, "__len__"):
             raise ValueError(timefreq_error_msg, timefreqs)
-        if (len(timefreqs) == 2 and
-            all([(len(v) == 1 and isinstance(v, (int, float)))
-                 for v in timefreqs])):
-            timefreqs = [timefreqs]
+        if len(timefreqs) == 2 and all([(is_numeric(v)) for v in timefreqs]):
+            timefreqs = [timefreqs]  # stick a pair of numbers in a list
         else:
             for item in timefreqs:
-                if not hasattr(item, "__len__"):
-                    raise ValueError(timefreq_error_msg, timefreqs)
-                if len(item) != 2 or any((not isinstance(v_, (int, float))
-                                          for v_ in item)):
+                if (hasattr(item, "__len__") and len(item) == 2 and
+                        all((is_numeric(n) for n in item))):
+                    pass
+                else:
                     raise ValueError(timefreq_error_msg, item)
+
+    # If None, automatic identification of max peak
     else:
-        # find the maximum peak
         from scipy.signal import argrelmax
 
         order = max((1, tfr.data.shape[2] // 30))
         peaks_idx = argrelmax(tfr.data, order=order, axis=2)
         if peaks_idx[0].size == 0:
-            _, p_t, p_f = np.unravel_index(tfr.data.argmax(),
-                                           tfr.data.shape)
+            _, p_t, p_f = np.unravel_index(tfr.data.argmax(), tfr.data.shape)
             timefreqs = [(tfr.times[p_t], tfr.freqs[p_f])]
         else:
             peaks = [tfr.data[0, f, t] for f, t in
