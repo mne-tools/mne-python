@@ -10,7 +10,9 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 
 from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            tf_mixed_norm_solver,
-                                           iterative_mixed_norm_solver)
+                                           iterative_mixed_norm_solver,
+                                           norm_epsilon_inf, _Phi, _PhiT,
+                                           dgap_l21l1)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -116,6 +118,41 @@ def test_tf_mxne():
         n_orient=1, tstep=4, wsize=32, return_gap=True)
     assert_array_less(gap_tfmxne, 1e-8)
     assert_array_equal(np.where(active_set_hat_tf)[0], active_set)
+
+
+def test_dgapl21l1():
+    """Test duality gap for L21 + L1 regularization."""
+    l2_ratio = 0.6
+    n_orient = 1
+    M, G, active_set = _generate_tf_data()
+    n_times = M.shape[1]
+    n_sources = G.shape[1]
+    tstep, wsize = 4, 32
+    n_step = int(np.ceil(n_times / float(tstep)))
+    n_freq = wsize // 2 + 1
+    n_coefs = n_step * n_freq
+    phi = _Phi(wsize, tstep, n_coefs)
+    phiT = _PhiT(tstep, n_freq, n_step, n_times)
+
+    alpha_max = norm_epsilon_inf(G, M, phi, l2_ratio, n_orient)
+    alpha_space = l2_ratio * alpha_max
+    alpha_time = (1. - l2_ratio) * alpha_max
+
+    Z = np.zeros([n_sources, n_coefs])
+    shape = (-1, n_step, n_freq)
+    # for alpha = alpha_max, Z = 0 is the solution so the associated dgap is 0
+    gap = dgap_l21l1(M, G, Z, np.ones(n_sources, dtype=bool),
+                     alpha_space, alpha_time, phi, phiT, shape, n_orient,
+                     -np.inf)[0]
+
+    assert_allclose(0., gap)
+    # check that solution for alpha smaller than alpha_max is non 0:
+    X_hat_tf, active_set_hat_tf, E, gap = tf_mixed_norm_solver(
+        M, G, alpha_space / 1.01, alpha_time / 1.01, maxit=200, tol=1e-8,
+        verbose=True, debias=False, n_orient=n_orient, tstep=tstep,
+        wsize=wsize, return_gap=True)
+    assert_array_less(0, gap)
+    assert_array_less(1, len(active_set_hat_tf))
 
 
 def test_tf_mxne_vs_mxne():
