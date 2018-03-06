@@ -1018,7 +1018,7 @@ class AverageTFR(_BaseTFR):
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
              axes=None, layout=None, yscale='auto', mask=None, alpha=0.1,
-             combine='mean', exclude=None, verbose=None):
+             combine=None, exclude=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1141,7 +1141,7 @@ class AverageTFR(_BaseTFR):
                           colorbar=colorbar, show=show, title=title,
                           axes=axes, layout=layout, yscale=yscale,
                           combine=combine, exclude=exclude,
-                          verbose=verbose)[0]
+                          verbose=verbose)
 
     @verbose
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
@@ -1158,32 +1158,12 @@ class AverageTFR(_BaseTFR):
 
         # channel selection
         # simply create a new tfr object(s) with the desired channel selection
-        average_tfr = self.copy() if copy else self
+        tfr = _preproc_tfr_instance(
+            self, picks, tmin, tmax, fmin, fmax, vmin, vmax, dB, mode, baseline,
+            exclude, copy)
 
-        if picks is not None:
-            n_picks = len(picks)
-        else:
-            n_picks = 1
-            picks = _pick_data_channels(average_tfr.info, exclude='bads')
-        pick_names = [average_tfr.info['ch_names'][pick] for pick in picks]
-        average_tfr.pick_channels(pick_names)
-
-        if exclude == 'bads':
-            exclude = [ch for ch in average_tfr.info['bads']
-                       if ch in average_tfr.info['ch_names']]
-        if exclude is not None:
-            average_tfr.drop_channels(exclude)
-
-        data, times, freqs, _, _ = _preproc_tfr(
-            average_tfr.data, average_tfr.times, average_tfr.freqs,
-            tmin, tmax, fmin, fmax, mode, baseline, vmin, vmax, dB,
-            average_tfr.info['sfreq'], copy=False)
-
-        average_tfr.times = times
-        average_tfr.freqs = freqs
-        average_tfr.data = data
-        info = average_tfr.info
-
+        data = tfr.data
+        n_picks = len(tfr.ch_names) if combine is None else 1
         if combine == 'mean':
             data = data.mean(axis=0, keepdims=True)
         elif combine == 'rms':
@@ -1196,7 +1176,7 @@ class AverageTFR(_BaseTFR):
                 raise RuntimeError('There must be an axes for each picked '
                                    'channel.')
 
-        tmin, tmax = times[0], times[-1]
+        tmin, tmax = tfr.times[[0, -1]]
         if vmax is None:
             vmax = np.abs(data).max()
         if vmin is None:
@@ -1212,26 +1192,26 @@ class AverageTFR(_BaseTFR):
             else:
                 ax = axes[idx]
                 fig = ax.get_figure()
-            onselect_callback = partial(self._onselect, baseline=baseline,
+            onselect_callback = partial(tfr._onselect, baseline=baseline,
                                         mode=mode, layout=layout)
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
-                        ylim=None, tfr=data[idx: idx + 1], freq=freqs,
+                        ylim=None, tfr=data[idx: idx + 1], freq=tfr.freqs,
                         x_label='Time (s)', y_label='Frequency (Hz)',
                         colorbar=colorbar, cmap=cmap, yscale=yscale, mask=mask,
                         alpha=alpha)
 
             if title is None:
-                if combine is None or len(info['ch_names']) == 1:
-                    title = info['ch_names'][0]
+                if combine is None or len(tfr.info['ch_names']) == 1:
+                    title = tfr.info['ch_names'][0]
                 else:
                     title = _set_title_multiple_electrodes(
-                        title, combine, info["ch_names"])
+                        title, combine, tfr.info["ch_names"])
 
             if title:
                 fig.suptitle(title)
 
             plt_show(show)
-            return fig, average_tfr
+            return fig
 
     @verbose
     def plot_joint(self, timefreqs=None, picks=None, baseline=None,
@@ -1366,8 +1346,7 @@ class AverageTFR(_BaseTFR):
         # Nonetheless, it should be refactored for code reuse.
         copy = any(var is not None for var in (exclude, picks, baseline))
         tfr = _pick_inst(self, picks, exclude, copy=copy)
-        info = tfr.info
-        ch_types = _get_channel_types(info)
+        ch_types = _get_channel_types(tfr.info)
 
         # if multiple sensor types: one plot per channel type, recursive call
         if len(ch_types) > 1:
@@ -1375,9 +1354,9 @@ class AverageTFR(_BaseTFR):
                         "figure per type.")
             figs = list()
             for this_type in ch_types:  # pick corresponding channel type
-                tf_ = tfr.copy().pick_channels(
-                    [info['ch_names'][idx] for idx in range(info['nchan'])
-                     if channel_type(info, idx) == this_type])
+                type_picks = [idx for idx in range(tfr.info['nchan'])
+                              if channel_type(tfr.info, idx) == this_type]
+                tf_ = _pick_inst(tfr, type_picks, None, copy=True)
                 if len(_get_channel_types(tf_.info)) > 1:
                     raise RuntimeError(
                         'Possibly infinite loop due to channel selection '
@@ -1394,42 +1373,30 @@ class AverageTFR(_BaseTFR):
                         verbose=verbose))
             return figs
 
+        # Handle timefreqs
+        timefreqs = _get_timefreqs(tfr, timefreqs)
+        n_timefreqs = len(timefreqs)
+
         ##############
         # Image plot #
         ##############
-
-        # prepare for image plot
-        timefreq_error_msg = (
-            "Supplied `timefreqs` are somehow malformed. Please supply None, "
-            "a list of tuple pairs, or a dict of such tuple pairs, not ")
-        if timefreqs is None:
-            n_timefreqs = 1
-        else:
-            try:
-                n_timefreqs = len(timefreqs)
-            except TypeError:
-                raise ValueError(timefreq_error_msg + str(type(timefreqs)))
 
         fig, tf_ax, map_ax, cbar_ax = _prepare_joint_axes(n_timefreqs)
 
         cmap = _setup_cmap(cmap)
 
         # image plot
-        fig, tfr = tfr._plot(
+        # we also use this to baseline and truncate (times and freqs)
+        # (a copy of) the instance
+        fig = tfr._plot(
             picks=None, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
             colorbar=False, show=False, title=title, axes=tf_ax, layout=layout,
             yscale=yscale, combine=combine, exclude=None, copy=False)
 
-        ####################
-        # Handle timefreqs #
-        ####################
-
-        # check if timefreqs exceed limits, or is not pairs
-        # it would be nicer to do this earlier, but we need to do the
-        # baselining etc. first, which happens in self._plot above
-        timefreqs = _get_timefreqs(tfr, timefreqs)
-
+        # set and check time and freq limits ...
+        # can only do this after the tfr plot because it may change these
+        # parameters
         tmax, tmin = tfr.times.max(), tfr.times.min()
         fmax, fmin = tfr.freqs.max(), tfr.freqs.min()
         for time, freq in timefreqs.keys():
@@ -1486,8 +1453,9 @@ class AverageTFR(_BaseTFR):
             topomap_args = dict()
         contours = topomap_args.get('contours', 6)
 
-        vmin = topomap_args.get('vmin', -max(vlims))
-        vmax = topomap_args.get('vmax', max(vlims))
+        topomap_args["vmin"] = vmin = topomap_args.get('vmin', -max(vlims))
+        topomap_args["vmax"] = vmax = topomap_args.get('vmax', max(vlims))
+        print(topomap_args["vmax"])
         locator, contours = _set_contour_locator(vmin, vmax, contours)
 
         topomap_args_pass = {k: v for k, v in topomap_args.items() if
@@ -1499,7 +1467,7 @@ class AverageTFR(_BaseTFR):
             ax.set_title(title)
             plot_topomap(data.mean(-1).mean(-1),
                          tfr.info if layout is None else layout.pos,
-                         vmin=vmin, vmax=vmax, cmap=cmap[0], axes=ax,
+                         cmap=cmap[0], axes=ax,
                          show=False, **topomap_args_pass)
 
         #############
@@ -2230,7 +2198,7 @@ def _get_timefreqs(tfr, timefreqs):
         if not hasattr(timefreqs, "__len__"):
             raise ValueError(timefreq_error_msg, timefreqs)
         if len(timefreqs) == 2 and all((_is_numeric(v) for v in timefreqs)):
-            timefreqs = [timefreqs]  # stick a pair of numbers in a list
+            timefreqs = [tuple(timefreqs)]  # stick a pair of numbers in a list
         else:
             for item in timefreqs:
                 if (hasattr(item, "__len__") and len(item) == 2 and
@@ -2258,7 +2226,35 @@ def _get_timefreqs(tfr, timefreqs):
             timefreqs = [(peakmax_time, peakmax_freq)]
 
     timefreqs = {
-        k: np.asarray(timefreqs[k]) if isinstance(timefreqs, dict)
+        tuple(k): np.asarray(timefreqs[k]) if isinstance(timefreqs, dict)
         else np.array([0, 0]) for k in timefreqs}
 
     return timefreqs
+
+
+def _preproc_tfr_instance(tfr, picks, tmin, tmax, fmin, fmax, vmin, vmax, dB,
+                          mode, baseline, exclude, copy=True):
+    """Baseline and truncate (times and freqs) a TFR instance."""
+    tfr = tfr.copy() if copy else tfr
+
+    if picks is None:
+        picks = _pick_data_channels(tfr.info, exclude='bads')
+        exclude = None
+    pick_names = [tfr.info['ch_names'][pick] for pick in picks]
+    tfr.pick_channels(pick_names)
+
+    if exclude == 'bads':
+        exclude = [ch for ch in tfr.info['bads']
+                   if ch in tfr.info['ch_names']]
+    if exclude is not None:
+        tfr.drop_channels(exclude)
+
+    data, times, freqs, _, _ = _preproc_tfr(
+        tfr.data, tfr.times, tfr.freqs, tmin, tmax, fmin, fmax, mode,
+        baseline, vmin, vmax, dB, tfr.info['sfreq'], copy=False)
+
+    tfr.times = times
+    tfr.freqs = freqs
+    tfr.data = data
+
+    return tfr
