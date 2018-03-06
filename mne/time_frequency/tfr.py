@@ -1159,8 +1159,8 @@ class AverageTFR(_BaseTFR):
         # channel selection
         # simply create a new tfr object(s) with the desired channel selection
         tfr = _preproc_tfr_instance(
-            self, picks, tmin, tmax, fmin, fmax, vmin, vmax, dB, mode, baseline,
-            exclude, copy)
+            self, picks, tmin, tmax, fmin, fmax, vmin, vmax, dB, mode,
+            baseline, exclude, copy)
 
         data = tfr.data
         n_picks = len(tfr.ch_names) if combine is None else 1
