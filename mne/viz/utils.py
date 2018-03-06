@@ -2496,13 +2496,16 @@ def _check_cov(noise_cov, info):
     return noise_cov
 
 
-def _get_channel_types(info, picks=None, unique=True):
+def _get_channel_types(info, picks=None, unique=True,
+                       restrict_data_types=False):
     """Get the data channel types in an info instance."""
-    data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
     picks = range(info['nchan']) if picks is None else picks
-    ch_types = ([channel_type(info, idx) for idx in range(info['nchan'])
-                if channel_type(info, idx) in data_types and idx in picks])
-    return set(ch_types) if unique else ch_types
+    ch_types = [channel_type(info, idx) for idx in range(info['nchan'])
+                if idx in picks]
+    if restrict_data_types is True:
+        ch_types = [ch_type for ch_type in ch_types
+                    if ch_type not in _DATA_CH_TYPES_SPLIT]
+    return set(ch_types) if unique is True else ch_types
 
 
 def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6):
