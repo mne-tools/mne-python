@@ -14,7 +14,8 @@ from pyface.api import confirm, error, FileDialog, OK, YES
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, DelegatesTo, Event, Instance,
                         Property, Array, Bool, Button, Enum)
-from traitsui.api import HGroup, Item, VGroup, View, ArrayEditor
+from traitsui.api import (HGroup, Item, VGroup, View, ArrayEditor, Handler,
+                          Label)
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -28,13 +29,9 @@ from ..viz._3d import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
-                      headview_borders)
+                      headview_borders, _M_WIDTH, _TEXT_WIDTH, _BUTTON_WIDTH,
+                      _m_fmt)
 defaults = DEFAULTS['coreg']
-
-
-def _mm_fmt(x):
-    """Format mm data."""
-    return '%0.5f' % x
 
 
 class MRIHeadWithFiducialsModel(HasPrivateTraits):
@@ -214,6 +211,32 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         self.reset_fiducials()
 
 
+class SetHandler(Handler):
+    """Handler to change style when setting MRI fiducials."""
+
+    def object_locked_changed(self, info):  # noqa: D102
+        if info.object.locked:
+            ss = ''
+        else:
+            ss = 'border-style: solid; border-color: red; border-width: 3px;'
+        # This will only work for Qt, but hopefully that's most users!
+        try:
+            for child in info.ui.info.ui.control.children():
+                if 'QWidget' in repr(child):
+                    for ch in child.children():
+                        if 'QComboBox' in repr(ch):
+                            ch.setStyleSheet(ss)
+                        elif 'QLabel' in repr(ch) and \
+                                ch.text().startswith == 'Set':
+                            ch.setStyleSheet(ss)
+        except AttributeError:  # safeguard for wxpython
+            pass
+
+
+_SET_TOOLTIP = ('Click on the MRI image to set the position, '
+                'or enter values below')
+
+
 class FiducialsPanel(HasPrivateTraits):
     """Set fiducials on an MRI surface."""
 
@@ -231,11 +254,11 @@ class FiducialsPanel(HasPrivateTraits):
     locked = DelegatesTo('model', 'lock_fiducials')
 
     set = Enum('LPA', 'Nasion', 'RPA')
-    current_pos = Array(float, (1, 3), editor=ArrayEditor(width=50))
+    current_pos = Array(float, (1, 3), editor=ArrayEditor(width=_M_WIDTH))
 
     save_as = Button(label='Save As...')
     save = Button(label='Save')
-    reset_fid = Button(label="Reset to File")
+    reset_fid = Button(label="Reset")
 
     headview = Instance(HeadViewController)
     hsp_obj = Instance(SurfaceObject)
@@ -243,23 +266,29 @@ class FiducialsPanel(HasPrivateTraits):
     picker = Instance(object)
 
     # the layout of the dialog created
-    view = View(VGroup(Item('fid_file', label='File'),
-                       Item('fid_fname', show_label=False, style='readonly'),
-                       Item('set', style='custom', width=50,
-                            format_func=lambda x: x),
-                       Item('current_pos', label='Pos', width=50,
-                            format_func=_mm_fmt),
+    view = View(VGroup(Label('MRI fiducials file:', show_label=True,
+                             width=_TEXT_WIDTH),
+                       Item('fid_file', width=_TEXT_WIDTH),
+                       Label('Set positions:', show_label=True,
+                             width=_TEXT_WIDTH,
+                             tooltip=_SET_TOOLTIP),
+                       Item('set', width=_TEXT_WIDTH, format_func=lambda x: x,
+                            tooltip=_SET_TOOLTIP),
+                       Item('current_pos', label='Pos', format_func=_m_fmt),
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="If a filename is currently "
                                    "specified, save to that file, otherwise "
                                    "save to the default file name",
-                                   width=10),
+                                   width=_BUTTON_WIDTH),
                               Item('save_as', enabled_when='can_save_as',
-                                   width=10),
+                                   width=_BUTTON_WIDTH),
                               Item('reset_fid', enabled_when='can_reset',
-                                   width=10),
+                                   width=_BUTTON_WIDTH,
+                                   tooltip='Reset to file values '
+                                   '(if available)'),
                               show_labels=False),
-                       enabled_when="locked==False"))
+                       enabled_when="locked==False", show_labels=False),
+                handler=SetHandler())
 
     def __init__(self, *args, **kwargs):  # noqa: D102
         super(FiducialsPanel, self).__init__(*args, **kwargs)

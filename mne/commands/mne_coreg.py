@@ -62,6 +62,10 @@ def run():
                       dest='mark_inside',
                       help='Mark points inside the head using a different '
                       'color.')
+    parser.add_option('--interaction',
+                      type=str, default=None, dest='interaction',
+                      help='Interaction style to use, can be "trackball" or '
+                      '"terrain".')
     parser.add_option('--verbose', action='store_true', dest='verbose',
                       help='Turn on verbose mode.')
 
@@ -93,7 +97,8 @@ def run():
             trans=trans, scrollable=True, project_eeg=options.project_eeg,
             orient_to_surface=options.orient_to_surface,
             scale_by_distance=options.scale_by_distance,
-            mark_inside=options.mark_inside, verbose=options.verbose)
+            mark_inside=options.mark_inside, interaction=options.interaction,
+            verbose=options.verbose)
     if is_main:
         sys.exit(0)
 
