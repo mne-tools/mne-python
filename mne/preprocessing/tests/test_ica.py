@@ -396,7 +396,7 @@ def test_ica_additional(method):
 
     # test decim
     ica = ICA(n_components=3, max_pca_components=4,
-              n_pca_components=4, method=method)
+              n_pca_components=4, method=method, max_iter=1)
     raw_ = raw.copy()
     for _ in range(3):
         raw_.append(raw_)
@@ -407,7 +407,7 @@ def test_ica_additional(method):
 
     # test expl var
     ica = ICA(n_components=1.0, max_pca_components=4,
-              n_pca_components=4, method=method)
+              n_pca_components=4, method=method, max_iter=1)
     with warnings.catch_warnings(record=True):
         ica.fit(raw, picks=None, decim=3)
     assert_true(ica.n_components_ == 4)
@@ -427,7 +427,7 @@ def test_ica_additional(method):
     test_ica_fname = op.join(op.dirname(tempdir), 'test-ica.fif')
     for cov in (None, test_cov):
         ica = ICA(noise_cov=cov, n_components=2, max_pca_components=4,
-                  n_pca_components=4, method=method)
+                  n_pca_components=4, method=method, max_iter=1)
         with warnings.catch_warnings(record=True):  # ICA does not converge
             ica.fit(raw, picks=picks, start=start, stop=stop2)
         sources = ica.get_sources(epochs).get_data()
