@@ -1060,7 +1060,7 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
 
     if add_dist:
         logger.info("Recomputing distances, this might take a while")
-        dist_limit = np.asscalar(sss[0]['dist_limit'])
+        dist_limit = np.asscalar(np.abs(sss[0]['dist_limit']))
         add_source_space_distances(sss, dist_limit, n_jobs)
 
     write_source_spaces(dst, sss)
