@@ -461,6 +461,7 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
                 # these (& other) string fields
                 str_conversion_fields = ('type', 'usertags')
                 temp = _bunch_str_conversions(temp, str_conversion_fields)
+                temp = np.asarray(temp)
 
             elif curr == 'epoch':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr],
@@ -541,6 +542,9 @@ def _get_eeg_data(input_fname, uint16_codec=None):
         f = h5py.File(input_fname)
         eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
         eeg = _bunchify(eeg_dict)
+        #str_conversion_fields = ('datafile', 'filename', 'filepath',
+        #                         'history', 'ref', 'saved', 'setname')
+        #eeg = _bunch_str_conversions(eeg, str_conversion_fields)
 
     return eeg
 
