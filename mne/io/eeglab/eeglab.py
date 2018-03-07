@@ -461,10 +461,7 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
                 # these (& other) string fields
                 str_conversion_fields = ('type', 'usertags')
                 temp = _bunch_str_conversions(temp, str_conversion_fields)
-<<<<<<< HEAD
-=======
                 temp = np.asarray(temp)
->>>>>>> rebase1
 
             elif curr == 'epoch':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr],
