@@ -122,8 +122,8 @@ def test_tf_mxne():
 
 def test_dgapl21l1():
     """Test duality gap for L21 + L1 regularization."""
-    l2_ratio = 0.6
-    n_orient = 1
+    l1_ratio = 0.7
+    n_orient = 2
     M, G, active_set = _generate_tf_data()
     n_times = M.shape[1]
     n_sources = G.shape[1]
@@ -134,9 +134,9 @@ def test_dgapl21l1():
     phi = _Phi(wsize, tstep, n_coefs)
     phiT = _PhiT(tstep, n_freq, n_step, n_times)
 
-    alpha_max = norm_epsilon_inf(G, M, phi, l2_ratio, n_orient)
-    alpha_space = l2_ratio * alpha_max
-    alpha_time = (1. - l2_ratio) * alpha_max
+    alpha_max = norm_epsilon_inf(G, M, phi, l1_ratio, n_orient)
+    alpha_space = (1. - l1_ratio) * alpha_max
+    alpha_time = l1_ratio * alpha_max
 
     Z = np.zeros([n_sources, n_coefs])
     shape = (-1, n_step, n_freq)

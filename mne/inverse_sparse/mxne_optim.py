@@ -768,18 +768,19 @@ def norm_l1_tf(Z, shape, n_orient):
     return l1_norm
 
 
-def norm_epsilon(Y, l2_ratio):
-    """Dual norm of l2_ratio * L2 norm + (1. - l2_ratio) * L1 norm, at Y.
+def norm_epsilon(Y, l1_ratio):
+    """Dual norm of (1. - l1_ratio) * L2 norm + l1_ratio * L1 norm, at Y.
 
     This is the unique solution in nu of
-    norm(prox_l1(Y, nu * (1 - l2_ratio)), ord=2) = l2_ratio * nu
+    norm(prox_l1(Y, nu * l1_ratio), ord=2) = (1. - l1_ratio) * nu
 
     Parameters
     ----------
     Y : array, shape (n_atoms,)
         The input data.
-    l2_ratio : float between 0 and 1
-        Tradeoff between L2 and L1 regularization.
+    l1_ratio : float between 0 and 1
+        Tradeoff between L2 and L1 regularization. When it is 0, no temporal
+        regularization is applied.
 
     Returns
     -------
@@ -795,17 +796,17 @@ def norm_epsilon(Y, l2_ratio):
     # since the solution is invariant to flipped signs in Y, all entries
     # of Y are assumed positive
     norm_inf_Y = np.max(Y)
-    if l2_ratio == 0:
+    if l1_ratio == 1.:
         # dual norm of L1 is Linf
         return norm_inf_Y
-    elif l2_ratio == 1.:
+    elif l1_ratio == 0.:
         # dual norm of L2 is L2
         return np.sqrt((Y ** 2).sum())  # TODO Y is always real
 
     if norm_inf_Y == 0.:
         return 0.
 
-    K = (Y > (1. - l2_ratio) * norm_inf_Y).sum()
+    K = (Y > l1_ratio * norm_inf_Y).sum()
     if K == 1:
         return norm_inf_Y
 
@@ -820,7 +821,7 @@ def norm_epsilon(Y, l2_ratio):
         p_sum += Y[k]
         p_sum_2 += Y[k] ** 2
         upper = p_sum_2 / Y[k + 1] ** 2 - 2. * p_sum / Y[k + 1] + k + 1
-        if lower <= l2_ratio ** 2 / (1. - l2_ratio) ** 2 < upper:
+        if lower <= (1. - l1_ratio) ** 2 / l1_ratio ** 2 < upper:
             j = k + 1
             break
         lower = upper
@@ -829,16 +830,16 @@ def norm_epsilon(Y, l2_ratio):
         p_sum += Y[K - 1]
         p_sum_2 += Y[K - 1] ** 2
 
-    denom = (1. - l2_ratio) ** 2 * j - l2_ratio ** 2
+    denom = l1_ratio ** 2 * j - (1. - l1_ratio) ** 2
     if np.abs(denom) < 1e-10:
-        return p_sum_2 / 2. * (1. - l2_ratio) * p_sum
+        return p_sum_2 / 2. * l1_ratio * p_sum
     else:
         # TODO prove that we cannot get a negative value in the sqrt
-        delta = ((1. - l2_ratio) * p_sum) ** 2 - p_sum_2 * denom
-        return ((1. - l2_ratio) * p_sum - np.sqrt(delta)) / denom
+        delta = (l1_ratio * p_sum) ** 2 - p_sum_2 * denom
+        return (l1_ratio * p_sum - np.sqrt(delta)) / denom
 
 
-def norm_epsilon_inf(G, R, phi, l2_ratio, n_orient):
+def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
     """epsilon-inf norm of phi(np.dot(G.T, R)).
 
     Parameters
@@ -849,8 +850,9 @@ def norm_epsilon_inf(G, R, phi, l2_ratio, n_orient):
         Residuals.
     phi : instance of _Phi
         The TF operator.
-    l2_ratio : float between 0 and 1
+    l1_ratio : float between 0 and 1
         Parameter controlling the tradeoff between L21 and L1 regularization.
+        0 corresponds to an absence of temporal regularization, ie MxNE.
     n_orient : int
         Number of dipoles per location (typically 1 or 3).
 
@@ -868,9 +870,9 @@ def norm_epsilon_inf(G, R, phi, l2_ratio, n_orient):
     nu = 0.
     for idx in range(n_positions):
         GTRPhi_ = GTRPhi[idx]
-        # norm_epsilon(GTRPhi_, l2_ratio) < max(GTRPhi_), so might skip this group:
-        # if nu < np.max(GTRPhi_) / l2_ratio:
-        norm_eps = norm_epsilon(GTRPhi_, l2_ratio)
+        # norm_epsilon(GTRPhi_, l1_ratio) < max(GTRPhi_), maybe skip this group
+        # if nu < np.max(GTRPhi_) / l1_ratio:
+        norm_eps = norm_epsilon(GTRPhi_, l1_ratio)
         if norm_eps > nu:
             nu = norm_eps
 
@@ -938,8 +940,8 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     nR2 = sum_squared(R)
     p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
 
-    l2_ratio = alpha_space / (alpha_space + alpha_time)
-    dual_norm = norm_epsilon_inf(G, R, phi, l2_ratio, n_orient)
+    l1_ratio = alpha_time / (alpha_space + alpha_time)
+    dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient)
     scaling = min(1., (alpha_space + alpha_time) / dual_norm)
 
     d_obj = (scaling - 0.5 * (scaling ** 2)) * nR2 + scaling * np.sum(R * GX)
