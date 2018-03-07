@@ -56,13 +56,19 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 #              explicitly set ``fir_design='firwin'`` to use this method. This
 #              is the recommended filter method for ICA preprocessing.
 
+
 ###############################################################################
 # Fit ICA
 # -------
 #
 # First, choose the ICA method. There are currently 4 possible choices:
-# `fastica`, `picard`, `infomax` and `extended-infomax`. Picard converges
-# faster than the other algorithms, and tends to give more consistent results.
+# `fastica`, `picard`, `infomax` and `extended-infomax`.
+#
+# .. note:: The default method in MNE is FastICA, which along with Infomax is
+#           one of the most widely used ICA algorithm. Picard is a
+#           new algorithm that is expected to converge faster than FastICA and
+#           Infomax, especially when the aim is to recover accurate maps with
+#           a low tolerance parameter.
 
 method = 'fastica'
 
