@@ -543,10 +543,17 @@ def _get_eeg_data(input_fname, uint16_codec=None):
         eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
         eeg = _bunchify(eeg_dict)
 
-        #str_conversion_fields = ('datafile', 'filename', 'filepath',
-        #                         'history', 'ref', 'saved', 'setname')
-        #eeg = _bunch_str_conversions(eeg, str_conversion_fields)
-
+        
+        str_conversion_fields = ('datfile', 'filename', 'filepath',
+                                 'history', 'ref', 'saved', 'setname')
+        for curr_field in str_conversion_fields:
+            temp = eeg[curr_field]
+            c1 = isinstance(temp, np.ndarray)
+            c2 = c1 and np.issubdtype(temp.dtype, np.integer)
+            c3 = c2 and (min(temp) >= 0)
+            if c3:
+                eeg[curr_field] = ''.join([chr(y) for y in temp])
+            
     return eeg
 
 
