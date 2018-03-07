@@ -1842,9 +1842,23 @@ class CoregFrame(HasTraits):
         s_c('MNE_COREG_GUESS_MRI_SUBJECT', self.model.guess_mri_subject)
         s_c('MNE_COREG_HEAD_HIGH_RES', self.head_high_res)
         s_c('MNE_COREG_HEAD_OPACITY', self.mri_obj.opacity)
-        w, h = self.scene.renderer.size
-        s_c('MNE_COREG_SCENE_WIDTH', w)
-        s_c('MNE_COREG_SCENE_HEIGHT', h)
+        # This works on Qt variants. We cannot rely on
+        # scene.renderer.size or scene.render_window.size because these
+        # are in physical pixel units rather than logical (so HiDPI breaks
+        # things). The problem remains that setting the size of the scene
+        # sets the *minimum* as well as actual size of the scene, so
+        # the window cannot be shrunk anymore :(. So we are stuck not
+        # saving our size until we figure out how to have Traits not set
+        # the minimum. (Not setting the scene size at all makes the
+        # scene, left, and right panels grow at the same rate, which
+        # is not helpful. The left and right should be fixed.)
+        # try:
+        #     w, h = self.scene.control.size()
+        # except Exception:
+        #     pass
+        # else:
+        #     s_c('MNE_COREG_SCENE_WIDTH', w)
+        #     s_c('MNE_COREG_SCENE_HEIGHT', h)
         s_c('MNE_COREG_SCENE_SCALE', self.headview.scale)
         s_c('MNE_COREG_SCALE_LABELS', self.model.scale_labels)
         s_c('MNE_COREG_COPY_ANNOT', self.model.copy_annot)
