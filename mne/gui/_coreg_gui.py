@@ -55,7 +55,8 @@ from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
                         Enum, Float, HasTraits, HasPrivateTraits, Instance,
                         Int, on_trait_change, Property, Str, List)
 from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
-                          Handler, Label, TextEditor, Spring, InstanceEditor)
+                          Handler, Label, TextEditor, Spring, InstanceEditor,
+                          StatusItem)
 from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -64,7 +65,8 @@ from ..coreg import bem_fname, trans_fname
 from ..defaults import DEFAULTS
 from ..surface import _compute_nearest
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
-                          rotation_angles, Transform, _ensure_trans)
+                          rotation_angles, Transform, _ensure_trans,
+                          rot_to_quat, _angle_between_quats)
 from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
 from ..viz._3d import _toggle_mlab_render
 from ..utils import logger, set_config
@@ -134,6 +136,7 @@ class CoregModel(HasPrivateTraits):
     rot_y = Float(0, label=u"∠Y")
     rot_z = Float(0, label=u"∠Z")
     parameters = List()
+    last_parameters = List()
     lpa_weight = Float(1.)
     nasion_weight = Float(1.)
     rpa_weight = Float(1.)
@@ -141,6 +144,7 @@ class CoregModel(HasPrivateTraits):
     eeg_weight = Float(0.)
     hpi_weight = Float(0.)
     coord_frame = Str('mri')
+    status_text = Str()
 
     # options during scaling
     scale_labels = Bool(True, desc="whether to scale *.label files")
@@ -689,11 +693,28 @@ class CoregModel(HasPrivateTraits):
 
     def _parameters_items_changed(self):
         # Update rot_x, rot_y, rot_z parameters if necessary
+        new = np.array(self.parameters, float)
+        old = np.array(self.last_parameters, float)
+        n_scale = self.n_scale_params
         for ii, key in enumerate(('rot_x', 'rot_y', 'rot_z',
                                   'trans_x', 'trans_y', 'trans_z',
                                   'scale_x', 'scale_y', 'scale_z')):
-            if self.parameters[ii] != getattr(self, key):  # prevent circular
-                setattr(self, key, self.parameters[ii])
+            if new[ii] != getattr(self, key):  # prevent circular
+                setattr(self, key, new[ii])
+        # Update the status text
+        move = np.linalg.norm(old[3:6] - new[3:6]) * 1000
+        angle = np.rad2deg(_angle_between_quats(
+            rot_to_quat(rotation(*new[:3])[:3, :3]),
+            rot_to_quat(rotation(*old[:3])[:3, :3])))
+        text = u'Change:  Δ=%0.1f mm  ∠=%0.2f°' % (move, angle)
+        if n_scale:
+            pres = ['Scale'] if n_scale == 1 else ['Sx', 'Sy', 'Sz']
+            scales = old[6:6 + n_scale]
+            percs = 100 * (new[6:6 + n_scale] - scales) / scales
+            text += '  '.join([''] + ['%s %+0.1f%%' % (pre, p)
+                                      for p, pre in zip(percs, pres)])
+        self.last_parameters[:] = self.parameters[:]
+        self.status_text = text
 
     def _rot_x_changed(self):
         self.parameters[0] = self.rot_x
@@ -751,10 +772,7 @@ class CoregFrameHandler(Handler):
 
 def _make_view_coreg_panel(scrollable=False):
     """Generate View for CoregPanel."""
-    view = View(VGroup(HGroup(Item('grow_hair',
-                                   editor=laggy_float_editor_mm,
-                                   width=_MM_WIDTH), Spring()),
-                       HGroup(Item('n_scale_params', label='Scaling mode',
+    view = View(VGroup(HGroup(Item('n_scale_params', label='Scaling mode',
                                    editor=EnumEditor(
                                        values={0: '1:None',
                                                1: '2:Uniform',
@@ -804,7 +822,7 @@ def _make_view_coreg_panel(scrollable=False):
                              Spring(),
 
                              label='Scaling parameters', show_labels=False,
-                             columns=5),
+                             columns=5, show_border=_SHOW_BORDER),
                        VGrid(Item('fits_icp',
                                   enabled_when='n_scale_params',
                                   tooltip="Rotate, translate, and scale the "
@@ -820,8 +838,7 @@ def _make_view_coreg_panel(scrollable=False):
                                   enabled_when='n_scale_params',
                                   tooltip="Reset scaling parameters",
                                   width=_BUTTON_WIDTH, height=-1),
-                             '0',
-                             show_labels=False, columns=2),
+                             show_labels=False, columns=3),
                        VGrid(Item('trans_x', editor=laggy_float_editor_m,
                                   show_label=True, tooltip="Move along "
                                   "right-left axis", width=_M_WIDTH),
@@ -877,7 +894,7 @@ def _make_view_coreg_panel(scrollable=False):
                              Spring(),
 
                              show_labels=False, show_border=_SHOW_BORDER,
-                             label=u'Translation (Δ) & rotation (∠)',
+                             label=u'Translation (Δ) and Rotation (∠)',
                              columns=5),
                        # buttons
                        VGroup(Item('fit_icp',
@@ -896,8 +913,7 @@ def _make_view_coreg_panel(scrollable=False):
                               Item('reset_tr',
                                    tooltip="Reset translation and rotation.",
                                    width=_BUTTON_WIDTH),
-                              Item('load_trans', width=_BUTTON_WIDTH),
-                              show_labels=False, columns=2),
+                              show_labels=False, columns=3),
                        # Fitting weights
                        VGrid(Item('lpa_weight', editor=laggy_float_editor_w,
                                   tooltip="Relative weight for LPA",
@@ -951,15 +967,16 @@ def _make_view_coreg_panel(scrollable=False):
                            label='Subject-saving options', columns=2,
                            show_border=_SHOW_BORDER),
                        '_',
-                       HGroup(Item('save', enabled_when='can_save',
-                                   tooltip="Save the trans file and (if "
-                                   "scaling is enabled) the scaled MRI"),
-                              Item('reset_params', tooltip="Reset all "
-                                   "coregistration parameters"),
-                              show_labels=False),
-                       Item('queue_feedback', style='readonly'),
-                       Item('queue_current', style='readonly'),
-                       Item('queue_len_str', style='readonly'),
+                       VGrid(Item('save', enabled_when='can_save',
+                                  tooltip="Save the trans file and (if "
+                                  "scaling is enabled) the scaled MRI",
+                                  width=_BUTTON_WIDTH),
+                             Item('load_trans', width=_BUTTON_WIDTH,
+                                  tooltip="Load Head<->MRI trans file"),
+                             Item('reset_params', tooltip="Reset all "
+                                  "coregistration parameters",
+                                  width=_BUTTON_WIDTH),
+                             show_labels=False, columns=3),
                        Spring(),
                        show_labels=False),
                 kind='panel', buttons=[UndoButton], scrollable=scrollable)
@@ -973,7 +990,6 @@ class CoregPanel(HasPrivateTraits):
 
     # parameters
     reset_params = Button(label='Reset')
-    grow_hair = DelegatesTo('model')
     n_scale_params = DelegatesTo('model')
     parameters = DelegatesTo('model')
     scale_step = Float(0.01)
@@ -1022,11 +1038,11 @@ class CoregPanel(HasPrivateTraits):
     has_hpi_data = DelegatesTo('model')
     # fitting with scaling
     fits_icp = Button(label='Fit (ICP)')
-    fits_fid = Button(label='Fit fiducials')
+    fits_fid = Button(label='Fit Fid.')
     reset_scale = Button(label='Reset')
     # fitting without scaling
     fit_icp = Button(label='Fit (ICP)')
-    fit_fid = Button(label='Fit fiducials')
+    fit_fid = Button(label='Fit Fid.')
     reset_tr = Button(label='Reset')
 
     # fit info
@@ -1039,19 +1055,22 @@ class CoregPanel(HasPrivateTraits):
     scale_labels = DelegatesTo('model')
     copy_annot = DelegatesTo('model')
     prepare_bem_model = DelegatesTo('model')
-    save = Button(label="Save as...")
+    save = Button(label="Save...")
     load_trans = Button(label='Load...')
     queue = Instance(queue.Queue, ())
     queue_feedback = Str('')
     queue_current = Str('')
     queue_len = Int(0)
     queue_len_str = Property(Str, depends_on=['queue_len'])
+    status_text = Str()  # can be set by methods
 
     view = _make_view_coreg_panel()
 
     def __init__(self, *args, **kwargs):  # noqa: D102
         super(CoregPanel, self).__init__(*args, **kwargs)
-        self.model.parameters = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
+        def_param = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
+        self.model.last_parameters[:] = def_param
+        self.model.parameters[:] = def_param
 
         # Setup scaling worker
         def worker():
@@ -1392,11 +1411,10 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
     view : traits View
         View object for the CoregFrame.
     """
-    # XXX This setting of scene_width and scene_height is a limiting factor
-    scene = Item('scene', show_label=False,
-                 width=scene_width, height=scene_height,
-                 editor=SceneEditor(scene_class=MayaviScene),
-                 dock='vertical')
+    # Set the width to 0.99 to "push out" as much as possible, use
+    # scene_width in the View below
+    scene = Item('scene', show_label=False, width=0.99,
+                 editor=SceneEditor(scene_class=MayaviScene))
 
     data_panel = VGroup(
         VGroup(Item('subject_panel', style='custom'), label="MRI Subject",
@@ -1415,11 +1433,14 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
         VGroup(Item('raw_src', style="custom", width=_TEXT_WIDTH),
                HGroup('guess_mri_subject',
                       Label('Guess subject from filename'), show_labels=False),
-               HGroup(Item('distance', show_label=False, width=_MM_WIDTH,
-                           editor=laggy_float_editor_mm),
-                      'omit_points',
-                      'reset_omit_points',
-                      Spring(), show_labels=False),
+               VGrid(Item('distance', show_label=False, width=_MM_WIDTH,
+                          editor=laggy_float_editor_mm),
+                     'omit_points',
+                     'reset_omit_points',
+                     Item('grow_hair', editor=laggy_float_editor_mm,
+                          width=_MM_WIDTH),
+                     Label('ΔHair [mm]', show_label=True), '0',
+                     columns=3, show_labels=False),
                Item('omitted_info', style='readonly', width=_TEXT_WIDTH),
                label='Digitization source',
                show_border=_SHOW_BORDER, show_labels=False),
@@ -1456,8 +1477,13 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
     # Here we set the width and height to impossibly small numbers to force the
     # window to be as tight as possible
     view = View(main, resizable=True, handler=CoregFrameHandler(),
-                buttons=NoButtons, width=scene_width + 2 * _COREG_WIDTH,
-                height=scene_height)
+                buttons=NoButtons, width=scene_width +
+                2 * _COREG_WIDTH * np.sign(_COREG_WIDTH),
+                height=scene_height,
+                statusbar=[StatusItem('status_text', width=0.55),
+                           StatusItem('queue_feedback', width=0.2),
+                           StatusItem('queue_current', width=0.2),
+                           StatusItem('queue_len_str', width=0.05)])
     return view
 
 
@@ -1510,6 +1536,10 @@ class CoregFrame(HasTraits):
     orient_to_surface = DelegatesTo('hsp_obj')
     scale_by_distance = DelegatesTo('hsp_obj')
     mark_inside = DelegatesTo('hsp_obj')
+    status_text = DelegatesTo('model')
+    queue_feedback = Str()
+    queue_current = Str()
+    queue_len_str = Str()
 
     # Omit Points
     distance = Float(5., desc="maximal distance for head shape points from "
@@ -1517,6 +1547,7 @@ class CoregFrame(HasTraits):
     omit_points = Button(label='Omit [mm]', desc="to omit head shape points "
                          "for the purpose of the automatic coregistration "
                          "procedure.")
+    grow_hair = DelegatesTo('model')
     reset_omit_points = Button(label='Reset', desc="to reset the "
                                "omission of head shape points to include all.")
     omitted_info = Property(Str, depends_on=['model:hsp:n_omitted'])
@@ -1592,6 +1623,9 @@ class CoregFrame(HasTraits):
                                     head_opacity=head_opacity,
                                     interaction=interaction,
                                     scale=scale)
+        for key in ('status_text', 'queue_feedback', 'queue_current',
+                    'queue_len_str'):
+            self.coreg_panel.sync_trait(key, self, mutual=False)
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
@@ -1847,20 +1881,16 @@ class CoregFrame(HasTraits):
         # This works on Qt variants. We cannot rely on
         # scene.renderer.size or scene.render_window.size because these
         # are in physical pixel units rather than logical (so HiDPI breaks
-        # things). The problem remains that setting the size of the scene
-        # sets the *minimum* as well as actual size of the scene, so
-        # the window cannot be shrunk anymore :(. So we are stuck not
-        # saving our size until we figure out how to have Traits not set
-        # the minimum. (Not setting the scene size at all makes the
-        # scene, left, and right panels grow at the same rate, which
-        # is not helpful. The left and right should be fixed.)
-        # try:
-        #     w, h = self.scene.control.size()
-        # except Exception:
-        #     pass
-        # else:
-        #     s_c('MNE_COREG_SCENE_WIDTH', w)
-        #     s_c('MNE_COREG_SCENE_HEIGHT', h)
+        # things).
+        try:
+            size = self.scene.scene_editor.control.size()
+            w = size.width()
+            h = size.height()
+        except Exception:
+            pass
+        else:
+            s_c('MNE_COREG_SCENE_WIDTH', w)
+            s_c('MNE_COREG_SCENE_HEIGHT', h)
         s_c('MNE_COREG_SCENE_SCALE', self.headview.scale)
         s_c('MNE_COREG_SCALE_LABELS', self.model.scale_labels)
         s_c('MNE_COREG_COPY_ANNOT', self.model.copy_annot)

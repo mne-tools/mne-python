@@ -41,7 +41,7 @@ laggy_float_editor_mm = TextEditor(auto_set=False, enter_set=True,
                                    evaluate=float,
                                    format_func=lambda x: '%0.1f' % x)
 
-_BUTTON_WIDTH = -1
+_BUTTON_WIDTH = -75
 _RAD_WIDTH = -70  # radian floats
 _M_WIDTH = _RAD_WIDTH  # m floats
 _MM_WIDTH = _RAD_WIDTH  # mm floats
@@ -50,11 +50,11 @@ _SCALE_WIDTH = -50  # scale floats
 _WEIGHT_WIDTH = -40  # weight floats
 _RAD_STEP_WIDTH = -50
 _M_STEP_WIDTH = _RAD_STEP_WIDTH
-# width is optimized for macOS to avoid a horizontal scroll-bar;
+# width is optimized for macOS and Linux avoid a horizontal scroll-bar;
 # might benefit from platform-specific values
-_COREG_WIDTH = -275
+_COREG_WIDTH = -300
 _TEXT_WIDTH = -240
-_SHOW_BORDER = False
+_SHOW_BORDER = True
 
 
 class HeadViewController(HasTraits):
