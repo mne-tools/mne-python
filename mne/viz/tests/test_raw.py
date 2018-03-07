@@ -87,7 +87,7 @@ def _annotation_helper(raw):
     assert_equal(len(raw.annotations.onset), n_anns + 1)
     assert_equal(len(raw.annotations.duration), n_anns + 1)
     assert_equal(len(raw.annotations.description), n_anns + 1)
-    assert_equal(raw.annotations.description[n_anns], 'BAD test')
+    assert_equal(raw.annotations.description[n_anns], 'BAD_ test')
 
     # draw another annotation merging the two
     _fake_click(fig, data_ax, [5.5, 1.], xform='data', button=1, kind='press')

@@ -818,7 +818,8 @@ def _setup_annotation_fig(params):
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
     fig.patch.set_facecolor('white')
-    ax = plt.subplot2grid((len(labels) + 2, 2), (0, 0), rowspan=len(labels),
+    ax = plt.subplot2grid((len(labels) + 2, 2), (0, 0),
+                          rowspan=max(len(labels), 1),
                           colspan=2, frameon=False)
     ax.set_title('Labels')
     ax.set_aspect('equal')
@@ -852,7 +853,7 @@ def _setup_annotation_fig(params):
     fig.canvas.mpl_connect('key_press_event', partial(
         _change_annotation_description, params=params))
     fig.button = Button(button_ax, 'Add label')
-    fig.label = label_ax.text(0.5, 0.5, 'BAD_', va='center', ha='center')
+    fig.label = label_ax.text(0.5, 0.5, '"BAD_"', va='center', ha='center')
     fig.button.on_clicked(partial(_onclick_new_label, params=params))
     plt_show(fig=fig)
     params['fig_annotation'] = fig
@@ -880,7 +881,7 @@ def _setup_annotation_fig(params):
 
 def _onclick_new_label(event, params):
     """Add new description on button press."""
-    text = params['fig_annotation'].label.get_text()[:-1]
+    text = params['fig_annotation'].label.get_text()[1:-1]
     params['added_label'].append(text)
     _setup_annotation_colors(params)
     _setup_annotation_fig(params)
@@ -1998,11 +1999,9 @@ def _change_annotation_description(event, params):
     """Handle keys in annotation dialog."""
     import matplotlib.pyplot as plt
     fig = event.canvas.figure
-    text = fig.label.get_text()
+    text = fig.label.get_text()[1:-1]
     if event.key == 'backspace':
-        if len(text) == 1:
-            return
-        text = text[:-2]
+        text = text[:-1]
     elif event.key == 'escape':
         plt.close(fig)
         return
@@ -2011,8 +2010,8 @@ def _change_annotation_description(event, params):
     elif len(event.key) > 1 or event.key == ';':  # ignore modifier keys
         return
     else:
-        text = text[:-1] + event.key
-    fig.label.set_text(text + '_')
+        text = text + event.key
+    fig.label.set_text('"' + text + '"')
     fig.canvas.draw()
 
 
