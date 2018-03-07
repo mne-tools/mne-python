@@ -14,7 +14,7 @@ from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
                         on_trait_change, Array, Bool, Button, DelegatesTo,
                         Directory, Enum, Event, File, Instance, Int, List,
                         Property, Str)
-from traitsui.api import View, Item, VGroup, Label
+from traitsui.api import View, Item, VGroup
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
 from ._viewer import _TEXT_WIDTH
@@ -275,10 +275,8 @@ class DigSource(HasPrivateTraits):
     hpi_points = Property(depends_on='_info',
                           desc='HPI coil coordinates (N x 3 array)')
 
-    view = View(VGroup(Label('Raw/Epochs/Evoked/DigMontage:',
-                             show_label=True, width=_TEXT_WIDTH),
-                       Item('file', width=_TEXT_WIDTH),
-                       show_labels=False))
+    view = View(Item('file', width=_TEXT_WIDTH, tooltip='FIF file '
+                     '(Raw, Epochs, Evoked, or DigMontage)', show_label=False))
 
     @cached_property
     def _get_n_omitted(self):
@@ -536,12 +534,10 @@ class SubjectSelectorPanel(HasPrivateTraits):
              "subjects directory. This button is disabled if "
              "fsaverage already exists in the selected subjects directory.")
 
-    view = View(VGroup(Label('SUBJECTS_DIR:',
-                             show_label=True, width=_TEXT_WIDTH),
-                       Item('subjects_dir', width=_TEXT_WIDTH),
-                       Label('Subject:',
-                             show_label=True, width=_TEXT_WIDTH),
-                       Item('subject', width=_TEXT_WIDTH),
+    view = View(VGroup(Item('subjects_dir', width=_TEXT_WIDTH,
+                            tooltip='Subject MRI structurals (SUBJECTS_DIR)'),
+                       Item('subject', width=_TEXT_WIDTH,
+                            tooltip='Subject to use within SUBJECTS_DIR'),
                        Item('create_fsaverage',
                             enabled_when='can_create_fsaverage',
                             width=_TEXT_WIDTH),

@@ -1573,6 +1573,7 @@ class CoregFrame(HasTraits):
     def _headview_default(self):
         return HeadViewController(
             scene=self.scene, system='RAS',
+            scale=self._initial_kwargs['scale'],
             interaction=self._initial_kwargs['interaction'])
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
@@ -1580,7 +1581,7 @@ class CoregFrame(HasTraits):
                  head_high_res=True, trans=None, config=None,
                  project_eeg=False, orient_to_surface=False,
                  scale_by_distance=False, mark_inside=False,
-                 interaction='trackball'):  # noqa: D102
+                 interaction='trackball', scale=0.16):  # noqa: D102
         self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject,
                                          head_high_res=head_high_res)
@@ -1589,7 +1590,8 @@ class CoregFrame(HasTraits):
                                     scale_by_distance=scale_by_distance,
                                     mark_inside=mark_inside,
                                     head_opacity=head_opacity,
-                                    interaction=interaction)
+                                    interaction=interaction,
+                                    scale=scale)
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "

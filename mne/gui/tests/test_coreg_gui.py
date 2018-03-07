@@ -212,8 +212,8 @@ def test_coreg_gui():
                           tvtk.CylinderSource)
 
         # grow hair (faster for low-res)
-        assert frame.model.mri.subject_source.show_high_res_head
-        frame.model.mri.subject_source.show_high_res_head = False
+        assert frame.view_options_panel.head_high_res
+        frame.view_options_panel.head_high_res = False
         frame.model.grow_hair = 40.
 
         # scale
@@ -226,7 +226,7 @@ def test_coreg_gui():
         # reset parameters
         frame.coreg_panel.reset_params = True
         assert_equal(frame.model.grow_hair, 0)
-        assert not frame.model.mri.subject_source.show_high_res_head
+        assert not frame.view_options_panel.head_high_res
 
         # configuration persistence
         assert_true(frame.model.prepare_bem_model)
@@ -237,7 +237,7 @@ def test_coreg_gui():
 
         ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
         assert_false(frame.model.prepare_bem_model)
-        assert not frame.model.mri.subject_source.show_high_res_head
+        assert not frame.view_options_panel.head_high_res
         ui.dispose()
         gui.process_events()
     finally:
@@ -256,7 +256,6 @@ def test_coreg_model_with_fsaverage():
                                fs_home=op.join(subjects_dir, '..'))
 
     model = CoregModel()
-    model.mri.subject_source.show_high_res_head = False
     model.mri.subjects_dir = tempdir
     model.mri.subject = 'fsaverage'
     assert_true(model.mri.fid_ok)

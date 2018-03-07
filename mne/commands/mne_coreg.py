@@ -66,6 +66,9 @@ def run():
                       type=str, default=None, dest='interaction',
                       help='Interaction style to use, can be "trackball" or '
                       '"terrain".')
+    parser.add_option('--scale',
+                      type=float, default=None, dest='scale',
+                      help='Scale factor for the scene.')
     parser.add_option('--verbose', action='store_true', dest='verbose',
                       help='Turn on verbose mode.')
 
@@ -98,7 +101,7 @@ def run():
             orient_to_surface=options.orient_to_surface,
             scale_by_distance=options.scale_by_distance,
             mark_inside=options.mark_inside, interaction=options.interaction,
-            verbose=options.verbose)
+            scale=options.scale, verbose=options.verbose)
     if is_main:
         sys.exit(0)
 
