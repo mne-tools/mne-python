@@ -308,7 +308,10 @@ def test_plot_topomap():
 
     # Test excluding bads channels
     evoked_grad.info['bads'] += [evoked_grad.info['ch_names'][0]]
+    orig_bads = evoked_grad.info['bads']
     evoked_grad.plot_topomap(ch_type='grad', times=[0])
+    assert_array_equal(evoked_grad.info['bads'], orig_bads)
+    plt.close('all')
 
 
 def test_plot_tfr_topomap():
