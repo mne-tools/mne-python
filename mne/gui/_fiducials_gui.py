@@ -229,9 +229,13 @@ class SetHandler(Handler):
                     for ch in child.children():
                         if 'QRadioButton' in repr(ch):
                             ch.setStyleSheet(ss if ch.isChecked() else '')
-                        if 'QWidget' in repr(ch):
+                        elif 'QLineEdit' in repr(ch):
+                            ch.setStyleSheet(ss)
+                        elif 'QWidget' in repr(ch):  # on Linux it's nested
                             for ch_ in ch.children():
+                                print(repr(ch_))
                                 if 'QLineEdit' in repr(ch_):
+                                    print('Settin')
                                     ch_.setStyleSheet(ss)
         except AttributeError:  # safeguard for wxpython
             pass
