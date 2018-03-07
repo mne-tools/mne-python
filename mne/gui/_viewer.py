@@ -82,13 +82,15 @@ class HeadViewController(HasTraits):
     scene = Instance(MlabSceneModel)
 
     view = View(VGroup(
-        VGrid('0', 'top', '0',
-              'right', 'front', 'left', columns=3, show_labels=False),
+        VGrid('0', Item('top', width=_M_WIDTH), '0',
+              Item('right', width=_M_WIDTH),
+              Item('front', width=_M_WIDTH),
+              Item('left', width=_M_WIDTH), columns=3, show_labels=False),
         '_',
-        VGroup(Item('scale', label='Scale', editor=laggy_float_editor_m,
-                    width=_M_WIDTH), Spring(),
-               Item('interaction', label='Interaction'), Spring(),
-               columns=2),
+        HGroup(Item('scale', label='Scale', editor=laggy_float_editor_m,
+                    width=_M_WIDTH, show_label=True),
+               Item('interaction', tooltip='Mouse interaction mode',
+                    show_label=False), Spring()),
         show_labels=False))
 
     @on_trait_change('scene.activated')
@@ -101,10 +103,11 @@ class HeadViewController(HasTraits):
             self.sync_trait('scale', self.scene.camera, 'parallel_scale')
             # and apparently this does not happen by default:
             self.on_trait_change(self.scene.render, 'scale')
+            self.interaction = self.interaction  # could be delayed
 
     @on_trait_change('interaction')
     def on_set_interaction(self, _, interaction):
-        if self.scene is None:
+        if self.scene is None or self.scene.interactor is None:
             return
         if interaction == 'terrain':
             # Ensure we're in the correct orientatino for the

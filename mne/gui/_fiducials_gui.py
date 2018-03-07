@@ -15,7 +15,7 @@ from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, DelegatesTo, Event, Instance,
                         Property, Array, Bool, Button, Enum)
 from traitsui.api import (HGroup, Item, VGroup, View, ArrayEditor, Handler,
-                          Label)
+                          Label, Spring)
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -214,21 +214,25 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 class SetHandler(Handler):
     """Handler to change style when setting MRI fiducials."""
 
+    def object_set_changed(self, info):  # noqa: D102
+        return self.object_locked_changed(info)
+
     def object_locked_changed(self, info):  # noqa: D102
         if info.object.locked:
             ss = ''
         else:
-            ss = 'border-style: solid; border-color: red; border-width: 3px;'
+            ss = 'border-style: solid; border-color: red; border-width: 2px;'
         # This will only work for Qt, but hopefully that's most users!
         try:
             for child in info.ui.info.ui.control.children():
                 if 'QWidget' in repr(child):
                     for ch in child.children():
-                        if 'QComboBox' in repr(ch):
-                            ch.setStyleSheet(ss)
-                        elif 'QLabel' in repr(ch) and \
-                                ch.text().startswith == 'Set':
-                            ch.setStyleSheet(ss)
+                        if 'QRadioButton' in repr(ch):
+                            ch.setStyleSheet(ss if ch.isChecked() else '')
+                        if 'QWidget' in repr(ch):
+                            for ch_ in ch.children():
+                                if 'QLineEdit' in repr(ch_):
+                                    ch_.setStyleSheet(ss)
         except AttributeError:  # safeguard for wxpython
             pass
 
@@ -266,24 +270,29 @@ class FiducialsPanel(HasPrivateTraits):
     picker = Instance(object)
 
     # the layout of the dialog created
-    view = View(VGroup(Label('MRI fiducials file:', show_label=True,
-                             width=_TEXT_WIDTH),
-                       Item('fid_file', width=_TEXT_WIDTH),
-                       Label('Set positions:', show_label=True,
-                             width=_TEXT_WIDTH,
-                             tooltip=_SET_TOOLTIP),
-                       Item('set', width=_TEXT_WIDTH, format_func=lambda x: x,
-                            tooltip=_SET_TOOLTIP),
-                       Item('current_pos', label='Pos', format_func=_m_fmt),
+    view = View(VGroup(HGroup(Item('fid_file',
+                                   width=_TEXT_WIDTH -
+                                   np.sign(_TEXT_WIDTH) * 10,
+                                   tooltip='MRI fiducials file'),
+                              show_labels=False),
+                       HGroup(Label('Set:', show_label=True, width=-1,
+                              tooltip=_SET_TOOLTIP),
+                              Item('set', width=-1,
+                                   format_func=lambda x: x,
+                                   tooltip=_SET_TOOLTIP, style='custom'),
+                              Spring(), show_labels=False),
+                       HGroup(Item('current_pos', label='Pos',
+                                   format_func=_m_fmt),
+                              Spring(), show_labels=False),
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="If a filename is currently "
                                    "specified, save to that file, otherwise "
                                    "save to the default file name",
-                                   width=_BUTTON_WIDTH),
+                                   width=_M_WIDTH),
                               Item('save_as', enabled_when='can_save_as',
                                    width=_BUTTON_WIDTH),
                               Item('reset_fid', enabled_when='can_reset',
-                                   width=_BUTTON_WIDTH,
+                                   width=_M_WIDTH,
                                    tooltip='Reset to file values '
                                    '(if available)'),
                               show_labels=False),
