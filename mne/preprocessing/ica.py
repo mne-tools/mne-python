@@ -175,8 +175,8 @@ class ICA(ContainsMixin):
         components with a cumulative explained variance below
         `n_pca_components`.
     noise_cov : None | instance of mne.cov.Covariance
-        Noise covariance used for whitening. If None, channels are just
-        z-scored.
+        Noise covariance used for pre-whitening. If None, channels are scaled
+        to unit variance prior to whitening.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
@@ -544,32 +544,17 @@ class ICA(ContainsMixin):
         """Aux function."""
         random_state = check_random_state(self.random_state)
 
+        from sklearn.decomposition import PCA
         if not check_version('sklearn', '0.18'):
-            from sklearn.decomposition import RandomizedPCA
-            # XXX fix copy==True later. Bug in sklearn, see PR #2273
-            pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
-                                copy=True, random_state=random_state)
-
+            pca = PCA(n_components=max_pca_components, whiten=True, copy=True)
         else:
-            from sklearn.decomposition import PCA
-            pca = PCA(n_components=max_pca_components, copy=True, whiten=True,
-                      svd_solver='randomized', random_state=random_state)
-
-        if isinstance(self.n_components, float):
-            # compute full feature variance before doing PCA
-            full_var = np.var(data, axis=1).sum()
+            pca = PCA(n_components=max_pca_components, whiten=True, copy=True,
+                      svd_solver='full')
 
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
-            # compute eplained variance manually, cf. sklearn bug
-            # fixed in #2664
-            if check_version('sklearn', '0.19'):
-                explained_variance_ratio_ = pca.explained_variance_ratio_
-            else:
-                explained_variance_ratio_ = pca.explained_variance_ / full_var
-            del full_var
-            n_components_ = np.sum(explained_variance_ratio_.cumsum() <=
+            n_components_ = np.sum(pca.explained_variance_ratio_.cumsum() <=
                                    self.n_components)
             if n_components_ < 1:
                 raise RuntimeError('One PCA component captures most of the '
@@ -593,10 +578,9 @@ class ICA(ContainsMixin):
         self.pca_mean_ = pca.mean_
         self.pca_components_ = pca.components_
         self.pca_explained_variance_ = exp_var = pca.explained_variance_
-        if not check_version('sklearn', '0.18'):
-            # unwhiten pca components and put scaling in unmixing matrix later.
-            # RandomizedPCA applies the whitening to the components
-            # but not the new PCA class.
+        if not check_version('sklearn', '0.16'):
+            # sklearn < 0.16 did not apply whitening to the components, so we
+            # need to do this manually
             self.pca_components_ *= np.sqrt(exp_var[:, None])
         del pca
         # update number of components
@@ -606,15 +590,13 @@ class ICA(ContainsMixin):
             if self.n_pca_components > len(self.pca_components_):
                 self.n_pca_components = len(self.pca_components_)
 
-        # Take care of ICA
+        # take care of ICA
         if self.method == 'fastica':
-            from sklearn.decomposition import FastICA  # to avoid strong dep.
-            ica = FastICA(whiten=False,
-                          random_state=random_state, **self.fit_params)
+            from sklearn.decomposition import FastICA
+            ica = FastICA(whiten=False, random_state=random_state,
+                          **self.fit_params)
             ica.fit(data[:, sel])
-            # get unmixing and add scaling
-            self.unmixing_matrix_ = getattr(ica, 'components_',
-                                            'unmixing_matrix_')
+            self.unmixing_matrix_ = ica.components_
         elif self.method in ('infomax', 'extended-infomax'):
             self.unmixing_matrix_ = infomax(data[:, sel],
                                             random_state=random_state,

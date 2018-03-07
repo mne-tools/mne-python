@@ -9,6 +9,7 @@ from copy import deepcopy
 from functools import partial
 import warnings
 
+import pytest
 import numpy as np
 from scipy.io import savemat
 from numpy.testing import assert_array_equal
@@ -28,6 +29,18 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 warnings.simplefilter('always')
+
+
+def test_reorder_channels():
+    """Test reordering of channels."""
+    raw = read_raw_fif(raw_fname, preload=True).crop(0, 0.1)
+    raw_new = raw.copy().reorder_channels(raw.ch_names[::-1])
+    assert_array_equal(raw[:][0], raw_new[:][0][::-1])
+    raw_new.reorder_channels(raw_new.ch_names[::-1][1:-1])
+    raw.drop_channels(raw.ch_names[:1] + raw.ch_names[-1:])
+    assert_array_equal(raw[:][0], raw_new[:][0])
+    with pytest.raises(ValueError, match='repeated'):
+        raw.reorder_channels(raw.ch_names[:1] + raw.ch_names[:1])
 
 
 def test_rename_channels():

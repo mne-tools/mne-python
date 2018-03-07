@@ -6,6 +6,7 @@
 example usage:  $ mne coreg
 """
 
+import os.path as op
 import sys
 
 import mne
@@ -45,6 +46,22 @@ def run():
                       help="Use a low-resolution head surface.")
     parser.add_option('--trans', dest='trans', default=None,
                       help='Head<->MRI transform FIF file ("-trans.fif")')
+    parser.add_option('--project-eeg', dest='project_eeg',
+                      action='store_true', default=None,
+                      help="Project EEG electrodes to the head surface")
+    parser.add_option('--orient-to-surface',
+                      action='store_true', default=None,
+                      dest='orient_to_surface',
+                      help='Orient points to the surface.')
+    parser.add_option('--scale-by-distance',
+                      action='store_true', default=None,
+                      dest='scale_by_distance',
+                      help='Scale points by distance from the surface.')
+    parser.add_option('--mark-inside',
+                      action='store_true', default=None,
+                      dest='mark_inside',
+                      help='Mark points inside the head using a different '
+                      'color.')
     parser.add_option('--verbose', action='store_true', dest='verbose',
                       help='Turn on verbose mode.')
 
@@ -60,19 +77,26 @@ def run():
     else:
         head_high_res = None
 
+    # expanduser allows ~ for --subjects-dir
+    subjects_dir = options.subjects_dir
+    if subjects_dir is not None:
+        subjects_dir = op.expanduser(subjects_dir)
+    trans = options.trans
+    if trans is not None:
+        trans = op.expanduser(trans)
     with ETSContext():
-        mne.gui.coregistration(options.tabbed,
-                               inst=options.inst,
-                               subject=options.subject,
-                               subjects_dir=options.subjects_dir,
-                               guess_mri_subject=options.guess_mri_subject,
-                               head_opacity=options.head_opacity,
-                               head_high_res=head_high_res,
-                               trans=options.trans,
-                               scrollable=True,
-                               verbose=options.verbose)
+        mne.gui.coregistration(
+            options.tabbed, inst=options.inst, subject=options.subject,
+            subjects_dir=subjects_dir,
+            guess_mri_subject=options.guess_mri_subject,
+            head_opacity=options.head_opacity, head_high_res=head_high_res,
+            trans=trans, scrollable=True, project_eeg=options.project_eeg,
+            orient_to_surface=options.orient_to_surface,
+            scale_by_distance=options.scale_by_distance,
+            mark_inside=options.mark_inside, verbose=options.verbose)
     if is_main:
         sys.exit(0)
+
 
 is_main = (__name__ == '__main__')
 if is_main:

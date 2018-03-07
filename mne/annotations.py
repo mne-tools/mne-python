@@ -40,8 +40,7 @@ class Annotations(object):
     Parameters
     ----------
     onset : array of float, shape (n_annotations,)
-        Annotation time onsets relative to the ``orig_time``, the starting time
-        of annotation acquisition.
+        The starting time of annotations in seconds after ``orig_time``.
     duration : array of float, shape (n_annotations,)
         Durations of the annotations in seconds.
     description : array of str, shape (n_annotations,) | str
@@ -289,39 +288,89 @@ def read_annotations(fname):
     ----------
     fname : str
         The filename.
+
+    Returns
+    -------
+    annot : instance of Annotations | None
+        The annotations.
     """
     ff, tree, _ = fiff_open(fname, preload=False)
     with ff as fid:
         annotations = _read_annotations(fid, tree)
     if annotations is None:
-        raise ValueError('No annotations found in file:\n%s' % (fname,))
+        raise IOError('No annotation data found in file "%s"' % fname)
     return annotations
+
+
+def read_brainstorm_annotations(fname, orig_time=None):
+    """Read annotations from a Brainstorm events_ file.
+
+    Parameters
+    ----------
+    fname : str
+        The filename
+    orig_time : float | int | instance of datetime | array of int | None
+        A POSIX Timestamp, datetime or an array containing the timestamp as the
+        first element and microseconds as the second element. Determines the
+        starting time of annotation acquisition. If None (default),
+        starting time is determined from beginning of raw data acquisition.
+        In general, ``raw.info['meas_date']`` (or None) can be used for syncing
+        the annotations with raw data if their acquisiton is started at the
+        same time.
+
+    Returns
+    -------
+    annot : instance of Annotations | None
+        The annotations.
+    """
+    from scipy import io
+
+    def get_duration_from_times(t):
+        if t.shape[0] == 2:
+            return t[1] - t[0]
+        else:
+            return np.zeros(len(t[0]))
+
+    annot_data = io.loadmat(fname)
+    onsets, durations, descriptions = (list(), list(), list())
+    for label, _, _, _, times, _, _ in annot_data['events'][0]:
+        onsets.append(times[0])
+        durations.append(get_duration_from_times(times))
+        n_annot = len(times[0])
+        descriptions += [str(label[0])] * n_annot
+
+    return Annotations(onset=np.concatenate(onsets),
+                       duration=np.concatenate(durations),
+                       description=descriptions,
+                       orig_time=orig_time)
 
 
 def _read_annotations(fid, tree):
     """Read annotations."""
-    annotations = None
     annot_data = dir_tree_find(tree, FIFF.FIFFB_MNE_ANNOTATIONS)
-    if len(annot_data) > 0:
+    if len(annot_data) == 0:
+        annotations = None
+    else:
         annot_data = annot_data[0]
-        for k in range(annot_data['nent']):
-            kind = annot_data['directory'][k].kind
-            pos = annot_data['directory'][k].pos
-            orig_time = None
+        orig_time = None
+        onset, duration, description = list(), list(), list()
+        for ent in annot_data['directory']:
+            kind = ent.kind
+            pos = ent.pos
             tag = read_tag(fid, pos)
             if kind == FIFF.FIFF_MNE_BASELINE_MIN:
                 onset = tag.data
-                if onset is None:
-                    break  # bug in 0.14 wrote empty annotations
+                onset = list() if onset is None else onset
             elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
-                duration = tag.data - onset
+                duration = tag.data
+                duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
                 description = tag.data.split(':')
                 description = [d.replace(';', ':') for d in
                                description]
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = float(tag.data)
-        if onset is not None:
-            annotations = Annotations(onset, duration, description,
-                                      orig_time)
+        assert len(onset) == len(duration) == len(description)
+        annotations = Annotations(onset, duration, description,
+                                  orig_time)
     return annotations

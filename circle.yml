@@ -32,6 +32,7 @@ dependencies:
     - "~/mne_data/MNE-eegbci-data"
     - "~/mne_data/mTRF_1.5"
     - "~/mne_data/MNE-fieldtrip_cmc-data"
+    - "~/mne_data/MNE-phantom-4DBTi"
     - "~/mne-tools.github.io"
   # Various dependencies
   pre:
@@ -138,6 +139,12 @@ dependencies:
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*fieldtrip_cmc.*" | wc -l) -gt 0 ]]; then
               python -c "import mne; print(mne.datasets.fieldtrip_cmc.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*multimodal.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.multimodal.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_4dbti.*" | wc -l) -gt 0 ]]; then
+              python -c "import mne; print(mne.datasets.phantom_4dbti.data_path(update_path=True))";
             fi;
           fi;
         done;

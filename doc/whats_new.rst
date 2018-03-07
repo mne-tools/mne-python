@@ -41,19 +41,45 @@ Changelog
 
 - Add support for MaxShield raw files in :class:`mne.report.Report` by `Eric Larson`_
 
+- Add ability to plot whitened data in :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, :meth:`mne.Evoked.plot`, and :meth:`mne.Evoked.plot_topo` by `Eric Larson`_
+
 - Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :func:`mne.io.read_raw_egi` by `Federico Raimondo`_
 
 - Add support for reading subject height and weight in ``info['subject_info']`` by `Eric Larson`_
 
 - Improve online filtering of raw data when plotting with :meth:`mne.io.Raw.plot` to filter in segments in accordance with the default ``skip_by_annotation=('edge', 'bad_acq_skip')`` of :meth:`mne.io.Raw.filter` to avoid edge ringing by `Eric Larson`_
 
-- Add support for multiple head position files and plotting of sensors in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
+- Add support for multiple head position files, plotting of sensors, and control of plotting color and axes in :func:`mne.viz.plot_head_positions` by `Eric Larson`_
 
 - Add ability to read and write :class:`Annotations` separate from :class:`mne.io.Raw` instances via :meth:`Annotations.save` and :func:`read_annotations` by `Eric Larson`_
 
 - Add option to unset a montage by passing `None` to :meth:`mne.io.Raw.set_montage` by `Clemens Brunner`_
 
-- Add :func:`mne.io.pick.get_channel_types` which returns all available channel types in MNE by `Clemens Brunner`_
+- Add sensor denoising via :func:`mne.preprocessing.oversampled_temporal_projection` by `Eric Larson`_
+
+- Add ``mne.io.pick.get_channel_types`` which returns all available channel types in MNE by `Clemens Brunner`_
+
+- Use standard PCA instead of randomized PCA whitening prior to ICA to increase reproducibility by `Clemens Brunner`_
+
+- Plot sEEG electrodes in :func:`mne.viz.plot_alignment` by `Alex Gramfort`_
+
+- Add function :func:`mne.io.read_annotations_eeglab` to allow loading annotations from EEGLAB files, by `Alex Gramfort`_
+
+- :meth:`mne.io.Raw.set_montage` now accepts a string as its ``montage`` argument; this will set a builtin montage, by `Clemens Brunner`_
+
+- Add 4D BTi phantom dataset :func:`mne.datasets.phantom_4dbti`, by `Alex Gramfort`_
+
+- Changed the background color to grey in :func:`mne.viz.plot_alignment` to make helmet more visible, by `Alex Gramfort`_
+
+- Add :meth:`mne.io.Raw.reorder_channels`, :meth:`mne.Evoked.reorder_channels`, etc. to reorder channels, by `Eric Larson`_
+
+- Improve visibility of points inside the head in ``mne coreg`` and :func:`mne.gui.coregistration` by `Eric Larson`_
+
+- Add ability to exclude components interactively by clicking on their labels in :meth:`mne.preprocessing.ICA.plot_components` by `Mikołaj Magnuski`_
+
+- Add projection of EEG electrodes, orientation of extra points, and scaling points by distance to the head surface; display of HPI points; and marking points inside the head surface in a different color by ``mne coreg`` / :func:`mne.gui.coregistration` by `Eric Larson`_
+
+- Add reader for manual annotations of raw data produced by Brainstorm by `Anne-Sophie Dubarry`_
 
 Bug
 ~~~
@@ -84,13 +110,32 @@ Bug
 
 - Fix bug in :meth:`mne.report.Report.add_figs_to_section` when passing :class:`numpy.ndarray` by `Eric Larson`_
 
+- Fix bug in CSS class setting in `mne.report.Report` BEM section by `Eric Larson`_
+
 - Fix bug in :class:`Annotations` where annotations that extend to the end of a recording were not extended properly by `Eric Larson`_
 
 - Fix bug in :meth:`mne.io.Raw.filter` to properly raw data with acquisition skips in separate segments by `Eric Larson`_
 
 - Fix bug in :func:`mne.preprocessing.maxwell_filter` where homogeneous fields were not removed for CTF systems by `Eric Larson`_
 
+- Fix computation of average quaternions in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
+
+- Fix bug in writing ``raw.annotations`` where empty annotations could not be written to disk, by `Eric Larson`_
+
 - Fix support for writing FIF files with acquisition skips by using empty buffers rather than writing zeros by `Eric Larson`_
+
+- Fix bug in the ``mne make_scalp_surfaces`` command where ``--force`` (to bypass topology check failures) was ignored by `Eric Larson`_
+
+- Fix bug in :func:`mne.preprocessing.maxwell_filter` when providing ``origin`` in ``'meg'`` coordinate frame for recordings with a MEG to head transform (i.e., non empty-room recordings) by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_cov` that ignored ``colorbar`` argument by `Nathalie Gayraud`_
+
+- Fix bug when reading event latencies (in samples) from eeglab files didn't translate indices to 0-based python indexing by `Mikołaj Magnuski`_
+
+- Fix consistency between :class:`mne.Epochs` and :func:`mne.statistics.linear_regression_raw` in converting between samples and times (:func:`mne.statistics.linear_regression_raw` now rounds, instead of truncating) by `Phillip Alday`_
+
+- Fix bug when passing ``show_sensors=1`` to :func:`mne.viz.plot_compare_evokeds` resulted in sensors legend placed in lower right of the figure (position 4 in matplotlib), not upper right by `Mikołaj Magnuski`_
+
 
 API
 ~~~
@@ -99,6 +144,7 @@ API
 
 - Changed the line width in :func:`mne.viz.plot_bem` from 2.0 to 1.0 for better visibility of underlying structures, by `Eric Larson`_
 
+- Changed the behavior of :meth:`mne.io.Raw.pick_channels` and similar methods to be consistent with :func:`mne.pick_channels` to treat channel list as a set (ignoring order) -- if reordering is necessary use ``inst.reorder_channels``, by `Eric Larson`_
 
 .. _changes_0_15:
 
@@ -2486,7 +2532,7 @@ of commits):
 
 .. _Chris Mullins: http://crmullins.com
 
-.. _Phillip Alday: http://palday.bitbucket.org
+.. _Phillip Alday: https://palday.bitbucket.io
 
 .. _Andreas Hojlund: https://github.com/ahoejlund
 
@@ -2539,3 +2585,7 @@ of commits):
 .. _Alejandro Weinstein: http://ocam.cl
 
 .. _Emily Stephen: http://github.com/emilyps14
+
+.. _Nathalie Gayraud: https://github.com/ngayraud
+
+.. _Anne-Sophie Dubarry: https://github.com/annesodub

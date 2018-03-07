@@ -57,6 +57,7 @@ Reading raw data
   anonymize_info
   find_edf_events
   read_events_eeglab
+  read_annotations_eeglab
   read_raw_artemis123
   read_raw_bti
   read_raw_cnt
@@ -204,6 +205,7 @@ Datasets
    somato.data_path
    spm_face.data_path
    visual_92_categories.data_path
+   phantom_4dbti.data_path
 
 
 Visualization
@@ -360,6 +362,7 @@ Projections:
    ica_find_eog_events
    infomax
    maxwell_filter
+   oversampled_temporal_projection
    read_ica
    run_ica
    corrmap
@@ -772,6 +775,7 @@ Source Space Data
    label_sign_flip
    morph_data
    morph_data_precomputed
+   random_parcellation
    read_labels_from_annot
    read_dipole
    read_label

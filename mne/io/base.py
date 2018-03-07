@@ -766,6 +766,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 if start < 0:
                     raise ValueError('start must be >= -%s' % nchan)
             stop = item[0].stop if item[0].stop is not None else nchan
+            if stop < 0:
+                stop += nchan
+                if stop < 0:
+                    raise ValueError('stop must be >= -%s' % nchan)
             step = item[0].step if item[0].step is not None else 1
             sel = list(range(start, stop, step))
         else:
@@ -1649,6 +1653,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.
+            To overwrite original file (the same one that was loaded),
+            data must be preloaded upon reading.
         split_size : string | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
@@ -1742,12 +1748,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto'):
+             butterfly=False, decim='auto', noise_cov=None, event_id=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp, proj,
-                        group_by, butterfly, decim)
+                        group_by, butterfly, decim, noise_cov=noise_cov,
+                        event_id=event_id)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
@@ -2336,7 +2343,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     # Annotations
     #
-    if annotations is not None and len(annotations.onset) > 0:
+    if annotations is not None:  # allow saving empty annotations
         _write_annotations(fid, annotations)
 
     #

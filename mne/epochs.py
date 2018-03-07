@@ -13,6 +13,7 @@
 from collections import OrderedDict, Counter
 from copy import deepcopy
 import json
+import operator
 import os.path as op
 from distutils.version import LooseVersion
 
@@ -937,12 +938,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_colors=None, show=True,
-             block=False, decim='auto'):
+             block=False, decim='auto', noise_cov=None):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events,
                            event_colors=event_colors, show=show, block=block,
-                           decim=decim)
+                           decim=decim, noise_cov=noise_cov)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
@@ -2178,8 +2179,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
         if not len(list(new_event_id.keys())) == 1:
             raise ValueError('new_event_id dict must have one entry')
     new_event_num = list(new_event_id.values())[0]
-    if not isinstance(new_event_num, int):
-        raise ValueError('new_event_id value must be an integer')
+    new_event_num = operator.index(new_event_num)
     if new_event_num in epochs.event_id.values():
         raise ValueError('new_event_id value must not already exist')
     # could use .pop() here, but if a latter one doesn't exist, we're

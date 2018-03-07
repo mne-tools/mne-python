@@ -685,10 +685,15 @@ def test_getitem():
         data1, times1 = raw[[0, 1]]
         assert_array_equal(data, data1)
         assert_array_equal(times, times1)
-        assert_array_equal(raw[-10:, :][0],
-                           raw[len(raw.ch_names) - 10:, :][0])
+        assert_array_equal(
+            raw[-10:-1, :][0],
+            raw[len(raw.ch_names) - 10:len(raw.ch_names) - 1, :][0])
         assert_raises(ValueError, raw.__getitem__,
                       (slice(-len(raw.ch_names) - 1), slice(None)))
+        with pytest.raises(ValueError, match='start must be'):
+            raw[-1000:]
+        with pytest.raises(ValueError, match='stop must be'):
+            raw[:-1000]
 
 
 @testing.requires_testing_data

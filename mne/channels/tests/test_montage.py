@@ -545,10 +545,9 @@ def test_egi_dig_montage():
 def test_set_montage():
     """Test setting a montage."""
     raw = read_raw_fif(fif_fname)
-    mon = read_montage('mgh60')
     orig_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                          if ch['ch_name'].startswith('EEG')])
-    raw.set_montage(mon)
+    raw.set_montage('mgh60')  # test loading with string argument
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
     assert_true((orig_pos != new_pos).all())

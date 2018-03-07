@@ -153,37 +153,36 @@ def head_pos_to_trans_rot_t(quats):
 def _get_hpi_info(info, verbose=None):
     """Get HPI information from raw."""
     if len(info['hpi_meas']) == 0 or \
-            ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]) or \
-            info.get('hpi_subsystem') is None:
+            ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
         raise RuntimeError('Appropriate cHPI information not found in'
                            'info["hpi_meas"] and info["hpi_subsystem"], '
                            'cannot process cHPI')
     hpi_coils = sorted(info['hpi_meas'][-1]['hpi_coils'],
                        key=lambda x: x['number'])  # ascending (info) order
 
-    # how cHPI active is indicated in the FIF file
-    hpi_sub = info['hpi_subsystem']
-    if 'event_channel' in hpi_sub:
-        hpi_pick = pick_channels(info['ch_names'],
-                                 [hpi_sub['event_channel']])
-        hpi_pick = hpi_pick[0] if len(hpi_pick) > 0 else None
-    else:
-        hpi_pick = None  # there is no pick!
-
-    # grab codes indicating a coil is active
-    hpi_on = [coil['event_bits'][0] for coil in hpi_sub['hpi_coils']]
-    # not all HPI coils will actually be used
-    hpi_on = np.array([hpi_on[hc['number'] - 1] for hc in hpi_coils])
-
     # get frequencies
     hpi_freqs = np.array([float(x['coil_freq']) for x in hpi_coils])
     logger.info('Using %s HPI coils: %s Hz'
                 % (len(hpi_freqs), ' '.join(str(int(s)) for s in hpi_freqs)))
 
-    # mask for coils that may be active
-    hpi_mask = np.array([event_bit != 0 for event_bit in hpi_on])
-    hpi_on = hpi_on[hpi_mask]
-    hpi_freqs = hpi_freqs[hpi_mask]
+    # how cHPI active is indicated in the FIF file
+    hpi_sub = info['hpi_subsystem']
+    hpi_pick = None  # there is no pick!
+    if hpi_sub is not None:
+        if 'event_channel' in hpi_sub:
+            hpi_pick = pick_channels(info['ch_names'],
+                                     [hpi_sub['event_channel']])
+            hpi_pick = hpi_pick[0] if len(hpi_pick) > 0 else None
+        # grab codes indicating a coil is active
+        hpi_on = [coil['event_bits'][0] for coil in hpi_sub['hpi_coils']]
+        # not all HPI coils will actually be used
+        hpi_on = np.array([hpi_on[hc['number'] - 1] for hc in hpi_coils])
+        # mask for coils that may be active
+        hpi_mask = np.array([event_bit != 0 for event_bit in hpi_on])
+        hpi_on = hpi_on[hpi_mask]
+        hpi_freqs = hpi_freqs[hpi_mask]
+    else:
+        hpi_on = np.zeros(len(hpi_freqs))
 
     return hpi_freqs, hpi_pick, hpi_on
 
@@ -433,14 +432,10 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
         The sin amplitudes matching each cHPI frequency
             or None if this time window should be skipped
     """
+    # No need to detrend the data because our model has a DC term
     with use_log_level(False):
         # loads good channels
-        meg_chpi_data = raw[hpi['meg_picks'], time_sl][0]
-
-    mchpi_data = np.tile(np.mean(meg_chpi_data, axis=1, keepdims=True),
-                         (1, meg_chpi_data.shape[1]))
-    mchpi_data = mchpi_data.reshape(meg_chpi_data.shape)
-    this_data = meg_chpi_data - mchpi_data
+        this_data = raw[hpi['meg_picks'], time_sl][0]
 
     # which HPI coils to use
     # other then erroring I don't see this getting used elsewhere?
@@ -475,24 +470,27 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
                                  full_matrices=False)
         # the first component holds the predominant phase direction
         # (so ignore the second, effectively doing s[1] = 0):
-        X[[fi, fi + n_freqs], :] = np.outer(u[:, 0] * s[0], vt[0])
         sin_fit[fi, :] = vt[0]
+        # Do not modify X, however, because it will break the signal
+        # reconstruction step.
 
-    data_diff = np.dot(model, X).T - this_data
-    data_diff_sq = np.linalg.norm(data_diff, axis=1)
+    data_diff_sq = np.dot(model, X).T - this_data
     data_diff_sq *= data_diff_sq
+    data_diff_sq = np.sum(data_diff_sq, axis=-1)
 
     # compute amplitude correlation (for logging), protect against zero
-    norm = np.linalg.norm(this_data, axis=1)
-    norm *= norm  # sum of squares
+    norm = this_data
+    del this_data
+    norm *= norm
+    norm = np.sum(norm, axis=-1)
     norm_sum = norm.sum()
     norm_sum = np.inf if norm_sum == 0 else norm_sum
     norm[norm == 0] = np.inf
-    g_sin = 1 - np.sqrt(data_diff_sq.sum() / norm_sum)
-    g_chan = 1 - np.sqrt(data_diff_sq / norm)
+    g_sin = 1 - data_diff_sq.sum() / norm_sum
+    g_chan = 1 - data_diff_sq / norm
     logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
-                 '(%s chnls > 0.90)' % (fit_time, g_sin,
-                                        (g_chan > 0.90).sum()))
+                 '(%s chnls > 0.95)' % (fit_time, g_sin,
+                                        (g_chan > 0.95).sum()))
 
     return sin_fit
 
@@ -654,6 +652,9 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
         # check if data has sufficiently changed
         if last['sin_fit'] is not None:  # first iteration
+            # The sign of our fits is arbitrary
+            flips = np.sign((sin_fit * last['sin_fit']).sum(-1, keepdims=True))
+            sin_fit *= flips
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
             if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \

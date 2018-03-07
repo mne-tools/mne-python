@@ -33,7 +33,7 @@ from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
 from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
                        complete_surface_info, mesh_edges,
-                       _complete_sphere_surf)
+                       _complete_sphere_surf, _normalize_vectors)
 from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform)
@@ -76,7 +76,8 @@ def _fiducial_coords(points, coord_frame=None):
 
 
 def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
-                        show=True, destination=None, info=None):
+                        show=True, destination=None, info=None, color='k',
+                        axes=None):
     """Plot head positions.
 
     Parameters
@@ -107,7 +108,15 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         showing the MEG sensors.
 
         .. versionadded:: 0.16
+    color : color object
+        The color to use for lines in ``mode == 'traces'`` and quiver
+        arrows in ``mode == 'field'``.
 
+        .. versionadded:: 0.16
+    axes : array-like, shape (3, 2)
+        The matplotlib axes to use. Only used for ``mode == 'traces'``.
+
+        .. versionadded:: 0.16
 
     Returns
     -------
@@ -163,12 +172,20 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
                 surf['rr'] *= 1000.
     helmet_color = (0.0, 0.0, 0.6)
     if mode == 'traces':
-        fig, axes = plt.subplots(3, 2, sharex=True)
+        if axes is None:
+            axes = plt.subplots(3, 2, sharex=True)[1]
+        else:
+            axes = np.array(axes)
+        if axes.shape != (3, 2):
+            raise ValueError('axes must have shape (3, 2), got %s'
+                             % (axes.shape,))
+        fig = axes[0, 0].figure
+
         labels = ['xyz', ('$q_1$', '$q_2$', '$q_3$')]
         for ii, (quat, coord) in enumerate(zip(use_quats.T, use_trans.T)):
-            axes[ii, 0].plot(t, coord, 'k', lw=1., zorder=3)
+            axes[ii, 0].plot(t, coord, color, lw=1., zorder=3)
             axes[ii, 0].set(ylabel=labels[0][ii], xlim=t[[0, -1]])
-            axes[ii, 1].plot(t, quat, 'k', lw=1., zorder=3)
+            axes[ii, 1].plot(t, quat, color, lw=1., zorder=3)
             axes[ii, 1].set(ylabel=labels[1][ii], xlim=t[[0, -1]])
             for b in borders[:-1]:
                 for jj in range(2):
@@ -233,6 +250,7 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
         from mpl_toolkits.mplot3d import axes3d  # noqa: F401, analysis:ignore
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
+
         # First plot the trajectory as a colormap:
         # http://matplotlib.org/examples/pylab_examples/multicolored_line.html
         pts = use_trans[:, np.newaxis]
@@ -257,8 +275,8 @@ def plot_head_positions(pos, mode='traces', cmap='viridis', direction='z',
                           destination[2, 3],
                           destination[dir_idx[d], 0],
                           destination[dir_idx[d], 1],
-                          destination[dir_idx[d], 2], color='k', length=length,
-                          **kwargs)
+                          destination[dir_idx[d], 2], color=color,
+                          length=length, **kwargs)
         mins = use_trans.min(0)
         maxs = use_trans.max(0)
         if surf is not None:
@@ -403,9 +421,7 @@ def _create_mesh_surf(surf, fig=None, scalars=None):
     mlab = _import_mlab()
     nn = surf['nn'].copy()
     # make absolutely sure these are normalized for Mayavi
-    norm = np.sum(nn * nn, axis=1)
-    mask = norm > 0
-    nn[mask] /= norm[mask][:, np.newaxis]
+    _normalize_vectors(nn)
     x, y, z = surf['rr'].T
     with warnings.catch_warnings(record=True):  # traits
         mesh = mlab.pipeline.triangular_mesh_source(
@@ -538,7 +554,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
                    meg=None, eeg='original',
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, show_axes=False, fig=None,
+                   bem=None, seeg=True, show_axes=False, fig=None,
                    interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
@@ -598,6 +614,8 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
         `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and then look for
         `'$SUBJECT*$SOURCE.fif'` in the same directory. For `'outer_skin'`,
         the subjects bem and bem/flash folders are searched. Defaults to None.
+    seeg : bool
+        If True (default), show sEEG electrodes.
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
         shown:
@@ -723,6 +741,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
+    seeg_picks = pick_types(info, meg=False, seeg=True, ref_meg=False)
 
     if isinstance(trans, string_types):
         if trans == 'auto':
@@ -979,6 +998,7 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     # determine points
     meg_rrs, meg_tris = list(), list()
     ecog_loc = list()
+    seeg_loc = list()
     hpi_loc = list()
     ext_loc = list()
     car_loc = list()
@@ -1040,10 +1060,13 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     if len(ecog_picks) > 0 and ecog:
         ecog_loc = np.array([info['chs'][pick]['loc'][:3]
                              for pick in ecog_picks])
+    if len(seeg_picks) > 0 and seeg:
+        seeg_loc = np.array([info['chs'][pick]['loc'][:3]
+                             for pick in seeg_picks])
 
     # initialize figure
     if fig is None:
-        fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(800, 800))
+        fig = mlab.figure(bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain' and fig.scene is not None:
         fig.scene.interactor.interactor_style = \
             tvtk.InteractorStyleTerrain()
@@ -1087,16 +1110,20 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     defaults = DEFAULTS['coreg']
     datas = [eeg_loc,
              hpi_loc,
-             ext_loc, ecog_loc]
+             ext_loc, ecog_loc, seeg_loc]
     colors = [defaults['eeg_color'],
               defaults['hpi_color'],
-              defaults['extra_color'], defaults['ecog_color']]
+              defaults['extra_color'],
+              defaults['ecog_color'],
+              defaults['seeg_color']]
     alphas = [0.8,
               0.5,
-              0.25, 0.8]
+              0.25, 0.8, 0.8]
     scales = [defaults['eeg_scale'],
               defaults['hpi_scale'],
-              defaults['extra_scale'], defaults['ecog_scale']]
+              defaults['extra_scale'],
+              defaults['ecog_scale'],
+              defaults['seeg_scale']]
     for kind, loc in (('dig', car_loc), ('mri', fid_loc)):
         if len(loc) > 0:
             datas.extend(loc[:, np.newaxis])

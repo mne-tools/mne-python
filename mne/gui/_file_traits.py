@@ -21,7 +21,7 @@ from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
 from ..io.meas_info import _empty_info
 from ..io.open import fiff_open, dir_tree_find
-from ..surface import read_surface
+from ..surface import read_surface, complete_surface_info
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
@@ -155,7 +155,7 @@ class SurfaceSource(HasTraits):
 
     file = File(exists=True, filter=['*.fif', '*.*'])
     points = Array(shape=(None, 3), value=np.empty((0, 3)))
-    norms = Array
+    norms = Array(shape=(None, 3), value=np.empty((0, 3)))
     tris = Array(shape=(None, 3), value=np.empty((0, 3)))
 
     @on_trait_change('file')
@@ -164,22 +164,21 @@ class SurfaceSource(HasTraits):
         if op.exists(self.file):
             if self.file.endswith('.fif'):
                 bem = read_bem_surfaces(self.file, verbose=False)[0]
-                self.points = bem['rr']
-                self.norms = bem['nn']
-                self.tris = bem['tris']
             else:
                 try:
-                    points, tris = read_surface(self.file)
-                    points /= 1e3
-                    self.points = points
-                    self.norms = []
-                    self.tris = tris
+                    bem = read_surface(self.file, return_dict=True)[2]
+                    bem['rr'] *= 1e-3
+                    complete_surface_info(bem, copy=False)
                 except Exception:
-                    error(message="Error loading surface from %s (see "
-                                  "Terminal for details).",
+                    error(parent=None,
+                          message="Error loading surface from %s (see "
+                                  "Terminal for details)." % self.file,
                           title="Error Loading Surface")
                     self.reset_traits(['file'])
                     raise
+            self.points = bem['rr']
+            self.norms = bem['nn']
+            self.tris = bem['tris']
         else:
             self.points = np.empty((0, 3))
             self.norms = np.empty((0, 3))
@@ -270,6 +269,8 @@ class DigSource(HasPrivateTraits):
     # EEG
     eeg_points = Property(depends_on='_info',
                           desc="EEG sensor coordinates (N x 3 array)")
+    hpi_points = Property(depends_on='_info',
+                          desc='HPI coil coordinates (N x 3 array)')
 
     view = View(VGroup(Item('file'),
                        Item('inst_fname', show_label=False, style='readonly')))
@@ -391,8 +392,22 @@ class DigSource(HasPrivateTraits):
     @cached_property
     def _get_eeg_points(self):
         if self._info:
-            return np.array([d['r'] for d in self._info['dig'] if
-                             d['kind'] == FIFF.FIFFV_POINT_EEG])
+            out = [d['r'] for d in self._info['dig'] if
+                   d['kind'] == FIFF.FIFFV_POINT_EEG and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+            out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+            return out
+        else:
+            return np.empty((0, 3))
+
+    @cached_property
+    def _get_hpi_points(self):
+        if self._info:
+            out = [d['r'] for d in self._info['dig'] if
+                   d['kind'] == FIFF.FIFFV_POINT_HPI and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+            out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+            return out
         else:
             return np.empty((0, 3))
 
@@ -433,7 +448,7 @@ class MRISubjectSource(HasPrivateTraits):
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
-    use_high_res_head = Bool(True)
+    show_high_res_head = Bool(True)
 
     # info
     can_create_fsaverage = Property(Bool, depends_on=['subjects_dir',
@@ -492,7 +507,7 @@ class MRISubjectSource(HasPrivateTraits):
 
         create_default_subject(fs_home=fs_home, subjects_dir=self.subjects_dir)
         self.refresh = True
-        self.use_high_res_head = False
+        self.show_high_res_head = False
         self.subject = 'fsaverage'
 
     @on_trait_change('subjects_dir')
@@ -511,7 +526,7 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subjects_dir = DelegatesTo('model')
     subject = DelegatesTo('model')
     subjects = DelegatesTo('model')
-    use_high_res_head = DelegatesTo('model')
+    show_high_res_head = DelegatesTo('model')
 
     create_fsaverage = Button(
         "Copy 'fsaverage' to subjects directory",
@@ -523,7 +538,7 @@ class SubjectSelectorPanel(HasPrivateTraits):
                              show_label=True),
                        HGroup('subjects_dir', show_labels=False),
                        HGroup('subject', show_labels=False),
-                       HGroup(Item('use_high_res_head',
+                       HGroup(Item('show_high_res_head',
                                    label='High Resolution Head',
                                    show_label=True)),
                        Item('create_fsaverage',

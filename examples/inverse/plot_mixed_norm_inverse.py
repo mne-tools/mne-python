@@ -13,7 +13,7 @@ References
 .. [1] Gramfort A., Kowalski M. and Hamalainen, M.
    "Mixed-norm estimates for the M/EEG inverse problem using accelerated
    gradient methods", Physics in Medicine and Biology, 2012.
-   http://dx.doi.org/10.1088/0031-9155/57/7/1937.
+   https://doi.org/10.1088/0031-9155/57/7/1937.
 
 .. [2] Strohmeier D., Haueisen J., and Gramfort A.
    "Improved MEG/EEG source localization with reweighted mixed-norms",

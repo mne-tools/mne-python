@@ -1367,7 +1367,10 @@ def _get_extra_data_path(home_dir=None):
     if home_dir is None:
         # this has been checked on OSX64, Linux64, and Win32
         if 'nt' == os.name.lower():
-            home_dir = os.getenv('APPDATA')
+            if op.isdir(op.join(os.getenv('APPDATA'), '.mne')):
+                home_dir = os.getenv('APPDATA')
+            else:
+                home_dir = os.getenv('USERPROFILE')
         else:
             # This is a more robust way of getting the user's home folder on
             # Linux platforms (not sure about OSX, Unix or BSD) than checking
@@ -1405,7 +1408,7 @@ def get_config_path(home_dir=None):
     -------
     config_path : str
         The path to the mne-python configuration file. On windows, this
-        will be '%APPDATA%\.mne\mne-python.json'. On every other
+        will be '%USERPROFILE%\.mne\mne-python.json'. On every other
         system, this will be ~/.mne/mne-python.json.
     """
     val = op.join(_get_extra_data_path(home_dir=home_dir),
@@ -1460,8 +1463,12 @@ known_config_types = (
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',
     'MNE_COREG_HEAD_OPACITY',
+    'MNE_COREG_MARK_INSIDE',
     'MNE_COREG_PREPARE_BEM',
+    'MNE_COREG_PROJECT_EEG',
+    'MNE_COREG_ORIENT_TO_SURFACE',
     'MNE_COREG_SCALE_LABELS',
+    'MNE_COREG_SCALE_BY_DISTANCE',
     'MNE_COREG_SCENE_HEIGHT',
     'MNE_COREG_SCENE_WIDTH',
     'MNE_COREG_SUBJECTS_DIR',
@@ -1482,6 +1489,7 @@ known_config_types = (
     'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
     'MNE_DATASETS_KILOWORD_PATH',
     'MNE_DATASETS_FIELDTRIP_CMC_PATH',
+    'MNE_DATASETS_PHANTOM_4DBTI_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -2594,8 +2602,12 @@ def sys_info(fid=None, show_paths=False):
     for li, line in enumerate(lines):
         for key in ('lapack', 'blas'):
             if line.startswith('%s_opt_info' % key):
-                libs += ['%s=' % key +
-                         lines[li + 1].split('[')[1].split("'")[1]]
+                lib = lines[li + 1]
+                if 'NOT AVAILABLE' in lib:
+                    lib = 'unknown'
+                else:
+                    lib = lib.split('[')[1].split("'")[1]
+                libs += ['%s=%s' % (key, lib)]
     libs = ', '.join(libs)
     version_texts = dict(pycuda='VERSION_TEXT')
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '',

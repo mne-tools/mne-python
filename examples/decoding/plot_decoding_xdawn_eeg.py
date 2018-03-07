@@ -1,7 +1,7 @@
 """
-=============================
- XDAWN Decoding From EEG data
-=============================
+============================
+XDAWN Decoding From EEG data
+============================
 
 ERP decoding with Xdawn ([1]_, [2]_). For each event type, a set of
 spatial Xdawn filters are trained and applied on the signal. Channels are

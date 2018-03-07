@@ -46,6 +46,8 @@ def check_usage(module, force_help=False):
 def test_browse_raw():
     """Test mne browse_raw."""
     check_usage(mne_browse_raw)
+    with ArgvSetter(('--raw', raw_fname)):
+        mne_browse_raw.run()
 
 
 def test_bti2fiff():

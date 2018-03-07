@@ -22,7 +22,6 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
 from .bem import read_bem_surfaces, ConductorModel
-from .fixes import _get_args
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
                       _normalize_vectors, _get_solids, _triangle_neighbors,
@@ -42,13 +41,9 @@ def _get_lut():
     """Get the FreeSurfer LUT."""
     data_dir = op.join(op.dirname(__file__), 'data')
     lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
-    kwargs = dict()
-    if 'encoding' in _get_args(np.genfromtxt):
-        kwargs['encoding'] = 'ascii'
-    return np.genfromtxt(lut_fname, dtype=None,
-                         usecols=(0, 1, 2, 3, 4, 5),
-                         names=['id', 'name', 'R', 'G', 'B', 'A'],
-                         **kwargs)
+    dtype = [('id', '<i8'), ('name', 'U47'),
+             ('R', '<i8'), ('G', '<i8'), ('B', '<i8'), ('A', '<i8')]
+    return np.genfromtxt(lut_fname, dtype=dtype)
 
 
 def _get_lut_id(lut, label, use_lut):
@@ -56,7 +51,7 @@ def _get_lut_id(lut, label, use_lut):
     if not use_lut:
         return 1
     assert isinstance(label, string_types)
-    mask = (lut['name'] == label.encode('utf-8'))
+    mask = (lut['name'] == label)
     assert mask.sum() == 1
     return lut['id'][mask]
 
@@ -1365,7 +1360,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
     Returns
     -------
-    src : list
+    src : SourceSpaces
         The source space for each hemisphere.
 
     See Also
@@ -1493,10 +1488,10 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     Returns
     -------
-    src : list
-        The source space. Note that this list will have length 1 for
-        compatibility reasons, as most functions expect source spaces
-        to be provided as lists).
+    src : SourceSpaces
+        A :class:`SourceSpaces` object containing one source space for each
+        entry of ``volume_labels``, or a single source space if
+        ``volume_labels`` was not specified.
 
     See Also
     --------
@@ -1533,7 +1528,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             raise RuntimeError('"mri" must be provided if "volume_label" is '
                                'not None')
         if not isinstance(volume_label, list):
-                volume_label = [volume_label]
+            volume_label = [volume_label]
 
         # Check that volume label is found in .mgz file
         volume_labels = get_volume_labels_from_aseg(mri)
@@ -1907,7 +1902,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
         # Filter out points too far from volume region voxels
         dists = _compute_nearest(rr_voi, sp['rr'], return_dists=True)[1]
         # Maximum distance from center of mass of a voxel to any of its corners
-        maxdist = np.linalg.norm(trans[:3, :3].sum(0) / 2.)
+        maxdist = linalg.norm(trans[:3, :3].sum(0) / 2.)
         bads = np.where(dists > maxdist)[0]
 
         # Update source info
@@ -2429,7 +2424,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
     # Get the unique label names
     lut = _get_lut()
 
-    label_names = [lut[lut['id'] == ii]['name'][0].decode('utf-8')
+    label_names = [lut[lut['id'] == ii]['name'][0]
                    for ii in np.unique(mgz_data)]
     label_colors = [[lut[lut['id'] == ii]['R'][0],
                      lut[lut['id'] == ii]['G'][0],

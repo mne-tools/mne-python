@@ -170,6 +170,12 @@ def test_read_ctf():
                     check = c2[key][9:12]
                 assert_allclose(c1[key][9:12], check, atol=1e-6, rtol=1e-4,
                                 err_msg='raw.info["chs"][%d][%s]' % (ii, key))
+
+        # Make sure all digitization points are in the MNE head coord frame
+        for p in raw.info['dig']:
+            assert_equal(p['coord_frame'], FIFF.FIFFV_COORD_HEAD,
+                         err_msg='dig points must be in FIFF.FIFFV_COORD_HEAD')
+
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
             raw.info['dig'] = raw.info['dig'][:-10]
 

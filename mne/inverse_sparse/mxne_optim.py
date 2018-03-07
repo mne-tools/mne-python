@@ -71,11 +71,11 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     -------
     >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print(Y)
-    [[0. 4. 3. 0. 0.]
-     [0. 4. 3. 0. 0.]
-     [0. 0. 0. 0. 0.]
-     [0. 0. 0. 0. 0.]]
+    >>> print(Y)  # doctest:+SKIP
+    [[ 0.  4.  3.  0.  0.]
+     [ 0.  4.  3.  0.  0.]
+     [ 0.  0.  0.  0.  0.]
+     [ 0.  0.  0.  0.  0.]]
     >>> Yp, active_set = prox_l21(Y, 2, 2)
     >>> print(Yp)  # doctest:+SKIP
     [[0.         2.86862915 2.15147186 0.         0.        ]
@@ -145,11 +145,11 @@ def prox_l1(Y, alpha, n_orient):
     -------
     >>> Y = np.tile(np.array([1, 2, 3, 2, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print(Y)
-    [[1. 2. 3. 2. 0.]
-     [1. 2. 3. 2. 0.]
-     [0. 0. 0. 0. 0.]
-     [0. 0. 0. 0. 0.]]
+    >>> print(Y)  # doctest:+SKIP
+    [[ 1.  2.  3.  2.  0.]
+     [ 1.  2.  3.  2.  0.]
+     [ 0.  0.  0.  0.  0.]
+     [ 0.  0.  0.  0.  0.]]
     >>> Yp, active_set = prox_l1(Y, 2, 2)
     >>> print(Yp)  # doctest:+SKIP
     [[0.         0.58578644 1.58578644 0.58578644 0.        ]
@@ -207,7 +207,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
-       http://dx.doi.org/10.1088/0031-9155/57/7/1937
+       https://doi.org/10.1088/0031-9155/57/7/1937
     """
     GX = np.dot(G[:, active_set], X)
     R = M - GX
@@ -427,7 +427,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
-       http://dx.doi.org/10.1088/0031-9155/57/7/1937
+       https://doi.org/10.1088/0031-9155/57/7/1937
 
     .. [2] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
        "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
@@ -814,7 +814,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
-       http://dx.doi.org/10.1088/0031-9155/57/7/1937
+       https://doi.org/10.1088/0031-9155/57/7/1937
 
     .. [2] J. Wang, J. Ye,
        "Two-layer feature reduction for sparse-group lasso via decomposition of

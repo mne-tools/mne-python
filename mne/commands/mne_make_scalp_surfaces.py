@@ -56,7 +56,6 @@ def run():
     if subject is None or subjects_dir is None:
         parser.print_help()
         sys.exit(1)
-    print(options.no_decimate)
     _run(subjects_dir, subject, options.force, options.overwrite,
          options.no_decimate, options.verbose)
 
@@ -70,7 +69,7 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
     if 'FREESURFER_HOME' not in this_env:
         raise RuntimeError('The FreeSurfer environment needs to be set up '
                            'for this script')
-    force = '--force' if force else '--check'
+    incomplete = 'warn' if force else 'raise'
     subj_path = op.join(subjects_dir, subject)
     if not op.exists(subj_path):
         raise RuntimeError('%s does not exist. Please check your subject '
@@ -104,7 +103,8 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
     surf = mne.bem._surfaces_to_bem(
-        [surf], [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1])[0]
+        [surf], [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
+        incomplete=incomplete)[0]
     mne.write_bem_surfaces(dense_fname, surf)
     levels = 'medium', 'sparse'
     tris = [] if no_decimate else [30000, 2500]
@@ -122,9 +122,10 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
         _check_file(dec_fname, overwrite)
         dec_surf = mne.bem._surfaces_to_bem(
             [dict(rr=points, tris=tris)],
-            [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False)
+            [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
+            incomplete=incomplete)
         mne.write_bem_surfaces(dec_fname, dec_surf)
 
-is_main = (__name__ == '__main__')
-if is_main:
+
+if (__name__ == '__main__'):
     run()

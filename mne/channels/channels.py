@@ -20,7 +20,7 @@ from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _PICK_TYPES_KEYS,
-                       channel_indices_by_type)
+                       channel_indices_by_type, pick_channels)
 
 
 def _get_meg_system(info):
@@ -480,7 +480,7 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        montage : instance of Montage | instance of DigMontage | None
+        montage : instance of Montage | instance of DigMontage | str | None
             The montage to use (None removes any location information).
         set_dig : bool
             If True, update the digitization information (``info['dig']``)
@@ -663,6 +663,10 @@ class UpdateChannelsMixin(object):
         inst : instance of Raw, Epochs, or Evoked
             The modified instance.
 
+        See Also
+        --------
+        pick_channels
+
         Notes
         -----
         .. versionadded:: 0.9.0
@@ -692,13 +696,54 @@ class UpdateChannelsMixin(object):
         See Also
         --------
         drop_channels
+        pick_types
+        reorder_channels
 
         Notes
         -----
+        The channel names given are assumed to be a set, i.e. the order
+        does not matter. The original order of the channels is preserved.
+        You can use ``reorder_channels`` to set channel order if necessary.
+
         .. versionadded:: 0.9.0
         """
+        self._pick_drop_channels(
+            pick_channels(self.info['ch_names'], ch_names))
+        return self
+
+    def reorder_channels(self, ch_names):
+        """Reorder channels.
+
+        Parameters
+        ----------
+        ch_names : list
+            The desired channel order.
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The modified instance.
+
+        See Also
+        --------
+        drop_channels
+        pick_types
+        pick_channels
+
+        Notes
+        -----
+        Channel names must be unique. Channels that are not in ``ch_names``
+        are dropped.
+
+        .. versionadded:: 0.16.0
+        """
         _check_excludes_includes(ch_names)
-        idx = [self.ch_names.index(c) for c in ch_names if c in self.ch_names]
+        idx = list()
+        for ch_name in ch_names:
+            ii = self.ch_names.index(ch_name)
+            if ii in idx:
+                raise ValueError('Channel name repeated: %s' % (ch_name,))
+            idx.append(ii)
         self._pick_drop_channels(idx)
         return self
 
@@ -717,7 +762,9 @@ class UpdateChannelsMixin(object):
 
         See Also
         --------
+        reorder_channels
         pick_channels
+        pick_types
 
         Notes
         -----
@@ -749,7 +796,7 @@ class UpdateChannelsMixin(object):
         # avoid circular imports
         from ..time_frequency import AverageTFR, EpochsTFR
 
-        _check_preload(self, 'adding or dropping channels')
+        _check_preload(self, 'adding, dropping, or reordering channels')
 
         if getattr(self, 'picks', None) is not None:
             self.picks = self.picks[idx]
@@ -762,10 +809,9 @@ class UpdateChannelsMixin(object):
         if getattr(self, '_projector', None) is not None:
             self._projector = self._projector[idx][:, idx]
 
-        if self.preload:
-            # All others (Evoked, Epochs, Raw) have chs axis=-2
-            axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
-            self._data = self._data.take(idx, axis=axis)
+        # All others (Evoked, Epochs, Raw) have chs axis=-2
+        axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
+        self._data = self._data.take(idx, axis=axis)
 
     def add_channels(self, add_list, force_update_info=False):
         """Append new channels to the instance.
@@ -786,6 +832,10 @@ class UpdateChannelsMixin(object):
         -------
         inst : instance of Raw, Epochs, or Evoked
             The modified instance.
+
+        See Also
+        --------
+        drop_channels
         """
         # avoid circular imports
         from ..io import BaseRaw, _merge_info

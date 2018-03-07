@@ -173,6 +173,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_brainstorm_auditory.rst
     auto_tutorials/plot_brainstorm_phantom_ctf.rst
     auto_tutorials/plot_brainstorm_phantom_elekta.rst
+    auto_tutorials/plot_phantom_4DBTi.rst
     auto_examples/datasets/plot_brainstorm_data.rst
     auto_examples/datasets/plot_megsim_data.rst
     auto_examples/datasets/plot_megsim_data_single_trial.rst
@@ -267,6 +268,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_visualize_raw.rst
     auto_tutorials/plot_visualize_epochs.rst
     auto_tutorials/plot_visualize_evoked.rst
+    auto_tutorials/plot_whitened.rst
     tutorials/report.rst
 
 .. raw:: html
@@ -580,7 +582,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
 .. toctree::
     :maxdepth: 1
 
-    auto_examples/decoding/plot_receptive_field.rst
+    auto_examples/decoding/plot_receptive_field_mtrf.rst
 
 .. raw:: html
 

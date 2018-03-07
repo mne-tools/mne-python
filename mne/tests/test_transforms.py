@@ -17,7 +17,7 @@ from mne.transforms import (invert_transform, _get_trans,
                             get_ras_to_neuromag_trans, _pol_to_cart,
                             quat_to_rot, rot_to_quat, _angle_between_quats,
                             _find_vector_rotation, _sph_to_cart, _cart_to_sph,
-                            _topo_to_sph,
+                            _topo_to_sph, _average_quats,
                             _SphericalSurfaceWarp as SphericalSurfaceWarp,
                             rotation3d_align_z_axis)
 
@@ -320,5 +320,32 @@ def test_vector_rotation():
     quat_1 = rot_to_quat(rot)
     quat_2 = rot_to_quat(np.eye(3))
     assert_allclose(_angle_between_quats(quat_1, quat_2), np.pi / 2.)
+
+
+def test_average_quats():
+    """Test averaging of quaternions."""
+    sq2 = 1. / np.sqrt(2.)
+    quats = np.array([[0, sq2, sq2],
+                      [0, sq2, sq2],
+                      [0, sq2, 0],
+                      [0, 0, sq2],
+                      [sq2, 0, 0]], float)
+    # In MATLAB:
+    # quats = [[0, sq2, sq2, 0]; [0, sq2, sq2, 0];
+    #          [0, sq2, 0, sq2]; [0, 0, sq2, sq2]; [sq2, 0, 0, sq2]];
+    expected = [quats[0],
+                quats[0],
+                [0, 0.788675134594813, 0.577350269189626],
+                [0, 0.657192299694123, 0.657192299694123],
+                [0.100406058540540, 0.616329446922803, 0.616329446922803]]
+    # Averaging the first two should give the same thing:
+    for lim, ex in enumerate(expected):
+        assert_allclose(_average_quats(quats[:lim + 1]), ex, atol=1e-7)
+    quats[1] *= -1  # same quaternion (hidden value is zero here)!
+    rot_0, rot_1 = quat_to_rot(quats[:2])
+    assert_allclose(rot_0, rot_1, atol=1e-7)
+    for lim, ex in enumerate(expected):
+        assert_allclose(_average_quats(quats[:lim + 1]), ex, atol=1e-7)
+
 
 run_tests_if_main()

@@ -29,10 +29,10 @@ matrix:
         # OSX
         - os: osx
           env: CONDA_ENVIRONMENT="environment.yml"
-               SPLIT=0
+              SPLIT=0
         - os: osx
           env: CONDA_ENVIRONMENT="environment.yml"
-               SPLIT=1
+              SPLIT=1
 
         # 2.7 + non-default stim channel
         - os: linux
@@ -160,7 +160,11 @@ script:
         fi;
         USE_DIRS="";
         for DIR in ${MNE_DIRS}; do
-          USE_DIRS="mne/${DIR}/tests ${USE_DIRS}";
+          if [ "${DIR}" == "." ]; then
+            USE_DIRS="mne/tests mne/*.py ${USE_DIRS}";
+          else
+            USE_DIRS="mne/${DIR}/ ${USE_DIRS}";
+          fi;
         done;
       fi;
     - echo py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
@@ -170,7 +174,7 @@ script:
         check-manifest --ignore doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
       fi;
 
-after_success:
+after_script:
     # Need to run from source dir to exectue "git" commands
     - cd ${SRC_DIR};
     - codecov;
