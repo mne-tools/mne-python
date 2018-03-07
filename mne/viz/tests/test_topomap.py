@@ -306,6 +306,13 @@ def test_plot_topomap():
     assert_array_equal(_find_peaks(evoked, 10), evoked.times[[1, 95]])
     assert_array_equal(_find_peaks(evoked, 1), evoked.times[95])
 
+    # Test excluding bads channels
+    evoked_grad.info['bads'] += [evoked_grad.info['ch_names'][0]]
+    orig_bads = evoked_grad.info['bads']
+    evoked_grad.plot_topomap(ch_type='grad', times=[0])
+    assert_array_equal(evoked_grad.info['bads'], orig_bads)
+    plt.close('all')
+
 
 def test_plot_tfr_topomap():
     """Test plotting of TFR data."""
