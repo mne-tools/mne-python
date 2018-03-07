@@ -595,7 +595,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             else:
                 info['highpass'] = float(highpass[0])
                 if hp_s:
-                    info['highpass'] = 1. / info['highpass']
+                    info['highpass'] = 1. / (2 * np.pi * info['highpass'])
         else:
             heterogeneous_hp_filter = True
             if hp_s:
@@ -606,7 +606,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 info['highpass'] = np.max(np.array(highpass, dtype=np.float))
                 # Coveniently enough 1 / np.Inf = 0.0, so this works for
                 # DC / no highpass filter
-                info['highpass'] = 1. / info['highpass']
+                info['highpass'] = 1. / (2 * np.pi * info['highpass'])
 
                 # not exactly the cleanest use of FP, but this makes us
                 # more conservative in *not* warning.
@@ -636,7 +636,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             else:
                 info['lowpass'] = float(lowpass[0])
                 if lp_s:
-                    info['lowpass'] = 1. / info['lowpass']
+                    info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
         else:
             heterogeneous_lp_filter = True
             if lp_s:
@@ -646,7 +646,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                            else 0.0 for filt in lowpass]
                 info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
                 try:
-                    info['lowpass'] = 1. / info['lowpass']
+                    info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
                 except ZeroDivisionError:
                     if len(set(lowpass)) == 1:
                         # No lowpass actually set for the weakest setting
