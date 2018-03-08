@@ -7,6 +7,7 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Phillip Alday <phillip.alday@mpi.nl>
 #          Okba Bekhelifi <okba.bekhelifi@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -73,13 +74,14 @@ class RawBrainVision(BaseRaw):
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
     """
 
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, response_trig_shift=0,
-                 event_id=None, verbose=None):  # noqa: D102
+                 event_id=None, verbose=None):  # noqa: D107
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
@@ -140,6 +142,7 @@ class RawBrainVision(BaseRaw):
         events : array, shape (n_events, 3)
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
+
         """
         return self._events.copy()
 
@@ -151,6 +154,7 @@ class RawBrainVision(BaseRaw):
         events : array, shape (n_events, 3)
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
+
         """
         self._create_event_ch(events)
 
@@ -210,6 +214,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     events : array, shape (n_events, 3)
         An array containing the whole recording's events, each row representing
         an event as (onset, duration, trigger) sequence.
+
     """
     if event_id is None:
         event_id = dict()
@@ -371,6 +376,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         A dict containing Brain Vision specific parameters.
     events : array, shape (n_events, 3)
         Events from the corresponding vmrk file.
+
     """
     scale = float(scale)
     ext = os.path.splitext(vhdr_fname)[-1]
@@ -790,6 +796,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                           misc=misc, scale=scale, preload=preload,
