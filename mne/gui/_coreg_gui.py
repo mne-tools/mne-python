@@ -17,16 +17,17 @@ properties that are set to be equivalent.
   |   |-- FiducialsSource (fid): Expose points of a given fiducials fif file.
   |   +-- DigSource (hsp): Expose measurement information from a inst file.
   |-- MlabSceneModel (scene) [3]: mayavi.core.ui.mayavi_scene
-  |-- HeadViewController (headview) [4]: Set head views for the given coordinate system.
-  |   +-- MlabSceneModel (scene) [3*]: ``HeadViewController(scene=CoregFrame.scene)``
-  |-- SubjectSelectorPanel (subject_panel): Subject selector panel
-  |   +-- MRISubjectSource (model) [2*]: ``SubjectSelectorPanel(model=self.model.mri.subject_source)``
-  |-- SurfaceObject (mri_obj) [5]: Represent a solid object in a mayavi scene.
-  |-- FiducialsPanel (fid_panel): Set fiducials on an MRI surface.
-  |   |-- MRIHeadWithFiducialsModel (model) [1*]: ``FiducialsPanel(model=CoregFrame.model.mri, headview=CoregFrame.headview)``
-  |   |-- HeadViewController (headview) [4*]: ``FiducialsPanel(model=CoregFrame.model.mri, headview=CoregFrame.headview)``
-  |   +-- SurfaceObject (hsp_obj) [5*]: ``CoregFrame.fid_panel.hsp_obj = CoregFrame.mri_obj``
+  |-- DataPanel (data_panel)
+  |   |-- HeadViewController (headview) [4]: Set head views for the given coordinate system.
+  |   |   +-- MlabSceneModel (scene) [3*]: ``HeadViewController(scene=CoregFrame.scene)``
+  |   |-- SubjectSelectorPanel (subject_panel): Subject selector panel
+  |   |   +-- MRISubjectSource (model) [2*]: ``SubjectSelectorPanel(model=self.model.mri.subject_source)``
+  |   +-- FiducialsPanel (fid_panel): Set fiducials on an MRI surface.
+  |       |-- MRIHeadWithFiducialsModel (model) [1*]: ``FiducialsPanel(model=CoregFrame.model.mri, headview=CoregFrame.headview)``
+  |       |-- HeadViewController (headview) [4*]: ``FiducialsPanel(model=CoregFrame.model.mri, headview=CoregFrame.headview)``
+  |       +-- SurfaceObject (hsp_obj) [5*]: ``CoregFrame.fid_panel.hsp_obj = CoregFrame.mri_obj``
   |-- CoregPanel (coreg_panel): Coregistration panel for Head<->MRI with scaling.
+  |-- SurfaceObject (mri_obj) [5]: Represent a solid object in a mayavi scene.
   +-- PointObject ({hsp, eeg, lpa, nasion, rpa, hsp_lpa, hsp_nasion, hsp_rpa} + _obj): Represent a group of individual points in a mayavi scene.
 
 In the MRI viewing frame, MRI points and transformed via scaling, then by
@@ -770,216 +771,210 @@ class CoregFrameHandler(Handler):
             return True
 
 
+def _make_view_data_panel(scrollable=False):
+    view = View(VGroup(
+        VGroup(Item('subject_panel', style='custom'), label="MRI Subject",
+               show_border=_SHOW_BORDER, show_labels=False),
+        VGroup(Item('lock_fiducials', style='custom',
+                    editor=EnumEditor(cols=2, values={False: '2:Edit',
+                                                      True: '1:Lock'}),
+                    enabled_when='fid_ok'),
+               HGroup(Item('hsp_always_visible',
+                           label='Show head shape points', show_label=True,
+                           enabled_when='not lock_fiducials', width=-1),
+                      show_left=False),
+               Item('fid_panel', style='custom'),
+               label="MRI Fiducials",  show_border=_SHOW_BORDER,
+               show_labels=False),
+        VGroup(Item('raw_src', style="custom", width=_TEXT_WIDTH),
+               HGroup('guess_mri_subject',
+                      Label('Guess subject from filename'), show_labels=False),
+               VGrid(Item('distance', show_label=False, width=_MM_WIDTH,
+                          editor=laggy_float_editor_mm),
+                     'omit_points',
+                     'reset_omit_points',
+                     Item('grow_hair', editor=laggy_float_editor_mm,
+                          width=_MM_WIDTH),
+                     Label('ΔHair [mm]', show_label=True), '0',
+                     columns=3, show_labels=False),
+               Item('omitted_info', style='readonly', width=_TEXT_WIDTH),
+               label='Digitization source',
+               show_border=_SHOW_BORDER, show_labels=False),
+        VGroup(HGroup(Item('headview', style='custom'), Spring(),
+                      show_labels=False),
+               Item('view_options', width=_TEXT_WIDTH),
+               label='View', show_border=_SHOW_BORDER, show_labels=False),
+        Spring(),
+        show_labels=False), kind='panel', buttons=[UndoButton],
+        scrollable=scrollable)
+    return view
+
+
 def _make_view_coreg_panel(scrollable=False):
     """Generate View for CoregPanel."""
-    view = View(VGroup(HGroup(Item('n_scale_params', label='Scaling mode',
-                                   editor=EnumEditor(
-                                       values={0: '1:None',
-                                               1: '2:Uniform',
-                                               3: '3:3-axis'})), Spring()),
-                       VGrid(Item('scale_x', editor=laggy_float_editor_scale,
-                                  show_label=True, tooltip="Scale along "
-                                  "right-left axis",
-                                  enabled_when='n_scale_params > 0',
-                                  width=_SCALE_WIDTH),
-                             Item('scale_x_dec',
-                                  enabled_when='n_scale_params > 0',
-                                  width=_INC_BUTTON_WIDTH),
-                             Item('scale_x_inc',
-                                  enabled_when='n_scale_params > 0',
-                                  width=_INC_BUTTON_WIDTH),
-                             Item('scale_step', tooltip="Scaling step",
-                                  enabled_when='n_scale_params > 0',
-                                  width=_SCALE_WIDTH),
-                             Spring(),
+    view = View(VGroup(
+        # Scaling
+        HGroup(Item('n_scale_params', label='Scaling mode',
+                    editor=EnumEditor(values={0: '1:None',
+                                              1: '2:Uniform',
+                                              3: '3:3-axis'})), Spring()),
+        VGrid(Item('scale_x', editor=laggy_float_editor_scale,
+                   show_label=True, tooltip="Scale along right-left axis",
+                   enabled_when='n_scale_params > 0', width=_SCALE_WIDTH),
+              Item('scale_x_dec', enabled_when='n_scale_params > 0',
+                   width=_INC_BUTTON_WIDTH),
+              Item('scale_x_inc', enabled_when='n_scale_params > 0',
+                   width=_INC_BUTTON_WIDTH),
+              Item('scale_step', tooltip="Scaling step",
+                   enabled_when='n_scale_params > 0', width=_SCALE_WIDTH),
+              Spring(),
 
-                             Item('scale_y', editor=laggy_float_editor_scale,
-                                  show_label=True,
-                                  enabled_when='n_scale_params > 1',
-                                  tooltip="Scale along anterior-posterior "
-                                  "axis", width=_SCALE_WIDTH),
-                             Item('scale_y_dec',
-                                  enabled_when='n_scale_params > 1',
-                                  width=_INC_BUTTON_WIDTH),
-                             Item('scale_y_inc',
-                                  enabled_when='n_scale_params > 1',
-                                  width=_INC_BUTTON_WIDTH),
-                             Label('(Step)', width=_SCALE_WIDTH),
-                             Spring(),
+              Item('scale_y', editor=laggy_float_editor_scale, show_label=True,
+                   enabled_when='n_scale_params > 1',
+                   tooltip="Scale along anterior-posterior axis",
+                   width=_SCALE_WIDTH),
+              Item('scale_y_dec', enabled_when='n_scale_params > 1',
+                   width=_INC_BUTTON_WIDTH),
+              Item('scale_y_inc', enabled_when='n_scale_params > 1',
+                   width=_INC_BUTTON_WIDTH),
+              Label('(Step)', width=_SCALE_WIDTH),
+              Spring(),
 
-                             Item('scale_z', editor=laggy_float_editor_scale,
-                                  enabled_when='n_scale_params > 1',
-                                  show_label=True, tooltip="Scale along "
-                                  "anterior-posterior axis",
-                                  width=_SCALE_WIDTH),
-                             Item('scale_z_dec',
-                                  enabled_when='n_scale_params > 1',
-                                  width=_INC_BUTTON_WIDTH),
-                             Item('scale_z_inc',
-                                  enabled_when='n_scale_params > 1',
-                                  width=_INC_BUTTON_WIDTH),
-                             '0',
-                             Spring(),
+              Item('scale_z', editor=laggy_float_editor_scale, show_label=True,
+                   enabled_when='n_scale_params > 1', width=_SCALE_WIDTH,
+                   tooltip="Scale along anterior-posterior axis"),
+              Item('scale_z_dec', enabled_when='n_scale_params > 1',
+                   width=_INC_BUTTON_WIDTH),
+              Item('scale_z_inc', enabled_when='n_scale_params > 1',
+                   width=_INC_BUTTON_WIDTH),
+              '0',
+              Spring(),
 
-                             label='Scaling parameters', show_labels=False,
-                             columns=5, show_border=_SHOW_BORDER),
-                       VGrid(Item('fits_icp',
-                                  enabled_when='n_scale_params',
-                                  tooltip="Rotate, translate, and scale the "
-                                  "MRI to minimize the distance from each "
-                                  "digitizer point to the closest MRI point "
-                                  "(one ICP iteration)", width=_BUTTON_WIDTH),
-                             Item('fits_fid',
-                                  enabled_when='n_scale_params == 1',
-                                  tooltip="Rotate, translate, and scale the "
-                                  "MRI to minimize the distance of the three "
-                                  "fiducials.", width=_BUTTON_WIDTH),
-                             Item('reset_scale',
-                                  enabled_when='n_scale_params',
-                                  tooltip="Reset scaling parameters",
-                                  width=_BUTTON_WIDTH, height=-1),
-                             show_labels=False, columns=3),
-                       VGrid(Item('trans_x', editor=laggy_float_editor_m,
-                                  show_label=True, tooltip="Move along "
-                                  "right-left axis", width=_M_WIDTH),
-                             Item('trans_x_dec', width=_INC_BUTTON_WIDTH),
-                             Item('trans_x_inc', width=_INC_BUTTON_WIDTH),
-                             Item('trans_step', tooltip="Movement step",
-                                  width=_M_STEP_WIDTH),
-                             Spring(),
+              label='Scaling parameters', show_labels=False, columns=5,
+              show_border=_SHOW_BORDER),
+        VGrid(Item('fits_icp', enabled_when='n_scale_params',
+                   tooltip="Rotate, translate, and scale the MRI to minimize "
+                   "the distance from each digitizer point to the closest MRI "
+                   "point (one ICP iteration)", width=_BUTTON_WIDTH),
+              Item('fits_fid', enabled_when='n_scale_params == 1',
+                   tooltip="Rotate, translate, and scale the MRI to minimize "
+                   "the distance of the three fiducials.",
+                   width=_BUTTON_WIDTH),
+              Item('reset_scale', enabled_when='n_scale_params',
+                   tooltip="Reset scaling parameters", width=_BUTTON_WIDTH),
+              show_labels=False, columns=3),
+        # Translation and rotation
+        VGrid(Item('trans_x', editor=laggy_float_editor_m, show_label=True,
+                   tooltip="Move along right-left axis", width=_M_WIDTH),
+              Item('trans_x_dec', width=_INC_BUTTON_WIDTH),
+              Item('trans_x_inc', width=_INC_BUTTON_WIDTH),
+              Item('trans_step', tooltip="Movement step", width=_M_STEP_WIDTH),
+              Spring(),
 
-                             Item('trans_y', editor=laggy_float_editor_m,
-                                  show_label=True, tooltip="Move along "
-                                  "anterior-posterior axis",
-                                  width=_M_WIDTH),
-                             Item('trans_y_dec', width=_INC_BUTTON_WIDTH),
-                             Item('trans_y_inc', width=_INC_BUTTON_WIDTH),
-                             Label('(Step)', width=_M_WIDTH),
-                             Spring(),
+              Item('trans_y', editor=laggy_float_editor_m, show_label=True,
+                   tooltip="Move along anterior-posterior axis",
+                   width=_M_WIDTH),
+              Item('trans_y_dec', width=_INC_BUTTON_WIDTH),
+              Item('trans_y_inc', width=_INC_BUTTON_WIDTH),
+              Label('(Step)', width=_M_WIDTH),
+              Spring(),
 
-                             Item('trans_z', editor=laggy_float_editor_m,
-                                  show_label=True, tooltip="Move along "
-                                  "anterior-posterior axis",
-                                  width=_M_WIDTH),
-                             Item('trans_z_dec', width=_INC_BUTTON_WIDTH),
-                             Item('trans_z_inc', width=_INC_BUTTON_WIDTH),
-                             Label(' '),
-                             Spring(),
+              Item('trans_z', editor=laggy_float_editor_m, show_label=True,
+                   tooltip="Move along anterior-posterior axis",
+                   width=_M_WIDTH),
+              Item('trans_z_dec', width=_INC_BUTTON_WIDTH),
+              Item('trans_z_inc', width=_INC_BUTTON_WIDTH),
+              '0',
+              Spring(),
 
-                             Item('rot_x', editor=laggy_float_editor_rad,
-                                  show_label=True, tooltip="Rotate along "
-                                  "right-left axis", width=_RAD_WIDTH),
-                             Item('rot_x_dec', width=_INC_BUTTON_WIDTH),
-                             Item('rot_x_inc', width=_INC_BUTTON_WIDTH),
-                             Item('rot_step', tooltip="Rotation step",
-                                  width=_RAD_STEP_WIDTH),
-                             Spring(),
+              Item('rot_x', editor=laggy_float_editor_rad, show_label=True,
+                   tooltip="Rotate along right-left axis", width=_RAD_WIDTH),
+              Item('rot_x_dec', width=_INC_BUTTON_WIDTH),
+              Item('rot_x_inc', width=_INC_BUTTON_WIDTH),
+              Item('rot_step', tooltip="Rotation step", width=_RAD_STEP_WIDTH),
+              Spring(),
 
-                             Item('rot_y', editor=laggy_float_editor_rad,
-                                  show_label=True, tooltip="Rotate along "
-                                  "anterior-posterior axis",
-                                  width=_RAD_WIDTH),
-                             Item('rot_y_dec', width=_INC_BUTTON_WIDTH),
-                             Item('rot_y_inc', width=_INC_BUTTON_WIDTH),
-                             Label('(Step)', width=_RAD_WIDTH),
-                             Spring(),
+              Item('rot_y', editor=laggy_float_editor_rad, show_label=True,
+                   tooltip="Rotate along anterior-posterior axis",
+                   width=_RAD_WIDTH),
+              Item('rot_y_dec', width=_INC_BUTTON_WIDTH),
+              Item('rot_y_inc', width=_INC_BUTTON_WIDTH),
+              Label('(Step)', width=_RAD_WIDTH),
+              Spring(),
 
-                             Item('rot_z', editor=laggy_float_editor_rad,
-                                  show_label=True, tooltip="Rotate along "
-                                  "anterior-posterior axis",
-                                  width=_RAD_WIDTH),
-                             Item('rot_z_dec', width=_INC_BUTTON_WIDTH),
-                             Item('rot_z_inc', width=_INC_BUTTON_WIDTH),
-                             Label(' '),
-                             Spring(),
+              Item('rot_z', editor=laggy_float_editor_rad, show_label=True,
+                   tooltip="Rotate along anterior-posterior axis",
+                   width=_RAD_WIDTH),
+              Item('rot_z_dec', width=_INC_BUTTON_WIDTH),
+              Item('rot_z_inc', width=_INC_BUTTON_WIDTH),
+              '0',
+              Spring(),
 
-                             show_labels=False, show_border=_SHOW_BORDER,
-                             label=u'Translation (Δ) and Rotation (∠)',
-                             columns=5),
-                       # buttons
-                       VGroup(Item('fit_icp',
-                                   enabled_when='has_hsp_data and '
-                                   'hsp_weight > 0',
-                                   tooltip="Rotate and translate the "
-                                   "MRI to minimize the distance from each "
-                                   "digitizer point to the closest MRI point "
-                                   "(one ICP iteration)", width=_BUTTON_WIDTH),
-                              Item('fit_fid',
-                                   enabled_when='has_lpa_data and'
-                                   'has_nasion_data and has_rpa_data',
-                                   tooltip="Rotate and translate the "
-                                   "MRI to minimize the distance of the three "
-                                   "fiducials.", width=_BUTTON_WIDTH),
-                              Item('reset_tr',
-                                   tooltip="Reset translation and rotation.",
-                                   width=_BUTTON_WIDTH),
-                              show_labels=False, columns=3),
-                       # Fitting weights
-                       VGrid(Item('lpa_weight', editor=laggy_float_editor_w,
-                                  tooltip="Relative weight for LPA",
-                                  enabled_when='has_lpa_data',
-                                  width=_WEIGHT_WIDTH),
-                             Item('nasion_weight', editor=laggy_float_editor_w,
-                                  tooltip="Relative weight for nasion",
-                                  enabled_when='has_nasion_data',
-                                  width=_WEIGHT_WIDTH),
-                             Item('rpa_weight', editor=laggy_float_editor_w,
-                                  tooltip="Relative weight for RPA",
-                                  enabled_when='has_rpa_data',
-                                  width=_WEIGHT_WIDTH),
-                             Spring(),
-                             show_labels=False, show_border=_SHOW_BORDER,
-                             label='LPA/Nasion/RPA weights', columns=4),
-                       Item('fid_eval_str', style='readonly',
-                            tooltip='Fiducial differences', width=_TEXT_WIDTH),
-
-                       VGrid(Item('hsp_weight', editor=laggy_float_editor_w,
-                                  tooltip="Relative weight for head shape "
-                                  "points", enabled_when='has_hsp_data and '
-                                  'hsp_weight > 0', width=_WEIGHT_WIDTH,),
-                             Item('eeg_weight', editor=laggy_float_editor_w,
-                                  tooltip="Relative weight for EEG points",
-                                  enabled_when='has_eeg_data',
-                                  width=_WEIGHT_WIDTH),
-                             Item('hpi_weight', editor=laggy_float_editor_w,
-                                  tooltip="Relative weight for HPI points",
-                                  enabled_when='has_hpi_data',
-                                  width=_WEIGHT_WIDTH),
-                             Spring(),
-                             show_labels=False, show_border=_SHOW_BORDER,
-                             label='HSP/EEG/HPI weights', columns=4),
-                       Item('points_eval_str', style='readonly',
-                            tooltip='Point error (μ ± σ)', width=_TEXT_WIDTH),
-                       VGrid(
-                           Item('scale_labels',
-                                label="Scale *.label files",
-                                enabled_when='n_scale_params > 0'),
-                           Spring(),
-                           Item('copy_annot',
-                                label="Copy annotation files",
-                                enabled_when='n_scale_params > 0'),
-                           Spring(),
-                           Item('prepare_bem_model',
-                                label="Prepare BEM",
-                                enabled_when='can_prepare_bem_model'),
-                           Spring(),
-                           show_left=False,
-                           label='Subject-saving options', columns=2,
-                           show_border=_SHOW_BORDER),
-                       '_',
-                       VGrid(Item('save', enabled_when='can_save',
-                                  tooltip="Save the trans file and (if "
-                                  "scaling is enabled) the scaled MRI",
-                                  width=_BUTTON_WIDTH),
-                             Item('load_trans', width=_BUTTON_WIDTH,
-                                  tooltip="Load Head<->MRI trans file"),
-                             Item('reset_params', tooltip="Reset all "
-                                  "coregistration parameters",
-                                  width=_BUTTON_WIDTH),
-                             show_labels=False, columns=3),
-                       Spring(),
-                       show_labels=False),
-                kind='panel', buttons=[UndoButton], scrollable=scrollable)
+              columns=5, show_labels=False, show_border=_SHOW_BORDER,
+              label=u'Translation (Δ) and Rotation (∠)'),
+        VGroup(Item('fit_icp', enabled_when='has_hsp_data and hsp_weight > 0',
+                    tooltip="Rotate and translate the MRI to minimize the "
+                    "distance from each digitizer point to the closest MRI "
+                    "point (one ICP iteration)", width=_BUTTON_WIDTH),
+               Item('fit_fid', enabled_when="has_lpa_data and has_nasion_data "
+                    "and has_rpa_data", tooltip="Rotate and translate the "
+                    "MRI to minimize the distance of the three fiducials.",
+                    width=_BUTTON_WIDTH),
+               Item('reset_tr', tooltip="Reset translation and rotation.",
+                    width=_BUTTON_WIDTH),
+               show_labels=False, columns=3),
+        # Fitting weights
+        VGrid(Item('lpa_weight', editor=laggy_float_editor_w,
+                   tooltip="Relative weight for LPA", width=_WEIGHT_WIDTH,
+                   enabled_when='has_lpa_data'),
+              Item('nasion_weight', editor=laggy_float_editor_w,
+                   tooltip="Relative weight for nasion", width=_WEIGHT_WIDTH,
+                   enabled_when='has_nasion_data'),
+              Item('rpa_weight', editor=laggy_float_editor_w,
+                   tooltip="Relative weight for RPA", width=_WEIGHT_WIDTH,
+                   enabled_when='has_rpa_data'),
+              Spring(),
+              columns=4, show_labels=False, show_border=_SHOW_BORDER,
+              label='LPA/Nasion/RPA weights'),
+        Item('fid_eval_str', style='readonly', tooltip='Fiducial differences',
+             width=_TEXT_WIDTH),
+        VGrid(Item('hsp_weight', editor=laggy_float_editor_w,
+                   tooltip="Relative weight for head shape points",
+                   enabled_when='has_hsp_data and hsp_weight > 0',
+                   width=_WEIGHT_WIDTH,),
+              Item('eeg_weight', editor=laggy_float_editor_w,
+                   tooltip="Relative weight for EEG points",
+                   enabled_when='has_eeg_data', width=_WEIGHT_WIDTH),
+              Item('hpi_weight', editor=laggy_float_editor_w,
+                   tooltip="Relative weight for HPI points",
+                   enabled_when='has_hpi_data', width=_WEIGHT_WIDTH),
+              Spring(),
+              columns=4, show_labels=False, show_border=_SHOW_BORDER,
+              label='HSP/EEG/HPI weights'),
+        Item('points_eval_str', style='readonly',
+             tooltip='Point error (μ ± σ)', width=_TEXT_WIDTH),
+        VGrid(Item('scale_labels', label="Scale *.label files",
+                   enabled_when='n_scale_params > 0'),
+              Spring(),
+              Item('copy_annot', label="Copy annotation files",
+                   enabled_when='n_scale_params > 0'),
+              Spring(),
+              Item('prepare_bem_model', label="Prepare BEM",
+                   enabled_when='can_prepare_bem_model'),
+              Spring(),
+              show_left=False, label='Subject-saving options', columns=2,
+              show_border=_SHOW_BORDER),
+        VGrid(Item('save', enabled_when='can_save',
+                   tooltip="Save the trans file and (if scaling is enabled) "
+                   "the scaled MRI", width=_BUTTON_WIDTH),
+              Item('load_trans', width=_BUTTON_WIDTH,
+                   tooltip="Load Head<->MRI trans file"),
+              Item('reset_params', tooltip="Reset all coregistration "
+                   "parameters", width=_BUTTON_WIDTH),
+              show_labels=False, columns=3),
+        Spring(),
+        show_labels=False), kind='panel', buttons=[UndoButton],
+        scrollable=scrollable)
     return view
 
 
@@ -1417,40 +1412,10 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
                  editor=SceneEditor(scene_class=MayaviScene))
 
     data_panel = VGroup(
-        VGroup(Item('subject_panel', style='custom'), label="MRI Subject",
-               show_border=_SHOW_BORDER, show_labels=False),
-        VGroup(Item('lock_fiducials', style='custom',
-                    editor=EnumEditor(cols=2, values={False: '2:Edit',
-                                                      True: '1:Lock'}),
-                    enabled_when='fid_ok'),
-               HGroup(Item('hsp_always_visible',
-                           label='Show head shape points', show_label=True,
-                           enabled_when='not lock_fiducials', width=-1),
-                      show_left=False),
-               Item('fid_panel', style='custom'),
-               label="MRI Fiducials",  show_border=_SHOW_BORDER,
-               show_labels=False),
-        VGroup(Item('raw_src', style="custom", width=_TEXT_WIDTH),
-               HGroup('guess_mri_subject',
-                      Label('Guess subject from filename'), show_labels=False),
-               VGrid(Item('distance', show_label=False, width=_MM_WIDTH,
-                          editor=laggy_float_editor_mm),
-                     'omit_points',
-                     'reset_omit_points',
-                     Item('grow_hair', editor=laggy_float_editor_mm,
-                          width=_MM_WIDTH),
-                     Label('ΔHair [mm]', show_label=True), '0',
-                     columns=3, show_labels=False),
-               Item('omitted_info', style='readonly', width=_TEXT_WIDTH),
-               label='Digitization source',
-               show_border=_SHOW_BORDER, show_labels=False),
-        VGroup(HGroup(Item('headview', style='custom'), Spring(),
-                      show_labels=False),
-               Item('view_options', width=_TEXT_WIDTH),
-               label='View', show_border=_SHOW_BORDER, show_labels=False),
-        Spring(),
-        show_labels=False, label="Data Source", show_border=True,
-        enabled_when='True')
+        Item('data_panel', style='custom',
+             width=_COREG_WIDTH if scrollable else 1,
+             editor=InstanceEditor(view=_make_view_data_panel(scrollable))),
+        label='Data', show_border=not scrollable, show_labels=False)
 
     # Setting `scrollable=True` for a Group does not seem to have any effect
     # (macOS), in order to be effective the parameter has to be set for a View
@@ -1461,7 +1426,7 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
              width=_COREG_WIDTH if scrollable else 1,
              editor=InstanceEditor(view=_make_view_coreg_panel(scrollable))),
         label="Coregistration", show_border=not scrollable, show_labels=False,
-        enabled_when="fid_panel.locked")
+        enabled_when="data_panel.fid_panel.locked")
 
     main_layout = 'split' if split else 'normal'
 
@@ -1516,30 +1481,22 @@ class ViewOptionsPanel(HasTraits):
         ), title="Display options")
 
 
-class CoregFrame(HasTraits):
-    """GUI for head-MRI coregistration."""
+class DataPanel(HasTraits):
+    """Data loading panel."""
 
+    # Set by CoregPanel
     model = Instance(CoregModel)
-
     scene = Instance(MlabSceneModel, ())
-    headview = Instance(HeadViewController)
-    head_high_res = Bool(True)
-
+    lock_fiducials = DelegatesTo('model')
+    guess_mri_subject = DelegatesTo('model')
+    raw_src = DelegatesTo('model', 'hsp')
+    # Set internally
     subject_panel = Instance(SubjectSelectorPanel)
     fid_panel = Instance(FiducialsPanel)
-    coreg_panel = Instance(CoregPanel)
+    headview = Instance(HeadViewController)
     view_options_panel = Instance(ViewOptionsPanel)
-
-    raw_src = DelegatesTo('model', 'hsp')
-    guess_mri_subject = DelegatesTo('model')
-    project_to_surface = DelegatesTo('eeg_obj')
-    orient_to_surface = DelegatesTo('hsp_obj')
-    scale_by_distance = DelegatesTo('hsp_obj')
-    mark_inside = DelegatesTo('hsp_obj')
-    status_text = DelegatesTo('model')
-    queue_feedback = Str()
-    queue_current = Str()
-    queue_len_str = Str()
+    hsp_always_visible = Bool(False, label="Always Show Head Shape")
+    view_options = Button(label="Display options...")
 
     # Omit Points
     distance = Float(5., desc="maximal distance for head shape points from "
@@ -1552,9 +1509,57 @@ class CoregFrame(HasTraits):
                                "omission of head shape points to include all.")
     omitted_info = Property(Str, depends_on=['model:hsp:n_omitted'])
 
+    def _subject_panel_default(self):
+        return SubjectSelectorPanel(model=self.model.mri.subject_source)
+
+    def _fid_panel_default(self):
+        return FiducialsPanel(model=self.model.mri, headview=self.headview)
+
+    def _headview_default(self):
+        return HeadViewController(system='RAS', scene=self.scene)
+
+    def _view_options_fired(self):
+        self.view_options_panel.edit_traits()
+
+    def _omit_points_fired(self):
+        distance = self.distance / 1000.
+        self.model.omit_hsp_points(distance)
+
+    def _reset_omit_points_fired(self):
+        self.model.omit_hsp_points(np.inf)
+
+    @cached_property
+    def _get_omitted_info(self):
+        if self.model.hsp.n_omitted == 0:
+            return "No points omitted"
+        elif self.model.hsp.n_omitted == 1:
+            return "1 point omitted"
+        else:
+            return "%i points omitted" % self.model.hsp.n_omitted
+
+
+class CoregFrame(HasTraits):
+    """GUI for head-MRI coregistration."""
+
+    model = Instance(CoregModel)
+
+    scene = Instance(MlabSceneModel, ())
+    head_high_res = Bool(True)
+
+    data_panel = Instance(DataPanel)
+    coreg_panel = Instance(CoregPanel)  # right panel
+
+    project_to_surface = DelegatesTo('eeg_obj')
+    orient_to_surface = DelegatesTo('hsp_obj')
+    scale_by_distance = DelegatesTo('hsp_obj')
+    mark_inside = DelegatesTo('hsp_obj')
+    status_text = DelegatesTo('model')
+    queue_feedback = Str()
+    queue_current = Str()
+    queue_len_str = Str()
+
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
-    hsp_always_visible = Bool(False, label="Always Show Head Shape")
     title = Str('MNE Coreg')
 
     # visualization (MRI)
@@ -1569,12 +1574,11 @@ class CoregFrame(HasTraits):
     hsp_lpa_obj = Instance(PointObject)
     hsp_nasion_obj = Instance(PointObject)
     hsp_rpa_obj = Instance(PointObject)
-    hsp_visible = Property(depends_on=['hsp_always_visible', 'lock_fiducials'])
+    hsp_visible = Property(depends_on=['data_panel:hsp_always_visible',
+                                       'lock_fiducials'])
     # Coordinate frame axes
     hsp_cf_obj = Instance(PointObject)
     mri_cf_obj = Instance(PointObject)
-
-    view_options = Button(label="Display options...")
 
     picker = Instance(object)
 
@@ -1592,20 +1596,11 @@ class CoregFrame(HasTraits):
             prepare_bem_model=self._config.get(
                 'MNE_COREG_PREPARE_BEM', 'true') == 'true')
 
-    def _subject_panel_default(self):
-        return SubjectSelectorPanel(model=self.model.mri.subject_source)
-
-    def _fid_panel_default(self):
-        return FiducialsPanel(model=self.model.mri, headview=self.headview)
+    def _data_panel_default(self):
+        return DataPanel(model=self.model, scene=self.scene)
 
     def _coreg_panel_default(self):
         return CoregPanel(model=self.model)
-
-    def _headview_default(self):
-        return HeadViewController(
-            scene=self.scene, system='RAS',
-            scale=self._initial_kwargs['scale'],
-            interaction=self._initial_kwargs['interaction'])
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
                  guess_mri_subject=True, head_opacity=1.,
@@ -1682,7 +1677,7 @@ class CoregFrame(HasTraits):
             # [[0, 0, 0]] -- why??
         )
         self.mri_obj.opacity = self._initial_kwargs['head_opacity']
-        self.fid_panel.hsp_obj = self.mri_obj
+        self.data_panel.fid_panel.hsp_obj = self.mri_obj
         # Do not do sync_trait here, instead use notifiers elsewhere
 
         # MRI Fiducials
@@ -1761,7 +1756,7 @@ class CoregFrame(HasTraits):
             self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         on_pick = self.scene.mayavi_scene.on_mouse_pick
-        self.picker = on_pick(self.fid_panel._on_pick, type='cell')
+        self.picker = on_pick(self.data_panel.fid_panel._on_pick, type='cell')
 
         # Coordinate frame axes
         self.mri_cf_obj = PointObject(
@@ -1777,40 +1772,27 @@ class CoregFrame(HasTraits):
         self.hsp_cf_obj.sync_trait('color', self.hsp_cf_obj, mutual=False)
         self._update_hsp_axes()
 
-        self.headview.left = True
+        self.data_panel.headview.left = True
         self._on_mri_src_change()
         _toggle_mlab_render(self, True)
         self.scene.render()
         self.scene.camera.focal_point = (0., 0., 0.)
-        self.view_options_panel = ViewOptionsPanel(
+        self.data_panel.view_options_panel = ViewOptionsPanel(
             mri_obj=self.mri_obj, hsp_obj=self.hsp_obj,
             eeg_obj=self.eeg_obj, hpi_obj=self.hpi_obj,
             hsp_cf_obj=self.hsp_cf_obj, mri_cf_obj=self.mri_cf_obj,
             head_high_res=self.head_high_res)
-        self.view_options_panel.sync_trait('coord_frame', self.model,
-                                           mutual=False)
-        self.view_options_panel.sync_trait('head_high_res', self,
-                                           mutual=False)
+        self.data_panel.headview.scale = self._initial_kwargs['scale']
+        self.data_panel.headview.interaction = \
+            self._initial_kwargs['interaction']
+        self.data_panel.view_options_panel.sync_trait(
+            'coord_frame', self.model, mutual=False)
+        self.data_panel.view_options_panel.sync_trait(
+            'head_high_res', self, mutual=False)
 
     @cached_property
     def _get_hsp_visible(self):
-        return self.hsp_always_visible or self.lock_fiducials
-
-    @cached_property
-    def _get_omitted_info(self):
-        if self.model.hsp.n_omitted == 0:
-            return "No points omitted"
-        elif self.model.hsp.n_omitted == 1:
-            return "1 point omitted"
-        else:
-            return "%i points omitted" % self.model.hsp.n_omitted
-
-    def _omit_points_fired(self):
-        distance = self.distance / 1000.
-        self.model.omit_hsp_points(distance)
-
-    def _reset_omit_points_fired(self):
-        self.model.omit_hsp_points(np.inf)
+        return self.data_panel.hsp_always_visible or self.lock_fiducials
 
     @on_trait_change('model:mri_trans')
     def _update_mri_axes(self):
@@ -1858,13 +1840,7 @@ class CoregFrame(HasTraits):
     # automatically lock fiducials if a good fiducials file is loaded
     @on_trait_change('model:mri:fid_file')
     def _on_fid_file_loaded(self):
-        if self.model.mri.fid_file:
-            self.fid_panel.locked = True
-        else:
-            self.fid_panel.locked = False
-
-    def _view_options_fired(self):
-        self.view_options_panel.edit_traits()
+        self.data_panel.fid_panel.locked = bool(self.model.mri.fid_file)
 
     def save_config(self, home_dir=None):
         """Write configuration values."""
@@ -1891,7 +1867,7 @@ class CoregFrame(HasTraits):
         else:
             s_c('MNE_COREG_SCENE_WIDTH', w)
             s_c('MNE_COREG_SCENE_HEIGHT', h)
-        s_c('MNE_COREG_SCENE_SCALE', self.headview.scale)
+        s_c('MNE_COREG_SCENE_SCALE', self.data_panel.headview.scale)
         s_c('MNE_COREG_SCALE_LABELS', self.model.scale_labels)
         s_c('MNE_COREG_COPY_ANNOT', self.model.copy_annot)
         s_c('MNE_COREG_PREPARE_BEM', self.model.prepare_bem_model)
@@ -1901,4 +1877,4 @@ class CoregFrame(HasTraits):
         s_c('MNE_COREG_ORIENT_TO_SURFACE', self.orient_to_surface)
         s_c('MNE_COREG_SCALE_BY_DISTANCE', self.scale_by_distance)
         s_c('MNE_COREG_MARK_INSIDE', self.mark_inside)
-        s_c('MNE_COREG_INTERACTION', self.headview.interaction)
+        s_c('MNE_COREG_INTERACTION', self.data_panel.headview.interaction)
