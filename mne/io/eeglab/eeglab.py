@@ -120,7 +120,10 @@ def _get_info(eeg, montage, eog=()):
 
     if len(eeg.chanlocs) > 0:
         pos_fields = ['X', 'Y', 'Z']
+
+        # Assume data did not come from an hdf file unless proven so
         hdf5_flag = False
+
         if (isinstance(eeg.chanlocs, np.ndarray) and not isinstance(
                 eeg.chanlocs[0], io.matlab.mio5_params.mat_struct)):
             try:
@@ -409,7 +412,7 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
         msg = indent + "Converting " + curr_name
         if isinstance(in_hdf[curr], h5py.Dataset):
             suffix = " - Dataset"
-            logger.info(msg + suffix)
+            logger.debug(msg + suffix)
             temp = in_hdf[curr].value
             if 1 in temp.shape:
                 temp = temp.flatten()
@@ -426,7 +429,7 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
 
         elif isinstance(in_hdf[curr], h5py.Group):
             suffix = " - Group"
-            logger.info(msg + suffix)
+            logger.debug(msg + suffix)
 
             if curr == 'chanlocs':
                 temp = _hlGroup_2_bunch_list(orig, in_hdf[curr], curr,
@@ -514,7 +517,7 @@ def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
 
         for ct in in_hlGroup:
             msg = indent + "Converting " + tuple_name + '_' + ct
-            logger.info(msg)
+            logger.debug(msg)
 
     except IOError:
         derefs = {ct: [None] for ct in in_hlGroup}
@@ -538,12 +541,11 @@ def _get_eeg_data(input_fname, uint16_codec=None):
         # Note: Now eeg will be returned as a Bunch object,
         # instead of an io.matlab.mio5_params.mat_struct object.
         import h5py  # Added to read newer Matlab files (7.3 and later)
-        logger.info("Attempting to read style Matlab hdf file")
+        logger.info("Attempting to read Matlab style hdf file")
         f = h5py.File(input_fname)
         eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
         eeg = _bunchify(eeg_dict)
 
-        
         str_conversion_fields = ('datfile', 'filename', 'filepath',
                                  'history', 'ref', 'saved', 'setname')
         for curr_field in str_conversion_fields:
@@ -553,7 +555,7 @@ def _get_eeg_data(input_fname, uint16_codec=None):
             c3 = c2 and (min(temp) >= 0)
             if c3:
                 eeg[curr_field] = ''.join([chr(y) for y in temp])
-            
+
     return eeg
 
 
@@ -988,7 +990,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
 
     if isinstance(eeg, string_types):
         from scipy import io
-        
+
         try:
             eeg = io.loadmat(eeg, struct_as_record=False,
                              squeeze_me=True,
@@ -996,7 +998,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
         except:
             # Try to read new style Matlab file (Version 7.3+)
             import h5py  # Added to read newer Matlab files (7.3 and later)
-            logger.info("Attempting to read style Matlab hdf file")
+            logger.info("Attempting to read Matlab style hdf file")
             f = h5py.File(eeg)
             eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
             eeg = _bunchify(eeg_dict)
