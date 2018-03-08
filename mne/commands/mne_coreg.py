@@ -48,7 +48,8 @@ def run():
                       help='Head<->MRI transform FIF file ("-trans.fif")')
     parser.add_option('--project-eeg', dest='project_eeg',
                       action='store_true', default=None,
-                      help="Project EEG electrodes to the head surface")
+                      help="Project EEG electrodes to the head surface ("
+                      "for visualization purposes only)")
     parser.add_option('--orient-to-surface',
                       action='store_true', default=None,
                       dest='orient_to_surface',

@@ -92,6 +92,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         Make the coregistration panel vertically scrollable (default True).
     project_eeg : bool | None
         If True (default None), project EEG electrodes to the head surface.
+        This is only for visualization purposes and does not affect fitting.
 
         .. versionadded:: 0.16
     orient_to_surface : bool | None
