@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Mayavi/traits GUI visualization elements."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -18,8 +19,7 @@ from traitsui.api import View, Item, HGroup, VGrid, VGroup, Spring, TextEditor
 from tvtk.api import tvtk
 
 from ..defaults import DEFAULTS
-from ..surface import (complete_surface_info, _project_onto_surface,
-                       _normalize_vectors)
+from ..surface import _project_onto_surface, _normalize_vectors
 from ..source_space import _points_outside_surface
 from ..utils import SilenceStdout
 from ..viz._3d import _create_mesh_surf, _toggle_mlab_render
@@ -41,20 +41,27 @@ laggy_float_editor_mm = TextEditor(auto_set=False, enter_set=True,
                                    evaluate=float,
                                    format_func=lambda x: '%0.1f' % x)
 
-_BUTTON_WIDTH = -75
-_RAD_WIDTH = -70  # radian floats
+_BUTTON_WIDTH = -70
+_OMIT_BUTTON_WIDTH = -100
+_RAD_WIDTH = -65  # radian floats
 _M_WIDTH = _RAD_WIDTH  # m floats
-_MM_WIDTH = _RAD_WIDTH  # mm floats
-_INC_BUTTON_WIDTH = -30  # inc/dec buttons
+_MM_WIDTH = -50  # mm floats
+_INC_BUTTON_WIDTH = -25  # inc/dec buttons
 _SCALE_WIDTH = -50  # scale floats
 _WEIGHT_WIDTH = -40  # weight floats
 _RAD_STEP_WIDTH = -50
+_VIEW_BUTTON_WIDTH = -50
 _M_STEP_WIDTH = _RAD_STEP_WIDTH
-# width is optimized for macOS and Linux avoid a horizontal scroll-bar;
-# might benefit from platform-specific values
-_COREG_WIDTH = -300
-_TEXT_WIDTH = -240
+# width is optimized for macOS and Linux avoid a horizontal scroll-bar
+# even when a vertical one is present
+_COREG_WIDTH = -280
+_TEXT_WIDTH = -250
+_REDUCED_TEXT_WIDTH = _TEXT_WIDTH - 40 * np.sign(_TEXT_WIDTH)
+_MRI_FIDUCIALS_WIDTH = _TEXT_WIDTH - 60 * np.sign(_TEXT_WIDTH)
+_REDUCED_M_WIDTH = _M_WIDTH - 5 * np.sign(_M_WIDTH)
 _SHOW_BORDER = True
+_RESET_LABEL = u"↻"
+_RESET_WIDTH = _INC_BUTTON_WIDTH
 
 
 class HeadViewController(HasTraits):
@@ -82,13 +89,14 @@ class HeadViewController(HasTraits):
     scene = Instance(MlabSceneModel)
 
     view = View(VGroup(
-        VGrid('0', Item('top', width=_M_WIDTH), '0',
-              Item('right', width=_M_WIDTH),
-              Item('front', width=_M_WIDTH),
-              Item('left', width=_M_WIDTH), columns=3, show_labels=False),
+        VGrid('0', Item('top', width=_VIEW_BUTTON_WIDTH), '0',
+              Item('right', width=_VIEW_BUTTON_WIDTH),
+              Item('front', width=_VIEW_BUTTON_WIDTH),
+              Item('left', width=_VIEW_BUTTON_WIDTH),
+              columns=3, show_labels=False),
         '_',
         HGroup(Item('scale', label='Scale', editor=laggy_float_editor_m,
-                    width=_M_WIDTH, show_label=True),
+                    width=_REDUCED_M_WIDTH, show_label=True),
                Item('interaction', tooltip='Mouse interaction mode',
                     show_label=False), Spring()),
         show_labels=False))
@@ -96,7 +104,6 @@ class HeadViewController(HasTraits):
     @on_trait_change('scene.activated')
     def _init_view(self):
         self.scene.parallel_projection = True
-        self._trackball_interactor = None
 
         # apparently scene,activated happens several times
         if self.scene.renderer:
@@ -109,20 +116,16 @@ class HeadViewController(HasTraits):
     def on_set_interaction(self, _, interaction):
         if self.scene is None or self.scene.interactor is None:
             return
-        if interaction == 'terrain':
-            # Ensure we're in the correct orientatino for the
-            # InteractorStyleTerrain to have the correct "up"
-            if self._trackball_interactor is None:
-                self._trackball_interactor = \
-                    self.scene.interactor.interactor_style
-            self.on_set_view('front', '')
-            self.scene.mlab.draw()
-            self.scene.interactor.interactor_style = \
-                tvtk.InteractorStyleTerrain()
-            self.on_set_view('front', '')
-            self.scene.mlab.draw()
-        else:  # interaction == 'trackball'
-            self.scene.interactor.interactor_style = self._trackball_interactor
+        # Ensure we're in the correct orientation for the
+        # InteractorStyleTerrain to have the correct "up"
+        self.on_set_view('front', '')
+        self.scene.mlab.draw()
+        self.scene.interactor.interactor_style = \
+            tvtk.InteractorStyleTerrain() if interaction == 'terrain' else \
+            tvtk.InteractorStyleTrackballCamera()
+        # self.scene.interactor.interactor_style.
+        self.on_set_view('front', '')
+        self.scene.mlab.draw()
 
     @on_trait_change('top,left,right,front')
     def on_set_view(self, view, _):
@@ -182,7 +185,7 @@ class PointObject(Object):
     label = Bool(False)
     label_scale = Float(0.01)
     projectable = Bool(False)  # set based on type of points
-    orientable = Property(depends_on=['project_to_points', 'project_to_tris'])
+    orientable = Property(depends_on=['project_to_points'])
     text3d = List
     point_scale = Float(10, label='Point Scale')
 
@@ -357,6 +360,7 @@ class PointObject(Object):
         self.src.data.point_data.normals = (250 * dist + 1) * nn
         self.src.data.point_data.scalars = scalars
         self.glyph.actor.mapper.scalar_range = [0., 1.]
+        self.src.data.points = pts  # projection can change this
         self.src.data.point_data.update()
 
     @on_trait_change('color,inside_color')
@@ -394,11 +398,11 @@ class PointObject(Object):
             gs.glyph_source.phi_resolution = res
             gs.glyph_source.theta_resolution = res
 
-    @on_trait_change('scale_by_distance')
+    @on_trait_change('scale_by_distance,project_to_surface')
     def _update_marker_scaling(self):
         if self.glyph is None:
             return
-        if self.scale_by_distance:
+        if self.scale_by_distance and not self.project_to_surface:
             self.glyph.glyph.scale_mode = 'scale_by_vector'
         else:
             self.glyph.glyph.scale_mode = 'data_scaling_off'
@@ -428,12 +432,12 @@ class SurfaceObject(Object):
     Notes
     -----
     Doesn't automatically update plot because update requires both
-    :attr:`points` and :attr:`tri`. Call :meth:`plot` after updateing both
+    :attr:`points` and :attr:`tris`. Call :meth:`plot` after updateing both
     attributes.
     """
 
     rep = Enum("Surface", "Wireframe")
-    tri = Array(int, shape=(None, 3))
+    tris = Array(int, shape=(None, 3))
 
     surf = Instance(Surface)
     surf_rear = Instance(Surface)
@@ -444,6 +448,7 @@ class SurfaceObject(Object):
 
     def __init__(self, block_behind=False, **kwargs):  # noqa: D102
         self._block_behind = block_behind
+        self._deferred_tri_update = False
         super(SurfaceObject, self).__init__(**kwargs)
 
     def clear(self):  # noqa: D102
@@ -461,16 +466,16 @@ class SurfaceObject(Object):
         _scale = self.scene.camera.parallel_scale
         self.clear()
 
-        if not np.any(self.tri):
+        if not np.any(self.tris):
             return
 
         fig = self.scene.mayavi_scene
-        surf = complete_surface_info(dict(rr=self.points, tris=self.tri),
-                                     verbose='error')
-        self.src = _create_mesh_surf(surf, fig=fig)
+        surf = dict(rr=self.points, tris=self.tris)
+        normals = _create_mesh_surf(surf, fig=fig)
+        self.src = normals.parent
         rep = 'wireframe' if self.rep == 'Wireframe' else 'surface'
         surf = pipeline.surface(
-            self.src, figure=fig, color=self.color, representation=rep,
+            normals, figure=fig, color=self.color, representation=rep,
             line_width=1)
         surf.actor.property.backface_culling = True
         self.surf = surf
@@ -479,7 +484,7 @@ class SurfaceObject(Object):
         self.sync_trait('opacity', self.surf.actor.property)
         if self._block_behind:
             surf_rear = pipeline.surface(
-                self.src, figure=fig, color=self.color, representation=rep,
+                normals, figure=fig, color=self.color, representation=rep,
                 line_width=1)
             surf_rear.actor.property.frontface_culling = True
             self.surf_rear = surf_rear
@@ -490,13 +495,14 @@ class SurfaceObject(Object):
 
         self.scene.camera.parallel_scale = _scale
 
+    @on_trait_change('tris')
+    def _update_tris(self):
+        self._deferred_tris_update = True
+
     @on_trait_change('points')
     def _update_points(self):
         if Object._update_points(self):
-            # Eventually we should update the normals, but it is
-            # a bit slow for the high-res surfaces and has little impact
-            # on visualization or "grow_hair", so don't bother for now.
-            # surf = complete_surface_info(dict(rr=self.points, tris=self.tri),
-            #                              verbose='error')
-            # self.src.data.point_data.normals = surf['nn']
+            if self._deferred_tris_update:
+                self.src.data.polys = self.tris
+                self._deffered_tris_update = False
             self.src.update()  # necessary for SurfaceObject since Mayavi 4.5.0

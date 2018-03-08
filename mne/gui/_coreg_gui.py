@@ -77,7 +77,8 @@ from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       _RAD_WIDTH, _M_WIDTH, _MM_WIDTH, _BUTTON_WIDTH,
                       _SHOW_BORDER, _TEXT_WIDTH, _COREG_WIDTH,
                       _INC_BUTTON_WIDTH, _SCALE_WIDTH, _WEIGHT_WIDTH,
-                      _M_STEP_WIDTH, _RAD_STEP_WIDTH,
+                      _M_STEP_WIDTH, _RAD_STEP_WIDTH, _REDUCED_TEXT_WIDTH,
+                      _RESET_LABEL, _RESET_WIDTH, _OMIT_BUTTON_WIDTH,
                       laggy_float_editor_mm, laggy_float_editor_m)
 
 defaults = DEFAULTS['coreg']
@@ -121,7 +122,7 @@ class CoregModel(HasPrivateTraits):
 
     # parameters
     guess_mri_subject = Bool(True)  # change MRI subject when dig file changes
-    grow_hair = Float(label="ΔHair [mm]", desc="Move the back of the MRI "
+    grow_hair = Float(label=u"ΔHair [mm]", desc="Move the back of the MRI "
                       "head outwards to compensate for hair on the digitizer "
                       "head shape")
     n_scale_params = Enum(0, 1, 3, desc="Scale the MRI to better fit the "
@@ -130,9 +131,9 @@ class CoregModel(HasPrivateTraits):
     scale_x = Float(1, label="X")
     scale_y = Float(1, label="Y")
     scale_z = Float(1, label="Z")
-    trans_x = Float(0, label="ΔX")
-    trans_y = Float(0, label="ΔY")
-    trans_z = Float(0, label="ΔZ")
+    trans_x = Float(0, label=u"ΔX")
+    trans_y = Float(0, label=u"ΔY")
+    trans_z = Float(0, label=u"ΔZ")
     rot_x = Float(0, label=u"∠X")
     rot_y = Float(0, label=u"∠Y")
     rot_z = Float(0, label=u"∠Z")
@@ -200,9 +201,9 @@ class CoregModel(HasPrivateTraits):
 
     # MRI geometry transformed to viewing coordinate system
     processed_high_res_mri_points = Property(
-        depends_on=['mri:bem_high_res:points', 'grow_hair'])
+        depends_on=['mri:bem_high_res:surf', 'grow_hair'])
     processed_low_res_mri_points = Property(
-        depends_on=['mri:bem_low_res:points', 'grow_hair'])
+        depends_on=['mri:bem_low_res:surf', 'grow_hair'])
     transformed_high_res_mri_points = Property(
         depends_on=['processed_high_res_mri_points', 'mri_trans'])
     transformed_low_res_mri_points = Property(
@@ -291,17 +292,17 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_has_hsp_data(self):
-        return (np.any(self.mri.bem_low_res.points) and
+        return (np.any(self.mri.bem_low_res.surf.rr) and
                 np.any(self.hsp.points))
 
     @cached_property
     def _get_has_eeg_data(self):
-        return (np.any(self.mri.bem_low_res.points) and
+        return (np.any(self.mri.bem_low_res.surf.rr) and
                 np.any(self.hsp.eeg_points))
 
     @cached_property
     def _get_has_hpi_data(self):
-        return (np.any(self.mri.bem_low_res.points) and
+        return (np.any(self.mri.bem_low_res.surf.rr) and
                 np.any(self.hsp.hpi_points))
 
     @cached_property
@@ -328,34 +329,34 @@ class CoregModel(HasPrivateTraits):
     @cached_property
     def _get_processed_high_res_mri_points(self):
         if self.grow_hair:
-            if len(self.mri.bem_high_res.norms):
+            if len(self.mri.bem_high_res.surf.nn):
                 scaled_hair_dist = self.grow_hair / (self.scale * 1000)
-                points = self.mri.bem_high_res.points.copy()
+                points = self.mri.bem_high_res.surf.rr.copy()
                 hair = points[:, 2] > points[:, 1]
-                points[hair] += (self.mri.bem_high_res.norms[hair] *
+                points[hair] += (self.mri.bem_high_res.surf.nn[hair] *
                                  scaled_hair_dist)
                 return points
             else:
                 error(None, "Norms missing from bem, can't grow hair")
                 self.grow_hair = 0
         else:
-            return self.mri.bem_high_res.points
+            return self.mri.bem_high_res.surf.rr
 
     @cached_property
     def _get_processed_low_res_mri_points(self):
         if self.grow_hair:
-            if len(self.mri.bem_low_res.norms):
+            if len(self.mri.bem_low_res.surf.nn):
                 scaled_hair_dist = self.grow_hair / (self.scale * 1000)
-                points = self.mri.bem_low_res.points.copy()
+                points = self.mri.bem_low_res.surf.rr.copy()
                 hair = points[:, 2] > points[:, 1]
-                points[hair] += (self.mri.bem_low_res.norms[hair] *
+                points[hair] += (self.mri.bem_low_res.surf.nn[hair] *
                                  scaled_hair_dist)
                 return points
             else:
                 error(None, "Norms missing from bem, can't grow hair")
                 self.grow_hair = 0
         else:
-            return self.mri.bem_low_res.points
+            return self.mri.bem_low_res.surf.rr
 
     @cached_property
     def _get_mri_trans(self):
@@ -786,23 +787,24 @@ def _make_view_data_panel(scrollable=False):
                Item('fid_panel', style='custom'),
                label="MRI Fiducials",  show_border=_SHOW_BORDER,
                show_labels=False),
-        VGroup(Item('raw_src', style="custom", width=_TEXT_WIDTH),
+        VGroup(Item('raw_src', style="custom", width=_REDUCED_TEXT_WIDTH),
                HGroup('guess_mri_subject',
-                      Label('Guess subject from filename'), show_labels=False),
+                      Label('Guess subject from name'), show_labels=False),
                VGrid(Item('distance', show_label=False, width=_MM_WIDTH,
                           editor=laggy_float_editor_mm),
-                     'omit_points',
-                     'reset_omit_points',
+                     Item('omit_points', width=_OMIT_BUTTON_WIDTH),
+                     Item('reset_omit_points', width=_RESET_WIDTH),
                      Item('grow_hair', editor=laggy_float_editor_mm,
                           width=_MM_WIDTH),
-                     Label('ΔHair [mm]', show_label=True), '0',
+                     Label(u'ΔHair [mm]', show_label=True, width=-1), '0',
                      columns=3, show_labels=False),
-               Item('omitted_info', style='readonly', width=_TEXT_WIDTH),
+               Item('omitted_info', style='readonly',
+                    width=_REDUCED_TEXT_WIDTH),
                label='Digitization source',
                show_border=_SHOW_BORDER, show_labels=False),
         VGroup(HGroup(Item('headview', style='custom'), Spring(),
                       show_labels=False),
-               Item('view_options', width=_TEXT_WIDTH),
+               Item('view_options', width=_REDUCED_TEXT_WIDTH),
                label='View', show_border=_SHOW_BORDER, show_labels=False),
         Spring(),
         show_labels=False), kind='panel', buttons=[UndoButton],
@@ -861,7 +863,7 @@ def _make_view_coreg_panel(scrollable=False):
                    "the distance of the three fiducials.",
                    width=_BUTTON_WIDTH),
               Item('reset_scale', enabled_when='n_scale_params',
-                   tooltip="Reset scaling parameters", width=_BUTTON_WIDTH),
+                   tooltip="Reset scaling parameters", width=_RESET_WIDTH),
               show_labels=False, columns=3),
         # Translation and rotation
         VGrid(Item('trans_x', editor=laggy_float_editor_m, show_label=True,
@@ -921,7 +923,7 @@ def _make_view_coreg_panel(scrollable=False):
                     "MRI to minimize the distance of the three fiducials.",
                     width=_BUTTON_WIDTH),
                Item('reset_tr', tooltip="Reset translation and rotation.",
-                    width=_BUTTON_WIDTH),
+                    width=_RESET_WIDTH),
                show_labels=False, columns=3),
         # Fitting weights
         VGrid(Item('lpa_weight', editor=laggy_float_editor_w,
@@ -937,7 +939,7 @@ def _make_view_coreg_panel(scrollable=False):
               columns=4, show_labels=False, show_border=_SHOW_BORDER,
               label='LPA/Nasion/RPA weights'),
         Item('fid_eval_str', style='readonly', tooltip='Fiducial differences',
-             width=_TEXT_WIDTH),
+             width=_REDUCED_TEXT_WIDTH),
         VGrid(Item('hsp_weight', editor=laggy_float_editor_w,
                    tooltip="Relative weight for head shape points",
                    enabled_when='has_hsp_data and hsp_weight > 0',
@@ -952,8 +954,8 @@ def _make_view_coreg_panel(scrollable=False):
               columns=4, show_labels=False, show_border=_SHOW_BORDER,
               label='HSP/EEG/HPI weights'),
         Item('points_eval_str', style='readonly',
-             tooltip='Point error (μ ± σ)', width=_TEXT_WIDTH),
-        VGrid(Item('scale_labels', label="Scale *.label files",
+             tooltip='Point error (μ ± σ)', width=_REDUCED_TEXT_WIDTH),
+        VGrid(Item('scale_labels', label="Scale label files",
                    enabled_when='n_scale_params > 0'),
               Spring(),
               Item('copy_annot', label="Copy annotation files",
@@ -970,7 +972,7 @@ def _make_view_coreg_panel(scrollable=False):
               Item('load_trans', width=_BUTTON_WIDTH,
                    tooltip="Load Head<->MRI trans file"),
               Item('reset_params', tooltip="Reset all coregistration "
-                   "parameters", width=_BUTTON_WIDTH),
+                   "parameters", width=_RESET_WIDTH),
               show_labels=False, columns=3),
         Spring(),
         show_labels=False), kind='panel', buttons=[UndoButton],
@@ -984,7 +986,7 @@ class CoregPanel(HasPrivateTraits):
     model = Instance(CoregModel)
 
     # parameters
-    reset_params = Button(label='Reset')
+    reset_params = Button(label=_RESET_LABEL)
     n_scale_params = DelegatesTo('model')
     parameters = DelegatesTo('model')
     scale_step = Float(0.01)
@@ -1034,11 +1036,11 @@ class CoregPanel(HasPrivateTraits):
     # fitting with scaling
     fits_icp = Button(label='Fit (ICP)')
     fits_fid = Button(label='Fit Fid.')
-    reset_scale = Button(label='Reset')
+    reset_scale = Button(label=_RESET_LABEL)
     # fitting without scaling
     fit_icp = Button(label='Fit (ICP)')
     fit_fid = Button(label='Fit Fid.')
-    reset_tr = Button(label='Reset')
+    reset_tr = Button(label=_RESET_LABEL)
 
     # fit info
     fid_eval_str = DelegatesTo('model')
@@ -1505,7 +1507,7 @@ class DataPanel(HasTraits):
                          "for the purpose of the automatic coregistration "
                          "procedure.")
     grow_hair = DelegatesTo('model')
-    reset_omit_points = Button(label='Reset', desc="to reset the "
+    reset_omit_points = Button(label=_RESET_LABEL, desc="to reset the "
                                "omission of head shape points to include all.")
     omitted_info = Property(Str, depends_on=['model:hsp:n_omitted'])
 
@@ -1670,7 +1672,7 @@ class CoregFrame(HasTraits):
         # MRI scalp
         color = defaults['head_color']
         self.mri_obj = SurfaceObject(
-            points=np.empty((0, 3)), color=color, tri=np.empty((0, 3)),
+            points=np.empty((0, 3)), color=color, tris=np.empty((0, 3)),
             scene=self.scene, name="MRI Scalp", block_behind=True,
             # opacity=self._initial_kwargs['head_opacity'],
             # setting opacity here causes points to be
@@ -1723,10 +1725,6 @@ class CoregFrame(HasTraits):
         self.model.sync_trait('transformed_hsp_hpi',
                               self.hpi_obj, 'points', mutual=False)
         for p in (self.hsp_obj, self.eeg_obj, self.hpi_obj):
-            self.model.mri.bem_low_res.sync_trait('tris', p, 'project_to_tris',
-                                                  mutual=False)
-            self.model.sync_trait('transformed_low_res_mri_points',
-                                  p, 'project_to_points', mutual=False)
             p.inside_color = self.mri_obj.color
             self.mri_obj.sync_trait('color', p, 'inside_color',
                                     mutual=False)
@@ -1773,7 +1771,11 @@ class CoregFrame(HasTraits):
         self._update_hsp_axes()
 
         self.data_panel.headview.left = True
-        self._on_mri_src_change()
+
+        self._update_mri_obj()
+        self._update_projections()
+        self.mri_obj.plot()
+
         _toggle_mlab_render(self, True)
         self.scene.render()
         self.scene.camera.focal_point = (0., 0., 0.)
@@ -1812,30 +1814,25 @@ class CoregFrame(HasTraits):
         self.hsp_cf_obj.nn = nn
         self.hsp_cf_obj.points = pts
 
-    @on_trait_change('model:transformed_high_res_mri_points')
-    def _update_mri_obj_points(self):
+    @on_trait_change('model:mri:bem_low_res:surf,'
+                     'model:transformed_low_res_mri_points')
+    def _update_projections(self):
+        for p in (self.eeg_obj, self.hsp_obj, self.hpi_obj):
+            if p is not None:
+                p.project_to_tris = self.model.mri.bem_low_res.surf.tris
+                p.project_to_points = self.model.transformed_low_res_mri_points
+
+    @on_trait_change('model:mri:bem_low_res:surf,head_high_res,'
+                     'model:transformed_high_res_mri_points')
+    def _update_mri_obj(self):
         if self.mri_obj is None:
             return
+        self.mri_obj.tris = getattr(
+            self.model.mri, 'bem_%s_res'
+            % ('high' if self.head_high_res else 'low',)).surf.tris
         self.mri_obj.points = getattr(
             self.model, 'transformed_%s_res_mri_points'
             % ('high' if self.head_high_res else 'low',))
-
-    @on_trait_change('model:mri:bem_high_res.tris,head_high_res')
-    def _on_mri_src_change(self):
-        if self.mri_obj is None:
-            return
-        if not (np.any(self.model.mri.bem_low_res.points) and
-                np.any(self.model.mri.bem_low_res.tris)):
-            self.mri_obj.clear()
-            return
-
-        if self.head_high_res:
-            bem = self.model.mri.bem_high_res
-        else:
-            bem = self.model.mri.bem_low_res
-        self.mri_obj.tri = bem.tris
-        self._update_mri_obj_points()
-        self.mri_obj.plot()
 
     # automatically lock fiducials if a good fiducials file is loaded
     @on_trait_change('model:mri:fid_file')

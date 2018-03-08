@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Mayavi/traits GUI for setting MRI fiducials."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -14,8 +15,7 @@ from pyface.api import confirm, error, FileDialog, OK, YES
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, DelegatesTo, Event, Instance,
                         Property, Array, Bool, Button, Enum)
-from traitsui.api import (HGroup, Item, VGroup, View, ArrayEditor, Handler,
-                          Label, Spring)
+from traitsui.api import HGroup, Item, VGroup, View, ArrayEditor, Handler
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -27,10 +27,12 @@ from ..surface import complete_surface_info, decimate_surface
 from ..utils import get_subjects_dir, logger, warn
 from ..viz._3d import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
-                           MRISubjectSource, SubjectSelectorPanel)
+                           MRISubjectSource, SubjectSelectorPanel,
+                           Surf)
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
-                      headview_borders, _M_WIDTH, _TEXT_WIDTH, _BUTTON_WIDTH,
-                      _m_fmt)
+                      headview_borders, _M_WIDTH, _BUTTON_WIDTH,
+                      _MRI_FIDUCIALS_WIDTH, _REDUCED_M_WIDTH,
+                      _RESET_LABEL, _RESET_WIDTH, _m_fmt)
 defaults = DEFAULTS['coreg']
 
 
@@ -182,18 +184,17 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         if low_res_path is None:
             # This should be very rare!
             warn('No low-resolution head found, decimating high resolution '
-                 'mesh (%d vertices): %s' % (len(self.bem_high_res.points),
+                 'mesh (%d vertices): %s' % (len(self.bem_high_res.surf.rr),
                                              high_res_path,))
             # Create one from the high res one, which we know we have
-            rr, tris = decimate_surface(self.bem_high_res.points,
-                                        self.bem_high_res.tris,
+            rr, tris = decimate_surface(self.bem_high_res.surf.rr,
+                                        self.bem_high_res.surf.tris,
                                         n_triangles=5120)
             surf = complete_surface_info(dict(rr=rr, tris=tris),
                                          copy=False, verbose=False)
-            # directly set the points, norms, tris attribute of the bem_low_res
-            self.bem_low_res.points = surf['rr']
-            self.bem_low_res.tris = surf['tris']
-            self.bem_low_res.norms = surf['nn']
+            # directly set the attributes of bem_low_res
+            self.bem_low_res.surf = Surf(tris=surf['tris'], rr=surf['rr'],
+                                         nn=surf['nn'])
         else:
             self.bem_low_res.file = low_res_path
 
@@ -224,21 +225,20 @@ class SetHandler(Handler):
             ss = 'border-style: solid; border-color: red; border-width: 2px;'
         # This will only work for Qt, but hopefully that's most users!
         try:
-            for child in info.ui.info.ui.control.children():
-                if 'QWidget' in repr(child):
-                    for ch in child.children():
-                        if 'QRadioButton' in repr(ch):
-                            ch.setStyleSheet(ss if ch.isChecked() else '')
-                        elif 'QLineEdit' in repr(ch):
-                            ch.setStyleSheet(ss)
-                        elif 'QWidget' in repr(ch):  # on Linux it's nested
-                            for ch_ in ch.children():
-                                print(repr(ch_))
-                                if 'QLineEdit' in repr(ch_):
-                                    print('Settin')
-                                    ch_.setStyleSheet(ss)
+            _color_children(info.ui.info.ui.control, ss)
         except AttributeError:  # safeguard for wxpython
             pass
+
+
+def _color_children(obj, ss):
+    """Qt helper."""
+    for child in obj.children():
+        if 'QRadioButton' in repr(child):
+            child.setStyleSheet(ss if child.isChecked() else '')
+        elif 'QLineEdit' in repr(child):
+            child.setStyleSheet(ss)
+        elif 'QWidget' in repr(child):  # on Linux it's nested
+            _color_children(child, ss)
 
 
 _SET_TOOLTIP = ('Click on the MRI image to set the position, '
@@ -262,11 +262,12 @@ class FiducialsPanel(HasPrivateTraits):
     locked = DelegatesTo('model', 'lock_fiducials')
 
     set = Enum('LPA', 'Nasion', 'RPA')
-    current_pos = Array(float, (1, 3), editor=ArrayEditor(width=_M_WIDTH))
+    current_pos = Array(float, (1, 3),
+                        editor=ArrayEditor(width=_REDUCED_M_WIDTH))
 
-    save_as = Button(label='Save As...')
+    save_as = Button(label='Save as...')
     save = Button(label='Save')
-    reset_fid = Button(label="Reset")
+    reset_fid = Button(label=_RESET_LABEL)
 
     headview = Instance(HeadViewController)
     hsp_obj = Instance(SurfaceObject)
@@ -274,33 +275,24 @@ class FiducialsPanel(HasPrivateTraits):
     picker = Instance(object)
 
     # the layout of the dialog created
-    view = View(VGroup(HGroup(Item('fid_file',
-                                   width=_TEXT_WIDTH -
-                                   np.sign(_TEXT_WIDTH) * 10,
-                                   tooltip='MRI fiducials file'),
-                              show_labels=False),
-                       HGroup(Label('Set:', show_label=True, width=-1,
-                              tooltip=_SET_TOOLTIP),
-                              Item('set', width=-1,
-                                   format_func=lambda x: x,
-                                   tooltip=_SET_TOOLTIP, style='custom'),
-                              Spring(), show_labels=False),
-                       HGroup(Item('current_pos', label='Pos',
-                                   format_func=_m_fmt),
-                              Spring(), show_labels=False),
-                       HGroup(Item('save', enabled_when='can_save',
-                                   tooltip="If a filename is currently "
-                                   "specified, save to that file, otherwise "
-                                   "save to the default file name",
-                                   width=_M_WIDTH),
-                              Item('save_as', enabled_when='can_save_as',
-                                   width=_BUTTON_WIDTH),
-                              Item('reset_fid', enabled_when='can_reset',
-                                   width=_M_WIDTH,
-                                   tooltip='Reset to file values '
-                                   '(if available)'),
-                              show_labels=False),
-                       enabled_when="locked==False", show_labels=False),
+    view = View(VGroup(
+        HGroup(Item('fid_file', width=_MRI_FIDUCIALS_WIDTH,
+                    tooltip='MRI fiducials file'), show_labels=False),
+        HGroup(Item('set', width=_MRI_FIDUCIALS_WIDTH,
+                    format_func=lambda x: x, style='custom',
+                    tooltip=_SET_TOOLTIP), show_labels=False),
+        HGroup(Item('current_pos', format_func=_m_fmt,
+                    width=_MRI_FIDUCIALS_WIDTH), show_labels=False),
+        HGroup(Item('save', enabled_when='can_save',
+                    tooltip="If a filename is currently specified, save to "
+                    "that file, otherwise save to the default file name",
+                    width=_M_WIDTH),
+               Item('save_as', enabled_when='can_save_as',
+                    width=_BUTTON_WIDTH),
+               Item('reset_fid', enabled_when='can_reset', width=_RESET_WIDTH,
+                    tooltip='Reset to file values (if available)'),
+               show_labels=False),
+        enabled_when="locked==False", show_labels=False),
                 handler=SetHandler())
 
     def __init__(self, *args, **kwargs):  # noqa: D102

@@ -29,12 +29,12 @@ def test_bem_source():
     from mne.gui._file_traits import SurfaceSource
 
     bem = SurfaceSource()
-    assert_equal(bem.points.shape, (0, 3))
-    assert_equal(bem.tris.shape, (0, 3))
+    assert_equal(bem.surf.rr.shape, (0, 3))
+    assert_equal(bem.surf.tris.shape, (0, 3))
 
     bem.file = bem_path
-    assert_equal(bem.points.shape, (642, 3))
-    assert_equal(bem.tris.shape, (1280, 3))
+    assert_equal(bem.surf.rr.shape, (642, 3))
+    assert_equal(bem.surf.tris.shape, (1280, 3))
 
 
 @testing.requires_testing_data

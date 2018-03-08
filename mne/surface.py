@@ -1309,12 +1309,13 @@ def _get_solids(tri_rrs, fros):
     return tot_angle
 
 
-def _complete_sphere_surf(sphere, idx, level):
+def _complete_sphere_surf(sphere, idx, level, complete=True):
     """Convert sphere conductor model to surface."""
     rad = sphere['layers'][idx]['rad']
     r0 = sphere['r0']
     surf = _tessellate_sphere_surf(level, rad=rad)
     surf['rr'] += r0
-    complete_surface_info(surf)
+    if complete:
+        complete_surface_info(surf, copy=False)
     surf['coord_frame'] = sphere['coord_frame']
     return surf
