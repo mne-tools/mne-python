@@ -423,6 +423,20 @@ class DipoleFixed(object):
         s += ", tmax : %s" % np.max(self.times)
         return "<DipoleFixed  |  %s>" % s
 
+    def copy(self):
+        """Copy the DipoleFixed object.
+
+        Returns
+        -------
+        inst : instance of DipoleFixed
+            The copy.
+
+        Notes
+        -----
+        .. versionadded:: 0.16
+        """
+        return deepcopy(self)
+
     @property
     def ch_names(self):
         """Channel names."""
