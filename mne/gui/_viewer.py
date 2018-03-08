@@ -50,7 +50,7 @@ _INC_BUTTON_WIDTH = -25  # inc/dec buttons
 _SCALE_WIDTH = -50  # scale floats
 _WEIGHT_WIDTH = -40  # weight floats
 _RAD_STEP_WIDTH = -50
-_VIEW_BUTTON_WIDTH = -50
+_VIEW_BUTTON_WIDTH = -60
 _M_STEP_WIDTH = _RAD_STEP_WIDTH
 # width is optimized for macOS and Linux avoid a horizontal scroll-bar
 # even when a vertical one is present
