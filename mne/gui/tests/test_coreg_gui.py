@@ -204,16 +204,16 @@ def test_coreg_gui():
         frame.model.mri.nasion = [[0, 0.05, 0]]
         frame.model.mri.rpa = [[0.08, 0, 0]]
         assert_true(frame.model.mri.fid_ok)
-        frame.raw_src.file = raw_path
+        frame.data_panel.raw_src.file = raw_path
         assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
                           tvtk.SphereSource)
-        frame.view_options_panel.eeg_obj.project_to_surface = True
+        frame.data_panel.view_options_panel.eeg_obj.project_to_surface = True
         assert isinstance(frame.eeg_obj.glyph.glyph.glyph_source.glyph_source,
                           tvtk.CylinderSource)
 
         # grow hair (faster for low-res)
-        assert frame.view_options_panel.head_high_res
-        frame.view_options_panel.head_high_res = False
+        assert frame.data_panel.view_options_panel.head_high_res
+        frame.data_panel.view_options_panel.head_high_res = False
         frame.model.grow_hair = 40.
 
         # scale
@@ -226,7 +226,7 @@ def test_coreg_gui():
         # reset parameters
         frame.coreg_panel.reset_params = True
         assert_equal(frame.model.grow_hair, 0)
-        assert not frame.view_options_panel.head_high_res
+        assert not frame.data_panel.view_options_panel.head_high_res
 
         # configuration persistence
         assert_true(frame.model.prepare_bem_model)
@@ -237,7 +237,7 @@ def test_coreg_gui():
 
         ui, frame = mne.gui.coregistration(subjects_dir=subjects_dir)
         assert_false(frame.model.prepare_bem_model)
-        assert not frame.view_options_panel.head_high_res
+        assert not frame.data_panel.view_options_panel.head_high_res
         ui.dispose()
         gui.process_events()
     finally:
