@@ -491,11 +491,11 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
 
 
 def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
-    '''Returns list of Bunch objects - A Bunch object is a
+    """Returns list of Bunch objects - A Bunch object is a
        dictionary-like object that exposes its keys as attributes.
        ASSUMES: The group consists solely of arrays of HDF5 obj refs,
        and that these refs all reference 2D numpy arrays that need to
-       be flattened to either 1D arrays or Scalars'''
+       be flattened to either 1D arrays or Scalars"""
 
     import h5py
 
