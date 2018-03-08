@@ -492,7 +492,8 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     surf_fname = os.path.join(surf_dirname, '{name}')
     surf_names = ('inflated', 'sphere', 'sphere.reg', 'white', 'orig',
                   'orig_avg', 'inflated_avg', 'inflated_pre', 'pial',
-                  'pial_avg', 'smoothwm', 'white_avg', 'sphere.reg.avg')
+                  'pial_avg', 'smoothwm', 'white_avg', 'sphere.reg.avg',
+                  'seghead', 'smseghead')
     if os.getenv('_MNE_FEW_SURFACES', '') == 'true':  # for testing
         surf_names = surf_names[:4]
     for surf_name in surf_names:
@@ -506,9 +507,9 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     surf_names = ('inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf')
     for surf_name in surf_names:
         path = surf_fname.format(subjects_dir=subjects_dir,
-                                 subject=subject, name=name)
+                                 subject=subject, name=surf_name)
         if os.path.exists(path):
-            surf.append(pformat(surf_fname, name=name))
+            surf.append(pformat(surf_fname, name=surf_name))
 
     # BEM files
     paths['bem'] = bem = []

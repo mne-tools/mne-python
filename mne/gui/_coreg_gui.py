@@ -54,7 +54,7 @@ from pyface.api import (error, confirm, OK, YES, NO, CANCEL, information,
                         FileDialog, GUI)
 from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
                         Enum, Float, HasTraits, HasPrivateTraits, Instance,
-                        Int, on_trait_change, Property, Str, List)
+                        Int, on_trait_change, Property, Str, List, RGBColor)
 from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
                           Handler, Label, TextEditor, Spring, InstanceEditor,
                           StatusItem)
@@ -75,7 +75,7 @@ from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       _RAD_WIDTH, _M_WIDTH, _MM_WIDTH, _BUTTON_WIDTH,
-                      _SHOW_BORDER, _TEXT_WIDTH, _COREG_WIDTH,
+                      _SHOW_BORDER, _COREG_WIDTH,
                       _INC_BUTTON_WIDTH, _SCALE_WIDTH, _WEIGHT_WIDTH,
                       _M_STEP_WIDTH, _RAD_STEP_WIDTH, _REDUCED_TEXT_WIDTH,
                       _RESET_LABEL, _RESET_WIDTH, _OMIT_BUTTON_WIDTH,
@@ -1463,6 +1463,7 @@ class ViewOptionsPanel(HasTraits):
     hpi_obj = Instance(PointObject)
     hsp_cf_obj = Instance(PointObject)
     mri_cf_obj = Instance(PointObject)
+    bgcolor = RGBColor()
     coord_frame = Enum('mri', 'head', label='Display coordinate frame')
     head_high_res = Bool(True, label='Show high-resolution head')
     view = View(
@@ -1480,6 +1481,7 @@ class ViewOptionsPanel(HasTraits):
                   Spring(), columns=2, show_labels=True),
             Item('hsp_cf_obj', style='custom', label='Head axes'),
             Item('mri_cf_obj', style='custom', label='MRI axes'),
+            HGroup(Item('bgcolor', label='Background'), Spring()),
         ), title="Display options")
 
 
@@ -1569,6 +1571,7 @@ class CoregFrame(HasTraits):
     mri_lpa_obj = Instance(PointObject)
     mri_nasion_obj = Instance(PointObject)
     mri_rpa_obj = Instance(PointObject)
+    bgcolor = RGBColor((0., 0., 0.))
     # visualization (Digitization)
     hsp_obj = Instance(PointObject)
     eeg_obj = Instance(PointObject)
@@ -1620,6 +1623,7 @@ class CoregFrame(HasTraits):
                                     head_opacity=head_opacity,
                                     interaction=interaction,
                                     scale=scale)
+        self._locked_opacity = self._initial_kwargs['head_opacity']
         for key in ('status_text', 'queue_feedback', 'queue_current',
                     'queue_len_str'):
             self.coreg_panel.sync_trait(key, self, mutual=False)
@@ -1770,7 +1774,7 @@ class CoregFrame(HasTraits):
         self.hsp_cf_obj.sync_trait('color', self.hsp_cf_obj, mutual=False)
         self._update_hsp_axes()
 
-        self.data_panel.headview.left = True
+        self.sync_trait('bgcolor', self.scene, 'background')
 
         self._update_mri_obj()
         self._update_projections()
@@ -1783,14 +1787,30 @@ class CoregFrame(HasTraits):
             mri_obj=self.mri_obj, hsp_obj=self.hsp_obj,
             eeg_obj=self.eeg_obj, hpi_obj=self.hpi_obj,
             hsp_cf_obj=self.hsp_cf_obj, mri_cf_obj=self.mri_cf_obj,
-            head_high_res=self.head_high_res)
+            head_high_res=self.head_high_res,
+            bgcolor=self.bgcolor)
         self.data_panel.headview.scale = self._initial_kwargs['scale']
         self.data_panel.headview.interaction = \
             self._initial_kwargs['interaction']
+        self.data_panel.headview.left = True
         self.data_panel.view_options_panel.sync_trait(
             'coord_frame', self.model, mutual=False)
         self.data_panel.view_options_panel.sync_trait(
             'head_high_res', self, mutual=False)
+        self.data_panel.view_options_panel.sync_trait(
+            'bgcolor', self, mutual=False)
+
+    @on_trait_change('lock_fiducials')
+    def _on_lock_change(self):
+        if not self.lock_fiducials:
+            if self.mri_obj is None:
+                self._initial_kwargs['head_opacity'] = 1.
+            else:
+                self._locked_opacity = self.mri_obj.opacity
+                self.mri_obj.opacity = 1.
+        else:
+            if self.mri_obj is not None:
+                self.mri_obj.opacity = self._locked_opacity
 
     @cached_property
     def _get_hsp_visible(self):
@@ -1850,7 +1870,11 @@ class CoregFrame(HasTraits):
 
         s_c('MNE_COREG_GUESS_MRI_SUBJECT', self.model.guess_mri_subject)
         s_c('MNE_COREG_HEAD_HIGH_RES', self.head_high_res)
-        s_c('MNE_COREG_HEAD_OPACITY', self.mri_obj.opacity)
+        if self.lock_fiducials:
+            opacity = self.mri_obj.opacity
+        else:
+            opacity = self._locked_opacity
+        s_c('MNE_COREG_HEAD_OPACITY', opacity)
         # This works on Qt variants. We cannot rely on
         # scene.renderer.size or scene.render_window.size because these
         # are in physical pixel units rather than logical (so HiDPI breaks
