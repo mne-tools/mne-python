@@ -566,10 +566,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         else:
             shift = 0
 
-        # extract filter units and convert s to Hz if necessary
+        # Extract filter units and convert from seconds to Hz if necessary.
         # this cannot be done as post-processing as the inverse t-f
         # relationship means that the min/max comparisons don't make sense
-        # unless we know the units
+        # unless we know the units.
+        #
+        # For reasoning about the s to Hz conversion, see this reference:
+        # `Ebersole, J. S., & Pedley, T. A. (Eds.). (2003).
+        # Current practice of clinical electroencephalography.
+        # Lippincott Williams & Wilkins.`, page 40-41
         header = re.split(r'\s\s+', settings[idx])
         hp_s = '[s]' in header[hp_col]
         lp_s = '[s]' in header[lp_col]
@@ -595,7 +600,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             else:
                 info['highpass'] = float(highpass[0])
                 if hp_s:
+                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                     info['highpass'] = 1. / (2 * np.pi * info['highpass'])
+
         else:
             heterogeneous_hp_filter = True
             if hp_s:
@@ -606,6 +613,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                 info['highpass'] = np.max(np.array(highpass, dtype=np.float))
                 # Coveniently enough 1 / np.Inf = 0.0, so this works for
                 # DC / no highpass filter
+                # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                 info['highpass'] = 1. / (2 * np.pi * info['highpass'])
 
                 # not exactly the cleanest use of FP, but this makes us
@@ -636,7 +644,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             else:
                 info['lowpass'] = float(lowpass[0])
                 if lp_s:
+                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                     info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
+
         else:
             heterogeneous_lp_filter = True
             if lp_s:
@@ -646,7 +656,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                            else 0.0 for filt in lowpass]
                 info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
                 try:
+                    # filter time constant t [secs] to Hz conversion: 1/2*pi*t
                     info['lowpass'] = 1. / (2 * np.pi * info['lowpass'])
+
                 except ZeroDivisionError:
                     if len(set(lowpass)) == 1:
                         # No lowpass actually set for the weakest setting
