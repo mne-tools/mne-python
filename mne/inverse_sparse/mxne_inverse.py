@@ -18,8 +18,8 @@ from ..utils import logger, verbose
 from ..dipole import Dipole
 from ..externals.six.moves import xrange as range
 
-from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
-                         norm_l2inf, tf_mixed_norm_solver)
+from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
+                         norm_l2inf, tf_mixed_norm_solver, norm_epsilon_inf)
 
 
 @verbose
@@ -630,7 +630,12 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     M = np.dot(whitener, M)
 
     # Scaling to make setting of alpha easy
-    alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
+    n_step = int(np.ceil(M.shape[1] / float(tstep)))
+    n_freq = wsize // 2 + 1
+    n_coefs = n_step * n_freq
+    phi = _Phi(wsize, tstep, n_coefs)
+    l1_ratio = alpha_time / (alpha_space + alpha_time)
+    alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
     alpha_max *= 0.01
     gain /= alpha_max
     source_weighting /= alpha_max
