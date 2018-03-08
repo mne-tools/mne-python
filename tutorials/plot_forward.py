@@ -84,7 +84,6 @@ info = mne.io.read_info(raw_fname)
 mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
                        meg=['helmet', 'sensors'], subjects_dir=subjects_dir,
                        surfaces='head-dense')
-raise RuntimeError
 
 ###############################################################################
 # Compute Source Space
