@@ -59,8 +59,8 @@ def test_coreg_model_decimation():
     assert model.mri.subject == 'sample'  # already set by setting subjects_dir
     assert any('No low-resolution' in str(ww.message) for ww in w)
     assert model.mri.bem_low_res.file == ''
-    assert len(model.mri.bem_low_res.points) == 2562
-    assert len(model.mri.bem_high_res.points) == 2562  # because we moved it
+    assert len(model.mri.bem_low_res.surf.rr) == 2562
+    assert len(model.mri.bem_high_res.surf.rr) == 2562  # because we moved it
 
 
 @testing.requires_testing_data
@@ -92,8 +92,8 @@ def test_coreg_model():
     assert model.has_rpa_data
     assert len(model.hsp.eeg_points) > 1
 
-    assert len(model.mri.bem_low_res.points) == 2562
-    assert len(model.mri.bem_high_res.points) == 267122
+    assert len(model.mri.bem_low_res.surf.rr) == 2562
+    assert len(model.mri.bem_high_res.surf.rr) == 267122
 
     lpa_distance = model.lpa_distance
     nasion_distance = model.nasion_distance

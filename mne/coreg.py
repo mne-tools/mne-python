@@ -506,6 +506,13 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
                                      subject=subject, name=name)
             if os.path.exists(path):
                 surf.append(pformat(surf_fname, name=name))
+    surf_fname = os.path.join(bem_dirname, '{name}')
+    surf_names = ('inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf')
+    for surf_name in surf_names:
+        path = surf_fname.format(subjects_dir=subjects_dir,
+                                 subject=subject, name=name)
+        if os.path.exists(path):
+            surf.append(pformat(surf_fname, name=name))
 
     # BEM files
     paths['bem'] = bem = []
