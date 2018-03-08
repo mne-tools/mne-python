@@ -41,7 +41,11 @@ laggy_float_editor_mm = TextEditor(auto_set=False, enter_set=True,
                                    evaluate=float,
                                    format_func=lambda x: '%0.1f' % x)
 
-_BUTTON_WIDTH = -70
+laggy_float_editor_scale = TextEditor(auto_set=False, enter_set=True,
+                                      evaluate=float,
+                                      format_func=lambda x: '%0.3f' % x)
+
+_BUTTON_WIDTH = -80
 _OMIT_BUTTON_WIDTH = -100
 _RAD_WIDTH = -65  # radian floats
 _M_WIDTH = _RAD_WIDTH  # m floats
@@ -54,11 +58,11 @@ _VIEW_BUTTON_WIDTH = -60
 _M_STEP_WIDTH = _RAD_STEP_WIDTH
 # width is optimized for macOS and Linux avoid a horizontal scroll-bar
 # even when a vertical one is present
-_COREG_WIDTH = -280
+_COREG_WIDTH = -285
 _TEXT_WIDTH = -250
 _REDUCED_TEXT_WIDTH = _TEXT_WIDTH - 40 * np.sign(_TEXT_WIDTH)
 _MRI_FIDUCIALS_WIDTH = _TEXT_WIDTH - 60 * np.sign(_TEXT_WIDTH)
-_REDUCED_M_WIDTH = _M_WIDTH - 5 * np.sign(_M_WIDTH)
+_REDUCED_M_WIDTH = _MM_WIDTH
 _SHOW_BORDER = True
 _RESET_LABEL = u"↻"
 _RESET_WIDTH = _INC_BUTTON_WIDTH
@@ -95,7 +99,7 @@ class HeadViewController(HasTraits):
               Item('left', width=_VIEW_BUTTON_WIDTH),
               columns=3, show_labels=False),
         '_',
-        HGroup(Item('scale', label='Scale', editor=laggy_float_editor_m,
+        HGroup(Item('scale', label='Scale', editor=laggy_float_editor_scale,
                     width=_REDUCED_M_WIDTH, show_label=True),
                Item('interaction', tooltip='Mouse interaction mode',
                     show_label=False), Spring()),
@@ -227,11 +231,15 @@ class PointObject(Object):
         scale = Item('point_scale', label='Size', width=_M_WIDTH,
                      editor=laggy_float_editor_m)
         orient = Item('orient_to_surface',
-                      enabled_when='orientable and not project_to_surface')
+                      enabled_when='orientable and not project_to_surface',
+                      tooltip='Orient points toward the surface')
         dist = Item('scale_by_distance',
-                    enabled_when='orientable and not project_to_surface')
+                    enabled_when='orientable and not project_to_surface',
+                    tooltip='Scale points by distance from the surface')
         mark = Item('mark_inside',
-                    enabled_when='orientable and not project_to_surface')
+                    enabled_when='orientable and not project_to_surface',
+                    tooltip='Mark points inside the surface using a different '
+                    'color')
         if self._view == 'arrow':
             visible = Item('visible', label='Show', show_label=False)
             return View(HGroup(visible, scale, 'opacity', 'label', Spring()))
@@ -243,7 +251,10 @@ class PointObject(Object):
             visible = Item('visible', show_label=False)
             views = (visible, color, scale)
         group2 = HGroup(dist, Item('project_to_surface', show_label=True,
-                                   enabled_when='projectable'),
+                                   enabled_when='projectable',
+                                   tooltip='Project points onto the surface '
+                                   '(for visualization, does not affect '
+                                   'fitting)'),
                         orient, mark, Spring(), show_left=False)
         return View(HGroup(HGroup(*views), group2))
 
