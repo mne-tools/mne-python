@@ -292,8 +292,7 @@ class FiducialsPanel(HasPrivateTraits):
                Item('reset_fid', enabled_when='can_reset', width=_RESET_WIDTH,
                     tooltip='Reset to file values (if available)'),
                show_labels=False),
-        enabled_when="locked==False", show_labels=False),
-                handler=SetHandler())
+        enabled_when="locked==False", show_labels=False), handler=SetHandler())
 
     def __init__(self, *args, **kwargs):  # noqa: D102
         super(FiducialsPanel, self).__init__(*args, **kwargs)
