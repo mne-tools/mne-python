@@ -82,7 +82,7 @@ plt.suptitle('Comparison of measured and predicted fields '
 
 ###############################################################################
 # Estimate the time course of a single dipole with fixed position and
-# orientation (the one that maximized GOF)over the entire interval
+# orientation (the one that maximized GOF) over the entire interval
 dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,
                            pos=dip.pos[best_idx], ori=dip.ori[best_idx])[0]
 dip_fixed.plot()

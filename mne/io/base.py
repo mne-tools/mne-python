@@ -1408,7 +1408,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      but instead epoch and then downsample, as epoching
                      downsampled data jitters triggers.
                      For more, see
-                     `this illustrative gist <https://gist.github.com/Eric89GXL/01642cb3789992fbca59>`_.
+                     `this illustrative gist <https://gist.github.com/larsoner/01642cb3789992fbca59>`_.
 
                      If resampling the continuous data is desired, it is
                      recommended to construct events using the original data.

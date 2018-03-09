@@ -293,13 +293,7 @@ class DigSource(HasPrivateTraits):
             elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:
                 info = read_dig_montage(fif=self.file)
 
-            if info is None:
-                error(None, "The selected FIFF file does not contain "
-                      "digitizer information. Please select a different "
-                      "file.", "Error Reading FIFF File")
-                self.reset_traits(['file'])
-                return
-            elif isinstance(info, DigMontage):
+            if isinstance(info, DigMontage):
                 info.transform_to_head()
                 digs = list()
                 _append_fiducials(digs, info.lpa, info.nasion, info.rpa)
@@ -311,6 +305,12 @@ class DigSource(HasPrivateTraits):
                     digs.append(dig)
                 info = _empty_info(1)
                 info['dig'] = digs
+            elif info is None or info['dig'] is None:
+                error(None, "The selected FIFF file does not contain "
+                      "digitizer information. Please select a different "
+                      "file.", "Error Reading FIFF File")
+                self.reset_traits(['file'])
+                return
             else:
                 # check that all fiducial points are present
                 has_point = {FIFF.FIFFV_POINT_LPA: False,
