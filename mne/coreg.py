@@ -165,7 +165,7 @@ def create_default_subject(fs_home=None, update=False,
             "subjects_dir." % subjects_dir)
     elif (not update) and os.path.exists(dest):
         raise IOError(
-            "Can not create fsaverage because %r already exists in "
+            "Cannot create fsaverage because %r already exists in "
             "subjects_dir %r. Delete or rename the existing fsaverage "
             "subject folder." % ('fsaverage', subjects_dir))
 
