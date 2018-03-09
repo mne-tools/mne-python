@@ -1218,7 +1218,7 @@ class AverageTFR(_BaseTFR):
                    mode='mean', tmin=None, tmax=None, fmin=None, fmax=None,
                    vmin=None, vmax=None, cmap='RdBu_r', dB=False,
                    colorbar=True, show=True, title=None, layout=None,
-                   yscale='auto', combine='mean', exclude=None,
+                   yscale='auto', combine='mean', exclude=[],
                    topomap_args=None, verbose=None):
         """Plot TFRs as a two-dimensional image with topomaps.
 
@@ -1226,24 +1226,7 @@ class AverageTFR(_BaseTFR):
         ----------
         timefreqs : None | list of tuples | dict of tuples
             The time-frequency point(s) for which topomaps will be plotted.
-            Each tuple defines a pair (time, frequency) in s and Hz on the
-            TFR plot. For example, to look at 10 Hz activity 1 second into
-            the epoch and 3 Hz activity 300 msec into the epoch,
-
-                timefreqs=((1, 10), (.3, 3))
-
-            If provided as a dictionary, (time, frequency) tuples
-            are keys and (time_window, frequency_window) tuples are the
-            values - indicating the width of the windows (centered on the
-            time and frequency indicated by the key) to be averaged over.
-            For example,
-
-                timefreqs={(1, 10): (0.1, 2)}
-
-            would translate into a window that spans 0.95 to 1.05 seconds,
-            as well as 9 to 11 Hz.
-            If None, a single topomap will be plotted at the absolute peak
-            across the time-frequency representation.
+            See Notes.
         picks : None | array-like of int
             The indices of the channels to plot, one figure per channel. If
             None, plot the across-channel aggregation (defaults to "mean").
@@ -1309,9 +1292,9 @@ class AverageTFR(_BaseTFR):
             are log-spaced and only then sets the y axis to 'log'.
         combine : 'mean' | 'rms'
             Type of aggregation to perform across selected channels.
-        exclude : None | list of str | 'bads'
+        exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
-            bad channels are excluded. Defaults to None.
+            bad channels are excluded. Defaults to an empty list, i.e., `[]`.
         topomap_args : None | dict
             A dict of `kwargs` that are forwarded to `mne.viz.plot_topomap`
             to style the topomaps. `axes` and `show` are ignored. If `times`
@@ -1329,7 +1312,26 @@ class AverageTFR(_BaseTFR):
 
         Notes
         -----
-        .. versionadded:: 0.15.0
+        `timefreqs` has three different modes: tuples, dicts, and auto.
+        For (list of) tuple(s) mode, each tuple defines a pair
+        (time, frequency) in s and Hz on the TFR plot. For example, to
+        look at 10 Hz activity 1 second into the epoch and 3 Hz activity
+        300 msec into the epoch,::
+
+            timefreqs=((1, 10), (.3, 3))
+
+        If provided as a dictionary, (time, frequency) tuples are keys and
+        (time_window, frequency_window) tuples are the values - indicating the
+        width of the windows (centered on the time and frequency indicated by
+        the key) to be averaged over. For example,::
+
+            timefreqs={(1, 10): (0.1, 2)}
+
+        would translate into a window that spans 0.95 to 1.05 seconds, as
+        well as 9 to 11 Hz. If None, a single topomap will be plotted at the
+        absolute peak across the time-frequency representation.
+
+        .. versionadded:: 0.16.0
 
         """  # noqa: E501
         from ..viz.topomap import _set_contour_locator
@@ -2185,7 +2187,7 @@ def read_tfrs(fname, condition=None):
 
 
 def _is_numeric(n):
-    return isinstance(n, (int, float))
+    return isinstance(n, (np.integer, np.floating, int, float))
 
 
 def _get_timefreqs(tfr, timefreqs):
