@@ -1018,7 +1018,7 @@ class AverageTFR(_BaseTFR):
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
              axes=None, layout=None, yscale='auto', mask=None, alpha=0.1,
-             combine=None, exclude=None, verbose=None):
+             combine=None, exclude=[], verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1123,9 +1123,9 @@ class AverageTFR(_BaseTFR):
         combine : 'mean' | 'rms' | None
             Type of aggregation to perform across selected channels. If
             None, plot one figure per selected channel.
-        exclude : None | list of str | 'bads'
+        exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
-            bad channels are excluded. Defaults to None.
+            bad channels are excluded. Defaults to an empty list.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose`).
