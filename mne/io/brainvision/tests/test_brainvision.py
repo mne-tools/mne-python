@@ -1,4 +1,4 @@
-"""Data Equivalence Tests"""
+"""Data Equivalence Tests."""
 from __future__ import print_function
 
 # Author: Teon Brooks <teon.brooks@gmail.com>
@@ -137,7 +137,7 @@ def test_brainvision_data_highpass_filters():
             montage=montage, eog=eog)
     assert_true(all('parse triggers that' in str(ww.message) for ww in w))
 
-    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
 
     # Heterogeneous highpass in seconds (default measurement unit)
@@ -155,7 +155,7 @@ def test_brainvision_data_highpass_filters():
 
     assert_true(all(any([lp, hp]) for lp, hp in expected_warnings))
 
-    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
 
     # Homogeneous highpass in Hertz
@@ -190,13 +190,12 @@ def test_brainvision_data_highpass_filters():
 
 def test_brainvision_data_lowpass_filters():
     """Test files with amplifier LP filter settings."""
-
     # Homogeneous lowpass in Hertz (default measurement unit)
     raw = _test_raw_reader(
         read_raw_brainvision, vhdr_fname=vhdr_lowpass_path,
         montage=montage, eog=eog, event_id=event_id)
 
-    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
 
     # Heterogeneous lowpass in Hertz (default measurement unit)
@@ -214,7 +213,7 @@ def test_brainvision_data_lowpass_filters():
 
     assert_true(all(any([lp, hp]) for lp, hp in expected_warnings))
 
-    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
 
     # Homogeneous lowpass in seconds
@@ -222,8 +221,8 @@ def test_brainvision_data_lowpass_filters():
         read_raw_brainvision, vhdr_fname=vhdr_lowpass_s_path,
         montage=montage, eog=eog, event_id=event_id)
 
-    assert_equal(raw.info['highpass'], 0.1)
-    assert_equal(raw.info['lowpass'], 250.)
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
+    assert_equal(raw.info['lowpass'], 1. / (2 * np.pi * 0.004))
 
     # Heterogeneous lowpass in seconds
     with warnings.catch_warnings(record=True) as w:  # filter settings
@@ -240,8 +239,8 @@ def test_brainvision_data_lowpass_filters():
 
     assert_true(all(any([lp, hp]) for lp, hp in expected_warnings))
 
-    assert_equal(raw.info['highpass'], 0.1)
-    assert_equal(raw.info['lowpass'], 250.)
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
+    assert_equal(raw.info['lowpass'], 1. / (2 * np.pi * 0.004))
 
 
 def test_brainvision_data_partially_disabled_hw_filters():
@@ -275,7 +274,7 @@ def test_brainvision_data_software_filters_latin1_global_units():
             eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
     assert_true(all('software filter detected' in str(ww.message) for ww in w))
 
-    assert_equal(raw.info['highpass'], 1. / 0.9)
+    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
     assert_equal(raw.info['lowpass'], 50.)
 
 
@@ -330,7 +329,6 @@ def test_brainvision_data():
 
 def test_brainvision_vectorized_data():
     """Test reading BrainVision data files with vectorized data."""
-
     with warnings.catch_warnings(record=True):  # software filter settings
         raw = read_raw_brainvision(vhdr_old_path, preload=True)
 
@@ -485,7 +483,7 @@ def test_events():
 
 
 def test_brainvision_with_montage():
-    """Test reading embedded montage information"""
+    """Test reading embedded montage information."""
     raw = read_raw_brainvision(vhdr_v2_path, eog=eog, misc=['ReRef'])
     for i, d in enumerate(raw.info['dig'], 1):
         assert_equal(d['coord_frame'], FIFF.FIFFV_COORD_HEAD)
