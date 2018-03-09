@@ -27,6 +27,7 @@ properties that are set to be equivalent.
   |       |-- HeadViewController (headview) [4*]: ``FiducialsPanel(model=CoregFrame.model.mri, headview=CoregFrame.headview)``
   |       +-- SurfaceObject (hsp_obj) [5*]: ``CoregFrame.fid_panel.hsp_obj = CoregFrame.mri_obj``
   |-- CoregPanel (coreg_panel): Coregistration panel for Head<->MRI with scaling.
+  |   +-- FittingOptionsPanel (fitting_options_panel): panel for fitting options.
   |-- SurfaceObject (mri_obj) [5]: Represent a solid object in a mayavi scene.
   +-- PointObject ({hsp, eeg, lpa, nasion, rpa, hsp_lpa, hsp_nasion, hsp_rpa} + _obj): Represent a group of individual points in a mayavi scene.
 
@@ -57,7 +58,7 @@ from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
                         Int, on_trait_change, Property, Str, List, RGBColor)
 from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
                           Handler, Label, TextEditor, Spring, InstanceEditor,
-                          StatusItem)
+                          StatusItem, UIInfo)
 from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -93,6 +94,11 @@ laggy_float_editor_scale = TextEditor(auto_set=False, enter_set=True,
 laggy_float_editor_rad = TextEditor(auto_set=False, enter_set=True,
                                     evaluate=float,
                                     format_func=lambda x: '%0.4f' % x)
+
+
+def _pass(x):
+    """Format text without changing it."""
+    return x
 
 
 class CoregModel(HasPrivateTraits):
@@ -772,6 +778,19 @@ class CoregFrameHandler(Handler):
             return True
 
 
+class CoregPanelHandler(Handler):
+    """Open other windows with proper parenting."""
+
+    info = Instance(UIInfo)
+
+    def object_fitting_options_panel_changed(self, info):  # noqa: D102
+        self.info = info
+
+    def object_fitting_options_changed(self, info):  # noqa: D102
+        self.info.object.fitting_options_panel.edit_traits(
+            parent=self.info.ui.control)
+
+
 def _make_view_data_panel(scrollable=False):
     view = View(VGroup(
         VGroup(Item('subject_panel', style='custom'), label="MRI Subject",
@@ -808,7 +827,7 @@ def _make_view_data_panel(scrollable=False):
                label='View', show_border=_SHOW_BORDER, show_labels=False),
         Spring(),
         show_labels=False), kind='panel', buttons=[UndoButton],
-        scrollable=scrollable)
+        scrollable=scrollable, handler=DataPanelHandler())
     return view
 
 
@@ -926,45 +945,18 @@ def _make_view_coreg_panel(scrollable=False):
                     width=_RESET_WIDTH),
                show_labels=False, columns=3),
         # Fitting weights
-        VGrid(Item('lpa_weight', editor=laggy_float_editor_w,
-                   tooltip="Relative weight for LPA", width=_WEIGHT_WIDTH,
-                   enabled_when='has_lpa_data'),
-              Item('nasion_weight', editor=laggy_float_editor_w,
-                   tooltip="Relative weight for nasion", width=_WEIGHT_WIDTH,
-                   enabled_when='has_nasion_data'),
-              Item('rpa_weight', editor=laggy_float_editor_w,
-                   tooltip="Relative weight for RPA", width=_WEIGHT_WIDTH,
-                   enabled_when='has_rpa_data'),
-              Spring(),
-              columns=4, show_labels=False, show_border=_SHOW_BORDER,
-              label='LPA/Nasion/RPA weights'),
         Item('fid_eval_str', style='readonly', tooltip='Fiducial differences',
              width=_REDUCED_TEXT_WIDTH),
-        VGrid(Item('hsp_weight', editor=laggy_float_editor_w,
-                   tooltip="Relative weight for head shape points",
-                   enabled_when='has_hsp_data and hsp_weight > 0',
-                   width=_WEIGHT_WIDTH,),
-              Item('eeg_weight', editor=laggy_float_editor_w,
-                   tooltip="Relative weight for EEG points",
-                   enabled_when='has_eeg_data', width=_WEIGHT_WIDTH),
-              Item('hpi_weight', editor=laggy_float_editor_w,
-                   tooltip="Relative weight for HPI points",
-                   enabled_when='has_hpi_data', width=_WEIGHT_WIDTH),
-              Spring(),
-              columns=4, show_labels=False, show_border=_SHOW_BORDER,
-              label='HSP/EEG/HPI weights'),
         Item('points_eval_str', style='readonly',
              tooltip='Point error (μ ± σ)', width=_REDUCED_TEXT_WIDTH),
+        Item('fitting_options', width=_REDUCED_TEXT_WIDTH, show_label=False),
         VGrid(Item('scale_labels', label="Scale label files",
                    enabled_when='n_scale_params > 0'),
-              Spring(),
               Item('copy_annot', label="Copy annotation files",
                    enabled_when='n_scale_params > 0'),
-              Spring(),
               Item('prepare_bem_model', label="Prepare BEM",
                    enabled_when='can_prepare_bem_model'),
-              Spring(),
-              show_left=False, label='Subject-saving options', columns=2,
+              show_left=False, label='Subject-saving options', columns=1,
               show_border=_SHOW_BORDER),
         VGrid(Item('save', enabled_when='can_save',
                    tooltip="Save the trans file and (if scaling is enabled) "
@@ -976,8 +968,55 @@ def _make_view_coreg_panel(scrollable=False):
               show_labels=False, columns=3),
         Spring(),
         show_labels=False), kind='panel', buttons=[UndoButton],
-        scrollable=scrollable)
+        scrollable=scrollable, handler=CoregPanelHandler())
     return view
+
+
+class FittingOptionsPanel(HasTraits):
+    """View options panel."""
+
+    model = Instance(CoregModel)
+    lpa_weight = DelegatesTo('model')
+    nasion_weight = DelegatesTo('model')
+    rpa_weight = DelegatesTo('model')
+    hsp_weight = DelegatesTo('model')
+    eeg_weight = DelegatesTo('model')
+    hpi_weight = DelegatesTo('model')
+    has_lpa_data = DelegatesTo('model')
+    has_nasion_data = DelegatesTo('model')
+    has_rpa_data = DelegatesTo('model')
+    has_hsp_data = DelegatesTo('model')
+    has_eeg_data = DelegatesTo('model')
+    has_hpi_data = DelegatesTo('model')
+
+    view = View(VGroup(
+        VGrid(
+            VGrid(Item('lpa_weight', editor=laggy_float_editor_w,
+                       tooltip="Relative weight for LPA", width=_WEIGHT_WIDTH,
+                       enabled_when='has_lpa_data', label='LPA'),
+                  Item('nasion_weight', editor=laggy_float_editor_w,
+                       tooltip="Relative weight for nasion", label='Nasion',
+                       width=_WEIGHT_WIDTH, enabled_when='has_nasion_data'),
+                  Item('rpa_weight', editor=laggy_float_editor_w,
+                       tooltip="Relative weight for RPA", width=_WEIGHT_WIDTH,
+                       enabled_when='has_rpa_data', label='RPA'),
+                  columns=3, show_labels=False, show_border=_SHOW_BORDER,
+                  label='LPA/Nasion/RPA'),
+            VGrid(Item('hsp_weight', editor=laggy_float_editor_w,
+                       tooltip="Relative weight for head shape points",
+                       enabled_when='has_hsp_data',
+                       label='HSP', width=_WEIGHT_WIDTH,),
+                  Item('eeg_weight', editor=laggy_float_editor_w,
+                       tooltip="Relative weight for EEG points", label='EEG',
+                       enabled_when='has_eeg_data', width=_WEIGHT_WIDTH),
+                  Item('hpi_weight', editor=laggy_float_editor_w,
+                       tooltip="Relative weight for HPI points", label='HPI',
+                       enabled_when='has_hpi_data', width=_WEIGHT_WIDTH),
+                  columns=3, show_labels=False, show_border=_SHOW_BORDER,
+                  label='HSP/EEG/HPI'),
+            show_labels=False, label='Weights', columns=2,
+            show_border=_SHOW_BORDER),
+    ), title="Fitting options")
 
 
 class CoregPanel(HasPrivateTraits):
@@ -1060,6 +1099,12 @@ class CoregPanel(HasPrivateTraits):
     queue_len = Int(0)
     queue_len_str = Property(Str, depends_on=['queue_len'])
     status_text = Str()  # can be set by methods
+
+    fitting_options_panel = Instance(FittingOptionsPanel)
+    fitting_options = Button('Fitting options...')
+
+    def _fitting_options_panel_default(self):
+        return FittingOptionsPanel(model=self.model)
 
     view = _make_view_coreg_panel()
 
@@ -1209,7 +1254,7 @@ class CoregPanel(HasPrivateTraits):
                   "for details)" % (trans_file, e), "Error Loading Trans File")
             raise
 
-    def _save_fired(self):
+    def _save_fired(self, info):
         subjects_dir = self.model.mri.subjects_dir
         subject_from = self.model.mri.subject
 
@@ -1466,6 +1511,7 @@ class ViewOptionsPanel(HasTraits):
     bgcolor = RGBColor()
     coord_frame = Enum('mri', 'head', label='Display coordinate frame')
     head_high_res = Bool(True, label='Show high-resolution head')
+
     view = View(
         VGroup(
             Item('mri_obj', style='custom', label="MRI"),
@@ -1475,7 +1521,7 @@ class ViewOptionsPanel(HasTraits):
             VGrid(Item('coord_frame', style='custom',
                        editor=EnumEditor(values={'mri': '1:MRI',
                                                  'head': '2:Head'}, cols=2,
-                                         format_func=lambda x: x)),
+                                         format_func=_pass)),
                   Spring(),
                   Item('head_high_res'),
                   Spring(), columns=2, show_labels=True),
@@ -1483,6 +1529,19 @@ class ViewOptionsPanel(HasTraits):
             Item('mri_cf_obj', style='custom', label='MRI axes'),
             HGroup(Item('bgcolor', label='Background'), Spring()),
         ), title="Display options")
+
+
+class DataPanelHandler(Handler):
+    """Open other windows with proper parenting."""
+
+    info = Instance(UIInfo)
+
+    def object_view_options_panel_changed(self, info):  # noqa: D102
+        self.info = info
+
+    def object_view_options_changed(self, info):  # noqa: D102
+        self.info.object.view_options_panel.edit_traits(
+            parent=self.info.ui.control)
 
 
 class DataPanel(HasTraits):
@@ -1522,7 +1581,7 @@ class DataPanel(HasTraits):
     def _headview_default(self):
         return HeadViewController(system='RAS', scene=self.scene)
 
-    def _view_options_fired(self):
+    def _view_options_fired(self, info):
         self.view_options_panel.edit_traits()
 
     def _omit_points_fired(self):
