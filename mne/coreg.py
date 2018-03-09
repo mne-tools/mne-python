@@ -165,7 +165,7 @@ def create_default_subject(fs_home=None, update=False,
             "subjects_dir." % subjects_dir)
     elif (not update) and os.path.exists(dest):
         raise IOError(
-            "Can not create fsaverage because %r already exists in "
+            "Cannot create fsaverage because %r already exists in "
             "subjects_dir %r. Delete or rename the existing fsaverage "
             "subject folder." % ('fsaverage', subjects_dir))
 
@@ -187,6 +187,10 @@ def create_default_subject(fs_home=None, update=False,
     for name in ('fiducials', 'head', 'inner_skull-bem', 'trans'):
         if not os.path.exists(dest_fname % name):
             shutil.copy(source_fname % name, dest_bem)
+    # ADD:
+    # * extract inner skull surface as surf-file for visualisation
+    # * decimate inner_skull BEM: why 10242 points?!
+    # * copy mri/T1.mgz to allow volumetric visualisation too
 
 
 def _decimate_points(pts, res=10):
