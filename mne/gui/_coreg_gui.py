@@ -151,6 +151,11 @@ class CoregModel(HasPrivateTraits):
     hsp_weight = Float(1.)
     eeg_weight = Float(0.)
     hpi_weight = Float(0.)
+    iteration = Int(-1)
+    icp_iterations = Int(10)
+    icp_angle = Float(0.2)
+    icp_distance = Float(0.2)
+    icp_scale = Float(0.2)
     coord_frame = Str('mri')
     status_text = Str()
 
@@ -184,6 +189,7 @@ class CoregModel(HasPrivateTraits):
     has_hpi_data = Property(
         Bool,
         depends_on=['mri:points', 'hsp:hpi_points'])
+    changes = Property(depends_on=['parameters', 'old_parameters'])
 
     # target transforms
     mri_head_t = Property(
@@ -276,6 +282,12 @@ class CoregModel(HasPrivateTraits):
     points_eval_str = Property(
         depends_on=['point_distance'])
 
+    def _parameters_default(self):
+        return list(_DEFAULT_PARAMETERS)
+
+    def _last_parameters_default(self):
+        return list(_DEFAULT_PARAMETERS)
+
     @cached_property
     def _get_can_prepare_bem_model(self):
         return self.subject_has_bem and self.n_scale_params > 0
@@ -316,6 +328,17 @@ class CoregModel(HasPrivateTraits):
         if self.n_scale_params == 0:
             return np.array(1)
         return np.array([self.scale_x, self.scale_y, self.scale_z])
+
+    @cached_property
+    def _get_changes(self):
+        new = np.array(self.parameters, float)
+        old = np.array(self.last_parameters, float)
+        move = np.linalg.norm(old[3:6] - new[3:6]) * 1000
+        angle = np.rad2deg(_angle_between_quats(
+            rot_to_quat(rotation(*new[:3])[:3, :3]),
+            rot_to_quat(rotation(*old[:3])[:3, :3])))
+        percs = 100 * (new[6:] - old[6:]) / old[6:]
+        return move, angle, percs
 
     @cached_property
     def _get_mri_head_t(self):
@@ -508,7 +531,7 @@ class CoregModel(HasPrivateTraits):
     def _get_fid_eval_str(self):
         d = (self.lpa_distance * 1000, self.nasion_distance * 1000,
              self.rpa_distance * 1000)
-        return u'%.1f, %.1f, %.1f mm' % d
+        return u'Fiducials: %.1f, %.1f, %.1f mm' % d
 
     @cached_property
     def _get_points_eval_str(self):
@@ -566,8 +589,10 @@ class CoregModel(HasPrivateTraits):
         with warnings.catch_warnings(record=True):  # comp to None in Traits
             self.hsp.points_filter = mask
 
-    def fit_fiducials(self, n_scale_params):
+    def fit_fiducials(self, n_scale_params=None):
         """Find rotation and translation to fit all 3 fiducials."""
+        if n_scale_params is None:
+            n_scale_params = self.n_scale_params
         head_pts = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
         mri_pts = np.vstack((self.mri.lpa, self.mri.nasion, self.mri.rpa))
         weights = [self.lpa_weight, self.nasion_weight, self.rpa_weight]
@@ -587,8 +612,8 @@ class CoregModel(HasPrivateTraits):
             assert n_scale_params == 1  # guaranteed from GUI
             self.parameters[:] = np.concatenate([est, [est[-1]] * 2])
 
-    def fit_icp(self, n_scale_params):
-        """Find MRI scaling, translation, and rotation to match HSP."""
+    def _setup_icp(self, n_scale_params):
+        """Get parameters for an ICP iteration."""
         head_pts = list()
         mri_pts = list()
         weights = list()
@@ -616,30 +641,39 @@ class CoregModel(HasPrivateTraits):
         head_pts = np.concatenate(head_pts)
         mri_pts = np.concatenate(mri_pts)
         weights = np.concatenate(weights)
-
         if n_scale_params == 0:
             mri_pts *= self.scale  # not done inside fit_matched_points
-            x0 = (self.rot_x, self.rot_y, self.rot_z,
-                  self.trans_x, self.trans_y, self.trans_z)
-            est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
-                                     weights=weights)
-            self.parameters[:6] = est
-        elif n_scale_params == 1:
-            x0 = (self.rot_x, self.rot_y, self.rot_z,
-                  self.trans_x, self.trans_y, self.trans_z,
-                  self.scale_x)
-            est = fit_matched_points(mri_pts, head_pts, scale=1, x0=x0,
-                                     out='params', weights=weights)
-            est = np.concatenate([est, [est[-1]] * 2])
-            self.parameters[:] = est
+        return head_pts, mri_pts, weights
+
+    def fit_icp(self, n_scale_params=None):
+        """Find MRI scaling, translation, and rotation to match HSP."""
+        if n_scale_params is None:
+            n_scale_params = self.n_scale_params
+
+        # Initial guess (current state)
+        assert n_scale_params in (0, 1, 3)
+        est = self.parameters[:[6, 7, None, 9][n_scale_params]]
+
+        # Do the fits, assigning and evaluating at each step
+        for self.iteration in range(self.icp_iterations):
+            head_pts, mri_pts, weights = self._setup_icp(n_scale_params)
+            est = fit_matched_points(mri_pts, head_pts, scale=n_scale_params,
+                                     x0=est, out='params', weights=weights)
+            if n_scale_params == 0:
+                self.parameters[:6] = est
+            elif n_scale_params == 1:
+                self.parameters[:] = list(est) + [est[-1]] * 2
+            else:
+                self.parameters[:] = est
+            angle, move, scale = self.changes
+            if angle <= self.icp_angle and move <= self.icp_distance and \
+                    all(scale <= self.icp_scale):
+                self.status_text = self.status_text[:-1] + '; converged)'
+                break
+            GUI.process_events()  # this will update the display
         else:
-            assert n_scale_params == 3
-            x0 = (self.rot_x, self.rot_y, self.rot_z,
-                  self.trans_x, self.trans_y, self.trans_z,
-                  1. / self.scale_x, 1. / self.scale_y, 1. / self.scale_z)
-            est = fit_matched_points(mri_pts, head_pts, scale=3, x0=x0,
-                                     out='params', weights=weights)
-            self.parameters[:] = est
+            self.status_text = self.status_text[:-1] + '; did not converge)'
+        self.iteration = -1
 
     def get_scaling_job(self, subject_to, skip_fiducials):
         """Find all arguments needed for the scaling worker."""
@@ -671,9 +705,8 @@ class CoregModel(HasPrivateTraits):
 
     def reset(self):
         """Reset all the parameters affecting the coregistration."""
-        self.reset_traits(('grow_hair', 'n_scaling_params', 'scale_x',
-                           'scale_y', 'scale_z', 'rot_x', 'rot_y', 'rot_z',
-                           'trans_x', 'trans_y', 'trans_z'))
+        self.reset_traits(('grow_hair', 'n_scaling_params'))
+        self.parameters[:] = _DEFAULT_PARAMETERS
 
     def set_trans(self, mri_head_t):
         """Set rotation and translation params from a transformation matrix.
@@ -701,26 +734,21 @@ class CoregModel(HasPrivateTraits):
 
     def _parameters_items_changed(self):
         # Update rot_x, rot_y, rot_z parameters if necessary
-        new = np.array(self.parameters, float)
-        old = np.array(self.last_parameters, float)
         n_scale = self.n_scale_params
         for ii, key in enumerate(('rot_x', 'rot_y', 'rot_z',
                                   'trans_x', 'trans_y', 'trans_z',
                                   'scale_x', 'scale_y', 'scale_z')):
-            if new[ii] != getattr(self, key):  # prevent circular
-                setattr(self, key, new[ii])
+            if self.parameters[ii] != getattr(self, key):  # prevent circular
+                setattr(self, key, self.parameters[ii])
         # Update the status text
-        move = np.linalg.norm(old[3:6] - new[3:6]) * 1000
-        angle = np.rad2deg(_angle_between_quats(
-            rot_to_quat(rotation(*new[:3])[:3, :3]),
-            rot_to_quat(rotation(*old[:3])[:3, :3])))
+        move, angle, percs = self.changes
         text = u'Change:  Δ=%0.1f mm  ∠=%0.2f°' % (move, angle)
         if n_scale:
-            pres = ['Scale'] if n_scale == 1 else ['Sx', 'Sy', 'Sz']
-            scales = old[6:6 + n_scale]
-            percs = 100 * (new[6:6 + n_scale] - scales) / scales
-            text += '  '.join([''] + ['%s %+0.1f%%' % (pre, p)
-                                      for p, pre in zip(percs, pres)])
+            text += '  Scale ' if n_scale == 1 else '  Sx/y/z '
+            text += '/'.join(['%+0.1f%%' % p for p in percs[:n_scale]])
+        if self.iteration >= 0:
+            text += u' (iteration %d/%d)' % (self.iteration + 1,
+                                             self.icp_iterations)
         self.last_parameters[:] = self.parameters[:]
         self.status_text = text
 
@@ -803,23 +831,21 @@ def _make_view_data_panel(scrollable=False):
                            label='Show head shape points', show_label=True,
                            enabled_when='not lock_fiducials', width=-1),
                       show_left=False),
-               Item('fid_panel', style='custom'),
-               label="MRI Fiducials",  show_border=_SHOW_BORDER,
-               show_labels=False),
+               Item('fid_panel', style='custom'), label="MRI Fiducials",
+               show_border=_SHOW_BORDER, show_labels=False),
         VGroup(Item('raw_src', style="custom", width=_REDUCED_TEXT_WIDTH),
                HGroup('guess_mri_subject',
                       Label('Guess subject from name'), show_labels=False),
-               VGrid(Item('distance', show_label=False, width=_MM_WIDTH,
+               VGrid(Item('grow_hair', editor=laggy_float_editor_mm,
+                          width=_MM_WIDTH),
+                     Label(u'ΔHair [mm]', show_label=True, width=-1), '0',
+                     Item('distance', show_label=False, width=_MM_WIDTH,
                           editor=laggy_float_editor_mm),
                      Item('omit_points', width=_OMIT_BUTTON_WIDTH),
                      Item('reset_omit_points', width=_RESET_WIDTH),
-                     Item('grow_hair', editor=laggy_float_editor_mm,
-                          width=_MM_WIDTH),
-                     Label(u'ΔHair [mm]', show_label=True, width=-1), '0',
                      columns=3, show_labels=False),
                Item('omitted_info', style='readonly',
-                    width=_REDUCED_TEXT_WIDTH),
-               label='Digitization source',
+                    width=_REDUCED_TEXT_WIDTH), label='Digitization source',
                show_border=_SHOW_BORDER, show_labels=False),
         VGroup(HGroup(Item('headview', style='custom'), Spring(),
                       show_labels=False),
@@ -988,8 +1014,27 @@ class FittingOptionsPanel(HasTraits):
     has_hsp_data = DelegatesTo('model')
     has_eeg_data = DelegatesTo('model')
     has_hpi_data = DelegatesTo('model')
+    icp_iterations = DelegatesTo('model')
+    icp_angle = DelegatesTo('model')
+    icp_distance = DelegatesTo('model')
+    icp_scale = DelegatesTo('model')
+    n_scale_params = DelegatesTo('model')
 
     view = View(VGroup(
+        VGrid(HGroup(Item('icp_iterations', label='Iterations',
+                          width=_MM_WIDTH, tooltip='Maximum ICP iterations to '
+                          'perform (per click)'),
+                     Spring(), show_labels=True), label='ICP iterations (max)',
+              show_border=_SHOW_BORDER),
+        VGrid(Item('icp_angle', label=u'Angle (°)', width=_MM_WIDTH,
+                   tooltip='Angle convergence threshold'),
+              Item('icp_distance', label='Distance (mm)', width=_MM_WIDTH,
+                   tooltip='Distance convergence threshold'),
+              Item('icp_scale', label='Scale (%)',
+                   tooltip='Scaling convergence threshold', width=_MM_WIDTH,
+                   enabled_when='n_scale_params > 0'),
+              show_labels=True, label='ICP convergence limits', columns=3,
+              show_border=_SHOW_BORDER),
         VGrid(
             VGrid(Item('lpa_weight', editor=laggy_float_editor_w,
                        tooltip="Relative weight for LPA", width=_WEIGHT_WIDTH,
@@ -1000,8 +1045,8 @@ class FittingOptionsPanel(HasTraits):
                   Item('rpa_weight', editor=laggy_float_editor_w,
                        tooltip="Relative weight for RPA", width=_WEIGHT_WIDTH,
                        enabled_when='has_rpa_data', label='RPA'),
-                  columns=3, show_labels=False, show_border=_SHOW_BORDER,
-                  label='LPA/Nasion/RPA'),
+                  columns=3, show_labels=True, show_border=_SHOW_BORDER,
+                  label='Fiducials (MRI-point matched)'),
             VGrid(Item('hsp_weight', editor=laggy_float_editor_w,
                        tooltip="Relative weight for head shape points",
                        enabled_when='has_hsp_data',
@@ -1012,11 +1057,14 @@ class FittingOptionsPanel(HasTraits):
                   Item('hpi_weight', editor=laggy_float_editor_w,
                        tooltip="Relative weight for HPI points", label='HPI',
                        enabled_when='has_hpi_data', width=_WEIGHT_WIDTH),
-                  columns=3, show_labels=False, show_border=_SHOW_BORDER,
-                  label='HSP/EEG/HPI'),
-            show_labels=False, label='Weights', columns=2,
+                  columns=3, show_labels=True, show_border=_SHOW_BORDER,
+                  label='Other points (closest-point matched)'),
+            show_labels=False, label='Point weights', columns=2,
             show_border=_SHOW_BORDER),
     ), title="Fitting options")
+
+
+_DEFAULT_PARAMETERS = (0., 0., 0., 0., 0., 0., 1., 1., 1.)
 
 
 class CoregPanel(HasPrivateTraits):
@@ -1058,12 +1106,6 @@ class CoregPanel(HasPrivateTraits):
     trans_z = DelegatesTo('model')
     trans_z_dec = Button('-')
     trans_z_inc = Button('+')
-    lpa_weight = DelegatesTo('model')
-    nasion_weight = DelegatesTo('model')
-    rpa_weight = DelegatesTo('model')
-    hsp_weight = DelegatesTo('model')
-    eeg_weight = DelegatesTo('model')
-    hpi_weight = DelegatesTo('model')
 
     # fitting
     has_lpa_data = DelegatesTo('model')
@@ -1110,9 +1152,6 @@ class CoregPanel(HasPrivateTraits):
 
     def __init__(self, *args, **kwargs):  # noqa: D102
         super(CoregPanel, self).__init__(*args, **kwargs)
-        def_param = [0., 0., 0., 0., 0., 0., 1., 1., 1.]
-        self.model.last_parameters[:] = def_param
-        self.model.parameters[:] = def_param
 
         # Setup scaling worker
         def worker():
@@ -1201,12 +1240,12 @@ class CoregPanel(HasPrivateTraits):
 
     def _fits_fid_fired(self):
         GUI.set_busy()
-        self.model.fit_fiducials(self.n_scale_params)
+        self.model.fit_fiducials()
         GUI.set_busy(False)
 
     def _fits_icp_fired(self):
         GUI.set_busy()
-        self.model.fit_icp(self.n_scale_params)
+        self.model.fit_icp()
         GUI.set_busy(False)
 
     def _reset_scale_fired(self):
@@ -1630,7 +1669,7 @@ class CoregFrame(HasTraits):
     mri_lpa_obj = Instance(PointObject)
     mri_nasion_obj = Instance(PointObject)
     mri_rpa_obj = Instance(PointObject)
-    bgcolor = RGBColor((0., 0., 0.))
+    bgcolor = RGBColor((0.5, 0.5, 0.5))
     # visualization (Digitization)
     hsp_obj = Instance(PointObject)
     eeg_obj = Instance(PointObject)

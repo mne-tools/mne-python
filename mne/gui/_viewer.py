@@ -58,7 +58,7 @@ _VIEW_BUTTON_WIDTH = -60
 _M_STEP_WIDTH = _RAD_STEP_WIDTH
 # width is optimized for macOS and Linux avoid a horizontal scroll-bar
 # even when a vertical one is present
-_COREG_WIDTH = -285
+_COREG_WIDTH = -290
 _TEXT_WIDTH = -250
 _REDUCED_TEXT_WIDTH = _TEXT_WIDTH - 40 * np.sign(_TEXT_WIDTH)
 _MRI_FIDUCIALS_WIDTH = _TEXT_WIDTH - 60 * np.sign(_TEXT_WIDTH)
