@@ -2152,9 +2152,10 @@ def _check_preload(inst, msg):
     if isinstance(inst, BaseEpochs):
         name = 'epochs'
     if not inst.preload:
-        raise RuntimeError(msg + ' requires %s data to be loaded. Use '
-                           'preload=True (or string) in the constructor or '
-                           '%s.load_data().' % (name, name))
+        raise RuntimeError("By default, MNE does not load data into main memory "
+                           "to conserve ressources. " + msg + ' requires %s data '
+                           'to be loaded. Use preload=True (or string) in the '
+                           'constructor or %s.load_data().' % (name, name))
 
 
 def _check_pandas_installed(strict=True):
