@@ -2158,6 +2158,7 @@ def _check_preload(inst, msg):
             'Use preload=True (or string) in the constructor or '
             '%s.load_data().' % (name, name))
 
+
 def _check_pandas_installed(strict=True):
     """Aux function."""
     try:
@@ -2674,4 +2675,3 @@ def open_docs(kind=None, version=None):
         raise ValueError('version must be one of %s, got %s'
                          % (version, versions))
     webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
-
