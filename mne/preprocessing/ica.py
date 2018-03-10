@@ -1220,7 +1220,7 @@ class ICA(ContainsMixin):
 
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
         """Aux method."""
-        _check_preload(raw, "apply ICA")
+        _check_preload(raw, "ica.apply")
 
         if exclude is None:
             exclude = list(set(self.exclude))
@@ -1245,7 +1245,7 @@ class ICA(ContainsMixin):
 
     def _apply_epochs(self, epochs, include, exclude, n_pca_components):
         """Aux method."""
-        _check_preload(epochs, "apply ICA")
+        _check_preload(epochs, "ica.apply")
 
         picks = pick_types(epochs.info, meg=False, ref_meg=False,
                            include=self.ch_names,
