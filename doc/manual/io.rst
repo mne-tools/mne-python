@@ -45,7 +45,18 @@ Electrode locations   EEGLAB loc, locs, eloc     Misc       :func:`mne.channels.
     saving it to fif.
 
 .. note::
+    Irrespective of the units used in your manufacturer's format, MNE-Python
+    will always use the units listed below and perform conversions during the
+    IO procedure if necessary.
 
+    * V: eeg, eog, seeg, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
+
+.. note::
     MNE-Python performs all computation in memory using the double-precision
     64-bit floating point format. This means that the data is typecasted into
     `float64` format as soon as it is read into memory. The reason for this is
