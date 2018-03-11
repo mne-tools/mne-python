@@ -181,7 +181,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
-                 noise_cov=None):
+                 noise_cov=None, mask=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -273,7 +273,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         for ax, this_type in zip(axes, ch_types_used):
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
-                        units, scalings, evoked.times, xlim, ylim, titles)
+                        units, scalings, evoked.times, xlim, ylim, titles,
+                        mask=mask)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -467,7 +468,7 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
-                xlim, ylim, titles):
+                xlim, ylim, titles, mask=None):
     """Plot images."""
     import matplotlib.pyplot as plt
     cmap = _setup_cmap(cmap)
@@ -479,15 +480,23 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
 
     # Set amplitude scaling
     data = this_scaling * data[picks, :]
-    im = ax.imshow(data, interpolation='nearest', origin='lower',
+    if ylim is None or this_type not in ylim:
+        vmax = np.abs(data).max()
+        vmin = -vmax
+    im_args = dict(interpolation='nearest', origin='lower',
                    extent=[times[0], times[-1], 0, data.shape[0]],
-                   aspect='auto', cmap=cmap[0])
+                   aspect='auto', cmap=cmap[0], vmin=vmin,
+                   vmax=vmax)
+    if mask is not None:
+        ax.imshow(data, alpha=.05, **im_args)
+        im = ax.imshow(np.ma.masked_where(mask, data), **im_args)
+    else:
+        im = ax.imshow(data, **im_args)
+
     if xlim is not None:
         if xlim == 'tight':
             xlim = (times[0], times[-1])
         ax.set_xlim(xlim)
-        if ylim is not None and this_type in ylim:
-            im.set_clim(ylim[this_type])
     cbar = plt.colorbar(im, ax=ax)
     cbar.ax.set_title(ch_unit)
     if cmap[1]:
@@ -779,7 +788,8 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
 
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                       clim=None, xlim='tight', proj=False, units=None,
-                      scalings=None, titles=None, axes=None, cmap='RdBu_r'):
+                      scalings=None, titles=None, axes=None, cmap='RdBu_r',
+                      mask=None):
     """Plot evoked data as images.
 
     Parameters
@@ -828,6 +838,10 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         resets the scale. Up and down arrows can be used to change the
         colormap. If 'interactive', translates to ``('RdBu_r', True)``.
         Defaults to ``'RdBu_r'``.
+    mask : ndarray
+        An array of booleans of the same shape as the data. Where this is
+        False, the resulting image is plotted transparently. Useful for,
+        e.g., masking for statistical significance.
 
     Returns
     -------
@@ -838,7 +852,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                         show=show, ylim=clim, proj=proj, xlim=xlim,
                         hline=None, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="image",
-                        cmap=cmap)
+                        cmap=cmap, mask=None)
 
 
 def _plot_update_evoked(params, bools):

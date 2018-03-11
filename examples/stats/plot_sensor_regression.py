@@ -68,3 +68,7 @@ names = ["Intercept", name]
 res = linear_regression(epochs, epochs.metadata[names], names=names)
 for cond in names:
     res[cond].beta.plot_joint(title=cond)
+
+###################
+mask = res["Concreteness"].p_val.data < .01
+res["Concreteness"].beta.plot_image(mask=mask);
