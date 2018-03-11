@@ -132,6 +132,9 @@ def test_plot_evoked():
     assert_raises(ValueError, evoked.plot, gfp='foo')
 
     evoked.plot_image(proj=True)
+    # test mask
+    evoked.plot_image(picks=[1, 2], mask=evoked.data[[1, 2], :] > 0)
+    assert_raises(ValueError, evoked.plot_image, mask=evoked.data[1:, 1:] > 0)
     # plot with bad channels excluded
     evoked.plot_image(exclude='bads', cmap='interactive')
     evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing

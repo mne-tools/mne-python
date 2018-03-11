@@ -483,13 +483,19 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     if ylim is None or this_type not in ylim:
         vmax = np.abs(data).max()
         vmin = -vmax
+    else:
+        vmin, vmax = ylim[this_type]
     im_args = dict(interpolation='nearest', origin='lower',
                    extent=[times[0], times[-1], 0, data.shape[0]],
-                   aspect='auto', cmap=cmap[0], vmin=vmin,
-                   vmax=vmax)
+                   aspect='auto', cmap=cmap[0], vmin=vmin, vmax=vmax)
     if mask is not None:
-        ax.imshow(data, alpha=.05, **im_args)
-        im = ax.imshow(np.ma.masked_where(mask, data), **im_args)
+        if mask.shape != data.shape:
+            mask_shape = ", ".join([str(dim) for dim in mask.shape])
+            data_shape = ", ".join([str(dim) for dim in data.shape])
+            raise ValueError("The mask must have the same shape as the data, "
+                             "i.e., %s, not %s" % (data_shape, mask_shape))
+        ax.imshow(data, alpha=.5, **im_args)
+        im = ax.imshow(np.ma.masked_where(~mask, data), alpha=1, **im_args)
     else:
         im = ax.imshow(data, **im_args)
 
@@ -852,7 +858,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                         show=show, ylim=clim, proj=proj, xlim=xlim,
                         hline=None, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="image",
-                        cmap=cmap, mask=None)
+                        cmap=cmap, mask=mask)
 
 
 def _plot_update_evoked(params, bools):

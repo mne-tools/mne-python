@@ -34,7 +34,7 @@ References
 
 import pandas as pd
 import mne
-from mne.stats import linear_regression
+from mne.stats import linear_regression, fdr_correction
 from mne.viz import plot_compare_evokeds
 from mne.datasets import kiloword
 
@@ -69,6 +69,13 @@ res = linear_regression(epochs, epochs.metadata[names], names=names)
 for cond in names:
     res[cond].beta.plot_joint(title=cond)
 
-###################
-mask = res["Concreteness"].p_val.data < .01
-res["Concreteness"].beta.plot_image(mask=mask);
+##############################################################################
+# Because the `linear_regression` function also estimates p values, we can --
+# after applying FDR correction for multiple comparisons- also visualise the
+# statistical significance of the regression of word concreteness.
+# The :function:`mne.viz.plot_evoked_image` function takes a `mask` parameter.
+# If we supply it with a boolean mask of the positions where we can reject
+# the null hypothesis, not significant points will be shown transparently.
+reject_H0, fdr_pvals = fdr_correction(res["Concreteness"].p_val.data)
+evoked = res["Concreteness"].beta
+evoked.plot_image(mask=reject_H0, title="");
