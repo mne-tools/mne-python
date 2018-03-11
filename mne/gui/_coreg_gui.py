@@ -833,7 +833,7 @@ def _make_view_data_panel(scrollable=False):
                       show_left=False),
                Item('fid_panel', style='custom'), label="MRI Fiducials",
                show_border=_SHOW_BORDER, show_labels=False),
-        VGroup(Item('raw_src', style="custom", width=_REDUCED_TEXT_WIDTH),
+        VGroup(Item('raw_src', style="custom"),
                HGroup('guess_mri_subject',
                       Label('Guess subject from name'), show_labels=False),
                VGrid(Item('grow_hair', editor=laggy_float_editor_mm,
