@@ -181,7 +181,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
-                 noise_cov=None, mask=None):
+                 noise_cov=None, mask=None, alpha=.5):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -274,7 +274,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
                         units, scalings, evoked.times, xlim, ylim, titles,
-                        mask=mask)
+                        mask=mask, alpha=alpha)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -468,7 +468,7 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
-                xlim, ylim, titles, mask=None):
+                xlim, ylim, titles, mask=None, alpha=.33):
     """Plot images."""
     import matplotlib.pyplot as plt
     cmap = _setup_cmap(cmap)
@@ -489,12 +489,13 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                    extent=[times[0], times[-1], 0, data.shape[0]],
                    aspect='auto', cmap=cmap[0], vmin=vmin, vmax=vmax)
     if mask is not None:
+        mask = mask[picks, :]
         if mask.shape != data.shape:
             mask_shape = ", ".join([str(dim) for dim in mask.shape])
             data_shape = ", ".join([str(dim) for dim in data.shape])
             raise ValueError("The mask must have the same shape as the data, "
                              "i.e., %s, not %s" % (data_shape, mask_shape))
-        ax.imshow(data, alpha=.5, **im_args)
+        ax.imshow(data, alpha=alpha, **im_args)
         im = ax.imshow(np.ma.masked_where(~mask, data), alpha=1, **im_args)
     else:
         im = ax.imshow(data, **im_args)
@@ -795,7 +796,7 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                       clim=None, xlim='tight', proj=False, units=None,
                       scalings=None, titles=None, axes=None, cmap='RdBu_r',
-                      mask=None):
+                      mask=None, alpha=1/3):
     """Plot evoked data as images.
 
     Parameters
@@ -844,10 +845,15 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         resets the scale. Up and down arrows can be used to change the
         colormap. If 'interactive', translates to ``('RdBu_r', True)``.
         Defaults to ``'RdBu_r'``.
-    mask : ndarray
+    mask : ndarray | None
         An array of booleans of the same shape as the data. Where this is
         False, the resulting image is plotted transparently. Useful for,
         e.g., masking for statistical significance.
+    alpha : float
+        A float between 0 and 1. If `mask` is not None, this sets the
+        alpha level (degree of transparency) for the masked-out segments.
+        I.e., if 0, masked-out segments are not visible at all.
+        Defaults to .5.
 
     Returns
     -------
@@ -858,7 +864,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                         show=show, ylim=clim, proj=proj, xlim=xlim,
                         hline=None, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="image",
-                        cmap=cmap, mask=mask)
+                        cmap=cmap, mask=mask, alpha=alpha)
 
 
 def _plot_update_evoked(params, bools):
