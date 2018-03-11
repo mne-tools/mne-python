@@ -78,4 +78,4 @@ for cond in names:
 # the null hypothesis, not significant points will be shown transparently.
 reject_H0, fdr_pvals = fdr_correction(res["Concreteness"].p_val.data)
 evoked = res["Concreteness"].beta
-evoked.plot_image(mask=reject_H0, title="");
+evoked.plot_image(mask=reject_H0);
