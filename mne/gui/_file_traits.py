@@ -17,7 +17,7 @@ from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
 from traitsui.api import View, Item, VGroup
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
-from ._viewer import _REDUCED_TEXT_WIDTH
+from ._viewer import _DIG_SOURCE_WIDTH
 
 from ..bem import read_bem_surfaces
 from ..io.constants import FIFF
@@ -281,7 +281,7 @@ class DigSource(HasPrivateTraits):
     hpi_points = Property(depends_on='_info',
                           desc='HPI coil coordinates (N x 3 array)')
 
-    view = View(Item('file', width=_REDUCED_TEXT_WIDTH, tooltip='FIF file '
+    view = View(Item('file', width=_DIG_SOURCE_WIDTH, tooltip='FIF file '
                      '(Raw, Epochs, Evoked, or DigMontage)', show_label=False))
 
     @cached_property
@@ -541,13 +541,13 @@ class SubjectSelectorPanel(HasPrivateTraits):
              "subjects directory. This button is disabled if "
              "fsaverage already exists in the selected subjects directory.")
 
-    view = View(VGroup(Item('subjects_dir', width=_REDUCED_TEXT_WIDTH,
+    view = View(VGroup(Item('subjects_dir', width=_DIG_SOURCE_WIDTH,
                             tooltip='Subject MRI structurals (SUBJECTS_DIR)'),
-                       Item('subject', width=_REDUCED_TEXT_WIDTH,
+                       Item('subject', width=_DIG_SOURCE_WIDTH,
                             tooltip='Subject to use within SUBJECTS_DIR'),
                        Item('create_fsaverage',
                             enabled_when='can_create_fsaverage',
-                            width=_REDUCED_TEXT_WIDTH),
+                            width=_DIG_SOURCE_WIDTH),
                        show_labels=False))
 
     def _create_fsaverage_fired(self):
