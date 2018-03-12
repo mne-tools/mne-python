@@ -15,7 +15,7 @@ from pyface.api import confirm, error, FileDialog, OK, YES
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         cached_property, DelegatesTo, Event, Instance,
                         Property, Array, Bool, Button, Enum)
-from traitsui.api import HGroup, Item, VGroup, View, ArrayEditor, Handler
+from traitsui.api import HGroup, Item, VGroup, View, Handler, ArrayEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -30,9 +30,10 @@ from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel,
                            Surf)
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
-                      headview_borders, _M_WIDTH, _BUTTON_WIDTH,
-                      _MRI_FIDUCIALS_WIDTH, _REDUCED_M_WIDTH,
-                      _RESET_LABEL, _RESET_WIDTH, _m_fmt)
+                      headview_borders, _BUTTON_WIDTH,
+                      _MRI_FIDUCIALS_WIDTH, _MM_WIDTH,
+                      _RESET_LABEL, _RESET_WIDTH, _mm_fmt)
+
 defaults = DEFAULTS['coreg']
 
 
@@ -262,8 +263,7 @@ class FiducialsPanel(HasPrivateTraits):
     locked = DelegatesTo('model', 'lock_fiducials')
 
     set = Enum('LPA', 'Nasion', 'RPA')
-    current_pos = Array(float, (1, 3),
-                        editor=ArrayEditor(width=_REDUCED_M_WIDTH))
+    current_pos_mm = Array(float, (1, 3))
 
     save_as = Button(label='Save as...')
     save = Button(label='Save')
@@ -281,12 +281,13 @@ class FiducialsPanel(HasPrivateTraits):
         HGroup(Item('set', width=_MRI_FIDUCIALS_WIDTH,
                     format_func=lambda x: x, style='custom',
                     tooltip=_SET_TOOLTIP), show_labels=False),
-        HGroup(Item('current_pos', format_func=_m_fmt,
-                    width=_MRI_FIDUCIALS_WIDTH), show_labels=False),
+        HGroup(Item('current_pos_mm',
+                    editor=ArrayEditor(width=_MM_WIDTH, format_func=_mm_fmt),
+                    tooltip='MRI fiducial position (mm)'), show_labels=False),
         HGroup(Item('save', enabled_when='can_save',
                     tooltip="If a filename is currently specified, save to "
                     "that file, otherwise save to the default file name",
-                    width=_M_WIDTH),
+                    width=_BUTTON_WIDTH),
                Item('save_as', enabled_when='can_save_as',
                     width=_BUTTON_WIDTH),
                Item('reset_fid', enabled_when='can_reset', width=_RESET_WIDTH,
@@ -296,7 +297,27 @@ class FiducialsPanel(HasPrivateTraits):
 
     def __init__(self, *args, **kwargs):  # noqa: D102
         super(FiducialsPanel, self).__init__(*args, **kwargs)
-        self.sync_trait('lpa', self, 'current_pos', mutual=True)
+
+    @on_trait_change('current_pos_mm')
+    def _update_pos(self):
+        attr = self.set.lower()
+        if not np.allclose(getattr(self, attr), self.current_pos_mm * 1e-3):
+            setattr(self, attr, self.current_pos_mm * 1e-3)
+
+    @on_trait_change('model:lpa')
+    def _update_lpa(self, name):
+        if self.set == 'LPA':
+            self.current_pos_mm = self.lpa * 1000
+
+    @on_trait_change('model:nasion')
+    def _update_nasion(self, name):
+        if self.set.lower() == 'Nasion':
+            self.current_pos_mm = self.nasion * 1000
+
+    @on_trait_change('model:rpa')
+    def _update_rpa(self, name):
+        if self.set.lower() == 'RPA':
+            self.current_pos_mm = self.rpa * 1000
 
     def _reset_fid_fired(self):
         self.model.reset = True
@@ -382,14 +403,14 @@ class FiducialsPanel(HasPrivateTraits):
 
     @on_trait_change('set')
     def _on_set_change(self, obj, name, old, new):
-        self.sync_trait(old.lower(), self, 'current_pos', mutual=True,
-                        remove=True)
-        self.sync_trait(new.lower(), self, 'current_pos', mutual=True)
         if new == 'Nasion':
+            self.current_pos_mm = self.nasion * 1000
             self.headview.front = True
         elif new == 'LPA':
+            self.current_pos_mm = self.lpa * 1000
             self.headview.left = True
         elif new == 'RPA':
+            self.current_pos_mm = self.rpa * 1000
             self.headview.right = True
 
 

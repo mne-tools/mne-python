@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Traits-based GUI for head-MRI coregistration.
+u"""Traits-based GUI for head-MRI coregistration.
 
 Hierarchy
 ---------
@@ -34,6 +34,23 @@ properties that are set to be equivalent.
 In the MRI viewing frame, MRI points and transformed via scaling, then by
 mri_head_t to the Neuromag head coordinate frame. Digitized points (in head
 coordinate frame) are never transformed.
+
+Units
+-----
+User-facing GUI values are in readable units:
+
+- ``scale_*`` are in %
+- ``trans_*`` are in mm
+- ``rot_*`` are in °
+
+Internal computation quantities ``parameters`` are in units of (for X/Y/Z):
+
+- ``parameters[:3]`` are in radians
+- ``parameters[3:6]`` are in m
+- ``paramteres[6:9]`` are in scale proportion
+
+Conversions are handled via `np.deg2rad`, `np.rad2deg`, and appropriate
+multiplications / divisions.
 """  # noqa: E501
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -57,8 +74,8 @@ from traits.api import (Bool, Button, cached_property, DelegatesTo, Directory,
                         Enum, Float, HasTraits, HasPrivateTraits, Instance,
                         Int, on_trait_change, Property, Str, List, RGBColor)
 from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid, EnumEditor,
-                          Handler, Label, TextEditor, Spring, InstanceEditor,
-                          StatusItem, UIInfo)
+                          Handler, Label, Spring, InstanceEditor, StatusItem,
+                          UIInfo)
 from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -75,25 +92,25 @@ from ..utils import logger, set_config
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
-                      _RAD_WIDTH, _M_WIDTH, _MM_WIDTH, _BUTTON_WIDTH,
+                      _DEG_WIDTH, _MM_WIDTH, _BUTTON_WIDTH,
                       _SHOW_BORDER, _COREG_WIDTH,
                       _INC_BUTTON_WIDTH, _SCALE_WIDTH, _WEIGHT_WIDTH,
-                      _M_STEP_WIDTH, _RAD_STEP_WIDTH, _REDUCED_TEXT_WIDTH,
+                      _MM_STEP_WIDTH, _DEG_STEP_WIDTH, _REDUCED_TEXT_WIDTH,
                       _RESET_LABEL, _RESET_WIDTH, _OMIT_BUTTON_WIDTH,
-                      laggy_float_editor_mm, laggy_float_editor_m)
+                      laggy_float_editor_scale, laggy_float_editor_deg,
+                      laggy_float_editor_mm, laggy_float_editor_weight)
 
 defaults = DEFAULTS['coreg']
 
-laggy_float_editor_w = TextEditor(auto_set=False, enter_set=True,
-                                  evaluate=float,
-                                  format_func=lambda x: '%0.2f' % x)
 
-laggy_float_editor_scale = TextEditor(auto_set=False, enter_set=True,
-                                      evaluate=float,
-                                      format_func=lambda x: '%0.3f' % x)
-laggy_float_editor_rad = TextEditor(auto_set=False, enter_set=True,
-                                    evaluate=float,
-                                    format_func=lambda x: '%0.4f' % x)
+class busy(object):
+    """Set the GUI state to busy."""
+
+    def __enter__(self):  # noqa: D105
+        GUI.set_busy(True)
+
+    def __exit__(self, type, value, traceback):  # noqa: D105
+        GUI.set_busy(False)
 
 
 def _pass(x):
@@ -128,15 +145,15 @@ class CoregModel(HasPrivateTraits):
 
     # parameters
     guess_mri_subject = Bool(True)  # change MRI subject when dig file changes
-    grow_hair = Float(label=u"ΔHair [mm]", desc="Move the back of the MRI "
+    grow_hair = Float(label=u"ΔHair", desc="Move the back of the MRI "
                       "head outwards to compensate for hair on the digitizer "
-                      "head shape")
+                      "head shape (mm)")
     n_scale_params = Enum(0, 1, 3, desc="Scale the MRI to better fit the "
                           "subject's head shape (a new MRI subject will be "
                           "created with a name specified upon saving)")
-    scale_x = Float(1, label="X")
-    scale_y = Float(1, label="Y")
-    scale_z = Float(1, label="Z")
+    scale_x = Float(100, label="X")
+    scale_y = Float(100, label="Y")
+    scale_z = Float(100, label="Z")
     trans_x = Float(0, label=u"ΔX")
     trans_y = Float(0, label=u"ΔY")
     trans_z = Float(0, label=u"ΔZ")
@@ -156,6 +173,8 @@ class CoregModel(HasPrivateTraits):
     icp_angle = Float(0.2)
     icp_distance = Float(0.2)
     icp_scale = Float(0.2)
+    fit_icp_running = Bool(False)
+    fits_icp_running = Bool(False)
     coord_frame = Str('mri')
     status_text = Str()
 
@@ -167,7 +186,6 @@ class CoregModel(HasPrivateTraits):
                              "after scaling the MRI")
 
     # secondary to parameters
-    scale = Property(depends_on=['n_scale_params', 'parameters[]'])
     has_nasion_data = Property(
         Bool,
         desc="Nasion data is present.",
@@ -324,16 +342,10 @@ class CoregModel(HasPrivateTraits):
                 np.any(self.hsp.hpi_points))
 
     @cached_property
-    def _get_scale(self):
-        if self.n_scale_params == 0:
-            return np.array(1)
-        return np.array([self.scale_x, self.scale_y, self.scale_z])
-
-    @cached_property
     def _get_changes(self):
         new = np.array(self.parameters, float)
         old = np.array(self.last_parameters, float)
-        move = np.linalg.norm(old[3:6] - new[3:6]) * 1000
+        move = np.linalg.norm(old[3:6] - new[3:6]) * 1e3
         angle = np.rad2deg(_angle_between_quats(
             rot_to_quat(rotation(*new[:3])[:3, :3]),
             rot_to_quat(rotation(*old[:3])[:3, :3])))
@@ -343,15 +355,14 @@ class CoregModel(HasPrivateTraits):
     @cached_property
     def _get_mri_head_t(self):
         # rotate and translate hsp
-        trans = rotation(self.rot_x, self.rot_y, self.rot_z)
-        trans[:3, 3] = [self.trans_x, self.trans_y, self.trans_z]
+        trans = rotation(*self.parameters[:3])
+        trans[:3, 3] = np.array(self.parameters[3:6])
         return trans
 
     @cached_property
     def _get_head_mri_t(self):
-        trans = rotation(self.rot_x, self.rot_y, self.rot_z).T
-        trans[:3, 3] = -np.dot(trans[:3, :3],
-                               [self.trans_x, self.trans_y, self.trans_z])
+        trans = rotation(*self.parameters[:3]).T
+        trans[:3, 3] = -np.dot(trans[:3, :3], self.parameters[3:6])
         # should be the same as np.linalg.inv(self.mri_head_t)
         return trans
 
@@ -359,7 +370,7 @@ class CoregModel(HasPrivateTraits):
     def _get_processed_high_res_mri_points(self):
         if self.grow_hair:
             if len(self.mri.bem_high_res.surf.nn):
-                scaled_hair_dist = self.grow_hair / (self.scale * 1000)
+                scaled_hair_dist = 1e-3 * self.grow_hair / (self.scale / 100.)
                 points = self.mri.bem_high_res.surf.rr.copy()
                 hair = points[:, 2] > points[:, 1]
                 points[hair] += (self.mri.bem_high_res.surf.nn[hair] *
@@ -375,7 +386,7 @@ class CoregModel(HasPrivateTraits):
     def _get_processed_low_res_mri_points(self):
         if self.grow_hair:
             if len(self.mri.bem_low_res.surf.nn):
-                scaled_hair_dist = self.grow_hair / (self.scale * 1000)
+                scaled_hair_dist = 1e-3 * self.grow_hair / (self.scale / 100.)
                 points = self.mri.bem_low_res.surf.rr.copy()
                 hair = points[:, 2] > points[:, 1]
                 points[hair] += (self.mri.bem_low_res.surf.nn[hair] *
@@ -390,7 +401,7 @@ class CoregModel(HasPrivateTraits):
     @cached_property
     def _get_mri_trans(self):
         mri_scaling = np.ones(4)
-        mri_scaling[:3] = self.scale
+        mri_scaling[:3] = self.parameters[6:9]
         if self.coord_frame.lower() == 'head':
             t = self.mri_head_t
         else:
@@ -596,20 +607,15 @@ class CoregModel(HasPrivateTraits):
         head_pts = np.vstack((self.hsp.lpa, self.hsp.nasion, self.hsp.rpa))
         mri_pts = np.vstack((self.mri.lpa, self.mri.nasion, self.mri.rpa))
         weights = [self.lpa_weight, self.nasion_weight, self.rpa_weight]
+        assert n_scale_params in (0, 1)  # guaranteed by GUI
         if n_scale_params == 0:
-            mri_pts *= self.scale  # not done inside fit_matched_points
-            x0 = (self.rot_x, self.rot_y, self.rot_z,
-                  self.trans_x, self.trans_y, self.trans_z)
-            est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
-                                     weights=weights)
+            mri_pts *= self.parameters[6:9]  # not done in fit_matched_points
+        x0 = np.array(self.parameters[:6 + n_scale_params])
+        est = fit_matched_points(mri_pts, head_pts, x0=x0, out='params',
+                                 scale=n_scale_params, weights=weights)
+        if n_scale_params == 0:
             self.parameters[:6] = est
         else:
-            x0 = (self.rot_x, self.rot_y, self.rot_z,
-                  self.trans_x, self.trans_y, self.trans_z,
-                  self.scale_x,)
-            est = fit_matched_points(mri_pts, head_pts, scale=1, x0=x0,
-                                     out='params', weights=weights)
-            assert n_scale_params == 1  # guaranteed from GUI
             self.parameters[:] = np.concatenate([est, [est[-1]] * 2])
 
     def _setup_icp(self, n_scale_params):
@@ -642,7 +648,7 @@ class CoregModel(HasPrivateTraits):
         mri_pts = np.concatenate(mri_pts)
         weights = np.concatenate(weights)
         if n_scale_params == 0:
-            mri_pts *= self.scale  # not done inside fit_matched_points
+            mri_pts *= self.parameters[6:9]  # not done in fit_matched_points
         return head_pts, mri_pts, weights
 
     def fit_icp(self, n_scale_params=None):
@@ -655,6 +661,9 @@ class CoregModel(HasPrivateTraits):
         est = self.parameters[:[6, 7, None, 9][n_scale_params]]
 
         # Do the fits, assigning and evaluating at each step
+        attr = 'fit_icp_running' if n_scale_params == 0 else 'fits_icp_running'
+        setattr(self, attr, True)
+        GUI.process_events()  # update the button
         for self.iteration in range(self.icp_iterations):
             head_pts, mri_pts, weights = self._setup_icp(n_scale_params)
             est = fit_matched_points(mri_pts, head_pts, scale=n_scale_params,
@@ -670,9 +679,13 @@ class CoregModel(HasPrivateTraits):
                     all(scale <= self.icp_scale):
                 self.status_text = self.status_text[:-1] + '; converged)'
                 break
-            GUI.process_events()  # this will update the display
+            GUI.process_events()  # this will update the head view
+            if not getattr(self, attr):  # canceled by user
+                self.status_text = self.status_text[:-1] + '; cancelled)'
+                break
         else:
             self.status_text = self.status_text[:-1] + '; did not converge)'
+        setattr(self, attr, False)
         self.iteration = -1
 
     def get_scaling_job(self, subject_to, skip_fiducials):
@@ -689,7 +702,7 @@ class CoregModel(HasPrivateTraits):
                 if match:
                     bem_names.append(match.group(1))
 
-        return (subjects_dir, subject_from, subject_to, self.scale,
+        return (subjects_dir, subject_from, subject_to, self.parameters[6:9],
                 skip_fiducials, self.scale_labels, self.copy_annot, bem_names)
 
     def load_trans(self, fname):
@@ -705,8 +718,10 @@ class CoregModel(HasPrivateTraits):
 
     def reset(self):
         """Reset all the parameters affecting the coregistration."""
-        self.reset_traits(('grow_hair', 'n_scaling_params'))
-        self.parameters[:] = _DEFAULT_PARAMETERS
+        with busy():
+            self.reset_traits(('grow_hair', 'n_scaling_params'))
+            self.parameters[:] = _DEFAULT_PARAMETERS
+            self.omit_hsp_points(np.inf)
 
     def set_trans(self, mri_head_t):
         """Set rotation and translation params from a transformation matrix.
@@ -716,9 +731,10 @@ class CoregModel(HasPrivateTraits):
         mri_head_t : array, shape (4, 4)
             Transformation matrix from MRI to head space.
         """
-        rot_x, rot_y, rot_z = rotation_angles(mri_head_t)
-        x, y, z = mri_head_t[:3, 3]
-        self.parameters[:6] = [rot_x, rot_y, rot_z, x, y, z]
+        with busy():
+            rot_x, rot_y, rot_z = rotation_angles(mri_head_t)
+            x, y, z = mri_head_t[:3, 3]
+            self.parameters[:6] = [rot_x, rot_y, rot_z, x, y, z]
 
     def save_trans(self, fname):
         """Save the head-mri transform as a fif file.
@@ -730,16 +746,23 @@ class CoregModel(HasPrivateTraits):
         """
         if not self.can_save:
             raise RuntimeError("Not enough information for saving transform")
-        write_trans(fname, Transform('mri', 'head', self.mri_head_t))
+        write_trans(fname, Transform('head', 'mri', self.head_mri_t))
 
     def _parameters_items_changed(self):
-        # Update rot_x, rot_y, rot_z parameters if necessary
+        # Update GUI as necessary
         n_scale = self.n_scale_params
-        for ii, key in enumerate(('rot_x', 'rot_y', 'rot_z',
-                                  'trans_x', 'trans_y', 'trans_z',
-                                  'scale_x', 'scale_y', 'scale_z')):
-            if self.parameters[ii] != getattr(self, key):  # prevent circular
-                setattr(self, key, self.parameters[ii])
+        for ii, key in enumerate(('rot_x', 'rot_y', 'rot_z')):
+            val = np.rad2deg(self.parameters[ii])
+            if val != getattr(self, key):  # prevent circular
+                setattr(self, key, val)
+        for ii, key in enumerate(('trans_x', 'trans_y', 'trans_z')):
+            val = self.parameters[ii + 3] * 1e3
+            if val != getattr(self, key):  # prevent circular
+                setattr(self, key, val)
+        for ii, key in enumerate(('scale_x', 'scale_y', 'scale_z')):
+            val = self.parameters[ii + 6] * 1e2
+            if val != getattr(self, key):  # prevent circular
+                setattr(self, key, val)
         # Update the status text
         move, angle, percs = self.changes
         text = u'Change:  Δ=%0.1f mm  ∠=%0.2f°' % (move, angle)
@@ -753,34 +776,34 @@ class CoregModel(HasPrivateTraits):
         self.status_text = text
 
     def _rot_x_changed(self):
-        self.parameters[0] = self.rot_x
+        self.parameters[0] = np.deg2rad(self.rot_x)
 
     def _rot_y_changed(self):
-        self.parameters[1] = self.rot_y
+        self.parameters[1] = np.deg2rad(self.rot_y)
 
     def _rot_z_changed(self):
-        self.parameters[2] = self.rot_z
+        self.parameters[2] = np.deg2rad(self.rot_z)
 
     def _trans_x_changed(self):
-        self.parameters[3] = self.trans_x
+        self.parameters[3] = self.trans_x * 1e-3
 
     def _trans_y_changed(self):
-        self.parameters[4] = self.trans_y
+        self.parameters[4] = self.trans_y * 1e-3
 
     def _trans_z_changed(self):
-        self.parameters[5] = self.trans_z
+        self.parameters[5] = self.trans_z * 1e-3
 
     def _scale_x_changed(self):
         if self.n_scale_params == 1:
-            self.parameters[6:9] = [self.scale_x] * 3
+            self.parameters[6:9] = [self.scale_x * 1e-2] * 3
         else:
-            self.parameters[6] = self.scale_x
+            self.parameters[6] = self.scale_x * 1e-2
 
     def _scale_y_changed(self):
-        self.parameters[7] = self.scale_y
+        self.parameters[7] = self.scale_y * 1e-2
 
     def _scale_z_changed(self):
-        self.parameters[8] = self.scale_z
+        self.parameters[8] = self.scale_z * 1e-2
 
 
 class CoregFrameHandler(Handler):
@@ -838,7 +861,7 @@ def _make_view_data_panel(scrollable=False):
                       Label('Guess subject from name'), show_labels=False),
                VGrid(Item('grow_hair', editor=laggy_float_editor_mm,
                           width=_MM_WIDTH),
-                     Label(u'ΔHair [mm]', show_label=True, width=-1), '0',
+                     Label(u'ΔHair', show_label=True, width=-1), '0',
                      Item('distance', show_label=False, width=_MM_WIDTH,
                           editor=laggy_float_editor_mm),
                      Item('omit_points', width=_OMIT_BUTTON_WIDTH),
@@ -866,19 +889,19 @@ def _make_view_coreg_panel(scrollable=False):
                                               1: '2:Uniform',
                                               3: '3:3-axis'})), Spring()),
         VGrid(Item('scale_x', editor=laggy_float_editor_scale,
-                   show_label=True, tooltip="Scale along right-left axis",
+                   show_label=True, tooltip="Scale along right-left axis (%)",
                    enabled_when='n_scale_params > 0', width=_SCALE_WIDTH),
               Item('scale_x_dec', enabled_when='n_scale_params > 0',
                    width=_INC_BUTTON_WIDTH),
               Item('scale_x_inc', enabled_when='n_scale_params > 0',
                    width=_INC_BUTTON_WIDTH),
-              Item('scale_step', tooltip="Scaling step",
-                   enabled_when='n_scale_params > 0', width=_SCALE_WIDTH),
+              Item('scale_step', tooltip="Scaling step (%)",
+                   enabled_when='n_scale_params > 0', width=_INC_BUTTON_WIDTH),
               Spring(),
 
               Item('scale_y', editor=laggy_float_editor_scale, show_label=True,
                    enabled_when='n_scale_params > 1',
-                   tooltip="Scale along anterior-posterior axis",
+                   tooltip="Scale along anterior-posterior axis (%)",
                    width=_SCALE_WIDTH),
               Item('scale_y_dec', enabled_when='n_scale_params > 1',
                    width=_INC_BUTTON_WIDTH),
@@ -889,7 +912,7 @@ def _make_view_coreg_panel(scrollable=False):
 
               Item('scale_z', editor=laggy_float_editor_scale, show_label=True,
                    enabled_when='n_scale_params > 1', width=_SCALE_WIDTH,
-                   tooltip="Scale along anterior-posterior axis"),
+                   tooltip="Scale along anterior-posterior axis (%)"),
               Item('scale_z_dec', enabled_when='n_scale_params > 1',
                    width=_INC_BUTTON_WIDTH),
               Item('scale_z_inc', enabled_when='n_scale_params > 1',
@@ -907,51 +930,56 @@ def _make_view_coreg_panel(scrollable=False):
                    tooltip="Rotate, translate, and scale the MRI to minimize "
                    "the distance of the three fiducials.",
                    width=_BUTTON_WIDTH),
+              Item('cancels_icp', enabled_when="fits_icp_running",
+                   tooltip='Stop ICP fitting', width=_RESET_WIDTH),
               Item('reset_scale', enabled_when='n_scale_params',
                    tooltip="Reset scaling parameters", width=_RESET_WIDTH),
-              show_labels=False, columns=3),
+              show_labels=False, columns=4),
         # Translation and rotation
-        VGrid(Item('trans_x', editor=laggy_float_editor_m, show_label=True,
-                   tooltip="Move along right-left axis", width=_M_WIDTH),
+        VGrid(Item('trans_x', editor=laggy_float_editor_mm, show_label=True,
+                   tooltip="Move along right-left axis", width=_MM_WIDTH),
               Item('trans_x_dec', width=_INC_BUTTON_WIDTH),
               Item('trans_x_inc', width=_INC_BUTTON_WIDTH),
-              Item('trans_step', tooltip="Movement step", width=_M_STEP_WIDTH),
+              Item('trans_step', tooltip="Movement step (mm)",
+                   width=_MM_STEP_WIDTH),
               Spring(),
 
-              Item('trans_y', editor=laggy_float_editor_m, show_label=True,
+              Item('trans_y', editor=laggy_float_editor_mm, show_label=True,
                    tooltip="Move along anterior-posterior axis",
-                   width=_M_WIDTH),
+                   width=_MM_WIDTH),
               Item('trans_y_dec', width=_INC_BUTTON_WIDTH),
               Item('trans_y_inc', width=_INC_BUTTON_WIDTH),
-              Label('(Step)', width=_M_WIDTH),
+              Label('(Step)', width=_MM_WIDTH),
               Spring(),
 
-              Item('trans_z', editor=laggy_float_editor_m, show_label=True,
+              Item('trans_z', editor=laggy_float_editor_mm, show_label=True,
                    tooltip="Move along anterior-posterior axis",
-                   width=_M_WIDTH),
+                   width=_MM_WIDTH),
               Item('trans_z_dec', width=_INC_BUTTON_WIDTH),
               Item('trans_z_inc', width=_INC_BUTTON_WIDTH),
               '0',
               Spring(),
 
-              Item('rot_x', editor=laggy_float_editor_rad, show_label=True,
-                   tooltip="Rotate along right-left axis", width=_RAD_WIDTH),
+              Item('rot_x', editor=laggy_float_editor_deg, show_label=True,
+                   tooltip="Tilt the digitization backward (-) or forward (+)",
+                   width=_DEG_WIDTH),
               Item('rot_x_dec', width=_INC_BUTTON_WIDTH),
               Item('rot_x_inc', width=_INC_BUTTON_WIDTH),
-              Item('rot_step', tooltip="Rotation step", width=_RAD_STEP_WIDTH),
+              Item('rot_step', tooltip=u"Rotation step (°)",
+                   width=_DEG_STEP_WIDTH),
               Spring(),
 
-              Item('rot_y', editor=laggy_float_editor_rad, show_label=True,
-                   tooltip="Rotate along anterior-posterior axis",
-                   width=_RAD_WIDTH),
+              Item('rot_y', editor=laggy_float_editor_deg, show_label=True,
+                   tooltip="Tilt the digitization rightward (-) or "
+                   "leftward (+)", width=_DEG_WIDTH),
               Item('rot_y_dec', width=_INC_BUTTON_WIDTH),
               Item('rot_y_inc', width=_INC_BUTTON_WIDTH),
-              Label('(Step)', width=_RAD_WIDTH),
+              Label('(Step)', width=_DEG_WIDTH),
               Spring(),
 
-              Item('rot_z', editor=laggy_float_editor_rad, show_label=True,
-                   tooltip="Rotate along anterior-posterior axis",
-                   width=_RAD_WIDTH),
+              Item('rot_z', editor=laggy_float_editor_deg, show_label=True,
+                   tooltip="Turn the digitization leftward (-) or "
+                   "rightward (+)", width=_DEG_WIDTH),
               Item('rot_z_dec', width=_INC_BUTTON_WIDTH),
               Item('rot_z_inc', width=_INC_BUTTON_WIDTH),
               '0',
@@ -967,9 +995,11 @@ def _make_view_coreg_panel(scrollable=False):
                     "and has_rpa_data", tooltip="Rotate and translate the "
                     "MRI to minimize the distance of the three fiducials.",
                     width=_BUTTON_WIDTH),
+               Item('cancel_icp', enabled_when="fit_icp_running",
+                    tooltip='Stop ICP iterations', width=_RESET_WIDTH),
                Item('reset_tr', tooltip="Reset translation and rotation.",
                     width=_RESET_WIDTH),
-               show_labels=False, columns=3),
+               show_labels=False, columns=4),
         # Fitting weights
         Item('fid_eval_str', style='readonly', tooltip='Fiducial differences',
              width=_REDUCED_TEXT_WIDTH),
@@ -1036,25 +1066,25 @@ class FittingOptionsPanel(HasTraits):
               show_labels=True, label='ICP convergence limits', columns=3,
               show_border=_SHOW_BORDER),
         VGrid(
-            VGrid(Item('lpa_weight', editor=laggy_float_editor_w,
+            VGrid(Item('lpa_weight', editor=laggy_float_editor_weight,
                        tooltip="Relative weight for LPA", width=_WEIGHT_WIDTH,
                        enabled_when='has_lpa_data', label='LPA'),
-                  Item('nasion_weight', editor=laggy_float_editor_w,
+                  Item('nasion_weight', editor=laggy_float_editor_weight,
                        tooltip="Relative weight for nasion", label='Nasion',
                        width=_WEIGHT_WIDTH, enabled_when='has_nasion_data'),
-                  Item('rpa_weight', editor=laggy_float_editor_w,
+                  Item('rpa_weight', editor=laggy_float_editor_weight,
                        tooltip="Relative weight for RPA", width=_WEIGHT_WIDTH,
                        enabled_when='has_rpa_data', label='RPA'),
                   columns=3, show_labels=True, show_border=_SHOW_BORDER,
                   label='Fiducials (MRI-point matched)'),
-            VGrid(Item('hsp_weight', editor=laggy_float_editor_w,
+            VGrid(Item('hsp_weight', editor=laggy_float_editor_weight,
                        tooltip="Relative weight for head shape points",
                        enabled_when='has_hsp_data',
                        label='HSP', width=_WEIGHT_WIDTH,),
-                  Item('eeg_weight', editor=laggy_float_editor_w,
+                  Item('eeg_weight', editor=laggy_float_editor_weight,
                        tooltip="Relative weight for EEG points", label='EEG',
                        enabled_when='has_eeg_data', width=_WEIGHT_WIDTH),
-                  Item('hpi_weight', editor=laggy_float_editor_w,
+                  Item('hpi_weight', editor=laggy_float_editor_weight,
                        tooltip="Relative weight for HPI points", label='HPI',
                        enabled_when='has_hpi_data', width=_WEIGHT_WIDTH),
                   columns=3, show_labels=True, show_border=_SHOW_BORDER,
@@ -1076,7 +1106,7 @@ class CoregPanel(HasPrivateTraits):
     reset_params = Button(label=_RESET_LABEL)
     n_scale_params = DelegatesTo('model')
     parameters = DelegatesTo('model')
-    scale_step = Float(0.01)
+    scale_step = Float(1.)
     scale_x = DelegatesTo('model')
     scale_x_dec = Button('-')
     scale_x_inc = Button('+')
@@ -1086,7 +1116,7 @@ class CoregPanel(HasPrivateTraits):
     scale_z = DelegatesTo('model')
     scale_z_dec = Button('-')
     scale_z_inc = Button('+')
-    rot_step = Float(0.01)
+    rot_step = Float(1.)
     rot_x = DelegatesTo('model')
     rot_x_dec = Button('-')
     rot_x_inc = Button('+')
@@ -1096,7 +1126,7 @@ class CoregPanel(HasPrivateTraits):
     rot_z = DelegatesTo('model')
     rot_z_dec = Button('-')
     rot_z_inc = Button('+')
-    trans_step = Float(0.001)
+    trans_step = Float(1.)
     trans_x = DelegatesTo('model')
     trans_x_dec = Button('-')
     trans_x_inc = Button('+')
@@ -1117,11 +1147,15 @@ class CoregPanel(HasPrivateTraits):
     # fitting with scaling
     fits_icp = Button(label='Fit (ICP)')
     fits_fid = Button(label='Fit Fid.')
+    cancels_icp = Button(u'■')
     reset_scale = Button(label=_RESET_LABEL)
+    fits_icp_running = DelegatesTo('model')
     # fitting without scaling
     fit_icp = Button(label='Fit (ICP)')
     fit_fid = Button(label='Fit Fid.')
+    cancel_icp = Button(label=u'■')
     reset_tr = Button(label=_RESET_LABEL)
+    fit_icp_running = DelegatesTo('model')
 
     # fit info
     fid_eval_str = DelegatesTo('model')
@@ -1223,30 +1257,33 @@ class CoregPanel(HasPrivateTraits):
         if self.n_scale_params == 0:
             use = [1] * 3
         elif self.n_scale_params == 1:
-            use = [np.mean([self.scale_x, self.scale_y, self.scale_z])] * 3
+            use = [np.mean([self.scale_x, self.scale_y, self.scale_z]) /
+                   100.] * 3
         else:
             use = self.parameters[6:9]
         self.parameters[6:9] = use
 
     def _fit_fid_fired(self):
-        GUI.set_busy()
-        self.model.fit_fiducials(0)
-        GUI.set_busy(False)
+        with busy():
+            self.model.fit_fiducials(0)
 
     def _fit_icp_fired(self):
-        GUI.set_busy()
-        self.model.fit_icp(0)
-        GUI.set_busy(False)
+        with busy():
+            self.model.fit_icp(0)
 
     def _fits_fid_fired(self):
-        GUI.set_busy()
-        self.model.fit_fiducials()
-        GUI.set_busy(False)
+        with busy():
+            self.model.fit_fiducials()
 
     def _fits_icp_fired(self):
-        GUI.set_busy()
-        self.model.fit_icp()
-        GUI.set_busy(False)
+        with busy():
+            self.model.fit_icp()
+
+    def _cancel_icp_fired(self):
+        self.fit_icp_running = False
+
+    def _cancels_icp_fired(self):
+        self.fits_icp_running = False
 
     def _reset_scale_fired(self):
         self.reset_traits(('scale_x', 'scale_y', 'scale_z'))
@@ -1603,9 +1640,9 @@ class DataPanel(HasTraits):
     # Omit Points
     distance = Float(5., desc="maximal distance for head shape points from "
                      "the surface (mm)")
-    omit_points = Button(label='Omit [mm]', desc="to omit head shape points "
+    omit_points = Button(label='Omit', desc="to omit head shape points "
                          "for the purpose of the automatic coregistration "
-                         "procedure.")
+                         "procedure (mm).")
     grow_hair = DelegatesTo('model')
     reset_omit_points = Button(label=_RESET_LABEL, desc="to reset the "
                                "omission of head shape points to include all.")

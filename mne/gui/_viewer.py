@@ -15,7 +15,8 @@ from mayavi.tools.mlab_scene_model import MlabSceneModel
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         Instance, Array, Bool, Button, Enum, Float, Int, List,
                         Range, Str, RGBColor, Property, cached_property)
-from traitsui.api import View, Item, HGroup, VGrid, VGroup, Spring, TextEditor
+from traitsui.api import (View, Item, HGroup, VGrid, VGroup, Spring,
+                          TextEditor)
 from tvtk.api import tvtk
 
 from ..defaults import DEFAULTS
@@ -29,13 +30,10 @@ headview_borders = VGroup(Item('headview', style='custom', show_label=False),
                           show_border=True, label='View')
 
 
-def _m_fmt(x):
-    """Format data in units of meters (likely in the mm range)."""
-    return '%0.5f' % x
+def _mm_fmt(x):
+    """Format data in units of mm."""
+    return '%0.1f' % x
 
-
-laggy_float_editor_m = TextEditor(auto_set=False, enter_set=True,
-                                  evaluate=float, format_func=_m_fmt)
 
 laggy_float_editor_mm = TextEditor(auto_set=False, enter_set=True,
                                    evaluate=float,
@@ -43,19 +41,34 @@ laggy_float_editor_mm = TextEditor(auto_set=False, enter_set=True,
 
 laggy_float_editor_scale = TextEditor(auto_set=False, enter_set=True,
                                       evaluate=float,
-                                      format_func=lambda x: '%0.3f' % x)
+                                      format_func=lambda x: '%0.1f' % x)
+
+laggy_float_editor_headscale = TextEditor(auto_set=False, enter_set=True,
+                                          evaluate=float,
+                                          format_func=lambda x: '%0.3f' % x)
+
+laggy_float_editor_weight = TextEditor(auto_set=False, enter_set=True,
+                                       evaluate=float,
+                                       format_func=lambda x: '%0.2f' % x)
+
+laggy_float_editor_scale = TextEditor(auto_set=False, enter_set=True,
+                                      evaluate=float,
+                                      format_func=lambda x: '%0.1f' % x)
+laggy_float_editor_deg = TextEditor(auto_set=False, enter_set=True,
+                                    evaluate=float,
+                                    format_func=lambda x: '%0.1f' % x)
 
 _BUTTON_WIDTH = -80
 _OMIT_BUTTON_WIDTH = -100
-_RAD_WIDTH = -65  # radian floats
-_M_WIDTH = _RAD_WIDTH  # m floats
-_MM_WIDTH = -50  # mm floats
+_DEG_WIDTH = -65  # radian floats
+_MM_WIDTH = _DEG_WIDTH  # mm floats
+_SCALE_WIDTH = _DEG_WIDTH  # scale floats
 _INC_BUTTON_WIDTH = -25  # inc/dec buttons
-_SCALE_WIDTH = -50  # scale floats
+_DEG_STEP_WIDTH = -50
+_MM_STEP_WIDTH = _DEG_STEP_WIDTH
+_SCALE_STEP_WIDTH = _DEG_STEP_WIDTH
 _WEIGHT_WIDTH = -40  # weight floats
-_RAD_STEP_WIDTH = -50
 _VIEW_BUTTON_WIDTH = -60
-_M_STEP_WIDTH = _RAD_STEP_WIDTH
 # width is optimized for macOS and Linux avoid a horizontal scroll-bar
 # even when a vertical one is present
 _COREG_WIDTH = -290
@@ -63,7 +76,6 @@ _TEXT_WIDTH = -250
 _REDUCED_TEXT_WIDTH = _TEXT_WIDTH - 40 * np.sign(_TEXT_WIDTH)
 _DIG_SOURCE_WIDTH = _TEXT_WIDTH - 50 * np.sign(_TEXT_WIDTH)
 _MRI_FIDUCIALS_WIDTH = _TEXT_WIDTH - 60 * np.sign(_TEXT_WIDTH)
-_REDUCED_M_WIDTH = _MM_WIDTH
 _SHOW_BORDER = True
 _RESET_LABEL = u"↻"
 _RESET_WIDTH = _INC_BUTTON_WIDTH
@@ -100,8 +112,9 @@ class HeadViewController(HasTraits):
               Item('left', width=_VIEW_BUTTON_WIDTH),
               columns=3, show_labels=False),
         '_',
-        HGroup(Item('scale', label='Scale', editor=laggy_float_editor_scale,
-                    width=_REDUCED_M_WIDTH, show_label=True),
+        HGroup(Item('scale', label='Scale',
+                    editor=laggy_float_editor_headscale,
+                    width=_SCALE_WIDTH, show_label=True),
                Item('interaction', tooltip='Mouse interaction mode',
                     show_label=False), Spring()),
         show_labels=False))
@@ -229,8 +242,8 @@ class PointObject(Object):
 
     def default_traits_view(self):  # noqa: D102
         color = Item('color', show_label=False)
-        scale = Item('point_scale', label='Size', width=_M_WIDTH,
-                     editor=laggy_float_editor_m)
+        scale = Item('point_scale', label='Size', width=_SCALE_WIDTH,
+                     editor=laggy_float_editor_headscale)
         orient = Item('orient_to_surface',
                       enabled_when='orientable and not project_to_surface',
                       tooltip='Orient points toward the surface')
