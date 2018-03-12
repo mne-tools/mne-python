@@ -93,7 +93,7 @@ from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       _DEG_WIDTH, _MM_WIDTH, _BUTTON_WIDTH,
-                      _SHOW_BORDER, _COREG_WIDTH,
+                      _SHOW_BORDER, _COREG_WIDTH, _SCALE_STEP_WIDTH,
                       _INC_BUTTON_WIDTH, _SCALE_WIDTH, _WEIGHT_WIDTH,
                       _MM_STEP_WIDTH, _DEG_STEP_WIDTH, _REDUCED_TEXT_WIDTH,
                       _RESET_LABEL, _RESET_WIDTH, _OMIT_BUTTON_WIDTH,
@@ -864,7 +864,7 @@ def _make_view_data_panel(scrollable=False):
                      Label(u'ΔHair', show_label=True, width=-1), '0',
                      Item('distance', show_label=False, width=_MM_WIDTH,
                           editor=laggy_float_editor_mm),
-                     Item('omit_points', width=_OMIT_BUTTON_WIDTH),
+                     Item('omit_points', width=_BUTTON_WIDTH),
                      Item('reset_omit_points', width=_RESET_WIDTH),
                      columns=3, show_labels=False),
                Item('omitted_info', style='readonly',
@@ -896,7 +896,7 @@ def _make_view_coreg_panel(scrollable=False):
               Item('scale_x_inc', enabled_when='n_scale_params > 0',
                    width=_INC_BUTTON_WIDTH),
               Item('scale_step', tooltip="Scaling step (%)",
-                   enabled_when='n_scale_params > 0', width=_INC_BUTTON_WIDTH),
+                   enabled_when='n_scale_params > 0', width=_SCALE_STEP_WIDTH),
               Spring(),
 
               Item('scale_y', editor=laggy_float_editor_scale, show_label=True,
