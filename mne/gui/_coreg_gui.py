@@ -96,7 +96,7 @@ from ._viewer import (HeadViewController, PointObject, SurfaceObject,
                       _SHOW_BORDER, _COREG_WIDTH, _SCALE_STEP_WIDTH,
                       _INC_BUTTON_WIDTH, _SCALE_WIDTH, _WEIGHT_WIDTH,
                       _MM_STEP_WIDTH, _DEG_STEP_WIDTH, _REDUCED_TEXT_WIDTH,
-                      _RESET_LABEL, _RESET_WIDTH, _OMIT_BUTTON_WIDTH,
+                      _RESET_LABEL, _RESET_WIDTH,
                       laggy_float_editor_scale, laggy_float_editor_deg,
                       laggy_float_editor_mm, laggy_float_editor_weight)
 
@@ -187,26 +187,19 @@ class CoregModel(HasPrivateTraits):
 
     # secondary to parameters
     has_nasion_data = Property(
-        Bool,
-        desc="Nasion data is present.",
-        depends_on=['mri:nasion', 'hsp:nasion'])
+        Bool, depends_on=['mri:nasion', 'hsp:nasion'])
     has_lpa_data = Property(
-        Bool,
-        desc="LPA data is present.",
-        depends_on=['mri:lpa', 'hsp:lpa'])
+        Bool, depends_on=['mri:lpa', 'hsp:lpa'])
     has_rpa_data = Property(
-        Bool,
-        desc="RPA data is present.",
-        depends_on=['mri:rpa', 'hsp:rpa'])
+        Bool, depends_on=['mri:rpa', 'hsp:rpa'])
+    has_mri_data = Property(
+        Bool, depends_on=['transformed_low_res_mri_points'])
     has_hsp_data = Property(
-        Bool,
-        depends_on=['mri:points', 'hsp:points'])
+        Bool, depends_on=['has_mri_data', 'transformed_hsp_points'])
     has_eeg_data = Property(
-        Bool,
-        depends_on=['mri:points', 'hsp:eeg_points'])
+        Bool, depends_on=['has_mri_data', 'transformed_hsp_eeg_points'])
     has_hpi_data = Property(
-        Bool,
-        depends_on=['mri:points', 'hsp:hpi_points'])
+        Bool, depends_on=['has_mri_data', 'transformed_hsp_hpi'])
     changes = Property(depends_on=['parameters', 'old_parameters'])
 
     # target transforms
@@ -327,19 +320,20 @@ class CoregModel(HasPrivateTraits):
         return (np.any(self.mri.rpa) and np.any(self.hsp.rpa))
 
     @cached_property
+    def _get_has_mri_data(self):
+        return len(self.transformed_low_res_mri_points) > 0
+
+    @cached_property
     def _get_has_hsp_data(self):
-        return (np.any(self.mri.bem_low_res.surf.rr) and
-                np.any(self.hsp.points))
+        return (self.has_mri_data and len(self.transformed_hsp_points) > 0)
 
     @cached_property
     def _get_has_eeg_data(self):
-        return (np.any(self.mri.bem_low_res.surf.rr) and
-                np.any(self.hsp.eeg_points))
+        return (self.has_mri_data and len(self.transformed_hsp_eeg_points) > 0)
 
     @cached_property
     def _get_has_hpi_data(self):
-        return (np.any(self.mri.bem_low_res.surf.rr) and
-                np.any(self.hsp.hpi_points))
+        return (self.has_mri_data and len(self.transformed_hsp_hpi) > 0)
 
     @cached_property
     def _get_changes(self):
