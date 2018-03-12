@@ -908,10 +908,13 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
-    scale = np.asarray(scale)
-    assert len(scale) == 3
-    if np.isclose(scale[1], scale[0]) and np.isclose(scale[2], scale[0]):
-        scale = scale[0]  # speeds up scaling conditionals to use a singleton
+    scale = np.atleast_1d(scale)
+    if scale.shape == (3,):
+        if np.isclose(scale[1], scale[0]) and np.isclose(scale[2], scale[0]):
+            scale = scale[0]  # speed up scaling conditionals using a singleton
+    elif scale.shape != (1,):
+        raise ValueError('scale must have shape (3,) or (1,), got %s'
+                         % (scale.shape,))
 
     # make sure we have an empty target directory
     dest = subject_dirname.format(subject=subject_to,
