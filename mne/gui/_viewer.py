@@ -59,7 +59,6 @@ laggy_float_editor_deg = TextEditor(auto_set=False, enter_set=True,
                                     format_func=lambda x: '%0.1f' % x)
 
 _BUTTON_WIDTH = -80
-_OMIT_BUTTON_WIDTH = -100
 _DEG_WIDTH = -65  # radian floats
 _MM_WIDTH = _DEG_WIDTH  # mm floats
 _SCALE_WIDTH = _DEG_WIDTH  # scale floats
