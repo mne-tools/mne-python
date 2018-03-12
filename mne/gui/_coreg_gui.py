@@ -192,14 +192,23 @@ class CoregModel(HasPrivateTraits):
         Bool, depends_on=['mri:lpa', 'hsp:lpa'])
     has_rpa_data = Property(
         Bool, depends_on=['mri:rpa', 'hsp:rpa'])
+    has_fid_data = Property(  # conjunction
+        Bool, depends_on=['has_nasion_data', 'has_lpa_data', 'has_rpa_data'])
     has_mri_data = Property(
         Bool, depends_on=['transformed_low_res_mri_points'])
     has_hsp_data = Property(
-        Bool, depends_on=['has_mri_data', 'transformed_hsp_points'])
+        Bool, depends_on=['has_mri_data', 'hsp:points'])
     has_eeg_data = Property(
-        Bool, depends_on=['has_mri_data', 'transformed_hsp_eeg_points'])
+        Bool, depends_on=['has_mri_data', 'hsp:eeg_points'])
     has_hpi_data = Property(
-        Bool, depends_on=['has_mri_data', 'transformed_hsp_hpi'])
+        Bool, depends_on=['has_mri_data', 'hsp:hpi_points'])
+    n_icp_points = Property(
+        Int, depends_on=['has_nasion_data', 'nasion_weight',
+                         'has_lpa_data', 'lpa_weight',
+                         'has_rpa_data', 'rpa_weight',
+                         'hsp:points', 'hsp_weight',
+                         'hsp:eeg_points', 'eeg_weight',
+                         'hsp:hpi_points', 'hpi_weight'])
     changes = Property(depends_on=['parameters', 'old_parameters'])
 
     # target transforms
@@ -320,20 +329,35 @@ class CoregModel(HasPrivateTraits):
         return (np.any(self.mri.rpa) and np.any(self.hsp.rpa))
 
     @cached_property
+    def _get_has_fid_data(self):
+        return self.has_nasion_data and self.has_lpa_data and self.has_rpa_data
+
+    @cached_property
     def _get_has_mri_data(self):
         return len(self.transformed_low_res_mri_points) > 0
 
     @cached_property
     def _get_has_hsp_data(self):
-        return (self.has_mri_data and len(self.transformed_hsp_points) > 0)
+        return (self.has_mri_data and len(self.hsp.points) > 0)
 
     @cached_property
     def _get_has_eeg_data(self):
-        return (self.has_mri_data and len(self.transformed_hsp_eeg_points) > 0)
+        return (self.has_mri_data and len(self.hsp.eeg_points) > 0)
 
     @cached_property
     def _get_has_hpi_data(self):
-        return (self.has_mri_data and len(self.transformed_hsp_hpi) > 0)
+        return (self.has_mri_data and len(self.hsp.hpi_points) > 0)
+
+    @cached_property
+    def _get_n_icp_points(self):
+        """Get parameters for an ICP iteration."""
+        n = (self.hsp_weight > 0) * len(self.hsp.points)
+        for key in ('lpa', 'nasion', 'rpa'):
+            if getattr(self, 'has_%s_data' % key):
+                n += 1
+        n += (self.eeg_weight > 0) * len(self.hsp.eeg_points)
+        n += (self.hpi_weight > 0) * len(self.hsp.hpi_points)
+        return n
 
     @cached_property
     def _get_changes(self):
@@ -657,7 +681,7 @@ class CoregModel(HasPrivateTraits):
         # Do the fits, assigning and evaluating at each step
         attr = 'fit_icp_running' if n_scale_params == 0 else 'fits_icp_running'
         setattr(self, attr, True)
-        GUI.process_events()  # update the button
+        GUI.process_events()  # update the cancel button
         for self.iteration in range(self.icp_iterations):
             head_pts, mri_pts, weights = self._setup_icp(n_scale_params)
             est = fit_matched_points(mri_pts, head_pts, scale=n_scale_params,
@@ -673,10 +697,10 @@ class CoregModel(HasPrivateTraits):
                     all(scale <= self.icp_scale):
                 self.status_text = self.status_text[:-1] + '; converged)'
                 break
-            GUI.process_events()  # this will update the head view
             if not getattr(self, attr):  # canceled by user
                 self.status_text = self.status_text[:-1] + '; cancelled)'
                 break
+            GUI.process_events()  # this will update the head view
         else:
             self.status_text = self.status_text[:-1] + '; did not converge)'
         setattr(self, attr, False)
@@ -916,11 +940,13 @@ def _make_view_coreg_panel(scrollable=False):
 
               label='Scaling parameters', show_labels=False, columns=5,
               show_border=_SHOW_BORDER),
-        VGrid(Item('fits_icp', enabled_when='n_scale_params',
+        VGrid(Item('fits_icp', enabled_when='n_scale_params > 0 and '
+                   'n_icp_points >= 10',
                    tooltip="Rotate, translate, and scale the MRI to minimize "
                    "the distance from each digitizer point to the closest MRI "
                    "point (one ICP iteration)", width=_BUTTON_WIDTH),
-              Item('fits_fid', enabled_when='n_scale_params == 1',
+              Item('fits_fid', enabled_when='n_scale_params == 1 and '
+                   'has_fid_data',
                    tooltip="Rotate, translate, and scale the MRI to minimize "
                    "the distance of the three fiducials.",
                    width=_BUTTON_WIDTH),
@@ -981,14 +1007,13 @@ def _make_view_coreg_panel(scrollable=False):
 
               columns=5, show_labels=False, show_border=_SHOW_BORDER,
               label=u'Translation (Δ) and Rotation (∠)'),
-        VGroup(Item('fit_icp', enabled_when='has_hsp_data and hsp_weight > 0',
+        VGroup(Item('fit_icp', enabled_when='n_icp_points >= 10',
                     tooltip="Rotate and translate the MRI to minimize the "
                     "distance from each digitizer point to the closest MRI "
                     "point (one ICP iteration)", width=_BUTTON_WIDTH),
-               Item('fit_fid', enabled_when="has_lpa_data and has_nasion_data "
-                    "and has_rpa_data", tooltip="Rotate and translate the "
-                    "MRI to minimize the distance of the three fiducials.",
-                    width=_BUTTON_WIDTH),
+               Item('fit_fid', enabled_when="has_fid_data",
+                    tooltip="Rotate and translate the MRI to minimize the "
+                    "distance of the three fiducials.", width=_BUTTON_WIDTH),
                Item('cancel_icp', enabled_when="fit_icp_running",
                     tooltip='Stop ICP iterations', width=_RESET_WIDTH),
                Item('reset_tr', tooltip="Reset translation and rotation.",
@@ -1135,9 +1160,11 @@ class CoregPanel(HasPrivateTraits):
     has_lpa_data = DelegatesTo('model')
     has_nasion_data = DelegatesTo('model')
     has_rpa_data = DelegatesTo('model')
+    has_fid_data = DelegatesTo('model')
     has_hsp_data = DelegatesTo('model')
     has_eeg_data = DelegatesTo('model')
     has_hpi_data = DelegatesTo('model')
+    n_icp_points = DelegatesTo('model')
     # fitting with scaling
     fits_icp = Button(label='Fit (ICP)')
     fits_fid = Button(label='Fit Fid.')
