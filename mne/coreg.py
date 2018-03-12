@@ -909,6 +909,9 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
     scale = np.asarray(scale)
+    assert len(scale) == 3
+    if np.isclose(scale[1], scale[0]) and np.isclose(scale[2], scale[0]):
+        scale = scale[0]  # speeds up scaling conditionals to use a singleton
 
     # make sure we have an empty target directory
     dest = subject_dirname.format(subject=subject_to,
@@ -1058,8 +1061,9 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         if uniform:
             if ss['dist'] is not None:
                 ss['dist'] *= scale
-                ss['nearest_dist'] *= scale
-                ss['dist_limit'] *= scale
+                # Sometimes this is read-only due to how it's read
+                ss['nearest_dist'] = ss['nearest_dist'] * scale
+                ss['dist_limit'] = ss['dist_limit'] * scale
         else:  # non-uniform scaling
             ss['nn'] /= scale
             _normalize_vectors(ss['nn'])
