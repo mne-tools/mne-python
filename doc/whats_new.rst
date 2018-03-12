@@ -87,6 +87,8 @@ Changelog
 
 - Add support for reading Eximia files by `Eric Larson`_ and `Federico Raimondo`_
 
+- Add ability to supply a mask to the plot in :func:`mne.viz.evoked.plot_evoked_image` by `Jona Sassenhagen`.
+
 Bug
 ~~~
 

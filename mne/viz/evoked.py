@@ -848,13 +848,19 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         An array of booleans of the same shape as the data. Where this is
         False, the resulting image is plotted transparently. Useful for,
         e.g., masking for statistical significance.
+
+        .. versionadded:: 0.16
     alpha : float
         A float between 0 and 1. If `mask` is not None, this sets the
         alpha level (degree of transparency) for the masked-out segments.
         I.e., if 0, masked-out segments are not visible at all.
         Defaults to .5.
+
+        .. versionadded:: 0.16
     colorbar : bool
         If True, plot a colorbar. Defaults to True.
+
+        .. versionadded:: 0.16
 
     Returns
     -------
