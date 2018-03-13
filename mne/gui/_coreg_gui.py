@@ -88,7 +88,7 @@ from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           rot_to_quat, _angle_between_quats)
 from ..coreg import fit_matched_points, scale_mri, _find_fiducials_files
 from ..viz._3d import _toggle_mlab_render
-from ..utils import logger, set_config
+from ..utils import logger, set_config, _pl
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import trans_wildcard, DigSource, SubjectSelectorPanel
 from ._viewer import (HeadViewController, PointObject, SurfaceObject,
@@ -1693,7 +1693,7 @@ class DataPanel(HasTraits):
     view_options = Button(label="Display options...")
 
     # Omit Points
-    distance = Float(5., desc="maximal distance for head shape points from "
+    distance = Float(10., desc="maximal distance for head shape points from "
                      "the surface (mm)")
     omit_points = Button(label='Omit', desc="to omit head shape points "
                          "for the purpose of the automatic coregistration "
@@ -1701,7 +1701,7 @@ class DataPanel(HasTraits):
     grow_hair = DelegatesTo('model')
     reset_omit_points = Button(label=_RESET_LABEL, desc="to reset the "
                                "omission of head shape points to include all.")
-    omitted_info = Property(Str, depends_on=['model:hsp:n_omitted'])
+    omitted_info = Str('No points omitted')
 
     def _subject_panel_default(self):
         return SubjectSelectorPanel(model=self.model.mri.subject_source)
@@ -1718,18 +1718,19 @@ class DataPanel(HasTraits):
     def _omit_points_fired(self):
         distance = self.distance / 1000.
         self.model.omit_hsp_points(distance)
+        n_omitted = self.model.hsp.n_omitted
+        self.omitted_info = (
+           "%s pt%s omitted (%0.1f mm)"
+           % (n_omitted if n_omitted > 0 else 'No', _pl(n_omitted),
+              self.distance))
+
+    @on_trait_change('model:hsp:file')
+    def _file_change(self):
+        self._reset_omit_points_fired()
 
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(np.inf)
-
-    @cached_property
-    def _get_omitted_info(self):
-        if self.model.hsp.n_omitted == 0:
-            return "No points omitted"
-        elif self.model.hsp.n_omitted == 1:
-            return "1 point omitted"
-        else:
-            return "%i points omitted" % self.model.hsp.n_omitted
+        self.omitted_info = 'No points omitted (reset)'
 
 
 class CoregFrame(HasTraits):
