@@ -31,7 +31,7 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     if (subject is None or
-        not os.path.isdir(os.path.join( subjects_dir, subject))):
+            not os.path.isdir(os.path.join(subjects_dir, subject))):
         raise ValueError("Wrong path. Check subjects-dir or subject argument.")
 
     env = os.environ.copy()
@@ -91,7 +91,7 @@ def run():
     subject = options.subject
     subjects_dir = options.subjects_dir
     method = options.method
-    
+
     freeview_bem_surfaces(subject, subjects_dir, method)
 
 
