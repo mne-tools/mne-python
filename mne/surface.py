@@ -7,6 +7,7 @@
 from copy import deepcopy
 from distutils.version import LooseVersion
 from glob import glob
+from functools import partial
 import os
 from os import path as op
 import sys
@@ -379,11 +380,26 @@ def _normalize_vectors(rr):
     return size
 
 
-def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
-    """Find nearest neighbors.
+class _CDist(object):
+    """Wrapper for cdist that uses a Tree-like pattern."""
 
-    Note: The rows in xhs and rr must all be unit-length vectors, otherwise
-    the result will be incorrect.
+    def __init__(self, xhs):
+        self._xhs = xhs
+
+    def query(self, rr):
+        from scipy.spatial.distance import cdist
+        nearest = list()
+        dists = list()
+        for r in rr:
+            d = cdist(r[np.newaxis, :], self._xhs)
+            idx = np.argmin(d)
+            nearest.append(idx)
+            dists.append(d[0, idx])
+        return np.array(dists), np.array(nearest)
+
+
+def _compute_nearest(xhs, rr, method='BallTree', return_dists=False):
+    """Find nearest neighbors.
 
     Parameters
     ----------
@@ -391,9 +407,9 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
         Points of data set.
     rr : array, shape=(n_query, n_dim)
         Points to find nearest neighbors for.
-    use_balltree : bool
-        Use fast BallTree based search from scikit-learn. If scikit-learn
-        is not installed it will fall back to the slow brute force search.
+    method : str
+        The query method. If scikit-learn and scipy<1.0 are installed,
+        it will fall back to the slow brute-force search.
     return_dists : bool
         If True, return associated distances.
 
@@ -404,41 +420,70 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
     distances : array, shape=(n_query,)
         The distances. Only returned if return_dists is True.
     """
-    if use_balltree:
+    if xhs.size == 0 or rr.size == 0:
+        if return_dists:
+            return np.array([], int), np.array([])
+        return np.array([], int)
+    assert method in ('BallTree', 'cKDTree', 'cdist')
+
+    # Fastest for our problems: balltree
+    if method == 'BallTree':
         try:
             from sklearn.neighbors import BallTree
         except ImportError:
             logger.info('Nearest-neighbor searches will be significantly '
                         'faster if scikit-learn is installed.')
-            use_balltree = False
+            method = 'cKDTree'
+        else:
+            out = BallTree(xhs).query(rr, k=1, return_distance=True)
+            out = [out[0][:, 0], out[1][:, 0]]
 
-    if xhs.size == 0 or rr.size == 0:
-        if return_dists:
-            return np.array([], int), np.array([])
-        return np.array([], int)
-    if use_balltree is True:
-        ball_tree = BallTree(xhs)
-        if return_dists:
-            out = ball_tree.query(rr, k=1, return_distance=True)
-            return out[1][:, 0], out[0][:, 0]
+    # Then cKDTree
+    if method == 'cKDTree':
+        try:
+            from scipy.spatial import cKDTree
+        except ImportError:
+            method = 'cdist'
         else:
-            nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
-            return nearest
-    else:
-        from scipy.spatial.distance import cdist
-        if return_dists:
-            nearest = list()
-            dists = list()
-            for r in rr:
-                d = cdist(r[np.newaxis, :], xhs)
-                idx = np.argmin(d)
-                nearest.append(idx)
-                dists.append(d[0, idx])
-            return (np.array(nearest), np.array(dists))
+            out = cKDTree(xhs).query(rr)
+
+    # Then the worst: cdist
+    if method == 'cdist':
+        out = _CDist(xhs).query(rr)
+
+    return out[::-1] if return_dists else out[1]
+
+
+def _safe_query(rr, func, reduce=False, **kwargs):
+    if len(rr) == 0:
+        return np.array([]), np.array([], int)
+    out = func(rr)
+    out = [out[0][:, 0], out[1][:, 0]] if reduce else out
+    return out
+
+
+class _DistanceQuery(object):
+    """Wrapper for fast distance queries."""
+
+    def __init__(self, xhs, allow_kdtree=False):
+        try:
+            from sklearn.neighbors import BallTree
+        except ImportError:
+            try:
+                from scipy.spatial import cKDTree
+            except ImportError:
+                # KDTree is really only faster for huge (~100k) sets,
+                # it's slower for small (~5k) sets
+                if allow_kdtree:
+                    from scipy.spatial import KDTree
+                    self.query = KDTree(xhs, leafsize=2048).query
+                else:
+                    self.query = _CDist(xhs).query
+            else:
+                self.query = cKDTree(xhs).query
         else:
-            nearest = np.array([np.argmin(cdist(r[np.newaxis, :], xhs))
-                                for r in rr])
-            return nearest
+            self.query = partial(_safe_query, func=BallTree(xhs).query,
+                                 reduce=True, return_distance=True)
 
 
 ###############################################################################

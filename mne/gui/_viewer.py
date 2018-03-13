@@ -59,19 +59,19 @@ laggy_float_editor_deg = TextEditor(auto_set=False, enter_set=True,
                                     format_func=lambda x: '%0.1f' % x)
 
 _BUTTON_WIDTH = -80
-_DEG_WIDTH = -65  # radian floats
+_DEG_WIDTH = -50  # radian floats
 _MM_WIDTH = _DEG_WIDTH  # mm floats
 _SCALE_WIDTH = _DEG_WIDTH  # scale floats
 _INC_BUTTON_WIDTH = -25  # inc/dec buttons
 _DEG_STEP_WIDTH = -50
 _MM_STEP_WIDTH = _DEG_STEP_WIDTH
 _SCALE_STEP_WIDTH = _DEG_STEP_WIDTH
-_WEIGHT_WIDTH = -40  # weight floats
+_WEIGHT_WIDTH = -60  # weight floats
 _VIEW_BUTTON_WIDTH = -60
 # width is optimized for macOS and Linux avoid a horizontal scroll-bar
 # even when a vertical one is present
 _COREG_WIDTH = -290
-_TEXT_WIDTH = -250
+_TEXT_WIDTH = -260
 _REDUCED_TEXT_WIDTH = _TEXT_WIDTH - 40 * np.sign(_TEXT_WIDTH)
 _DIG_SOURCE_WIDTH = _TEXT_WIDTH - 50 * np.sign(_TEXT_WIDTH)
 _MRI_FIDUCIALS_WIDTH = _TEXT_WIDTH - 60 * np.sign(_TEXT_WIDTH)

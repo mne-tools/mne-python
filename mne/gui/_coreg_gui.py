@@ -82,7 +82,7 @@ from tvtk.pyface.scene_editor import SceneEditor
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import bem_fname, trans_fname
 from ..defaults import DEFAULTS
-from ..surface import _compute_nearest
+from ..surface import _DistanceQuery
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           rotation_angles, Transform, _ensure_trans,
                           rot_to_quat, _angle_between_quats)
@@ -163,16 +163,17 @@ class CoregModel(HasPrivateTraits):
     parameters = List()
     last_parameters = List()
     lpa_weight = Float(1.)
-    nasion_weight = Float(1.)
+    nasion_weight = Float(100.)
     rpa_weight = Float(1.)
     hsp_weight = Float(1.)
-    eeg_weight = Float(0.)
-    hpi_weight = Float(0.)
+    eeg_weight = Float(1.)
+    hpi_weight = Float(1.)
     iteration = Int(-1)
-    icp_iterations = Int(10)
+    icp_iterations = Int(20)
     icp_angle = Float(0.2)
     icp_distance = Float(0.2)
     icp_scale = Float(0.2)
+    icp_fid_match = Enum('nearest', 'matched')
     fit_icp_running = Bool(False)
     fits_icp_running = Bool(False)
     coord_frame = Str('mri')
@@ -195,7 +196,7 @@ class CoregModel(HasPrivateTraits):
     has_fid_data = Property(  # conjunction
         Bool, depends_on=['has_nasion_data', 'has_lpa_data', 'has_rpa_data'])
     has_mri_data = Property(
-        Bool, depends_on=['transformed_low_res_mri_points'])
+        Bool, depends_on=['transformed_high_res_mri_points'])
     has_hsp_data = Property(
         Bool, depends_on=['has_mri_data', 'hsp:points'])
     has_eeg_data = Property(
@@ -240,18 +241,23 @@ class CoregModel(HasPrivateTraits):
         depends_on=['processed_high_res_mri_points', 'mri_trans'])
     transformed_low_res_mri_points = Property(
         depends_on=['processed_low_res_mri_points', 'mri_trans'])
-    nearest_transformed_low_res_mri_idx_hsp = Property(
-        depends_on=['transformed_low_res_mri_points',
-                    'transformed_hsp_points'])
-    nearest_transformed_low_res_mri_idx_orig_hsp = Property(
-        depends_on=['transformed_low_res_mri_points',
-                    'transformed_orig_hsp_points'])
-    nearest_transformed_low_res_mri_idx_eeg = Property(
-        depends_on=['transformed_low_res_mri_points',
-                    'transformed_hsp_eeg_points'])
-    nearest_transformed_low_res_mri_idx_hpi = Property(
-        depends_on=['transformed_low_res_mri_points',
-                    'transformed_hsp_hpi'])
+    nearest_calc = Property(
+        Instance(_DistanceQuery),
+        depends_on=['transformed_high_res_mri_points'])
+    nearest_transformed_high_res_mri_idx_lpa = Property(
+        depends_on=['nearest_calc', 'transformed_hsp_lpa'])
+    nearest_transformed_high_res_mri_idx_nasion = Property(
+        depends_on=['nearest_calc', 'transformed_hsp_nasion'])
+    nearest_transformed_high_res_mri_idx_rpa = Property(
+        depends_on=['nearest_calc', 'transformed_hsp_rpa'])
+    nearest_transformed_high_res_mri_idx_hsp = Property(
+        depends_on=['nearest_calc', 'transformed_hsp_points'])
+    nearest_transformed_high_res_mri_idx_orig_hsp = Property(
+        depends_on=['nearest_calc', 'transformed_orig_hsp_points'])
+    nearest_transformed_high_res_mri_idx_eeg = Property(
+        depends_on=['nearest_calc', 'transformed_hsp_eeg_points'])
+    nearest_transformed_high_res_mri_idx_hpi = Property(
+        depends_on=['nearest_calc', 'transformed_hsp_hpi'])
     transformed_mri_lpa = Property(
         depends_on=['mri:lpa', 'mri_trans'])
     transformed_mri_nasion = Property(
@@ -282,18 +288,14 @@ class CoregModel(HasPrivateTraits):
     rpa_distance = Property(
         depends_on=['transformed_mri_rpa', 'transformed_hsp_rpa'])
     point_distance = Property(  # use low res points
-        depends_on=['nearest_transformed_low_res_mri_idx_hsp',
-                    'nearest_transformed_low_res_mri_idx_eeg',
-                    'nearest_transformed_low_res_mri_idx_hpi',
-                    'transformed_low_res_mri_points',
-                    'transformed_hsp_points',
+        depends_on=['nearest_transformed_high_res_mri_idx_hsp',
+                    'nearest_transformed_high_res_mri_idx_eeg',
+                    'nearest_transformed_high_res_mri_idx_hpi',
                     'hsp_weight',
                     'eeg_weight',
                     'hpi_weight'])
     orig_hsp_point_distance = Property(  # use low res points
-        depends_on=['nearest_transformed_low_res_mri_idx_orig_hsp',
-                    'transformed_low_res_mri_points',
-                    'transformed_orig_hsp_points',
+        depends_on=['nearest_transformed_high_res_mri_idx_orig_hsp',
                     'hpi_weight'])
 
     # fit property info strings
@@ -334,19 +336,22 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_has_mri_data(self):
-        return len(self.transformed_low_res_mri_points) > 0
+        return len(self.transformed_high_res_mri_points) > 0
 
     @cached_property
     def _get_has_hsp_data(self):
-        return (self.has_mri_data and len(self.hsp.points) > 0)
+        return (self.has_mri_data and
+                len(self.nearest_transformed_high_res_mri_idx_hsp) > 0)
 
     @cached_property
     def _get_has_eeg_data(self):
-        return (self.has_mri_data and len(self.hsp.eeg_points) > 0)
+        return (self.has_mri_data and
+                len(self.nearest_transformed_high_res_mri_idx_eeg) > 0)
 
     @cached_property
     def _get_has_hpi_data(self):
-        return (self.has_mri_data and len(self.hsp.hpi_points) > 0)
+        return (self.has_mri_data and
+                len(self.nearest_transformed_high_res_mri_idx_hpi) > 0)
 
     @cached_property
     def _get_n_icp_points(self):
@@ -388,7 +393,8 @@ class CoregModel(HasPrivateTraits):
     def _get_processed_high_res_mri_points(self):
         if self.grow_hair:
             if len(self.mri.bem_high_res.surf.nn):
-                scaled_hair_dist = 1e-3 * self.grow_hair / (self.scale / 100.)
+                scaled_hair_dist = (1e-3 * self.grow_hair /
+                                    np.array(self.parameters[6:9]))
                 points = self.mri.bem_high_res.surf.rr.copy()
                 hair = points[:, 2] > points[:, 1]
                 points[hair] += (self.mri.bem_high_res.surf.nn[hair] *
@@ -404,7 +410,8 @@ class CoregModel(HasPrivateTraits):
     def _get_processed_low_res_mri_points(self):
         if self.grow_hair:
             if len(self.mri.bem_low_res.surf.nn):
-                scaled_hair_dist = 1e-3 * self.grow_hair / (self.scale / 100.)
+                scaled_hair_dist = (1e-3 * self.grow_hair /
+                                    np.array(self.parameters[6:9]))
                 points = self.mri.bem_low_res.surf.rr.copy()
                 hair = points[:, 2] > points[:, 1]
                 points[hair] += (self.mri.bem_low_res.surf.nn[hair] *
@@ -435,27 +442,35 @@ class CoregModel(HasPrivateTraits):
         return t
 
     @cached_property
-    def _get_nearest_transformed_low_res_mri_idx_hsp(self):
-        return _compute_nearest(self.transformed_low_res_mri_points,
-                                self.transformed_hsp_points)
+    def _get_nearest_transformed_high_res_mri_idx_lpa(self):
+        return self.nearest_calc.query(self.transformed_hsp_lpa)[1]
 
     @cached_property
-    def _get_nearest_transformed_low_res_mri_idx_orig_hsp(self):
+    def _get_nearest_transformed_high_res_mri_idx_nasion(self):
+        return self.nearest_calc.query(self.transformed_hsp_nasion)[1]
+
+    @cached_property
+    def _get_nearest_transformed_high_res_mri_idx_rpa(self):
+        return self.nearest_calc.query(self.transformed_hsp_rpa)[1]
+
+    @cached_property
+    def _get_nearest_transformed_high_res_mri_idx_hsp(self):
+        return self.nearest_calc.query(self.transformed_hsp_points)[1]
+
+    @cached_property
+    def _get_nearest_transformed_high_res_mri_idx_orig_hsp(self):
         # This is redundant to some extent with the one above due to
         # overlapping points, but it's fast and the refactoring to
         # remove redundancy would be a pain.
-        return _compute_nearest(self.transformed_low_res_mri_points,
-                                self.transformed_orig_hsp_points)
+        return self.nearest_calc.query(self.transformed_orig_hsp_points)[1]
 
     @cached_property
-    def _get_nearest_transformed_low_res_mri_idx_eeg(self):
-        return _compute_nearest(self.transformed_low_res_mri_points,
-                                self.transformed_hsp_eeg_points)
+    def _get_nearest_transformed_high_res_mri_idx_eeg(self):
+        return self.nearest_calc.query(self.transformed_hsp_eeg_points)[1]
 
     @cached_property
-    def _get_nearest_transformed_low_res_mri_idx_hpi(self):
-        return _compute_nearest(self.transformed_low_res_mri_points,
-                                self.transformed_hsp_hpi)
+    def _get_nearest_transformed_high_res_mri_idx_hpi(self):
+        return self.nearest_calc.query(self.transformed_hsp_hpi)[1]
 
     # MRI view-transformed data
     @cached_property
@@ -463,6 +478,10 @@ class CoregModel(HasPrivateTraits):
         points = apply_trans(self.mri_trans,
                              self.processed_low_res_mri_points)
         return points
+
+    @cached_property
+    def _get_nearest_calc(self):
+        return _DistanceQuery(self.transformed_high_res_mri_points)
 
     @cached_property
     def _get_transformed_high_res_mri_points(self):
@@ -515,33 +534,33 @@ class CoregModel(HasPrivateTraits):
     @cached_property
     def _get_lpa_distance(self):
         d = np.ravel(self.transformed_mri_lpa - self.transformed_hsp_lpa)
-        return np.sqrt(np.dot(d, d))
+        return np.linalg.norm(d)
 
     @cached_property
     def _get_nasion_distance(self):
         d = np.ravel(self.transformed_mri_nasion - self.transformed_hsp_nasion)
-        return np.sqrt(np.dot(d, d))
+        return np.linalg.norm(d)
 
     @cached_property
     def _get_rpa_distance(self):
         d = np.ravel(self.transformed_mri_rpa - self.transformed_hsp_rpa)
-        return np.sqrt(np.dot(d, d))
+        return np.linalg.norm(d)
 
     @cached_property
     def _get_point_distance(self):
         mri_points = list()
         hsp_points = list()
         if self.hsp_weight > 0 and self.has_hsp_data:
-            mri_points.append(self.transformed_low_res_mri_points[
-                self.nearest_transformed_low_res_mri_idx_hsp])
+            mri_points.append(self.transformed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_hsp])
             hsp_points.append(self.transformed_hsp_points)
         if self.eeg_weight > 0 and self.has_eeg_data:
-            mri_points.append(self.transformed_low_res_mri_points[
-                self.nearest_transformed_low_res_mri_idx_eeg])
+            mri_points.append(self.transformed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_eeg])
             hsp_points.append(self.transformed_hsp_eeg_points)
         if self.hpi_weight > 0 and self.has_hpi_data:
-            mri_points.append(self.transformed_low_res_mri_points[
-                self.nearest_transformed_low_res_mri_idx_hpi])
+            mri_points.append(self.transformed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_hpi])
             hsp_points.append(self.transformed_hsp_hpi)
         if all(len(h) == 0 for h in hsp_points):
             return None
@@ -551,8 +570,8 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_orig_hsp_point_distance(self):
-        mri_points = self.transformed_low_res_mri_points[
-            self.nearest_transformed_low_res_mri_idx_orig_hsp]
+        mri_points = self.transformed_high_res_mri_points[
+            self.nearest_transformed_high_res_mri_idx_orig_hsp]
         hsp_points = self.transformed_orig_hsp_points
         return np.linalg.norm(mri_points - hsp_points, axis=-1)
 
@@ -643,24 +662,30 @@ class CoregModel(HasPrivateTraits):
         weights = list()
         if self.has_hsp_data and self.hsp_weight > 0:  # should be true
             head_pts.append(self.hsp.points)
-            mri_pts.append(self.processed_low_res_mri_points[
-                self.nearest_transformed_low_res_mri_idx_hsp])
+            mri_pts.append(self.processed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_hsp])
             weights.append(np.full(len(head_pts[-1]), self.hsp_weight))
         for key in ('lpa', 'nasion', 'rpa'):
             if getattr(self, 'has_%s_data' % key):
                 head_pts.append(getattr(self.hsp, key))
-                mri_pts.append(getattr(self.mri, key))
+                if self.icp_fid_match == 'matched':
+                    mri_pts.append(getattr(self.mri, key))
+                else:
+                    assert self.icp_fid_match == 'nearest'
+                    mri_pts.append(self.processed_high_res_mri_points[
+                        getattr(self, 'nearest_transformed_high_res_mri_idx_%s'
+                                % (key,))])
                 weights.append(np.full(len(mri_pts[-1]),
                                        getattr(self, '%s_weight' % key)))
         if self.has_eeg_data and self.eeg_weight > 0:
             head_pts.append(self.hsp.eeg_points)
-            mri_pts.append(self.processed_low_res_mri_points[
-                self.nearest_transformed_low_res_mri_idx_eeg])
+            mri_pts.append(self.processed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_eeg])
             weights.append(np.full(len(mri_pts[-1]), self.eeg_weight))
         if self.has_hpi_data and self.hpi_weight > 0:
             head_pts.append(self.hsp.hpi_points)
-            mri_pts.append(self.processed_low_res_mri_points[
-                self.nearest_transformed_low_res_mri_idx_hpi])
+            mri_pts.append(self.processed_high_res_mri_points[
+                self.nearest_transformed_high_res_mri_idx_hpi])
             weights.append(np.full(len(mri_pts[-1]), self.hpi_weight))
         head_pts = np.concatenate(head_pts)
         mri_pts = np.concatenate(mri_pts)
@@ -1067,6 +1092,7 @@ class FittingOptionsPanel(HasTraits):
     icp_angle = DelegatesTo('model')
     icp_distance = DelegatesTo('model')
     icp_scale = DelegatesTo('model')
+    icp_fid_match = DelegatesTo('model')
     n_scale_params = DelegatesTo('model')
 
     view = View(VGroup(
@@ -1084,6 +1110,14 @@ class FittingOptionsPanel(HasTraits):
                    enabled_when='n_scale_params > 0'),
               show_labels=True, label='ICP convergence limits', columns=3,
               show_border=_SHOW_BORDER),
+        VGrid(Item('icp_fid_match', width=-1, show_label=False,
+                   editor=EnumEditor(values=dict(
+                       nearest='1:Closest to surface',
+                       matched='2:MRI fiducials'), cols=2,
+                       format_func=lambda x: x),
+                   tooltip='Match digitization fiducials to MRI fiducials or '
+                   'the closest surface point', style='custom'),
+              label='Fiducial point matching', show_border=_SHOW_BORDER),
         VGrid(
             VGrid(Item('lpa_weight', editor=laggy_float_editor_weight,
                        tooltip="Relative weight for LPA", width=_WEIGHT_WIDTH,
@@ -1095,7 +1129,7 @@ class FittingOptionsPanel(HasTraits):
                        tooltip="Relative weight for RPA", width=_WEIGHT_WIDTH,
                        enabled_when='has_rpa_data', label='RPA'),
                   columns=3, show_labels=True, show_border=_SHOW_BORDER,
-                  label='Fiducials (MRI-point matched)'),
+                  label='Fiducials'),
             VGrid(Item('hsp_weight', editor=laggy_float_editor_weight,
                        tooltip="Relative weight for head shape points",
                        enabled_when='has_hsp_data',
