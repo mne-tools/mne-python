@@ -18,6 +18,7 @@ import warnings
 import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
+from mne.transforms import invert_transform
 from mne.utils import _TempDir, run_tests_if_main, requires_mayavi
 from mne.externals.six import string_types
 
@@ -100,21 +101,24 @@ def test_coreg_model():
     rpa_distance = model.rpa_distance
     avg_point_distance = np.mean(model.point_distance)
 
+    model.nasion_weight = 1.
     model.fit_fiducials(0)
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
              model.nasion_distance ** 2)
-    assert_true(new_x < old_x)
+    assert new_x < old_x
 
     model.fit_icp(0)
-    assert_true(np.mean(model.point_distance) < avg_point_distance)
+    new_dist = np.mean(model.point_distance)
+    assert new_dist < avg_point_distance
 
     model.save_trans(trans_dst)
     trans = mne.read_trans(trans_dst)
-    assert_allclose(trans['trans'], model.mri_head_t)
+    assert_allclose(trans['trans'], model.head_mri_t)
 
     # test restoring trans
-    x, y, z, rot_x, rot_y, rot_z = .1, .2, .05, 1.5, 0.1, -1.2
+    x, y, z = 100, 200, 50
+    rot_x, rot_y, rot_z = np.rad2deg([1.5, 0.1, -1.2])
     model.trans_x = x
     model.trans_y = y
     model.trans_z = z
@@ -147,7 +151,7 @@ def test_coreg_model():
     assert_equal(sdir, subjects_dir)
     assert_equal(sfrom, 'sample')
     assert_equal(sto, 'sample2')
-    assert_allclose(scale, model.scale)
+    assert_allclose(scale, model.parameters[6:9])
     assert_equal(skip_fiducials, False)
     # find BEM files
     bems = set()
@@ -165,8 +169,8 @@ def test_coreg_model():
     model.load_trans(fname_trans)
     model.save_trans(trans_dst)
     trans = mne.read_trans(trans_dst)
-    assert_allclose(trans['trans'], model.mri_head_t)
-    assert_allclose(trans['trans'][:3, 3],
+    assert_allclose(trans['trans'], model.head_mri_t)
+    assert_allclose(invert_transform(trans)['trans'][:3, 3] * 1000.,
                     [model.trans_x, model.trans_y, model.trans_z])
 
 
@@ -219,9 +223,9 @@ def test_coreg_gui():
         # scale
         frame.coreg_panel.n_scale_params = 3
         frame.coreg_panel.scale_x_inc = True
-        assert_equal(frame.model.scale_x, 1.01)
+        assert frame.model.scale_x == 101.
         frame.coreg_panel.scale_y_dec = True
-        assert_equal(frame.model.scale_y, 0.99)
+        assert frame.model.scale_y == 99.
 
         # reset parameters
         frame.coreg_panel.reset_params = True
@@ -267,6 +271,7 @@ def test_coreg_model_with_fsaverage():
     avg_point_distance = np.mean(model.point_distance)
 
     # test hsp point omission
+    model.nasion_weight = 1.
     model.trans_y = -0.008
     model.fit_fiducials(0)
     model.omit_hsp_points(0.02)
@@ -302,7 +307,7 @@ def test_coreg_model_with_fsaverage():
     assert_equal(sdir, tempdir)
     assert_equal(sfrom, 'fsaverage')
     assert_equal(sto, 'scaled')
-    assert_allclose(scale, model.scale)
+    assert_allclose(scale, model.parameters[6:9])
     assert_equal(set(bemsol), set(('inner_skull-bem',)))
     model.prepare_bem_model = False
     sdir, sfrom, sto, scale, skip_fiducials, labels, annot, bemsol = \
