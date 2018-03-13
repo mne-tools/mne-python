@@ -9,7 +9,7 @@ from os import path as op
 
 import numpy as np
 
-from ...utils import verbose, logger
+from ...utils import verbose, logger, _clean_names
 from ...externals.six import string_types
 
 from ..base import BaseRaw
@@ -165,6 +165,34 @@ class RawCTF(BaseRaw):
                 _mult_cal_one(data_view, this_data, idx, cals, mult)
                 offset += n_read
 
+    def _clean_names(self):
+        """Clean up CTF suffixes from channel names."""            
+        for comp in self.info['comps']:
+            for key in ('row_names', 'col_names'):
+                comp['data'][key] = _clean_names(comp['data'][key])
+
+    def rename_channels(self, mapping, clean_channel_names=True):
+        """Rename channels and clean up CTF data if needed.
+
+        Parameters
+        ----------
+        mapping : dict | callable
+            a dictionary mapping the old channel to a new channel name
+            e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+            that takes and returns a string (new in version 0.10.0).
+
+        clean_channel_names : bool, optional
+            a bool patameter, if it equals to True channel names cleaning
+            will be performed.
+
+        Notes
+        -----
+        .. versionadded:: 0.16.0
+        """
+        super(RawCTF, self).rename_channels(mapping)
+        #cleaning of the channel names
+        if clean_channel_names:
+            self._clean_names()
 
 def _get_sample_info(fname, res4, system_clock):
     """Determine the number of valid samples."""

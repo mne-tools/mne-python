@@ -15,7 +15,6 @@ from scipy import sparse
 from ..externals.six import string_types
 from ..utils import verbose, logger, warn, copy_function_doc_to_method_doc
 from ..utils import _check_preload
-from ..utils import _clean_names
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info
@@ -590,26 +589,6 @@ class SetChannelsMixin(object):
         """
         anonymize_info(self.info)
         return self
-
-    def clean_names(self, mapping):
-        """Rename channels and clean up CTF data.
-
-        Parameters
-        ----------
-        mapping : dict | callable
-            a dictionary mapping the old channel to a new channel name
-            e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-            that takes and returns a string (new in version 0.10.0).
-
-        Notes
-        -----
-        .. versionadded:: 0.16.0
-        """
-        rename_channels(self.info, mapping)
-
-        for comp in self.info['comps']:
-            for key in ('row_names', 'col_names'):
-                comp['data'][key] = _clean_names(comp['data'][key]) 
 
 
 class UpdateChannelsMixin(object):

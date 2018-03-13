@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+import copy
 import os
 from os import path as op
 import shutil
@@ -9,6 +10,7 @@ import warnings
 
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_false
+from numpy import array_equal
 from numpy.testing import assert_allclose, assert_array_equal, assert_equal
 import pytest
 
@@ -17,7 +19,7 @@ from mne import pick_types
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, _clean_names
 from mne.datasets import testing, spm_face
 from mne.io.constants import FIFF
 
@@ -214,6 +216,31 @@ def test_read_ctf():
     read_raw_ctf(op.join(ctf_dir, ctf_fname_continuous), 'ignore')
     assert_raises(ValueError, read_raw_ctf,
                   op.join(ctf_dir, ctf_fname_continuous), 'foo')
+
+
+@testing.requires_testing_data
+def test_rawctf_rename_channels():
+    """Test RawCTF rename_channels mathod"""
+    #read test data
+    raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch))
+    test_channel_names = _clean_names(raw.ch_names)
+    test_info_comps = copy.deepcopy(raw.info['comps'])
+
+    #test rename_channels without CTF data cleaning
+    raw.rename_channels(dict(zip(raw.ch_names, test_channel_names)), False)
+    assert array_equal(raw.ch_names, test_channel_names)
+
+    for test_comp, comp in zip(test_info_comps, raw.info['comps']):
+        for key in ('row_names', 'col_names'):
+            assert not array_equal(_clean_names(test_comp['data'][key]), comp['data'][key])
+    
+    #test rename_channels with CTF data cleaning
+    raw.rename_channels(dict(zip(raw.ch_names, test_channel_names)))
+    assert array_equal(raw.ch_names, test_channel_names)
+
+    for test_comp, comp in zip(test_info_comps, raw.info['comps']):
+        for key in ('row_names', 'col_names'):
+            assert array_equal(_clean_names(test_comp['data'][key]), comp['data'][key])
 
 
 @spm_face.requires_spm_data
