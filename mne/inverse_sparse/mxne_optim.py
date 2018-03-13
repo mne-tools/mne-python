@@ -768,7 +768,7 @@ def norm_l1_tf(Z, shape, n_orient):
     return l1_norm
 
 
-def norm_epsilon(Y, l1_ratio):
+def norm_epsilon(Y, l1_ratio, n_freq):
     """Dual norm of (1. - l1_ratio) * L2 norm + l1_ratio * L1 norm, at Y.
 
     This is the unique solution in nu of
@@ -793,6 +793,7 @@ def norm_epsilon(Y, l1_ratio):
        "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
        Information Processing Systems (NIPS), 2016.
     """
+    n_coefs = Y.shape[0] // n_freq
     # since the solution is invariant to flipped signs in Y, all entries
     # of Y are assumed positive
     norm_inf_Y = np.max(Y)
@@ -801,34 +802,56 @@ def norm_epsilon(Y, l1_ratio):
         return norm_inf_Y
     elif l1_ratio == 0.:
         # dual norm of L2 is L2
-        return np.sqrt((Y ** 2).sum())  # TODO Y is always real
+        # Can't use stft_norm2 as Y is 1D.
+        # Count all freqs twice except first and last.
+        return np.sqrt(2. * (Y ** 2).sum() - (Y[:n_coefs] ** 2).sum() - (Y[-n_coefs:] ** 2).sum())
 
     if norm_inf_Y == 0.:
         return 0.
 
-    K = (Y > l1_ratio * norm_inf_Y).sum()
+    # get K largest values of Y:
+    idx = Y > l1_ratio * norm_inf_Y
+    K = idx.sum()
     if K == 1:
         return norm_inf_Y
 
-    # K largest values of Y, in decreasing order, without sorting Y:
-    Y = np.sort(Y[np.argpartition(Y, len(Y) - K)[len(Y) - K:]])[::-1]
+    # count all freqs twice except first and last:
+    weights = np.empty(len(Y), dtype=int)
+    weights.fill(2)
+    weights[:n_coefs] = 1
+    weights[-n_coefs:] = 1
+
+    # sort both Y and weights at the same time
+    idx_sort = np.argsort(Y[idx])[::-1]
+    Y = Y[idx][idx_sort]
+    weights = weights[idx][idx_sort]
 
     p_sum = 0.  # partial sum
     p_sum_2 = 0.  # partial sum of squares
     lower = 0.
 
+    kk = 0
+    exit = False
     for k in range(K - 1):
-        p_sum += Y[k]
-        p_sum_2 += Y[k] ** 2
-        upper = p_sum_2 / Y[k + 1] ** 2 - 2. * p_sum / Y[k + 1] + k + 1
-        if lower <= (1. - l1_ratio) ** 2 / l1_ratio ** 2 < upper:
-            j = k + 1
+        # process entry k once or twice:
+        for _ in range(weights[k]):
+            p_sum += Y[k]
+            p_sum_2 += Y[k] ** 2
+            upper = p_sum_2 / Y[k + 1] ** 2 - 2. * p_sum / Y[k + 1] + k + 1
+            if lower <= (1. - l1_ratio) ** 2 / l1_ratio ** 2 < upper:
+                j = kk + 1
+                exit = True
+                break
+            lower = upper
+            kk += 1
+        if exit:
             break
-        lower = upper
     else:
-        j = K
-        p_sum += Y[K - 1]
-        p_sum_2 += Y[K - 1] ** 2
+        for _ in range(weights[K - 1]):
+            p_sum += Y[K - 1]
+            p_sum_2 += Y[K - 1] ** 2
+            kk += 1
+        j = kk
 
     denom = l1_ratio ** 2 * j - (1. - l1_ratio) ** 2
     if np.abs(denom) < 1e-10:
@@ -839,7 +862,7 @@ def norm_epsilon(Y, l1_ratio):
         return (l1_ratio * p_sum - np.sqrt(delta)) / denom
 
 
-def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
+def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freq):
     """epsilon-inf norm of phi(np.dot(G.T, R)).
 
     Parameters
@@ -866,13 +889,12 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
     # norm over orientations:
     GTRPhi = np.sqrt(np.sum(GTRPhi.reshape((n_orient, -1), order='F'),
                      axis=0)).reshape((n_positions, -1), order='F')
-
     nu = 0.
     for idx in range(n_positions):
         GTRPhi_ = GTRPhi[idx]
         # norm_epsilon(GTRPhi_, l1_ratio) < max(GTRPhi_), maybe skip this group
         # if nu < np.max(GTRPhi_) / l1_ratio:
-        norm_eps = norm_epsilon(GTRPhi_, l1_ratio)
+        norm_eps = norm_epsilon(GTRPhi_, l1_ratio, n_freq)
         if norm_eps > nu:
             nu = norm_eps
 
@@ -932,6 +954,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
        convex sets", Advances in Neural Information Processing Systems (NIPS),
        vol. 27, pp. 2132-2140, 2014.
     """
+    n_freq = shape[-1]
     X = phiT(Z)
     GX = np.dot(G[:, active_set], X)
     R = M - GX
@@ -941,13 +964,14 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
 
     l1_ratio = alpha_time / (alpha_space + alpha_time)
-    dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient)
+    dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freq)
     scaling = min(1., (alpha_space + alpha_time) / dual_norm)
 
     d_obj = (scaling - 0.5 * (scaling ** 2)) * nR2 + scaling * np.sum(R * GX)
     d_obj = max(d_obj, highest_d_obj)
 
     gap = p_obj - d_obj
+
     return gap, p_obj, d_obj, R
 
 
