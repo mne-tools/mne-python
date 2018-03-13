@@ -191,6 +191,7 @@ def test_make_forward_solution_kit():
 
     # CTF with compensation changed in python
     ctf_raw = read_raw_fif(fname_ctf_raw)
+    ctf_raw.info['bads'] = ['MRO24-2908']  # test that it works with some bads
     ctf_raw.apply_gradient_compensation(2)
 
     fwd_py = make_forward_solution(ctf_raw.info, fname_trans, src,
