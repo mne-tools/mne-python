@@ -163,7 +163,7 @@ class CoregModel(HasPrivateTraits):
     parameters = List()
     last_parameters = List()
     lpa_weight = Float(1.)
-    nasion_weight = Float(100.)
+    nasion_weight = Float(10.)
     rpa_weight = Float(1.)
     hsp_weight = Float(1.)
     eeg_weight = Float(1.)
