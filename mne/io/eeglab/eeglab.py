@@ -477,7 +477,7 @@ def hdf_2_dict(orig, in_hdf, parent=None, indent=''):
                 for curr_elem in temp:
                     eventtype_str = [''.join([chr(x) for x in c_evt])
                                      for c_evt in curr_elem.eventtype]
-                    curr_elem.eventtype = ''.join(eventtype_str)
+                    curr_elem.eventtype = np.asarray(eventtype_str)
 
             else:
                 temp = hdf_2_dict(orig, in_hdf[curr],
@@ -825,6 +825,7 @@ class EpochsEEGLAB(BaseEpochs):
             event_name, event_latencies, unique_ev = list(), list(), list()
             ev_idx = 0
             warn_multiple_events = False
+
             for ep in eeg.epoch:
                 if isinstance(ep.eventtype, int):
                     ep.eventtype = str(ep.eventtype)

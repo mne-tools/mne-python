@@ -25,7 +25,7 @@ from mne.utils import _TempDir, run_tests_if_main
 
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
-raw_fname = op.join(base_dir, 'test_raw_h5.set')
+raw_fname = op.join(base_dir, 'test_raw.set')
 raw_fname_onefile = op.join(base_dir, 'test_raw_onefile.set')
 epochs_fname = op.join(base_dir, 'test_epochs.set')
 epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile.set')
@@ -34,12 +34,27 @@ montage = op.join(base_dir, 'test_chans.locs')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-#def _get_eeg_data(input_fname, uint16_codec=None):
+@testing.requires_testing_data
+def test_io_set():
+    """Test importing EEGLAB .set files."""
+    _test_io_set(False)
+    _test_io_set(True)
 
 
 @testing.requires_testing_data
-def test_io_set(use_hdf = True):
+def _test_io_set(use_hdf=True):
     """Test importing EEGLAB .set files."""
+    global raw_fname
+    global raw_fname_onefile
+    global epochs_fname
+    global epochs_fname_onefile
+
+    if use_hdf:
+        raw_fname = op.join(base_dir, 'test_raw_h5.set')
+        raw_fname_onefile = op.join(base_dir, 'test_raw_onefile_h5.set')
+        epochs_fname = op.join(base_dir, 'test_epochs_h5.set')
+        epochs_fname_onefile = op.join(base_dir, 'test_epochs_onefile_h5.set')
+
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # main tests, and test missing event_id
@@ -81,21 +96,20 @@ def test_io_set(use_hdf = True):
 
     # test old EEGLAB version event import
     eeg = _get_eeg_data(raw_fname, uint16_codec=None)
-    #io.loadmat(raw_fname, struct_as_record=False,
-    #                 squeeze_me=True)['EEG']
+
     for event in eeg.event:  # old version allows integer events
         event.type = 1
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
     eeg.event = eeg.event[0]  # single event
     assert_equal(read_events_eeglab(eeg)[-1, -1], 1)
 
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True) as ww:
         warnings.simplefilter('always')
         epochs = read_epochs_eeglab(epochs_fname)
         epochs2 = read_epochs_eeglab(epochs_fname_onefile)
     # one warning for each read_epochs_eeglab because both files have epochs
     # associated with multiple events
-    assert_equal(len(w), 2)
+    assert_equal(len(ww), 2)
     assert_array_equal(epochs.get_data(), epochs2.get_data())
 
     # test different combinations of events and event_ids
@@ -126,7 +140,8 @@ def test_io_set(use_hdf = True):
         shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                         one_event_fname.replace('.set', '.fdt'))
         event_id = {eeg.event[0].type: 1}
-        test_raw = read_raw_eeglab(input_fname=one_event_fname, montage=montage,
+        test_raw = read_raw_eeglab(input_fname=one_event_fname,
+                                   montage=montage,
                                    event_id=event_id, preload=True)
 
         # test that sample indices are read python-wise (zero-based)
@@ -144,8 +159,9 @@ def test_io_set(use_hdf = True):
         shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                         negative_latency_fname.replace('.set', '.fdt'))
         event_id = {eeg.event[0].type: 1}
-        assert_raises(ValueError, read_raw_eeglab, montage=montage, preload=True,
-                      event_id=event_id, input_fname=negative_latency_fname)
+        assert_raises(ValueError, read_raw_eeglab, montage=montage,
+                      preload=True, event_id=event_id,
+                      input_fname=negative_latency_fname)
 
         # test overlapping events
         overlap_fname = op.join(temp_dir, 'test_overlap_event.set')
@@ -228,14 +244,16 @@ def test_io_set(use_hdf = True):
         # one warning because some channels are not found in Montage
         assert_equal(len(w), 1)
 
-        # when montage was passed - channel positions should be taken from there
+        # when montage was passed - channel positions should be taken
+        # from there
         correct_pos = [[-0.56705965, 0.67706631, 0.46906776], [np.nan] * 3,
                        [0., 0.99977915, -0.02101571]]
         for ch_ind in range(3):
             assert_array_almost_equal(raw.info['chs'][ch_ind]['loc'][:3],
                                       np.array(correct_pos[ch_ind]))
 
-        # test reading channel names but not positions when there is no X (only Z)
+        # test reading channel names but not positions
+        # when there is no X (only Z)
         # field in the EEG.chanlocs structure
         nopos_chanlocs = chanlocs[['labels', 'Z']]
         nopos_fname = op.join(temp_dir, 'test_no_chanpos.set')
@@ -261,8 +279,6 @@ def test_degenerate():
     # test if .dat file raises an error
     temp_dir = _TempDir()
     eeg = _get_eeg_data(epochs_fname, uint16_codec=None)
-    #io.loadmat(epochs_fname, struct_as_record=False,
-    #                 squeeze_me=True)['EEG']
     eeg.data = 'epochs_fname.dat'
     bad_epochs_fname = op.join(temp_dir, 'test_epochs.set')
     io.savemat(bad_epochs_fname, {'EEG':
