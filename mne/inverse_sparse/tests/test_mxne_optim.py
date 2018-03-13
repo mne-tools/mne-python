@@ -122,7 +122,7 @@ def test_tf_mxne():
 
 def test_dgapl21l1():
     """Test duality gap for L21 + L1 regularization."""
-    l1_ratio = 0.7
+    l1_ratio = 0.8
     n_orient = 2
     M, G, active_set = _generate_tf_data()
     n_times = M.shape[1]
@@ -149,6 +149,13 @@ def test_dgapl21l1():
     # check that solution for alpha smaller than alpha_max is non 0:
     X_hat_tf, active_set_hat_tf, E, gap = tf_mixed_norm_solver(
         M, G, alpha_space / 1.01, alpha_time / 1.01, maxit=200, tol=1e-8,
+        verbose=True, debias=False, n_orient=n_orient, tstep=tstep,
+        wsize=wsize, return_gap=True)
+    assert_array_less(0, gap)
+    assert_array_less(1, len(active_set_hat_tf))
+
+    X_hat_tf, active_set_hat_tf, E, gap = tf_mixed_norm_solver(
+        M, G, alpha_space / 10, alpha_time / 10, maxit=200, tol=1e-8,
         verbose=True, debias=False, n_orient=n_orient, tstep=tstep,
         wsize=wsize, return_gap=True)
     assert_array_less(0, gap)
