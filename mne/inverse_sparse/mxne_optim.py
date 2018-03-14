@@ -834,10 +834,13 @@ def norm_epsilon(Y, l1_ratio, n_freqs):
     exit = False
     for k in range(K - 1):
         # process entry k once or twice:
-        for _ in range(weights[k]):
+        for ll in range(weights[k]):
             p_sum += Y[k]
             p_sum_2 += Y[k] ** 2
-            upper = p_sum_2 / Y[k + 1] ** 2 - 2. * p_sum / Y[k + 1] + k + 1
+            if (weights[k] == 2) and (ll == 0):
+                upper = p_sum_2 / Y[k] ** 2 - 2. * p_sum / Y[k] + kk + 1
+            else:
+                upper = p_sum_2 / Y[k + 1] ** 2 - 2. * p_sum / Y[k + 1] + kk + 1
             if lower <= (1. - l1_ratio) ** 2 / l1_ratio ** 2 < upper:
                 j = kk + 1
                 exit = True
