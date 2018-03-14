@@ -32,10 +32,12 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
 
     if subject is None:
         raise ValueError("subject argument is None.")
-    if not op.isdir(op.join(subjects_dir, subject)):
+
+    subject_dir = op.join(subjects_dir, subject)
+
+    if not op.isdir(subject_dir):
         raise ValueError("Wrong path: '{}'. Check subjects-dir or"
-                         "subject argument.".format(op.join(subjects_dir,
-                                                            subject)))
+                         "subject argument.".format(subject_dir))
 
     env = os.environ.copy()
     env['SUBJECT'] = subject
@@ -44,8 +46,8 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
     if 'FREESURFER_HOME' not in env:
         raise RuntimeError('The FreeSurfer environment needs to be set up.')
 
-    mri_dir = op.join(subjects_dir, subject, 'mri')
-    bem_dir = op.join(subjects_dir, subject, 'bem')
+    mri_dir = op.join(subject_dir, 'mri')
+    bem_dir = op.join(subject_dir, 'bem')
     mri = op.join(mri_dir, 'T1.mgz')
 
     if method == 'watershed':
