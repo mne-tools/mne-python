@@ -270,7 +270,7 @@ def test_show_info():
 def test_anonymize():
     """Test mne anonymize."""
     check_usage(mne_anonymize)
-    with ArgvSetter((raw_fname,)):
+    with ArgvSetter(('-f', raw_fname)):
         mne_anonymize.run()
 
 

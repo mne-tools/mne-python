@@ -15,21 +15,24 @@ import os
 ANONYMIZE_FILE_PREFIX = 'anon'
 
 
-def mne_anonymize(fif_fname, out_fname, dir_name="", overwrite=False):
+def mne_anonymize(fif_fname, out_fname, overwrite=False):
     """ Call *anonymize_info* on fif file and save.
+
     Parameters
     ----------
     fif_fname : str
         Raw fif File
     out_fname : str
         Output file name
-    dir_name : str
-        Path to directory with files
     overwrite : bool
-        overwriting flag
+        Overwrite output file if it already exists
     """
+    dir_name = os.path.split(fif_fname)[0]
+    fif_fname = os.path.basename(fif_fname)
+
     raw = mne.io.read_raw_fif(os.path.join(dir_name, fif_fname), preload=True)
     mne.io.anonymize_info(raw.info)
+
     if out_fname is not None:
         out = out_fname
     else:
@@ -62,12 +65,10 @@ def run():
     out_fname = options.output
     overwrite = options.overwrite
 
-    dir_name = os.path.split(fname)[0]
-    fname = os.path.basename(fname)
     if not fname.endswith('.fif'):
         raise ValueError('%s does not seem to be a .fif file.' % fname)
 
-    mne_anonymize(fname, out_fname, dir_name, overwrite)
+    mne_anonymize(fname, out_fname, overwrite)
 
 
 is_main = (__name__ == '__main__')
