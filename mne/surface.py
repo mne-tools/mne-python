@@ -424,33 +424,8 @@ def _compute_nearest(xhs, rr, method='BallTree', return_dists=False):
         if return_dists:
             return np.array([], int), np.array([])
         return np.array([], int)
-    assert method in ('BallTree', 'cKDTree', 'cdist')
-
-    # Fastest for our problems: balltree
-    if method == 'BallTree':
-        try:
-            from sklearn.neighbors import BallTree
-        except ImportError:
-            logger.info('Nearest-neighbor searches will be significantly '
-                        'faster if scikit-learn is installed.')
-            method = 'cKDTree'
-        else:
-            out = BallTree(xhs).query(rr, k=1, return_distance=True)
-            out = [out[0][:, 0], out[1][:, 0]]
-
-    # Then cKDTree
-    if method == 'cKDTree':
-        try:
-            from scipy.spatial import cKDTree
-        except ImportError:
-            method = 'cdist'
-        else:
-            out = cKDTree(xhs).query(rr)
-
-    # Then the worst: cdist
-    if method == 'cdist':
-        out = _CDist(xhs).query(rr)
-
+    tree = _DistanceQuery(xhs, method=method)
+    out = tree.query(rr)
     return out[::-1] if return_dists else out[1]
 
 
@@ -465,25 +440,37 @@ def _safe_query(rr, func, reduce=False, **kwargs):
 class _DistanceQuery(object):
     """Wrapper for fast distance queries."""
 
-    def __init__(self, xhs, allow_kdtree=False):
-        try:
-            from sklearn.neighbors import BallTree
-        except ImportError:
+    def __init__(self, xhs, method='BallTree', allow_kdtree=False):
+        assert method in ('BallTree', 'cKDTree', 'cdist')
+
+        # Fastest for our problems: balltree
+        if method == 'BallTree':
+            try:
+                from sklearn.neighbors import BallTree
+            except ImportError:
+                logger.info('Nearest-neighbor searches will be significantly '
+                            'faster if scikit-learn is installed.')
+                method = 'cKDTree'
+            else:
+                self.query = partial(_safe_query, func=BallTree(xhs).query,
+                                     reduce=True, return_distance=True)
+
+        # Then cKDTree
+        if method == 'cKDTree':
             try:
                 from scipy.spatial import cKDTree
             except ImportError:
-                # KDTree is really only faster for huge (~100k) sets,
-                # it's slower for small (~5k) sets
-                if allow_kdtree:
-                    from scipy.spatial import KDTree
-                    self.query = KDTree(xhs, leafsize=2048).query
-                else:
-                    self.query = _CDist(xhs).query
+                method = 'cdist'
             else:
                 self.query = cKDTree(xhs).query
-        else:
-            self.query = partial(_safe_query, func=BallTree(xhs).query,
-                                 reduce=True, return_distance=True)
+
+        # KDTree is really only faster for huge (~100k) sets,
+        # (e.g., with leafsize=2048), and it's slower for small (~5k)
+        # sets. We can add it later if we think it will help.
+
+        # Then the worst: cdist
+        if method == 'cdist':
+            self.query = _CDist(xhs).query
 
 
 ###############################################################################

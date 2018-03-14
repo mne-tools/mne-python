@@ -1720,9 +1720,9 @@ class DataPanel(HasTraits):
         self.model.omit_hsp_points(distance)
         n_omitted = self.model.hsp.n_omitted
         self.omitted_info = (
-           "%s pt%s omitted (%0.1f mm)"
-           % (n_omitted if n_omitted > 0 else 'No', _pl(n_omitted),
-              self.distance))
+            "%s pt%s omitted (%0.1f mm)"
+            % (n_omitted if n_omitted > 0 else 'No', _pl(n_omitted),
+               self.distance))
 
     @on_trait_change('model:hsp:file')
     def _file_change(self):
