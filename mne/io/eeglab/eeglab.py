@@ -69,7 +69,7 @@ def _check_mat_struct(fname):
         # Try to read new style Matlab file
         import h5py
         f = h5py.File(fname)
-        mat = f.keys()
+        mat = list(f.keys())
         if 'ALLEEG' in mat:
             mat[0] = u'ALLEEG'
         elif 'EEG' in mat:
