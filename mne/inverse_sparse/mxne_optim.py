@@ -768,7 +768,7 @@ def norm_l1_tf(Z, shape, n_orient):
     return l1_norm
 
 
-def norm_epsilon(Y, l1_ratio, n_freq):
+def norm_epsilon(Y, l1_ratio, n_freqs):
     """Dual norm of (1. - l1_ratio) * L2 norm + l1_ratio * L1 norm, at Y.
 
     This is the unique solution in nu of
@@ -793,7 +793,7 @@ def norm_epsilon(Y, l1_ratio, n_freq):
        "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
        Information Processing Systems (NIPS), 2016.
     """
-    n_coefs = Y.shape[0] // n_freq
+    n_coefs = Y.shape[0] // n_freqs
     # since the solution is invariant to flipped signs in Y, all entries
     # of Y are assumed positive
     norm_inf_Y = np.max(Y)
@@ -855,14 +855,14 @@ def norm_epsilon(Y, l1_ratio, n_freq):
 
     denom = l1_ratio ** 2 * j - (1. - l1_ratio) ** 2
     if np.abs(denom) < 1e-10:
-        return p_sum_2 / 2. * l1_ratio * p_sum
+        return p_sum_2 / (2. * l1_ratio * p_sum)
     else:
         # TODO prove that we cannot get a negative value in the sqrt
         delta = (l1_ratio * p_sum) ** 2 - p_sum_2 * denom
         return (l1_ratio * p_sum - np.sqrt(delta)) / denom
 
 
-def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freq):
+def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freqs):
     """epsilon-inf norm of phi(np.dot(G.T, R)).
 
     Parameters
@@ -894,7 +894,7 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freq):
         GTRPhi_ = GTRPhi[idx]
         # norm_epsilon(GTRPhi_, l1_ratio) < max(GTRPhi_), maybe skip this group
         # if nu < np.max(GTRPhi_) / l1_ratio:
-        norm_eps = norm_epsilon(GTRPhi_, l1_ratio, n_freq)
+        norm_eps = norm_epsilon(GTRPhi_, l1_ratio, n_freqs)
         if norm_eps > nu:
             nu = norm_eps
 
@@ -954,7 +954,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
        convex sets", Advances in Neural Information Processing Systems (NIPS),
        vol. 27, pp. 2132-2140, 2014.
     """
-    n_freq = shape[-1]
+    n_freqs = shape[-1]
     X = phiT(Z)
     GX = np.dot(G[:, active_set], X)
     R = M - GX
@@ -964,7 +964,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
 
     l1_ratio = alpha_time / (alpha_space + alpha_time)
-    dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freq)
+    dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freqs)
     scaling = min(1., (alpha_space + alpha_time) / dual_norm)
 
     d_obj = (scaling - 0.5 * (scaling ** 2)) * nR2 + scaling * np.sum(R * GX)
