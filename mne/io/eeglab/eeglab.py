@@ -1104,10 +1104,7 @@ def read_annotations_eeglab(fname, uint16_codec=None):
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    from scipy import io
-    eeg = io.loadmat(fname, struct_as_record=False, squeeze_me=True,
-                     uint16_codec=uint16_codec)['EEG']
-
+    eeg = _get_eeg_data(fname, uint16_codec)
     return _read_annotations_eeglab(eeg)
 
 
