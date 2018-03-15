@@ -36,8 +36,8 @@ def _check_ci():
         raise SkipTest('Skipping GUI tests on Travis OSX and AppVeyor')
 
 
-@traits_test
 @requires_mayavi
+@traits_test
 def test_kit2fiff_model():
     """Test Kit2Fiff model."""
     from mne.gui._kit2fiff_gui import Kit2FiffModel
@@ -128,8 +128,8 @@ def test_kit2fiff_model():
     assert_equal(model.sqd_file, "")
 
 
-@traits_test
 @requires_mayavi
+@traits_test
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""
     _check_ci()
