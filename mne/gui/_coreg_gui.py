@@ -1982,11 +1982,9 @@ class CoregFrame(HasTraits):
             self._initial_kwargs['interaction']
         self.data_panel.headview.left = True
         self.data_panel.view_options_panel.sync_trait(
-            'coord_frame', self.model, mutual=False)
-        self.data_panel.view_options_panel.sync_trait(
-            'head_high_res', self, mutual=False)
-        self.data_panel.view_options_panel.sync_trait(
-            'bgcolor', self, mutual=False)
+            'coord_frame', self.model)
+        self.data_panel.view_options_panel.sync_trait('head_high_res', self)
+        self.data_panel.view_options_panel.sync_trait('bgcolor', self)
 
     @on_trait_change('lock_fiducials')
     def _on_lock_change(self):
