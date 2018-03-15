@@ -1714,9 +1714,6 @@ class DataPanel(HasTraits):
     def _headview_default(self):
         return HeadViewController(system='RAS', scene=self.scene)
 
-    def _view_options_fired(self, info):
-        self.view_options_panel.edit_traits()
-
     def _omit_points_fired(self):
         distance = self.distance / 1000.
         self.model.omit_hsp_points(distance)
