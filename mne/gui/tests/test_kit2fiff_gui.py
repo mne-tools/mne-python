@@ -10,12 +10,12 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 from nose import SkipTest
 from nose.tools import assert_true, assert_false, assert_equal
-from traits.api import push_exception_handler
 
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io import read_raw_fif
-from mne.utils import _TempDir, requires_mayavi, run_tests_if_main
+from mne.utils import (_TempDir, requires_mayavi, run_tests_if_main,
+                       traits_test)
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
@@ -25,7 +25,6 @@ fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
 fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
 warnings.simplefilter('always')
-push_exception_handler(reraise_exceptions=True)
 
 
 def _check_ci():
@@ -37,6 +36,7 @@ def _check_ci():
         raise SkipTest('Skipping GUI tests on Travis OSX and AppVeyor')
 
 
+@traits_test
 @requires_mayavi
 def test_kit2fiff_model():
     """Test Kit2Fiff model."""
@@ -128,6 +128,7 @@ def test_kit2fiff_model():
     assert_equal(model.sqd_file, "")
 
 
+@traits_test
 @requires_mayavi
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""

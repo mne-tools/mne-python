@@ -7,7 +7,6 @@ import os
 from numpy import array
 from numpy.testing import assert_allclose
 from nose.tools import assert_equal, assert_false, assert_raises, assert_true
-from traits.api import push_exception_handler
 
 from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
@@ -21,8 +20,6 @@ bem_path = os.path.join(subjects_dir, 'sample', 'bem', 'sample-1280-bem.fif')
 inst_path = os.path.join(data_path, 'MEG', 'sample',
                          'sample_audvis_trunc_raw.fif')
 fid_path = os.path.join(fiff_data_dir, 'fsaverage-fiducials.fif')
-
-push_exception_handler(reraise_exceptions=True)
 
 
 @testing.requires_testing_data

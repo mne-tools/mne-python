@@ -10,7 +10,6 @@ import warnings
 import numpy as np
 from numpy.testing import assert_array_equal
 from nose.tools import assert_true, assert_false
-from traits.api import push_exception_handler
 
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.kit import read_mrk
@@ -21,7 +20,6 @@ mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 mrk_avg_path = os.path.join(kit_data_dir, 'test_mrk.sqd')
 
 warnings.simplefilter('always')
-push_exception_handler(reraise_exceptions=True)
 
 
 def _check_ci():
