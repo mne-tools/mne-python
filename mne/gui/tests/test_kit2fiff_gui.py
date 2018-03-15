@@ -10,6 +10,7 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 from nose import SkipTest
 from nose.tools import assert_true, assert_false, assert_equal
+from traits.api import push_exception_handler
 
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
@@ -24,6 +25,7 @@ fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
 fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
 warnings.simplefilter('always')
+push_exception_handler(reraise_exceptions=True)
 
 
 def _check_ci():

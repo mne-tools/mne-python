@@ -8,12 +8,13 @@ import re
 import shutil
 import sys
 from unittest import SkipTest
+import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import (assert_equal, assert_almost_equal, assert_false,
                         assert_raises, assert_true)
-import warnings
+from traits.api import push_exception_handler
 
 import mne
 from mne.datasets import testing
@@ -38,6 +39,7 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
 kit_raw_path = op.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = op.join(data_path, 'subjects')
 warnings.simplefilter('always')
+push_exception_handler(reraise_exceptions=True)
 
 
 @testing.requires_testing_data

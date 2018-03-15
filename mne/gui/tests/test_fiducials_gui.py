@@ -6,12 +6,15 @@ import os
 
 from numpy.testing import assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal
+from traits.api import push_exception_handler
 
 from mne.datasets import testing
 from mne.utils import _TempDir, requires_mayavi, run_tests_if_main
 
 sample_path = testing.data_path(download=False)
 subjects_dir = os.path.join(sample_path, 'subjects')
+
+push_exception_handler(reraise_exceptions=True)
 
 
 @testing.requires_testing_data
