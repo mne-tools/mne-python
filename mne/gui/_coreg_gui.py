@@ -176,7 +176,7 @@ class CoregModel(HasPrivateTraits):
     icp_fid_match = Enum('nearest', 'matched')
     fit_icp_running = Bool(False)
     fits_icp_running = Bool(False)
-    coord_frame = Str('mri')
+    coord_frame = Enum('mri', 'head', desc='Display coordinate frame')
     status_text = Str()
 
     # options during scaling
@@ -427,7 +427,7 @@ class CoregModel(HasPrivateTraits):
     def _get_mri_trans(self):
         mri_scaling = np.ones(4)
         mri_scaling[:3] = self.parameters[6:9]
-        if self.coord_frame.lower() == 'head':
+        if self.coord_frame == 'head':
             t = self.mri_head_t
         else:
             t = np.eye(4)
@@ -435,7 +435,7 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_hsp_trans(self):
-        if self.coord_frame.lower() == 'head':
+        if self.coord_frame == 'head':
             t = np.eye(4)
         else:
             t = self.head_mri_t
