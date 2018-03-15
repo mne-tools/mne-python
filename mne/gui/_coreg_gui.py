@@ -1228,8 +1228,8 @@ class CoregPanel(HasPrivateTraits):
     queue_feedback = Str('')
     queue_current = Str('')
     queue_len = Int(0)
-    queue_len_str = Property(Str, depends_on=['queue_len'])
-    status_text = Str()  # can be set by methods
+    queue_status_text = Property(
+        Str, depends_on=['queue_feedback', 'queue_current', 'queue_len'])
 
     fitting_options_panel = Instance(FittingOptionsPanel)
     fitting_options = Button('Fitting options...')
@@ -1262,7 +1262,7 @@ class CoregPanel(HasPrivateTraits):
                                            subject_to)
                     bem_names = ()  # skip bem solutions
                 else:
-                    self.queue_feedback = 'Done scaling %s.' % subject_to
+                    self.queue_feedback = 'Done scaling %s' % subject_to
 
                 # Precompute BEM solutions
                 for bem_name in bem_names:
@@ -1280,7 +1280,7 @@ class CoregPanel(HasPrivateTraits):
                         self.queue_feedback = ('Error computing %s solution '
                                                '(see Terminal)' % bem_name)
                     else:
-                        self.queue_feedback = ('Done computing %s solution.' %
+                        self.queue_feedback = ('Done computing %s solution' %
                                                bem_name)
 
                 # Finalize
@@ -1292,11 +1292,15 @@ class CoregPanel(HasPrivateTraits):
         t.start()
 
     @cached_property
-    def _get_queue_len_str(self):
+    def _get_queue_status_text(self):
+        items = []
+        if self.queue_current:
+            items.append(self.queue_current)
+        if self.queue_feedback:
+            items.append(self.queue_feedback)
         if self.queue_len:
-            return "Queue length: %i" % self.queue_len
-        else:
-            return ''
+            items.append("%i queued" % self.queue_len)
+        return '    |    '.join(items)
 
     @cached_property
     def _get_rotation(self):
@@ -1624,9 +1628,7 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
                 2 * _COREG_WIDTH * np.sign(_COREG_WIDTH),
                 height=scene_height,
                 statusbar=[StatusItem('status_text', width=0.55),
-                           StatusItem('queue_feedback', width=0.2),
-                           StatusItem('queue_current', width=0.2),
-                           StatusItem('queue_len_str', width=0.05)])
+                           StatusItem('queue_status_text', width=0.45)])
     return view
 
 
@@ -1749,9 +1751,7 @@ class CoregFrame(HasTraits):
     scale_by_distance = DelegatesTo('hsp_obj')
     mark_inside = DelegatesTo('hsp_obj')
     status_text = DelegatesTo('model')
-    queue_feedback = Str()
-    queue_current = Str()
-    queue_len_str = Str()
+    queue_status_text = DelegatesTo('coreg_panel')
 
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
@@ -1815,9 +1815,6 @@ class CoregFrame(HasTraits):
                                     interaction=interaction,
                                     scale=scale)
         self._locked_opacity = self._initial_kwargs['head_opacity']
-        for key in ('status_text', 'queue_feedback', 'queue_current',
-                    'queue_len_str'):
-            self.coreg_panel.sync_trait(key, self, mutual=False)
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
