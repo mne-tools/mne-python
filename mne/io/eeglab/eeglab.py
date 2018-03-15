@@ -523,7 +523,7 @@ def _hlGroup_2_bunch_list(orig, in_hlGroup, tuple_name, indent):
         derefs = {ct: [None] for ct in in_hlGroup}
         warn("Couldn't read", tuple_name, ". Assuming empty")
 
-    sz = len(derefs[derefs.keys()[0]])
+    sz = len(derefs[list(derefs.keys())[0]])
     bch_list = [Bunch(**{key: derefs[key][x] for key in derefs})
                 for x in range(sz)]
     return bch_list
