@@ -72,7 +72,7 @@ class CrossSpectralDensity(object):
         if len(ch_names) != _n_dims_from_triu(len(data)):
             raise ValueError('Number of ch_names does not match the number of '
                              'time series in the CSD matrix.')
-        self.ch_names = ch_names
+        self.ch_names = list(ch_names)
         self.tmin = tmin
         self.tmax = tmax
 
