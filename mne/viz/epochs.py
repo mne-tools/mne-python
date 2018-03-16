@@ -16,15 +16,14 @@ import copy
 import numpy as np
 
 from ..utils import verbose, get_config, set_config, logger, warn
-from ..io.pick import pick_types, channel_type
+from ..io.pick import pick_types, channel_type, _get_channel_types
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _grad_pair_pick_and_name, _handle_decim,
-                    _setup_plot_projector, _set_ax_label_style,
-                    _get_channel_types)
+                    _setup_plot_projector, _set_ax_label_style)
 from .misc import _handle_event_colors
 from ..defaults import _handle_default
 from ..externals.six import string_types

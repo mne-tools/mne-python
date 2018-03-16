@@ -24,14 +24,13 @@ from ..utils import logger, verbose, _time_mask, check_fname, sizeof_fmt
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, pick_types, _pick_data_channels,
-                       channel_type, _pick_inst)
+                       channel_type, _pick_inst, _get_channel_types)
 from ..io.meas_info import Info
 from ..utils import SizeMixin
 from .multitaper import dpss_windows
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
-                         _setup_vmin_vmax, _get_channel_types,
-                         _set_title_multiple_electrodes)
+                         _setup_vmin_vmax, _set_title_multiple_electrodes)
 from ..externals.h5io import write_hdf5, read_hdf5
 from ..externals.six import string_types
 
@@ -1425,7 +1424,7 @@ class AverageTFR(_BaseTFR):
         timefreqs_array = np.array([np.array(keys) for keys in timefreqs])
         order = timefreqs_array[:, 0].argsort()  # sort by time
 
-        for time, freq in timefreqs_array[order]:
+        for ii, (time, freq) in enumerate(timefreqs_array[order]):
             avg = timefreqs[(time, freq)]
             # set up symmetric windows
             time_half_range, freq_half_range = avg / 2.
@@ -1453,6 +1452,9 @@ class AverageTFR(_BaseTFR):
             vlims.append(np.abs(data).max())
             titles.append(sub_map_title)
             all_data.append(data)
+            new_t = tfr.times[np.abs(tfr.times - np.median([times])).argmin()]
+            new_f = tfr.freqs[np.abs(tfr.freqs - np.median([freqs])).argmin()]
+            timefreqs_array[ii] = (new_t, new_f)
 
         # passing args to the topomap calls
         if topomap_args is None:
@@ -1461,7 +1463,6 @@ class AverageTFR(_BaseTFR):
 
         topomap_args["vmin"] = vmin = topomap_args.get('vmin', -max(vlims))
         topomap_args["vmax"] = vmax = topomap_args.get('vmax', max(vlims))
-        print(topomap_args["vmax"])
         locator, contours = _set_contour_locator(vmin, vmax, contours)
 
         topomap_args_pass = {k: v for k, v in topomap_args.items() if
@@ -1473,8 +1474,8 @@ class AverageTFR(_BaseTFR):
             ax.set_title(title)
             plot_topomap(data.mean(-1).mean(-1),
                          tfr.info if layout is None else layout.pos,
-                         cmap=cmap[0], axes=ax,
-                         show=False, **topomap_args_pass)
+                         cmap=cmap[0], axes=ax, show=False,
+                         **topomap_args_pass)
 
         #############
         # Finish up #

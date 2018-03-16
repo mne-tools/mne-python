@@ -19,7 +19,7 @@ import numpy as np
 
 from ..io.pick import (channel_type, _pick_data_channels,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
-                       _DATA_CH_TYPES_SPLIT, _pick_inst)
+                       _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
@@ -27,8 +27,8 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _setup_vmin_vmax, _grad_pair_pick_and_name, _check_cov,
                     _validate_if_list_of_axes, _triage_rank_sss,
                     _connection_line, COLORS, _setup_ax_spines,
-                    _setup_plot_projector, _get_channel_types,
-                    _prepare_joint_axes, _set_title_multiple_electrodes)
+                    _setup_plot_projector, _prepare_joint_axes,
+                    _set_title_multiple_electrodes)
 from ..utils import logger, _clean_names, warn, _pl, verbose
 
 from .topo import _plot_evoked_topo

@@ -777,3 +777,15 @@ def _pick_inst(inst, picks, exclude, copy=True):
     if exclude is not None:
         inst.drop_channels(exclude)
     return inst
+
+
+def _get_channel_types(info, picks=None, unique=True,
+                       restrict_data_types=False):
+    """Get the data channel types in an info instance."""
+    picks = range(info['nchan']) if picks is None else picks
+    ch_types = [channel_type(info, idx) for idx in range(info['nchan'])
+                if idx in picks]
+    if restrict_data_types is True:
+        ch_types = [ch_type for ch_type in ch_types
+                    if ch_type not in _DATA_CH_TYPES_SPLIT]
+    return set(ch_types) if unique is True else ch_types
