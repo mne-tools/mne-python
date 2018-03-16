@@ -462,7 +462,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            vertices = [np.asarray(v) for v in vertices]
+            vertices = [np.asarray(v, int) for v in vertices]
             if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
                 raise ValueError('Vertices must be ordered in increasing '
                                  'order.')
