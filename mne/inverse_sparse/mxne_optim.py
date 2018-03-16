@@ -768,7 +768,7 @@ def norm_l1_tf(Z, shape, n_orient):
     return l1_norm
 
 
-def norm_epsilon(Y, l1_ratio, n_freqs):
+def norm_epsilon(Y, l1_ratio, n_steps):
     """Dual norm of (1. - l1_ratio) * L2 norm + l1_ratio * L1 norm, at Y.
 
     This is the unique solution in nu of
@@ -776,11 +776,13 @@ def norm_epsilon(Y, l1_ratio, n_freqs):
 
     Parameters
     ----------
-    Y : array, shape (n_atoms,)
+    Y : array, shape (n_freqs * n_steps,)
         The input data.
     l1_ratio : float between 0 and 1
         Tradeoff between L2 and L1 regularization. When it is 0, no temporal
         regularization is applied.
+    n_steps : int
+        The number of TF coefficents per frequency.
 
     Returns
     -------
@@ -793,7 +795,6 @@ def norm_epsilon(Y, l1_ratio, n_freqs):
        "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
        Information Processing Systems (NIPS), 2016.
     """
-    n_coefs = Y.shape[0] // n_freqs
     # since the solution is invariant to flipped signs in Y, all entries
     # of Y are assumed positive
     norm_inf_Y = np.max(Y)
@@ -804,7 +805,8 @@ def norm_epsilon(Y, l1_ratio, n_freqs):
         # dual norm of L2 is L2
         # Can't use stft_norm2 as Y is 1D.
         # Count all freqs twice except first and last.
-        return np.sqrt(2. * (Y ** 2).sum() - (Y[:n_coefs] ** 2).sum() - (Y[-n_coefs:] ** 2).sum())
+        return np.sqrt(2. * (Y ** 2).sum() - (Y[:n_steps] ** 2).sum() -
+                       (Y[-n_steps:] ** 2).sum())
 
     if norm_inf_Y == 0.:
         return 0.
@@ -818,8 +820,8 @@ def norm_epsilon(Y, l1_ratio, n_freqs):
     # count all freqs twice except first and last:
     weights = np.empty(len(Y), dtype=int)
     weights.fill(2)
-    weights[:n_coefs] = 1
-    weights[-n_coefs:] = 1
+    weights[:n_steps] = 1
+    weights[-n_steps:] = 1
 
     # sort both Y and weights at the same time
     idx_sort = np.argsort(Y[idx])[::-1]
@@ -865,7 +867,7 @@ def norm_epsilon(Y, l1_ratio, n_freqs):
         return (l1_ratio * p_sum - np.sqrt(delta)) / denom
 
 
-def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freqs):
+def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
     """epsilon-inf norm of phi(np.dot(G.T, R)).
 
     Parameters
@@ -888,6 +890,8 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freqs):
         The maximum value of the epsilon norms over groups of n_orient dipoles.
     """
     n_positions = G.shape[1] // n_orient
+    n_times = R.shape[1]
+    n_steps = int(np.ceil(n_times / float(phi.tstep)))
     GTRPhi = np.abs(phi(np.dot(G.T, R))) ** 2
     # norm over orientations:
     GTRPhi = np.sqrt(np.sum(GTRPhi.reshape((n_orient, -1), order='F'),
@@ -897,7 +901,7 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freqs):
         GTRPhi_ = GTRPhi[idx]
         # norm_epsilon(GTRPhi_, l1_ratio) < max(GTRPhi_), maybe skip this group
         # if nu < np.max(GTRPhi_) / l1_ratio:
-        norm_eps = norm_epsilon(GTRPhi_, l1_ratio, n_freqs)
+        norm_eps = norm_epsilon(GTRPhi_, l1_ratio, n_steps)
         if norm_eps > nu:
             nu = norm_eps
 
@@ -957,7 +961,6 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
        convex sets", Advances in Neural Information Processing Systems (NIPS),
        vol. 27, pp. 2132-2140, 2014.
     """
-    n_freqs = shape[-1]
     X = phiT(Z)
     GX = np.dot(G[:, active_set], X)
     R = M - GX
@@ -967,7 +970,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
 
     l1_ratio = alpha_time / (alpha_space + alpha_time)
-    dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient, n_freqs)
+    dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient)
     scaling = min(1., (alpha_space + alpha_time) / dual_norm)
 
     d_obj = (scaling - 0.5 * (scaling ** 2)) * nR2 + scaling * np.sum(R * GX)

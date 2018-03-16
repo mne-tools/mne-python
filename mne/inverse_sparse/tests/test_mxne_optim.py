@@ -127,19 +127,19 @@ def test_dgapl21l1():
     n_times = M.shape[1]
     n_sources = G.shape[1]
     tstep, wsize = 4, 32
-    n_step = int(np.ceil(n_times / float(tstep)))
-    n_freq = wsize // 2 + 1
-    n_coefs = n_step * n_freq
+    n_steps = int(np.ceil(n_times / float(tstep)))
+    n_freqs = wsize // 2 + 1
+    n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
-    phiT = _PhiT(tstep, n_freq, n_step, n_times)
+    phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
 
     for l1_ratio in [0.1, 0.3, 0.5, 0.8]:
-        alpha_max = norm_epsilon_inf(G, M, phi, l1_ratio, n_orient, n_freq)
+        alpha_max = norm_epsilon_inf(G, M, phi, l1_ratio, n_orient)
         alpha_space = (1. - l1_ratio) * alpha_max
         alpha_time = l1_ratio * alpha_max
 
         Z = np.zeros([n_sources, n_coefs])
-        shape = (-1, n_step, n_freq)
+        shape = (-1, n_steps, n_freqs)
         # for alpha = alpha_max, Z = 0 is the solution so the dgap is 0
         gap = dgap_l21l1(M, G, Z, np.ones(n_sources, dtype=bool),
                          alpha_space, alpha_time, phi, phiT, shape, n_orient,
@@ -151,14 +151,16 @@ def test_dgapl21l1():
             M, G, alpha_space / 1.01, alpha_time / 1.01, maxit=200, tol=1e-8,
             verbose=True, debias=False, n_orient=n_orient, tstep=tstep,
             wsize=wsize, return_gap=True)
-        assert_array_less(0, gap)
+        assert_array_less(-1e-10, gap)
+        assert_array_less(gap, 1e-8)
         assert_array_less(1, len(active_set_hat_tf))
 
         X_hat_tf, active_set_hat_tf, E, gap = tf_mixed_norm_solver(
             M, G, alpha_space / 10, alpha_time / 10, maxit=200, tol=1e-8,
             verbose=True, debias=False, n_orient=n_orient, tstep=tstep,
             wsize=wsize, return_gap=True)
-        assert_array_less(0, gap)
+        assert_array_less(-1e-10, gap)
+        assert_array_less(gap, 1e-8)
         assert_array_less(1, len(active_set_hat_tf))
 
 
