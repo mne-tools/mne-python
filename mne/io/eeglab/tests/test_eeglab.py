@@ -21,7 +21,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.eeglab.eeglab import read_events_eeglab, _get_eeg_data
 from mne.io.eeglab import read_annotations_eeglab
 from mne.datasets import testing
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, requires_h5py
 
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -42,6 +42,7 @@ def test_io_set():
 
 
 @testing.requires_testing_data
+@requires_h5py
 def _test_io_set(use_hdf=True):
     """Test importing EEGLAB .set files."""
     global raw_fname
