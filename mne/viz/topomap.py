@@ -827,7 +827,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       show=show)[0]
     if colorbar:
         cbar, cax =_add_colorbar(axes, im, cmap, pad=.05, title="AU",
-                            format='%3.2f')
+                                 format='%3.2f')
         cbar.ax.tick_params(labelsize=12)
         cbar.set_ticks((vmin_, vmax_))
     _hide_frame(axes)
