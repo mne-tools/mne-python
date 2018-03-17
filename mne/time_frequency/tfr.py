@@ -1207,7 +1207,7 @@ class AverageTFR(_BaseTFR):
                     title = tfr.info['ch_names'][0]
                 else:
                     title = _set_title_multiple_electrodes(
-                        title, combine, tfr.info["ch_names"])
+                        title, combine, tfr.info["ch_names"], all=True)
 
             if title:
                 fig.suptitle(title)
@@ -1550,7 +1550,8 @@ class AverageTFR(_BaseTFR):
             data = data.mean(-1).mean(-1)
             vmax = np.abs(data).max()
             im, _ = plot_topomap(data, self.info, vmin=-vmax, vmax=vmax,
-                                 cmap=cmap[0], axes=ax, **topomap_args, show=False)
+                                 cmap=cmap[0], axes=ax, show=False,
+                                 **topomap_args)
             _add_colorbar(ax, im, cmap, title="AU", pad=.1)
             fig.show()
         else:

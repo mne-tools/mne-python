@@ -116,7 +116,8 @@ plt.show()
 
 ###############################################################################
 # You can also create a joint plot that contains both the aggregated TFR
-# across channels and topomaps at specific times and frequencies.
+# across channels and topomaps at specific times and frequencies to obtain
+# a quick overview regarding oscillatory effects across time and space.
 
 power.plot_joint(baseline=(-0.5, 0), mode='mean', tmin=-.5, tmax=2,
                  timefreqs=[(.5, 10), (1.3, 8)])

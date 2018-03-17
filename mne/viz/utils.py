@@ -2496,10 +2496,14 @@ def _check_cov(noise_cov, info):
     return noise_cov
 
 
-def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6):
+def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
+                                   all=False):
     """Prepare a title string for multiple electrodes."""
     title = ", ".join(ch_names[:max_chans]) if title is None else title
-    if len(ch_names) > max_chans and combine is not "gfp":
+    if all is True and isinstance(combine, string_types):
+        combine = combine[0].upper() + combine[1:]
+        title = "{} of {} sensors".format(combine, len(ch_names))
+    elif len(ch_names) > max_chans and combine is not "gfp":
         warn("More than {} channels, truncating title ...".format(max_chans))
         title += ", ...\n({} of {} sensors)".format(combine, len(ch_names))
     return title
