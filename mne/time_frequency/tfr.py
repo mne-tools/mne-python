@@ -1139,8 +1139,7 @@ class AverageTFR(_BaseTFR):
                           vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
                           colorbar=colorbar, show=show, title=title,
                           axes=axes, layout=layout, yscale=yscale,
-                          combine=combine, exclude=exclude,
-                          verbose=verbose)
+                          combine=combine, exclude=exclude, verbose=verbose)
 
     @verbose
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
@@ -1148,7 +1147,7 @@ class AverageTFR(_BaseTFR):
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
               axes=None, layout=None, yscale='auto', combine=None,
               exclude=None, copy=True, source_plot_joint=False,
-              topomap_args=None, verbose=None):
+              topomap_args=dict(), verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
