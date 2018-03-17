@@ -826,8 +826,8 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       sensors=sensors, image_interp=image_interp,
                       show=show)[0]
     if colorbar:
-        cbar, cax =_add_colorbar(axes, im, cmap, pad=.05, title="AU",
-                                 format='%3.2f')
+        cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
+                                  format='%3.2f')
         cbar.ax.tick_params(labelsize=12)
         cbar.set_ticks((vmin_, vmax_))
     _hide_frame(axes)
@@ -1654,6 +1654,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
         if unit is not None:
             cbar.ax.set_title(unit, fontsize=8)
         cbar.ax.tick_params(labelsize=8)
+
 
 @verbose
 def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
