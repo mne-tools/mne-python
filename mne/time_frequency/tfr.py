@@ -1147,7 +1147,8 @@ class AverageTFR(_BaseTFR):
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
               axes=None, layout=None, yscale='auto', combine=None,
-              exclude=None, copy=True, verbose=None):
+              exclude=None, copy=True, source_plot_joint=False,
+              topomap_args=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1191,8 +1192,10 @@ class AverageTFR(_BaseTFR):
             else:
                 ax = axes[idx]
                 fig = ax.get_figure()
-            onselect_callback = partial(tfr._onselect, baseline=baseline,
-                                        mode=mode, layout=layout)
+            onselect_callback = partial(
+                tfr._onselect, cmap=cmap, source_plot_joint=source_plot_joint,
+                topomap_args={k: v for k, v in topomap_args.items()
+                              if k not in {"vmin", "vmax", "cmap", "axes"}})
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=tfr.freqs,
                         x_label='Time (s)', y_label='Frequency (Hz)',
@@ -1378,6 +1381,13 @@ class AverageTFR(_BaseTFR):
         timefreqs = _get_timefreqs(tfr, timefreqs)
         n_timefreqs = len(timefreqs)
 
+        if topomap_args is None:
+            topomap_args = dict()
+        topomap_args_pass = {k: v for k, v in topomap_args.items() if
+                             k not in ('axes', 'show', 'colorbar')}
+        topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
+        topomap_args_pass["contours"] = topomap_args.get('contours', 6)
+
         ##############
         # Image plot #
         ##############
@@ -1393,7 +1403,8 @@ class AverageTFR(_BaseTFR):
             picks=None, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
             colorbar=False, show=False, title=title, axes=tf_ax, layout=layout,
-            yscale=yscale, combine=combine, exclude=None, copy=False)
+            yscale=yscale, combine=combine, exclude=None, copy=False,
+            source_plot_joint=True, topomap_args=topomap_args_pass)
 
         # set and check time and freq limits ...
         # can only do this after the tfr plot because it may change these
@@ -1407,8 +1418,8 @@ class AverageTFR(_BaseTFR):
                 error_value = "frequency (" + str(freq) + " Hz)"
             else:
                 continue
-            raise ValueError("Requesting a " + error_value + " not present "
-                             "in the data. Choose different `timefreqs`.")
+            raise ValueError("Requested " + error_value + " exceeds the range"
+                             "of the data. Choose different `timefreqs`.")
 
         ############
         # Topomaps #
@@ -1457,17 +1468,11 @@ class AverageTFR(_BaseTFR):
             timefreqs_array[ii] = (new_t, new_f)
 
         # passing args to the topomap calls
-        if topomap_args is None:
-            topomap_args = dict()
-        contours = topomap_args.get('contours', 6)
-
-        topomap_args["vmin"] = vmin = topomap_args.get('vmin', -max(vlims))
-        topomap_args["vmax"] = vmax = topomap_args.get('vmax', max(vlims))
-        locator, contours = _set_contour_locator(vmin, vmax, contours)
-
-        topomap_args_pass = {k: v for k, v in topomap_args.items() if
-                             k not in ('axes', 'show', 'colorbar')}
-        topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
+        max_lim = max(vlims)
+        topomap_args_pass["vmin"] = vmin = topomap_args.get('vmin', -max_lim)
+        topomap_args_pass["vmax"] = vmax = topomap_args.get('vmax', max_lim)
+        locator, contours = _set_contour_locator(
+            vmin, vmax, topomap_args_pass["contours"])
         topomap_args_pass['contours'] = contours
 
         for ax, title, data in zip(map_ax, titles, all_data):
@@ -1501,9 +1506,11 @@ class AverageTFR(_BaseTFR):
         plt_show(show)
         return fig
 
-    def _onselect(self, eclick, erelease, baseline, mode, layout):
+    def _onselect(self, eclick, erelease, baseline=None, mode=None,
+                  layout=None, cmap=None, source_plot_joint=False,
+                  topomap_args=None):
         """Handle rubber band selector in channel tfr."""
-        from ..viz import plot_tfr_topomap
+        from ..viz.topomap import plot_tfr_topomap, plot_topomap, _add_colorbar
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
             return
         tmin = round(min(eclick.xdata, erelease.xdata), 5)  # s
@@ -1530,16 +1537,29 @@ class AverageTFR(_BaseTFR):
                 types.append('grad')
             elif len(types) == 0:
                 return  # Don't draw a figure for nothing.
+
         fig = figure_nobar()
         fig.suptitle('{0:.2f} s - {1:.2f} s, {2:.2f} Hz - {3:.2f} Hz'.format(
             tmin, tmax, fmin, fmax), y=0.04)
-        for idx, ch_type in enumerate(types):
-            ax = fig.add_subplot(1, len(types), idx + 1)
-            plot_tfr_topomap(self, ch_type=ch_type, tmin=tmin, tmax=tmax,
-                             fmin=fmin, fmax=fmax, layout=layout,
-                             baseline=baseline, mode=mode, cmap=None,
-                             title=ch_type, vmin=None, vmax=None,
-                             axes=ax)
+
+        if source_plot_joint:
+            ax = fig.add_subplot(111)
+            data = _preproc_tfr(
+                self.data, self.times, self.freqs, tmin, tmax, fmin, fmax,
+                None, None, None, None, None, self.info['sfreq'])[0]
+            data = data.mean(-1).mean(-1)
+            vmax = np.abs(data).max()
+            im, _ = plot_topomap(data, self.info, vmin=-vmax, vmax=vmax,
+                                 cmap=cmap[0], axes=ax, **topomap_args, show=False)
+            _add_colorbar(ax, im, cmap, title="AU", pad=.1)
+            fig.show()
+        else:
+            for idx, ch_type in enumerate(types):
+                ax = fig.add_subplot(1, len(types), idx + 1)
+                plot_tfr_topomap(self, ch_type=ch_type, tmin=tmin, tmax=tmax,
+                                 fmin=fmin, fmax=fmax, layout=layout,
+                                 baseline=baseline, mode=mode, cmap=None,
+                                 title=ch_type, vmin=None, vmax=None, axes=ax)
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
