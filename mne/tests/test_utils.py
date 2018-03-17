@@ -22,7 +22,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        _check_type_picks, object_hash, object_diff,
                        requires_good_network, run_tests_if_main, md5sum,
                        ArgvSetter, _memory_usage, check_random_state,
-                       _check_mayavi_version, requires_mayavi,
+                       _check_mayavi_version, requires_mayavi, traits_test,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
                        create_slices, _time_mask, random_permutation,
                        _get_call_line, compute_corr, sys_info, verbose,
@@ -155,6 +155,7 @@ def test_misc():
 
 
 @requires_mayavi
+@traits_test
 def test_check_mayavi():
     """Test mayavi version check."""
     assert_raises(RuntimeError, _check_mayavi_version, '100.0.0')

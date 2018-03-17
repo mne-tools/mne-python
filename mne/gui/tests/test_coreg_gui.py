@@ -19,7 +19,7 @@ import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.transforms import invert_transform
-from mne.utils import _TempDir, run_tests_if_main, requires_mayavi
+from mne.utils import _TempDir, run_tests_if_main, requires_mayavi, traits_test
 from mne.externals.six import string_types
 
 # backend needs to be set early
@@ -42,6 +42,7 @@ warnings.simplefilter('always')
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_coreg_model_decimation():
     """Test CoregModel decimation of high-res to low-res head."""
     from mne.gui._coreg_gui import CoregModel
@@ -66,6 +67,7 @@ def test_coreg_model_decimation():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_coreg_model():
     """Test CoregModel."""
     from mne.gui._coreg_gui import CoregModel
@@ -182,6 +184,7 @@ def _check_ci():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_coreg_gui():
     """Test CoregFrame."""
     _check_ci()
@@ -251,6 +254,7 @@ def test_coreg_gui():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_coreg_model_with_fsaverage():
     """Test CoregModel with the fsaverage brain data."""
     tempdir = _TempDir()

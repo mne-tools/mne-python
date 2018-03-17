@@ -11,7 +11,7 @@ from nose.tools import assert_equal, assert_false, assert_raises, assert_true
 from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
 from mne.utils import (_TempDir, requires_freesurfer, requires_mayavi,
-                       run_tests_if_main)
+                       run_tests_if_main, traits_test)
 from mne.channels import read_dig_montage
 
 data_path = testing.data_path(download=False)
@@ -24,6 +24,7 @@ fid_path = os.path.join(fiff_data_dir, 'fsaverage-fiducials.fif')
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_bem_source():
     """Test SurfaceSource."""
     from mne.gui._file_traits import SurfaceSource
@@ -39,6 +40,7 @@ def test_bem_source():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_fiducials_source():
     """Test FiducialsSource."""
     from mne.gui._file_traits import FiducialsSource
@@ -57,6 +59,7 @@ def test_fiducials_source():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_inst_source():
     """Test DigSource."""
     from mne.gui._file_traits import DigSource
@@ -86,6 +89,7 @@ def test_inst_source():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_subject_source():
     """Test SubjectSelector."""
     from mne.gui._file_traits import MRISubjectSource
@@ -98,6 +102,7 @@ def test_subject_source():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 @requires_freesurfer
 def test_subject_source_with_fsaverage():
     """Test SubjectSelector."""
