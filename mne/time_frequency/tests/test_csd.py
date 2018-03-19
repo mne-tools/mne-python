@@ -17,7 +17,6 @@ from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 pick_channels_csd)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
 
-warnings.simplefilter('always')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
@@ -547,9 +546,6 @@ def _generate_simple_data():
 
 def test_csd_epochs():
     """Test computing cross-spectral density from epochs."""
-    # Ignore deprecation warnings for this the test
-    warnings.filterwarnings('ignore', category=DeprecationWarning)
-
     epochs = _get_real_data()
 
     # Check that wrong parameters are recognized
@@ -561,11 +557,12 @@ def test_csd_epochs():
     raises(ValueError, csd_epochs, epochs, tmin=10, tmax=11)
 
     # Test deprecation warning
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True) as ws:
         warnings.simplefilter('always')
         csd_mt = csd_epochs(epochs, mode='multitaper', fmin=8, fmax=12,
                             tmin=0.04, tmax=0.15)
-    assert len(w) == 1
+    assert len([w for w in ws
+                if issubclass(w.category, DeprecationWarning)]) == 1
 
     csd_fourier = csd_epochs(epochs, mode='fourier', fmin=8, fmax=12,
                              tmin=0.04, tmax=0.15)
@@ -615,15 +612,9 @@ def test_csd_epochs():
     csd_sum = csds._data.sum(axis=1, keepdims=True)
     assert_array_equal(csd_fsum._data, csd_sum)
 
-    # Turn deprecation warnings back on
-    warnings.simplefilter('always')
-
 
 def test_csd_epochs_on_artificial_data():
     """Test computing CSD on artificial data."""
-    # Ignore deprecation warnings for this test
-    warnings.filterwarnings('ignore', category=DeprecationWarning)
-
     epochs = _generate_simple_data()
     sfreq = epochs.info['sfreq']
 
@@ -671,15 +662,9 @@ def test_csd_epochs_on_artificial_data():
             assert abs(signal_power_per_sample -
                        mt_power_per_sample) < delta
 
-    # Turn deprecation warnings back on
-    warnings.simplefilter('always')
-
 
 def test_compute_csd():
     """Test computing cross-spectral density from ndarray."""
-    # Ignore deprecation warnings for this the test
-    warnings.filterwarnings('ignore', category=DeprecationWarning)
-
     epochs = _get_real_data()
 
     tmin = 0.04
@@ -712,10 +697,11 @@ def test_compute_csd():
     raises(ValueError, csd_array, X, sfreq, fmin=20, fmax=20.1)
 
     # Test deprecation warning
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True) as ws:
         warnings.simplefilter('always')
         csd_mt = csd_array(X, sfreq, mode='multitaper', fmin=8, fmax=12)
-    assert len(w) == 1
+    assert len([w for w in ws
+                if issubclass(w.category, DeprecationWarning)]) == 1
 
     csd_fourier = csd_array(X, sfreq, mode='fourier', fmin=8, fmax=12)
 
@@ -773,14 +759,10 @@ def test_compute_csd():
     assert_array_equal(csd_fsum.frequencies[0], csds.frequencies)
     assert_array_equal(csd_fsum._data, csds._data.sum(axis=1, keepdims=True))
 
-    # Turn deprecation warnings back on
-    warnings.simplefilter('always')
-
 
 def test_csd_on_artificial_data():
     """Test computing CSD on artificial data. """
     # Ignore deprecation warnings for this test
-    warnings.filterwarnings('ignore', category=DeprecationWarning)
     epochs = _generate_simple_data()
     sfreq = epochs.info['sfreq']
 
@@ -830,9 +812,6 @@ def test_csd_on_artificial_data():
                 delta = 0.004
             assert abs(signal_power_per_sample -
                        mt_power_per_sample) < delta
-
-    # Turn deprecation warnings back on
-    warnings.simplefilter('always')
 
 
 run_tests_if_main()
