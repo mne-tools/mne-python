@@ -29,13 +29,13 @@ def _make_csd():
     names = ['CH1', 'CH2', 'CH3']
     tmin, tmax = (0., 1.)
     data = np.arange(6. * n_freqs).reshape(n_freqs, 6).T
-    return CrossSpectralDensity(data, names, tmin, tmax, frequencies, 1)
+    return CrossSpectralDensity(data, names, frequencies, 1, tmin, tmax)
 
 
 def test_csd():
     """Test constructing a CrossSpectralDensity."""
-    csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'], tmin=0, tmax=1,
-                               frequencies=1, n_fft=1)
+    csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'], frequencies=1,
+                               n_fft=1, tmin=0, tmax=1)
     assert_array_equal(csd._data, [[1], [2], [3]])  # Conversion to 2D array
     assert_array_equal(csd.frequencies, [1])  # Conversion to 1D array
 
@@ -51,8 +51,8 @@ def test_csd():
            tmin=0, tmax=1, frequencies=1, n_fft=1)
 
     # Invalid dims
-    raises(ValueError, CrossSpectralDensity, [[[1]]], ['CH1'], tmin=0, tmax=1,
-           frequencies=1, n_fft=1)
+    raises(ValueError, CrossSpectralDensity, [[[1]]], ['CH1'], frequencies=1,
+           n_fft=1, tmin=0, tmax=1)
 
 
 def test_csd_repr():
@@ -73,6 +73,14 @@ def test_csd_repr():
     assert str(csd_binned) == ('<CrossSpectralDensity  |  n_channels=3, '
                                'time=0.0 to 1.0 s, frequencies=1.0, 2.0-4.0 '
                                'Hz.>')
+
+    csd_no_time = csd.copy()
+    csd_no_time.tmin = None
+    csd_no_time.tmax = None
+    assert str(csd_no_time) == (
+        '<CrossSpectralDensity  |  n_channels=3, time=unknown, '
+        'frequencies=1.0, 2.0, 3.0, 4.0 Hz.>'
+    )
 
 
 def test_csd_mean():
@@ -111,7 +119,7 @@ def test_csd_mean():
     )
 
     # This flag should be set after averaging
-    assert csd.mean().is_sum
+    assert csd.mean()._is_sum
 
     # Test construction of .frequency attribute
     assert csd.mean().frequencies == [[1, 2, 3, 4]]
@@ -225,7 +233,7 @@ def test_csd_save():
     assert csd.tmax == csd2.tmax
     assert csd.ch_names == csd2.ch_names
     assert csd.frequencies == csd2.frequencies
-    assert csd.is_sum == csd2.is_sum
+    assert csd._is_sum == csd2._is_sum
 
 
 def test_csd_pickle():
@@ -242,7 +250,7 @@ def test_csd_pickle():
     assert csd.tmax == csd2.tmax
     assert csd.ch_names == csd2.ch_names
     assert csd.frequencies == csd2.frequencies
-    assert csd.is_sum == csd2.is_sum
+    assert csd._is_sum == csd2._is_sum
 
 
 def test_pick_channels_csd():

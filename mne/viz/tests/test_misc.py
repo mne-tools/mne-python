@@ -174,8 +174,9 @@ def test_plot_dipole_amplitudes():
 
 def test_plot_csd():
     """Test plotting of CSD matrices."""
-    csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'], tmin=0, tmax=1,
-                               frequencies=[(10, 20)], n_fft=1)
+    csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'],
+                               frequencies=[(10, 20)], n_fft=1,
+                               tmin=0, tmax=1,)
     plot_csd(csd, mode='csd')  # Plot cross-spectral density
     plot_csd(csd, mode='coh')  # Plot coherence
     plt.close('all')

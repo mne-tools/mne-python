@@ -1004,7 +1004,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
                            vmax=vmax)
             ax.set_xticks([])
             ax.set_yticks([])
-            if csd.is_sum:
+            if csd._is_sum:
                 ax.set_title('%.1f-%.1f Hz.' % (np.min(freq),
                                                 np.max(freq)))
             else:
