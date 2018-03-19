@@ -36,10 +36,6 @@ class CrossSpectralDensity(object):
         For each frequency, the cross-spectral density matrix in vector format.
     ch_names : list of string
         List of string names for each channel.
-    tmin : float
-        Start of the time window for which CSD was calculated in seconds.
-    tmax : float
-        End of the time window for which CSD was calculated in seconds.
     frequencies : float | list of float | list of list of float
         Frequency or frequencies for which the CSD matrix was calculated. When
         averaging across frequencies (see the :func:`CrossSpectralDensity.mean`
@@ -49,6 +45,13 @@ class CrossSpectralDensity(object):
     n_fft : int
         The number of FFT points or samples that have been used in the
         computation of this CSD.
+    tmin : float | None
+        Start of the time window for which CSD was calculated in seconds. Can
+        be ``None`` (the default) to indicate no timing information is
+        available.
+    tmax : float | None
+        End of the time window for which CSD was calculated in seconds. Can be
+        ``None`` (the default) to indicate no timing information is available.
     projs : list of Projection | None
         List of projectors to apply to timeseries data when using this CSD
         object to compute a DICS beamformer. Defaults to ``None``, which means
@@ -56,12 +59,16 @@ class CrossSpectralDensity(object):
 
     See Also
     --------
-    csd_epochs
-    csd_array
+    csd_fourier
+    csd_multitaper
+    csd_morlet
+    csd_array_fourier
+    csd_array_multitaper
+    csd_array_morlet
     """
 
-    def __init__(self, data, ch_names, tmin, tmax, frequencies, n_fft,
-                 projs=None):
+    def __init__(self, data, ch_names, frequencies, n_fft, tmin=None,
+                 tmax=None, projs=None):
         data = np.asarray(data)
         if data.ndim == 1:
             data = data[:, np.newaxis]
@@ -93,7 +100,7 @@ class CrossSpectralDensity(object):
         return len(self.ch_names)
 
     @property
-    def is_sum(self):
+    def _is_sum(self):
         """Whether the CSD matrix represents a sum (or average) of freqs."""
         # If the CSD is an average, the frequencies will be stored as a list
         # of lists (or like-like objects) instead of plain numbers.
@@ -111,10 +118,15 @@ class CrossSpectralDensity(object):
                 freq_strs.append('{}-{}'.format(np.min(f), np.max(f)))
         freq_str = ', '.join(freq_strs) + ' Hz.'
 
+        if self.tmin is not None and self.tmax is not None:
+            time_str = '{} to {} s'.format(self.tmin, self.tmax)
+        else:
+            time_str = 'unknown'
+
         return (
             '<CrossSpectralDensity  |  '
-            'n_channels={}, time={} to {} s, frequencies={}>'
-        ).format(self.n_channels, self.tmin, self.tmax, freq_str)
+            'n_channels={}, time={}, frequencies={}>'
+        ).format(self.n_channels, time_str, freq_str)
 
     def sum(self, fmin=None, fmax=None):
         """Calculate the sum CSD in the given frequency range(s).
@@ -140,7 +152,7 @@ class CrossSpectralDensity(object):
         csd : Instance of CrossSpectralDensity
             The CSD matrix, summed across the given frequency range(s).
         """
-        if self.is_sum:
+        if self._is_sum:
             raise RuntimeError('This CSD matrix already represents a mean or '
                                'sum across frequencies.')
 
@@ -227,7 +239,7 @@ class CrossSpectralDensity(object):
         index : int
             The index of the frequency nearest to the requested frequency.
         """
-        if self.is_sum:
+        if self._is_sum:
             raise ValueError('This CSD object represents a mean across '
                              'frequencies. Cannot select a specific '
                              'frequency.')
