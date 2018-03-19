@@ -774,7 +774,8 @@ def norm_epsilon(Y, l1_ratio, n_steps):
     This is the unique solution in nu of
     norm(prox_l1(Y, nu * l1_ratio), ord=2) = (1. - l1_ratio) * nu.
 
-    Warning: entries of Y which correspond to frequencies
+    Warning: it takes into account the fact that Y only contains coefficients
+    corresponding to the positive frequencies (see `stft_norm2()`).
 
     Parameters
     ----------
@@ -818,7 +819,7 @@ def norm_epsilon(Y, l1_ratio, n_steps):
     if K == 1:
         return norm_inf_Y
 
-    # count all freqs twice except first and last:
+    # Add negative freqs: count all freqs twice except first and last:
     weights = np.empty(len(Y), dtype=int)
     weights.fill(2)
     weights[:n_steps] = 1
@@ -834,8 +835,6 @@ def norm_epsilon(Y, l1_ratio, n_steps):
     p_sum = np.cumsum(Y[:(K - 1)])
     p_sum_2 = np.cumsum(Y[:(K - 1)] ** 2)
     upper = p_sum_2 / Y[1:] ** 2 - 2. * p_sum / Y[1:] + np.arange(1, K)
-    lower = np.roll(upper, 1)
-    lower[0] = 0.
     in_lower_upper = np.where(upper > (1. - l1_ratio) ** 2 / l1_ratio ** 2)[0]
     if in_lower_upper.size > 0:
         j = in_lower_upper[0] + 1
@@ -862,7 +861,7 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
     G : array, shape (n_sensors, n_sources)
         Gain matrix a.k.a. lead field.
     R : array, shape (n_sensors, n_times)
-        Residuals.
+        Residual.
     phi : instance of _Phi
         The TF operator.
     l1_ratio : float between 0 and 1
@@ -874,7 +873,8 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
     Returns
     -------
     nu : float
-        The maximum value of the epsilon norms over groups of n_orient dipoles.
+        The maximum value of the epsilon norms over groups of n_orient dipoles
+        (consecutive rows of phi(np.dot(G.T, R))).
     """
     n_positions = G.shape[1] // n_orient
     n_times = R.shape[1]
@@ -886,8 +886,6 @@ def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
     nu = 0.
     for idx in range(n_positions):
         GTRPhi_ = GTRPhi[idx]
-        # norm_epsilon(GTRPhi_, l1_ratio) < max(GTRPhi_), maybe skip this group
-        # if nu < np.max(GTRPhi_) / l1_ratio:
         norm_eps = norm_epsilon(GTRPhi_, l1_ratio, n_steps)
         if norm_eps > nu:
             nu = norm_eps
