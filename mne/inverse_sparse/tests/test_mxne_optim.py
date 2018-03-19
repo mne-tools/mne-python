@@ -151,6 +151,7 @@ def test_dgapl21l1():
             M, G, alpha_space / 1.01, alpha_time / 1.01, maxit=200, tol=1e-8,
             verbose=True, debias=False, n_orient=n_orient, tstep=tstep,
             wsize=wsize, return_gap=True)
+        # allow possible small numerical errors (negative gap)
         assert_array_less(-1e-10, gap)
         assert_array_less(gap, 1e-8)
         assert_array_less(1, len(active_set_hat_tf))

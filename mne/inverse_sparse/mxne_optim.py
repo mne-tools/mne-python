@@ -772,7 +772,9 @@ def norm_epsilon(Y, l1_ratio, n_steps):
     """Dual norm of (1. - l1_ratio) * L2 norm + l1_ratio * L1 norm, at Y.
 
     This is the unique solution in nu of
-    norm(prox_l1(Y, nu * l1_ratio), ord=2) = (1. - l1_ratio) * nu
+    norm(prox_l1(Y, nu * l1_ratio), ord=2) = (1. - l1_ratio) * nu.
+
+    Warning: entries of Y which correspond to frequencies
 
     Parameters
     ----------
@@ -782,7 +784,7 @@ def norm_epsilon(Y, l1_ratio, n_steps):
         Tradeoff between L2 and L1 regularization. When it is 0, no temporal
         regularization is applied.
     n_steps : int
-        The number of TF coefficents per frequency.
+        The number of TF coefficients per frequency.
 
     Returns
     -------
@@ -803,7 +805,6 @@ def norm_epsilon(Y, l1_ratio, n_steps):
         return norm_inf_Y
     elif l1_ratio == 0.:
         # dual norm of L2 is L2
-        # Can't use stft_norm2 as Y is 1D.
         # Count all freqs twice except first and last.
         return np.sqrt(2. * (Y ** 2).sum() - (Y[:n_steps] ** 2).sum() -
                        (Y[-n_steps:] ** 2).sum())
@@ -828,41 +829,27 @@ def norm_epsilon(Y, l1_ratio, n_steps):
     Y = Y[idx][idx_sort]
     weights = weights[idx][idx_sort]
 
-    p_sum = 0.  # partial sum
-    p_sum_2 = 0.  # partial sum of squares
-    lower = 0.
-
-    kk = 0
-    exit = False
-    for k in range(K - 1):
-        # process entry k once or twice:
-        for ll in range(weights[k]):
-            p_sum += Y[k]
-            p_sum_2 += Y[k] ** 2
-            if (weights[k] == 2) and (ll == 0):
-                upper = p_sum_2 / Y[k] ** 2 - 2. * p_sum / Y[k] + kk + 1
-            else:
-                upper = p_sum_2 / Y[k + 1] ** 2 - 2. * p_sum / Y[k + 1] + kk + 1
-            if lower <= (1. - l1_ratio) ** 2 / l1_ratio ** 2 < upper:
-                j = kk + 1
-                exit = True
-                break
-            lower = upper
-            kk += 1
-        if exit:
-            break
+    Y = np.repeat(Y, weights)
+    K = Y.shape[0]
+    p_sum = np.cumsum(Y[:(K - 1)])
+    p_sum_2 = np.cumsum(Y[:(K - 1)] ** 2)
+    upper = p_sum_2 / Y[1:] ** 2 - 2. * p_sum / Y[1:] + np.arange(1, K)
+    lower = np.roll(upper, 1)
+    lower[0] = 0.
+    in_lower_upper = np.where(upper > (1. - l1_ratio) ** 2 / l1_ratio ** 2)[0]
+    if in_lower_upper.size > 0:
+        j = in_lower_upper[0] + 1
+        p_sum = p_sum[in_lower_upper[0]]
+        p_sum_2 = p_sum_2[in_lower_upper[0]]
     else:
-        for _ in range(weights[K - 1]):
-            p_sum += Y[K - 1]
-            p_sum_2 += Y[K - 1] ** 2
-            kk += 1
-        j = kk
+        j = K
+        p_sum = p_sum[-1] + Y[K - 1]
+        p_sum_2 = p_sum_2[-1] + Y[K - 1] ** 2
 
     denom = l1_ratio ** 2 * j - (1. - l1_ratio) ** 2
     if np.abs(denom) < 1e-10:
         return p_sum_2 / (2. * l1_ratio * p_sum)
     else:
-        # TODO prove that we cannot get a negative value in the sqrt
         delta = (l1_ratio * p_sum) ** 2 - p_sum_2 * denom
         return (l1_ratio * p_sum - np.sqrt(delta)) / denom
 
@@ -977,7 +964,6 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     d_obj = max(d_obj, highest_d_obj)
 
     gap = p_obj - d_obj
-
     return gap, p_obj, d_obj, R
 
 

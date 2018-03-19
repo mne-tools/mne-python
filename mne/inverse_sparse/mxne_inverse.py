@@ -630,9 +630,9 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     M = np.dot(whitener, M)
 
     # Scaling to make setting of alpha easy
-    n_step = int(np.ceil(M.shape[1] / float(tstep)))
-    n_freq = wsize // 2 + 1
-    n_coefs = n_step * n_freq
+    n_steps = int(np.ceil(M.shape[1] / float(tstep)))
+    n_freqs = wsize // 2 + 1
+    n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
     l1_ratio = alpha_time / (alpha_space + alpha_time)
     alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
