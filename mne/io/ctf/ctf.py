@@ -166,12 +166,12 @@ class RawCTF(BaseRaw):
                 offset += n_read
 
     def _clean_names(self):
-        """Clean up CTF suffixes from channel names."""            
+        """Clean up CTF suffixes from channel names."""
         for comp in self.info['comps']:
             for key in ('row_names', 'col_names'):
                 comp['data'][key] = _clean_names(comp['data'][key])
 
-    def rename_channels(self, mapping, clean_channel_names=True):
+    def rename_channels(self, mapping, clean_channel_names=False):
         """Rename channels and clean up CTF data if needed.
 
         Parameters
@@ -190,9 +190,10 @@ class RawCTF(BaseRaw):
         .. versionadded:: 0.16.0
         """
         super(RawCTF, self).rename_channels(mapping)
-        #cleaning of the channel names
+        # cleaning of the channel names
         if clean_channel_names:
             self._clean_names()
+
 
 def _get_sample_info(fname, res4, system_clock):
     """Determine the number of valid samples."""

@@ -221,26 +221,28 @@ def test_read_ctf():
 @testing.requires_testing_data
 def test_rawctf_rename_channels():
     """Test RawCTF rename_channels mathod"""
-    #read test data
+    # read test data
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch))
     test_channel_names = _clean_names(raw.ch_names)
     test_info_comps = copy.deepcopy(raw.info['comps'])
 
-    #test rename_channels without CTF data cleaning
-    raw.rename_channels(dict(zip(raw.ch_names, test_channel_names)), False)
-    assert array_equal(raw.ch_names, test_channel_names)
-
-    for test_comp, comp in zip(test_info_comps, raw.info['comps']):
-        for key in ('row_names', 'col_names'):
-            assert not array_equal(_clean_names(test_comp['data'][key]), comp['data'][key])
-    
-    #test rename_channels with CTF data cleaning
+    # test rename_channels without CTF data cleaning
     raw.rename_channels(dict(zip(raw.ch_names, test_channel_names)))
     assert array_equal(raw.ch_names, test_channel_names)
 
     for test_comp, comp in zip(test_info_comps, raw.info['comps']):
         for key in ('row_names', 'col_names'):
-            assert array_equal(_clean_names(test_comp['data'][key]), comp['data'][key])
+            assert not array_equal(_clean_names(test_comp['data'][key]),
+                                   comp['data'][key])
+
+    # test rename_channels with CTF data cleaning
+    raw.rename_channels(dict(zip(raw.ch_names, test_channel_names)), True)
+    assert array_equal(raw.ch_names, test_channel_names)
+
+    for test_comp, comp in zip(test_info_comps, raw.info['comps']):
+        for key in ('row_names', 'col_names'):
+            assert array_equal(_clean_names(test_comp['data'][key]),
+                               comp['data'][key])
 
 
 @spm_face.requires_spm_data
