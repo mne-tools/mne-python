@@ -504,8 +504,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   loose='auto', depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
                   wsize=64, tstep=4, window=0.02, return_residual=False,
-                  return_as_dipoles=False, verbose=None, alpha=None,
-                  l1_ratio=None):
+                  return_as_dipoles=False, alpha=None, l1_ratio=None,
+                  verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency

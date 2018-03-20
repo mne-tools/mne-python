@@ -70,11 +70,11 @@ forward = mne.read_forward_solution(fwd_fname)
 ###############################################################################
 # Run solver
 
-# alpha_space regularization parameter is between 0 and 100 (100 is high)
-alpha_space = 30.  # spatial regularization parameter
-# alpha_time parameter promotes temporal smoothness
+# alpha parameter is between 0 and 100 (100 gives 0 active source)
+alpha = 40.  # general regularization parameter
+# l1_ratio parameter between 0 and 1 promotes temporal smoothness
 # (0 means no temporal regularization)
-alpha_time = 1.  # temporal regularization parameter
+l1_ratio = 0.03  # temporal regularization parameter
 
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
 
@@ -86,10 +86,10 @@ stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 
 # Compute TF-MxNE inverse solution with dipole output
 dipoles, residual = tf_mixed_norm(
-    evoked, forward, cov, alpha_space, alpha_time, loose=loose, depth=depth,
+    evoked, forward, cov, None, None, loose=loose, depth=depth,
     maxit=200, tol=1e-6, weights=stc_dspm, weights_min=8., debias=True,
     wsize=16, tstep=4, window=0.05, return_as_dipoles=True,
-    return_residual=True)
+    return_residual=True, alpha=alpha, l1_ratio=l1_ratio)
 
 # Crop to remove edges
 for dip in dipoles:

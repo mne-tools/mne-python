@@ -123,13 +123,14 @@ def test_mxne_inverse():
     assert_equal(stc.vertices, [[63152], [79017]])
 
     # Do with TF-MxNE for test memory savings
-    alpha_space = 60.  # spatial regularization parameter
-    alpha_time = 1.  # temporal regularization parameter
+    alpha = 60.  # overall regularization parameter
+    l1_ratio = 0.01  # temporal regularization proportion
 
-    stc, _ = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
+    stc, _ = tf_mixed_norm(evoked, forward, cov, None, None,
                            loose=loose, depth=depth, maxit=100, tol=1e-4,
                            tstep=4, wsize=16, window=0.1, weights=stc_dspm,
-                           weights_min=weights_min, return_residual=True)
+                           weights_min=weights_min, return_residual=True,
+                           alpha=alpha, l1_ratio=l1_ratio)
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
@@ -191,13 +192,12 @@ def test_mxne_vol_sphere():
     assert_true(np.abs(np.dot(dip_fit.ori[0], dip_mxne.ori[0])) > 0.99)
 
     # Do with TF-MxNE for test memory savings
-    alpha_space = 60.  # spatial regularization parameter
-    alpha_time = 1.  # temporal regularization parameter
+    alpha = 60.  # overall regularization parameter
+    l1_ratio = 0.01  # temporal regularization proportion
 
-    stc, _ = tf_mixed_norm(evoked, fwd, cov, alpha_space, alpha_time,
-                           maxit=3, tol=1e-4,
-                           tstep=16, wsize=32, window=0.1,
-                           return_residual=True)
+    stc, _ = tf_mixed_norm(evoked, fwd, cov, None, None,  maxit=3, tol=1e-4,
+                           tstep=16, wsize=32, window=0.1, alpha=alpha,
+                           l1_ratio=l1_ratio, return_residual=True)
     assert_true(isinstance(stc, VolSourceEstimate))
     assert_array_almost_equal(stc.times, evoked.times, 5)
 
