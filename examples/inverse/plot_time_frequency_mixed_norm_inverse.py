@@ -71,7 +71,7 @@ forward = mne.read_forward_solution(fwd_fname)
 # Run solver
 
 # alpha_space regularization parameter is between 0 and 100 (100 is high)
-alpha_space = 35.  # spatial regularization parameter
+alpha_space = 30.  # spatial regularization parameter
 # alpha_time parameter promotes temporal smoothness
 # (0 means no temporal regularization)
 alpha_time = 1.  # temporal regularization parameter

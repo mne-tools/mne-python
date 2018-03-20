@@ -14,7 +14,7 @@ from ..forward import (compute_orient_prior, is_fixed_orient,
                        convert_forward_solution)
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose
+from ..utils import logger, verbose, warn
 from ..dipole import Dipole
 from ..externals.six.moves import xrange as range
 
@@ -504,7 +504,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   loose='auto', depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
                   wsize=64, tstep=4, window=0.02, return_residual=False,
-                  return_as_dipoles=False, verbose=None):
+                  return_as_dipoles=False, verbose=None, alpha=None,
+                  l1_ratio=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -565,6 +566,13 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    alpha : float in [0, 100] or None
+        If not None and l1_ratio is not None, alpha_space and alpha_time are overriden by
+        alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max * l1_ratio.
+    l1_ratio : float in [0, 1] or None
+        If not None, alpha_space and alpha_time are overriden by
+        alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max * l1_ratio.
+
 
     Returns
     -------
@@ -598,7 +606,24 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     all_ch_names = evoked.ch_names
     info = evoked.info
 
+    if alpha is not None and l1_ratio is not None:
+        old_parametrization = False
+
+        if not (0. <= alpha <= 100.):
+            raise Exception('alpha must be in range [0, 100].'
+                            ' Got alpha = %f' % alpha)
+        if not (0. <= l1_ratio <= 1.):
+            raise Exception('l1_ratio must be in range [0, 1].'
+                            ' Got l1_ratio = %f' % l1_ratio)
+        alpha_space = alpha * (1. - l1_ratio)
+        alpha_time = alpha * l1_ratio
+    else:
+        old_parametrization = True
+        warn('alpha_space and alpha_time are deprecated and will be replaced'
+             ' by alpha and l1_ratio in 0.17.', DeprecationWarning)
+
     if (alpha_space < 0.) or (alpha_space > 100.):
+        old_parametrization = True
         raise Exception('alpha_space must be in range [0, 100].'
                         ' Got alpha_space = %f' % alpha_space)
 
@@ -634,8 +659,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
-    l1_ratio = alpha_time / (alpha_space + alpha_time)
-    alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
+    if old_parametrization:
+        alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos)
+    else:
+        alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
     alpha_max *= 0.01
     gain /= alpha_max
     source_weighting /= alpha_max
