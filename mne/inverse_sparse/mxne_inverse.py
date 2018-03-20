@@ -563,9 +563,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
     alpha : float in [0, 100] or None
         If alpha and l1_ratio are not None, alpha_space and alpha_time are
         overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
@@ -574,6 +571,9 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         If l1_ratio and alpha are not None, alpha_space and alpha_time are
         overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
         * l1_ratio.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
 
     Returns
