@@ -133,7 +133,7 @@ def test_dgapl21l1():
     phi = _Phi(wsize, tstep, n_coefs)
     phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
 
-    for l1_ratio in [0.1, 0.3, 0.5, 0.8]:
+    for l1_ratio in [0.05, 0.1]:
         alpha_max = norm_epsilon_inf(G, M, phi, l1_ratio, n_orient)
         alpha_space = (1. - l1_ratio) * alpha_max
         alpha_time = l1_ratio * alpha_max
@@ -157,7 +157,7 @@ def test_dgapl21l1():
         assert_array_less(1, len(active_set_hat_tf))
 
         X_hat_tf, active_set_hat_tf, E, gap = tf_mixed_norm_solver(
-            M, G, alpha_space / 10, alpha_time / 10, maxit=200, tol=1e-8,
+            M, G, alpha_space / 5., alpha_time / 5., maxit=200, tol=1e-8,
             verbose=True, debias=False, n_orient=n_orient, tstep=tstep,
             wsize=wsize, return_gap=True)
         assert_array_less(-1e-10, gap)
