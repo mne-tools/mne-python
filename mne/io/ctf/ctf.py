@@ -166,12 +166,7 @@ class RawCTF(BaseRaw):
                 offset += n_read
 
     def _clean_names(self):
-        """Clean up CTF suffixes from channel names.
-
-        Notes
-        -----
-        .. versionadded:: 0.16.0
-        """
+        """Clean up CTF suffixes from channel names."""
 
         mapping = dict(zip(self.ch_names, _clean_names(self.ch_names)))
 
