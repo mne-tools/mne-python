@@ -967,7 +967,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
 def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                                alpha_time, lipschitz_constant, phi, phiT,
                                shape, n_orient=1, maxit=200, tol=1e-8,
-                               log_objective=True, perc=None, timeit=True,
+                               log_objective=10, perc=None, timeit=True,
                                verbose=None):
 
     # First make G fortran for faster access to blocks of columns
@@ -1052,23 +1052,18 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                         active_set_j[:] = True
                         R -= np.dot(G_j, phiT(Z[jj]))
 
-        if log_objective:
-            if (ii + 1) % 10 == 0:
-                Zd = np.vstack([Z[pos] for pos in range(n_positions)
-                               if np.any(Z[pos])])
-                gap, p_obj, d_obj, _ = dgap_l21l1(
-                    M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
-                    shape, n_orient, d_obj)
-                converged = (gap < tol)
-                E.append(p_obj)
-                logger.info("\n    Iteration %d :: n_active %d" % (
-                            ii + 1, np.sum(active_set) / n_orient))
-                logger.info("    dgap %.2e :: p_obj %f :: d_obj %f" % (
-                            gap, p_obj, d_obj))
-        else:
-            if (ii + 1) % 10 == 0:
-                logger.info("\n    Iteration %d :: n_active %d" % (
-                            ii + 1, np.sum(active_set) / n_orient))
+        if (ii + 1) % log_objective == 0:
+            Zd = np.vstack([Z[pos] for pos in range(n_positions)
+                           if np.any(Z[pos])])
+            gap, p_obj, d_obj, _ = dgap_l21l1(
+                M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
+                shape, n_orient, d_obj)
+            converged = (gap < tol)
+            E.append(p_obj)
+            logger.info("\n    Iteration %d :: n_active %d" % (
+                        ii + 1, np.sum(active_set) / n_orient))
+            logger.info("    dgap %.2e :: p_obj %f :: d_obj %f" % (
+                        gap, p_obj, d_obj))
 
         if converged:
             break
@@ -1088,7 +1083,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                                          lipschitz_constant, phi, phiT, shape,
                                          Z_init=None, n_orient=1, maxit=200,
-                                         tol=1e-8, log_objective=True,
+                                         tol=1e-8, log_objective=10,
                                          verbose=None):
 
     n_sensors, n_times = M.shape
@@ -1121,7 +1116,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         Z, active_set, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
             M, G, Z_init, active_set, candidates, alpha_space, alpha_time,
             lipschitz_constant, phi, phiT, shape, n_orient=n_orient,
-            maxit=1, tol=tol, log_objective=False, perc=None,
+            maxit=1, tol=tol, log_objective=np.inf, perc=None,
             verbose=verbose)
         E += E_tmp
 
@@ -1165,7 +1160,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
 
 @verbose
 def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
-                         n_orient=1, maxit=200, tol=1e-8, log_objective=True,
+                         n_orient=1, maxit=200, tol=1e-8, log_objective=10,
                          active_set_size=None, debias=True, return_gap=False,
                          verbose=None):
     """Solve TF L21+L1 inverse solver with BCD and active set approach.
@@ -1193,9 +1188,9 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     tol : float
         If absolute difference between estimates at 2 successive iterations
         is lower than tol, the convergence is reached.
-    log_objective : bool
-        If True, the value of the minimized objective function is computed
-        and stored at every 10th iteration.
+    log_objective : int
+        The value of the minimized objective function is computed
+        and stored at every log_objective iteration.
     debias : bool
         Debias source estimates.
     return_gap : bool
@@ -1212,7 +1207,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         The mask of active sources.
     E : list
         The value of the objective function at each iteration. If log_objective
-        is False, it will be empty.
+        is np.inf, it will be empty.
     gap : float
         Final duality gap. Returned only if return_gap is True.
 
@@ -1231,6 +1226,17 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
        Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
        DOI: 10.1007/978-3-642-22092-0_49
     """
+    if log_objective is True:
+        warn('booleans for log_objective are deprecated and will be '
+             'replaced by integers in 0.17.',
+             DeprecationWarning)
+        log_objective = 10
+    elif log_objective is False:
+        warn('booleans for log_objective are deprecated and will be '
+             'replaced by integers in 0.17.',
+             DeprecationWarning)
+        log_objective = np.inf
+
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
     n_positions = n_sources // n_orient
