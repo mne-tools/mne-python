@@ -587,19 +587,19 @@ class Kit2FiffPanel(HasPrivateTraits):
         self.scene.camera.parallel_scale = 0.15
         self.scene.mlab.view(0, 0, .15)
 
-    @on_trait_change('model:fid:points,model:head_dev_trans')
+    @on_trait_change('model:fid,model:head_dev_trans')
     def _update_fid(self):
         if self.fid_obj is not None:
             self.fid_obj.points = apply_trans(self.model.head_dev_trans,
                                               self.model.fid)
 
-    @on_trait_change('model:hsp:points,model:head_dev_trans')
+    @on_trait_change('model:hsp,model:head_dev_trans')
     def _update_hsp(self):
         if self.hsp_obj is not None:
             self.hsp_obj.points = apply_trans(self.model.head_dev_trans,
                                               self.model.hsp)
 
-    @on_trait_change('model:elp:points,model:head_dev_trans')
+    @on_trait_change('model:elp,model:head_dev_trans')
     def _update_elp(self):
         if self.elp_obj is not None:
             self.elp_obj.points = apply_trans(self.model.head_dev_trans,
