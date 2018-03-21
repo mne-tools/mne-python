@@ -494,9 +494,8 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     # surf/ files
     paths['surf'] = surf = []
     surf_fname = os.path.join(surf_dirname, '{name}')
-    surf_names = ('inflated', 'sphere', 'sphere.reg', 'white', 'orig',
-                  'orig_avg', 'inflated_avg', 'inflated_pre', 'pial',
-                  'pial_avg', 'smoothwm', 'white_avg', 'sphere.reg.avg',
+    surf_names = ('inflated', 'white', 'orig', 'orig_avg', 'inflated_avg',
+                  'inflated_pre', 'pial', 'pial_avg', 'smoothwm', 'white_avg',
                   'seghead', 'smseghead')
     if os.getenv('_MNE_FEW_SURFACES', '') == 'true':  # for testing
         surf_names = surf_names[:4]
@@ -514,6 +513,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
                                  subject=subject, name=surf_name)
         if os.path.exists(path):
             surf.append(pformat(surf_fname, name=surf_name))
+    del surf_names, surf_name, path, surf, hemi
 
     # BEM files
     paths['bem'] = bem = []
@@ -528,6 +528,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
         match = re.match(re_pattern, path)
         name = match.group(1)
         bem.append(name)
+    del bem, path, bem_pattern, re_pattern
 
     # fiducials
     if skip_fiducials:
@@ -542,12 +543,22 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
                           "order to scale an MRI without fiducials set "
                           "skip_fiducials=True." % subject)
 
-    # duplicate curvature files
+    # duplicate files (curvature and some surfaces)
     paths['duplicate'] = dup = []
     path = os.path.join(surf_dirname, '{name}')
     for name in ['lh.curv', 'rh.curv']:
         fname = pformat(path, name=name)
         dup.append(fname)
+    del path, name, fname
+    surf_dup_names = ('sphere', 'sphere.reg', 'sphere.reg.avg')
+    for surf_dup_name in surf_dup_names:
+        for hemi in ('lh.', 'rh.'):
+            name = hemi + surf_dup_name
+            path = surf_fname.format(subjects_dir=subjects_dir,
+                                     subject=subject, name=name)
+            if os.path.exists(path):
+                dup.append(pformat(surf_fname, name=name))
+    del surf_dup_name, name, path, dup, hemi
 
     # check presence of required files
     for ftype in ['surf', 'duplicate']:

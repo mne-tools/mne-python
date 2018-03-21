@@ -148,6 +148,8 @@ Bug
 
 - Fix consistency between :class:`mne.Epochs` and :func:`mne.stats.linear_regression_raw` in converting between samples and times (:func:`mne.stats.linear_regression_raw` now rounds, instead of truncating) by `Phillip Alday`_
 
+- Fix bug in ``mne coreg`` where sphere surfaces were scaled by `Eric Larson`_
+
 - Fix bug when passing ``show_sensors=1`` to :func:`mne.viz.plot_compare_evokeds` resulted in sensors legend placed in lower right of the figure (position 4 in matplotlib), not upper right by `Mikołaj Magnuski`_
 
 - Fix bug in :class:`mne.make_forward_solution` when passing data with compensation channels (e.g. CTF) that contain bad channels by `Alex Gramfort`_
