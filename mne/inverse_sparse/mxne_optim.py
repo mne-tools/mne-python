@@ -361,17 +361,19 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                 X_j[:] = X_j_new
                 active_set[idx] = True
 
-        _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set, alpha,
-                                      n_orient)
-        highest_d_obj = max(d_obj, highest_d_obj)
-        gap = p_obj - highest_d_obj
-        E.append(p_obj)
-        logger.debug("Iteration %d :: p_obj %f :: dgap %f :: n_active %d" % (
-                     i + 1, p_obj, gap, np.sum(active_set) / n_orient))
+        if (i + 1) % 10 == 0:
+            _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
+                                          alpha, n_orient)
+            highest_d_obj = max(d_obj, highest_d_obj)
+            gap = p_obj - highest_d_obj
+            E.append(p_obj)
+            logger.debug("Iteration %d :: p_obj %f :: dgap %f :: n_active %d" %
+                         (i + 1, p_obj, gap, np.sum(active_set) / n_orient))
 
-        if gap < tol:
-            logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
-            break
+            if gap < tol:
+                logger.debug('Convergence reached ! (gap: %s < %s)' % (gap,
+                             tol))
+                break
 
     X = X[active_set]
 
