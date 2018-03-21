@@ -134,6 +134,13 @@ def test_mxne_inverse():
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
+    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, 101., 3.)
+    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, 50, 101.)
+    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, None, None,
+                  alpha=101, l1_ratio=0.03)
+    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, None, None,
+                  alpha=50., l1_ratio=1.01)
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data

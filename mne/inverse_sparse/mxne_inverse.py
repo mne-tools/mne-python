@@ -612,11 +612,11 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         old_parametrization = False
 
         if not (0. <= alpha <= 100.):
-            raise Exception('alpha must be in range [0, 100].'
-                            ' Got alpha = %f' % alpha)
+            raise ValueError('alpha must be in range [0, 100].'
+                             ' Got alpha = %f' % alpha)
         if not (0. <= l1_ratio <= 1.):
-            raise Exception('l1_ratio must be in range [0, 1].'
-                            ' Got l1_ratio = %f' % l1_ratio)
+            raise ValueError('l1_ratio must be in range [0, 1].'
+                             ' Got l1_ratio = %f' % l1_ratio)
         alpha_space = alpha * (1. - l1_ratio)
         alpha_time = alpha * l1_ratio
     else:
@@ -626,12 +626,12 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
 
     if (alpha_space < 0.) or (alpha_space > 100.):
         old_parametrization = True
-        raise Exception('alpha_space must be in range [0, 100].'
-                        ' Got alpha_space = %f' % alpha_space)
+        raise ValueError('alpha_space must be in range [0, 100].'
+                         ' Got alpha_space = %f' % alpha_space)
 
     if (alpha_time < 0.) or (alpha_time > 100.):
-        raise Exception('alpha_time must be in range [0, 100].'
-                        ' Got alpha_time = %f' % alpha_time)
+        raise ValueError('alpha_time must be in range [0, 100].'
+                         ' Got alpha_time = %f' % alpha_time)
 
     loose, forward = _check_loose_forward(loose, forward)
 
