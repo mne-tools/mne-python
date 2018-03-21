@@ -166,33 +166,20 @@ class RawCTF(BaseRaw):
                 offset += n_read
 
     def _clean_names(self):
-        """Clean up CTF suffixes from channel names."""
-        for comp in self.info['comps']:
-            for key in ('row_names', 'col_names'):
-                comp['data'][key] = _clean_names(comp['data'][key])
-
-    def rename_channels(self, mapping, clean_channel_names=False):
-        """Rename channels and clean up CTF data if needed.
-
-        Parameters
-        ----------
-        mapping : dict | callable
-            a dictionary mapping the old channel to a new channel name
-            e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
-            that takes and returns a string (new in version 0.10.0).
-
-        clean_channel_names : bool, optional
-            a bool patameter, if it equals to True channel names cleaning
-            will be performed.
+        """Clean up CTF suffixes from channel names.
 
         Notes
         -----
         .. versionadded:: 0.16.0
         """
+
+        mapping = dict(zip(self.ch_names, _clean_names(self.ch_names)))
+
         super(RawCTF, self).rename_channels(mapping)
-        # cleaning of the channel names
-        if clean_channel_names:
-            self._clean_names()
+
+        for comp in self.info['comps']:
+            for key in ('row_names', 'col_names'):
+                comp['data'][key] = _clean_names(comp['data'][key])
 
 
 def _get_sample_info(fname, res4, system_clock):

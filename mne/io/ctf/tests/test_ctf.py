@@ -219,25 +219,19 @@ def test_read_ctf():
 
 
 @testing.requires_testing_data
-def test_rawctf_rename_channels():
-    """Test RawCTF rename_channels mathod"""
+def test_rawctf_clean_names():
+    """Test RawCTF _clean_names method"""
     # read test data
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch))
     test_channel_names = _clean_names(raw.ch_names)
     test_info_comps = copy.deepcopy(raw.info['comps'])
 
-    # test rename_channels without CTF data cleaning
-    raw.rename_channels(dict(zip(raw.ch_names, test_channel_names)))
+    raw._clean_names()
+
     assert array_equal(raw.ch_names, test_channel_names)
 
-    for test_comp, comp in zip(test_info_comps, raw.info['comps']):
-        for key in ('row_names', 'col_names'):
-            assert not array_equal(_clean_names(test_comp['data'][key]),
-                                   comp['data'][key])
-
-    # test rename_channels with CTF data cleaning
-    raw.rename_channels(dict(zip(raw.ch_names, test_channel_names)), True)
-    assert array_equal(raw.ch_names, test_channel_names)
+    for ch, test_ch_name in zip(raw.info['chs'], test_channel_names):
+        assert ch['ch_name'] == test_ch_name
 
     for test_comp, comp in zip(test_info_comps, raw.info['comps']):
         for key in ('row_names', 'col_names'):
