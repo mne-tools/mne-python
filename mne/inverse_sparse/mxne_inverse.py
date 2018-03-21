@@ -296,8 +296,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    alpha : float
-        Regularization parameter.
+    alpha : float in range [0, 100)
+        Regularization parameter. 0 means no regularization, 100 would give 0
+        active dipole.
     loose : float in [0, 1] | 'auto'
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
@@ -367,6 +368,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
        MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
        Volume 35 (10), pp. 2218-2228, 2016.
     """
+    if not (0. <= alpha < 100.):
+        raise ValueError('alpha must be in [0, 100). '
+                         'Got alpha = %f' % alpha)
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
                          'Requires n_mxne_iter >= 1, got %d' % n_mxne_iter)
@@ -563,14 +567,14 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
-    alpha : float in [0, 100] or None
+    alpha : float in [0, 100) or None
         If alpha and l1_ratio are not None, alpha_space and alpha_time are
         overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
-        * l1_ratio.
+        * l1_ratio. 0 means no regularization, 100 would give 0 active dipole.
     l1_ratio : float in [0, 1] or None
         If l1_ratio and alpha are not None, alpha_space and alpha_time are
         overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
-        * l1_ratio.
+        * l1_ratio. 0 means no time regularization aka MxNE.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -611,9 +615,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     if alpha is not None and l1_ratio is not None:
         old_parametrization = False
 
-        if not (0. <= alpha <= 100.):
-            raise ValueError('alpha must be in range [0, 100].'
-                             ' Got alpha = %f' % alpha)
+        if not (0. <= alpha < 100.):
+            raise ValueError('alpha must be in [0, 100). '
+                             'Got alpha = %f' % alpha)
+
         if not (0. <= l1_ratio <= 1.):
             raise ValueError('l1_ratio must be in range [0, 1].'
                              ' Got l1_ratio = %f' % l1_ratio)
