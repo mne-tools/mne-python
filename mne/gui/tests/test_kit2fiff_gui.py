@@ -14,7 +14,8 @@ from nose.tools import assert_true, assert_false, assert_equal
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io import read_raw_fif
-from mne.utils import _TempDir, requires_mayavi, run_tests_if_main
+from mne.utils import (_TempDir, requires_mayavi, run_tests_if_main,
+                       traits_test)
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
@@ -36,6 +37,7 @@ def _check_ci():
 
 
 @requires_mayavi
+@traits_test
 def test_kit2fiff_model():
     """Test Kit2Fiff model."""
     from mne.gui._kit2fiff_gui import Kit2FiffModel
@@ -127,6 +129,7 @@ def test_kit2fiff_model():
 
 
 @requires_mayavi
+@traits_test
 def test_kit2fiff_gui():
     """Test Kit2Fiff GUI."""
     _check_ci()

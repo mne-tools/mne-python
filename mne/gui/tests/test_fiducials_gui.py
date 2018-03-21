@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal
 
 from mne.datasets import testing
-from mne.utils import _TempDir, requires_mayavi, run_tests_if_main
+from mne.utils import _TempDir, requires_mayavi, run_tests_if_main, traits_test
 
 sample_path = testing.data_path(download=False)
 subjects_dir = os.path.join(sample_path, 'subjects')
@@ -16,6 +16,7 @@ subjects_dir = os.path.join(sample_path, 'subjects')
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_mri_model():
     """Test MRIHeadWithFiducialsModel Traits Model"""
     from mne.gui._fiducials_gui import MRIHeadWithFiducialsModel

@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import atexit
 from collections import Iterable
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 from functools import wraps
 import ftplib
@@ -1142,6 +1143,25 @@ def _import_mlab():
     with warnings.catch_warnings(record=True):
         from mayavi import mlab
     return mlab
+
+
+@contextmanager
+def traits_test_context():
+    """Context to raise errors in trait handlers"""
+    from traits.api import push_exception_handler
+
+    push_exception_handler(reraise_exceptions=True)
+    yield
+    push_exception_handler(reraise_exceptions=False)
+
+
+def traits_test(test_func):
+    """Decorator to raise errors in trait handlers"""
+    @wraps(test_func)
+    def dec(*args, **kwargs):
+        with traits_test_context():
+            return test_func(*args, **kwargs)
+    return dec
 
 
 @verbose
