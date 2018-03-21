@@ -11,8 +11,9 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            tf_mixed_norm_solver,
                                            iterative_mixed_norm_solver,
-                                           norm_epsilon_inf, _Phi, _PhiT,
-                                           dgap_l21l1)
+                                           norm_epsilon_inf, norm_epsilon,
+                                           _Phi, _PhiT, dgap_l21l1)
+from mne.time_frequency.stft import stft_norm2
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -118,6 +119,26 @@ def test_tf_mxne():
         n_orient=1, tstep=4, wsize=32, return_gap=True)
     assert_array_less(gap_tfmxne, 1e-8)
     assert_array_equal(np.where(active_set_hat_tf)[0], active_set)
+
+
+def test_norm_epsilon():
+    """Test computation of espilon norm on TF coefficients."""
+    n_steps = 5
+    n_freqs = 4
+    Y = np.zeros(n_steps * n_freqs)
+    l1_ratio = 0.5
+    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps), 0.)
+
+    Y[0] = 2.
+    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps), np.max(Y))
+
+    l1_ratio = 1.
+    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps), np.max(Y))
+    # dummy value without random:
+    Y = np.arange(n_steps * n_freqs).reshape(-1, )
+    l1_ratio = 0.
+    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps) ** 2,
+                    stft_norm2(Y.reshape(-1, n_freqs, n_steps)))
 
 
 def test_dgapl21l1():
