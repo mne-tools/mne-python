@@ -941,10 +941,9 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
        gradient methods", Physics in Medicine and Biology, 2012.
        https://doi.org/10.1088/0031-9155/57/7/1937
 
-    .. [2] J. Wang, J. Ye,
-       "Two-layer feature reduction for sparse-group lasso via decomposition of
-       convex sets", Advances in Neural Information Processing Systems (NIPS),
-       vol. 27, pp. 2132-2140, 2014.
+    .. [2] E. Ndiaye, O. Fercoq, A. Gramfort, J. Salmon,
+       "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
+       Information Processing Systems (NIPS), 2016.
     """
     X = phiT(Z)
     GX = np.dot(G[:, active_set], X)
