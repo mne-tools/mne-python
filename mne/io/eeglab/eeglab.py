@@ -63,13 +63,14 @@ def _check_mat_struct(fname):
                            ' files.')
     from scipy import io
     try:
-        # Try to read old style Matlabg file
+        # Try to read old style Matlab file
         mat = io.whosmat(fname, struct_as_record=False, squeeze_me=True)
     except NotImplementedError:
         # Try to read new style Matlab file
         import h5py
         f = h5py.File(fname)
         mat = list(f.keys())
+        f.close()
         if 'ALLEEG' in mat:
             mat[0] = u'ALLEEG'
         elif 'EEG' in mat:
@@ -544,6 +545,7 @@ def _get_eeg_data(input_fname, uint16_codec=None):
         logger.info("Attempting to read Matlab style hdf file")
         f = h5py.File(input_fname)
         eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
+        f.close()
         eeg = _bunchify(eeg_dict)
 
         str_conversion_fields = ('datfile', 'filename', 'filepath',
@@ -1002,6 +1004,7 @@ def read_events_eeglab(eeg, event_id=None, event_id_func='strip_to_integer',
             logger.info("Attempting to read Matlab style hdf file")
             f = h5py.File(eeg)
             eeg_dict = hdf_2_dict(f, f['EEG'], parent=None)
+            f.close()
             eeg = _bunchify(eeg_dict)
 
     annotations = _read_annotations_eeglab(eeg)
