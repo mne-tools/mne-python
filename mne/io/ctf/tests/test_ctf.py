@@ -243,14 +243,14 @@ def test_rawctf_clean_names():
                                    comp['data'][key])
 
     # channel names should be cleaned if clean_names=True
-    assert array_equal(raw_cleaned.ch_names, test_channel_names)
+    assert_array_equal(raw_cleaned.ch_names, test_channel_names)
 
     for ch, test_ch_name in zip(raw_cleaned.info['chs'], test_channel_names):
         assert ch['ch_name'] == test_ch_name
 
     for test_comp, comp in zip(test_info_comps, raw_cleaned.info['comps']):
         for key in ('row_names', 'col_names'):
-            assert array_equal(_clean_names(test_comp['data'][key]),
+            assert_array_equal(_clean_names(test_comp['data'][key]),
                                comp['data'][key])
 
 

@@ -45,9 +45,9 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    clean_names : bool
+    clean_names : bool, optional
         If True main channel names and compensation channel names will
-        be cleaned from CTF suffixes.
+        be cleaned from CTF suffixes. The default is False.
 
     Returns
     -------
@@ -87,9 +87,9 @@ class RawCTF(BaseRaw):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
-    clean_names : bool
+    clean_names : bool, optional
         If True main channel names and compensation channel names will
-        be cleaned from CTF suffixes.
+        be cleaned from CTF suffixes. The default is False.
 
     See Also
     --------
