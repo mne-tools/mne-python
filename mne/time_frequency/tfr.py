@@ -1147,7 +1147,7 @@ class AverageTFR(_BaseTFR):
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
               axes=None, layout=None, yscale='auto', combine=None,
               exclude=None, copy=True, source_plot_joint=False,
-              topomap_args=dict(), verbose=None):
+              topomap_args=dict(), ch_type=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         See self.plot() for parameters description.
@@ -1206,7 +1206,8 @@ class AverageTFR(_BaseTFR):
                     title = tfr.info['ch_names'][0]
                 else:
                     title = _set_title_multiple_electrodes(
-                        title, combine, tfr.info["ch_names"], all=True)
+                        title, combine, tfr.info["ch_names"], all=True,
+                        ch_type=ch_type)
 
             if title:
                 fig.suptitle(title)
@@ -1375,6 +1376,8 @@ class AverageTFR(_BaseTFR):
                         exclude=None, topomap_args=topomap_args,
                         verbose=verbose))
             return figs
+        else:
+            ch_type = ch_types.pop()
 
         # Handle timefreqs
         timefreqs = _get_timefreqs(tfr, timefreqs)
@@ -1403,7 +1406,8 @@ class AverageTFR(_BaseTFR):
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
             colorbar=False, show=False, title=title, axes=tf_ax, layout=layout,
             yscale=yscale, combine=combine, exclude=None, copy=False,
-            source_plot_joint=True, topomap_args=topomap_args_pass)
+            source_plot_joint=True, topomap_args=topomap_args_pass,
+            ch_type=ch_type)
 
         # set and check time and freq limits ...
         # can only do this after the tfr plot because it may change these
