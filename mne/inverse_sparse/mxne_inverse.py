@@ -525,11 +525,13 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         Noise covariance to compute whitener.
     alpha_space : float in [0, 100]
         Regularization parameter for spatial sparsity. If larger than 100,
-        then no source will be active.
+        then no source will be active. alpha_space is deprecated in favor
+        of alpha and l1_ratio, and will be removed in 0.17.
     alpha_time : float in [0, 100]
         Regularization parameter for temporal sparsity. It set to 0,
         no temporal regularization is applied. It this case, TF-MxNE is
-        equivalent to MxNE with L21 norm.
+        equivalent to MxNE with L21 norm. alpha_time is deprecated in favor
+        of alpha and l1_ratio, and will be removed in 0.17.
     loose : float in [0, 1] | 'auto'
         Value that weights the source variances of the dipole components
         that are parallel (tangential) to the cortical surface. If loose
@@ -568,10 +570,12 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
     alpha : float in [0, 100) or None
+        Overall regularization parameter.
         If alpha and l1_ratio are not None, alpha_space and alpha_time are
         overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
         * l1_ratio. 0 means no regularization, 100 would give 0 active dipole.
     l1_ratio : float in [0, 1] or None
+        Proportion of temporal regularization.
         If l1_ratio and alpha are not None, alpha_space and alpha_time are
         overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
         * l1_ratio. 0 means no time regularization aka MxNE.
