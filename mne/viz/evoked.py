@@ -860,16 +860,16 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Defaults to ``'RdBu_r'``.
     mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
         The colormap chosen for masked parts of the image (see below), if
-        ``mask`` is not None. If None, ``cmap`` is reused. Defaults to
-        `Greys`. Not interactive. Otherwise, as `cmap`.
+        `mask` is not ``None`. If None, `cmap` is reused. Defaults to
+        ``Greys``. Not interactive. Otherwise, as `cmap`.
     mask : ndarray | None
         An array of booleans of the same shape as the data. Entries of the
-        data that correspond to `False` in the mask are plotted transparently.
-        Useful for, e.g., masking for statistical significance.
+        data that correspond to ```False`` in the mask are plotted
+        transparently. Useful for, e.g., masking for statistical significance.
 
         .. versionadded:: 0.16
     alpha : float
-        A float between 0 and 1. If ``mask`` is not None, this sets the
+        A float between 0 and 1. If `mask` is not None, this sets the
         alpha level (degree of transparency) for the masked-out segments.
         I.e., if 0, masked-out segments are not visible at all.
         Defaults to .5.
