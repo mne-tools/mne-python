@@ -181,7 +181,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
-                 noise_cov=None, mask=None, alpha=.1, colorbar=True):
+                 noise_cov=None, mask=None, mask_cmap=None, alpha=.1,
+                 colorbar=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -267,14 +268,15 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
                     False, line_alpha=1.)
         for ax in axes:
-            ax.set_xlabel('time (ms)')
+            ax.set_xlabel('Time (ms)')
 
     elif plot_type == 'image':
         for ax, this_type in zip(axes, ch_types_used):
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
                         units, scalings, evoked.times, xlim, ylim, titles,
-                        mask=mask, alpha=alpha, colorbar=colorbar)
+                        mask=mask, mask_cmap=mask_cmap, alpha=alpha,
+                        colorbar=colorbar)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -468,10 +470,15 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
-                xlim, ylim, titles, mask=None, alpha=.1, colorbar=True):
+                xlim, ylim, titles, mask=None, mask_cmap=None, alpha=.3,
+                colorbar=True):
     """Plot images."""
     import matplotlib.pyplot as plt
     cmap = _setup_cmap(cmap)
+    if mask_cmap is None:
+        mask_cmap = cmap
+    else:
+        mask_cmap = _setup_cmap(mask_cmap)
     ch_unit = units[this_type]
     this_scaling = scalings[this_type]
     if unit is False:
@@ -487,16 +494,17 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         vmin, vmax = ylim[this_type]
     im_args = dict(interpolation='nearest', origin='lower',
                    extent=[times[0], times[-1], 0, data.shape[0]],
-                   aspect='auto', cmap=cmap[0], vmin=vmin, vmax=vmax)
+                   aspect='auto', vmin=vmin, vmax=vmax)
     if mask is not None:
         mask = mask[picks, :]
         if mask.shape != data.shape:
             raise ValueError("The mask must have the same shape as the data, "
                              "i.e., %s, not %s" % (data.shape, mask.shape))
-        ax.imshow(data, alpha=alpha, **im_args)
-        im = ax.imshow(np.ma.masked_where(~mask, data), alpha=1, **im_args)
+        ax.imshow(data, alpha=alpha, cmap=mask_cmap[0], **im_args)
+        im = ax.imshow(
+            np.ma.masked_where(~mask, data), cmap=cmap[0], alpha=1, **im_args)
     else:
-        im = ax.imshow(data, **im_args)
+        im = ax.imshow(data, cmap=cmap[0], **im_args)
 
     if xlim is not None:
         if xlim == 'tight':
@@ -507,13 +515,16 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         cbar.ax.set_title(ch_unit)
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
-    ax.set_ylabel('channels (index)')
-    mask_title = ("" if mask is None else
-                  " (" + str(mask.size - sum(mask)) " points masked")
-    ax.set_title(titles[this_type] +
-                 ' (%d channel%s)' % (len(data), _pl(data)) +
-                 mask_title)
-    ax.set_xlabel('time (ms)')
+    ax.set_ylabel('Channels (index)')
+    if mask is not None:
+        fraction = np.float(mask.sum()) / np.float(mask.size)
+        percent = np.ceil(fraction * 100).astype(int)
+        t_end = ", " + str(percent) + "% of points masked)"
+    else:
+        t_end = ")"
+    ax.set_title(
+        titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end)
+    ax.set_xlabel('Time (ms)')
 
 
 @verbose
@@ -798,7 +809,7 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                       clim=None, xlim='tight', proj=False, units=None,
                       scalings=None, titles=None, axes=None, cmap='RdBu_r',
-                      mask=None, alpha=.1, colorbar=True):
+                      mask_cmap="Greys", mask=None, alpha=.3, colorbar=True):
     """Plot evoked data as images.
 
     Parameters
@@ -847,6 +858,10 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         resets the scale. Up and down arrows can be used to change the
         colormap. If 'interactive', translates to ``('RdBu_r', True)``.
         Defaults to ``'RdBu_r'``.
+    mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+        The colormap chosen for masked parts of the image (see below), if `mask`
+         is not None. If None, `cmap` is reused. Defaults to `Greys`.
+         Not interactive. Otherwise, as `cmap`.
     mask : ndarray | None
         An array of booleans of the same shape as the data. Entries of the
         data that correspond to `False` in the mask are plotted transparently.
@@ -874,7 +889,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                         show=show, ylim=clim, proj=proj, xlim=xlim,
                         hline=None, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="image",
-                        cmap=cmap, mask=mask, alpha=alpha, colorbar=colorbar)
+                        cmap=cmap, mask_cmap=mask_cmap, mask=mask, alpha=alpha,
+                        colorbar=colorbar)
 
 
 def _plot_update_evoked(params, bools):

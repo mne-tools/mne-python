@@ -309,12 +309,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,
                    scalings=None, titles=None, axes=None, cmap='RdBu_r',
-                   mask=None, alpha=.1, colorbar=True):
+                   mask_cmap='Greys', mask=None, alpha=.3, colorbar=True):
         return plot_evoked_image(self, picks=picks, exclude=exclude, unit=unit,
                                  show=show, clim=clim, proj=proj, xlim=xlim,
                                  units=units, scalings=scalings, titles=titles,
-                                 axes=axes, cmap=cmap, mask=mask, alpha=alpha,
-                                 colorbar=colorbar)
+                                 axes=axes, cmap=cmap, mask_cmap=mask_cmap,
+                                 mask=mask, alpha=alpha, colorbar=colorbar)
 
     @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
