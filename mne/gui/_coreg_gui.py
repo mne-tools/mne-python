@@ -864,9 +864,13 @@ class CoregFrameHandler(Handler):
                         "processed.", "Saving Still in Progress")
             return False
         else:
+            try:  # works on Qt only for now
+                size = (info.ui.control.width(), info.ui.control.height())
+            except AttributeError:
+                size = None
             # store configuration, but don't prevent from closing on error
             try:
-                info.object.save_config()
+                info.object.save_config(size=size)
             except Exception as exc:
                 warnings.warn("Error saving GUI configuration:\n%s" % (exc,))
             return True
@@ -1571,28 +1575,9 @@ class NewMriDialog(HasPrivateTraits):
             self.can_overwrite = False
 
 
-def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
+def _make_view(tabbed=False, split=False, width=800, height=600,
                scrollable=True):
-    """Create a view for the CoregFrame.
-
-    Parameters
-    ----------
-    tabbed : bool
-        Combine the data source panel and the coregistration panel into a
-        single panel with tabs.
-    split : bool
-        Split the main panels with a movable splitter (good for QT4 but
-        unnecessary for wx backend).
-    scene_width : int
-        Specify a minimum width for the 3d scene (in pixels).
-    scrollable : bool
-        Make the coregistration panel vertically scrollable (default True).
-
-    Returns
-    -------
-    view : traits View
-        View object for the CoregFrame.
-    """
+    """Create a view for the CoregFrame."""
     # Set the width to 0.99 to "push out" as much as possible, use
     # scene_width in the View below
     scene = Item('scene', show_label=False, width=0.99,
@@ -1629,9 +1614,7 @@ def _make_view(tabbed=False, split=False, scene_width=500, scene_height=400,
     # Here we set the width and height to impossibly small numbers to force the
     # window to be as tight as possible
     view = View(main, resizable=True, handler=CoregFrameHandler(),
-                buttons=NoButtons, width=scene_width +
-                2 * _COREG_WIDTH * np.sign(_COREG_WIDTH),
-                height=scene_height,
+                buttons=NoButtons, width=width, height=height,
                 statusbar=[StatusItem('status_text', width=0.55),
                            StatusItem('queue_status_text', width=0.45)])
     return view
@@ -2047,7 +2030,7 @@ class CoregFrame(HasTraits):
     def _on_fid_file_loaded(self):
         self.data_panel.fid_panel.locked = bool(self.model.mri.fid_file)
 
-    def save_config(self, home_dir=None):
+    def save_config(self, home_dir=None, size=None):
         """Write configuration values."""
         def s_c(key, value, lower=True):
             value = str(value)
@@ -2063,19 +2046,9 @@ class CoregFrame(HasTraits):
         else:
             opacity = self._locked_opacity
         s_c('MNE_COREG_HEAD_OPACITY', opacity)
-        # This works on Qt variants. We cannot rely on
-        # scene.renderer.size or scene.render_window.size because these
-        # are in physical pixel units rather than logical (so HiDPI breaks
-        # things).
-        try:
-            size = self.scene.scene_editor.control.size()
-            w = size.width()
-            h = size.height()
-        except Exception:
-            pass
-        else:
-            s_c('MNE_COREG_SCENE_WIDTH', w)
-            s_c('MNE_COREG_SCENE_HEIGHT', h)
+        if size is not None:
+            s_c('MNE_COREG_WINDOW_WIDTH', size[0])
+            s_c('MNE_COREG_WINDOW_HEIGHT', size[1])
         s_c('MNE_COREG_SCENE_SCALE', self.data_panel.headview.scale)
         s_c('MNE_COREG_SCALE_LABELS', self.model.scale_labels)
         s_c('MNE_COREG_COPY_ANNOT', self.model.copy_annot)
