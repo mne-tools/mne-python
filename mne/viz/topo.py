@@ -286,7 +286,8 @@ def _check_vlim(vlim):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
-                colorbar=False, cmap=('RdBu_r', True), yscale='auto'):
+                colorbar=False, cmap=('RdBu_r', True), yscale='auto',
+                mask=None, alpha=0.1):
     """Show time-frequency map as two-dimensional image."""
     from matplotlib import pyplot as plt, ticker
     from matplotlib.widgets import RectangleSelector
@@ -331,8 +332,15 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     # construct a time-frequency bounds grid
     time_mesh, freq_mesh = np.meshgrid(time_lims, freq_lims)
 
-    img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
-                        vmin=vmin, vmax=vmax)
+    if mask is not None:
+        ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap, vmin=vmin,
+                      vmax=vmax, alpha=alpha)
+        img = ax.pcolormesh(time_mesh, freq_mesh,
+                            np.ma.masked_where(~mask, tfr[ch_idx]), cmap=cmap,
+                            vmin=vmin, vmax=vmax, alpha=1)
+    else:
+        img = ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap,
+                            vmin=vmin, vmax=vmax)
 
     # limits, yscale and yticks
     ax.set_xlim(time_lims[0], time_lims[-1])
