@@ -181,7 +181,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
-                 noise_cov=None, mask=None, alpha=.5, colorbar=True):
+                 noise_cov=None, mask=None, alpha=.1, colorbar=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -468,7 +468,7 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
-                xlim, ylim, titles, mask=None, alpha=.33, colorbar=True):
+                xlim, ylim, titles, mask=None, alpha=.1, colorbar=True):
     """Plot images."""
     import matplotlib.pyplot as plt
     cmap = _setup_cmap(cmap)
@@ -795,7 +795,7 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                       clim=None, xlim='tight', proj=False, units=None,
                       scalings=None, titles=None, axes=None, cmap='RdBu_r',
-                      mask=None, alpha=.33, colorbar=True):
+                      mask=None, alpha=.1, colorbar=True):
     """Plot evoked data as images.
 
     Parameters
@@ -845,13 +845,13 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         colormap. If 'interactive', translates to ``('RdBu_r', True)``.
         Defaults to ``'RdBu_r'``.
     mask : ndarray | None
-        An array of booleans of the same shape as the data. Where this is
-        False, the resulting image is plotted transparently. Useful for,
-        e.g., masking for statistical significance.
+        An array of booleans of the same shape as the data. Entries of the
+        data that correspond to `False` in the mask are plotted transparently.
+        Useful for, e.g., masking for statistical significance.
 
         .. versionadded:: 0.16
     alpha : float
-        A float between 0 and 1. If `mask` is not None, this sets the
+        A float between 0 and 1. If ``mask`` is not None, this sets the
         alpha level (degree of transparency) for the masked-out segments.
         I.e., if 0, masked-out segments are not visible at all.
         Defaults to .5.
