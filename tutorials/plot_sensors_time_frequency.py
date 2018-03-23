@@ -123,6 +123,7 @@ plt.show()
 
 power.plot_joint(baseline=(-0.5, 0), mode='mean', tmin=-.5, tmax=2,
                  timefreqs=[(.5, 10), (1.3, 8)])
+plt.tight_layout()
 
 ###############################################################################
 # Inspect ITC
