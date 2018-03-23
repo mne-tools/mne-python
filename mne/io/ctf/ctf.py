@@ -24,7 +24,7 @@ from .constants import CTF
 
 
 def read_raw_ctf(directory, system_clock='truncate', preload=False,
-                 verbose=None):
+                 verbose=None, clean_names=False):
     """Raw object from CTF directory.
 
     Parameters
@@ -45,6 +45,9 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    clean_names : bool
+        If True main channel names and compensation channel names will
+        be cleaned from CTF suffixes.
 
     Returns
     -------
@@ -59,7 +62,8 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     -----
     .. versionadded:: 0.11
     """
-    return RawCTF(directory, system_clock, preload=preload, verbose=verbose)
+    return RawCTF(directory, system_clock, preload=preload, verbose=verbose,
+                  clean_names=clean_names)
 
 
 class RawCTF(BaseRaw):
@@ -83,6 +87,9 @@ class RawCTF(BaseRaw):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
+    clean_names : bool
+        If True main channel names and compensation channel names will
+        be cleaned from CTF suffixes.
 
     See Also
     --------
@@ -91,7 +98,7 @@ class RawCTF(BaseRaw):
 
     @verbose
     def __init__(self, directory, system_clock='truncate', preload=False,
-                 verbose=None):  # noqa: D102
+                 verbose=None, clean_names=False):  # noqa: D102
         # adapted from mne_ctf2fiff.c
         if not isinstance(directory, string_types) or \
                 not directory.endswith('.ds'):
@@ -142,6 +149,9 @@ class RawCTF(BaseRaw):
             last_samps=last_samps, filenames=fnames,
             raw_extras=raw_extras, orig_format='int', verbose=verbose)
 
+        if clean_names:
+            self._clean_names()
+
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -167,7 +177,6 @@ class RawCTF(BaseRaw):
 
     def _clean_names(self):
         """Clean up CTF suffixes from channel names."""
-
         mapping = dict(zip(self.ch_names, _clean_names(self.ch_names)))
 
         super(RawCTF, self).rename_channels(mapping)

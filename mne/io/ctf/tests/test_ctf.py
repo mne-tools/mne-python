@@ -223,17 +223,32 @@ def test_rawctf_clean_names():
     """Test RawCTF _clean_names method"""
     # read test data
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch))
+    raw_cleaned = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch),
+                               clean_names=True)
     test_channel_names = _clean_names(raw.ch_names)
     test_info_comps = copy.deepcopy(raw.info['comps'])
 
-    raw._clean_names()
+    # channel names should not be cleaned by default
+    assert not array_equal(raw.ch_names, test_channel_names)
 
-    assert array_equal(raw.ch_names, test_channel_names)
+    chs_ch_names = []
+    for ch in raw.info['chs']:
+        chs_ch_names.append(ch['ch_name'])
 
-    for ch, test_ch_name in zip(raw.info['chs'], test_channel_names):
-        assert ch['ch_name'] == test_ch_name
+    assert not array_equal(chs_ch_names, test_channel_names)
 
     for test_comp, comp in zip(test_info_comps, raw.info['comps']):
+        for key in ('row_names', 'col_names'):
+            assert not array_equal(_clean_names(test_comp['data'][key]),
+                                   comp['data'][key])
+
+    # channel names should be cleaned if clean_names=True
+    assert array_equal(raw_cleaned.ch_names, test_channel_names)
+
+    for ch, test_ch_name in zip(raw_cleaned.info['chs'], test_channel_names):
+        assert ch['ch_name'] == test_ch_name
+
+    for test_comp, comp in zip(test_info_comps, raw_cleaned.info['comps']):
         for key in ('row_names', 'col_names'):
             assert array_equal(_clean_names(test_comp['data'][key]),
                                comp['data'][key])

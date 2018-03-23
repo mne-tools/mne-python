@@ -64,3 +64,6 @@ examples/visualization/foobar.html
 
 # sublime
 *-e
+
+#Visual Studio Code
+.vscode
