@@ -1493,7 +1493,7 @@ class AverageTFR(_BaseTFR):
             cbar.locator = locator
             cbar.update_ticks()
 
-        plt.subplots_adjust(left=.1, right=.93, bottom=.14,
+        plt.subplots_adjust(left=.12, right=.925, bottom=.14,
                             top=1. if title is not None else 1.2)
 
         # draw the connection lines between time series and topoplots
