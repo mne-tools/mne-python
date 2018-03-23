@@ -3,6 +3,7 @@
 #
 # License: Simplified BSD
 
+from copy import deepcopy
 import numpy as np
 from scipy import linalg, signal
 
@@ -19,7 +20,8 @@ from ..dipole import Dipole
 from ..externals.six.moves import xrange as range
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
-                         norm_l2inf, tf_mixed_norm_solver)
+                         norm_l2inf, tf_mixed_norm_solver,
+                         iterative_tf_mixed_norm_solver)
 
 
 @verbose
@@ -112,6 +114,7 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
 
 def _reapply_source_weighting(X, source_weighting, active_set):
     X *= source_weighting[active_set][:, None]
+
     return X
 
 
@@ -361,7 +364,6 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
        https://doi.org/10.1088/0031-9155/57/7/1937
-
     .. [2] D. Strohmeier, Y. Bekhti, J. Haueisen, A. Gramfort,
        "The Iterative Reweighted Mixed-Norm Estimate for Spatio-Temporal
        MEG/EEG Source Reconstruction", IEEE Transactions of Medical Imaging,
@@ -481,7 +483,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
 
 def _window_evoked(evoked, size):
-    """Window evoked (size in seconds)."""
+    """Window evoked (size in seconds)"""
     if isinstance(size, (float, int)):
         lsize = rsize = float(size)
     else:
@@ -503,8 +505,9 @@ def _window_evoked(evoked, size):
 def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   loose='auto', depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
-                  wsize=64, tstep=4, window=0.02, return_residual=False,
-                  return_as_dipoles=False, verbose=None):
+                  wsize=64, tstep=4, window=0.02, n_tfmxne_iter=1,
+                  return_residual=False, return_as_dipoles=False,
+                  return_gap=False, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -562,6 +565,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
+    return_gap : bool
+        Return final duality gap.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -629,20 +634,23 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     logger.info('Whitening data matrix.')
     M = np.dot(whitener, M)
 
-    # Scaling to make setting of alpha easy
-    alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
-    alpha_max *= 0.01
-    gain /= alpha_max
-    source_weighting /= alpha_max
+    # np.save('M_whitened.npy', M)
+    # np.save('gain_whitened.npy', gain)
 
-    X, active_set, E = tf_mixed_norm_solver(
-        M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
-        maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
-        log_objective=True, debias=debias)
+    if n_tfmxne_iter == 1:
+        X, active_set, E = tf_mixed_norm_solver(
+            M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
+            maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
+            log_objective=True, return_gap=return_gap, debias=debias)
+    else:
+        X, active_set, E = iterative_tf_mixed_norm_solver(
+            M, gain, alpha_space, alpha_time, n_tfmxne_iter, wsize=wsize,
+            tstep=tstep, maxit=maxit, tol=tol, verbose=verbose,
+            debias=debias, n_orient=n_dip_per_pos, return_gap=return_gap,
+            log_objective=True)
 
     if active_set.sum() == 0:
-        raise Exception("No active dipoles found. "
-                        "alpha_space/alpha_time are too big.")
+        raise Exception("No active dipoles found. alpha_space is too big.")
 
     # Compute estimated whitened sensor data
     M_estimated = np.dot(gain[:, active_set], X)
@@ -656,8 +664,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     X = _reapply_source_weighting(X, source_weighting, active_set)
 
     if return_residual:
-        residual = _compute_residual(
-            forward, evoked, X, active_set, gain_info)
+        residual = _compute_residual(forward, evoked, X, active_set,
+                                     gain_info)
 
     if return_as_dipoles:
         out = _make_dipoles_sparse(

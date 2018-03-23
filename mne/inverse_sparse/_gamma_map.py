@@ -7,12 +7,12 @@ from scipy import linalg
 
 from ..forward import is_fixed_orient, convert_forward_solution
 
-from ..minimum_norm.inverse import _check_reference
+from ..minimum_norm.inverse import _check_reference, _check_loose_forward
 from ..utils import logger, verbose, warn
 from ..externals.six.moves import xrange as range
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
-                           _make_dipoles_sparse, _check_loose_forward)
+                           _make_dipoles_sparse)
 
 
 @verbose
