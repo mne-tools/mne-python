@@ -518,7 +518,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     ax.set_ylabel('Channels (index)')
     if mask is not None:
         fraction = np.float(mask.sum()) / np.float(mask.size)
-        percent = np.ceil(fraction * 100).astype(int)
+        percent = np.floor(fraction * 100).astype(int)
         t_end = ", " + str(percent) + "% of points masked)"
     else:
         t_end = ")"
@@ -859,9 +859,9 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         colormap. If 'interactive', translates to ``('RdBu_r', True)``.
         Defaults to ``'RdBu_r'``.
     mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
-        The colormap chosen for masked parts of the image (see below), if `mask`
-         is not None. If None, `cmap` is reused. Defaults to `Greys`.
-         Not interactive. Otherwise, as `cmap`.
+        The colormap chosen for masked parts of the image (see below), if
+        ``mask`` is not None. If None, ``cmap`` is reused. Defaults to
+        `Greys`. Not interactive. Otherwise, as `cmap`.
     mask : ndarray | None
         An array of booleans of the same shape as the data. Entries of the
         data that correspond to `False` in the mask are plotted transparently.
