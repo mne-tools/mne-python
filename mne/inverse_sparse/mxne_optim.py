@@ -969,8 +969,8 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
 def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                                alpha_time, lipschitz_constant, phi, phiT,
                                shape, n_orient=1, maxit=200, tol=1e-8,
-                               log_objective=10, perc=None, timeit=True,
-                               verbose=None):
+                               dgap_freq=10, perc=None,
+                               timeit=True, verbose=None):
 
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
@@ -1054,7 +1054,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                         active_set_j[:] = True
                         R -= np.dot(G_j, phiT(Z[jj]))
 
-        if (ii + 1) % log_objective == 0:
+        if (ii + 1) % dgap_freq == 0:
             Zd = np.vstack([Z[pos] for pos in range(n_positions)
                            if np.any(Z[pos])])
             gap, p_obj, d_obj, _ = dgap_l21l1(
@@ -1085,8 +1085,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
 def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                                          lipschitz_constant, phi, phiT, shape,
                                          Z_init=None, n_orient=1, maxit=200,
-                                         tol=1e-8, log_objective=10,
-                                         verbose=None):
+                                         tol=1e-8, dgap_freq=10, verbose=None):
 
     n_sensors, n_times = M.shape
     n_sources = G.shape[1]
@@ -1118,8 +1117,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         Z, active_set, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
             M, G, Z_init, active_set, candidates, alpha_space, alpha_time,
             lipschitz_constant, phi, phiT, shape, n_orient=n_orient,
-            maxit=1, tol=tol, log_objective=np.inf, perc=None,
-            verbose=verbose)
+            maxit=1, tol=tol, perc=None, verbose=verbose)
         E += E_tmp
 
         active = np.where(active_set[::n_orient])[0]
@@ -1131,7 +1129,8 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
             candidates_, alpha_space, alpha_time,
             lipschitz_constant[active_set[::n_orient]], phi, phiT, shape,
             n_orient=n_orient, maxit=maxit, tol=tol,
-            log_objective=log_objective, perc=0.5, verbose=verbose)
+            dgap_freq=dgap_freq, perc=0.5,
+            verbose=verbose)
         active = np.where(active_set[::n_orient])[0]
         active_set[active_set] = as_.copy()
         E += E_tmp
@@ -1162,9 +1161,9 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
 
 @verbose
 def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
-                         n_orient=1, maxit=200, tol=1e-8, log_objective=10,
+                         n_orient=1, maxit=200, tol=1e-8, log_objective=None,
                          active_set_size=None, debias=True, return_gap=False,
-                         verbose=None):
+                         dgap_freq=10, verbose=None):
     """Solve TF L21+L1 inverse solver with BCD and active set approach.
 
     Parameters
@@ -1190,13 +1189,17 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     tol : float
         If absolute difference between estimates at 2 successive iterations
         is lower than tol, the convergence is reached.
-    log_objective : int
+    log_objective : bool
         The value of the minimized objective function is computed
-        and stored at every log_objective iteration.
+        and stored at every 10 iteration if log_objective is True.
+        log_objective is deprecated and will be removed in 0.17. Use dgap_freq
+        instead to remove this warning.
     debias : bool
         Debias source estimates.
     return_gap : bool
         Return final duality gap.
+    dgap_freq : int or np.inf
+        The duality gap is evaluated every dgap_freq iterations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -1208,8 +1211,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     active_set : array
         The mask of active sources.
     E : list
-        The value of the objective function at each iteration. If log_objective
-        is np.inf, it will be empty.
+        The value of the objective function every dgap_freq iteration. If
+        log_objective is False or dgap_freq is np.inf, it will be empty.
     gap : float
         Final duality gap. Returned only if return_gap is True.
 
@@ -1229,15 +1232,15 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
        DOI: 10.1007/978-3-642-22092-0_49
     """
     if log_objective is True:
-        warn('booleans for log_objective are deprecated and will be '
-             'replaced by integers in 0.17.',
+        warn('Using log_objective is deprecated and will be '
+             'replaced by the use of dgap_freq in 0.17.',
              DeprecationWarning)
-        log_objective = 10
+        dgap_freq = 10
     elif log_objective is False:
-        warn('booleans for log_objective are deprecated and will be '
-             'replaced by integers in 0.17.',
+        warn('Using log_objective is deprecated and will be '
+             'replaced by the use of dgap_freq in 0.17.',
              DeprecationWarning)
-        log_objective = np.inf
+        dgap_freq = np.inf
 
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
@@ -1261,8 +1264,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     logger.info("Using block coordinate descent with active set approach")
     X, Z, active_set, E, gap = _tf_mixed_norm_solver_bcd_active_set(
         M, G, alpha_space, alpha_time, lc, phi, phiT, shape, Z_init=None,
-        n_orient=n_orient, maxit=maxit, tol=tol,
-        log_objective=log_objective, verbose=None)
+        n_orient=n_orient, maxit=maxit, tol=tol, dgap_freq=dgap_freq,
+        verbose=None)
 
     if np.any(active_set) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)

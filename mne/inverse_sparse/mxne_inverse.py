@@ -509,7 +509,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
                   tol=1e-4, weights=None, weights_min=None, pca=True,
                   debias=True, wsize=64, tstep=4, window=0.02,
                   return_residual=False, return_as_dipoles=False,
-                  alpha=None, l1_ratio=None, verbose=None):
+                  alpha=None, l1_ratio=None, dgap_freq=10, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -579,6 +579,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
         If l1_ratio and alpha are not None, alpha_space and alpha_time are
         overriden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
         * l1_ratio. 0 means no time regularization aka MxNE.
+    dgap_freq : int or np.inf
+        The duality gap is evaluated every dgap_freq iterations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -681,7 +683,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
     X, active_set, E = tf_mixed_norm_solver(
         M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
         maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
-        debias=debias)
+        dgap_freq=dgap_freq, debias=debias)
 
     if active_set.sum() == 0:
         raise Exception("No active dipoles found. "
