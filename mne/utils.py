@@ -1147,7 +1147,7 @@ def _import_mlab():
 
 @contextmanager
 def traits_test_context():
-    """Context to raise errors in trait handlers"""
+    """Context to raise errors in trait handlers."""
     from traits.api import push_exception_handler
 
     push_exception_handler(reraise_exceptions=True)
@@ -1156,7 +1156,7 @@ def traits_test_context():
 
 
 def traits_test(test_func):
-    """Decorator to raise errors in trait handlers"""
+    """Raise errors in trait handlers (decorator)."""
     @wraps(test_func)
     def dec(*args, **kwargs):
         with traits_test_context():
