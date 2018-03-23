@@ -2147,8 +2147,7 @@ def _connection_line(x, fig, sourceax, targetax, y=1):
     _, ys = trans_fig_inv.transform(sourceax.transData.transform([0, y]))
 
     return Line2D((xt, xs), (yt, ys), transform=trans_fig, color='grey',
-                  linestyle='-', linewidth=1.5, #alpha=1.,
-                  zorder=10000,
+                  linestyle='-', linewidth=1.5, alpha=.66, zorder=1,
                   clip_on=False)
 
 
