@@ -508,8 +508,11 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
     ax.set_ylabel('channels (index)')
-    ax.set_title(titles[this_type] + ' (%d channel%s)' % (
-                 len(data), _pl(data)))
+    mask_title = ("" if mask is None else
+                  " (" + str(mask.size - sum(mask)) " points masked")
+    ax.set_title(titles[this_type] +
+                 ' (%d channel%s)' % (len(data), _pl(data)) +
+                 mask_title)
     ax.set_xlabel('time (ms)')
 
 
