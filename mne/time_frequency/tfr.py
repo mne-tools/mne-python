@@ -1109,7 +1109,7 @@ class AverageTFR(_BaseTFR):
             A float between 0 and 1. If ``mask` is not None, this sets the
             alpha level (degree of transparency) for the masked-out segments.
             I.e., if 0, masked-out segments are not visible at all.
-            Defaults to 0.33.
+            Defaults to 0.1.
             
             .. versionadded:: 0.16.0
         verbose : bool, str, int, or None
