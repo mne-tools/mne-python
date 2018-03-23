@@ -884,6 +884,98 @@ class CoregPanelHandler(Handler):
         self.info.object.fitting_options_panel.edit_traits(
             parent=self.info.ui.control)
 
+    def object_load_trans_changed(self, info):  # noqa: D102
+        # find trans file destination
+        model = self.info.object.model
+        raw_dir = os.path.dirname(model.hsp.file)
+        subject = model.mri.subject
+        trans_file = trans_fname.format(raw_dir=raw_dir, subject=subject)
+        dlg = FileDialog(action="open", wildcard=trans_wildcard,
+                         default_path=trans_file, parent=self.info.ui.control)
+        if dlg.open() != OK:
+            return
+        trans_file = dlg.path
+        try:
+            model.load_trans(trans_file)
+        except Exception as e:
+            error(None, "Error loading trans file %s: %s (See terminal "
+                  "for details)" % (trans_file, e), "Error Loading Trans File")
+            raise
+
+    def object_save_changed(self, info):  # noqa: D102
+        obj = self.info.object
+        subjects_dir = obj.model.mri.subjects_dir
+        subject_from = obj.model.mri.subject
+
+        # check that fiducials are saved
+        skip_fiducials = False
+        if obj.n_scale_params and not _find_fiducials_files(subject_from,
+                                                            subjects_dir):
+            msg = ("No fiducials file has been found for {src}. If fiducials "
+                   "are not saved, they will not be available in the scaled "
+                   "MRI. Should the current fiducials be saved now? "
+                   "Select Yes to save the fiducials at "
+                   "{src}/bem/{src}-fiducials.fif. "
+                   "Select No to proceed scaling the MRI without fiducials.".
+                   format(src=subject_from))
+            title = "Save Fiducials for %s?" % subject_from
+            rc = confirm(None, msg, title, cancel=True, default=CANCEL,
+                         parent=self.info.ui.control)
+            if rc == CANCEL:
+                return
+            elif rc == YES:
+                obj.model.mri.save(obj.model.mri.default_fid_fname)
+            elif rc == NO:
+                skip_fiducials = True
+            else:
+                raise RuntimeError("rc=%s" % repr(rc))
+
+        # find target subject
+        if obj.n_scale_params:
+            subject_to = obj.model.raw_subject or subject_from
+            mridlg = NewMriDialog(subjects_dir=subjects_dir,
+                                  subject_from=subject_from,
+                                  subject_to=subject_to)
+            ui = mridlg.edit_traits(kind='modal',
+                                    parent=self.info.ui.control)
+            if not ui.result:  # i.e., user pressed cancel
+                return
+            subject_to = mridlg.subject_to
+        else:
+            subject_to = subject_from
+
+        # find trans file destination
+        raw_dir = os.path.dirname(obj.model.hsp.file)
+        trans_file = trans_fname.format(raw_dir=raw_dir, subject=subject_to)
+        dlg = FileDialog(action="save as", wildcard=trans_wildcard,
+                         default_path=trans_file,
+                         parent=self.info.ui.control)
+        dlg.open()
+        if dlg.return_code != OK:
+            return
+        trans_file = dlg.path
+        if not trans_file.endswith('.fif'):
+            trans_file += '.fif'
+            if os.path.exists(trans_file):
+                answer = confirm(None, "The file %r already exists. Should it "
+                                 "be replaced?", "Overwrite File?")
+                if answer != YES:
+                    return
+
+        # save the trans file
+        try:
+            obj.model.save_trans(trans_file)
+        except Exception as e:
+            error(None, "Error saving -trans.fif file: %s (See terminal for "
+                  "details)" % (e,), "Error Saving Trans File")
+            raise
+
+        # save the scaled MRI
+        if obj.n_scale_params:
+            job = obj.model.get_scaling_job(subject_to, skip_fiducials)
+            obj.queue.put(job)
+            obj.queue_len += 1
+
 
 def _make_view_data_panel(scrollable=False):
     view = View(VGroup(
@@ -1371,93 +1463,6 @@ class CoregPanel(HasPrivateTraits):
 
     def _rot_z_inc_fired(self):
         self.rot_z += self.rot_step
-
-    def _load_trans_fired(self):
-        # find trans file destination
-        raw_dir = os.path.dirname(self.model.hsp.file)
-        subject = self.model.mri.subject
-        trans_file = trans_fname.format(raw_dir=raw_dir, subject=subject)
-        dlg = FileDialog(action="open", wildcard=trans_wildcard,
-                         default_path=trans_file)
-        if dlg.open() != OK:
-            return
-        trans_file = dlg.path
-        try:
-            self.model.load_trans(trans_file)
-        except Exception as e:
-            error(None, "Error loading trans file %s: %s (See terminal "
-                  "for details)" % (trans_file, e), "Error Loading Trans File")
-            raise
-
-    def _save_fired(self, info):
-        subjects_dir = self.model.mri.subjects_dir
-        subject_from = self.model.mri.subject
-
-        # check that fiducials are saved
-        skip_fiducials = False
-        if self.n_scale_params and not _find_fiducials_files(subject_from,
-                                                             subjects_dir):
-            msg = ("No fiducials file has been found for {src}. If fiducials "
-                   "are not saved, they will not be available in the scaled "
-                   "MRI. Should the current fiducials be saved now? "
-                   "Select Yes to save the fiducials at "
-                   "{src}/bem/{src}-fiducials.fif. "
-                   "Select No to proceed scaling the MRI without fiducials.".
-                   format(src=subject_from))
-            title = "Save Fiducials for %s?" % subject_from
-            rc = confirm(None, msg, title, cancel=True, default=CANCEL)
-            if rc == CANCEL:
-                return
-            elif rc == YES:
-                self.model.mri.save(self.model.mri.default_fid_fname)
-            elif rc == NO:
-                skip_fiducials = True
-            else:
-                raise RuntimeError("rc=%s" % repr(rc))
-
-        # find target subject
-        if self.n_scale_params:
-            subject_to = self.model.raw_subject or subject_from
-            mridlg = NewMriDialog(subjects_dir=subjects_dir,
-                                  subject_from=subject_from,
-                                  subject_to=subject_to)
-            ui = mridlg.edit_traits(kind='modal')
-            if not ui.result:  # i.e., user pressed cancel
-                return
-            subject_to = mridlg.subject_to
-        else:
-            subject_to = subject_from
-
-        # find trans file destination
-        raw_dir = os.path.dirname(self.model.hsp.file)
-        trans_file = trans_fname.format(raw_dir=raw_dir, subject=subject_to)
-        dlg = FileDialog(action="save as", wildcard=trans_wildcard,
-                         default_path=trans_file)
-        dlg.open()
-        if dlg.return_code != OK:
-            return
-        trans_file = dlg.path
-        if not trans_file.endswith('.fif'):
-            trans_file += '.fif'
-            if os.path.exists(trans_file):
-                answer = confirm(None, "The file %r already exists. Should it "
-                                 "be replaced?", "Overwrite File?")
-                if answer != YES:
-                    return
-
-        # save the trans file
-        try:
-            self.model.save_trans(trans_file)
-        except Exception as e:
-            error(None, "Error saving -trans.fif file: %s (See terminal for "
-                  "details)" % (e,), "Error Saving Trans File")
-            raise
-
-        # save the scaled MRI
-        if self.n_scale_params:
-            job = self.model.get_scaling_job(subject_to, skip_fiducials)
-            self.queue.put(job)
-            self.queue_len += 1
 
     def _scale_x_dec_fired(self):
         self.scale_x -= self.scale_step
