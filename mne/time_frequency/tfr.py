@@ -1099,18 +1099,18 @@ class AverageTFR(_BaseTFR):
 
             .. versionadded:: 0.14.0
         mask : ndarray | None
-            An array of booleans of the same shape as the data. Entries of the 
+            An array of booleans of the same shape as the data. Entries of the
             data that correspond to False in the mask are plotted
             transparently. Useful for, e.g., masking for statistical
             significance.
-        
+
             .. versionadded:: 0.16.0
         alpha : float
             A float between 0 and 1. If ``mask` is not None, this sets the
             alpha level (degree of transparency) for the masked-out segments.
             I.e., if 0, masked-out segments are not visible at all.
             Defaults to 0.1.
-            
+
             .. versionadded:: 0.16.0
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
