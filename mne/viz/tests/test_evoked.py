@@ -136,12 +136,12 @@ def test_plot_evoked():
     evoked.plot_image(picks=[1, 2], mask=evoked.data > 0)
     evoked.plot_image(picks=[1, 2], mask=evoked.data > 0, do_mask=False,
                       do_contour=False)
-    evoked.plot_image(picks=[1, 2], mask=evoked.data == evoked.data,
-                      mask_cmap=None, colorbar=False)
+    evoked.plot_image(picks=[1, 2], mask_cmap=None, colorbar=False,
+                      mask=np.ones(evoked.data.shape).astype(bool),)
 
     with warnings.catch_warnings(record=True) as w:
-        evoked.plot_image(picks=[1, 2], mask=None, do_contour=True, do_mask=True)
-    print("hahahahah", w)
+        evoked.plot_image(picks=[1, 2], mask=None, do_contour=True,
+                          do_mask=True)
     assert(len(w) == 2)
     assert_raises(ValueError, evoked.plot_image, mask=evoked.data[1:, 1:] > 0)
 

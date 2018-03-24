@@ -503,7 +503,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
             do_mask = False
         if do_contour is True:
             warn("`mask` is None, not adding contour to the plot ...")
-            do_contour= False
+            do_contour = False
 
     if mask is not None:
         if mask.shape != data.shape:
@@ -530,8 +530,8 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
             np.ma.masked_where(~mask, data), cmap=cmap[0], alpha=1, **im_args)
     else:
         im = ax.imshow(data, cmap=cmap[0], **im_args)
-    if do_contour is True and mask.sum() > 0:
-        ax.contour(mask < .5, color="grey", #cmap="Greys",
+    if do_contour is True and np.sum(mask) > 0:
+        ax.contour(mask < .5, cmap="Greys",
                    extent=[times[0], times[-1], 0, data.shape[0]])
 
     if xlim is not None:
