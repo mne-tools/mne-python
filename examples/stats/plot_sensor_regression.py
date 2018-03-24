@@ -76,7 +76,8 @@ for cond in names:
 # The :func:`mne.viz.plot_evoked_image` function takes a `mask` parameter.
 # If we supply it with a boolean mask of the positions where we can reject
 # the null hypothesis, points that are not significant will be shown
-# # transparently, and in a different colour palette.
+# transparently, and if desired, in a different colour palette and surrounded
+# by dark contour lines.
 reject_H0, fdr_pvals = fdr_correction(res["Concreteness"].p_val.data)
 evoked = res["Concreteness"].beta
 evoked.plot_image(mask=reject_H0)
