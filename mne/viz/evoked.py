@@ -905,9 +905,9 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
 
         .. versionadded:: 0.16
     do_mask, do_contour : None | bool
-         If True, (mask the image | draw a contour surrounding the masked
-         area). If False, do not apply (mask | contour). If None and mask
-         is not None, defaults to drawing a mask and a contour.
+         If ``True``, (mask the image | draw a contour surrounding the masked
+         area). If ``False``, do not apply (mask | contour). If ``None`` and
+         `mask` is not ``None``, defaults to drawing a mask and a contour.
     colorbar : bool
         If True, plot a colorbar. Defaults to True.
 

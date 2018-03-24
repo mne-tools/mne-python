@@ -315,7 +315,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  show=show, clim=clim, proj=proj, xlim=xlim,
                                  units=units, scalings=scalings, titles=titles,
                                  axes=axes, cmap=cmap, mask_cmap=mask_cmap,
-                                 mask=mask, alpha=alpha, colorbar=colorbar)
+                                 mask=mask, alpha=alpha, do_mask=do_mask,
+                                 do_contour=do_contour, colorbar=colorbar)
 
     @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
