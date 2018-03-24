@@ -66,7 +66,6 @@ dependencies:
     - which pip;
     - pip install --upgrade --no-deps git+https://github.com/sphinx-gallery/sphinx-gallery.git;
     - python -c "from mayavi import mlab"
-    - python -c "import mne; mne.sys_info()"
 
   override:
     # Figure out if we should run a full, pattern, or noplot version
