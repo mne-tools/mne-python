@@ -3,6 +3,7 @@
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
+import operator
 import numpy as np
 from scipy import linalg
 
@@ -144,7 +145,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     """
     from scipy import interpolate
     from ..filter import next_fast_len
-    Kmax = int(Kmax)
+    Kmax = operator.index(Kmax)
+    N = operator.index(N)
     W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
 
