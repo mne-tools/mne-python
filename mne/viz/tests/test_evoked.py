@@ -141,6 +141,7 @@ def test_plot_evoked():
 
     with warnings.catch_warnings(record=True) as w:
         evoked.plot_image(picks=[1, 2], mask=None, do_contour=True, do_mask=True)
+    print("hahahahah", w)
     assert(len(w) == 2)
     assert_raises(ValueError, evoked.plot_image, mask=evoked.data[1:, 1:] > 0)
 

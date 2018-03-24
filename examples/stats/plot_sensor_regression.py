@@ -75,7 +75,8 @@ for cond in names:
 # statistical significance of the regression of word concreteness.
 # The :func:`mne.viz.plot_evoked_image` function takes a `mask` parameter.
 # If we supply it with a boolean mask of the positions where we can reject
-# the null hypothesis, not significant points will be shown transparently.
+# the null hypothesis, points that are not significant will be shown
+# # transparently, and in a different colour palette.
 reject_H0, fdr_pvals = fdr_correction(res["Concreteness"].p_val.data)
 evoked = res["Concreteness"].beta
 evoked.plot_image(mask=reject_H0)

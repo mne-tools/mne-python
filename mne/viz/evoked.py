@@ -492,13 +492,19 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
             do_mask = True
         else:
             do_mask = False
-            warn("`mask` is None, not masking the plot ...")
     if do_contour is None:
         if mask is not None:
             do_contour = True
         else:
             do_contour = False
+    if mask is None:
+        if do_mask is True:
+            warn("`mask` is None, not masking the plot ...")
+            do_mask = False
+        if do_contour is True:
             warn("`mask` is None, not adding contour to the plot ...")
+            do_contour= False
+
     if mask is not None:
         if mask.shape != data.shape:
             raise ValueError("The mask must have the same shape as the data, "
@@ -525,7 +531,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     else:
         im = ax.imshow(data, cmap=cmap[0], **im_args)
     if do_contour is True and mask.sum() > 0:
-        ax.contour(mask < .5, cmap="Greys",
+        ax.contour(mask < .5, color="grey", #cmap="Greys",
                    extent=[times[0], times[-1], 0, data.shape[0]])
 
     if xlim is not None:
