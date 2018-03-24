@@ -9,6 +9,7 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
+from ..fixes import _safe_svd
 from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tag import find_tag
@@ -1463,7 +1464,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
 
     logger.info('Computing SVD of whitened and weighted lead field '
                 'matrix.')
-    eigen_fields, sing, eigen_leads = linalg.svd(gain, full_matrices=False)
+    eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
     logger.info('    largest singular value = %g' % np.max(sing))
     logger.info('    scaling factor to adjust the trace = %g' % trace_GRGT)
 

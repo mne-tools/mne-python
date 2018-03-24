@@ -180,11 +180,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         write_evokeds(fname, self)
 
     def __repr__(self):  # noqa: D105
-        s = "comment : '%s'" % self.comment
-        s += ', kind : %s' % self.kind
-        s += ", time : [%f, %f]" % (self.times[0], self.times[-1])
-        s += ", n_epochs : %d" % self.nave
-        s += ", n_channels x n_times : %s x %s" % self.data.shape
+        _kind_swap = dict(average='mean', standard_error='SEM')
+        s = "'%s' (%s, N=%s)" % (self.comment, _kind_swap[self.kind],
+                                 self.nave)
+        s += ", [%0.5g, %0.5g] sec" % (self.times[0], self.times[-1])
+        s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
         return "<Evoked  |  %s>" % s
 
