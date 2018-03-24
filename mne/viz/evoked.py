@@ -530,9 +530,11 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
             np.ma.masked_where(~mask, data), cmap=cmap[0], alpha=1, **im_args)
     else:
         im = ax.imshow(data, cmap=cmap[0], **im_args)
-    if do_contour is True and np.sum(mask) > 0:
-        ax.contour(mask < .5, cmap="Greys",
-                   extent=[times[0], times[-1], 0, data.shape[0]])
+    if do_contour is True and np.unique(mask).size == 2:
+        big_mask = np.kron(mask, np.ones((10, 10)))
+        big_extent = np.array([times[0], times[-1], 0, data.shape[0]])
+        ax.contour(big_mask < .5, colors="k", extent=big_extent,
+                   corner_mask=False, antialiased=False, levels=[1])
 
     if xlim is not None:
         if xlim == 'tight':
