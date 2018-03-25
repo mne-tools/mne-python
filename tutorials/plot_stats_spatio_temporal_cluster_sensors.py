@@ -158,13 +158,13 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     ax_colorbar = divider.append_axes('right', size='5%', pad=0.05)
     plt.colorbar(image, cax=ax_colorbar)
     ax_topo.set_xlabel(
-        'Averaged F-map ({:0.1f} - {:0.1f} ms)'.format(*sig_times[[0, -1]]))
+        'Averaged F-map ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
 
     # add new axis for time courses and plot time courses
     ax_signals = divider.append_axes('right', size='300%', pad=1.2)
     title = 'Cluster #{0}, {1} sensor'.format(i_clu + 1, len(ch_inds))
     if len(ch_inds) > 1:
-        title += "s"
+        title += "s (mean)"
     plot_compare_evokeds(evokeds, title=title, picks=ch_inds, axes=ax_signals,
                          colors=colors, linestyles=linestyles, show=False,
                          split_legend=True, truncate_yaxis='max_ticks')
