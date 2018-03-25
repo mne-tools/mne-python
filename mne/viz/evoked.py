@@ -1808,7 +1808,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     one_evoked = evokeds[conditions[0]][0]
     times = one_evoked.times
     info = one_evoked.info
-    ch_names = one_evoked.ch_names
     tmin, tmax = times[0], times[-1]
 
     if vlines == "auto" and (tmin < 0 and tmax > 0):
@@ -1999,7 +1998,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     for condition in conditions:
         # plot the actual data ('d') as a line
         d = data_dict[condition].T
-        ax.plot(times, d, zorder=1000, label=condition, **styles[condition])
+        ax.plot(times, d, zorder=1000, label=condition, **styles[condition],
+                clip_on=False)
         if np.any(d > 0) or all_positive:
             any_positive = True
         if np.any(d < 0):
@@ -2009,7 +2009,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
         if _ci_fun is not None:
             ci_ = ci_dict[condition]
             ax.fill_between(times, ci_[0].flatten(), ci_[1].flatten(),
-                            zorder=9, color=styles[condition]['c'], alpha=.3)
+                            zorder=9, color=styles[condition]['c'], alpha=.3,
+                            clip_on=False)
 
     # truncate the y axis
     orig_ymin, orig_ymax = ax.get_ylim()
