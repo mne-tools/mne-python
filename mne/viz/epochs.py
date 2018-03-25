@@ -445,17 +445,16 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
 def _make_epochs_image_axis_grid(axes_dict=dict(), colorbar=False,
                                  evoked=False, fig=None):
     """Set up a dictionary of axes for epochs images."""
-    import matplotlib.pyplot as plt
     axes_dict["image"] = axes_dict.get("image", fig.add_subplot(111))
     if any((colorbar, evoked)):
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         divider = make_axes_locatable(axes_dict["image"])
-    if colorbar:
-        axes_dict["colorbar"] = axes_dict.get(
-            "colorbar", divider.append_axes("right", size="7%", pad="3%"))
-    if evoked:
-        axes_dict["evoked"] = axes_dict.get(
-            "evoked", divider.append_axes("bottom", size="35%", pad="5%"))
+        if colorbar:
+            axes_dict["colorbar"] = axes_dict.get(
+                "colorbar", divider.append_axes("right", size="7%", pad="3%"))
+        if evoked:
+            axes_dict["evoked"] = axes_dict.get(
+                "evoked", divider.append_axes("bottom", size="35%", pad="5%"))
     return axes_dict
 
 
