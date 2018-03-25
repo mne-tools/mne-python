@@ -8,8 +8,8 @@ def test_peak_finder():
     """Test the peak detection method"""
 
     # check for random data
-    np.random.seed(42)
-    peak_inds, peak_mags = peak_finder(np.random.random(20))
+    rng = np.random.RandomState(42)
+    peak_inds, peak_mags = peak_finder(rng.randn(20))
 
     assert_equal(peak_inds.dtype, np.dtype('int64'))
     assert_equal(peak_mags.dtype, np.dtype('float64'))
