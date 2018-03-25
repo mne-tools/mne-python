@@ -443,10 +443,10 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
 
 
 def _make_epochs_image_axis_grid(axes_dict=dict(), colorbar=False,
-                                 evoked=False):
+                                 evoked=False, fig=None):
     """Set up a dictionary of axes for epochs images."""
     import matplotlib.pyplot as plt
-    axes_dict["image"] = axes_dict.get("image", plt.axes())
+    axes_dict["image"] = axes_dict.get("image", fig.add_subplot(111))
     if any((colorbar, evoked)):
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         divider = make_axes_locatable(axes_dict["image"])
@@ -468,7 +468,8 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
         if fig is None:
             fig = plt.figure()
         plt.figure(fig.number)
-        axes_dict = _make_epochs_image_axis_grid(axes_dict, colorbar, evoked)
+        axes_dict = _make_epochs_image_axis_grid(
+            axes_dict, colorbar, evoked, fig)
     else:
         if fig is not None:
             raise ValueError('Both figure and axes were passed, please'
