@@ -442,6 +442,23 @@ def _prepare_epochs_image_im_data(epochs, ch_type, overlay_times, order,
             ts_args_]
 
 
+def _make_epochs_image_axis_grid(axes_dict=dict(), colorbar=False,
+                                 evoked=False):
+    """Set up a dictionary of axes for epochs images."""
+    import matplotlib.pyplot as plt
+    axes_dict["image"] = axes_dict.get("image", plt.axes())
+    if any((colorbar, evoked)):
+        from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+        divider = make_axes_locatable(axes_dict["image"])
+    if colorbar:
+        axes_dict["colorbar"] = axes_dict.get(
+            "colorbar", divider.append_axes("right", size="7%", pad="3%"))
+    if evoked:
+        axes_dict["evoked"] = axes_dict.get(
+            "evoked", divider.append_axes("bottom", size="35%", pad="5%"))
+    return axes_dict
+
+
 def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
     """Prepare axes for image plotting. Helper for plot_epochs_image."""
     import matplotlib.pyplot as plt
@@ -451,15 +468,7 @@ def _prepare_epochs_image_axes(axes, fig, colorbar, evoked):
         if fig is None:
             fig = plt.figure()
         plt.figure(fig.number)
-        axes_dict["image"] = plt.subplot2grid(
-            (3, 10), (0, 0), colspan=9 if colorbar else 10,
-            rowspan=2 if evoked else 3)
-        if evoked:
-            axes_dict["evoked"] = plt.subplot2grid(
-                (3, 10), (2, 0), colspan=9 if colorbar else 10, rowspan=1)
-        if colorbar:
-            axes_dict["colorbar"] = plt.subplot2grid((3, 10), (0, 9),
-                                                     colspan=1, rowspan=3)
+        axes_dict = _make_epochs_image_axis_grid(axes_dict, colorbar, evoked)
     else:
         if fig is not None:
             raise ValueError('Both figure and axes were passed, please'
