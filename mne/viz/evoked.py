@@ -520,21 +520,20 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         vmin = -vmax
     else:
         vmin, vmax = ylim[this_type]
+    extent = [times[0], times[-1], 0, data.shape[0]]
     im_args = dict(interpolation='nearest', origin='lower',
-                   extent=[times[0], times[-1], 0, data.shape[0]],
-                   aspect='auto', vmin=vmin, vmax=vmax)
+                   extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
     if do_mask:
         ax.imshow(data, alpha=alpha, cmap=mask_cmap[0], **im_args)
         im = ax.imshow(
-            np.ma.masked_where(~mask, data), cmap=cmap[0], alpha=1, **im_args)
+            np.ma.masked_where(~mask, data), cmap=cmap[0], **im_args)
     else:
         im = ax.imshow(data, cmap=cmap[0], **im_args)
     if do_contour is True and np.unique(mask).size == 2:
         big_mask = np.kron(mask, np.ones((10, 10)))
-        big_extent = np.array([times[0], times[-1], 0, data.shape[0]])
-        ax.contour(big_mask < .5, colors="k", extent=big_extent,
-                   corner_mask=False, antialiased=False, levels=[1])
+        ax.contour(big_mask, colors="k", extent=extent, linewidths=1,
+                   corner_mask=False, antialiased=False, levels=.5)
 
     if xlim is not None:
         if xlim == 'tight':
