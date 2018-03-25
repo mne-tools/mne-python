@@ -287,9 +287,9 @@ def _check_vlim(vlim):
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
                 colorbar=False, cmap=('RdBu_r', True), yscale='auto',
-                mask=None, alpha=0.1):
+                mask=None, alpha=0.1, is_jointplot=False):
     """Show time-frequency map as two-dimensional image."""
-    from matplotlib import pyplot as plt, ticker
+    from matplotlib import pyplot as plt, ticker, __version__ as v
     from matplotlib.widgets import RectangleSelector
 
     if yscale not in ['auto', 'linear', 'log']:
@@ -313,6 +313,10 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
             yscale = 'log'
         else:
             yscale = 'linear'
+
+    if yscale == "log" and is_jointplot is True and v == "2.1.0":  # noqa
+        warn("With matplotlib version 2.1.0, lines may not show up in "  # noqa
+             "`AverageTFR.plot_joint`. Upgrade to a more recent versiom.")  # noqa
 
     # compute bounds between time samples
     time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
