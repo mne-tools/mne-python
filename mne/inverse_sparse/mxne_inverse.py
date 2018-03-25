@@ -370,7 +370,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     """
     if not (0. <= alpha < 100.):
         raise ValueError('alpha must be in [0, 100). '
-                         'Got alpha = %f' % alpha)
+                         'Got alpha = %s' % alpha)
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
                          'Requires n_mxne_iter >= 1, got %d' % n_mxne_iter)
@@ -504,12 +504,12 @@ def _window_evoked(evoked, size):
 
 
 @verbose
-def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
-                  loose='auto', depth=0.8, maxit=3000, tol=1e-4,
-                  weights=None, weights_min=None, pca=True, debias=True,
-                  wsize=64, tstep=4, window=0.02, return_residual=False,
-                  return_as_dipoles=False, alpha=None, l1_ratio=None,
-                  verbose=None):
+def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
+                  alpha_time=None, loose='auto', depth=0.8, maxit=3000,
+                  tol=1e-4, weights=None, weights_min=None, pca=True,
+                  debias=True, wsize=64, tstep=4, window=0.02,
+                  return_residual=False, return_as_dipoles=False,
+                  alpha=None, l1_ratio=None, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -621,11 +621,11 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
 
         if not (0. <= alpha < 100.):
             raise ValueError('alpha must be in [0, 100). '
-                             'Got alpha = %f' % alpha)
+                             'Got alpha = %s' % alpha)
 
         if not (0. <= l1_ratio <= 1.):
             raise ValueError('l1_ratio must be in range [0, 1].'
-                             ' Got l1_ratio = %f' % l1_ratio)
+                             ' Got l1_ratio = %s' % l1_ratio)
         alpha_space = alpha * (1. - l1_ratio)
         alpha_time = alpha * l1_ratio
     else:
@@ -636,11 +636,11 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     if (alpha_space < 0.) or (alpha_space > 100.):
         old_parametrization = True
         raise ValueError('alpha_space must be in range [0, 100].'
-                         ' Got alpha_space = %f' % alpha_space)
+                         ' Got alpha_space = %s' % alpha_space)
 
     if (alpha_time < 0.) or (alpha_time > 100.):
         raise ValueError('alpha_time must be in range [0, 100].'
-                         ' Got alpha_time = %f' % alpha_time)
+                         ' Got alpha_time = %s' % alpha_time)
 
     loose, forward = _check_loose_forward(loose, forward)
 

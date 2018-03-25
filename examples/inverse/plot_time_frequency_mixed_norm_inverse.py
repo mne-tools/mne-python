@@ -86,10 +86,10 @@ stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 
 # Compute TF-MxNE inverse solution with dipole output
 dipoles, residual = tf_mixed_norm(
-    evoked, forward, cov, None, None, loose=loose, depth=depth,
-    maxit=200, tol=1e-6, weights=stc_dspm, weights_min=8., debias=True,
-    wsize=16, tstep=4, window=0.05, return_as_dipoles=True,
-    return_residual=True, alpha=alpha, l1_ratio=l1_ratio)
+    evoked, forward, cov, alpha=alpha, l1_ratio=l1_ratio, loose=loose,
+    depth=depth, maxit=200, tol=1e-6, weights=stc_dspm, weights_min=8.,
+    debias=True, wsize=16, tstep=4, window=0.05, return_as_dipoles=True,
+    return_residual=True)
 
 # Crop to remove edges
 for dip in dipoles:

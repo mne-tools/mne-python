@@ -4,6 +4,7 @@
 # License: Simplified BSD
 
 import os.path as op
+import warnings
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_true, assert_equal, assert_raises
@@ -134,8 +135,11 @@ def test_mxne_inverse():
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
-    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, 101., 3.)
-    assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, 50, 101.)
+    with warnings.catch_warnings(record=True) as w:
+      assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, 101., 3.)
+      assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, 50, 101.)
+      assert_true(len(w) == 2)
+
     assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, None, None,
                   alpha=101, l1_ratio=0.03)
     assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, None, None,
