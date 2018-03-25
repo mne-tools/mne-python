@@ -1446,14 +1446,18 @@ def _truncate_yaxis(axes, ymin, ymax, orig_ymin, orig_ymax, fraction,
             ymin_bound = round(ymin_bound / precision) * precision
         if ymin is None:
             ymax_bound = round(ymax_bound / precision) * precision
-    else:
-        ticks = axes.get_yticks()
-        ymin_bound, ymax_bound = ticks[[1, -2]]
-        if ymin_bound > 0:
-            ymin_bound = 0
-        ymin_bound = ymin if ymin is not None else ymin_bound
-        ymax_bound = ymax if ymax is not None else ymax_bound
-    axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
+        axes.spines['left'].set_bounds(ymin_bound, ymax_bound)
+    else:  # code stolen from seaborn
+        yticks = axes.get_yticks()
+        firsttick = np.compress(yticks >= min(axes.get_ylim()),
+                                yticks)[0]
+        lasttick = np.compress(yticks <= max(axes.get_ylim()),
+                               yticks)[-1]
+        axes.spines['left'].set_bounds(firsttick, lasttick)
+        newticks = yticks.compress(yticks <= lasttick)
+        newticks = newticks.compress(newticks >= firsttick)
+        axes.set_yticks(newticks)
+        ymin_bound, ymax_bound = newticks[[0, -1]]
     return ymin_bound, ymax_bound
 
 
