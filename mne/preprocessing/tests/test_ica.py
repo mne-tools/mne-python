@@ -232,7 +232,7 @@ def test_ica_core():
         # test preload filter
         raw3 = raw.copy()
         raw3.preload = False
-        assert_raises(ValueError, ica.apply, raw3,
+        assert_raises(RuntimeError, ica.apply, raw3,
                       include=[1, 2])
 
         #######################################################################
@@ -256,7 +256,7 @@ def test_ica_core():
         # test preload filter
         epochs3 = epochs.copy()
         epochs3.preload = False
-        assert_raises(ValueError, ica.apply, epochs3,
+        assert_raises(RuntimeError, ica.apply, epochs3,
                       include=[1, 2])
 
     # test for bug with whitener updating

@@ -316,6 +316,12 @@ class RawEDF(BaseRaw):
                     if any(stim[n_start:n_stop]):
                         warn('EDF+ with overlapping events'
                              ' are not fully supported')
+                    if n_start >= read_size:  # event out of bounds
+                        warn('Event "{}" (event ID {} with onset {}) is out of'
+                             ' bounds, it cannot be added to the stim channel.'
+                             ' Use find_edf_events to get a list of all EDF '
+                             'events as stored in the '
+                             'file.'.format(annotation, evid, n_start))
                     stim[n_start:n_stop] += evid
                 data[stim_channel_idx, :] = stim[start:stop]
             elif stim_data is not None:  # GDF events

@@ -48,7 +48,8 @@ from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state,
                      compute_corr, _get_inst_data, _ensure_int,
-                     copy_function_doc_to_method_doc, _pl, warn)
+                     copy_function_doc_to_method_doc, _pl, warn,
+                     _check_preload)
 
 from ..fixes import _get_args
 from ..filter import filter_data
@@ -1219,8 +1220,7 @@ class ICA(ContainsMixin):
 
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop):
         """Aux method."""
-        if not raw.preload:
-            raise ValueError('Raw data must be preloaded to apply ICA')
+        _check_preload(raw, "ica.apply")
 
         if exclude is None:
             exclude = list(set(self.exclude))
@@ -1245,8 +1245,7 @@ class ICA(ContainsMixin):
 
     def _apply_epochs(self, epochs, include, exclude, n_pca_components):
         """Aux method."""
-        if not epochs.preload:
-            raise ValueError('Epochs must be preloaded to apply ICA')
+        _check_preload(epochs, "ica.apply")
 
         picks = pick_types(epochs.info, meg=False, ref_meg=False,
                            include=self.ch_names,
