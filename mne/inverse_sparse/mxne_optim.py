@@ -314,7 +314,8 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
 
 @verbose
 def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
-                           tol=1e-8, verbose=None, init=None, n_orient=1):
+                           tol=1e-8, verbose=None, init=None, n_orient=1,
+                           dgap_freq=10):
     """Solve L21 inverse problem with block coordinate descent."""
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
@@ -361,7 +362,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                 X_j[:] = X_j_new
                 active_set[idx] = True
 
-        if (i + 1) % 10 == 0:
+        if (i + 1) % dgap_freq == 0:
             _, p_obj, d_obj, _ = dgap_l21(M, G, X[active_set], active_set,
                                           alpha, n_orient)
             highest_d_obj = max(d_obj, highest_d_obj)
