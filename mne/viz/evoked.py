@@ -896,7 +896,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Defaults to ``'RdBu_r'``.
     mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
         The colormap chosen for masked parts of the image (see below), if
-        `mask` is not ``None`. If None, `cmap` is reused. Defaults to
+        `mask` is not ``None``. If None, `cmap` is reused. Defaults to
         ``Greys``. Not interactive. Otherwise, as `cmap`.
     mask : ndarray | None
         An array of booleans of the same shape as the data. Entries of the
