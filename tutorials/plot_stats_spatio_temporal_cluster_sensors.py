@@ -9,8 +9,11 @@ Tests for differential evoked responses in at least
 one condition using a permutation clustering test.
 The FieldTrip neighbor templates will be used to determine
 the adjacency between sensors. This serves as a spatial prior
-to the clustering. Significant spatiotemporal clusters will then
+to the clustering. Spatiotemporal clusters will then
 be visualized using custom matplotlib code.
+
+Caveat for the interpretation of "significant" clusters: see
+the `FieldTrip website`_.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
@@ -124,7 +127,7 @@ grand_ave = np.array(X).mean(axis=1)
 # get sensor positions via layout
 pos = mne.find_layout(epochs.info).pos
 
-# loop over significant clusters
+# loop over clusters
 for i_clu, clu_idx in enumerate(good_cluster_inds):
     # unpack cluster information, get unique indices
     time_inds, space_inds = np.squeeze(clusters[clu_idx])
@@ -134,7 +137,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     # get topography for F stat
     f_map = T_obs[time_inds, ...].mean(axis=0)
 
-    # get signals at significant sensors
+    # get signals at the sensors contributing to the cluster
     signals = grand_ave[..., ch_inds].mean(axis=-1)
     sig_times = times[time_inds]
 
@@ -195,3 +198,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 #    permutations?
 # - use an F distribution to compute the threshold by traditional significance
 #    levels. Hint: take a look at ``scipy.stats.distributions.f``
+#
+# References
+# ==========
+# .. _fieldtrip website: http://www.fieldtriptoolbox.org/faq/how_not_to_interpret_results_from_a_cluster-based_permutation_test  # noqa
