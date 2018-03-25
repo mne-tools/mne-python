@@ -161,11 +161,11 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
         x0 = -x0
 
     # ensure output type array
-    if type(peak_inds) is not np.ndarray:
-        peak_inds=np.atleast_1d(np.asanyarray((peak_inds)).astype('int64'))
+    if not isinstance(peak_inds, np.ndarray):
+        peak_inds = np.atleast_1d(peak_inds).astype('int64')
 
-    if type(peak_mags) is not np.ndarray:
-        peak_mags = np.atleast_1d(np.asanyarray((peak_mags)).astype('float64'))
+    if not isinstance(peak_mags, np.ndarray):
+        peak_mags = np.atleast_1d(peak_mags).astype('float64')
 
     # Plot if no output desired
     if len(peak_inds) == 0:
