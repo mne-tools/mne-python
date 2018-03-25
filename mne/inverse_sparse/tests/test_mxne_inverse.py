@@ -136,9 +136,11 @@ def test_mxne_inverse():
     assert_true(stc.vertices[1][0] in label.vertices)
 
     with warnings.catch_warnings(record=True) as w:
-      assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, 101., 3.)
-      assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, 50, 101.)
-      assert_true(len(w) == 2)
+        assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov,
+                      101., 3.)
+        assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov,
+                      50, 101.)
+        assert_true(len(w) == 2)
 
     assert_raises(ValueError, tf_mixed_norm, evoked, forward, cov, None, None,
                   alpha=101, l1_ratio=0.03)
@@ -206,7 +208,7 @@ def test_mxne_vol_sphere():
     alpha = 60.  # overall regularization parameter
     l1_ratio = 0.01  # temporal regularization proportion
 
-    stc, _ = tf_mixed_norm(evoked, fwd, cov, None, None,  maxit=3, tol=1e-4,
+    stc, _ = tf_mixed_norm(evoked, fwd, cov, maxit=3, tol=1e-4,
                            tstep=16, wsize=32, window=0.1, alpha=alpha,
                            l1_ratio=l1_ratio, return_residual=True)
     assert_true(isinstance(stc, VolSourceEstimate))
