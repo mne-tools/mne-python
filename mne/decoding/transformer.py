@@ -111,10 +111,6 @@ class Scaler(TransformerMixin, BaseEstimator):
         self.with_std = with_std
         self.scalings = scalings
 
-        if (scalings is None) and (info is None):
-            raise ValueError('You have to specify either "info" or'
-                             '"scaling". Currently both are'
-                             '{}'.format(type(info)))
         if not (scalings is None or isinstance(scalings, (dict, str))):
             raise ValueError('scalings type should be dict, str, or None, '
                              'got {}'.format(type(scalings)))
@@ -123,6 +119,9 @@ class Scaler(TransformerMixin, BaseEstimator):
             raise ValueError('Invalid method for scaling, must be "mean" or '
                              '"median" but got {}'.format(scalings))
         if scalings is None or isinstance(scalings, dict):
+            if info is None:
+                raise ValueError('Need to specify "info" if scalings is ' +
+                                 str(type(scalings)))
             self._scaler = _ConstantScaler(info, scalings, self.with_std)
         elif scalings == 'mean':
             from sklearn.preprocessing import StandardScaler
