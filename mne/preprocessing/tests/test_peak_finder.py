@@ -5,9 +5,10 @@ from mne.preprocessing.peak_finder import peak_finder
 
 
 def test_peak_finder():
+    """Test the peak detection method"""
 
     # check for random data
-    peak_inds, peak_mags = peak_finder(np.asarray(np.random.random(20)))
+    peak_inds, peak_mags = peak_finder(np.random.random(20))
 
     assert_equal(peak_inds.dtype, np.dtype('int64'))
     assert_equal(peak_mags.dtype, np.dtype('float64'))
@@ -27,11 +28,12 @@ def test_peak_finder():
     assert_equal(peak_mags.dtype, np.dtype('float64'))
 
     # check for no peaks
-    peak_inds, peak_mags = peak_finder(np.asarray(np.zeros(20)))
+    peak_inds, peak_mags = peak_finder(np.zeros(20))
 
     assert_equal(peak_inds.dtype, np.dtype('int64'))
     assert_equal(peak_mags.dtype, np.dtype('float64'))
 
+    # check values
     peak_inds, peak_mags = peak_finder([0, 2, 5, 0, 6, -1])
     assert_array_equal(peak_inds, [2, 4])
 
