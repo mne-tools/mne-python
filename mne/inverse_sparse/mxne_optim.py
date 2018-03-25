@@ -768,6 +768,131 @@ def norm_l1_tf(Z, shape, n_orient):
     return l1_norm
 
 
+def norm_epsilon(Y, l1_ratio, n_steps):
+    """Dual norm of (1. - l1_ratio) * L2 norm + l1_ratio * L1 norm, at Y.
+
+    This is the unique solution in nu of
+    norm(prox_l1(Y, nu * l1_ratio), ord=2) = (1. - l1_ratio) * nu.
+
+    Warning: it takes into account the fact that Y only contains coefficients
+    corresponding to the positive frequencies (see `stft_norm2()`).
+
+    Parameters
+    ----------
+    Y : array, shape (n_freqs * n_steps,)
+        The input data.
+    l1_ratio : float between 0 and 1
+        Tradeoff between L2 and L1 regularization. When it is 0, no temporal
+        regularization is applied.
+    n_steps : int
+        The number of TF coefficients per frequency.
+
+    Returns
+    -------
+    nu : float
+        The value of the dual norm evaluated at Y.
+
+    References
+    ----------
+    .. [1] E. Ndiaye, O. Fercoq, A. Gramfort, J. Salmon,
+       "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
+       Information Processing Systems (NIPS), 2016.
+    """
+    # since the solution is invariant to flipped signs in Y, all entries
+    # of Y are assumed positive
+    norm_inf_Y = np.max(Y)
+    if l1_ratio == 1.:
+        # dual norm of L1 is Linf
+        return norm_inf_Y
+    elif l1_ratio == 0.:
+        # dual norm of L2 is L2
+        # Count all freqs twice except first and last.
+        return np.sqrt(2. * (Y ** 2).sum() - (Y[:n_steps] ** 2).sum() -
+                       (Y[-n_steps:] ** 2).sum())
+
+    if norm_inf_Y == 0.:
+        return 0.
+
+    # get K largest values of Y:
+    idx = Y > l1_ratio * norm_inf_Y
+    K = idx.sum()
+    if K == 1:
+        return norm_inf_Y
+
+    # Add negative freqs: count all freqs twice except first and last:
+    weights = np.empty(len(Y), dtype=int)
+    weights.fill(2)
+    weights[:n_steps] = 1
+    weights[-n_steps:] = 1
+
+    # sort both Y and weights at the same time
+    idx_sort = np.argsort(Y[idx])[::-1]
+    Y = Y[idx][idx_sort]
+    weights = weights[idx][idx_sort]
+
+    Y = np.repeat(Y, weights)
+    K = Y.shape[0]
+    p_sum = np.cumsum(Y[:(K - 1)])
+    p_sum_2 = np.cumsum(Y[:(K - 1)] ** 2)
+    upper = p_sum_2 / Y[1:] ** 2 - 2. * p_sum / Y[1:] + np.arange(1, K)
+    in_lower_upper = np.where(upper > (1. - l1_ratio) ** 2 / l1_ratio ** 2)[0]
+    if in_lower_upper.size > 0:
+        j = in_lower_upper[0] + 1
+        p_sum = p_sum[in_lower_upper[0]]
+        p_sum_2 = p_sum_2[in_lower_upper[0]]
+    else:
+        j = K
+        p_sum = p_sum[-1] + Y[K - 1]
+        p_sum_2 = p_sum_2[-1] + Y[K - 1] ** 2
+
+    denom = l1_ratio ** 2 * j - (1. - l1_ratio) ** 2
+    if np.abs(denom) < 1e-10:
+        return p_sum_2 / (2. * l1_ratio * p_sum)
+    else:
+        delta = (l1_ratio * p_sum) ** 2 - p_sum_2 * denom
+        return (l1_ratio * p_sum - np.sqrt(delta)) / denom
+
+
+def norm_epsilon_inf(G, R, phi, l1_ratio, n_orient):
+    """epsilon-inf norm of phi(np.dot(G.T, R)).
+
+    Parameters
+    ----------
+    G : array, shape (n_sensors, n_sources)
+        Gain matrix a.k.a. lead field.
+    R : array, shape (n_sensors, n_times)
+        Residual.
+    phi : instance of _Phi
+        The TF operator.
+    l1_ratio : float between 0 and 1
+        Parameter controlling the tradeoff between L21 and L1 regularization.
+        0 corresponds to an absence of temporal regularization, ie MxNE.
+    n_orient : int
+        Number of dipoles per location (typically 1 or 3).
+
+    Returns
+    -------
+    nu : float
+        The maximum value of the epsilon norms over groups of n_orient dipoles
+        (consecutive rows of phi(np.dot(G.T, R))).
+    """
+    n_positions = G.shape[1] // n_orient
+    n_times = R.shape[1]
+    n_steps = int(np.ceil(n_times / float(phi.tstep)))
+    GTRPhi = np.abs(phi(np.dot(G.T, R))) ** 2
+    # norm over orientations:
+    GTRPhi = np.sqrt(np.sum(GTRPhi.reshape((n_orient, -1), order='F'),
+                     axis=0)).reshape((n_positions, -1), order='F')
+    nu = 0.
+    for idx in range(n_positions):
+        GTRPhi_ = GTRPhi[idx]
+        norm_eps = norm_epsilon(GTRPhi_, l1_ratio, n_steps)
+        if norm_eps > nu:
+            nu = norm_eps
+
+    return nu
+
+
 def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
                n_orient, highest_d_obj):
     """Duality gap for the time-frequency mixed norm inverse problem.
@@ -816,10 +941,9 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
        gradient methods", Physics in Medicine and Biology, 2012.
        https://doi.org/10.1088/0031-9155/57/7/1937
 
-    .. [2] J. Wang, J. Ye,
-       "Two-layer feature reduction for sparse-group lasso via decomposition of
-       convex sets", Advances in Neural Information Processing Systems (NIPS),
-       vol. 27, pp. 2132-2140, 2014.
+    .. [2] E. Ndiaye, O. Fercoq, A. Gramfort, J. Salmon,
+       "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
+       Information Processing Systems (NIPS), 2016.
     """
     X = phiT(Z)
     GX = np.dot(G[:, active_set], X)
@@ -829,12 +953,10 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
     nR2 = sum_squared(R)
     p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
 
-    GRPhi_norm, _ = prox_l1(phi(np.dot(G.T, R)), alpha_time, n_orient)
-    GRPhi_norm = stft_norm2(GRPhi_norm.reshape(*shape)).reshape(-1, n_orient)
-    GRPhi_norm = np.sqrt(GRPhi_norm.sum(axis=1))
-    dual_norm = np.amax(GRPhi_norm)
-    scaling = alpha_space / dual_norm
-    scaling = min(scaling, 1.0)
+    l1_ratio = alpha_time / (alpha_space + alpha_time)
+    dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient)
+    scaling = min(1., (alpha_space + alpha_time) / dual_norm)
+
     d_obj = (scaling - 0.5 * (scaling ** 2)) * nR2 + scaling * np.sum(R * GX)
     d_obj = max(d_obj, highest_d_obj)
 
