@@ -1,5 +1,6 @@
 from glob import glob
 import os
+import os.path as op
 from shutil import copyfile
 
 from nose.tools import assert_equal, assert_raises, assert_true, assert_is_not
@@ -7,6 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_less
 
 import mne
+from mne.datasets import testing
 from mne.transforms import (Transform, apply_trans, rotation, translation,
                             scaling)
 from mne.coreg import (fit_matched_points, fit_point_cloud,
@@ -15,8 +17,7 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _is_mri_subject, scale_labels, scale_source_space,
                        coregister_fiducials)
 from mne.io.constants import FIFF
-from mne.utils import (requires_freesurfer, _TempDir, run_tests_if_main,
-                       requires_version)
+from mne.utils import _TempDir, run_tests_if_main
 from mne.source_space import write_source_spaces
 from functools import reduce
 
@@ -46,54 +47,59 @@ def test_coregister_fiducials():
     assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
-@requires_freesurfer
-@requires_version('scipy', '0.11')
+@testing.requires_testing_data
 def test_scale_mri():
-    """Test creating fsaverage and scaling it"""
-    # create fsaverage
+    """Test creating fsaverage and scaling it."""
+    # create fsaverage using the testing "fsaverage" instead of the FreeSurfer
+    # one
     tempdir = _TempDir()
-    create_default_subject(subjects_dir=tempdir)
+    create_default_subject(subjects_dir=tempdir,
+                           fs_home=testing.data_path(), verbose=True)
     assert_true(_is_mri_subject('fsaverage', tempdir),
                 "Creating fsaverage failed")
 
-    fid_path = os.path.join(tempdir, 'fsaverage', 'bem',
-                            'fsaverage-fiducials.fif')
+    fid_path = op.join(tempdir, 'fsaverage', 'bem', 'fsaverage-fiducials.fif')
     os.remove(fid_path)
     create_default_subject(update=True, subjects_dir=tempdir)
-    assert_true(os.path.exists(fid_path), "Updating fsaverage")
+    assert_true(op.exists(fid_path), "Updating fsaverage")
 
-    # copy MRI file from sample data
-    path = os.path.join('%s', 'fsaverage', 'mri', 'orig.mgz')
-    sample_sdir = os.path.join(mne.datasets.sample.data_path(), 'subjects')
-    copyfile(path % sample_sdir, path % tempdir)
+    # copy MRI file from sample data (shouldn't matter that it's incorrect,
+    # so here choose a small one)
+    path_from = op.join(testing.data_path(), 'subjects', 'sample', 'mri',
+                        'T1.mgz')
+    path_to = op.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
+    copyfile(path_from, path_to)
 
     # remove redundant label files
-    label_temp = os.path.join(tempdir, 'fsaverage', 'label', '*.label')
+    label_temp = op.join(tempdir, 'fsaverage', 'label', '*.label')
     label_paths = glob(label_temp)
     for label_path in label_paths[1:]:
         os.remove(label_path)
 
     # create source space
-    path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-%s-src.fif')
+    print('Creating surface source space')
+    path = op.join(tempdir, 'fsaverage', 'bem', 'fsaverage-%s-src.fif')
     src = mne.setup_source_space('fsaverage', 'ico0', subjects_dir=tempdir,
                                  add_dist=False)
     write_source_spaces(path % 'ico-0', src)
-    mri = os.path.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
-    vsrc = mne.setup_volume_source_space('fsaverage', pos=50, mri=mri,
-                                         subjects_dir=tempdir,
-                                         add_interpolator=False)
+    mri = op.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
+    print('Creating volume source space')
+    vsrc = mne.setup_volume_source_space(
+        'fsaverage', pos=50, mri=mri, subjects_dir=tempdir,
+        add_interpolator=False)
     write_source_spaces(path % 'vol-50', vsrc)
 
     # scale fsaverage
     os.environ['_MNE_FEW_SURFACES'] = 'true'
     scale = np.array([1, .2, .8])
-    scale_mri('fsaverage', 'flachkopf', scale, True, subjects_dir=tempdir)
+    scale_mri('fsaverage', 'flachkopf', scale, True, subjects_dir=tempdir,
+              verbose='debug')
     del os.environ['_MNE_FEW_SURFACES']
     assert_true(_is_mri_subject('flachkopf', tempdir),
                 "Scaling fsaverage failed")
-    spath = os.path.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
+    spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
-    assert_true(os.path.exists(spath % 'ico-0'),
+    assert_true(op.exists(spath % 'ico-0'),
                 "Source space ico-0 was not scaled")
     vsrc_s = mne.read_source_spaces(spath % 'vol-50')
     pt = np.array([0.12, 0.41, -0.22])
