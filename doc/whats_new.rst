@@ -85,6 +85,8 @@ Changelog
 
 - Add ``dgap_freq`` parameter in ``mne.inverse_sparse.tf_mxne_optim`` solvers to control the frequency of duality gap computation by `Mathurin Massias`_ and `Daniel Strohmeier`_
 
+- Add support for reading Eximia files by `Eric Larson`_ and `Federico Raimondo`_
+
 Bug
 ~~~
 
