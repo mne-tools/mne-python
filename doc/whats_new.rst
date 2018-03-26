@@ -2596,3 +2596,5 @@ of commits):
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
 
 .. _Stefan Appelhoff: http://stefanappelhoff.com
+
+.. _Tommy Clausner: https://github.com/TommyClausner
