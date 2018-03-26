@@ -919,7 +919,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         .. versionadded:: 0.16
     mask_style: None | 'both' | 'contour' | 'mask'
         If `mask` is not None: if 'contour', a contour line is drawn around
-        the masked areas (``True`` in `mask`). If 'contour', entries not
+        the masked areas (``True`` in `mask`). If 'mask', entries not
         ``True`` in `mask` are shown transparently. If 'both', both a contour
         and transparency are used.
         If ``None``, defaults to 'both' if `mask` is not None, and is ignored
