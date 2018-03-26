@@ -12,6 +12,7 @@
 # License: BSD (3-clause)
 
 import os
+import os.path as op
 import re
 import time
 
@@ -29,7 +30,7 @@ from ...externals.six.moves import configparser
 
 
 class RawBrainVision(BaseRaw):
-    """Raw object from Brain Vision EEG file.
+    """Raw object from a Brain Vision EEG file.
 
     Parameters
     ----------
@@ -84,7 +85,7 @@ class RawBrainVision(BaseRaw):
                  event_id=None, verbose=None):  # noqa: D107
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
-        vhdr_fname = os.path.abspath(vhdr_fname)
+        vhdr_fname = op.abspath(vhdr_fname)
         info, data_filename, fmt, order, mrk_fname, montage, n_samples = \
             _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
         self._order = order
@@ -261,7 +262,7 @@ def _read_vmrk_events(fname, event_id=None, response_trig_shift=0):
     # extract Marker Infos block
     m = re.search(r"\[Marker Infos\]", txt)
     if not m:
-        return np.zeros(0)
+        return np.zeros((0, 3))
     mk_txt = txt[m.end():]
     m = re.search(r"\[.*\]", mk_txt)
     if m:
@@ -379,7 +380,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
     """
     scale = float(scale)
-    ext = os.path.splitext(vhdr_fname)[-1]
+    ext = op.splitext(vhdr_fname)[-1]
     if ext != '.vhdr':
         raise IOError("The header file must be given to read the data, "
                       "not a file with extension '%s'." % ext)
@@ -446,8 +447,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
                    for key in cfg.options('ASCII Infos'))
 
     # locate EEG and marker files
-    path = os.path.dirname(vhdr_fname)
-    data_filename = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
+    path = op.dirname(vhdr_fname)
+    data_filename = op.join(path, cfg.get('Common Infos', 'DataFile'))
     info['meas_date'] = int(time.time())
     info['buffer_size_sec'] = 1.  # reasonable default
 
@@ -737,7 +738,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     # for stim channel
-    mrk_fname = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    mrk_fname = op.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info._update_redundant()
     info._check_consistency()
     return info, data_filename, fmt, order, mrk_fname, montage, n_samples
