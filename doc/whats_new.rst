@@ -86,6 +86,8 @@ Changelog
 Bug
 ~~~
 
+- Fix bug in :func:`mne.preprocessing.peak_finder` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
+
 - Fix bug in :func:`mne.io.brainvision.brainvision._get_vhdr_info` to use the correct conversion for filters from time constant to frequency by `Stefan Appelhoff`_
 
 - Fix bug in :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` to allow :func:`mne.decoding.cross_val_multiscore` to automatically detect whether the `base_estimator` is a classifier and use a `StratifiedKFold` instead of a `KFold` when `cv` is not specified, by `Jean-Remi King`_
@@ -2596,3 +2598,5 @@ of commits):
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
 
 .. _Stefan Appelhoff: http://stefanappelhoff.com
+
+.. _Tommy Clausner: https://github.com/TommyClausner
