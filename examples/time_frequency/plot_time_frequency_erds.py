@@ -21,7 +21,7 @@ multiple channels, but we will only consider the three channels C3, Cz, and C4.
 We compute maps containing frequencies ranging from 2 to 35Hz. We map ERD to
 red color and ERS to blue color, which is the convention in many ERDS
 publications. Finally, we perform cluster-based permutation tests to estimate
-significant ERDS values.
+significant ERDS values (corrected for multiple comparisons within channels).
 
 References
 ----------
@@ -48,7 +48,7 @@ import mne
 from mne.datasets import eegbci
 from mne.io import concatenate_raws, read_raw_edf
 from mne.time_frequency import tfr_multitaper
-from mne.stats import permutation_cluster_1samp_test as pctest
+from mne.stats import permutation_cluster_1samp_test as pcluster_test
 
 
 def center_cmap(cmap, vmin, vmax):
@@ -116,10 +116,13 @@ for event in event_ids:
 
         kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1)
         # positive clusters
-        _, c1, p1, _ = pctest(tfr.data[:, i, ...], tail=1, **kwargs)
+        _, c1, p1, _ = pcluster_test(tfr.data[:, i, ...], tail=1, **kwargs)
         # negative clusters
-        _, c2, p2, _ = pctest(tfr.data[:, i, ...], tail=-1, **kwargs)
+        _, c2, p2, _ = pcluster_test(tfr.data[:, i, ...], tail=-1, **kwargs)
 
+        # note that we keep clusters with p <= 0.05 from the combined clusters
+        # of two independent tests; in this example, we do not correct for
+        # these two comparisons
         for c, p in zip(c1 + c2, np.concatenate((p1, p2))):
             if p <= 0.05:  # unmask values in significant clusters
                 mask[c] = True
