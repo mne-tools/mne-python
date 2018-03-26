@@ -81,6 +81,10 @@ Changelog
 
 - Add reader for manual annotations of raw data produced by Brainstorm by `Anne-Sophie Dubarry`_
 
+- Tighter duality gap computation in ``mne.inverse_sparse.tf_mxne_optim`` and new parametrization with ``alpha`` and  ``l1_ratio`` instead of ``alpha_space`` and ``alpha_time`` by `Mathurin Massias`_ and `Daniel Strohmeier`_
+
+- Add ``dgap_freq`` parameter in ``mne.inverse_sparse.tf_mxne_optim`` solvers to control the frequency of duality gap computation by `Mathurin Massias`_ and `Daniel Strohmeier`_
+
 Bug
 ~~~
 
