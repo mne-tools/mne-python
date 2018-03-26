@@ -111,8 +111,6 @@ for event in event_ids:
     fig, axes = plt.subplots(1, 4, figsize=(12, 4),
                              gridspec_kw={"width_ratios": [10, 10, 10, 1]})
     for ch, ax in enumerate(axes[:-1]):  # for each channel
-        mask = np.full(tfr.data.shape[-2:], False)  # initially mask all values
-
         # positive clusters
         _, c1, p1, _ = pcluster_test(tfr.data[:, ch, ...], tail=1, **kwargs)
         # negative clusters
