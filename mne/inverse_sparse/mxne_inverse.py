@@ -376,6 +376,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     if n_mxne_iter < 1:
         raise ValueError('MxNE has to be computed at least 1 time. '
                          'Requires n_mxne_iter >= 1, got %d' % n_mxne_iter)
+    if dgap_freq <= 0.:
+        raise ValueError('dgap_freq must be a positive integer.'
+                         ' Got dgap_freq = %s' % dgap_freq)
 
     if not isinstance(evoked, list):
         evoked = [evoked]
@@ -424,12 +427,12 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         X, active_set, E = mixed_norm_solver(
             M, gain, alpha, maxit=maxit, tol=tol,
             active_set_size=active_set_size, n_orient=n_dip_per_pos,
-            debias=debias, solver=solver, verbose=verbose)
+            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
     else:
         X, active_set, E = iterative_mixed_norm_solver(
             M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
             n_orient=n_dip_per_pos, active_set_size=active_set_size,
-            debias=debias, solver=solver, verbose=verbose)
+            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
 
     if time_pca:
         X = np.dot(X, Vh)
@@ -645,6 +648,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
     if (alpha_time < 0.) or (alpha_time > 100.):
         raise ValueError('alpha_time must be in range [0, 100].'
                          ' Got alpha_time = %s' % alpha_time)
+
+    if dgap_freq <= 0.:
+        raise ValueError('dgap_freq must be a positive integer.'
+                         ' Got dgap_freq = %s' % dgap_freq)
 
     loose, forward = _check_loose_forward(loose, forward)
 
