@@ -12,6 +12,7 @@ from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            tf_mixed_norm_solver,
                                            iterative_mixed_norm_solver,
                                            norm_epsilon_inf, norm_epsilon,
+                                           _multidict_STFT_norm,
                                            _Phi, _PhiT, dgap_l21l1)
 from mne.time_frequency.stft import stft_norm2
 
@@ -126,18 +127,20 @@ def test_norm_epsilon():
     n_steps = 5
     n_freqs = 4
     Y = np.zeros(n_steps * n_freqs)
+    multidict_stft_norm = _multidict_STFT_norm(np.array(n_freqs),
+                                               np.array(n_steps))
     l1_ratio = 0.5
-    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps), 0.)
+    assert_allclose(norm_epsilon(Y, l1_ratio, multidict_stft_norm), 0.)
 
     Y[0] = 2.
-    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps), np.max(Y))
+    assert_allclose(norm_epsilon(Y, l1_ratio, multidict_stft_norm), np.max(Y))
 
     l1_ratio = 1.
-    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps), np.max(Y))
+    assert_allclose(norm_epsilon(Y, l1_ratio, multidict_stft_norm), np.max(Y))
     # dummy value without random:
     Y = np.arange(n_steps * n_freqs).reshape(-1, )
     l1_ratio = 0.
-    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps) ** 2,
+    assert_allclose(norm_epsilon(Y, l1_ratio, multidict_stft_norm) ** 2,
                     stft_norm2(Y.reshape(-1, n_freqs, n_steps)))
 
 
@@ -147,24 +150,25 @@ def test_dgapl21l1():
     M, G, active_set = _generate_tf_data()
     n_times = M.shape[1]
     n_sources = G.shape[1]
-    tstep, wsize = 4, 32
-    n_steps = int(np.ceil(n_times / float(tstep)))
+    tstep, wsize = np.array([4]), np.array([32])
+    n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
     phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
+    multidict_stft_norm = _multidict_STFT_norm(n_freqs, n_steps)
 
     for l1_ratio in [0.05, 0.1]:
-        alpha_max = norm_epsilon_inf(G, M, phi, l1_ratio, n_orient)
+        alpha_max = norm_epsilon_inf(G, M, phi, multidict_stft_norm, l1_ratio,
+                                     n_orient)
         alpha_space = (1. - l1_ratio) * alpha_max
         alpha_time = l1_ratio * alpha_max
 
-        Z = np.zeros([n_sources, n_coefs])
-        shape = (-1, n_steps, n_freqs)
+        Z = np.zeros([n_sources, multidict_stft_norm.n_coefs.sum()])
         # for alpha = alpha_max, Z = 0 is the solution so the dgap is 0
         gap = dgap_l21l1(M, G, Z, np.ones(n_sources, dtype=bool),
-                         alpha_space, alpha_time, phi, phiT, shape, n_orient,
-                         -np.inf)[0]
+                         alpha_space, alpha_time, phi, phiT,
+                         multidict_stft_norm, n_orient, -np.inf)[0]
 
         assert_allclose(0., gap)
         # check that solution for alpha smaller than alpha_max is non 0:

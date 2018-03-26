@@ -19,7 +19,8 @@ from ..dipole import Dipole
 from ..externals.six.moves import xrange as range
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
-                         norm_l2inf, tf_mixed_norm_solver, norm_epsilon_inf)
+                         _multidict_STFT_norm, norm_l2inf,
+                         tf_mixed_norm_solver, norm_epsilon_inf)
 
 
 @verbose
@@ -562,11 +563,17 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
         If True the rank of the data is reduced to true dimension.
     debias: bool
         Remove coefficient amplitude bias due to L1 penalty.
-    wsize: int
+    wsize: int or np.array, shape (n_dict,)
         Length of the STFT window in samples (must be a multiple of 4).
-    tstep: int
+        If an array is passed, n_dict TF dictionaries are used (each having its
+        own wsize and tstep) and each entry of wsize must be a multiple of 4.
+        See [3]_.
+    tstep: int or np.array, shape (n_dict,)
         Step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2).
+        If an array is passed, n_dict TF dictionaries are used (each having its
+        own wsize and tstep), and each entry of tstep must be a multiple of 2
+        and divide the corresponding entry of wsize. See [3]_.
     window : float or (float, float)
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
@@ -618,6 +625,12 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
        Proceedings Information Processing in Medical Imaging
        Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
        DOI: 10.1007/978-3-642-22092-0_49
+
+    .. [3] Y. Bekhti, D. Strohmeier, M. Jas, R. Badeau, A. Gramfort.
+       "M/EEG source localization with multiscale time-frequency dictionaries",
+       6th International Workshop on Pattern Recognition in Neuroimaging
+       (PRNI), 2016.
+       DOI: 10.1109/PRNI.2016.7552337
     """
     _check_reference(evoked)
 
@@ -654,6 +667,13 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
 
+    tstep = np.atleast_1d(tstep)
+    wsize = np.atleast_1d(wsize)
+    if len(tstep) != len(wsize):
+        raise ValueError('The same number of window sizes and steps must be '
+                         'passed. Got tstep = %s and wsize = %s' %
+                         (tstep, wsize))
+
     loose, forward = _check_loose_forward(loose, forward)
 
     # put the forward solution in fixed orientation if it's not already
@@ -678,14 +698,17 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
     M = np.dot(whitener, M)
 
     # Scaling to make setting of alpha easy
-    n_steps = int(np.ceil(M.shape[1] / float(tstep)))
+    n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
+    multidict_stft_norm = _multidict_STFT_norm(n_freqs, n_steps)
+
     if old_parametrization:
         alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos)
     else:
-        alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
+        alpha_max = norm_epsilon_inf(gain, M, phi, multidict_stft_norm,
+                                     l1_ratio, n_dip_per_pos)
     alpha_max *= 0.01
     gain /= alpha_max
     source_weighting /= alpha_max
