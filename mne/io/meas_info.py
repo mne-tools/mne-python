@@ -512,13 +512,17 @@ def _simplify_info(info):
     return sub_info
 
 
-def read_fiducials(fname):
+@verbose
+def read_fiducials(fname, verbose=None):
     """Read fiducials from a fiff file.
 
     Parameters
     ----------
     fname : str
         The filename to read.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -551,7 +555,9 @@ def read_fiducials(fname):
     return pts, coord_frame
 
 
-def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
+@verbose
+def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                    verbose=None):
     """Write fiducials to a fiff file.
 
     Parameters
@@ -564,6 +570,9 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN):
     coord_frame : int
         The coordinate frame of the points (one of
         mne.io.constants.FIFF.FIFFV_COORD_...).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     write_dig(fname, pts, coord_frame)
 

@@ -27,7 +27,7 @@ from .source_space import (add_source_space_distances, read_source_spaces,
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import rotation, rotation3d, scaling, translation, Transform
-from .utils import get_config, get_subjects_dir, logger, pformat
+from .utils import get_config, get_subjects_dir, logger, pformat, verbose
 from .viz._3d import _fiducial_coords
 from .externals.six.moves import zip
 
@@ -106,8 +106,9 @@ def coregister_fiducials(info, fiducials, tol=0.01):
     return Transform(coord_frame_from, coord_frame_to, trans)
 
 
-def create_default_subject(fs_home=None, update=False,
-                           subjects_dir=None):
+@verbose
+def create_default_subject(fs_home=None, update=False, subjects_dir=None,
+                           verbose=None):
     """Create an average brain subject for subjects without structural MRI.
 
     Create a copy of fsaverage from the Freesurfer directory in subjects_dir
@@ -125,6 +126,9 @@ def create_default_subject(fs_home=None, update=False,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (os.environ['SUBJECTS_DIR']) as destination for the new subject.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
@@ -902,8 +906,9 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
     return subjects_dir, subject_from, scale, n_params == 1
 
 
+@verbose
 def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
-              subjects_dir=None):
+              subjects_dir=None, verbose=None):
     """Scale a bem file.
 
     Parameters
@@ -922,6 +927,9 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
         otherwise it is read from subject_to's config file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
     """
     subjects_dir, subject_from, scale, uniform = \
         _scale_params(subject_to, subject_from, scale, subjects_dir)
@@ -1004,9 +1012,10 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
         l_new.save(dst)
 
 
+@verbose
 def scale_mri(subject_from, subject_to, scale, overwrite=False,
               subjects_dir=None, skip_fiducials=False, labels=True,
-              annot=False):
+              annot=False, verbose=None):
     """Create a scaled copy of an MRI subject.
 
     Parameters
@@ -1028,6 +1037,9 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         Also scale all labels (default True).
     annot : bool
         Copy ``*.annot`` files to the new location (default False).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -1048,16 +1060,16 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
             raise IOError("Subject directory for %s already exists: %r"
                           % (subject_to, dest))
 
-    # create empty directory structure
+    logger.debug('create empty directory structure')
     for dirname in paths['dirs']:
         dir_ = dirname.format(subject=subject_to, subjects_dir=subjects_dir)
         os.makedirs(dir_)
 
-    # save MRI scaling parameters
+    logger.debug('save MRI scaling parameters')
     fname = os.path.join(dest, 'MRI scaling parameters.cfg')
     _write_mri_config(fname, subject_from, subject_to, scale)
 
-    # surf files [in mm]
+    logger.debug('surf files [in mm]')
     for fname in paths['surf']:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         src = os.path.realpath(src)
@@ -1065,39 +1077,41 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         pts, tri = read_surface(src)
         write_surface(dest, pts * scale, tri)
 
-    # BEM files [in m]
+    logger.debug('BEM files [in m]')
     for bem_name in paths['bem']:
-        scale_bem(subject_to, bem_name, subject_from, scale, subjects_dir)
+        scale_bem(subject_to, bem_name, subject_from, scale, subjects_dir,
+                  verbose=False)
 
-    # fiducials [in m]
+    logger.debug('fiducials [in m]')
     for fname in paths['fid']:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         src = os.path.realpath(src)
-        pts, cframe = read_fiducials(src)
+        pts, cframe = read_fiducials(src, verbose=False)
         for pt in pts:
             pt['r'] = pt['r'] * scale
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
-        write_fiducials(dest, pts, cframe)
+        write_fiducials(dest, pts, cframe, verbose=False)
 
-    # duplicate files
+    logger.debug('duplicate files')
     for fname in paths['duplicate']:
         src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
         dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         shutil.copyfile(src, dest)
 
-    # source spaces
+    logger.debug('source spaces')
     for fname in paths['src']:
         src_name = os.path.basename(fname)
         scale_source_space(subject_to, src_name, subject_from, scale,
-                           subjects_dir)
+                           subjects_dir, verbose=False)
 
-    # labels [in m]
+    logger.debug('labels [in m]')
     os.mkdir(os.path.join(subjects_dir, subject_to, 'label'))
     if labels:
         scale_labels(subject_to, subject_from=subject_from, scale=scale,
                      subjects_dir=subjects_dir)
 
-    # copy *.annot files (they don't contain scale-dependent information)
+    logger.debug('copy *.annot files')
+    # they don't contain scale-dependent information
     if annot:
         src_pattern = os.path.join(subjects_dir, subject_from, 'label',
                                    '*.annot')
@@ -1106,8 +1120,9 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
             shutil.copy(src_file, dst_dir)
 
 
+@verbose
 def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
-                       subjects_dir=None, n_jobs=1):
+                       subjects_dir=None, n_jobs=1, verbose=None):
     """Scale a source space for an mri created with scale_mri().
 
     Parameters
@@ -1132,6 +1147,9 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         Number of jobs to run in parallel if recomputing distances (only
         applies if scale is an array of length 3, and will not use more cores
         than there are source spaces).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Notes
     -----
