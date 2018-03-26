@@ -181,8 +181,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
-                 noise_cov=None, mask=None, mask_cmap=None, alpha=.1,
-                 mask_style=None, colorbar=True):
+                 noise_cov=None, colorbar=True, mask=None, mask_style=None,
+                 mask_cmap=None, mask_alpha=.1):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -275,8 +275,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
                         units, scalings, evoked.times, xlim, ylim, titles,
-                        mask=mask, mask_cmap=mask_cmap, alpha=alpha,
-                        mask_style=mask_style, colorbar=colorbar)
+                        colorbar=colorbar, mask=mask, mask_style=mask_style,
+                        mask_cmap=mask_cmap, mask_alpha=mask_alpha)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -470,8 +470,8 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
-                xlim, ylim, titles, mask=None, mask_cmap=None, alpha=.3,
-                mask_style=None, colorbar=True):
+                xlim, ylim, titles, colorbar=True, mask=None, mask_cmap=None,
+                mask_style=None, mask_alpha=.3):
     """Plot images."""
     import matplotlib.pyplot as plt
 
@@ -530,7 +530,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                    extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
     if do_mask:
-        ax.imshow(data, alpha=alpha, cmap=mask_cmap[0], **im_args)
+        ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap[0], **im_args)
         im = ax.imshow(
             np.ma.masked_where(~mask, data), cmap=cmap[0], **im_args)
     else:
@@ -680,8 +680,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors, zorder=zorder,
-                        selectable=selectable, noise_cov=noise_cov)
+                        spatial_colors=spatial_colors, selectable=selectable,
+                        zorder=zorder, noise_cov=noise_cov)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -846,11 +846,11 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
                               blit=blit, show=show)
 
 
-def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
-                      clim=None, xlim='tight', proj=False, units=None,
-                      scalings=None, titles=None, axes=None, cmap='RdBu_r',
-                      mask_cmap="Greys", mask=None, alpha=.3, mask_style=None,
-                      colorbar=True):
+def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
+                      show=True, clim=None, xlim='tight', proj=False,
+                      units=None, scalings=None, titles=None, axes=None,
+                      cmap='RdBu_r', colorbar=True, mask=None,
+                      mask_style=None, mask_cmap="Greys", mask_alpha=.3):
     """Plot evoked data as images.
 
     Parameters
@@ -899,22 +899,15 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         resets the scale. Up and down arrows can be used to change the
         colormap. If 'interactive', translates to ``('RdBu_r', True)``.
         Defaults to ``'RdBu_r'``.
-    mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
-        The colormap chosen for masked parts of the image (see below), if
-        `mask` is not ``None``. If None, `cmap` is reused. Defaults to
-        ``Greys``. Not interactive. Otherwise, as `cmap`.
+    colorbar : bool
+        If True, plot a colorbar. Defaults to True.
+
+        .. versionadded:: 0.16
     mask : ndarray | None
         An array of booleans of the same shape as the data. Entries of the
         data that correspond to ```False`` in the mask are masked (see
         `do_mask` below). Useful for, e.g., masking for statistical
         significance.
-
-        .. versionadded:: 0.16
-    alpha : float
-        A float between 0 and 1. If `mask` is not None, this sets the
-        alpha level (degree of transparency) for the masked-out segments.
-        I.e., if 0, masked-out segments are not visible at all.
-        Defaults to .5.
 
         .. versionadded:: 0.16
     mask_style: None | 'both' | 'contour' | 'mask'
@@ -926,8 +919,15 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         otherwise.
 
          .. versionadded:: 0.16
-    colorbar : bool
-        If True, plot a colorbar. Defaults to True.
+    mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+        The colormap chosen for masked parts of the image (see below), if
+        `mask` is not ``None``. If None, `cmap` is reused. Defaults to
+        ``Greys``. Not interactive. Otherwise, as `cmap`.
+    mask_alpha : float
+        A float between 0 and 1. If `mask` is not None, this sets the
+        alpha level (degree of transparency) for the masked-out segments.
+        I.e., if 0, masked-out segments are not visible at all.
+        Defaults to .5.
 
         .. versionadded:: 0.16
 
@@ -937,11 +937,11 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Figure containing the images.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
-                        show=show, ylim=clim, proj=proj, xlim=xlim,
-                        hline=None, units=units, scalings=scalings,
-                        titles=titles, axes=axes, plot_type="image",
-                        cmap=cmap, mask_cmap=mask_cmap, mask=mask, alpha=alpha,
-                        mask_style=mask_style, colorbar=colorbar)
+                        show=show, ylim=clim, proj=proj, xlim=xlim, hline=None,
+                        units=units, scalings=scalings, titles=titles,
+                        axes=axes, plot_type="image", cmap=cmap,
+                        colorbar=colorbar, mask=mask, mask_style=mask_style,
+                        mask_cmap=mask_cmap, mask_alpha=mask_alpha)
 
 
 def _plot_update_evoked(params, bools):
