@@ -145,8 +145,10 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     """
     from scipy import interpolate
     from ..filter import next_fast_len
-    Kmax = operator.index(Kmax)
-    N = operator.index(N)
+    # This np.int64 business works around a weird Windows bug, see
+    # gh-5039 and https://github.com/scipy/scipy/pull/8608
+    Kmax = np.int64(operator.index(Kmax))
+    N = np.int64(operator.index(N))
     W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
 
