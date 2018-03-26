@@ -99,6 +99,7 @@ n_cycles = freqs  # use constant t/f resolution
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
 baseline = [-1, 0]  # baseline interval (in s)
 cmap = center_cmap(plt.cm.RdBu, vmin, vmax)  # zero maps to white
+kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1)  # for cluster test
 
 for event in event_ids:
     tfr = tfr_multitaper(epochs[event], freqs=freqs, n_cycles=n_cycles,
@@ -107,35 +108,32 @@ for event in event_ids:
     tfr.crop(tmin, tmax)
     tfr.apply_baseline(baseline, mode="percent")
 
-    fig, ax = plt.subplots(1, 4, figsize=(12, 4),
-                           gridspec_kw={"width_ratios": [10, 10, 10, 1]})
-    average_tfr = tfr.average()
-    for i in range(3):  # for each channel
-        shape = tfr.data.shape[-2:]  # (frequency, time)
-        mask = np.full(shape, False)  # initially mask all values
+    fig, axs = plt.subplots(1, 4, figsize=(12, 4),
+                            gridspec_kw={"width_ratios": [10, 10, 10, 1]})
+    for ch, ax in enumerate(axs[:-1]):  # for each channel
+        mask = np.full(tfr.data.shape[-2:], False)  # initially mask all values
 
-        kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1)
         # positive clusters
-        _, c1, p1, _ = pcluster_test(tfr.data[:, i, ...], tail=1, **kwargs)
+        _, c1, p1, _ = pcluster_test(tfr.data[:, ch, ...], tail=1, **kwargs)
         # negative clusters
-        _, c2, p2, _ = pcluster_test(tfr.data[:, i, ...], tail=-1, **kwargs)
+        _, c2, p2, _ = pcluster_test(tfr.data[:, ch, ...], tail=-1, **kwargs)
 
         # note that we keep clusters with p <= 0.05 from the combined clusters
         # of two independent tests; in this example, we do not correct for
         # these two comparisons
-        for c, p in zip(c1 + c2, np.concatenate((p1, p2))):
-            if p <= 0.05:  # unmask values in significant clusters
-                mask[c] = True
+        c = np.stack(c1 + c2, axis=2)  # combined clusters
+        p = np.concatenate((p1, p2))  # combined p-values
+        mask = np.logical_or.reduce(c[..., p <= 0.05], axis=-1)
 
-        # plot TFR for channel i
-        average_tfr.plot([i], vmin=vmin, vmax=vmax, cmap=(cmap, False),
-                         axes=ax[i], colorbar=False, show=False, mask=mask)
+        # plot TFR (ERDS map)
+        tfr.average().plot([ch], vmin=vmin, vmax=vmax, cmap=(cmap, False),
+                           axes=ax, colorbar=False, show=False, mask=mask)
 
-        ax[i].set_title(epochs.ch_names[i], fontsize=10)
-        ax[i].axvline(0, linewidth=1, color="black", linestyle=":")  # event
-        if i > 0:
-            ax[i].set_ylabel("")
-            ax[i].set_yticklabels("")
-    fig.colorbar(ax[0].collections[1], cax=ax[-1])
+        ax.set_title(epochs.ch_names[ch], fontsize=10)
+        ax.axvline(0, linewidth=1, color="black", linestyle=":")  # event
+        if ch > 0:
+            ax.set_ylabel("")
+            ax.set_yticklabels("")
+    fig.colorbar(axs[0].collections[1], cax=axs[-1])
     fig.suptitle("ERDS ({})".format(event))
     fig.show()
