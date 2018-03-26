@@ -297,6 +297,7 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
                           dgap_freq=10):
     """Solve L21 inverse problem with coordinate descent."""
     from sklearn.linear_model.coordinate_descent import MultiTaskLasso
+    warn('dgap_freq parameter is ignored when scikit learn is used as solver.')
 
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
