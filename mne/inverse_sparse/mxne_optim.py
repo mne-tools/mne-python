@@ -226,7 +226,8 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 
 @verbose
 def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
-                            tol=1e-8, verbose=None, init=None, n_orient=1):
+                            tol=1e-8, verbose=None, init=None, n_orient=1,
+                            dgap_freq=10):
     """Solve L21 inverse problem with proximal iterations and FISTA."""
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
@@ -276,20 +277,24 @@ def _mixed_norm_solver_prox(M, G, alpha, lipschitz_constant, maxit=200,
         else:
             R = GTM - np.dot(gram[:, Y_as], Y[Y_as])
 
-        _, p_obj, d_obj, _ = dgap_l21(M, G, X, active_set, alpha, n_orient)
-        highest_d_obj = max(d_obj, highest_d_obj)
-        gap = p_obj - highest_d_obj
-        E.append(p_obj)
-        logger.debug("p_obj : %s -- gap : %s" % (p_obj, gap))
-        if gap < tol:
-            logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
-            break
+        if (i + 1) % dgap_freq == 0:
+            _, p_obj, d_obj, _ = dgap_l21(M, G, X, active_set, alpha,
+                                           n_orient)
+            highest_d_obj = max(d_obj, highest_d_obj)
+            gap = p_obj - highest_d_obj
+            E.append(p_obj)
+            logger.debug("p_obj : %s -- gap : %s" % (p_obj, gap))
+            if gap < tol:
+                logger.debug('Convergence reached ! (gap: %s < %s)' % (gap,
+                             tol))
+                break
     return X, active_set, E
 
 
 @verbose
 def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
-                          tol=1e-8, verbose=None, init=None, n_orient=1):
+                          tol=1e-8, verbose=None, init=None, n_orient=1,
+                          dgap_freq=10):
     """Solve L21 inverse problem with coordinate descent."""
     from sklearn.linear_model.coordinate_descent import MultiTaskLasso
 
@@ -384,7 +389,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 @verbose
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
-                      solver='auto', return_gap=False):
+                      solver='auto', return_gap=False, dgap_freq=10):
     """Solve L1/L2 mixed-norm inverse problem with active set strategy.
 
     Parameters
@@ -413,6 +418,9 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         The algorithm to use for the optimization.
     return_gap : bool
         Return final duality gap.
+    dgap_freq : int
+        The duality gap is computed every dgap_freq iterations of the solver on
+        the active set.
 
     Returns
     -------
@@ -508,7 +516,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                 lc_tmp = 1.01 * linalg.norm(G[:, active_set], ord=2) ** 2
             X, as_, _ = l21_solver(M, G[:, active_set], alpha, lc_tmp,
                                    maxit=maxit, tol=tol, init=X_init,
-                                   n_orient=n_orient)
+                                   n_orient=n_orient, dgap_freq=dgap_freq)
             active_set[active_set] = as_.copy()
             idx_old_active_set = np.where(active_set)[0]
 
@@ -564,7 +572,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 @verbose
 def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                                 tol=1e-8, verbose=None, active_set_size=50,
-                                debias=True, n_orient=1, solver='auto'):
+                                debias=True, n_orient=1, dgap_freq=10,
+                                solver='auto'):
     """Solve L0.5/L2 mixed-norm inverse problem with active set strategy.
 
     Parameters
@@ -592,6 +601,8 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         Debias source estimates.
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
+    dgap_freq : int or np.inf
+        The duality gap is evaluated every dgap_freq iterations.
     solver : 'prox' | 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization.
 
@@ -633,17 +644,17 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                 X, _active_set, _ = mixed_norm_solver(
                     M, G_tmp, alpha, debias=False, n_orient=n_orient,
                     maxit=maxit, tol=tol, active_set_size=active_set_size,
-                    solver=solver, verbose=verbose)
+                    dgap_freq=dgap_freq, solver=solver, verbose=verbose)
             else:
                 X, _active_set, _ = mixed_norm_solver(
                     M, G_tmp, alpha, debias=False, n_orient=n_orient,
-                    maxit=maxit, tol=tol, active_set_size=None, solver=solver,
-                    verbose=verbose)
+                    maxit=maxit, tol=tol, active_set_size=None,
+                    dgap_freq=dgap_freq, solver=solver, verbose=verbose)
         else:
             X, _active_set, _ = mixed_norm_solver(
                 M, G_tmp, alpha, debias=False, n_orient=n_orient,
-                maxit=maxit, tol=tol, active_set_size=None, solver=solver,
-                verbose=verbose)
+                maxit=maxit, tol=tol, active_set_size=None,
+                dgap_freq=dgap_freq, solver=solver, verbose=verbose)
 
         logger.info('active set size %d' % (_active_set.sum() / n_orient))
 
@@ -970,8 +981,8 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
 def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                                alpha_time, lipschitz_constant, phi, phiT,
                                shape, n_orient=1, maxit=200, tol=1e-8,
-                               dgap_freq=10, perc=None,
-                               timeit=True, verbose=None):
+                               dgap_freq=10, perc=None, timeit=True,
+                               verbose=None):
 
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
