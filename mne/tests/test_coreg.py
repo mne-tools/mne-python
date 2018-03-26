@@ -3,7 +3,7 @@ import os
 import os.path as op
 from shutil import copyfile
 
-from nose.tools import assert_equal, assert_raises, assert_true, assert_is_not
+from nose.tools import assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_less
 
@@ -42,8 +42,8 @@ def test_coregister_fiducials():
 
     # test coregister_fiducials()
     trans_est = coregister_fiducials(info, mri_fiducials)
-    assert_equal(trans_est.from_str, trans.from_str)
-    assert_equal(trans_est.to_str, trans.to_str)
+    assert trans_est.from_str == trans.from_str
+    assert trans_est.to_str == trans.to_str
     assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
@@ -53,15 +53,16 @@ def test_scale_mri():
     # create fsaverage using the testing "fsaverage" instead of the FreeSurfer
     # one
     tempdir = _TempDir()
-    create_default_subject(subjects_dir=tempdir,
-                           fs_home=testing.data_path(), verbose=True)
-    assert_true(_is_mri_subject('fsaverage', tempdir),
-                "Creating fsaverage failed")
+    fake_home = testing.data_path()
+    create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
+                           verbose=True)
+    assert _is_mri_subject('fsaverage', tempdir), "Creating fsaverage failed"
 
     fid_path = op.join(tempdir, 'fsaverage', 'bem', 'fsaverage-fiducials.fif')
     os.remove(fid_path)
-    create_default_subject(update=True, subjects_dir=tempdir)
-    assert_true(op.exists(fid_path), "Updating fsaverage")
+    create_default_subject(update=True, subjects_dir=tempdir,
+                           fs_home=fake_home)
+    assert op.exists(fid_path), "Updating fsaverage"
 
     # copy MRI file from sample data (shouldn't matter that it's incorrect,
     # so here choose a small one)
@@ -95,12 +96,10 @@ def test_scale_mri():
     scale_mri('fsaverage', 'flachkopf', scale, True, subjects_dir=tempdir,
               verbose='debug')
     del os.environ['_MNE_FEW_SURFACES']
-    assert_true(_is_mri_subject('flachkopf', tempdir),
-                "Scaling fsaverage failed")
+    assert _is_mri_subject('flachkopf', tempdir), "Scaling fsaverage failed"
     spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
-    assert_true(op.exists(spath % 'ico-0'),
-                "Source space ico-0 was not scaled")
+    assert op.exists(spath % 'ico-0'), "Source space ico-0 was not scaled"
     vsrc_s = mne.read_source_spaces(spath % 'vol-50')
     pt = np.array([0.12, 0.41, -0.22])
     assert_array_almost_equal(apply_trans(vsrc_s[0]['src_mri_t'], pt * scale),
@@ -115,7 +114,7 @@ def test_scale_mri():
     os.remove(spath % 'ico-0')
     scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
     ssrc = mne.read_source_spaces(spath % 'ico-0')
-    assert_is_not(ssrc[0]['dist'], None)
+    assert ssrc[0]['dist'] is not None
 
 
 def test_fit_matched_points():
