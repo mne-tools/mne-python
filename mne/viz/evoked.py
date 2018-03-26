@@ -182,7 +182,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
                  noise_cov=None, mask=None, mask_cmap=None, alpha=.1,
-                 do_mask=None, do_contour=None, colorbar=True):
+                 mask_style=None, colorbar=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -276,8 +276,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
                         units, scalings, evoked.times, xlim, ylim, titles,
                         mask=mask, mask_cmap=mask_cmap, alpha=alpha,
-                        do_mask=do_mask, do_contour=do_contour,
-                        colorbar=colorbar)
+                        mask_style=mask_style, colorbar=colorbar)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -472,9 +471,15 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                 xlim, ylim, titles, mask=None, mask_cmap=None, alpha=.3,
-                do_mask=False, do_contour=False, colorbar=True):
+                mask_style=None, colorbar=True):
     """Plot images."""
     import matplotlib.pyplot as plt
+
+    if mask_style is None and mask is not None:
+        mask_style = "both"  # default
+    do_mask = mask_style in {"both", "mask"}
+    do_contour = mask_style in {"both", "contour"}
+
     cmap = _setup_cmap(cmap)
     if mask_cmap is None:
         mask_cmap = cmap
@@ -844,8 +849,8 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                       clim=None, xlim='tight', proj=False, units=None,
                       scalings=None, titles=None, axes=None, cmap='RdBu_r',
-                      mask_cmap="Greys", mask=None, alpha=.3, do_mask=None,
-                      do_contour=None, colorbar=True):
+                      mask_cmap="Greys", mask=None, alpha=.3, mask_style=None,
+                      colorbar=True):
     """Plot evoked data as images.
 
     Parameters
@@ -900,8 +905,9 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         ``Greys``. Not interactive. Otherwise, as `cmap`.
     mask : ndarray | None
         An array of booleans of the same shape as the data. Entries of the
-        data that correspond to ```False`` in the mask are plotted
-        transparently. Useful for, e.g., masking for statistical significance.
+        data that correspond to ```False`` in the mask are masked (see
+        `do_mask` below). Useful for, e.g., masking for statistical
+        significance.
 
         .. versionadded:: 0.16
     alpha : float
@@ -911,15 +917,13 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Defaults to .5.
 
         .. versionadded:: 0.16
-    do_mask: None | bool
-         If ``True``, mask the image. If ``False``, do not apply mask.
-         If ``None`` and `mask` is not ``None``, defaults to drawing a mask.
-
-         .. versionadded:: 0.16
-    do_contour : None | bool
-         If ``True``, draw a contour surrounding the masked area.
-         If ``False``, do not add contour. If ``None`` and `mask` is not
-         ``None``, defaults to drawing a contour.
+    mask_style: None | 'both' | 'contour' | 'mask'
+        If `mask` is not None: if 'contour', a contour line is drawn around
+        the masked areas (``True`` in `mask`). If 'contour', entries not
+        ``True`` in `mask` are shown transparently. If 'both', both a contour
+        and transparency are used.
+        If ``None``, defaults to 'both' if `mask` is not None, and is ignored
+        otherwise.
 
          .. versionadded:: 0.16
     colorbar : bool
@@ -937,8 +941,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                         hline=None, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="image",
                         cmap=cmap, mask_cmap=mask_cmap, mask=mask, alpha=alpha,
-                        do_mask=do_mask, do_contour=do_contour,
-                        colorbar=colorbar)
+                        mask_style=mask_style, colorbar=colorbar)
 
 
 def _plot_update_evoked(params, bools):
