@@ -341,7 +341,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
     dgap_freq : int or np.inf
-        The duality gap is evaluated every dgap_freq iterations.
+        The duality gap is evaluated every dgap_freq iterations. Ignored if
+        solver is 'cd'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
