@@ -108,9 +108,9 @@ for event in event_ids:
     tfr.crop(tmin, tmax)
     tfr.apply_baseline(baseline, mode="percent")
 
-    fig, axs = plt.subplots(1, 4, figsize=(12, 4),
-                            gridspec_kw={"width_ratios": [10, 10, 10, 1]})
-    for ch, ax in enumerate(axs[:-1]):  # for each channel
+    fig, axes = plt.subplots(1, 4, figsize=(12, 4),
+                             gridspec_kw={"width_ratios": [10, 10, 10, 1]})
+    for ch, ax in enumerate(axes[:-1]):  # for each channel
         mask = np.full(tfr.data.shape[-2:], False)  # initially mask all values
 
         # positive clusters
@@ -134,6 +134,6 @@ for event in event_ids:
         if ch > 0:
             ax.set_ylabel("")
             ax.set_yticklabels("")
-    fig.colorbar(axs[0].collections[1], cax=axs[-1])
+    fig.colorbar(axes[0].collections[1], cax=axes[-1])
     fig.suptitle("ERDS ({})".format(event))
     fig.show()
