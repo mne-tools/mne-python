@@ -190,7 +190,7 @@ def stat_fun(*args):
 
 
 # The ANOVA returns a tuple f-values and p-values, we will pick the former.
-pthresh = 0.00001  # set threshold rather high to save some time
+pthresh = 0.001  # set threshold rather high to save some time
 f_thresh = f_threshold_mway_rm(n_replications, factor_levels, effects,
                                pthresh)
 tail = 1  # f-test, so tail > 0
@@ -202,9 +202,9 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
 ###############################################################################
 # Create new stats image with only significant clusters:
 
-good_clusers = np.where(cluster_p_values < .05)[0]
+good_clusters = np.where(cluster_p_values < .05)[0]
 T_obs_plot = np.ma.masked_array(T_obs,
-                                np.invert(clusters[np.squeeze(good_clusers)]))
+                                np.invert(clusters[np.squeeze(good_clusters)]))
 
 plt.figure()
 for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, 'RdBu_r']):
