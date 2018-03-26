@@ -1,4 +1,4 @@
-"""Eximia module for conversion to FIF"""
+"""Eximia module for conversion to FIF."""
 
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #

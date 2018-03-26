@@ -12,7 +12,7 @@ from ...utils import logger, verbose, warn
 
 
 def read_raw_eximia(fname, preload=False, verbose=None):
-    """Reader for an eXimia EEG file
+    """Reader for an eXimia EEG file.
 
     Parameters
     ----------
@@ -36,7 +36,7 @@ def read_raw_eximia(fname, preload=False, verbose=None):
 
 
 class RawEximia(BaseRaw):
-    """Raw object from an Eximia EEG file
+    """Raw object from an Eximia EEG file.
 
     Parameters
     ----------
@@ -51,6 +51,7 @@ class RawEximia(BaseRaw):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         data_name = op.basename(fname)
@@ -88,5 +89,5 @@ class RawEximia(BaseRaw):
             filenames=[fname], orig_format='short')
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
-        """Read a chunk of raw data"""
+        """Read a chunk of raw data."""
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult)

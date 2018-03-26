@@ -142,7 +142,7 @@ def _blk_read_lims(start, stop, buf_len):
 
 
 def _file_size(fname):
-    """Get the file size in bytes"""
+    """Get the file size in bytes."""
     with open(fname, 'rb') as f:
         f.seek(0, os.SEEK_END)
         return f.tell()
