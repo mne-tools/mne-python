@@ -1,4 +1,5 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
+#          Federico Raimondo <federaimondo@gmail.com>
 #
 # License: BSD (3-clause)
 
