@@ -123,7 +123,7 @@ for event in event_ids:
         # these two comparisons
         c = np.stack(c1 + c2, axis=2)  # combined clusters
         p = np.concatenate((p1, p2))  # combined p-values
-        mask = np.logical_or.reduce(c[..., p <= 0.05], axis=-1)
+        mask = c[..., p <= 0.05].any(axis=-1)
 
         # plot TFR (ERDS map)
         tfr.average().plot([ch], vmin=vmin, vmax=vmax, cmap=(cmap, False),
