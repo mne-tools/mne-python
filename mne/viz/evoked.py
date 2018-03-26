@@ -1998,8 +1998,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     for condition in conditions:
         # plot the actual data ('d') as a line
         d = data_dict[condition].T
-        ax.plot(times, d, zorder=1000, label=condition, **styles[condition],
-                clip_on=False)
+        ax.plot(times, d, zorder=1000, label=condition, clip_on=False,
+                **styles[condition])
         if np.any(d > 0) or all_positive:
             any_positive = True
         if np.any(d < 0):
