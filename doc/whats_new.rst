@@ -84,7 +84,7 @@ Changelog
 Bug
 ~~~
 
-- Fix bug in :func:`mne.preprocessing.peak_finder` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`
+- Fix bug in :func:`mne.preprocessing.peak_finder` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
 
 - Fix bug in :func:`mne.io.brainvision.brainvision._get_vhdr_info` to use the correct conversion for filters from time constant to frequency by `Stefan Appelhoff`_
 
