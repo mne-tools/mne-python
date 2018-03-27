@@ -35,8 +35,9 @@ jobs:
               conda update --yes --quiet conda;
               conda env create --quiet -f environment.yml;
               pip uninstall --yes mne;
-        - run: python -c "from mayavi import mlab"
+        # Look at what we have and fail early if there is some library conflict
         - run: python -c "import mne; mne.sys_info()"
+        - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
 
         # Figure out if we should run a full, pattern, or noplot version
         - run: python setup.py develop
@@ -137,7 +138,6 @@ jobs:
               if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
                 SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects python -c "import mne; mne.datasets._download_all_example_data()";
               fi;
-        - run: python -c "import mne; mne.sys_info()";
         - run: if [ ! -d ~/mne-tools.github.io ]; then git clone https://github.com/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1; fi;
         - run:
             command: |
