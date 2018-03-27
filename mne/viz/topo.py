@@ -314,9 +314,9 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         else:
             yscale = 'linear'
 
-    if yscale == "log" and is_jointplot is True and v == "2.1.0":  # noqa https://github.com/matplotlib/matplotlib/pull/9477
-        warn("With matplotlib version 2.1.0, lines may not show up in "  # noqa
-             "`AverageTFR.plot_joint`. Upgrade to a more recent versiom.")  # noqa
+    if yscale == "log" and is_jointplot is True and v == "2.1.0":  # https://github.com/matplotlib/matplotlib/pull/9477
+        warn("With matplotlib version 2.1.0, lines may not show up in "
+             "`AverageTFR.plot_joint`. Upgrade to a more recent versiom.")
 
     # compute bounds between time samples
     time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]

@@ -1145,8 +1145,8 @@ class AverageTFR(_BaseTFR):
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
-              axes=None, layout=None, yscale='auto', combine=None,
-              exclude=None, copy=True, source_plot_joint=False,
+              axes=None, layout=None, yscale='auto', mask=None, alpha=.1,
+              combine=None, exclude=None, copy=True, source_plot_joint=False,
               topomap_args=dict(), ch_type=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
@@ -1502,8 +1502,7 @@ class AverageTFR(_BaseTFR):
 
         # draw the connection lines between time series and topoplots
         lines = [_connection_line(time_, fig, tf_ax, map_ax_, y=freq_)
-                 for (time_, freq_), map_ax_ in
-                 zip(timefreqs_array[order], map_ax)]
+                 for (time_, freq_), map_ax_ in zip(timefreqs_array, map_ax)]
         fig.lines.extend(lines)
 
         plt_show(show)
