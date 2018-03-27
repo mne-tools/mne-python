@@ -24,6 +24,7 @@ jobs:
         - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run: echo "export DISPLAY=:99" >> $BASH_ENV
         - run: echo "export PATH=~/miniconda/envs/mne/bin:~/miniconda/bin:$PATH" >> $BASH_ENV
+        - run: sudo apt-get update && sudo apt-get install -y libegl1-mesa  # avoid EGL error
         - run:
             command: |
               wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
