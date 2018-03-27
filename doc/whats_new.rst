@@ -67,7 +67,7 @@ Changelog
 
 - :meth:`mne.io.Raw.set_montage` now accepts a string as its ``montage`` argument; this will set a builtin montage, by `Clemens Brunner`_
 
-- Add 4D BTi phantom dataset :func:`mne.datasets.phantom_4dbti`, by `Alex Gramfort`_
+- Add 4D BTi phantom dataset :func:`mne.datasets.phantom_4dbti.data_path`, by `Alex Gramfort`_
 
 - Changed the background color to grey in :func:`mne.viz.plot_alignment` to make helmet more visible, by `Alex Gramfort`_
 
@@ -90,9 +90,9 @@ Changelog
 Bug
 ~~~
 
-- Fix bug in :func:`mne.preprocessing.peak_finder` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
+- Fix bug in ``mne.preprocessing.peak_finder`` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
 
-- Fix bug in :func:`mne.io.brainvision.brainvision._get_vhdr_info` to use the correct conversion for filters from time constant to frequency by `Stefan Appelhoff`_
+- Fix bug in :func:`mne.io.read_raw_brainvision` to use the correct conversion for filters from time constant to frequency by `Stefan Appelhoff`_
 
 - Fix bug in :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` to allow :func:`mne.decoding.cross_val_multiscore` to automatically detect whether the `base_estimator` is a classifier and use a `StratifiedKFold` instead of a `KFold` when `cv` is not specified, by `Jean-Remi King`_
 
@@ -142,7 +142,7 @@ Bug
 
 - Fix bug when reading event latencies (in samples) from eeglab files didn't translate indices to 0-based python indexing by `Mikołaj Magnuski`_
 
-- Fix consistency between :class:`mne.Epochs` and :func:`mne.statistics.linear_regression_raw` in converting between samples and times (:func:`mne.statistics.linear_regression_raw` now rounds, instead of truncating) by `Phillip Alday`_
+- Fix consistency between :class:`mne.Epochs` and :func:`mne.stats.linear_regression_raw` in converting between samples and times (:func:`mne.stats.linear_regression_raw` now rounds, instead of truncating) by `Phillip Alday`_
 
 - Fix bug when passing ``show_sensors=1`` to :func:`mne.viz.plot_compare_evokeds` resulted in sensors legend placed in lower right of the figure (position 4 in matplotlib), not upper right by `Mikołaj Magnuski`_
 

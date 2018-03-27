@@ -154,8 +154,8 @@ jobs:
               fi;
 
         - store_artifacts:
-            path: doc/_build/
-            destination: HTML
+            path: doc/_build/html/
+            destination: html
 
         # Keep these separate, maybe better in terms of size limitations (?)
         - save_cache:

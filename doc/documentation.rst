@@ -177,7 +177,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/datasets/plot_brainstorm_data.rst
     auto_examples/datasets/plot_megsim_data.rst
     auto_examples/datasets/plot_megsim_data_single_trial.rst
-    auto_examples/datasets/plot_spm_faces_dataset.rst
+    auto_examples/datasets/spm_faces_dataset.rst
 
 .. raw:: html
 
