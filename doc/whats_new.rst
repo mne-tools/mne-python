@@ -148,6 +148,8 @@ API
 
 - Changed the behavior of :meth:`mne.io.Raw.pick_channels` and similar methods to be consistent with :func:`mne.pick_channels` to treat channel list as a set (ignoring order) -- if reordering is necessary use ``inst.reorder_channels``, by `Eric Larson`_
 
+- Added ``clean_names=False`` parameter to :func:`mne.io.read_raw_ctf` and :class:`mne.io.ctf.RawCTF` constructor for control over cleaning of main channel names and compensation channel names from CTF suffixes by `Oleh Kozynets`_
+
 .. _changes_0_15:
 
 Version 0.15

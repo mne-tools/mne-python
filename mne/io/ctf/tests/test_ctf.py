@@ -220,7 +220,7 @@ def test_read_ctf():
 
 @testing.requires_testing_data
 def test_rawctf_clean_names():
-    """Test RawCTF _clean_names method"""
+    """Test RawCTF _clean_names method."""
     # read test data
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch))
     raw_cleaned = read_raw_ctf(op.join(ctf_dir, ctf_fname_catch),
@@ -229,13 +229,11 @@ def test_rawctf_clean_names():
     test_info_comps = copy.deepcopy(raw.info['comps'])
 
     # channel names should not be cleaned by default
-    assert not array_equal(raw.ch_names, test_channel_names)
+    assert raw.ch_names != test_channel_names
 
-    chs_ch_names = []
-    for ch in raw.info['chs']:
-        chs_ch_names.append(ch['ch_name'])
+    chs_ch_names = [ch['ch_name'] for ch in raw.info['chs']]
 
-    assert not array_equal(chs_ch_names, test_channel_names)
+    assert chs_ch_names != test_channel_names
 
     for test_comp, comp in zip(test_info_comps, raw.info['comps']):
         for key in ('row_names', 'col_names'):
@@ -243,15 +241,14 @@ def test_rawctf_clean_names():
                                    comp['data'][key])
 
     # channel names should be cleaned if clean_names=True
-    assert_array_equal(raw_cleaned.ch_names, test_channel_names)
+    assert raw_cleaned.ch_names == test_channel_names
 
     for ch, test_ch_name in zip(raw_cleaned.info['chs'], test_channel_names):
         assert ch['ch_name'] == test_ch_name
 
     for test_comp, comp in zip(test_info_comps, raw_cleaned.info['comps']):
         for key in ('row_names', 'col_names'):
-            assert_array_equal(_clean_names(test_comp['data'][key]),
-                               comp['data'][key])
+            assert _clean_names(test_comp['data'][key]) == comp['data'][key]
 
 
 @spm_face.requires_spm_data

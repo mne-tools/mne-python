@@ -24,7 +24,7 @@ from .constants import CTF
 
 
 def read_raw_ctf(directory, system_clock='truncate', preload=False,
-                 verbose=None, clean_names=False):
+                 clean_names=False, verbose=None):
     """Raw object from CTF directory.
 
     Parameters
@@ -42,12 +42,12 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
@@ -62,8 +62,8 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     -----
     .. versionadded:: 0.11
     """
-    return RawCTF(directory, system_clock, preload=preload, verbose=verbose,
-                  clean_names=clean_names)
+    return RawCTF(directory, system_clock, preload=preload,
+                  clean_names=clean_names, verbose=verbose)
 
 
 class RawCTF(BaseRaw):
@@ -84,12 +84,12 @@ class RawCTF(BaseRaw):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
 
     See Also
     --------
@@ -179,7 +179,7 @@ class RawCTF(BaseRaw):
         """Clean up CTF suffixes from channel names."""
         mapping = dict(zip(self.ch_names, _clean_names(self.ch_names)))
 
-        super(RawCTF, self).rename_channels(mapping)
+        self.rename_channels(mapping)
 
         for comp in self.info['comps']:
             for key in ('row_names', 'col_names'):
