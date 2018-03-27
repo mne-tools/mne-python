@@ -287,7 +287,7 @@ def _check_vlim(vlim):
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
                 colorbar=False, cmap=('RdBu_r', True), yscale='auto',
-                mask=None, alpha=0.1, is_jointplot=False):
+                mask=None, mask_alpha=0.1, is_jointplot=False):
     """Show time-frequency map as two-dimensional image."""
     from matplotlib import pyplot as plt, ticker, __version__ as v
     from matplotlib.widgets import RectangleSelector
@@ -338,7 +338,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
 
     if mask is not None:
         ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap, vmin=vmin,
-                      vmax=vmax, alpha=alpha)
+                      vmax=vmax, mask_alpha=mask_alpha)
         img = ax.pcolormesh(time_mesh, freq_mesh,
                             np.ma.masked_where(~mask, tfr[ch_idx]), cmap=cmap,
                             vmin=vmin, vmax=vmax, alpha=1)

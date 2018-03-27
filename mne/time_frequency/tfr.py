@@ -1016,8 +1016,8 @@ class AverageTFR(_BaseTFR):
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
-             axes=None, layout=None, yscale='auto', mask=None, alpha=0.1,
-             combine=None, exclude=[], verbose=None):
+             axes=None, layout=None, yscale='auto', mask=None,
+             mask_alpha=0.1, combine=None, exclude=[], verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1112,7 +1112,7 @@ class AverageTFR(_BaseTFR):
             significance.
 
             .. versionadded:: 0.16.0
-        alpha : float
+        mask_alpha : float
             A float between 0 and 1. If ``mask`` is not None, this sets the
             alpha level (degree of transparency) for the masked-out segments.
             I.e., if 0, masked-out segments are not visible at all.
@@ -1138,14 +1138,15 @@ class AverageTFR(_BaseTFR):
                           tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                           vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
                           colorbar=colorbar, show=show, title=title,
-                          axes=axes, layout=layout, yscale=yscale,
-                          combine=combine, exclude=exclude, verbose=verbose)
+                          axes=axes, layout=layout, yscale=yscale, mask=mask,
+                          mask_alpha=mask_alpha, combine=combine,
+                          exclude=exclude, verbose=verbose)
 
     @verbose
     def _plot(self, picks=None, baseline=None, mode='mean', tmin=None,
               tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
               cmap='RdBu_r', dB=False, colorbar=True, show=True, title=None,
-              axes=None, layout=None, yscale='auto', mask=None, alpha=.1,
+              axes=None, layout=None, yscale='auto', mask=None, mask_alpha=.1,
               combine=None, exclude=None, copy=True, source_plot_joint=False,
               topomap_args=dict(), ch_type=None, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
@@ -1199,7 +1200,7 @@ class AverageTFR(_BaseTFR):
                         ylim=None, tfr=data[idx: idx + 1], freq=tfr.freqs,
                         x_label='Time (s)', y_label='Frequency (Hz)',
                         colorbar=colorbar, cmap=cmap, yscale=yscale, mask=mask,
-                        alpha=alpha)
+                        mask_alpha=mask_alpha)
 
             if title is None:
                 if combine is None or len(tfr.info['ch_names']) == 1:
