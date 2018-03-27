@@ -268,16 +268,19 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         for group, axes_dict in zip(groups, axes_list):
             ch_type = group[1]
             ax = axes_dict["evoked"]
+            this_ymin, this_ymax = these_ylims = ylims[ch_type]
+            ax.set_ylim(these_ylims)
+            yticks = np.array(ax.get_yticks())
+            max_height = yticks[yticks < this_ymax][-1]
             if not manual_ylims:
-                ax.set_ylim(ylims[ch_type])
+                ax.spines["left"].set_bounds(this_ymin, max_height)
             if len(vlines) > 0:
-                upper_v, lower_v = ylims[ch_type]
                 if overlay_times is not None:
                     overlay = {overlay_times.mean(), np.median(overlay_times)}
                 else:
                     overlay = {}
                 for line in vlines:
-                    ax.vlines(line, upper_v, lower_v, colors='k',
+                    ax.vlines(line, this_ymin, max_height, colors='k',
                               linestyles='-' if line in overlay else "--",
                               linewidth=2. if line in overlay else 1.)
 
@@ -451,7 +454,7 @@ def _make_epochs_image_axis_grid(axes_dict=dict(), colorbar=False,
         divider = make_axes_locatable(axes_dict["image"])
         if colorbar:
             axes_dict["colorbar"] = axes_dict.get(
-                "colorbar", divider.append_axes("right", size="7%", pad="3%"))
+                "colorbar", divider.append_axes("right", size="3%", pad="3%"))
         if evoked:
             axes_dict["evoked"] = axes_dict.get(
                 "evoked", divider.append_axes("bottom", size="35%", pad="5%"))

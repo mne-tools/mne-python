@@ -166,16 +166,18 @@ def _rgb(x, y, z):
 def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     """Plot (possibly colorized) channel legends for evoked plots."""
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    axis.get_figure().canvas.draw()
     bbox = axis.get_window_extent()  # Determine the correct size.
     ratio = bbox.width / bbox.height
     ax = inset_axes(axis, width=str(size / ratio) + '%',
                     height=str(size) + '%', loc=loc)
+    ax.set_adjustable("box")
     pos_x, pos_y = _prepare_topomap(pos, ax, check_nonzero=False)
     ax.scatter(pos_x, pos_y, color=colors, s=size * .8, marker='.', zorder=1)
     if bads:
         bads = np.array(bads)
-        ax.scatter(pos_x[bads], pos_y[bads], s=size / 6, marker='.', color='w',
-                   zorder=1)
+        ax.scatter(pos_x[bads], pos_y[bads], s=size / 6, marker='.',
+                   color='w', zorder=1)
     _draw_outlines(ax, outlines)
 
 
@@ -1478,9 +1480,9 @@ def _combine_grad(evoked, picks):
     return evoked
 
 
-def _check_loc_legal(loc, what='your choice'):
+def _check_loc_legal(loc, what='your choice', default=1):
     """Check if loc is a legal location for MPL subordinate axes."""
-    true_default = {"show_legend": 3, "show_sensors": 4}.get(what, 1)
+    true_default = {"show_legend": 3, "show_sensors": 4}.get(what, default)
     if isinstance(loc, bool) and loc:
         loc = true_default
     loc_dict = {'upper right': 1, 'upper left': 2, 'lower left': 3,
@@ -2053,6 +2055,9 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     # and now for 3 "legends" ..
     # a head plot showing the sensors that are being plotted
     if show_sensors:
+        if show_sensors is True:
+            ymin, ymax = np.abs(ax.get_ylim())
+            show_sensors = "lower right" if ymin > ymax else "upper right"
         try:
             pos = _auto_topomap_coords(one_evoked.info, pos_picks,
                                        ignore_overlap=True, to_sphere=True)
@@ -2067,8 +2072,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
                 raise TypeError("show_sensors must be numeric, str or bool, "
                                 "not " + str(type(show_sensors)))
             show_sensors = _check_loc_legal(show_sensors, "show_sensors")
-            _plot_legend(pos, ["k" for pick in picks], ax, list(), outlines,
-                         show_sensors, size=20)
+            _plot_legend(pos, ["k" for _ in picks], ax, list(), outlines,
+                         show_sensors, size=25)
 
     # the condition legend
     if len(conditions) > 1 and show_legend is not False:
