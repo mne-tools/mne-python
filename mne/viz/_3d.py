@@ -32,7 +32,7 @@ from ..source_space import SourceSpaces, _create_surf_spacing, _check_spacing
 
 from ..surface import (get_meg_helmet_surf, read_surface,
                        transform_surface_to, _project_onto_surface,
-                       complete_surface_info, mesh_edges,
+                       mesh_edges,
                        _complete_sphere_surf, _normalize_vectors)
 from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
@@ -416,19 +416,25 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     return fig
 
 
-def _create_mesh_surf(surf, fig=None, scalars=None):
+def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
     """Create Mayavi mesh from MNE surf."""
     mlab = _import_mlab()
-    nn = surf['nn'].copy()
-    # make absolutely sure these are normalized for Mayavi
-    _normalize_vectors(nn)
     x, y, z = surf['rr'].T
     with warnings.catch_warnings(record=True):  # traits
         mesh = mlab.pipeline.triangular_mesh_source(
             x, y, z, surf['tris'], scalars=scalars, figure=fig)
-    mesh.data.point_data.normals = nn
-    mesh.data.cell_data.normals = None
-    mesh.update()
+    if vtk_normals:
+        mesh = mlab.pipeline.poly_data_normals(mesh)
+        mesh.filter.compute_cell_normals = False
+        mesh.filter.consistency = False
+        mesh.filter.non_manifold_traversal = False
+        mesh.filter.splitting = False
+    else:
+        # make absolutely sure these are normalized for Mayavi
+        nn = surf['nn'].copy()
+        _normalize_vectors(nn)
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
     return mesh
 
 
@@ -801,12 +807,10 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                     if isinstance(bem, ConductorModel):
                         if is_sphere:
                             head_surf = _complete_sphere_surf(
-                                bem, 3, sphere_level)
+                                bem, 3, sphere_level, complete=False)
                         else:  # BEM solution
                             head_surf = _bem_find_surface(
                                 bem, FIFF.FIFFV_BEM_SURF_ID_HEAD)
-                            complete_surface_info(head_surf, copy=False,
-                                                  verbose=False)
                     elif bem is not None:  # list of dict
                         for this_surf in bem:
                             if this_surf['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD:
@@ -848,8 +852,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                                 fname, return_dict=True)[2]
                             head_surf['rr'] /= 1000.
                             head_surf.update(coord_frame=FIFF.FIFFV_COORD_MRI)
-                        complete_surface_info(head_surf, copy=False,
-                                              verbose=False)
                         break
                 else:
                     raise IOError('No head surface found for subject '
@@ -873,7 +875,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 surf = read_surface(fname, return_dict=True)[2]
                 surf.update(coord_frame=FIFF.FIFFV_COORD_MRI,
                             id=_surf_dict[name])
-                complete_surface_info(surf, copy=False, verbose=False)
                 surf['rr'] /= 1000.
                 skull.append(surf)
             elif isinstance(bem, ConductorModel):
@@ -940,7 +941,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
                 surfs[hemi] = read_surface(fname, return_dict=True)[2]
                 surfs[hemi]['rr'] /= 1000.
                 surfs[hemi].update(coord_frame=FIFF.FIFFV_COORD_MRI)
-                complete_surface_info(surfs[hemi], copy=False, verbose=False)
         brain = True
 
     # we've looked through all of them, raise if some remain
@@ -973,7 +973,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
             skull_surf = read_surface(skull_fname, return_dict=True)[2]
             skull_surf['rr'] /= 1000.
             skull_surf['coord_frame'] = FIFF.FIFFV_COORD_MRI
-            complete_surface_info(skull_surf, copy=False, verbose=False)
         skull_alpha[this_skull] = alphas[idx + 1]
         skull_colors[this_skull] = (0.95 - idx * 0.2, 0.85, 0.95 - idx * 0.2)
         surfs[this_skull] = skull_surf
@@ -1155,7 +1154,6 @@ def plot_alignment(info, trans=None, subject=None, subjects_dir=None,
     if len(meg_rrs) > 0:
         color, alpha = (0., 0.25, 0.5), 0.25
         surf = dict(rr=meg_rrs, tris=meg_tris)
-        complete_surface_info(surf, copy=False, verbose=False)
         mesh = _create_mesh_surf(surf, fig)
         with warnings.catch_warnings(record=True):  # traits
             surface = mlab.pipeline.surface(mesh, color=color,

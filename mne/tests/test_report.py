@@ -19,7 +19,7 @@ from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
-                       run_tests_if_main)
+                       run_tests_if_main, traits_test)
 from mne.viz import plot_alignment
 
 import matplotlib
@@ -149,6 +149,7 @@ def test_render_report():
 
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 def test_render_add_sections():
     """Test adding figures/images to section."""
     tempdir = _TempDir()
@@ -196,6 +197,7 @@ def test_render_add_sections():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_mayavi
+@traits_test
 @requires_nibabel()
 def test_render_mri():
     """Test rendering MRI for mne report."""

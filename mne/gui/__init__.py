@@ -40,7 +40,8 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
                    scene_height=None, head_opacity=None, head_high_res=None,
                    trans=None, scrollable=True, project_eeg=None,
                    orient_to_surface=None, scale_by_distance=None,
-                   mark_inside=None, verbose=None):
+                   mark_inside=None, interaction=None, scale=None,
+                   verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -91,6 +92,7 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         Make the coregistration panel vertically scrollable (default True).
     project_eeg : bool | None
         If True (default None), project EEG electrodes to the head surface.
+        This is only for visualization purposes and does not affect fitting.
 
         .. versionadded:: 0.16
     orient_to_surface : bool | None
@@ -108,6 +110,16 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
         different color.
 
         .. versionadded:: 0.16
+    interaction : str | None
+        Can be 'terrain' (default None), use terrain-style interaction (where
+        "up" is the Z/superior direction), or 'trackball' to use
+        orientationless interactions.
+
+        .. versionadded:: 0.16
+    scale : float | None
+        The scaling for the scene.
+
+        ..versionadded:: 0.16
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
@@ -149,11 +161,16 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
     if scale_by_distance is None:
         scale_by_distance = (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') ==
                              'true')
+    if interaction is None:
+        interaction = config.get('MNE_COREG_INTERACTION', 'trackball')
     if mark_inside is None:
         mark_inside = config.get('MNE_COREG_MARK_INSIDE', '') == 'true'
+    if scale is None:
+        scale = config.get('MNE_COREG_SCENE_SCALE', 0.16)
     head_opacity = float(head_opacity)
     scene_width = int(scene_width)
     scene_height = int(scene_height)
+    scale = float(scale)
     _check_mayavi_version()
     from ._backend import _check_backend
     _check_backend()
@@ -164,7 +181,8 @@ def coregistration(tabbed=False, split=True, scene_width=None, inst=None,
                        project_eeg=project_eeg,
                        orient_to_surface=orient_to_surface,
                        scale_by_distance=scale_by_distance,
-                       mark_inside=mark_inside)
+                       mark_inside=mark_inside, interaction=interaction,
+                       scale=scale)
     return _initialize_gui(frame, view)
 
 

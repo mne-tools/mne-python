@@ -608,7 +608,8 @@ def transform_surface_to(surf, dest, trans, copy=False):
     trans = _ensure_trans(trans, int(surf['coord_frame']), dest)
     surf['coord_frame'] = dest
     surf['rr'] = apply_trans(trans, surf['rr'])
-    surf['nn'] = apply_trans(trans, surf['nn'], move=False)
+    if 'nn' in surf:
+        surf['nn'] = apply_trans(trans, surf['nn'], move=False)
     return surf
 
 
