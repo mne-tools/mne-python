@@ -52,6 +52,13 @@ def test_interpolation():
     # drops to 0.8
     thresh = 0.80
 
+    # check that interpolation does nothing if no bads are marked
+    epochs_eeg.info['bads'] = []
+    evoked_eeg = epochs_eeg.average()
+    for ch in evoked_eeg.info['chs']:
+        ch['loc'][:3] = np.array([0., 0., 0.])
+    evoked_eeg.interpolate_bads()
+
     # create good and bad channels for EEG
     epochs_eeg.info['bads'] = []
     goods_idx = np.ones(len(epochs_eeg.ch_names), dtype=bool)
@@ -77,7 +84,7 @@ def test_interpolation():
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    assert_raises(ValueError,  epochs_eeg.interpolate_bads)
+    assert_raises(ValueError, epochs_eeg.interpolate_bads)
     epochs_eeg.preload = True
 
     # check that interpolation changes the data in raw
