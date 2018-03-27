@@ -26,8 +26,10 @@ dependencies:
 - spyder
 - pip:
   - mne
-  # The Qt5 on conda is 5.6.1, which has some nasty bugs...
-  - pyqt5
+  # The Qt5 on conda is 5.6.1, which has some nasty bugs. We can't use latest
+  # (5.10) because it locks up the Mayavi build on Windows:
+  # https://github.com/enthought/mayavi/issues/624
+  - pyqt5==5.9.2
   - vtk>=8
   - "git+https://github.com/enthought/traits.git@a99b3f64d50c5f7f28ffc01bf69419b061f9e976"
   - "git+https://github.com/enthought/pyface.git@6a0cac149d56293482bb828a7d98122667c773be"
