@@ -1013,7 +1013,7 @@ class AverageTFR(_BaseTFR):
     def plot(self, picks, baseline=None, mode='mean', tmin=None, tmax=None,
              fmin=None, fmax=None, vmin=None, vmax=None, cmap='RdBu_r',
              dB=False, colorbar=True, show=True, title=None, axes=None,
-             layout=None, yscale='auto', verbose=None):
+             layout=None, yscale='auto', mask=None, alpha=0.1, verbose=None):
         """Plot TFRs as a two-dimensional image(s).
 
         Parameters
@@ -1098,7 +1098,20 @@ class AverageTFR(_BaseTFR):
             are log-spaced and only then sets the y axis to 'log'.
 
             .. versionadded:: 0.14.0
+        mask : ndarray | None
+            An array of booleans of the same shape as the data. Entries of the
+            data that correspond to False in the mask are plotted
+            transparently. Useful for, e.g., masking for statistical
+            significance.
 
+            .. versionadded:: 0.16.0
+        alpha : float
+            A float between 0 and 1. If ``mask`` is not None, this sets the
+            alpha level (degree of transparency) for the masked-out segments.
+            I.e., if 0, masked-out segments are not visible at all.
+            Defaults to 0.1.
+
+            .. versionadded:: 0.16.0
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose`).
@@ -1143,7 +1156,8 @@ class AverageTFR(_BaseTFR):
             _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, onselect_callback,
                         ylim=None, tfr=data[idx: idx + 1], freq=freqs,
                         x_label='Time (s)', y_label='Frequency (Hz)',
-                        colorbar=colorbar, cmap=cmap, yscale=yscale)
+                        colorbar=colorbar, cmap=cmap, yscale=yscale, mask=mask,
+                        alpha=alpha)
             if title:
                 fig.suptitle(title)
 
