@@ -182,7 +182,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
-                 mask_cmap=None, mask_alpha=.1):
+                 mask_cmap=None, mask_alpha=.25):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -471,20 +471,18 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
                 xlim, ylim, titles, colorbar=True, mask=None, mask_cmap=None,
-                mask_style=None, mask_alpha=.3):
+                mask_style=None, mask_alpha=.25):
     """Plot images."""
     import matplotlib.pyplot as plt
 
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
-    do_mask = mask_style in {"both", "mask"}
-    do_contour = mask_style in {"both", "contour"}
+    draw_mask = mask_style in {"both", "mask"}
+    draw_contour = mask_style in {"both", "contour"}
 
     cmap = _setup_cmap(cmap)
-    if mask_cmap is None:
-        mask_cmap = cmap
-    else:
-        mask_cmap = _setup_cmap(mask_cmap)
+    mask_cmap = cmap if mask_cmap is None else _setup_cmap(mask_cmap)
+
     ch_unit = units[this_type]
     this_scaling = scalings[this_type]
     if unit is False:
@@ -492,25 +490,25 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         ch_unit = 'NA'  # no unit
 
     # mask param check and preparation
-    if do_mask is None:
+    if draw_mask is None:
         if mask is not None:
-            do_mask = True
+            draw_mask = True
         else:
-            do_mask = False
-    if do_contour is None:
+            draw_mask = False
+    if draw_contour is None:
         if mask is not None:
-            do_contour = True
+            draw_contour = True
         else:
-            do_contour = False
+            draw_contour = False
     if mask is None:
-        if do_mask is True:
+        if draw_mask:
             warn("`mask` is None, not masking the plot ...")
-            do_mask = False
-        if do_contour is True:
+            draw_mask = False
+        if draw_contour:
             warn("`mask` is None, not adding contour to the plot ...")
-            do_contour = False
+            draw_contour = False
 
-    if mask is not None:
+    if draw_mask:
         if mask.shape != data.shape:
             raise ValueError("The mask must have the same shape as the data, "
                              "i.e., %s, not %s" % (data.shape, mask.shape))
@@ -529,13 +527,13 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     im_args = dict(interpolation='nearest', origin='lower',
                    extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
-    if do_mask:
+    if draw_mask:
         ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap[0], **im_args)
         im = ax.imshow(
             np.ma.masked_where(~mask, data), cmap=cmap[0], **im_args)
     else:
         im = ax.imshow(data, cmap=cmap[0], **im_args)
-    if do_contour is True and np.unique(mask).size == 2:
+    if draw_contour and np.unique(mask).size == 2:
         big_mask = np.kron(mask, np.ones((10, 10)))
         ax.contour(big_mask, colors=["k"], extent=extent, linewidths=[.75],
                    corner_mask=False, antialiased=False, levels=[.5])
@@ -554,7 +552,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
 
     ax.set_ylabel('Channels (index)')
 
-    if any((do_mask, do_contour)) and mask is not None:
+    if (draw_mask or draw_contour) and mask is not None:
         if mask.all():
             t_end = ", all points masked)"
         else:
@@ -850,7 +848,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       show=True, clim=None, xlim='tight', proj=False,
                       units=None, scalings=None, titles=None, axes=None,
                       cmap='RdBu_r', colorbar=True, mask=None,
-                      mask_style=None, mask_cmap="Greys", mask_alpha=.3):
+                      mask_style=None, mask_cmap="Greys", mask_alpha=.25):
     """Plot evoked data as images.
 
     Parameters
@@ -927,7 +925,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         A float between 0 and 1. If `mask` is not None, this sets the
         alpha level (degree of transparency) for the masked-out segments.
         I.e., if 0, masked-out segments are not visible at all.
-        Defaults to .5.
+        Defaults to .3.
 
         .. versionadded:: 0.16
 
