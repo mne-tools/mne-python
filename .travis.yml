@@ -171,7 +171,7 @@ script:
     - py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
-        check-manifest --ignore .circleci,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
+        check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
       fi;
 
 after_script:
