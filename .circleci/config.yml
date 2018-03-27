@@ -35,6 +35,13 @@ jobs:
               conda update --yes --quiet conda;
               conda env create --quiet -f environment.yml;
               pip uninstall --yes mne;
+        # This is a CircleCI-specific fix -- for some reason 5.9.2 is problematic
+        # here but not on Travis, we get:
+        #
+        #     libgcc_s.so.1 must be installed for pthread_cancel to work
+        #     Aborted
+        #
+        - run: pip install --upgrade --no-deps pyqt5>=5.10
         # Look at what we have and fail early if there is some library conflict
         - run: python -c "import mne; mne.sys_info()"
         - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
