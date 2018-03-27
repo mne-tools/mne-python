@@ -309,8 +309,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,
                    scalings=None, titles=None, axes=None, cmap='RdBu_r',
-                   colorbar=True, mask=None, mask_style=None, mask_cmap='Greys',
-                   mask_alpha=.3):
+                   colorbar=True, mask=None, mask_style=None,
+                   mask_cmap='Greys', mask_alpha=.3):
         return plot_evoked_image(self, picks=picks, exclude=exclude, unit=unit,
                                  show=show, clim=clim, xlim=xlim, proj=proj,
                                  units=units, scalings=scalings, titles=titles,
