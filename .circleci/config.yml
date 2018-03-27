@@ -24,7 +24,7 @@ jobs:
         - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run: echo "export DISPLAY=:99" >> $BASH_ENV
         - run: echo "export PATH=~/miniconda/envs/mne/bin:~/miniconda/bin:$PATH" >> $BASH_ENV
-        - run: sudo apt-get update && sudo apt-get install -y libegl1-mesa  # avoid EGL error
+        - run: sudo apt-get update && sudo apt-get install -y libdbus-1-3 libx11-xcb1 libxi6  # Needed for libqxcb.so in PyQt5
         - run:
             command: |
               wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
@@ -33,7 +33,7 @@ jobs:
         - run:
             command: |
               conda update --yes --quiet conda;
-              conda env create -f environment.yml;
+              conda env create --quiet -f environment.yml;
               pip uninstall --yes mne;
         - run: python -c "from mayavi import mlab"
         - run: python -c "import mne; mne.sys_info()"
