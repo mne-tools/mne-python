@@ -101,10 +101,17 @@ def test_l21_mxne():
     with warnings.catch_warnings(record=True):  # coordinate-ascent warning
         X_hat_cd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=5, solver='cd')
-
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
     assert_array_equal(X_hat_bcd, X_hat_cd)
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
+
+    args = (M, G, 1000., 100, 1e-8)
+    X_hat_cd, active_set, _, gap_cd = mixed_norm_solver(
+        *args, active_set_size=None,
+        debias=True, solver='cd', return_gap=True)
+    assert_array_less(gap_cd, 1e-8)
+    assert_equal(X_hat_cd.shape[0], 0)
+    assert_equal(np.any(active_set), False)
 
 
 def test_tf_mxne():
