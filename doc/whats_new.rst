@@ -41,6 +41,8 @@ Changelog
 
 - Add support for MaxShield raw files in :class:`mne.report.Report` by `Eric Larson`_
 
+- Add ability to plot whitened data in :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, :meth:`mne.Evoked.plot`, and :meth:`mne.Evoked.plot_topo` by `Eric Larson`_
+
 - Workaround for reading EGI MFF files with physiological signals that also present a bug from the EGI system in :func:`mne.io.read_raw_egi` by `Federico Raimondo`_
 
 - Add support for reading subject height and weight in ``info['subject_info']`` by `Eric Larson`_
@@ -71,14 +73,28 @@ Changelog
 
 - Add :meth:`mne.io.Raw.reorder_channels`, :meth:`mne.Evoked.reorder_channels`, etc. to reorder channels, by `Eric Larson`_
 
+- Improve visibility of points inside the head in ``mne coreg`` and :func:`mne.gui.coregistration` by `Eric Larson`_
+
 - Add ability to exclude components interactively by clicking on their labels in :meth:`mne.preprocessing.ICA.plot_components` by `Mikołaj Magnuski`_
 
+- Add projection of EEG electrodes, orientation of extra points, and scaling points by distance to the head surface; display of HPI points; and marking points inside the head surface in a different color by ``mne coreg`` / :func:`mne.gui.coregistration` by `Eric Larson`_
+
 - Add reader for manual annotations of raw data produced by Brainstorm by `Anne-Sophie Dubarry`_
+
+- Tighter duality gap computation in ``mne.inverse_sparse.tf_mxne_optim`` and new parametrization with ``alpha`` and  ``l1_ratio`` instead of ``alpha_space`` and ``alpha_time`` by `Mathurin Massias`_ and `Daniel Strohmeier`_
+
+- Add ``dgap_freq`` parameter in ``mne.inverse_sparse.tf_mxne_optim`` solvers to control the frequency of duality gap computation by `Mathurin Massias`_ and `Daniel Strohmeier`_
+
+- Add support for reading Eximia files by `Eric Larson`_ and `Federico Raimondo`_
 
 - Add the Picard algorithm to perform ICA for :class:`mne.preprocessing.ICA`, by `Pierre Ablin`_ and `Alex Gramfort`_
 
 Bug
 ~~~
+
+- Fix bug in :func:`mne.preprocessing.peak_finder` to output datatype consistently and added input check for empty vectors by `Tommy Clausner`_
+
+- Fix bug in :func:`mne.io.brainvision.brainvision._get_vhdr_info` to use the correct conversion for filters from time constant to frequency by `Stefan Appelhoff`_
 
 - Fix bug in :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` to allow :func:`mne.decoding.cross_val_multiscore` to automatically detect whether the `base_estimator` is a classifier and use a `StratifiedKFold` instead of a `KFold` when `cv` is not specified, by `Jean-Remi King`_
 
@@ -128,6 +144,11 @@ Bug
 
 - Fix bug when reading event latencies (in samples) from eeglab files didn't translate indices to 0-based python indexing by `Mikołaj Magnuski`_
 
+- Fix consistency between :class:`mne.Epochs` and :func:`mne.statistics.linear_regression_raw` in converting between samples and times (:func:`mne.statistics.linear_regression_raw` now rounds, instead of truncating) by `Phillip Alday`_
+
+- Fix bug when passing ``show_sensors=1`` to :func:`mne.viz.plot_compare_evokeds` resulted in sensors legend placed in lower right of the figure (position 4 in matplotlib), not upper right by `Mikołaj Magnuski`_
+
+- Fix bug in :class:`mne.make_forward_solution` when passing data with compensation channels (e.g. CTF) that contain bad channels by `Alex Gramfort`_
 
 API
 ~~~
@@ -137,6 +158,8 @@ API
 - Changed the line width in :func:`mne.viz.plot_bem` from 2.0 to 1.0 for better visibility of underlying structures, by `Eric Larson`_
 
 - Changed the behavior of :meth:`mne.io.Raw.pick_channels` and similar methods to be consistent with :func:`mne.pick_channels` to treat channel list as a set (ignoring order) -- if reordering is necessary use ``inst.reorder_channels``, by `Eric Larson`_
+
+- Added ``clean_names=False`` parameter to :func:`mne.io.read_raw_ctf` and :class:`mne.io.ctf.RawCTF` constructor for control over cleaning of main channel names and compensation channel names from CTF suffixes by `Oleh Kozynets`_
 
 .. _changes_0_15:
 
@@ -2524,7 +2547,7 @@ of commits):
 
 .. _Chris Mullins: http://crmullins.com
 
-.. _Phillip Alday: http://palday.bitbucket.org
+.. _Phillip Alday: https://palday.bitbucket.io
 
 .. _Andreas Hojlund: https://github.com/ahoejlund
 
@@ -2581,5 +2604,9 @@ of commits):
 .. _Nathalie Gayraud: https://github.com/ngayraud
 
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
+
+.. _Stefan Appelhoff: http://stefanappelhoff.com
+
+.. _Tommy Clausner: https://github.com/TommyClausner
 
 .. _Pierre Ablin: https://pierreablin.com

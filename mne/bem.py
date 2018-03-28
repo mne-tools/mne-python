@@ -335,10 +335,10 @@ def make_bem_solution(surfs, verbose=None):
 
 def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
-    n_tri = surf['ntri']
+    n_tri = len(surf['tris'])
     found = -1
     bad_msg = ("A surface with %d triangles cannot be isomorphic with a "
-               "subdivided icosahedron." % surf['ntri'])
+               "subdivided icosahedron." % n_tri)
     if n_tri % 20 != 0:
         raise RuntimeError(bad_msg)
     n_tri = n_tri // 20
@@ -361,8 +361,8 @@ def _ico_downsample(surf, dest_grade):
         raise RuntimeError('The source surface has a matching number of '
                            'triangles but ordering is wrong')
     logger.info('Going from %dth to %dth subdivision of an icosahedron '
-                '(n_tri: %d -> %d)' % (found, dest_grade, surf['ntri'],
-                                       dest['ntri']))
+                '(n_tri: %d -> %d)' % (found, dest_grade, len(surf['tris']),
+                                       len(dest['tris'])))
     # Find the mapping
     dest['rr'] = surf['rr'][_get_ico_map(source, dest)]
     return dest

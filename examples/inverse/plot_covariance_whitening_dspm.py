@@ -9,9 +9,10 @@ the SPM faces data and compares proper regularization with insufficient
 regularization based on the methods described in [1]_. The example demonstrates
 that improper regularization can lead to overestimation of source amplitudes.
 This example makes use of the previous, non-optimized code path that was used
-before implementing the suggestions presented in [1]_. Please do not copy the
-patterns presented here for your own analysis, this is example is purely
-illustrative.
+before implementing the suggestions presented in [1]_.
+
+.. warning:: Please do not copy the patterns presented here for your own
+             analysis, this is example is purely illustrative.
 
 .. note:: This example does quite a bit of processing, so even on a
           fast machine it can take a couple of minutes to complete.

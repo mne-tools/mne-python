@@ -99,7 +99,7 @@ def _least_square_evoked(epochs_data, events, tmin, sfreq):
 
 
 def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
-               events=None, tmin=0., sfreq=1., method_params=None):
+               events=None, tmin=0., sfreq=1., method_params=None, info=None):
     """Fit filters and coefs using Xdawn Algorithm.
 
     Xdawn is a spatial filtering method designed to improve the signal
@@ -149,7 +149,8 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
 
     # Retrieve or compute whitening covariance
     if signal_cov is None:
-        signal_cov = _regularized_covariance(np.hstack(epochs_data), reg)
+        signal_cov = _regularized_covariance(
+            np.hstack(epochs_data), reg, method_params, info)
     elif isinstance(signal_cov, Covariance):
         signal_cov = signal_cov.data
     if not isinstance(signal_cov, np.ndarray) or (
@@ -174,7 +175,7 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
     for evo, toeplitz in zip(evokeds, toeplitzs):
         # Estimate covariance matrix of the prototype response
         evo = np.dot(evo, toeplitz)
-        evo_cov = np.matrix(_regularized_covariance(evo, reg))
+        evo_cov = _regularized_covariance(evo, reg, method_params, info)
 
         # Fit spatial filters
         try:
@@ -355,10 +356,11 @@ class Xdawn(_XdawnTransformer):
         correcting for event overlaps if any. If 'auto', then
         overlapp_correction = True if the events do overlap.
     reg : float | str | None (default None)
-        if not None, allow regularization for covariance estimation
-        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
-        or Oracle Approximating Shrinkage ('oas').
+        If not None (same as ``'empirical'``, default), allow
+        regularization for covariance estimation.
+        If float, shrinkage is used (0 <= shrinkage <= 1).
+        For str options, ``reg`` will be passed as ``method`` to
+        :func:`mne.compute_covariance`.
 
     Attributes
     ----------
@@ -456,7 +458,8 @@ class Xdawn(_XdawnTransformer):
         # Main fitting function
         filters, patterns, evokeds = _fit_xdawn(
             X, y, n_components=n_components, reg=self.reg,
-            signal_cov=self.signal_cov, events=events, tmin=tmin, sfreq=sfreq)
+            signal_cov=self.signal_cov, events=events, tmin=tmin, sfreq=sfreq,
+            method_params=self.method_params, info=epochs.info)
 
         # Re-order filters and patterns according to event_id
         filters = filters.reshape(-1, n_components, filters.shape[-1])

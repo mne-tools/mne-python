@@ -3177,9 +3177,9 @@ file:
 
 .. table:: Tags cleared by mne_anonymize .
 
-    ========================  ==============================================
+    ========================  ===========================================================================
     Tag                       Description
-    ========================  ==============================================
+    ========================  ===========================================================================
     FIFF_SUBJ_FIRST_NAME      First name of the subject
     FIFF_SUBJ_MIDDLE_NAME     Middle name of the subject
     FIFF_SUBJ_LAST_NAME       Last name of the subject
@@ -3189,12 +3189,13 @@ file:
     FIFF_SUBJ_WEIGHT          Weight of the subject in kg
     FIFF_SUBJ_HEIGHT          Height of the subject in m
     FIFF_SUBJ_COMMENT         Comment about the subject
-    ========================  ==============================================
+    FIFF_MEAS_DATE            The date of the recordings
+    FIFF_SUBJ_HIS_ID          The ID used in the Hospital Information System (only with ``--his`` option)
+    ========================  ===========================================================================
 
 .. note:: mne_anonymize normally    keeps the FIFF_SUBJ_HIS_ID tag which can be used to identify the    subjects uniquely after the information listed in :ref:`CHDEHBCG` have    been removed. If the ``--his`` option is specified on the command line,    the FIFF_SUBJ_HIS_ID tag will be removed as well. The data of the    tags listed in :ref:`CHDEHBCG` and the optional FIFF_SUBJ_HIS_ID    tag are overwritten with zeros and the space claimed by omitting    these tags is added to the free space list of the file. Therefore, after mne_anonymize has    processed a data file there is no way to recover the removed information.    Use this utility with caution.
 
-mne_anonymize recognizes
-the following command-line options:
+mne_anonymize recognizes the following command-line options:
 
 ``--his``
 
@@ -3204,7 +3205,7 @@ the following command-line options:
 
     Specifies the name of the file to be modified.
 
-.. note:: You need write permission to the file to be    processed.
+.. note:: You need write permission to the file to be processed.
 
 
 .. _mne_average_forward_solutions:

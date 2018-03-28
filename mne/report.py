@@ -91,7 +91,7 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
                 bbox_to_inches='tight')
     plt.close(fig)
     output = output.getvalue()
-    return (output if image_format == 'svg' else
+    return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
 
 
@@ -394,7 +394,7 @@ def _build_html_image(img, id, div_klass, img_klass, caption=None,
                     % (img_klass, img))
     else:
         html.append(u'<div style="text-align:center;" class="%s">%s</div>'
-                    % (img_klass, img.decode('utf-8')))
+                    % (img_klass, img))
     html.append(u'</div>')
     if caption:
         html.append(u'<h4>%s</h4>' % caption)

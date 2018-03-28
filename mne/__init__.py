@@ -73,7 +73,7 @@ from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,
 from .evoked import Evoked, EvokedArray, read_evokeds, write_evokeds, combine_evoked
 from .label import (read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
-                    BiHemiLabel, read_labels_from_annot, write_labels_to_annot)
+                    BiHemiLabel, read_labels_from_annot, write_labels_to_annot, random_parcellation)
 from .misc import parse_config, read_reject_parameters
 from .coreg import (create_default_subject, scale_bem, scale_mri, scale_labels,
                     scale_source_space)

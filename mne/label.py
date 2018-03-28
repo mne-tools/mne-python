@@ -14,7 +14,8 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
-from .utils import get_subjects_dir, _check_subject, logger, verbose, warn
+from .utils import get_subjects_dir, _check_subject, logger, verbose, warn,\
+    check_random_state
 from .source_estimate import (morph_data, SourceEstimate, _center_of_mass,
                               spatial_src_connectivity)
 from .source_space import add_source_space_distances
@@ -1653,6 +1654,163 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
         for i in xrange(n_labels):
             vertices = np.nonzero(parc == i)[0]
             name = str(names[i])
+            label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
+            labels.append(label_)
+
+    return labels
+
+
+def random_parcellation(subject, n_parcel, hemi, subjects_dir=None,
+                        surface='white', random_state=None):
+    """Generate random cortex parcellation by growing labels.
+
+    This function generates a number of labels which don't intersect and
+    cover the whole surface. Regions are growing around randomly chosen
+    seeds.
+
+    Parameters
+    ----------
+    subject : string
+        Name of the subject as in SUBJECTS_DIR.
+    n_parcel : int
+        Total number of cortical parcels.
+    hemi : str
+        hemisphere id (ie 'lh', 'rh', 'both'). In the case
+        of 'both', both hemispheres are processed with (n_parcel // 2)
+        parcels per hemisphere.
+    subjects_dir : string
+        Path to SUBJECTS_DIR if not set in the environment.
+    surface : string
+        The surface used to grow the labels, defaults to the white surface.
+    random_state : None | int | np.random.RandomState
+        To specify the random generator state.
+
+    Returns
+    -------
+    labels : list of Label
+        Random cortex parcellation
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    if hemi == 'both':
+        hemi = ['lh', 'rh']
+    hemis = np.atleast_1d(hemi)
+
+    # load the surfaces and create the distance graphs
+    tris, vert, dist = {}, {}, {}
+    for hemi in set(hemis):
+        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.' +
+                             surface)
+        vert[hemi], tris[hemi] = read_surface(surf_fname)
+        dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
+
+    # create the patches
+    labels = _cortex_parcellation(subject, n_parcel, hemis, vert, dist,
+                                  random_state)
+
+    # add a unique color to each label
+    colors = _n_colors(len(labels))
+    for label, color in zip(labels, colors):
+        label.color = color
+
+    return labels
+
+
+def _cortex_parcellation(subject, n_parcel, hemis, vertices_, graphs,
+                         random_state=None):
+    """Random cortex parcellation."""
+    labels = []
+    rng = check_random_state(random_state)
+    for hemi in set(hemis):
+        parcel_size = len(hemis) * len(vertices_[hemi]) // n_parcel
+        graph = graphs[hemi]  # distance graph
+        n_vertices = len(vertices_[hemi])
+
+        # prepare parcellation
+        parc = np.full(n_vertices, -1, dtype='int32')
+
+        # initialize active sources
+        s = rng.choice(range(n_vertices))
+        label_idx = 0
+        edge = [s]  # queue of vertices to process
+        parc[s] = label_idx
+        label_size = 1
+        rest = len(parc) - 1
+        # grow from sources
+        while rest:
+            # if there are not free neighbors, start new parcel
+            if not edge:
+                rest_idx = np.where(parc < 0)[0]
+                s = rng.choice(rest_idx)
+                edge = [s]
+                label_idx += 1
+                label_size = 1
+                parc[s] = label_idx
+                rest -= 1
+
+            vert_from = edge.pop(0)
+
+            # add neighbors within allowable distance
+            row = graph[vert_from, :]
+            for vert_to, dist in zip(row.indices, row.data):
+                vert_to_label = parc[vert_to]
+
+                # abort if the vertex is already occupied
+                if vert_to_label >= 0:
+                    continue
+
+                # abort if outside of extent
+                if label_size > parcel_size:
+                    label_idx += 1
+                    label_size = 1
+                    edge = [vert_to]
+                    parc[vert_to] = label_idx
+                    rest -= 1
+                    break
+
+                # assign label value
+                parc[vert_to] = label_idx
+                label_size += 1
+                edge.append(vert_to)
+                rest -= 1
+
+        # merging small labels
+        # label connectivity matrix
+        n_labels = label_idx + 1
+        label_sizes = np.empty(n_labels, dtype=int)
+        label_conn = np.zeros([n_labels, n_labels], dtype='bool')
+        for i in range(n_labels):
+            vertices = np.nonzero(parc == i)[0]
+            label_sizes[i] = len(vertices)
+            neighbor_vertices = graph[vertices, :].indices
+            neighbor_labels = np.unique(np.array(parc[neighbor_vertices]))
+            label_conn[i, neighbor_labels] = 1
+        np.fill_diagonal(label_conn, 0)
+
+        # merging
+        label_id = range(n_labels)
+        while n_labels > n_parcel // len(hemis):
+            # smallest label and its smallest neighbor
+            i = np.argmin(label_sizes)
+            neighbors = np.nonzero(label_conn[i, :])[0]
+            j = neighbors[np.argmin(label_sizes[neighbors])]
+
+            # merging two labels
+            label_conn[j, :] += label_conn[i, :]
+            label_conn[:, j] += label_conn[:, i]
+            label_conn = np.delete(label_conn, i, 0)
+            label_conn = np.delete(label_conn, i, 1)
+            label_conn[j, j] = 0
+            label_sizes[j] += label_sizes[i]
+            label_sizes = np.delete(label_sizes, i, 0)
+            n_labels -= 1
+            vertices = np.nonzero(parc == label_id[i])[0]
+            parc[vertices] = label_id[j]
+            label_id = np.delete(label_id, i, 0)
+
+        # convert parc to labels
+        for i in xrange(n_labels):
+            vertices = np.nonzero(parc == label_id[i])[0]
+            name = 'label_' + str(i)
             label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
             labels.append(label_)
 

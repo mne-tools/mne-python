@@ -46,6 +46,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
     clean_ch_names = _clean_names(info['ch_names'])
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = clean_ch_names[ii]
+    info['bads'] = _clean_names(info['bads'])
     info._update_redundant()
     info._check_consistency()
 

@@ -10,7 +10,10 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 
 from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            tf_mixed_norm_solver,
-                                           iterative_mixed_norm_solver)
+                                           iterative_mixed_norm_solver,
+                                           norm_epsilon_inf, norm_epsilon,
+                                           _Phi, _PhiT, dgap_l21l1)
+from mne.time_frequency.stft import stft_norm2
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -116,6 +119,71 @@ def test_tf_mxne():
         n_orient=1, tstep=4, wsize=32, return_gap=True)
     assert_array_less(gap_tfmxne, 1e-8)
     assert_array_equal(np.where(active_set_hat_tf)[0], active_set)
+
+
+def test_norm_epsilon():
+    """Test computation of espilon norm on TF coefficients."""
+    n_steps = 5
+    n_freqs = 4
+    Y = np.zeros(n_steps * n_freqs)
+    l1_ratio = 0.5
+    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps), 0.)
+
+    Y[0] = 2.
+    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps), np.max(Y))
+
+    l1_ratio = 1.
+    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps), np.max(Y))
+    # dummy value without random:
+    Y = np.arange(n_steps * n_freqs).reshape(-1, )
+    l1_ratio = 0.
+    assert_allclose(norm_epsilon(Y, l1_ratio, n_steps) ** 2,
+                    stft_norm2(Y.reshape(-1, n_freqs, n_steps)))
+
+
+def test_dgapl21l1():
+    """Test duality gap for L21 + L1 regularization."""
+    n_orient = 2
+    M, G, active_set = _generate_tf_data()
+    n_times = M.shape[1]
+    n_sources = G.shape[1]
+    tstep, wsize = 4, 32
+    n_steps = int(np.ceil(n_times / float(tstep)))
+    n_freqs = wsize // 2 + 1
+    n_coefs = n_steps * n_freqs
+    phi = _Phi(wsize, tstep, n_coefs)
+    phiT = _PhiT(tstep, n_freqs, n_steps, n_times)
+
+    for l1_ratio in [0.05, 0.1]:
+        alpha_max = norm_epsilon_inf(G, M, phi, l1_ratio, n_orient)
+        alpha_space = (1. - l1_ratio) * alpha_max
+        alpha_time = l1_ratio * alpha_max
+
+        Z = np.zeros([n_sources, n_coefs])
+        shape = (-1, n_steps, n_freqs)
+        # for alpha = alpha_max, Z = 0 is the solution so the dgap is 0
+        gap = dgap_l21l1(M, G, Z, np.ones(n_sources, dtype=bool),
+                         alpha_space, alpha_time, phi, phiT, shape, n_orient,
+                         -np.inf)[0]
+
+        assert_allclose(0., gap)
+        # check that solution for alpha smaller than alpha_max is non 0:
+        X_hat_tf, active_set_hat_tf, E, gap = tf_mixed_norm_solver(
+            M, G, alpha_space / 1.01, alpha_time / 1.01, maxit=200, tol=1e-8,
+            verbose=True, debias=False, n_orient=n_orient, tstep=tstep,
+            wsize=wsize, return_gap=True)
+        # allow possible small numerical errors (negative gap)
+        assert_array_less(-1e-10, gap)
+        assert_array_less(gap, 1e-8)
+        assert_array_less(1, len(active_set_hat_tf))
+
+        X_hat_tf, active_set_hat_tf, E, gap = tf_mixed_norm_solver(
+            M, G, alpha_space / 5., alpha_time / 5., maxit=200, tol=1e-8,
+            verbose=True, debias=False, n_orient=n_orient, tstep=tstep,
+            wsize=wsize, return_gap=True)
+        assert_array_less(-1e-10, gap)
+        assert_array_less(gap, 1e-8)
+        assert_array_less(1, len(active_set_hat_tf))
 
 
 def test_tf_mxne_vs_mxne():

@@ -10,9 +10,10 @@ properties that are set to be equivalent.
 
   CoregFrame: GUI for head-MRI coregistration.
   |-- CoregModel (model): Traits object for estimating the head mri transform.
-  |   |-- MRIHeadWithFiducialsModel (mri) [1]: Represent an MRI head shape with fiducials.
-  |   |-- MRISubjectSource (subject_source) [2]: Find subjects in SUBJECTS_DIR and select one.
-  |   |-- SurfaceSource (bem): Expose points and tris of a file storing a surface.
+  |   |-- MRIHeadWithFiducialsModel (mri) [1]: Represent an MRI head shape (high and low res) with fiducials.
+  |   |   |-- SurfaceSource (bem_high_res): High-res MRI head
+  |   |   |-- SurfaceSource (bem_low_res): Low-res MRI head
+  |   |   +-- MRISubjectSource (subject_source) [2]: Find subjects in SUBJECTS_DIR and select one.
   |   |-- FiducialsSource (fid): Expose points of a given fiducials fif file.
   |   +-- DigSource (hsp): Expose measurement information from a inst file.
   |-- MlabSceneModel (scene) [3]: mayavi.core.ui.mayavi_scene
@@ -42,7 +43,6 @@ import traceback
 import warnings
 
 import numpy as np
-from scipy.spatial.distance import cdist
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -59,10 +59,11 @@ from tvtk.pyface.scene_editor import SceneEditor
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import bem_fname, trans_fname
 from ..defaults import DEFAULTS
+from ..surface import _compute_nearest
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles, Transform)
 from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
-                     _find_fiducials_files, _point_cloud_error)
+                     _find_fiducials_files)
 from ..viz._3d import _toggle_mlab_render
 from ..utils import logger, set_config
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel, _mm_fmt
@@ -164,9 +165,14 @@ class CoregModel(HasPrivateTraits):
         depends_on=['hsp.inst_fname'])
 
     # transformed geometry
-    processed_mri_points = Property(depends_on=['mri.points', 'grow_hair'])
-    transformed_mri_points = Property(
-        depends_on=['processed_mri_points', 'mri_scale_trans'])
+    processed_high_res_mri_points = Property(
+        depends_on=['mri.bem_high_res.points', 'grow_hair'])
+    processed_low_res_mri_points = Property(
+        depends_on=['mri.bem_low_res.points', 'grow_hair'])
+    transformed_high_res_mri_points = Property(
+        depends_on=['processed_high_res_mri_points', 'mri_scale_trans'])
+    transformed_low_res_mri_points = Property(
+        depends_on=['processed_low_res_mri_points', 'mri_scale_trans'])
     transformed_hsp_points = Property(
         depends_on=['hsp.points', 'head_mri_trans'])
     transformed_mri_lpa = Property(
@@ -188,8 +194,9 @@ class CoregModel(HasPrivateTraits):
         depends_on=['transformed_mri_nasion', 'transformed_hsp_nasion'])
     rpa_distance = Property(
         depends_on=['transformed_mri_rpa', 'transformed_hsp_rpa'])
-    point_distance = Property(
-        depends_on=['transformed_mri_points', 'transformed_hsp_points'])
+    point_distance = Property(  # use low res points
+        depends_on=['transformed_low_res_mri_points',
+                    'transformed_hsp_points'])
 
     # fit property info strings
     fid_eval_str = Property(
@@ -207,12 +214,14 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_has_pts_data(self):
-        has = (np.any(self.mri.points) and np.any(self.hsp.points))
+        has = (np.any(self.mri.bem_low_res.points) and
+               np.any(self.hsp.points))
         return has
 
     @cached_property
     def _get_has_eeg_data(self):
-        has = (np.any(self.mri.points) and np.any(self.hsp.eeg_points))
+        has = (np.any(self.mri.bem_low_res.points) and
+               np.any(self.hsp.eeg_points))
         return has
 
     @cached_property
@@ -265,23 +274,47 @@ class CoregModel(HasPrivateTraits):
         return trans
 
     @cached_property
-    def _get_processed_mri_points(self):
+    def _get_processed_high_res_mri_points(self):
         if self.grow_hair:
-            if len(self.mri.norms):
+            if len(self.mri.bem_high_res.norms):
                 scaled_hair_dist = self.grow_hair / (self.scale * 1000)
-                points = self.mri.points.copy()
+                points = self.mri.bem_high_res.points.copy()
                 hair = points[:, 2] > points[:, 1]
-                points[hair] += self.mri.norms[hair] * scaled_hair_dist
+                points[hair] += (self.mri.bem_high_res.norms[hair] *
+                                 scaled_hair_dist)
                 return points
             else:
                 error(None, "Norms missing from bem, can't grow hair")
                 self.grow_hair = 0
-        return self.mri.points
+        else:
+            return self.mri.bem_high_res.points
 
     @cached_property
-    def _get_transformed_mri_points(self):
+    def _get_processed_low_res_mri_points(self):
+        if self.grow_hair:
+            if len(self.mri.bem_low_res.norms):
+                scaled_hair_dist = self.grow_hair / (self.scale * 1000)
+                points = self.mri.bem_low_res.points.copy()
+                hair = points[:, 2] > points[:, 1]
+                points[hair] += (self.mri.bem_low_res.norms[hair] *
+                                 scaled_hair_dist)
+                return points
+            else:
+                error(None, "Norms missing from bem, can't grow hair")
+                self.grow_hair = 0
+        else:
+            return self.mri.bem_low_res.points
+
+    @cached_property
+    def _get_transformed_low_res_mri_points(self):
         points = apply_trans(self.mri_scale_trans,
-                             self.processed_mri_points)
+                             self.processed_low_res_mri_points)
+        return points
+
+    @cached_property
+    def _get_transformed_high_res_mri_points(self):
+        points = apply_trans(self.mri_scale_trans,
+                             self.processed_high_res_mri_points)
         return points
 
     @cached_property
@@ -330,12 +363,11 @@ class CoregModel(HasPrivateTraits):
     @cached_property
     def _get_point_distance(self):
         if (len(self.transformed_hsp_points) == 0 or
-                len(self.transformed_mri_points) == 0):
-            return
-        dists = cdist(self.transformed_hsp_points, self.transformed_mri_points,
-                      'euclidean')
-        dists = np.min(dists, 1)
-        return dists
+                len(self.transformed_low_res_mri_points) == 0):
+            return None
+        return _compute_nearest(self.transformed_low_res_mri_points,
+                                self.transformed_hsp_points,
+                                return_dists=True)[1]
 
     @cached_property
     def _get_fid_eval_str(self):
@@ -390,8 +422,9 @@ class CoregModel(HasPrivateTraits):
 
         # find the new filter
         hsp_pts = self.transformed_hsp_points
-        mri_pts = self.transformed_mri_points
-        point_distance = _point_cloud_error(hsp_pts, mri_pts)
+        mri_pts = self.transformed_low_res_mri_points
+        point_distance = _compute_nearest(mri_pts, hsp_pts,
+                                          return_dists=True)[1]
         new_sub_filter = point_distance <= distance
         n_excluded = np.sum(new_sub_filter == False)  # noqa: E712
         logger.info("Coregistration: Excluding %i head shape points with "
@@ -445,7 +478,7 @@ class CoregModel(HasPrivateTraits):
         """Find rotation to fit head shapes."""
         src_pts = self.hsp.points - self.hsp.nasion
 
-        tgt_pts = self.processed_mri_points - self.mri.nasion
+        tgt_pts = self.processed_low_res_mri_points - self.mri.nasion
         tgt_pts *= self.scale
         tgt_pts -= [self.trans_x, self.trans_y, self.trans_z]
 
@@ -491,7 +524,7 @@ class CoregModel(HasPrivateTraits):
     def fit_scale_hsp_points(self):
         """Find MRI scaling and rotation to match head shape points."""
         src_pts = self.hsp.points - self.hsp.nasion
-        tgt_pts = self.processed_mri_points - self.mri.nasion
+        tgt_pts = self.processed_low_res_mri_points - self.mri.nasion
         if self.n_scale_params == 1:
             x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x)
             est = fit_point_cloud(src_pts, tgt_pts, rotate=True,
@@ -1265,13 +1298,16 @@ class ViewOptionsPanel(HasTraits):
     mri_obj = Instance(SurfaceObject)
     hsp_obj = Instance(PointObject)
     eeg_obj = Instance(PointObject)
+    hpi_obj = Instance(PointObject)
     view = View(VGroup(Item('mri_obj', style='custom',
-                            label="MRI head"),
+                            label="MRI"),
                        Item('hsp_obj', style='custom',
                             label="Head shape"),
                        Item('eeg_obj', style='custom',
-                            label='EEG')),
-                title="View Options")
+                            label='EEG'),
+                       Item('hpi_obj', style='custom',
+                            label='HPI'),
+                       ), title="View Options")
 
 
 class CoregFrame(HasTraits):
@@ -1289,10 +1325,14 @@ class CoregFrame(HasTraits):
 
     raw_src = DelegatesTo('model', 'hsp')
     guess_mri_subject = DelegatesTo('model')
+    project_to_surface = DelegatesTo('eeg_obj')
+    orient_to_surface = DelegatesTo('hsp_obj')
+    scale_by_distance = DelegatesTo('hsp_obj')
+    mark_inside = DelegatesTo('hsp_obj')
 
     # Omit Points
     distance = Float(5., desc="maximal distance for head shape points from "
-                     "MRI in mm")
+                     "the surface (mm)")
     omit_points = Button(label='Omit [mm]', desc="to omit head shape points "
                          "for the purpose of the automatic coregistration "
                          "procedure.")
@@ -1306,9 +1346,10 @@ class CoregFrame(HasTraits):
     title = Str('MNE Coreg')
 
     # visualization
+    mri_obj = Instance(SurfaceObject)
     hsp_obj = Instance(PointObject)
     eeg_obj = Instance(PointObject)
-    mri_obj = Instance(SurfaceObject)
+    hpi_obj = Instance(PointObject)
     lpa_obj = Instance(PointObject)
     nasion_obj = Instance(PointObject)
     rpa_obj = Instance(PointObject)
@@ -1349,15 +1390,21 @@ class CoregFrame(HasTraits):
 
     def __init__(self, raw=None, subject=None, subjects_dir=None,
                  guess_mri_subject=True, head_opacity=1.,
-                 head_high_res=True, trans=None, config=None):  # noqa: D102
+                 head_high_res=True, trans=None, config=None,
+                 project_eeg=False, orient_to_surface=False,
+                 scale_by_distance=False, mark_inside=False):  # noqa: D102
         self._config = config or {}
         super(CoregFrame, self).__init__(guess_mri_subject=guess_mri_subject)
-        self.subject_panel.model.use_high_res_head = head_high_res
+        self.model.mri.subject_source.show_high_res_head = head_high_res
+        self._initial_kwargs = dict(project_eeg=project_eeg,
+                                    orient_to_surface=orient_to_surface,
+                                    scale_by_distance=scale_by_distance,
+                                    mark_inside=mark_inside,
+                                    head_opacity=head_opacity)
         if not 0 <= head_opacity <= 1:
             raise ValueError(
                 "head_opacity needs to be a floating point number between 0 "
                 "and 1, got %r" % (head_opacity,))
-        self._initial_head_opacity = head_opacity
 
         if (subjects_dir is not None) and os.path.isdir(subjects_dir):
             self.model.mri.subjects_dir = subjects_dir
@@ -1402,18 +1449,14 @@ class CoregFrame(HasTraits):
 
         # MRI scalp
         color = defaults['head_color']
-        self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
-                                     color=color, tri=self.model.mri.tris,
-                                     scene=self.scene, name="MRI Scalp",
-                                     # opacity=self._initial_head_opacity,
-                                     # setting opacity here causes points to be
-                                     # [[0, 0, 0]] -- why??
-                                     )
-        self.mri_obj.opacity = self._initial_head_opacity
-        # on_trait_change was unreliable, so link it another way:
-        self.model.mri.on_trait_change(self._on_mri_src_change, 'tris')
-        self.model.sync_trait('transformed_mri_points', self.mri_obj, 'points',
-                              mutual=False)
+        self.mri_obj = SurfaceObject(
+            points=np.empty((0, 3)), color=color, tri=np.empty((0, 3)),
+            scene=self.scene, name="MRI Scalp", block_behind=True,
+            # opacity=self._initial_kwargs['head_opacity'],
+            # setting opacity here causes points to be
+            # [[0, 0, 0]] -- why??
+        )
+        self.mri_obj.opacity = self._initial_kwargs['head_opacity']
         self.fid_panel.hsp_obj = self.mri_obj
 
         # MRI Fiducials
@@ -1421,73 +1464,86 @@ class CoregFrame(HasTraits):
         self.lpa_obj = PointObject(scene=self.scene, color=lpa_color,
                                    point_scale=point_scale, name='LPA')
         self.model.mri.sync_trait('lpa', self.lpa_obj, 'points', mutual=False)
-        self.model.sync_trait('scale', self.lpa_obj, 'trans', mutual=False)
-
         self.nasion_obj = PointObject(scene=self.scene, color=nasion_color,
                                       point_scale=point_scale, name='Nasion')
         self.model.mri.sync_trait('nasion', self.nasion_obj, 'points',
                                   mutual=False)
-        self.model.sync_trait('scale', self.nasion_obj, 'trans', mutual=False)
-
         self.rpa_obj = PointObject(scene=self.scene, color=rpa_color,
                                    point_scale=point_scale, name='RPA')
         self.model.mri.sync_trait('rpa', self.rpa_obj, 'points', mutual=False)
-        self.model.sync_trait('scale', self.rpa_obj, 'trans', mutual=False)
+        for p in (self.lpa_obj, self.nasion_obj, self.rpa_obj):
+            self.model.sync_trait('scale', p, 'trans', mutual=False)
 
         # Digitizer Head Shape
-        color = defaults['extra_color']
-        point_scale = defaults['extra_scale']
-        p = PointObject(view='cloud', scene=self.scene, color=color,
-                        point_scale=point_scale, resolution=5, name='HSP')
-        self.hsp_obj = p
-        self.model.hsp.sync_trait('points', p, mutual=False)
-        self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
-        self.sync_trait('hsp_visible', p, 'visible', mutual=False)
+        kwargs = dict(
+            view='cloud', scene=self.scene, resolution=20,
+            orient_to_surface=self._initial_kwargs['orient_to_surface'],
+            scale_by_distance=self._initial_kwargs['scale_by_distance'],
+            mark_inside=self._initial_kwargs['mark_inside'])
+        self.hsp_obj = PointObject(
+            color=defaults['extra_color'], name='Extra',
+            point_scale=defaults['extra_scale'], **kwargs)
+        self.model.hsp.sync_trait('points', self.hsp_obj, mutual=False)
 
         # Digitizer EEG
-        color = defaults['eeg_color']
-        point_scale = defaults['eeg_scale']
-        p = PointObject(view='cloud', scene=self.scene, color=color,
-                        point_scale=point_scale, resolution=5, name='EEG')
-        self.eeg_obj = p
-        self.model.hsp.sync_trait('eeg_points', p, 'points', mutual=False)
-        self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
-        self.sync_trait('hsp_visible', p, 'visible', mutual=False)
+        self.eeg_obj = PointObject(
+            color=defaults['eeg_color'], point_scale=defaults['eeg_scale'],
+            name='EEG', projectable=True,
+            project_to_surface=self._initial_kwargs['project_eeg'], **kwargs)
+        self.model.hsp.sync_trait('eeg_points', self.eeg_obj, 'points',
+                                  mutual=False)
+
+        # Digitizer HPI
+        self.hpi_obj = PointObject(
+            color=defaults['hpi_color'], name='HPI',
+            point_scale=defaults['hpi_scale'], **kwargs)
+        self.model.hsp.sync_trait('hpi_points', self.hpi_obj, 'points',
+                                  mutual=False)
+        for p in (self.hsp_obj, self.eeg_obj, self.hpi_obj):
+            self.model.mri.bem_low_res.sync_trait('tris', p, 'project_to_tris',
+                                                  mutual=False)
+            self.model.sync_trait('transformed_low_res_mri_points',
+                                  p, 'project_to_points', mutual=False)
+            p.inside_color = self.mri_obj.color
+            self.mri_obj.sync_trait('color', p, 'inside_color',
+                                    mutual=False)
 
         # Digitizer Fiducials
         point_scale = defaults['dig_fid_scale']
         opacity = defaults['dig_fid_opacity']
-        p = PointObject(scene=self.scene, color=lpa_color, opacity=opacity,
-                        point_scale=point_scale, name='HSP-LPA')
-        self.hsp_lpa_obj = p
-        self.model.hsp.sync_trait('lpa', p, 'points', mutual=False)
-        self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
-        self.sync_trait('hsp_visible', p, 'visible', mutual=False)
+        self.hsp_lpa_obj = PointObject(
+            scene=self.scene, color=lpa_color, opacity=opacity,
+            point_scale=point_scale, name='HSP-LPA')
+        self.model.hsp.sync_trait('lpa', self.hsp_lpa_obj, 'points',
+                                  mutual=False)
+        self.hsp_nasion_obj = PointObject(
+            scene=self.scene, color=nasion_color, opacity=opacity,
+            point_scale=point_scale, name='HSP-Nasion')
+        self.model.hsp.sync_trait('nasion', self.hsp_nasion_obj, 'points',
+                                  mutual=False)
+        self.hsp_rpa_obj = PointObject(
+            scene=self.scene, color=rpa_color, opacity=opacity,
+            point_scale=point_scale, name='HSP-RPA')
+        self.model.hsp.sync_trait('rpa', self.hsp_rpa_obj, 'points',
+                                  mutual=False)
 
-        p = PointObject(scene=self.scene, color=nasion_color, opacity=opacity,
-                        point_scale=point_scale, name='HSP-Nasion')
-        self.hsp_nasion_obj = p
-        self.model.hsp.sync_trait('nasion', p, 'points', mutual=False)
-        self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
-        self.sync_trait('hsp_visible', p, 'visible', mutual=False)
-
-        p = PointObject(scene=self.scene, color=rpa_color, opacity=opacity,
-                        point_scale=point_scale, name='HSP-RPA')
-        self.hsp_rpa_obj = p
-        self.model.hsp.sync_trait('rpa', p, 'points', mutual=False)
-        self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
-        self.sync_trait('hsp_visible', p, 'visible', mutual=False)
+        # All points share these
+        for p in (self.hsp_obj, self.eeg_obj, self.hpi_obj,
+                  self.hsp_lpa_obj, self.hsp_nasion_obj, self.hsp_rpa_obj):
+            self.model.sync_trait('head_mri_trans', p, 'trans', mutual=False)
+            self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         on_pick = self.scene.mayavi_scene.on_mouse_pick
         self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
+        self._on_mri_src_change()
         _toggle_mlab_render(self, True)
         self.scene.render()
         self.scene.camera.focal_point = (0., 0., 0.)
-        self.view_options_panel = ViewOptionsPanel(mri_obj=self.mri_obj,
-                                                   hsp_obj=self.hsp_obj,
-                                                   eeg_obj=self.eeg_obj)
+        self.view_options_panel = ViewOptionsPanel(
+            mri_obj=self.mri_obj, hsp_obj=self.hsp_obj, eeg_obj=self.eeg_obj,
+            hpi_obj=self.hpi_obj)
 
     @cached_property
     def _get_hsp_visible(self):
@@ -1509,16 +1565,32 @@ class CoregFrame(HasTraits):
     def _reset_omit_points_fired(self):
         self.model.omit_hsp_points(0, True)
 
-    @on_trait_change('model.mri.tris')
+    @on_trait_change('model.transformed_high_res_mri_points')
+    def _update_mri_plot(self):
+        if self.mri_obj is None:
+            return
+        self.mri_obj.points = getattr(
+            self.model, 'transformed_%s_res_mri_points'
+            % ('high'
+               if self.model.mri.subject_source.show_high_res_head else
+               'low',))
+
+    @on_trait_change('model.mri.bem_high_res.tris,'
+                     'model.mri.subject_source.show_high_res_head')
     def _on_mri_src_change(self):
         if self.mri_obj is None:
             return
-        if not (np.any(self.model.mri.points) and np.any(self.model.mri.tris)):
+        if not (np.any(self.model.mri.bem_low_res.points) and
+                np.any(self.model.mri.bem_low_res.tris)):
             self.mri_obj.clear()
             return
 
-        self.mri_obj.points = self.model.mri.points
-        self.mri_obj.tri = self.model.mri.tris
+        if self.model.mri.subject_source.show_high_res_head:
+            bem = self.model.mri.bem_high_res
+        else:
+            bem = self.model.mri.bem_low_res
+        self.mri_obj.points = bem.points
+        self.mri_obj.tri = bem.tris
         self.mri_obj.plot()
 
     # automatically lock fiducials if a good fiducials file is loaded
@@ -1537,12 +1609,15 @@ class CoregFrame(HasTraits):
         set_config('MNE_COREG_GUESS_MRI_SUBJECT',
                    str(self.model.guess_mri_subject).lower(),
                    home_dir, set_env=False)
-        set_config('MNE_COREG_HEAD_HIGH_RES',
-                   str(self.model.mri.use_high_res_head).lower(),
-                   home_dir, set_env=False)
+        set_config(
+            'MNE_COREG_HEAD_HIGH_RES',
+            str(self.model.mri.subject_source.show_high_res_head).lower(),
+            home_dir, set_env=False)
         set_config('MNE_COREG_HEAD_OPACITY',
                    str(self.mri_obj.opacity),
                    home_dir, set_env=False)
+        # 'MNE_COREG_SCENE_WIDTH'
+        # 'MNE_COREG_SCENE_HEIGHT'
         set_config('MNE_COREG_SCALE_LABELS',
                    str(self.model.scale_labels).lower(),
                    home_dir, set_env=False)
@@ -1556,3 +1631,11 @@ class CoregFrame(HasTraits):
             set_config('MNE_COREG_SUBJECTS_DIR',
                        self.model.mri.subjects_dir,
                        home_dir, set_env=False)
+        set_config('MNE_COREG_PROJECT_EEG',
+                   str(self.project_to_surface).lower())
+        set_config('MNE_COREG_ORIENT_TO_SURFACE',
+                   str(self.orient_to_surface).lower())
+        set_config('MNE_COREG_SCALE_BY_DISTANCE',
+                   str(self.scale_by_distance).lower())
+        set_config('MNE_COREG_MARK_INSIDE',
+                   str(self.mark_inside).lower())

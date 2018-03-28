@@ -7,9 +7,12 @@ import numpy as np
 import os.path as op
 from nose.tools import assert_equal, assert_raises, assert_true
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+import pytest
+
 from mne import Epochs, read_events, pick_types, compute_raw_covariance
 from mne.io import read_raw_fif
 from mne.utils import requires_sklearn, run_tests_if_main
+from mne.preprocessing import maxwell_filter
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -127,9 +130,16 @@ def test_xdawn_apply_transform():
 @requires_sklearn
 def test_xdawn_regularization():
     """Test Xdawn with regularization."""
-    # Get data
-    raw, events, picks = _get_data()
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+    # Get data, this time MEG so we can test proper reg/ch type support
+    raw = read_raw_fif(raw_fname, verbose=False, preload=True)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+                       ecg=False, eog=False,
+                       exclude='bads')[::8]
+    raw.pick_channels([raw.ch_names[pick] for pick in picks])
+    del picks
+    raw.info.normalize_proj()
+    epochs = Epochs(raw, events, event_id, tmin, tmax,
                     preload=True, baseline=None, verbose=False)
 
     # Test with overlapping events.
@@ -149,17 +159,23 @@ def test_xdawn_regularization():
     # With covariance regularization
     for reg in [.1, 0.1, 'ledoit_wolf', 'oas']:
         xd = Xdawn(n_components=2, correct_overlap=False,
-                   signal_cov=np.eye(len(picks)), reg=reg)
+                   signal_cov=np.eye(len(epochs.ch_names)), reg=reg)
         xd.fit(epochs)
     # With bad shrinkage
     xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=np.eye(len(picks)), reg=2)
-    assert_raises(ValueError, xd.fit, epochs)
+               signal_cov=np.eye(len(epochs.ch_names)), reg=2)
+    with pytest.raises(ValueError, match='shrinkage must be'):
+        xd.fit(epochs)
     # With rank-deficient input
-    epochs.set_eeg_reference(['EEG 001'])
+    raw = maxwell_filter(raw, int_order=4, ext_order=2)
     xd = Xdawn(correct_overlap=False, reg=None)
-    assert_raises(ValueError, xd.fit, epochs)
+    # this is a bit wacky because `epochs` has projectors on from the old raw
+    # but it works as a rank-deficient test case
+    with pytest.raises(ValueError, match='Could not compute eigenvalues'):
+        xd.fit(epochs)
     xd = Xdawn(correct_overlap=False, reg=0.5)
+    xd.fit(epochs)
+    xd = Xdawn(correct_overlap=False, reg='diagonal_fixed')
     xd.fit(epochs)
 
 
