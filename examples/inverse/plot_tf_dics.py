@@ -13,13 +13,13 @@ References
        NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 """
 # Author: Roman Goj <roman.goj@gmail.com>
-#
+#         Marijn van Vliet <w.m.vanvliet@gmail.com>
 # License: BSD (3-clause)
 
 import mne
 from mne.event import make_fixed_length_events
 from mne.datasets import sample
-from mne.time_frequency import csd_epochs
+from mne.time_frequency import csd_fourier
 from mne.beamformer import tf_dics
 from mne.viz import plot_source_spectrogram
 
@@ -106,10 +106,10 @@ subtract_evoked = False
 # from the baseline period in the data, change epochs_noise to epochs
 noise_csds = []
 for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
-    noise_csd = csd_epochs(epochs_noise, mode='fourier',
-                           fmin=freq_bin[0], fmax=freq_bin[1],
-                           fsum=True, tmin=-win_length, tmax=0,
-                           n_fft=n_fft)
+    noise_csd = csd_fourier(epochs_noise, fmin=freq_bin[0], fmax=freq_bin[1],
+                            tmin=-win_length, tmax=0, n_fft=n_fft)
+    # Sum the noise CSD across the frequencies in the bin
+    noise_csd = noise_csd.sum()
     noise_csds.append(noise_csd)
 
 # Computing DICS solutions for time-frequency windows in a label in source

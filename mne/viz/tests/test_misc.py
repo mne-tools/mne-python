@@ -21,11 +21,13 @@ from mne.filter import create_filter
 from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
-                     plot_snr_estimate, plot_filter)
+                     plot_snr_estimate, plot_filter, plot_csd)
 from mne.utils import requires_nibabel, run_tests_if_main, requires_version
+from mne.time_frequency import CrossSpectralDensity
 
 # Set our plotters to test mode
 import matplotlib
+from matplotlib import pyplot as plt
 matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -86,6 +88,7 @@ def test_plot_cov():
     cov = read_cov(cov_fname)
     with warnings.catch_warnings(record=True):  # bad proj
         fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
+    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -127,6 +130,7 @@ def test_plot_events():
                       raw.first_samp, event_id={'aud_l': 1}, color=color)
         assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
                       raw.first_samp, event_id={'aud_l': 111}, color=color)
+    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -147,6 +151,7 @@ def test_plot_source_spectrogram():
                   [[1, 2], [3, 4]], tmin=0)
     assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
                   [[1, 2], [3, 4]], tmax=7)
+    plt.close('all')
 
 
 @pytest.mark.slowtest
@@ -156,6 +161,7 @@ def test_plot_snr():
     inv = read_inverse_operator(inv_fname)
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     plot_snr_estimate(evoked, inv)
+    plt.close('all')
 
 
 @testing.requires_testing_data
@@ -163,6 +169,17 @@ def test_plot_dipole_amplitudes():
     """Test plotting dipole amplitudes."""
     dipoles = read_dipole(dip_fname)
     dipoles.plot_amplitudes(show=False)
+    plt.close('all')
+
+
+def test_plot_csd():
+    """Test plotting of CSD matrices."""
+    csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'],
+                               frequencies=[(10, 20)], n_fft=1,
+                               tmin=0, tmax=1,)
+    plot_csd(csd, mode='csd')  # Plot cross-spectral density
+    plot_csd(csd, mode='coh')  # Plot coherence
+    plt.close('all')
 
 
 run_tests_if_main()

@@ -340,6 +340,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/time_frequency/plot_temporal_whitening.rst
     auto_examples/time_frequency/plot_time_frequency_global_field_power.rst
     auto_examples/time_frequency/plot_time_frequency_simulated.rst
+    auto_examples/time_frequency/plot_compute_csd.rst
 
 .. raw:: html
 
