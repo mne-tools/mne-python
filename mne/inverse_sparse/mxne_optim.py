@@ -959,14 +959,20 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
        "GAP Safe Screening Rules for Sparse-Group Lasso", Advances in Neural
        Information Processing Systems (NIPS), 2016.
     """
-    X = phiT(Z)
-    GX = np.dot(G[:, active_set], X)
-    R = M - GX
-    penaltyl1 = norm_l1_tf(Z, shape, n_orient)
-    penaltyl21 = norm_l21_tf(Z, shape, n_orient)
-    nR2 = sum_squared(R)
-    p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
-
+    if Z.shape[0] > 0:
+        X = phiT(Z)
+        GX = np.dot(G[:, active_set], X)
+        R = M - GX
+        penaltyl1 = norm_l1_tf(Z, shape, n_orient)
+        penaltyl21 = norm_l21_tf(Z, shape, n_orient)
+        nR2 = sum_squared(R)
+        p_obj = 0.5 * nR2 + alpha_space * penaltyl21 + alpha_time * penaltyl1
+    else:
+        GX = np.zeros_like(M)
+        R = M
+        nR2 = sum_squared(M)
+        p_obj = 0.5 * nR2
+        
     l1_ratio = alpha_time / (alpha_space + alpha_time)
     dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient)
     scaling = min(1., (alpha_space + alpha_time) / dual_norm)
@@ -1066,24 +1072,26 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                         active_set_j[:] = True
                         R -= np.dot(G_j, phiT(Z[jj]))
 
+        if np.all(active_set == False):
+            converged = True
+            break
+            
         if (ii + 1) % dgap_freq == 0:
             Zd = np.vstack([Z[pos] for pos in range(n_positions)
                            if np.any(Z[pos])])
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, Gd, Zd, active_set, alpha_space, alpha_time, phi, phiT,
                 shape, n_orient, d_obj)
-            converged = (gap < tol)
             E.append(p_obj)
             logger.info("\n    Iteration %d :: n_active %d" % (
                         ii + 1, np.sum(active_set) / n_orient))
             logger.info("    dgap %.2e :: p_obj %f :: d_obj %f" % (
                         gap, p_obj, d_obj))
-
-        if converged:
-            break
+            if gap < tol:
+                converged = True
+                break
 
         if (ii == maxit - 1):
-            converged = False
             break
 
         if perc is not None:
@@ -1107,7 +1115,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
     active_set = np.zeros(n_sources, dtype=np.bool)
     active = []
     if Z_init is not None:
-        if Z_init.shape != (n_sources, shape[1] * shape[2]):
+        if Z_init.shape != (n_sources, phi.n_coefs):
             raise Exception('Z_init must be None or an array with shape '
                             '(n_sources, n_coefs).')
         for ii in range(n_positions):
@@ -1126,30 +1134,34 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
     while True:
         Z_init = dict.fromkeys(np.arange(n_positions), 0.0)
         Z_init.update(dict(zip(active, Z.values())))
-        Z, active_set, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
+        Z, active_set, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
             M, G, Z_init, active_set, candidates, alpha_space, alpha_time,
             lipschitz_constant, phi, phiT, shape, n_orient=n_orient,
             maxit=1, tol=tol, perc=None, verbose=verbose)
         E += E_tmp
 
-        active = np.where(active_set[::n_orient])[0]
-        Z_init = dict(zip(range(len(active)), [Z[idx] for idx in active]))
-        candidates_ = range(len(active))
-        Z, as_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
-            M, G[:, active_set], Z_init,
-            np.ones(len(active) * n_orient, dtype=np.bool),
-            candidates_, alpha_space, alpha_time,
-            lipschitz_constant[active_set[::n_orient]], phi, phiT, shape,
-            n_orient=n_orient, maxit=maxit, tol=tol,
-            dgap_freq=dgap_freq, perc=0.5,
-            verbose=verbose)
-        active = np.where(active_set[::n_orient])[0]
-        active_set[active_set] = as_.copy()
-        E += E_tmp
+        if np.any(active_set):
+            active = np.where(active_set[::n_orient])[0]
+            Z_init = dict(zip(range(len(active)), [Z[idx] for idx in active]))
+            candidates_ = range(len(active))
+            Z, as_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
+                M, G[:, active_set], Z_init,
+                np.ones(len(active) * n_orient, dtype=np.bool),
+                candidates_, alpha_space, alpha_time,
+                lipschitz_constant[active_set[::n_orient]], phi, phiT, shape,
+                n_orient=n_orient, maxit=maxit, tol=tol,
+                dgap_freq=dgap_freq, perc=0.5,
+                verbose=verbose)
+            active = np.where(active_set[::n_orient])[0]
+            active_set[active_set] = as_.copy()
+            E += E_tmp
 
-        converged = True
         if converged:
-            Zd = np.vstack([Z[pos] for pos in range(len(Z)) if np.any(Z[pos])])
+            if np.any(active_set):
+                Zd = np.vstack([Z[pos] for pos in range(len(Z))
+                                if np.any(Z[pos])])
+            else:
+                Zd = np.zeros((0, phi.n_coefs), dtype=np.complex)
             gap, p_obj, d_obj, _ = dgap_l21l1(
                 M, G, Zd, active_set, alpha_space, alpha_time,
                 phi, phiT, shape, n_orient, d_obj)
@@ -1163,9 +1175,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
         Z = np.vstack([Z[pos] for pos in range(len(Z)) if np.any(Z[pos])])
         X = phiT(Z)
     else:
-        n_step = shape[2]
-        n_freq = shape[1]
-        Z = np.zeros((0, n_step * n_freq), dtype=np.complex)
+        Z = np.zeros((0, phi.n_coefs), dtype=np.complex)
         X = np.zeros((0, n_times))
 
     return X, Z, active_set, E, gap

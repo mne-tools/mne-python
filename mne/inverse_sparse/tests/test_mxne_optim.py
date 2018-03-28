@@ -6,7 +6,7 @@
 import numpy as np
 import warnings
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_allclose, assert_array_less)
+                           assert_allclose, assert_array_less, assert_equal)
 
 from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            tf_mixed_norm_solver,
@@ -119,7 +119,16 @@ def test_tf_mxne():
         n_orient=1, tstep=4, wsize=32, return_gap=True)
     assert_array_less(gap_tfmxne, 1e-8)
     assert_array_equal(np.where(active_set_hat_tf)[0], active_set)
-
+    
+    alpha_space = 1e8
+    alpha_time = 1e8
+    X_hat_tf, active_set_hat_tf, E, gap_tfmxne = tf_mixed_norm_solver(
+        M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
+        n_orient=1, tstep=4, wsize=32, return_gap=True)
+    assert_array_less(gap_tfmxne, 1e-8)
+    assert_equal(X_hat_tf.shape[0], 0)
+    assert_equal(np.any(active_set_hat_tf), False)
+    
 
 def test_norm_epsilon():
     """Test computation of espilon norm on TF coefficients."""
