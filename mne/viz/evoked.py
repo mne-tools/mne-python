@@ -925,7 +925,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         A float between 0 and 1. If `mask` is not None, this sets the
         alpha level (degree of transparency) for the masked-out segments.
         I.e., if 0, masked-out segments are not visible at all.
-        Defaults to .3.
+        Defaults to .25.
 
         .. versionadded:: 0.16
 
