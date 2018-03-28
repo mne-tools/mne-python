@@ -87,6 +87,8 @@ Changelog
 
 - Add support for reading Eximia files by `Eric Larson`_ and `Federico Raimondo`_
 
+- Add :func:`mne.time_frequency.csd_morlet` and :func:`mne.time_frequency.csd_array_morlet` to estimate cross-spectral density using Morlet wavelets, by `Marijn van Vliet`_
+
 Bug
 ~~~
 
@@ -156,6 +158,10 @@ API
 - Changed the line width in :func:`mne.viz.plot_bem` from 2.0 to 1.0 for better visibility of underlying structures, by `Eric Larson`_
 
 - Changed the behavior of :meth:`mne.io.Raw.pick_channels` and similar methods to be consistent with :func:`mne.pick_channels` to treat channel list as a set (ignoring order) -- if reordering is necessary use ``inst.reorder_channels``, by `Eric Larson`_
+
+- :func:`mne.time_frequency.csd_epochs` has been refactored into :func:`mne.time_frequency.csd_fourier` and :func:`mne.time_frequency.csd_multitaper`, by `Marijn van Vliet`_
+
+- :func:`mne.time_frequency.csd_array` has been refactored into :func:`mne.time_frequency.csd_array_fourier` and :func:`mne.time_frequency.csd_array_multitaper`, by `Marijn van Vliet`_
 
 - Added ``clean_names=False`` parameter to :func:`mne.io.read_raw_ctf` and :class:`mne.io.ctf.RawCTF` constructor for control over cleaning of main channel names and compensation channel names from CTF suffixes by `Oleh Kozynets`_
 
