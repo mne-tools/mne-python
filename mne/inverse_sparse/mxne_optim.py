@@ -972,7 +972,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT, shape,
         R = M
         nR2 = sum_squared(M)
         p_obj = 0.5 * nR2
-        
+
     l1_ratio = alpha_time / (alpha_space + alpha_time)
     dual_norm = norm_epsilon_inf(G, R, phi, l1_ratio, n_orient)
     scaling = min(1., (alpha_space + alpha_time) / dual_norm)
@@ -1010,7 +1010,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
     alpha_time_lc = alpha_time / lipschitz_constant
     alpha_space_lc = alpha_space / lipschitz_constant
 
-    converged = False
+    check_dgap = False
     d_obj = -np.Inf
 
     ii = -1
@@ -1072,10 +1072,10 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
                         active_set_j[:] = True
                         R -= np.dot(G_j, phiT(Z[jj]))
 
-        if np.all(active_set == False):
-            converged = True
+        if not np.any(active_set):
+            check_dgap = True
             break
-            
+
         if (ii + 1) % dgap_freq == 0:
             Zd = np.vstack([Z[pos] for pos in range(n_positions)
                            if np.any(Z[pos])])
@@ -1088,17 +1088,19 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, candidates, alpha_space,
             logger.info("    dgap %.2e :: p_obj %f :: d_obj %f" % (
                         gap, p_obj, d_obj))
             if gap < tol:
-                converged = True
+                check_dgap = True
                 break
 
         if (ii == maxit - 1):
+            if maxit < dgap_freq:
+                check_dgap = True
             break
 
         if perc is not None:
             if np.sum(active_set) / float(n_orient) <= perc * n_positions:
                 break
 
-    return Z, active_set, E, converged
+    return Z, active_set, E, check_dgap
 
 
 @verbose
@@ -1134,7 +1136,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
     while True:
         Z_init = dict.fromkeys(np.arange(n_positions), 0.0)
         Z_init.update(dict(zip(active, Z.values())))
-        Z, active_set, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
+        Z, active_set, E_tmp, check_dgap = _tf_mixed_norm_solver_bcd_(
             M, G, Z_init, active_set, candidates, alpha_space, alpha_time,
             lipschitz_constant, phi, phiT, shape, n_orient=n_orient,
             maxit=1, tol=tol, perc=None, verbose=verbose)
@@ -1144,7 +1146,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
             active = np.where(active_set[::n_orient])[0]
             Z_init = dict(zip(range(len(active)), [Z[idx] for idx in active]))
             candidates_ = range(len(active))
-            Z, as_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
+            Z, as_, E_tmp, check_dgap = _tf_mixed_norm_solver_bcd_(
                 M, G[:, active_set], Z_init,
                 np.ones(len(active) * n_orient, dtype=np.bool),
                 candidates_, alpha_space, alpha_time,
@@ -1156,7 +1158,7 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
             active_set[active_set] = as_.copy()
             E += E_tmp
 
-        if converged:
+        if check_dgap:
             if np.any(active_set):
                 Zd = np.vstack([Z[pos] for pos in range(len(Z))
                                 if np.any(Z[pos])])
