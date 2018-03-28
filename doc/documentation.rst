@@ -383,6 +383,7 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_tutorials/plot_dipole_fit.rst
     auto_tutorials/plot_point_spread.rst
     auto_tutorials/plot_dipole_orientations.rst
+    auto_tutorials/plot_dics.rst
 
 
 .. raw:: html
@@ -415,7 +416,6 @@ There are also **examples**, which contain a short use-case to highlight MNE-fun
     auto_examples/inverse/plot_compute_mne_inverse_volume.rst
     auto_examples/inverse/plot_covariance_whitening_dspm.rst
     auto_examples/inverse/plot_custom_inverse_solver.rst
-    auto_examples/inverse/plot_dics_beamformer.rst
     auto_examples/inverse/plot_dics_source_power.rst
     auto_examples/inverse/plot_gamma_map_inverse.rst
     auto_examples/inverse/plot_label_activation_from_stc.rst

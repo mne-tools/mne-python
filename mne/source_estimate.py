@@ -94,6 +94,17 @@ def _write_stc(filename, tmin, tstep, vertices, data):
     data : 2D array
         The data matrix (nvert * ntime).
     """
+    if np.iscomplexobj(data):
+        # Even if the data is not complex, it could still be stored in a
+        # complex valued ndarray.
+        if np.any(np.iscomplex(data)):
+            raise RuntimeError(
+                'Cannot save complex valued data to an .stc file. Use '
+                'ftype="h5" to save the object as an HDF5 file instead.'
+            )
+        else:
+            data = data.astype(float)
+
     fid = open(filename, 'wb')
 
     # write start time in ms
@@ -1397,9 +1408,10 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
             and "-rh.w") to the stem provided, for the left and the right
             hemisphere, respectively.
-        ftype : string
+        ftype : 'stc' | 'h5' | 'w'
             File format to use. Allowed values are "stc" (default), "w",
-            and "h5". The "w" format only supports a single time point.
+            and "h5". The "stc" format does not support complex data and the
+            "w" format only supports a single time point.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1723,9 +1735,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         fname : string
             The stem of the file name. The stem is extended with "-vl.stc"
             or "-vl.w".
-        ftype : string
-            File format to use. Allowed values are "stc" (default) and "w".
-            The "w" format only supports a single time point.
+        ftype : 'stc' | 'h5' | 'w'
+            File format to use. Allowed values are "stc" (default), "w",
+            and "h5". The "stc" format does not support complex data and the
+            "w" format only supports a single time point.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see
             :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
@@ -1909,7 +1922,7 @@ class VectorSourceEstimate(_BaseSurfaceSourceEstimate):
         fname : string
             The file name to write the source estimate to, should end in
             '-stc.h5'.
-        ftype : string
+        ftype : 'h5'
             File format to use. Currently, the only allowed values is "h5".
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).

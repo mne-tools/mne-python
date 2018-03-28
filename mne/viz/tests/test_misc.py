@@ -21,8 +21,9 @@ from mne.filter import create_filter
 from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
-                     plot_snr_estimate, plot_filter)
+                     plot_snr_estimate, plot_filter, plot_csd)
 from mne.utils import requires_nibabel, run_tests_if_main, requires_version
+from mne.time_frequency import CrossSpectralDensity
 
 # Set our plotters to test mode
 import matplotlib
@@ -164,5 +165,12 @@ def test_plot_dipole_amplitudes():
     dipoles = read_dipole(dip_fname)
     dipoles.plot_amplitudes(show=False)
 
+
+def test_plot_csd():
+    """Test plotting of CSD matrices."""
+    csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'], tmin=0, tmax=1,
+                               frequencies=[(10, 20)], n_fft=1)
+    plot_csd(csd, mode='csd')  # Plot cross-spectral density
+    plot_csd(csd, mode='coh')  # Plot coherence
 
 run_tests_if_main()

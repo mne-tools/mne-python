@@ -12,15 +12,16 @@ References
 .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
        interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
-# Author: Roman Goj <roman.goj@gmail.com>
+# Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
+#         Roman Goj <roman.goj@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
-
+import numpy as np
 import mne
 from mne.datasets import sample
 from mne.time_frequency import csd_epochs
-from mne.beamformer import dics_source_power
+from mne.beamformer import make_dics, apply_dics_csd
 
 print(__doc__)
 
@@ -50,24 +51,18 @@ evoked = epochs.average()
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd)
 
-# Computing the data and noise cross-spectral density matrices
-# The time-frequency window was chosen on the basis of spectrograms from
-# example time_frequency/plot_time_frequency.py
-# As fsum is False csd_epochs returns a list of CrossSpectralDensity
-# instances than can then be passed to dics_source_power
-data_csds = csd_epochs(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                       fmin=15, fmax=30, fsum=False)
-noise_csds = csd_epochs(epochs, mode='multitaper', tmin=-0.11,
-                        tmax=-0.001, fmin=15, fmax=30, fsum=False)
+# Computing the cross-spectral density matrix at 6-10 Hz.
+# The frequency was chosen on the basis of spectrograms from
+# example time_frequency/plot_time_frequency.py.
+# We use a decim value of 20 to speed up the computation in this example at the
+# loss of accuracy.
+csd = csd_epochs(epochs, mode='cwt_morlet', tmin=0, tmax=0.5, decim=20,
+                 frequencies=np.linspace(6, 10, 4))
 
-# Compute DICS spatial filter and estimate source power
-stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
+# Compute DICS spatial filter and estimate source power.
+filters = make_dics(epochs.info, forward, csd, reg=0.5)
+stc, freqs = apply_dics_csd(csd, filters)
 
-for i, csd in enumerate(data_csds):
-    message = 'DICS source power at %0.1f Hz' % csd.freqs[0]
-    brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                     time_label=message, figure=i)
-    brain.set_data_time_index(i)
-    brain.show_view('lateral')
-    # Uncomment line below to save images
-    # brain.save_image('DICS_source_power_freq_%d.png' % csd.freqs[0])
+message = 'DICS source power in the 6-10 Hz frequency band'
+brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
+                 time_label=message)
