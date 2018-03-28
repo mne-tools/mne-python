@@ -55,9 +55,9 @@ def test_interpolation():
     # check that interpolation does nothing if no bads are marked
     epochs_eeg.info['bads'] = []
     evoked_eeg = epochs_eeg.average()
-    for ch in evoked_eeg.info['chs']:
-        ch['loc'][:3] = np.array([0., 0., 0.])
-    evoked_eeg.interpolate_bads()
+    with warnings.catch_warnings(record=True) as w:
+        evoked_eeg.interpolate_bads()
+    assert_true(any('Doing nothing' in str(ww.message) for ww in w))
 
     # create good and bad channels for EEG
     epochs_eeg.info['bads'] = []

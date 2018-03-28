@@ -124,6 +124,7 @@ def _interpolate_bads_eeg(inst, verbose=None):
     bads_idx[picks] = [inst.ch_names[ch] in inst.info['bads'] for ch in picks]
 
     if len(picks) == 0 or bads_idx.sum() == 0:
+        warn('No bad channels to interpolate. Doing nothing...')
         return
 
     goods_idx[picks] = True
