@@ -1485,10 +1485,8 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
 
     # Compute the spectral density between all pairs of series
     n_channels = data.shape[0]
-    csds = np.vstack([psds[[i]] * psds_conj[i:] for i in range(n_channels)])
-
-    # Average along time dimension
-    csds = csds.mean(axis=2)
+    csds = np.vstack([np.mean(psds[[i]] * psds_conj[i:], axis=2)
+                      for i in range(n_channels)])
 
     # Scaling by sampling frequency for compatibility with Matlab
     csds /= sfreq
