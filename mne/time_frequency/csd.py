@@ -106,6 +106,9 @@ class CrossSpectralDensity(object):
         # of lists (or like-like objects) instead of plain numbers.
         return not isinstance(self.frequencies[0], numbers.Number)
 
+    def __len__(self):  # noqa: D105
+        return len(self.frequencies)
+
     def __repr__(self):  # noqa: D105
         # Make a pretty string representation of the frequencies
         freq_strs = []
@@ -1305,7 +1308,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive):
     if bandwidth is not None:
         half_nbw = float(bandwidth) * n_times / (2. * sfreq)
     else:
-        half_nbw = 2.
+        half_nbw = 4.
 
     # Compute DPSS windows
     n_tapers_max = int(2 * half_nbw)
