@@ -77,11 +77,12 @@ csd_wav = csd_morlet(epochs, frequencies, decim=10, n_jobs=n_jobs)
 ###############################################################################
 # The resulting :class:`mne.time_frequency.CrossSpectralDensity` objects have a
 # plotting function we can use to compare the results of the different methods.
-csd_fft.plot()
-plt.suptitle('CSDs computed using short-term Fourier transform')
+# We're plotting the mean CSD across frequencies.
+csd_fft.mean().plot()
+plt.suptitle('short-term Fourier transform')
 
-csd_mt.plot()
-plt.suptitle('CSDs computed using adaptive multitapers')
+csd_mt.mean().plot()
+plt.suptitle('adaptive multitapers')
 
-csd_wav.plot()
-plt.suptitle('CSDs computed using Morlet wavelet transform')
+csd_wav.mean().plot()
+plt.suptitle('Morlet wavelet transform')
