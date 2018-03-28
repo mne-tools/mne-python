@@ -140,11 +140,8 @@ class ICA(ContainsMixin):
               The stopping criterion of FastICA, Infomax, Extended
               Infomax and Picard differ, making it hard to compare different
               tolerances level, but a rule of thumb is
-              `tol_fastica = tol_picard ** 2`. Hence, the default tolerance for
-              Picard, `1e-5`, roughly corresponds to setting `tol=1e-10` for
-              FastICA. In this case, Picard tends to be faster than the other
-              algorithms. Reducing the tolerance speeds up estimation but
-              lowers the consistency of the results.
+              `tol_fastica = tol_picard ** 2`. Reducing the tolerance speeds up
+              estimation but lowers results consistency.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.
