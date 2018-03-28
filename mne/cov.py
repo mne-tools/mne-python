@@ -1093,12 +1093,17 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 class _RegCovariance(BaseEstimator):
     """Aux class."""
 
-    def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
-                 store_precision=False, assume_centered=False):
+    def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0, seeg=0.0, ecog=0.0,
+                 hbo=0.0, hbr=0.0, store_precision=False,
+                 assume_centered=False):
         self.info = info
         self.grad = grad
         self.mag = mag
         self.eeg = eeg
+        self.seeg = seeg
+        self.ecog = ecog
+        self.hbo = hbo
+        self.hbr = hbr
         self.store_precision = store_precision
         self.assume_centered = assume_centered
 
@@ -1400,7 +1405,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
 
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
-               proj=True, verbose=None):
+               proj=True, seeg=0.0, ecog=0.0, hbo=0.0, hbr=0.0,
+               verbose=None):
     """Regularize noise covariance matrix.
 
     This method works by adding a constant to the diagonal for each
@@ -1431,6 +1437,14 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         are extracted from both info['bads'] and cov['bads'].
     proj : bool (default true)
         Apply or not projections to keep rank of data.
+    seeg : float (default 0.)
+        Regularization factor for sEEG signals.
+    ecog : float (default 0.)
+        Regularization factor for ECoG signals.
+    hbo : float (default 0.)
+        Regularization factor for HBO signals.
+    hbr : float (default 0.)
+        Regularization factor for HBR signals.
     verbose : bool | str | int | None (default None)
         If not None, override default verbose level (see :func:`mne.verbose`).
 
@@ -1452,45 +1466,44 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     if exclude == 'bads':
         exclude = info['bads'] + cov['bads']
 
-    sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude=exclude)
-    sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
-                         exclude=exclude)
-    sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
-                          exclude=exclude)
-
+    picks_dict = {ch_type: [] for ch_type in _DATA_CH_TYPES_SPLIT}
+    picks_dict.update(dict(_picks_by_type(info, exclude=exclude)))
     info_ch_names = info['ch_names']
-    ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
-    ch_names_mag = [info_ch_names[i] for i in sel_mag]
-    ch_names_grad = [info_ch_names[i] for i in sel_grad]
-    del sel_eeg, sel_mag, sel_grad
+    ch_names_by_type = dict()
+    for ch_type, picks_type in picks_dict.items():
+        ch_names_by_type[ch_type] = [info_ch_names[i] for i in picks_type]
 
     # This actually removes bad channels from the cov, which is not backward
     # compatible, so let's leave all channels in
     cov_good = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
     ch_names = cov_good.ch_names
 
-    idx_eeg, idx_mag, idx_grad = [], [], []
+    # Now get the indices for each channel type in the cov
+    idx_cov = {ch_type: [] for ch_type in ch_names_by_type}
     for i, ch in enumerate(ch_names):
-        if ch in ch_names_eeg:
-            idx_eeg.append(i)
-        elif ch in ch_names_mag:
-            idx_mag.append(i)
-        elif ch in ch_names_grad:
-            idx_grad.append(i)
+        for ch_type in ch_names_by_type:
+            if ch in ch_names_by_type[ch_type]:
+                idx_cov[ch_type].append(i)
+                break
         else:
-            raise Exception('channel is unknown type')
+            raise Exception('channel %s is unknown type' % ch)
 
     C = cov_good['data']
 
-    assert len(C) == (len(idx_eeg) + len(idx_mag) + len(idx_grad))
+    assert len(C) == sum(map(len, idx_cov.values()))
 
     if proj:
         projs = info['projs'] + cov_good['projs']
         projs = activate_proj(projs)
 
-    for desc, idx, reg in [('EEG', idx_eeg, eeg), ('MAG', idx_mag, mag),
-                           ('GRAD', idx_grad, grad)]:
+    regs = dict(mag=mag, grad=grad, eeg=eeg,
+                seeg=seeg, ecog=ecog, hbo=hbo, hbr=hbr)
+
+    for ch_type in idx_cov:
+        desc = ch_type.upper()
+        idx = idx_cov[ch_type]
+        reg = regs[ch_type]
+
         if len(idx) == 0 or reg == 0.0:
             logger.info("    %s regularization : None" % desc)
             continue
