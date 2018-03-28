@@ -163,6 +163,8 @@ API
 
 - :func:`mne.time_frequency.csd_array` has been refactored into :func:`mne.time_frequency.csd_array_fourier` and :func:`mne.time_frequency.csd_array_multitaper`, by `Marijn van Vliet`_
 
+- Added ``clean_names=False`` parameter to :func:`mne.io.read_raw_ctf` and :class:`mne.io.ctf.RawCTF` constructor for control over cleaning of main channel names and compensation channel names from CTF suffixes by `Oleh Kozynets`_
+
 .. _changes_0_15:
 
 Version 0.15
