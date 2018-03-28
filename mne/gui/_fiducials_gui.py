@@ -22,7 +22,8 @@ from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
 from ..defaults import DEFAULTS
 from ..io import write_fiducials
 from ..io.constants import FIFF
-from ..utils import get_subjects_dir, logger
+from ..surface import complete_surface_info, decimate_surface
+from ..utils import get_subjects_dir, logger, warn
 from ..viz._3d import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
@@ -37,7 +38,7 @@ def _mm_fmt(x):
 
 
 class MRIHeadWithFiducialsModel(HasPrivateTraits):
-    """Represent an MRI head shape with fiducials.
+    """Represent an MRI head shape (high and low res) with fiducials.
 
     Attributes
     ----------
@@ -54,7 +55,8 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     """
 
     subject_source = Instance(MRISubjectSource, ())
-    bem = Instance(SurfaceSource, ())
+    bem_low_res = Instance(SurfaceSource, ())
+    bem_high_res = Instance(SurfaceSource, ())
     fid = Instance(FiducialsSource, ())
 
     fid_file = DelegatesTo('fid', 'file')
@@ -63,10 +65,6 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     subjects_dir = DelegatesTo('subject_source')
     subject = DelegatesTo('subject_source')
     subject_has_bem = DelegatesTo('subject_source')
-    use_high_res_head = DelegatesTo('subject_source')
-    points = DelegatesTo('bem')
-    norms = DelegatesTo('bem')
-    tris = DelegatesTo('bem')
     lpa = Array(float, (1, 3))
     nasion = Array(float, (1, 3))
     rpa = Array(float, (1, 3))
@@ -166,31 +164,41 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
     # if subject changed because of a change of subjects_dir this was not
     # triggered
-    @on_trait_change('subjects_dir,subject,use_high_res_head')
+    @on_trait_change('subjects_dir,subject')
     def _subject_changed(self):
         subject = self.subject
         subjects_dir = self.subjects_dir
         if not subjects_dir or not subject:
             return
 
-        # find head model
-        if self.use_high_res_head:
-            path = _find_head_bem(subject, subjects_dir, high_res=True)
-            if not path:
-                error(None, "No high resolution head model was found for "
-                      "subject {0}, using standard head instead. In order to "
-                      "generate a high resolution head model, run:\n\n"
-                      "    $ mne make_scalp_surfaces -s {0}"
-                      "\n\n".format(subject), "No High Resolution Head")
-                path = _find_head_bem(subject, subjects_dir)
+        # find high-res head model (if possible)
+        high_res_path = _find_head_bem(subject, subjects_dir, high_res=True)
+        low_res_path = _find_head_bem(subject, subjects_dir, high_res=False)
+        if high_res_path is None and low_res_path is None:
+            msg = 'No standard head model was found for subject %s' % subject
+            error(None, msg, "No head surfaces found")
+            raise RuntimeError(msg)
+        if high_res_path is not None:
+            self.bem_high_res.file = high_res_path
         else:
-            path = _find_head_bem(subject, subjects_dir)
-            if not path:
-                error(None, "No standard head model was found for subject "
-                      "{0}, using high resolution head model instead."
-                      .format(subject), "No Standard Resolution Head")
-                path = _find_head_bem(subject, subjects_dir, high_res=True)
-        self.bem.file = path
+            self.bem_high_res.file = low_res_path
+        if low_res_path is None:
+            # This should be very rare!
+            warn('No low-resolution head found, decimating high resolution '
+                 'mesh (%d vertices): %s' % (len(self.bem_high_res.points),
+                                             high_res_path,))
+            # Create one from the high res one, which we know we have
+            rr, tris = decimate_surface(self.bem_high_res.points,
+                                        self.bem_high_res.tris,
+                                        n_triangles=5120)
+            surf = complete_surface_info(dict(rr=rr, tris=tris),
+                                         copy=False, verbose=False)
+            # directly set the points, norms, tris attribute of the bem_low_res
+            self.bem_low_res.points = surf['rr']
+            self.bem_low_res.tris = surf['tris']
+            self.bem_low_res.norms = surf['nn']
+        else:
+            self.bem_low_res.file = low_res_path
 
         # find fiducials file
         fid_files = _find_fiducials_files(subject, subjects_dir)

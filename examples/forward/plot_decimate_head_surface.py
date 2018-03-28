@@ -23,8 +23,7 @@ surf = mne.read_bem_surfaces(path + '/subjects/sample/bem/sample-head.fif')[0]
 
 points, triangles = surf['rr'], surf['tris']
 
-# reduce to 30000 meshes equaling ${SUBJECT}-head-medium.fif output from
-# mne_make_scalp_surfaces.py and mne_make_scalp_surfaces
+# reduce to 30000 triangles:
 points_dec, triangles_dec = decimate_surface(points, triangles,
                                              n_triangles=30000)
 

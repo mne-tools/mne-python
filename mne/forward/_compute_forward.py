@@ -803,9 +803,9 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
                        n_jobs, coil_type)
             # Combine solutions so we can do the compensation
             both = np.zeros((work.shape[0], B.shape[1] + work.shape[1]))
-            picks = pick_types(info, meg=True, ref_meg=False)
+            picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
             both[:, picks] = B
-            picks = pick_types(info, meg=False, ref_meg=True)
+            picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
             both[:, picks] = work
             B = np.dot(both, compensator.T)
         Bs.append(B)

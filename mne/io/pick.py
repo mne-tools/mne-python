@@ -696,7 +696,7 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
 
     Parameters
     ----------
-    chs : any input, should be list, tuple, string
+    chs : any input, should be list, tuple, set, string
         The channels passed to include or exclude.
     allow_bads : bool
         Allow the user to supply "bads" as a string for auto exclusion.
@@ -708,7 +708,7 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
         this will be the bad channels found in 'info'.
     """
     from .meas_info import Info
-    if not isinstance(chs, (list, tuple, np.ndarray)):
+    if not isinstance(chs, (list, tuple, set, np.ndarray)):
         if allow_bads is True:
             if not isinstance(info, Info):
                 raise ValueError('Supply an info object if allow_bads is true')

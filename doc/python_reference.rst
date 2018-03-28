@@ -69,6 +69,7 @@ Reading raw data
   read_raw_brainvision
   read_raw_egi
   read_raw_fif
+  read_raw_eximia
 
 Base class:
 
@@ -775,6 +776,7 @@ Source Space Data
    label_sign_flip
    morph_data
    morph_data_precomputed
+   random_parcellation
    read_labels_from_annot
    read_dipole
    read_label

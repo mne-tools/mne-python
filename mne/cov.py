@@ -1515,7 +1515,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     return cov
 
 
-def _regularized_covariance(data, reg=None, method_params=None):
+def _regularized_covariance(data, reg=None, method_params=None, info=None):
     """Compute a regularized covariance from data using sklearn.
 
     This is a convenience wrapper for mne.decoding functions, which
@@ -1544,7 +1544,7 @@ def _regularized_covariance(data, reg=None, method_params=None):
                          % (reg, type(reg)))
     method, method_params = _check_method_params(reg, method_params,
                                                  name='reg', allow_auto=False)
-    info = create_info(data.shape[-2], 1000., 'eeg')
+    info = create_info(data.shape[-2], 1000., 'eeg') if info is None else info
     picks_list = _picks_by_type(info)
     scalings = _handle_default('scalings_cov_rank', None)
     cov = _compute_covariance_auto(
@@ -1567,7 +1567,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     info : dict
         The measurement info.
     picks : array-like of int | None
-        The channels indices to include. If None the data
+        The channels indices to include. If None the MEG and EEG
         channels in info, except bad channels, are used.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
@@ -1595,6 +1595,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         Rank reduction of the whitener. Returned only if return_rank is True.
     """
     if picks is None:
+        # If this changes, we will need to change _setup_plot_projector, too:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 

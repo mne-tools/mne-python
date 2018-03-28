@@ -316,6 +316,12 @@ class RawEDF(BaseRaw):
                     if any(stim[n_start:n_stop]):
                         warn('EDF+ with overlapping events'
                              ' are not fully supported')
+                    if n_start >= read_size:  # event out of bounds
+                        warn('Event "{}" (event ID {} with onset {}) is out of'
+                             ' bounds, it cannot be added to the stim channel.'
+                             ' Use find_edf_events to get a list of all EDF '
+                             'events as stored in the '
+                             'file.'.format(annotation, evid, n_start))
                     stim[n_start:n_stop] += evid
                 data[stim_channel_idx, :] = stim[start:stop]
             elif stim_data is not None:  # GDF events
@@ -333,7 +339,7 @@ class RawEDF(BaseRaw):
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     """Read a number of samples for a single channel."""
     # BDF
-    if subtype in ('24BIT', 'bdf'):
+    if subtype == 'bdf':
         ch_data = np.fromfile(fid, dtype=dtype, count=samp * dtype_byte)
         ch_data = ch_data.reshape(-1, 3).astype(np.int32)
         ch_data = ((ch_data[:, 0]) +
@@ -594,9 +600,13 @@ def _read_edf_header(fname, annot, annotmap, exclude):
 
         header_nbytes = int(fid.read(8).decode())
 
-        subtype = fid.read(44).strip().decode()[:5]
-        if len(subtype) == 0:
-            subtype = os.path.splitext(fname)[1][1:].lower()
+        # The following 44 bytes sometimes identify the file type, but this is
+        # not guaranteed. Therefore, we skip this field and use the file
+        # extension to determine the subtype (EDF or BDF, which differ in the
+        # number of bytes they use for the data records; EDF uses 2 bytes
+        # whereas BDF uses 3 bytes).
+        fid.read(44)
+        subtype = os.path.splitext(fname)[1][1:].lower()
 
         n_records = int(fid.read(8).decode())
         record_length = np.array([float(fid.read(8)), 1.])  # in seconds
@@ -660,7 +670,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
         fid.seek(0, 2)
         n_bytes = fid.tell()
         n_data_bytes = n_bytes - header_nbytes
-        total_samps = (n_data_bytes // 3 if subtype == '24BIT'
+        total_samps = (n_data_bytes // 3 if subtype == 'bdf'
                        else n_data_bytes // 2)
         read_records = total_samps // np.sum(n_samps)
         if n_records != read_records:
@@ -669,7 +679,7 @@ def _read_edf_header(fname, annot, annotmap, exclude):
                  ' Inferring from the file size.')
             edf_info['n_records'] = n_records = read_records
 
-        if subtype in ('24BIT', 'bdf'):
+        if subtype == 'bdf':
             edf_info['dtype_byte'] = 3  # 24-bit (3 byte) integers
             edf_info['dtype_np'] = np.uint8
         else:

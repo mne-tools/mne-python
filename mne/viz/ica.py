@@ -525,7 +525,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         if len(my_range) != len(this_scores):
             raise ValueError('The length of `scores` must equal the '
                              'number of ICA components.')
-        ax.bar(my_range, this_scores, color='w', edgecolor='k')
+        ax.bar(my_range, this_scores, color='gray', edgecolor='k')
         for excl in exclude:
             ax.bar(my_range[excl], this_scores[excl], color='r', edgecolor='k')
         if axhline is not None:
@@ -775,7 +775,8 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=n_channels, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
-                  first_time=first_time, data_picks=[], decim=1)
+                  first_time=first_time, data_picks=[], decim=1,
+                  noise_cov=None, whitened_ch_names=())
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -872,15 +873,11 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     n_epochs = stop - start
     if n_epochs <= 0:
         raise RuntimeError('Stop must be larger than start.')
-    params = {'ica': ica,
-              'epochs': epochs,
-              'info': info,
-              'orig_data': data,
-              'bads': list(),
-              'bad_color': (1., 0., 0.),
-              't_start': start * len(epochs.times),
-              'data_picks': [],
-              'decim': 1}
+    params = dict(ica=ica, epochs=epochs, info=info, orig_data=data,
+                  bads=list(), bad_color=(1., 0., 0.),
+                  t_start=start * len(epochs.times),
+                  data_picks=list(), decim=1, whitened_ch_names=(),
+                  noise_cov=None)
     params['label_click_fun'] = partial(_label_clicked, params=params)
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,

@@ -80,6 +80,7 @@ def test_scaler():
         assert_array_almost_equal(epochs_data, Xi)
 
     # Test init exception
+    assert_raises(ValueError, Scaler, None, None)
     assert_raises(ValueError, scaler.fit, epochs, y)
     assert_raises(ValueError, scaler.transform, epochs)
     epochs_bad = Epochs(raw, events, event_id, 0, 0.01,

@@ -1463,8 +1463,12 @@ known_config_types = (
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',
     'MNE_COREG_HEAD_OPACITY',
+    'MNE_COREG_MARK_INSIDE',
     'MNE_COREG_PREPARE_BEM',
+    'MNE_COREG_PROJECT_EEG',
+    'MNE_COREG_ORIENT_TO_SURFACE',
     'MNE_COREG_SCALE_LABELS',
+    'MNE_COREG_SCALE_BY_DISTANCE',
     'MNE_COREG_SCENE_HEIGHT',
     'MNE_COREG_SCENE_WIDTH',
     'MNE_COREG_SUBJECTS_DIR',
@@ -2148,9 +2152,11 @@ def _check_preload(inst, msg):
     if isinstance(inst, BaseEpochs):
         name = 'epochs'
     if not inst.preload:
-        raise RuntimeError(msg + ' requires %s data to be loaded. Use '
-                           'preload=True (or string) in the constructor or '
-                           '%s.load_data().' % (name, name))
+        raise RuntimeError(
+            "By default, MNE does not load data into main memory to "
+            "conserve ressources. " + msg + ' requires %s data to be loaded. '
+            'Use preload=True (or string) in the constructor or '
+            '%s.load_data().' % (name, name))
 
 
 def _check_pandas_installed(strict=True):
