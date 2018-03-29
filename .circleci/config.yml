@@ -2,7 +2,7 @@ version: 2
 jobs:
     build:
       docker:
-        - image: circleci/python:3.6.1
+        - image: circleci/python:3.6-stretch
       steps:
         # Get our data and merge with upstream
         - checkout
@@ -21,9 +21,9 @@ jobs:
               - data-cache
 
         # Get latest Anaconda running
-        - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run: echo "export DISPLAY=:99" >> $BASH_ENV
         - run: echo "export PATH=~/miniconda/envs/mne/bin:~/miniconda/bin:$PATH" >> $BASH_ENV
+        - run: /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
         - run:
             command: |
               wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O ~/miniconda.sh;
@@ -32,10 +32,18 @@ jobs:
         - run:
             command: |
               conda update --yes --quiet conda;
-              conda env create -f environment.yml;
+              conda env create --quiet -f environment.yml;
               pip uninstall --yes mne;
-        - run: python -c "from mayavi import mlab"
+        # This is a CircleCI-specific fix -- for some reason 5.9.2 is problematic
+        # here but not on Travis, we get:
+        #
+        #     libgcc_s.so.1 must be installed for pthread_cancel to work
+        #     Aborted
+        #
+        - run: pip install --upgrade --no-deps pyqt5>=5.10
+        # Look at what we have and fail early if there is some library conflict
         - run: python -c "import mne; mne.sys_info()"
+        - run: python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
 
         # Figure out if we should run a full, pattern, or noplot version
         - run: python setup.py develop
@@ -136,7 +144,6 @@ jobs:
               if [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
                 SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects python -c "import mne; mne.datasets._download_all_example_data()";
               fi;
-        - run: python -c "import mne; mne.sys_info()";
         - run: if [ ! -d ~/mne-tools.github.io ]; then git clone https://github.com/mne-tools/mne-tools.github.io.git ~/mne-tools.github.io --depth=1; fi;
         - run:
             command: |
@@ -153,8 +160,8 @@ jobs:
               fi;
 
         - store_artifacts:
-            path: doc/_build/
-            destination: HTML
+            path: doc/_build/html/
+            destination: html
 
         # Keep these separate, maybe better in terms of size limitations (?)
         - save_cache:

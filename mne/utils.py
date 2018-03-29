@@ -2621,6 +2621,9 @@ def sys_info(fid=None, show_paths=False):
         out += ('%s:' % mod_name).ljust(ljust)
         try:
             mod = __import__(mod_name)
+            if mod_name == 'mayavi':
+                # the real test
+                from mayavi import mlab  # noqa, analysis:ignore
         except Exception:
             out += 'Not found\n'
         else:
@@ -2628,6 +2631,14 @@ def sys_info(fid=None, show_paths=False):
             extra = (' (%s)' % op.dirname(mod.__file__)) if show_paths else ''
             if mod_name == 'numpy':
                 extra = ' {%s}%s' % (libs, extra)
+            elif mod_name == 'matplotlib':
+                extra = ' {backend=%s}%s' % (mod.get_backend(), extra)
+            elif mod_name == 'mayavi':
+                try:
+                    from pyface.qt import qt_api
+                except Exception:
+                    qt_api = 'unknown'
+                extra = ' {qt_api=%s}%s' % (qt_api, extra)
             out += '%s%s\n' % (version, extra)
     print(out, end='', file=fid)
 

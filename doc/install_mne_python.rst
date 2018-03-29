@@ -2,88 +2,86 @@
 
 .. _install_python_and_mne_python:
 
-Install Python and MNE-Python
------------------------------
+Installing MNE-Python
+---------------------
 
-.. contents:: Steps
-   :local:
-   :depth: 2
+There are many possible ways to install a Python interpreter and MNE.
+Here we provide guidance for the simplest, most well tested solution.
 
-1. Install a Python interpreter
-###############################
+1. Get a Python interpreter
+###########################
 
-* For a fast and up to date scientific Python environment, **we recommend the
-  Anaconda Python 2.7 distribution**. Get it for Windows, OSX, and Linux
+* **We recommend the
+  Anaconda Python 3+ distribution**. Follow the installation instructions
+  for your operating system
   `here <http://docs.continuum.io/anaconda/install>`_.
 
-  .. note :: Python has two major versions currently available, 2.7+ and 3.3+.
-             Currently 3D visualization is only officially supported on 2.7.
-
-* Once everything is set up, check the installation:
+* Check the installation, which should look like a variant of this:
 
   .. code-block:: console
 
-      $ conda --version
-      conda 4.2.14
-      $ python --version
-      Python 2.7.12 :: Continuum Analytics, Inc.
+      $ conda --version && python --version
+      conda 4.4.10
+      Python 3.6.4 :: Continuum Analytics, Inc.
 
-  If your installation doesn't look something like this, **something went wrong**.
-  Try looking through the Anaconda documentation or Googling for Anaconda install
+  If it doesn't, **something went wrong**.
+  Look through the Anaconda documentation and Google Anaconda install
   tips (StackExchange results are often helpful).
 
-2. Install dependencies and MNE
+2. Get MNE and its dependencies
 ###############################
 
-* From the command line, install the MNE dependencies to the root Anaconda environment:
-
-  .. raw:: html
-
-      <div class="row container">
-        <div class="col-sm-7 container">
+* From the command line, install the MNE dependencies to a dedicated ``mne`` Anaconda environment:
 
   .. code-block:: console
 
-      $ conda install scipy matplotlib scikit-learn mayavi jupyter spyder
-      $ pip install PySurfer mne
+      $ curl -O https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+      $ conda env create -f environment.yml
+      $ source activate mne
 
-  .. raw:: html
+.. raw:: html
 
-         </div>
-         <div class="col-sm-4 container">
-          <div class="panel panel-success">
-            <div class="panel-heading"><h1 class="panel-title"><a data-toggle="collapse" href="#collapse_conda"><strong>Experimental</strong> Python 3.6 alternative ▼</a></h1></div>
-            <div id="collapse_conda" class="panel-body panel-collapse collapse">
-              <p>Try the conda environment available
-              <a class="reference external" href="https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml">here</a>:
-              </p>
-              <div class="highlight-console">
-                <div class="highlight">
-                  <pre><span></span><span class="gp">$</span> curl -O https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml<br><span class="gp">$</span> conda env create -f environment.yml<br><span class="gp">$</span> source activate mne</pre>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="row container">
+      <div class="col-sm-7 container">
 
-* To check that everything went fine, in Python, type::
+* To check that everything worked, do:
+
+  .. code-block:: console
+
+      $ python
+
+  This should open an Anaconda Python prompt, where you can now do::
 
       >>> import mne
 
   If you get a new prompt with no error messages, you should be good to go!
 
-* For advanced topics like how to get NVIDIA :ref:`CUDA` support or if you're
+.. raw:: html
+
+      </div>
+      <div class="col-sm-4 container">
+
+.. note::
+
+   .. raw:: html
+
+     <i class="fa fa-windows"></i><b>Windows users:</b>
+
+   If 3D plotting in Jupyter Notebooks doesn't work
+   well, using the IPython magic ``%gui qt`` after importing
+   MNE, Mayavi, or PySurfer should
+   `help <https://github.com/ipython/ipython/issues/10384>`_, e.g.:
+
+   .. code:: ipython
+
+      from mayavi import mlab
+      %gui qt
+
+.. raw:: html
+
+      </div>
+    </div>
+
+* For advanced topics like how to get :ref:`CUDA` support or if you're
   having trouble, visit :ref:`advanced_setup`.
 
-  .. note::
-
-     **Windows users:** If Mayavi plotting in Jupyter Notebooks doesn't work  
-     well, using the IPython magic ``%gui qt`` after importing  
-     MNE/Mayavi/PySurfer should
-     `help <https://github.com/ipython/ipython/issues/10384>`_.
-   
-     .. code:: ipython
-   
-        from mayavi import mlab
-        %gui qt
