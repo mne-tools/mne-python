@@ -79,7 +79,7 @@ The `SPM faces dataset`_ contains EEG, MEG and fMRI recordings on face perceptio
 
 .. topic:: Examples
 
-    * :ref:`sphx_glr_auto_examples_datasets_plot_spm_faces_dataset.py` Full pipeline including artifact removal, epochs averaging, forward model computation and source reconstruction using dSPM on the contrast: "faces - scrambled".
+    * :ref:`sphx_glr_auto_examples_datasets_spm_faces_dataset.py` Full pipeline including artifact removal, epochs averaging, forward model computation and source reconstruction using dSPM on the contrast: "faces - scrambled".
 
 EEGBCI motor imagery
 ====================
@@ -172,7 +172,7 @@ More details and a description of the package can be found in [5]_.
 
 .. topic:: Examples
 
-    * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field.py>`: Partially replicates the results from Crosse et al. (2016).
+    * :ref:`Receptive Field Estimation and Prediction <sphx_glr_auto_examples_decoding_plot_receptive_field_mtrf.py>`: Partially replicates the results from Crosse et al. (2016).
 
 Miscellaneous Datasets
 ======================

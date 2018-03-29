@@ -7,7 +7,7 @@ env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     global: PYTHON_VERSION=3.6 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
             PIP_DEPENDENCIES="codecov pytest-faulthandler pytest-sugar" OPTION=""
-            TRAVIS_PYTHON_VERSION=3.6
+            TRAVIS_PYTHON_VERSION=3.6 CONDA_VERSION=">=4.3.27"
 
 matrix:
     include:
@@ -171,7 +171,7 @@ script:
     - py.test -m "${CONDITION}" ${OPTION} ${USE_DIRS} --cov=mne;
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
-        check-manifest --ignore doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
+        check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data;
       fi;
 
 after_script:

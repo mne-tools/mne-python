@@ -1634,6 +1634,40 @@ def _setup_cmap(cmap, n_axes=1, norm=False):
     return cmap
 
 
+def _prepare_joint_axes(n_maps, figsize=None):
+    """Prepare axes for topomaps and colorbar in joint plot figure.
+
+    Parameters
+    ----------
+    n_maps: int
+        Number of topomaps to include in the figure
+    figsize: tuple
+        Figure size, see plt.figsize
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        Figure with initialized axes
+    main_ax: matplotlib.axes._subplots.AxesSubplot
+        Axes in which to put the main plot
+    map_ax: list
+        List of axes for each topomap
+    cbar_ax: matplotlib.axes._subplots.AxesSubplot
+        Axes for colorbar next to topomaps
+    """
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=figsize)
+    main_ax = fig.add_subplot(212)
+    ts = n_maps + 2
+    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(n_maps)]
+    # Position topomap subplots on the second row, starting on the
+    # second column
+    cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
+    # Position colorbar at the very end of a more finely divided
+    # second row of subplots
+    return fig, main_ax, map_ax, cbar_ax
+
+
 class DraggableColorbar(object):
     """Enable interactive colorbar.
 
@@ -2097,6 +2131,26 @@ def _setup_butterfly(params):
     params['plot_fun']()
 
 
+def _connection_line(x, fig, sourceax, targetax, y=1):
+    """Connect source and target plots with a line.
+
+    Connect source and target plots with a line, such as time series
+    (source) and topolots (target). Primarily used for plot_joint
+    functions.
+    """
+    from matplotlib.lines import Line2D
+    trans_fig = fig.transFigure
+    trans_fig_inv = fig.transFigure.inverted()
+
+    xt, yt = trans_fig_inv.transform(targetax.transAxes.transform([.5, 0]))
+    xs, _ = trans_fig_inv.transform(sourceax.transData.transform([x, 0]))
+    _, ys = trans_fig_inv.transform(sourceax.transData.transform([0, y]))
+
+    return Line2D((xt, xs), (yt, ys), transform=trans_fig, color='grey',
+                  linestyle='-', linewidth=1.5, alpha=.66, zorder=1,
+                  clip_on=False)
+
+
 class DraggableLine:
     """Custom matplotlib line for moving around by drag and drop.
 
@@ -2440,3 +2494,19 @@ def _check_cov(noise_cov, info):
              'scaling of magnetometers and gradiometers when viewing data '
              'whitened by a noise covariance')
     return noise_cov
+
+
+def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
+                                   all=False, ch_type=None, ):
+    """Prepare a title string for multiple electrodes."""
+    title = ", ".join(ch_names[:max_chans]) if title is None else title
+    if ch_type is not None:
+        ch_type = " " + ch_type[0].upper() + ch_type[1:]
+    if all is True and isinstance(combine, string_types):
+        combine = combine[0].upper() + combine[1:]
+        title = "{} of {}{} sensors".format(combine, len(ch_names), ch_type)
+    elif len(ch_names) > max_chans and combine is not "gfp":
+        warn("More than {} channels, truncating title ...".format(max_chans))
+        title += ", ...\n({} of {}{} sensors)".format(combine, len(ch_names),
+                                                      ch_type,)
+    return title

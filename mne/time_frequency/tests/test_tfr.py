@@ -423,7 +423,8 @@ def test_plot():
                            ['mag', 'mag', 'mag'])
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
-    tfr.plot([1, 2], title='title', colorbar=False)
+    tfr.plot([1, 2], title='title', colorbar=False,
+             mask=np.ones(tfr.data.shape[1:], bool))
     plt.close('all')
     ax = plt.subplot2grid((2, 2), (0, 0))
     ax2 = plt.subplot2grid((2, 2), (1, 1))
@@ -431,7 +432,7 @@ def test_plot():
     tfr.plot(picks=[0, 1, 2], axes=[ax, ax2, ax3])
     plt.close('all')
 
-    tfr.plot_topo(picks=[1, 2])
+    tfr.plot([1, 2], title='title', colorbar=False, exclude='bads')
     plt.close('all')
 
     tfr.plot_topo(picks=[1, 2])
@@ -456,6 +457,49 @@ def test_plot():
     fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
 
     plt.close('all')
+
+
+def test_plot_joint():
+    """Test TFR joint plotting."""
+    import matplotlib.pyplot as plt
+
+    raw = read_raw_fif(raw_fname)
+    times = np.linspace(-0.1, 0.1, 200)
+    n_freqs = 3
+    nave = 1
+    rng = np.random.RandomState(42)
+    data = rng.randn(len(raw.ch_names), n_freqs, len(times))
+    tfr = AverageTFR(raw.info, data, times, np.arange(n_freqs), nave)
+
+    topomap_args = {'res': 8, 'contours': 0, 'sensors': False}
+
+    for combine in ('mean', 'rms', None):
+        tfr.plot_joint(title='auto', colorbar=True,
+                       combine=combine, topomap_args=topomap_args)
+        plt.close('all')
+
+    # check various timefreqs
+    for timefreqs in (
+            {(tfr.times[0], tfr.freqs[1]): (0.1, 0.5),
+             (tfr.times[-1], tfr.freqs[-1]): (0.2, 0.6)},
+            [(tfr.times[1], tfr.freqs[1])]):
+        tfr.plot_joint(timefreqs=timefreqs, topomap_args=topomap_args)
+        plt.close('all')
+
+    # test bad timefreqs
+    timefreqs = ([(-100, 1)], tfr.times[1], [1],
+                 [(tfr.times[1], tfr.freqs[1], tfr.freqs[1])])
+    for these_timefreqs in timefreqs:
+        assert_raises(ValueError, tfr.plot_joint, these_timefreqs)
+
+    # test that the object is not internally modified
+    tfr_orig = tfr.copy()
+    tfr.plot_joint(baseline=(0, None), exclude=[tfr.ch_names[0]],
+                   topomap_args=topomap_args)
+    plt.close('all')
+    assert_array_equal(tfr.data, tfr_orig.data)
+    assert_true(set(tfr.ch_names) == set(tfr_orig.ch_names))
+    assert_true(set(tfr.times) == set(tfr_orig.times))
 
 
 def test_add_channels():

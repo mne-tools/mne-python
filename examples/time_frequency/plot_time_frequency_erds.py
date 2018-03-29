@@ -123,7 +123,7 @@ for event in event_ids:
         p = np.concatenate((p1, p2))  # combined p-values
         mask = c[..., p <= 0.05].any(axis=-1)
 
-        # plot TFR (ERDS map)
+        # plot TFR (ERDS map with masking)
         tfr.average().plot([ch], vmin=vmin, vmax=vmax, cmap=(cmap, False),
                            axes=ax, colorbar=False, show=False, mask=mask)
 

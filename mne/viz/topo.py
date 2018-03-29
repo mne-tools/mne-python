@@ -287,9 +287,9 @@ def _check_vlim(vlim):
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
                 colorbar=False, cmap=('RdBu_r', True), yscale='auto',
-                mask=None, alpha=0.1):
+                mask=None, mask_alpha=0.1, is_jointplot=False):
     """Show time-frequency map as two-dimensional image."""
-    from matplotlib import pyplot as plt, ticker
+    from matplotlib import pyplot as plt, ticker, __version__ as v
     from matplotlib.widgets import RectangleSelector
 
     if yscale not in ['auto', 'linear', 'log']:
@@ -314,6 +314,11 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         else:
             yscale = 'linear'
 
+    # https://github.com/matplotlib/matplotlib/pull/9477
+    if yscale == "log" and is_jointplot is True and v == "2.1.0":
+        warn("With matplotlib version 2.1.0, lines may not show up in "
+             "`AverageTFR.plot_joint`. Upgrade to a more recent versiom.")
+
     # compute bounds between time samples
     time_diff = np.diff(times) / 2. if len(times) > 1 else [0.0005]
     time_lims = np.concatenate([[times[0] - time_diff[0]], times[:-1] +
@@ -334,7 +339,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
 
     if mask is not None:
         ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap, vmin=vmin,
-                      vmax=vmax, alpha=alpha)
+                      vmax=vmax, alpha=mask_alpha)
         img = ax.pcolormesh(time_mesh, freq_mesh,
                             np.ma.masked_where(~mask, tfr[ch_idx]), cmap=cmap,
                             vmin=vmin, vmax=vmax, alpha=1)

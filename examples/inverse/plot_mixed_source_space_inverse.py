@@ -88,7 +88,7 @@ print('the src space contains %d spaces and %d points' % (len(src), n))
 nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
 src.export_volume(nii_fname, mri_resolution=True)
 
-plotting.plot_img(nii_fname, cmap=plt.cm.spectral)
+plotting.plot_img(nii_fname, cmap='nipy_spectral')
 plt.show()
 
 # Compute the fwd matrix
