@@ -22,8 +22,8 @@ print(__doc__)
 
 ###############################################################################
 # Read and preprocess the data. Preprocessing consists of:
-# - EEG channel selection
 #
+# - MEG channel selection
 # - 1-30 Hz band-pass filter
 
 data_path = sample.data_path()
