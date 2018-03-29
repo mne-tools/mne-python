@@ -4,7 +4,7 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
-from math import sqrt, ceil
+from math import sqrt
 
 import numpy as np
 from scipy import linalg
@@ -747,9 +747,10 @@ class _Phi(object):
             return stft(x, self.wsize, self.tstep,
                         verbose=False).reshape(-1, self.n_coefs)
         else:
-            return np.hstack([stft(x, self.wsize[i], self.tstep[i],
-                              verbose=False).reshape(-1, self.n_coefs[i])
-                              for i in range(self.n_dict)]) / np.sqrt(self.n_dict)
+            return np.hstack(
+                [stft(x, self.wsize[i], self.tstep[i], verbose=False).reshape(
+                 -1, self.n_coefs[i]) for i in range(self.n_dict)]) / np.sqrt(
+                self.n_dict)
 
 
 class _PhiT(object):
