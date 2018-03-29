@@ -14,7 +14,7 @@ from ..io.pick import pick_channels
 from ..utils import (logger, verbose, warn, copy_function_doc_to_method_doc,
                      deprecated)
 from ..viz.misc import plot_csd
-from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
+from ..time_frequency.multitaper import (_compute_mt_params, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
 from ..parallel import parallel_func
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -105,6 +105,9 @@ class CrossSpectralDensity(object):
         # If the CSD is an average, the frequencies will be stored as a list
         # of lists (or like-like objects) instead of plain numbers.
         return not isinstance(self.frequencies[0], numbers.Number)
+
+    def __len__(self):  # noqa: D105
+        return len(self.frequencies)
 
     def __repr__(self):  # noqa: D105
         # Make a pretty string representation of the frequencies
@@ -946,8 +949,8 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     n_times = len(times)
     n_fft = n_times if n_fft is None else n_fft
 
-    window_fun, eigvals, n_tapers, mt_adaptive = _compute_mt_params(
-        n_times, sfreq, bandwidth, low_bias, adaptive)
+    window_fun, eigvals, mt_adaptive = \
+        _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive)
 
     # Preparing frequencies of interest
     orig_frequencies = np.fft.rfftfreq(n_fft, 1. / sfreq)
@@ -1269,58 +1272,6 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
     return CrossSpectralDensity(csds_mean, ch_names=ch_names, tmin=times[0],
                                 tmax=times[-1], frequencies=frequencies,
                                 n_fft=n_fft, projs=projs)
-
-
-def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive):
-    """Compute windowing and multitaper parameters.
-
-    Parameters
-    ----------
-    n_times : int
-        Number of time points.
-    s_freq : int
-        Sampling frequency of signal.
-    bandwidth : float | None
-        The bandwidth of the multitaper windowing function in Hz.
-    low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
-        bandwidth.
-    adaptive : bool
-        Use adaptive weights to combine the tapered spectra into PSD.
-
-    Returns
-    -------
-    window_fun : ndarray
-        Window function(s) of lengths n_times. This corresponds to first output
-        of `dpss_windows`.
-    eigvals : ndarray | float
-        Eigenvalues associated with window functions.
-    n_tapers : int | None
-        Number of tapers to use.
-    adaptive : bool
-        Updated value of the `adaptive` argument as certain parameter values
-        will not allow adaptive spectral estimators.
-    """
-    # Compute standardized half-bandwidth
-    if bandwidth is not None:
-        half_nbw = float(bandwidth) * n_times / (2. * sfreq)
-    else:
-        half_nbw = 2.
-
-    # Compute DPSS windows
-    n_tapers_max = int(2 * half_nbw)
-    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                       low_bias=low_bias)
-    n_tapers = len(eigvals)
-    logger.info('    using multitaper spectrum estimation with %d DPSS '
-                'windows' % n_tapers)
-
-    if adaptive and len(eigvals) < 3:
-        warn('Not adaptively combining the spectral estimators due to a '
-             'low number of tapers.')
-        adaptive = False
-
-    return window_fun, eigvals, n_tapers, adaptive
 
 
 def _csd_fourier(X, sfreq, n_times, freq_mask, n_fft):

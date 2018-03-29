@@ -14,7 +14,7 @@ from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_array_multitaper, csd_array_morlet,
                                 csd_epochs, csd_array, tfr_morlet,
                                 CrossSpectralDensity, read_csd,
-                                pick_channels_csd)
+                                pick_channels_csd, psd_multitaper)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -367,28 +367,30 @@ def _test_csd_matrix(csd):
 
 def _test_fourier_multitaper_parameters(epochs, csd_epochs, csd_array):
     """Parameter tests for csd_*_fourier and csd_*_multitaper."""
-    raises(ValueError, csd_epochs, epochs, fmin=20, fmax=10)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, fmin=20, fmax=10)
-    raises(ValueError, csd_epochs, epochs, fmin=20, fmax=20.1)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, fmin=20, fmax=20.1)
-    raises(ValueError, csd_epochs, epochs, tmin=0.15, tmax=0.1)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, tmin=0.15, tmax=0.1)
-    raises(ValueError, csd_epochs, epochs, tmin=-1, tmax=10)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, tmin=-1, tmax=10)
-    raises(ValueError, csd_epochs, epochs, tmin=10, tmax=11)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, tmin=10, tmax=11)
+    with warnings.catch_warnings(record=True):  # deprecation
+        raises(ValueError, csd_epochs, epochs, fmin=20, fmax=10)
+        raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
+               epochs.tmin, fmin=20, fmax=10)
+        raises(ValueError, csd_epochs, epochs, fmin=20, fmax=20.1)
+        raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
+               epochs.tmin, fmin=20, fmax=20.1)
+        raises(ValueError, csd_epochs, epochs, tmin=0.15, tmax=0.1)
+        raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
+               epochs.tmin, tmin=0.15, tmax=0.1)
+        raises(ValueError, csd_epochs, epochs, tmin=-1, tmax=10)
+        raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
+               epochs.tmin, tmin=-1, tmax=10)
+        raises(ValueError, csd_epochs, epochs, tmin=10, tmax=11)
+        raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
+               epochs.tmin, tmin=10, tmax=11)
 
     # Test checks for data types and sizes
     diff_types = [np.random.randn(3, 5), "error"]
     err_data = [np.random.randn(3, 5), np.random.randn(2, 4)]
-    raises(ValueError, csd_array, err_data, sfreq=1)
-    raises(ValueError, csd_array, diff_types, sfreq=1)
-    raises(ValueError, csd_array, np.random.randn(3), sfreq=1)
+    with warnings.catch_warnings(record=True):  # deprecation
+        raises(ValueError, csd_array, err_data, sfreq=1)
+        raises(ValueError, csd_array, diff_types, sfreq=1)
+        raises(ValueError, csd_array, np.random.randn(3), sfreq=1)
 
 
 def test_csd_fourier():
@@ -454,6 +456,15 @@ def test_csd_multitaper():
                                  tmin=tmin, tmax=tmax)
         csd = csd.mean([9.9, 14.9, 21.9], [10.1, 15.1, 22.1])
         _test_csd_matrix(csd)
+
+    # Test equivalence with PSD
+    psd, psd_freqs = psd_multitaper(epochs, fmin=1e-3,
+                                    normalization='full')  # omit DC
+    csd = csd_multitaper(epochs)
+    assert_allclose(psd_freqs, csd.frequencies)
+    csd = np.array([np.diag(csd.get_data(index=ii))
+                    for ii in range(len(csd))]).T
+    assert_allclose(psd[0], csd)
 
     # For the next test, generate a simple sine wave with a known power
     times = np.arange(20 * sfreq) / sfreq  # 20 seconds of signal
@@ -557,12 +568,13 @@ def test_csd_epochs():
     epochs = _get_real_data()
 
     # Check that wrong parameters are recognized
-    raises(ValueError, csd_epochs, epochs, mode='notamode')
-    raises(ValueError, csd_epochs, epochs, fmin=20, fmax=10)
-    raises(ValueError, csd_epochs, epochs, fmin=20, fmax=20.1)
-    raises(ValueError, csd_epochs, epochs, tmin=0.15, tmax=0.1)
-    raises(ValueError, csd_epochs, epochs, tmin=0, tmax=10)
-    raises(ValueError, csd_epochs, epochs, tmin=10, tmax=11)
+    with warnings.catch_warnings(record=True):  # deprecation
+        raises(ValueError, csd_epochs, epochs, mode='notamode')
+        raises(ValueError, csd_epochs, epochs, fmin=20, fmax=10)
+        raises(ValueError, csd_epochs, epochs, fmin=20, fmax=20.1)
+        raises(ValueError, csd_epochs, epochs, tmin=0.15, tmax=0.1)
+        raises(ValueError, csd_epochs, epochs, tmin=0, tmax=10)
+        raises(ValueError, csd_epochs, epochs, tmin=10, tmax=11)
 
     # Test deprecation warning
     with warnings.catch_warnings(record=True) as ws:
@@ -572,8 +584,9 @@ def test_csd_epochs():
     assert len([w for w in ws
                 if issubclass(w.category, DeprecationWarning)]) == 1
 
-    csd_fourier = csd_epochs(epochs, mode='fourier', fmin=8, fmax=12,
-                             tmin=0.04, tmax=0.15)
+    with warnings.catch_warnings(record=True):  # deprecation
+        csd_fourier = csd_epochs(epochs, mode='fourier', fmin=8, fmax=12,
+                                 tmin=0.04, tmax=0.15)
 
     # Check shape of the CSD matrix
     n_chan = len(csd_mt.ch_names)
@@ -611,8 +624,10 @@ def test_csd_epochs():
 
     # Check a list of CSD matrices is returned for multiple frequencies within
     # a given range when fsum=False
-    csd_fsum = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20, fsum=True)
-    csds = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20, fsum=False)
+    with warnings.catch_warnings(record=True):  # deprecation
+        csd_fsum = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20,
+                              fsum=True)
+        csds = csd_epochs(epochs, mode='fourier', fmin=8, fmax=20, fsum=False)
     assert len(csd_fsum.frequencies) == 1
     assert len(csds.frequencies) == 2
     assert_array_equal(csd_fsum.frequencies[0], csds.frequencies)
@@ -631,8 +646,9 @@ def test_csd_epochs_on_artificial_data():
     signal_power_per_sample = signal_power / len(epochs.times)
 
     # Computing signal power in the frequency domain
-    csd_fourier = csd_epochs(epochs, mode='fourier').get_data()
-    csd_mt = csd_epochs(epochs, mode='multitaper').get_data()
+    with warnings.catch_warnings(record=True):  # deprecation
+        csd_fourier = csd_epochs(epochs, mode='fourier').get_data()
+        csd_mt = csd_epochs(epochs, mode='multitaper').get_data()
 
     fourier_power = np.abs(csd_fourier[0, 0]) * sfreq
     mt_power = np.abs(csd_mt[0, 0]) * sfreq
@@ -645,10 +661,11 @@ def test_csd_epochs_on_artificial_data():
         n_samples = sum(t_mask)
         for add_n_fft in [0, 30]:
             n_fft = n_samples + add_n_fft
-            csd_fourier = csd_epochs(
-                epochs, mode='fourier', tmin=None, tmax=tmax, fmin=0,
-                fmax=np.inf, n_fft=n_fft
-            ).get_data()
+            with warnings.catch_warnings(record=True):  # deprecation
+                csd_fourier = csd_epochs(
+                    epochs, mode='fourier', tmin=None, tmax=tmax, fmin=0,
+                    fmax=np.inf, n_fft=n_fft
+                ).get_data()
             first_samp = csd_fourier[0, 0]
             fourier_power_per_sample = np.abs(first_samp) * sfreq / n_fft
             assert abs(signal_power_per_sample -
@@ -656,10 +673,11 @@ def test_csd_epochs_on_artificial_data():
         # Power per sample should not depend on number of tapers
         for n_tapers in [1, 2, 5]:
             mt_bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
-            csd_mt = csd_epochs(
-                epochs, mode='multitaper', tmin=None, tmax=tmax, fmin=0,
-                fmax=np.inf, mt_bandwidth=mt_bandwidth, n_fft=n_fft
-            ).get_data()
+            with warnings.catch_warnings(record=True):  # deprecation
+                csd_mt = csd_epochs(
+                    epochs, mode='multitaper', tmin=None, tmax=tmax, fmin=0,
+                    fmax=np.inf, mt_bandwidth=mt_bandwidth, n_fft=n_fft
+                ).get_data()
             mt_power_per_sample = np.abs(csd_mt[0, 0]) * sfreq / n_fft
             # The estimate of power gets worse for small time windows when more
             # tapers are used
@@ -695,14 +713,15 @@ def test_compute_csd():
     # Check data types and sizes are checked
     diff_types = [np.random.randn(3, 5), "error"]
     err_data = [np.random.randn(3, 5), np.random.randn(2, 4)]
-    raises(ValueError, csd_array, err_data, sfreq)
-    raises(ValueError, csd_array, diff_types, sfreq)
-    raises(ValueError, csd_array, np.random.randn(3), sfreq)
+    with warnings.catch_warnings(record=True):  # deprecation
+        raises(ValueError, csd_array, err_data, sfreq)
+        raises(ValueError, csd_array, diff_types, sfreq)
+        raises(ValueError, csd_array, np.random.randn(3), sfreq)
 
-    # Check that wrong parameters are recognized
-    raises(ValueError, csd_array, X, sfreq, mode='notamode')
-    raises(ValueError, csd_array, X, sfreq, fmin=20, fmax=10)
-    raises(ValueError, csd_array, X, sfreq, fmin=20, fmax=20.1)
+        # Check that wrong parameters are recognized
+        raises(ValueError, csd_array, X, sfreq, mode='notamode')
+        raises(ValueError, csd_array, X, sfreq, fmin=20, fmax=10)
+        raises(ValueError, csd_array, X, sfreq, fmin=20, fmax=20.1)
 
     # Test deprecation warning
     with warnings.catch_warnings(record=True) as ws:
@@ -711,12 +730,15 @@ def test_compute_csd():
     assert len([w for w in ws
                 if issubclass(w.category, DeprecationWarning)]) == 1
 
-    csd_fourier = csd_array(X, sfreq, mode='fourier', fmin=8, fmax=12)
+    with warnings.catch_warnings(record=True):  # deprecation
+        csd_fourier = csd_array(X, sfreq, mode='fourier', fmin=8, fmax=12)
 
     # Test as list too
-    csd_mt_list = csd_array(X_list, sfreq, mode='multitaper', fmin=8, fmax=12)
-    csd_fourier_list = csd_array(X_list, sfreq, mode='fourier', fmin=8,
-                                 fmax=12)
+    with warnings.catch_warnings(record=True):  # deprecation
+        csd_mt_list = csd_array(X_list, sfreq, mode='multitaper',
+                                fmin=8, fmax=12)
+        csd_fourier_list = csd_array(X_list, sfreq, mode='fourier', fmin=8,
+                                     fmax=12)
 
     assert_array_equal(csd_mt._data, csd_mt_list._data)
     assert_array_equal(csd_fourier._data, csd_fourier_list._data)
@@ -759,8 +781,11 @@ def test_compute_csd():
 
     # Check a list of CSD matrices is returned for multiple frequencies within
     # a given range when fsum=False
-    csd_fsum = csd_array(X, sfreq, mode='fourier', fmin=8, fmax=20, fsum=True)
-    csds = csd_array(X, sfreq, mode='fourier', fmin=8, fmax=20, fsum=False)
+    with warnings.catch_warnings(record=True):  # deprecation
+        csd_fsum = csd_array(X, sfreq, mode='fourier', fmin=8, fmax=20,
+                             fsum=True)
+        csds = csd_array(X, sfreq, mode='fourier', fmin=8, fmax=20,
+                         fsum=False)
 
     assert csds._data.shape[1] == 2
     assert len(csds.frequencies) == 2
@@ -779,8 +804,9 @@ def test_csd_on_artificial_data():
     signal_power_per_sample = signal_power / len(epochs.times)
 
     # Computing signal power in the frequency domain
-    csd_mt = csd_array(epochs._data, sfreq, mode='multitaper').get_data()
-    csd_fourier = csd_array(epochs._data, sfreq, mode='fourier').get_data()
+    with warnings.catch_warnings(record=True):  # deprecation
+        csd_mt = csd_array(epochs._data, sfreq, mode='multitaper').get_data()
+        csd_fourier = csd_array(epochs._data, sfreq, mode='fourier').get_data()
 
     fourier_power = np.abs(csd_fourier[0, 0]) * sfreq
     mt_power = np.abs(csd_mt[0, 0]) * sfreq
@@ -796,9 +822,10 @@ def test_csd_on_artificial_data():
             n_samples = sum(t_mask)
             n_fft = n_samples + add_n_fft
 
-            csd_fourier = csd_array(epochs._data[:, :, tslice], sfreq,
-                                    mode='fourier', fmin=0, fmax=np.inf,
-                                    n_fft=n_fft).get_data()
+            with warnings.catch_warnings(record=True):  # deprecation
+                csd_fourier = csd_array(epochs._data[:, :, tslice], sfreq,
+                                        mode='fourier', fmin=0, fmax=np.inf,
+                                        n_fft=n_fft).get_data()
 
             first_samp = csd_fourier[0, 0]
             fourier_power_per_sample = np.abs(first_samp) * sfreq / n_fft
@@ -807,10 +834,11 @@ def test_csd_on_artificial_data():
         # Power per sample should not depend on number of tapers
         for n_tapers in [1, 2, 5]:
             mt_bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
-            csd_mt = csd_array(
-                epochs._data[:, :, tslice], sfreq,
-                mt_bandwidth=mt_bandwidth, n_fft=n_fft
-            ).get_data()
+            with warnings.catch_warnings(record=True):  # deprecation
+                csd_mt = csd_array(
+                    epochs._data[:, :, tslice], sfreq,
+                    mt_bandwidth=mt_bandwidth, n_fft=n_fft
+                ).get_data()
             mt_power_per_sample = np.abs(csd_mt[0, 0]) * sfreq / n_fft
             # The estimate of power gets worse for small time windows when more
             # tapers are used

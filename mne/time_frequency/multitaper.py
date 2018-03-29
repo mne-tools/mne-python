@@ -8,7 +8,7 @@ import numpy as np
 from scipy import linalg
 
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn, verbose
+from ..utils import sum_squared, warn, verbose, logger
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -454,6 +454,37 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
 
 @verbose
+def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
+                       interp_from=None, verbose=None):
+    """Triage windowing and multitaper parameters."""
+    # Compute standardized half-bandwidth
+    if bandwidth is not None:
+        half_nbw = float(bandwidth) * n_times / (2. * sfreq)
+    else:
+        half_nbw = 4.
+    if half_nbw < 0.5:
+        raise ValueError(
+            'bandwidth value %s yields a normalized bandwidth of %s < 0.5, '
+            'use a value of at least %s'
+            % (bandwidth, half_nbw, sfreq / n_times))
+
+    # Compute DPSS windows
+    n_tapers_max = int(2 * half_nbw)
+    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                       low_bias=low_bias,
+                                       interp_from=interp_from)
+    logger.info('    using multitaper spectrum estimation with %d DPSS '
+                'windows' % len(eigvals))
+
+    if adaptive and len(eigvals) < 3:
+        warn('Not adaptively combining the spectral estimators due to a '
+             'low number of tapers (%s < 3).' % (len(eigvals),))
+        adaptive = False
+
+    return window_fun, eigvals, adaptive
+
+
+@verbose
 def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                          adaptive=False, low_bias=True, normalization='length',
                          n_jobs=1, verbose=None):
@@ -514,27 +545,13 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     dshape = x.shape[:-1]
     x = x.reshape(-1, n_times)
 
-    # compute standardized half-bandwidth
-    if bandwidth is not None:
-        half_nbw = float(bandwidth) * n_times / (2 * sfreq)
-    else:
-        half_nbw = 4
-
-    # Create tapers and compute spectra
-    n_tapers_max = int(2 * half_nbw)
-    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                 low_bias=low_bias)
+    dpss, eigvals, adaptive = _compute_mt_params(
+        n_times, sfreq, bandwidth, low_bias, adaptive)
 
     # decide which frequencies to keep
-    freqs = np.fft.rfftfreq(x.shape[1], 1. / sfreq)
+    freqs = np.fft.rfftfreq(n_times, 1. / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
-
-    # combine the tapered spectra
-    if adaptive and len(eigvals) < 3:
-        warn('Not adaptively combining the spectral estimators due to a low '
-             'number of tapers.')
-        adaptive = False
 
     psd = np.zeros((x.shape[0], freq_mask.sum()))
     # Let's go in up to 50 MB chunks of signals to save memory
