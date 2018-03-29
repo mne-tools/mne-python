@@ -87,6 +87,8 @@ Changelog
 
 - Add support for reading Eximia files by `Eric Larson`_ and `Federico Raimondo`_
 
+- Add ability to supply a mask to the plot in :func:`mne.viz.evoked.plot_evoked_image` by `Jona Sassenhagen`.
+
 - Add :func:`mne.time_frequency.csd_morlet` and :func:`mne.time_frequency.csd_array_morlet` to estimate cross-spectral density using Morlet wavelets, by `Marijn van Vliet`_
 
 Bug
