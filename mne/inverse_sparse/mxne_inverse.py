@@ -562,17 +562,17 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
         If True the rank of the data is reduced to true dimension.
     debias: bool
         Remove coefficient amplitude bias due to L1 penalty.
-    wsize: int or np.array, shape (n_dict,)
+    wsize: int or array-like
         Length of the STFT window in samples (must be a multiple of 4).
-        If an array is passed, n_dict TF dictionaries are used (each having its
-        own wsize and tstep) and each entry of wsize must be a multiple of 4.
-        See [3]_.
-    tstep: int or np.array, shape (n_dict,)
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep) and each entry of wsize must be a multiple
+        of 4. See [3]_.
+    tstep: int or array-like
         Step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2).
-        If an array is passed, n_dict TF dictionaries are used (each having its
-        own wsize and tstep), and each entry of tstep must be a multiple of 2
-        and divide the corresponding entry of wsize. See [3]_.
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep), and each entry of tstep must be a multiple
+        of 2 and divide the corresponding entry of wsize. See [3]_.
     window : float or (float, float)
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left

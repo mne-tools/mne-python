@@ -1218,16 +1218,17 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     alpha_time : float
         The temporal regularization parameter. The higher it is the smoother
         will be the estimated time series.
-    wsize: int or np.array, shape (n_dict,)
+    wsize: int or array-like
         Length of the STFT window in samples (must be a multiple of 4).
-        If an array is passed, n_dict TF dictionaries are used (each having its
-        own wsize and tstep) and each entry of wsize must be a multiple of 4.
-    tstep: int or np.array, shape (n_dict,)
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep) and each entry of wsize must be a multiple
+        of 4.
+    tstep: int or array-like
         Step between successive windows in samples (must be a multiple of 2,
-        and a divider of wsize) (default: wsize/2).
-        If an array is passed, n_dict TF dictionaries are used (each having its
-        own wsize and tstep), and each entry of tstep must be a multiple of 2
-        and divide the corresponding entry of wsize.
+        a divider of wsize and smaller than wsize/2) (default: wsize/2).
+        If an array is passed, multiple TF dictionaries are used (each having
+        its own wsize and tstep), and each entry of tstep must be a multiple
+        of 2 and divide the corresponding entry of wsize.
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
     maxit : int
