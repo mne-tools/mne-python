@@ -305,6 +305,54 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
     return Covariance(data, ch_names, info['bads'], info['projs'], nfree=0)
 
 
+##############################################################################
+# Create from array
+# TODO: add test for this
+@verbose
+def make_custom_cov(info, standard_deviations, verbose=None):
+    """Create an ad hoc noise covariance.
+
+    Parameters
+    ----------
+    info : instance of Info
+        Measurement info.
+    standard_deviations : dict of string : (numpy) array
+        stds of the diagonal elements
+        keys must be eeg, grad and mag
+    verbose : bool, str, int, or None (default None)
+        If not None, override default verbose level (see :func:`mne.verbose`
+        and :ref:`Logging documentation <tut_logging>` for more).
+
+    Returns
+    -------
+    cov : instance of Covariance
+        The ad hoc diagonal noise covariance for the M/EEG data channels.
+
+    Notes
+    -----
+    None for the moment.
+
+    """
+    picks = pick_types(info, meg=True, eeg=True, exclude=())
+
+    # Standard deviations to be used
+    # TODO: implement easy creation of data
+    grad_std = standard_deviations['grad']
+    mag_std = standard_deviations['mag']
+    eeg_std = standard_deviations['eeg']
+    # TODO a lot to do here, like check values
+
+    data = np.zeros(len(picks))
+    for meg, eeg, val in zip(('grad', 'mag', False), (False, False, True),
+                             (grad_std, mag_std, eeg_std)):
+        these_picks = pick_types(info, meg=meg, eeg=eeg)
+        data[np.searchsorted(picks, these_picks)] = np.multiply(val, val)
+
+    ch_names = [info['ch_names'][pick] for pick in picks]
+
+    return Covariance(data, ch_names, info['bads'], info['projs'], nfree=0)
+
+
 def _check_n_samples(n_samples, n_chan):
     """Check to see if there are enough samples for reliable cov calc."""
     n_samples_min = 10 * (n_chan + 1) // 2
