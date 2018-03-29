@@ -778,7 +778,7 @@ class _PhiT(object):
             for i in range(self.n_dict):
                 x_out += istft(z_[i].reshape(-1, self.n_freqs[i],
                                self.n_steps[i]), self.tstep[i],
-                               self.n_times[i])
+                               self.n_times)
             return x_out / np.sqrt(self.n_dict)
 
 
@@ -786,9 +786,9 @@ class _multidict_STFT_norm(object):
     """Util class to compute STFT norm with multiple dictionaries."""
 
     def __init__(self, n_freqs, n_steps):
-        self.n_freqs = n_freqs
-        self.n_steps = n_steps
-        self.n_coefs = n_freqs * n_steps
+        self.n_freqs = np.atleast_1d(n_freqs)
+        self.n_steps = np.atleast_1d(n_steps)
+        self.n_coefs = self.n_freqs * self.n_steps
 
     def __call__(self, z, ord=2):
         """Squared L2 norm if ord == 2 and L1 norm if order == 1."""
@@ -1346,7 +1346,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     logger.info("Using block coordinate descent with active set approach")
     X, Z, active_set, E, gap = _tf_mixed_norm_solver_bcd_active_set(
-        M, G, alpha_space, alpha_time, lc, phi, phiT, multidict_stft_norm, 
+        M, G, alpha_space, alpha_time, lc, phi, phiT, multidict_stft_norm,
         Z_init=None, n_orient=n_orient, maxit=maxit, tol=tol,
         dgap_freq=dgap_freq, verbose=None)
 
