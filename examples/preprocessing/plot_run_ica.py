@@ -23,11 +23,8 @@ print(__doc__)
 
 ###############################################################################
 # Read and preprocess the data. Preprocessing consists of:
-#
 # - MEG channel selection
-#
 # - 1-30 Hz band-pass filter
-#
 # - epoching -0.2 to 0.5 seconds with respect to events
 
 data_path = sample.data_path()
