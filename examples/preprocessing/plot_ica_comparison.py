@@ -3,7 +3,8 @@
 Compare the different ICA algorithms in MNE
 ===========================================
 
-Different ICA algorithms are fit to raw MEG data for finding ecg artifacts.
+Different ICA algorithms are fit to raw MEG data, and the corresponding maps
+are displayed.
 """
 
 # Authors: Pierre Ablin <pierreablin@gmail.com>
@@ -13,7 +14,7 @@ Different ICA algorithms are fit to raw MEG data for finding ecg artifacts.
 from time import time
 
 import mne
-from mne.preprocessing import ICA, create_ecg_epochs
+from mne.preprocessing import ICA
 from mne.datasets import sample
 
 
@@ -38,22 +39,18 @@ raw.filter(1, 30, fir_design='firwin')
 
 
 ###############################################################################
-# Define a function that runs ICA on the raw MEG data, finds the ecg artifacts,
-# and plots the corresponding scores
+# Define a function that runs ICA on the raw MEG data and plots the components
 
 
 def run_ica(method):
-    ica = ICA(n_components=0.80, method=method,
+    ica = ICA(n_components=20, method=method,
               random_state=0)
     t0 = time()
     ica.fit(raw, picks=picks, reject=reject)
     fit_time = time() - t0
     title = ('ICA decomposition using %s. Took %.1f'
              ' sec to obtain' % (method, fit_time))
-    ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5, picks=picks)
-    ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
-    ica.plot_scores(scores, exclude=ecg_inds, title=title)
-    ica.plot_components(picks=ecg_inds)
+    ica.plot_components(title=title)
 
 ###############################################################################
 # FastICA
