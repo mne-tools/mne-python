@@ -5,12 +5,12 @@ Compare the different ICA algorithms in MNE
 
 Different ICA algorithms are fit to raw MEG data, and the corresponding maps
 are displayed.
-"""
 
+"""
 # Authors: Pierre Ablin <pierreablin@gmail.com>
 #
-#
 # License: BSD (3-clause)
+
 from time import time
 
 import mne
@@ -22,7 +22,6 @@ print(__doc__)
 
 ###############################################################################
 # Read and preprocess the data. Preprocessing consists of:
-#
 # - EEG channel selection
 #
 # - 1-30 Hz band-pass filter
@@ -32,8 +31,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
-picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                       stim=False, exclude='bads')
+picks = mne.pick_types(raw.info)
 reject = dict(mag=5e-12, grad=4000e-13)
 raw.filter(1, 30, fir_design='firwin')
 
@@ -43,8 +41,7 @@ raw.filter(1, 30, fir_design='firwin')
 
 
 def run_ica(method):
-    ica = ICA(n_components=20, method=method,
-              random_state=0)
+    ica = ICA(n_components=20, method=method, random_state=0)
     t0 = time()
     ica.fit(raw, picks=picks, reject=reject)
     fit_time = time() - t0
@@ -61,7 +58,7 @@ run_ica('fastica')
 run_ica('picard')
 
 ###############################################################################
-#  Infomax
+# Infomax
 run_ica('infomax')
 
 ###############################################################################
