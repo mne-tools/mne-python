@@ -98,6 +98,8 @@ def test_scale_mri():
     spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
     assert op.exists(spath % 'ico-0'), "Source space ico-0 was not scaled"
+    assert os.path.isfile(os.path.join(tempdir, 'flachkopf', 'surf',
+                                       'lh.sphere.reg'))
     vsrc_s = mne.read_source_spaces(spath % 'vol-50')
     pt = np.array([0.12, 0.41, -0.22])
     assert_array_almost_equal(apply_trans(vsrc_s[0]['src_mri_t'], pt * scale),

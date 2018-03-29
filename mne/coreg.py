@@ -546,6 +546,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     # duplicate files (curvature and some surfaces)
     paths['duplicate'] = dup = []
     path = os.path.join(surf_dirname, '{name}')
+    surf_fname = os.path.join(surf_dirname, '{name}')
     for name in ['lh.curv', 'rh.curv']:
         fname = pformat(path, name=name)
         dup.append(fname)
