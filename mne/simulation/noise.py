@@ -5,29 +5,25 @@
 import warnings
 import numpy as np
 
-from ..cov import make_ad_hoc_cov, read_cov, make_custom_cov
-from ..externals.six import string_types
+from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..io.pick import pick_channels_cov
 from ..utils import check_random_state
-
-from mne.cov import Covariance
 
 
 def _check_cov(info, cov):
     """Check that the user provided a valid covariance matrix for the noise."""
-    if isinstance(cov, string_types):
+    if isinstance(cov, dict) and not isinstance(cov, Covariance):
+        cov = make_ad_hoc_cov(info, cov, verbose=False)
+    elif isinstance(cov, str) or isinstance(cov, unicode):
         if cov == 'simple':
-            cov = make_ad_hoc_cov(info, verbose=False)
+            cov = make_ad_hoc_cov(info, None, verbose=False)
         else:
             cov = read_cov(cov, verbose=False)
     elif isinstance(cov, Covariance):
         pass
-    elif isinstance(cov, dict):
-        cov = make_custom_cov(info, cov, verbose=False)
     else:
-        raise ValueError('Covariance Matrix type not recognized. Valid input'
-                         'types are: instance of Covariance, array'
-                         'string(covariance filename | \'simple\'')
+        raise ValueError('Covariance matrix type not recognized. Valid input '
+                         'types are: instance of Covariance, dict, str, None')
     return cov
 
 
@@ -42,6 +38,7 @@ def generate_noise_data(info, cov, n_samples, random_state, iir_filter=None,
         If 'simple', a basic (diagonal) ad-hoc noise covariance will be used.
         If a string (filename), then the covariance will be loaded.
         If dict, a covariance matrix will be generated from it.
+        Add the rest of the description here.
     """
     from scipy.signal import lfilter
 

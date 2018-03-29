@@ -10,11 +10,11 @@ from copy import deepcopy
 import numpy as np
 
 from .evoked import _generate_noise
+from .noise import _check_cov
 from ..event import _get_stim_channel
 from ..filter import _Interp2
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..source_estimate import VolSourceEstimate
-from ..cov import make_ad_hoc_cov, read_cov
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, BaseRaw
 from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
@@ -43,7 +43,7 @@ def _log_ch(start, info, ch):
 
 
 @verbose
-def simulate_raw(raw, stc, trans, src, bem, cov='simple',
+def simulate_raw(raw, stc, trans, src, bem, cov=None,
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
                  random_state=None, use_cps=True, verbose=None):
@@ -74,11 +74,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     bem : str | dict
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
-    cov : instance of Covariance | str | None
-        The sensor covariance matrix used to generate noise. If None,
-        no noise will be added. If 'simple', a basic (diagonal) ad-hoc
-        noise covariance will be used. If a string, then the covariance
-        will be loaded.
+    cov : instance of Covariance | str | dict | 'simple' | None
+        The sensor covariance matrix used to generate noise. If 'simple',
+        default noise values will be generated. If dict, a custom covariance
+        matrix will be used. If a string, then the covariance will be loaded.
+        If None, no noise sill be added.
     blink : bool
         If true, add simulated blink artifacts. See Notes for details.
     ecg : bool
@@ -239,11 +239,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     src = _ensure_src(src, verbose=False)
     if isinstance(bem, string_types):
         bem = read_bem_solution(bem, verbose=False)
-    if isinstance(cov, string_types):
-        if cov == 'simple':
-            cov = make_ad_hoc_cov(info, verbose=False)
-        else:
-            cov = read_cov(cov, verbose=False)
+    if cov is not None:
+        cov = _check_cov(info, cov)
     approx_events = int((len(times) / info['sfreq']) /
                         (stc.times[-1] - stc.times[0]))
     logger.info('Provided parameters will provide approximately %s event%s'

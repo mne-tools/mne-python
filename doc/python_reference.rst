@@ -546,7 +546,6 @@ Covariance computation
    make_ad_hoc_cov
    read_cov
    write_cov
-   make_custom_cov
 
 
 MRI Processing
