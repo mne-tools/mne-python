@@ -1149,7 +1149,6 @@ def _tf_mixed_norm_solver_bcd_active_set(M, G, alpha_space, alpha_time,
                      len(active)))))
 
     E = []
-
     candidates = range(n_positions)
     d_obj = -np.inf
 
