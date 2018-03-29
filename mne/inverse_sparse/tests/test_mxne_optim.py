@@ -37,7 +37,7 @@ def _generate_tf_data():
 
 
 def test_l21_mxne():
-    """Test convergence of MxNE solver"""
+    """Test convergence of MxNE solver."""
     n, p, t, alpha = 30, 40, 20, 1.
     rng = np.random.RandomState(0)
     G = rng.randn(n, p)
@@ -109,7 +109,7 @@ def test_l21_mxne():
 
 
 def test_tf_mxne():
-    """Test convergence of TF-MxNE solver"""
+    """Test convergence of TF-MxNE solver."""
     alpha_space = 10.
     alpha_time = 5.
 
@@ -150,7 +150,7 @@ def test_dgapl21l1():
     M, G, active_set = _generate_tf_data()
     n_times = M.shape[1]
     n_sources = G.shape[1]
-    tstep, wsize = np.array([4]), np.array([32])
+    tstep, wsize = np.array([4, 2]), np.array([64, 16])
     n_steps = np.ceil(n_times / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
@@ -191,26 +191,26 @@ def test_dgapl21l1():
 
 
 def test_tf_mxne_vs_mxne():
-    """Test equivalence of TF-MxNE (with alpha_time=0) and MxNE"""
-    alpha_space = 60.
-    alpha_time = 0.
+    """Test equivalence of TF-MxNE (with alpha_time=0) and MxNE."""
+    alpha = 60.
+    l1_ratio = 0.
 
     M, G, active_set = _generate_tf_data()
 
     X_hat_tf, active_set_hat_tf, E = tf_mixed_norm_solver(
-        M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
-        debias=False, n_orient=1, tstep=4, wsize=32)
+        M, G, alpha=alpha, l1_ratio=l1_ratio, maxit=200, tol=1e-8,
+        verbose=True, debias=False, n_orient=1, tstep=4, wsize=32)
 
     # Also run L21 and check that we get the same
     X_hat_l21, _, _ = mixed_norm_solver(
-        M, G, alpha_space, maxit=200, tol=1e-8, verbose=False, n_orient=1,
+        M, G, alpha, maxit=200, tol=1e-8, verbose=False, n_orient=1,
         active_set_size=None, debias=False)
 
     assert_allclose(X_hat_tf, X_hat_l21, rtol=1e-1)
 
 
 def test_iterative_reweighted_mxne():
-    """Test convergence of irMxNE solver"""
+    """Test convergence of irMxNE solver."""
     n, p, t, alpha = 30, 40, 20, 1
     rng = np.random.RandomState(0)
     G = rng.randn(n, p)
