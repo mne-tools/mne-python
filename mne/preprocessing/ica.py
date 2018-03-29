@@ -135,14 +135,14 @@ class ICA(ContainsMixin):
 
     .. note:: Methods implemented are FastICA (default), Infomax,
               Extended-Infomax, and Picard. Infomax can be quite sensitive to
-              differences in floating point arithmetic due to exponential
-              non-linearity. Extended-Infomax seems to be more stable in this
-              respect enhancing reproducibility and stability of results.
-              The stopping criterion of FastICA, Infomax, Extended
+              differences in floating point arithmetic. Extended-Infomax seems
+              to be more stable in this respect enhancing reproducibility and
+              stability of results.
+              The stopping criteria of FastICA, Infomax, Extended
               Infomax and Picard differ, making it hard to compare different
-              tolerances level, but a rule of thumb is
+              tolerance levels, but a rule of thumb is
               `tol_fastica = tol_picard ** 2`. Reducing the tolerance speeds up
-              estimation but lowers results consistency.
+              estimation but the consistency of the obtained results decreases.
 
     .. warning:: ICA is sensitive to low-frequency drifts and therefore
                  requires the data to be high-pass filtered prior to fitting.

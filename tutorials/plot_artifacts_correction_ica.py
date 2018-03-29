@@ -61,7 +61,7 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Fit ICA
 # -------
 #
-# First, choose the ICA method. There are currently 4 possible choices:
+# First, choose the ICA method. There are currently four possible choices:
 # `fastica`, `picard`, `infomax` and `extended-infomax`.
 #
 # .. note:: The default method in MNE is FastICA, which along with Infomax is
@@ -72,7 +72,7 @@ picks_meg = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 method = 'fastica'
 
-# Chose other parameters
+# Choose other parameters
 n_components = 25  # if float, select n_components by explained variance of PCA
 decim = 3  # we need sufficient statistics, not all time points -> saves time
 

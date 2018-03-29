@@ -45,8 +45,7 @@ def run_ica(method):
     t0 = time()
     ica.fit(raw, picks=picks, reject=reject)
     fit_time = time() - t0
-    title = ('ICA decomposition using %s. Took %.1f'
-             ' sec to obtain' % (method, fit_time))
+    title = ('ICA decomposition using %s (took %.1fs)' % (method, fit_time))
     ica.plot_components(title=title)
 
 ###############################################################################
@@ -62,5 +61,5 @@ run_ica('picard')
 run_ica('infomax')
 
 ###############################################################################
-# Extended-infomax
+# Extended Infomax
 run_ica('extended-infomax')
