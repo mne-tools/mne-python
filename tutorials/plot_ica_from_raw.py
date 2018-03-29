@@ -39,13 +39,13 @@ raw.annotations = mne.Annotations([0], [10], 'BAD')
 
 ###############################################################################
 # 1) Fit ICA model using the FastICA algorithm.
-# Other available choices are `picard`, `infomax` or `extended-infomax`.
+# Other available choices are ``picard``, ``infomax`` or ``extended-infomax``.
 #
 # .. note:: The default method in MNE is FastICA, which along with Infomax is
 #           one of the most widely used ICA algorithm. Picard is a
 #           new algorithm that is expected to converge faster than FastICA and
 #           Infomax, especially when the aim is to recover accurate maps with
-#           a low tolerance parameter.
+#           a low tolerance parameter, see [1]_ for more information.
 #
 # We pass a float value between 0 and 1 to select n_components based on the
 # percentage of variance explained by the PCA components.
@@ -120,3 +120,10 @@ ica.plot_overlay(raw)  # EOG artifacts remain
 
 # Apply the solution to Raw, Epochs or Evoked like this:
 # ica.apply(epochs)
+
+###############################################################################
+# References
+# ----------
+# .. [1] Ablin, P., Cardoso, J.F., Gramfort, A., 2017. Faster Independent
+#        Component Analysis by preconditioning with Hessian approximations.
+#        arXiv:1706.08171
