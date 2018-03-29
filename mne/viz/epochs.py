@@ -16,7 +16,7 @@ import copy
 import numpy as np
 
 from ..utils import verbose, get_config, set_config, logger, warn
-from ..io.pick import pick_types, channel_type
+from ..io.pick import pick_types, channel_type, _get_channel_types
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _layout_figure, _setup_vmin_vmax, _channels_changed,
@@ -167,6 +167,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
         if group_by is None:
+            logger.info("No picks and no groupby, showing the first five "
+                        "channels ...")
             picks = picks[:5]  # take 5 picks to prevent spawning many figs
     else:
         picks = np.atleast_1d(picks)
@@ -184,11 +186,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
 
-    ch_types = [channel_type(epochs.info, idx) for idx in picks]
+    ch_types = _get_channel_types(epochs.info, picks=picks, unique=False)
     if len(set(ch_types)) > 1 and group_by is None and combine is not None:
-        warn("Combining over multiple channel types. "
-             "Please use ``group_by``.")
-    for ch_type in ch_types:
+        warn("Combining over multiple channel types. Please use `group_by`.")
+    for ch_type in set(ch_types):
         if ch_type not in scalings:
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)

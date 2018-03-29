@@ -141,8 +141,8 @@ evoked.plot_white(noise_cov_reg)
 #
 # For expert use cases or debugging the alternative estimators can also be
 # compared (see
-# :ref:`sphx_glr_auto_examples_visualization_plot_evoked_whitening.py`)
-# and :ref:`sphx_glr_auto_examples_visualization_plot_covariance_whitening_dspm.py'):  # noqa
+# :ref:`sphx_glr_auto_examples_visualization_plot_evoked_whitening.py`) and
+# :ref:`sphx_glr_auto_examples_inverse_plot_covariance_whitening_dspm.py`):
 
 noise_covs = mne.compute_covariance(
     epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True)

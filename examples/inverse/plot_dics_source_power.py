@@ -14,12 +14,12 @@ References
 """
 # Author: Roman Goj <roman.goj@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>
-#
+#         Marijn van Vliet <w.m.vanvliet@gmail.com>
 # License: BSD (3-clause)
 
 import mne
 from mne.datasets import sample
-from mne.time_frequency import csd_epochs
+from mne.time_frequency import csd_morlet
 from mne.beamformer import dics_source_power
 
 print(__doc__)
@@ -53,18 +53,16 @@ forward = mne.read_forward_solution(fname_fwd)
 # Computing the data and noise cross-spectral density matrices
 # The time-frequency window was chosen on the basis of spectrograms from
 # example time_frequency/plot_time_frequency.py
-# As fsum is False csd_epochs returns a list of CrossSpectralDensity
-# instances than can then be passed to dics_source_power
-data_csds = csd_epochs(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                       fmin=15, fmax=30, fsum=False)
-noise_csds = csd_epochs(epochs, mode='multitaper', tmin=-0.11,
-                        tmax=-0.001, fmin=15, fmax=30, fsum=False)
+# We use Morlet wavelets to estimate the CSD for two specific frequencies.
+data_csds = csd_morlet(epochs, tmin=0.04, tmax=0.15, frequencies=[18, 27])
+noise_csds = csd_morlet(epochs, tmin=-0.11, tmax=-0.001, frequencies=[18, 27])
 
 # Compute DICS spatial filter and estimate source power
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
 
-for i, csd in enumerate(data_csds):
-    message = 'DICS source power at %0.1f Hz' % csd.freqs[0]
+# Plot the power maps at both frequencies
+for i, freq in enumerate(data_csds.frequencies):
+    message = 'DICS source power at %0.1f Hz' % freq
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                      time_label=message, figure=i)
     brain.set_data_time_index(i)

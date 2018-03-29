@@ -758,3 +758,34 @@ def _pick_data_or_ica(info):
     else:
         picks = _pick_data_channels(info, exclude=[], with_ref_meg=True)
     return picks
+
+
+def _pick_inst(inst, picks, exclude, copy=True):
+    """Return an instance with picked and excluded channels."""
+    if copy is True:
+        inst = inst.copy()
+    if picks is not None:
+        pick_names = [inst.info['ch_names'][pick] for pick in picks]
+    else:  # only pick channels that are plotted
+        picks = _pick_data_channels(inst.info, exclude=[])
+        pick_names = [inst.info['ch_names'][pick] for pick in picks]
+    inst.pick_channels(pick_names)
+
+    if exclude == 'bads':
+        exclude = [ch for ch in inst.info['bads']
+                   if ch in inst.info['ch_names']]
+    if exclude is not None:
+        inst.drop_channels(exclude)
+    return inst
+
+
+def _get_channel_types(info, picks=None, unique=True,
+                       restrict_data_types=False):
+    """Get the data channel types in an info instance."""
+    picks = range(info['nchan']) if picks is None else picks
+    ch_types = [channel_type(info, idx) for idx in range(info['nchan'])
+                if idx in picks]
+    if restrict_data_types is True:
+        ch_types = [ch_type for ch_type in ch_types
+                    if ch_type not in _DATA_CH_TYPES_SPLIT]
+    return set(ch_types) if unique is True else ch_types
