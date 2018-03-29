@@ -546,6 +546,7 @@ Covariance computation
    make_ad_hoc_cov
    read_cov
    write_cov
+   make_custom_cov
 
 
 MRI Processing
@@ -970,11 +971,18 @@ Simulation
    :toctree: generated/
    :template: function.rst
 
+   Simulation 
    simulate_evoked
    simulate_raw
    simulate_stc
    simulate_sparse_stc
    select_source_in_label
+   simulate_raw_signal
+   get_events
+   waveform_p300_nontarget
+   waveform_p300_target
+   waveform_sin
+   get_waveform
 
 
 .. _api_decoding:
@@ -1089,3 +1097,4 @@ Logging and Configuration
    :template: function.rst
 
    init_cuda
+

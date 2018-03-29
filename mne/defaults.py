@@ -59,6 +59,7 @@ DEFAULTS = dict(
         nasion_color=(0., 1., 0.),
         rpa_color=(0., 0., 1.),
     ),
+    noise_std=dict(grad=5e-13, mag=20e-15, eeg=0.2e-6),
 )
 
 
