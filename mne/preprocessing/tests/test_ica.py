@@ -8,6 +8,7 @@ from __future__ import print_function
 import os
 import os.path as op
 import warnings
+from unittest import SkipTest
 
 from nose.tools import (assert_true, assert_raises, assert_equal, assert_false,
                         assert_not_equal, assert_is_none)
@@ -59,7 +60,7 @@ def _skip_check_picard(method):
         try:
             import picard  # noqa
         except Exception:
-            raise SkipTest("Picard is not installed.")  # noqa
+            raise SkipTest("Picard is not installed.")
 
 
 @requires_sklearn
