@@ -2,7 +2,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
-from nose.tools import assert_true
+import pytest
 import warnings
 
 from mne.datasets import testing
@@ -65,8 +65,8 @@ def test_tfr_with_inverse_operator():
                                      label=label, prepared=True)
 
     stc = stcs['alpha']
-    assert_true(len(stcs) == len(list(bands.keys())))
-    assert_true(np.all(stc.data > 0))
+    assert len(stcs) == len(list(bands.keys()))
+    assert np.all(stc.data > 0)
     assert_array_almost_equal(stc.times, epochs.times)
 
     stcs_no_pca = source_band_induced_power(epochs, inv, bands,
@@ -85,9 +85,9 @@ def test_tfr_with_inverse_operator():
     power, phase_lock = source_induced_power(
         epochs, inv, freqs, label, baseline=(-0.1, 0), baseline_mode='percent',
         n_cycles=2, n_jobs=1, prepared=True)
-    assert_true(np.all(phase_lock > 0))
-    assert_true(np.all(phase_lock <= 1))
-    assert_true(np.max(power) > 10)
+    assert np.all(phase_lock > 0)
+    assert np.all(phase_lock <= 1)
+    assert np.max(power) > 10
 
 
 @testing.requires_testing_data
@@ -109,11 +109,10 @@ def test_source_psd():
 
         assert_equal(stc.shape[0], inverse_operator['nsource'])
 
-        assert_true(stc.times[0] >= fmin * 1e-3)
-        assert_true(stc.times[-1] <= fmax * 1e-3)
+        assert stc.times[0] >= fmin * 1e-3
+        assert stc.times[-1] <= fmax * 1e-3
         # Time max at line frequency (60 Hz in US)
-        assert_true(58e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <=
-                    61e-3)
+        assert 58e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <= 61e-3
 
 
 @testing.requires_testing_data
@@ -180,25 +179,11 @@ def test_source_psd_epochs():
     assert_array_almost_equal(freqs, stc_psd.times)
 
     # Check corner cases caused by tiny bandwidth
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        compute_source_psd_epochs(one_epochs, inv,
-                                  lambda2=lambda2, method=method,
-                                  pick_ori="normal", label=label,
-                                  bandwidth=0.01, low_bias=True,
-                                  fmin=fmin, fmax=fmax,
-                                  return_generator=False,
-                                  prepared=True)
-        compute_source_psd_epochs(one_epochs, inv,
-                                  lambda2=lambda2, method=method,
-                                  pick_ori="normal", label=label,
-                                  bandwidth=0.01, low_bias=False,
-                                  fmin=fmin, fmax=fmax,
-                                  return_generator=False,
-                                  prepared=True)
-    assert_true(len(w) >= 2)
-    assert_true(any('not properly use' in str(ww.message) for ww in w))
-    assert_true(any('Bandwidth too small' in str(ww.message) for ww in w))
+    with pytest.raises(ValueError, match='use a value of at least'):
+        compute_source_psd_epochs(
+            one_epochs, inv, lambda2=lambda2, method=method,
+            pick_ori="normal", label=label, bandwidth=0.01, low_bias=True,
+            fmin=fmin, fmax=fmax, return_generator=False, prepared=True)
 
 
 run_tests_if_main()

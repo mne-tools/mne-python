@@ -11,7 +11,7 @@ from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
 from .externals.six import string_types, integer_types
 from .fixes import get_sosfiltfilt, minimum_phase
 from .parallel import parallel_func, check_n_jobs
-from .time_frequency.multitaper import dpss_windows, _mt_spectra
+from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn,
                     _check_preload)
 
@@ -1353,17 +1353,10 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
     dpss_n_times_max = 1000
 
     # figure out what tapers to use
-    if mt_bandwidth is not None:
-        half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
-    else:
-        half_nbw = 4
+    window_fun, eigvals, _, _ = _compute_mt_params(
+        n_times, sfreq, mt_bandwidth, False, False,
+        interp_from=min(n_times, dpss_n_times_max), verbose=False)
 
-    # compute dpss windows
-    n_tapers_max = int(2 * half_nbw)
-    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                       low_bias=False,
-                                       interp_from=min(n_times,
-                                                       dpss_n_times_max))
     # F-stat of 1-p point
     threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)
 

@@ -13,7 +13,7 @@ from ..fixes import _get_args
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from ..epochs import BaseEpochs
-from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
+from ..time_frequency.multitaper import (_mt_spectra, _compute_mt_params,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
@@ -1058,26 +1058,9 @@ def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,
     n_tapers = None
     n_times_spectrum = 0
     if mode == 'multitaper':
-        # compute standardized half-bandwidth
-        if mt_bandwidth is not None:
-            half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
-        else:
-            half_nbw = 4
-
-        # compute dpss windows
-        n_tapers_max = int(2 * half_nbw)
-        window_fun, eigvals = dpss_windows(n_times, half_nbw,
-                                           n_tapers_max,
-                                           low_bias=mt_low_bias)
+        window_fun, eigvals, mt_adaptive, _ = _compute_mt_params(
+            n_times, sfreq, mt_bandwidth, mt_low_bias, mt_adaptive)
         spectral_params.update(window_fun=window_fun, eigvals=eigvals)
-        n_tapers = len(eigvals)
-        logger.info('    using multitaper spectrum estimation with '
-                    '%d DPSS windows' % n_tapers)
-
-        if mt_adaptive and len(eigvals) < 3:
-            warn('Not adaptively combining the spectral estimators '
-                 'due to a low number of tapers.')
-            mt_adaptive = False
     elif mode == 'fourier':
         logger.info('    using FFT with a Hanning window to estimate '
                     'spectra')
