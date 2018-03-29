@@ -143,7 +143,7 @@ def test_norm_epsilon():
     Y = np.arange(n_steps * n_freqs).reshape(-1, )
     l1_ratio = 0.
     assert_allclose(norm_epsilon(Y, l1_ratio, phi) ** 2,
-                    stft_norm2(Y.reshape(-1, n_freqs, n_steps)))
+                    stft_norm2(Y.reshape(-1, n_freqs[0], n_steps[0])))
 
 
 def test_dgapl21l1():
