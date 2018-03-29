@@ -19,8 +19,7 @@ from ..dipole import Dipole
 from ..externals.six.moves import xrange as range
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
-                         _multidict_STFT_norm, norm_l2inf,
-                         tf_mixed_norm_solver, norm_epsilon_inf)
+                         norm_l2inf, tf_mixed_norm_solver, norm_epsilon_inf)
 
 
 @verbose
@@ -702,13 +701,11 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space=None,
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
-    multidict_stft_norm = _multidict_STFT_norm(n_freqs, n_steps)
 
     if old_parametrization:
         alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos)
     else:
-        alpha_max = norm_epsilon_inf(gain, M, phi, multidict_stft_norm,
-                                     l1_ratio, n_dip_per_pos)
+        alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
     alpha_max *= 0.01
     gain /= alpha_max
     source_weighting /= alpha_max
