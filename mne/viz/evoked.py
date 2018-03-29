@@ -183,7 +183,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  units, scalings, titles, axes, plot_type, cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
-                 noise_cov=None):
+                 noise_cov=None, colorbar=True, mask=None, mask_style=None,
+                 mask_cmap=None, mask_alpha=.25):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -269,13 +270,15 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
                     False, line_alpha=1.)
         for ax in axes:
-            ax.set_xlabel('time (ms)')
+            ax.set_xlabel('Time (ms)')
 
     elif plot_type == 'image':
         for ax, this_type in zip(axes, ch_types_used):
             this_picks = list(picks[types == this_type])
             _plot_image(evoked.data, ax, this_type, this_picks, cmap, unit,
-                        units, scalings, evoked.times, xlim, ylim, titles)
+                        units, scalings, evoked.times, xlim, ylim, titles,
+                        colorbar=colorbar, mask=mask, mask_style=mask_style,
+                        mask_cmap=mask_cmap, mask_alpha=mask_alpha)
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=info['projs'], axes=axes,
@@ -469,35 +472,99 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
 
 
 def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
-                xlim, ylim, titles):
+                xlim, ylim, titles, colorbar=True, mask=None, mask_cmap=None,
+                mask_style=None, mask_alpha=.25):
     """Plot images."""
     import matplotlib.pyplot as plt
+
+    if mask_style is None and mask is not None:
+        mask_style = "both"  # default
+    draw_mask = mask_style in {"both", "mask"}
+    draw_contour = mask_style in {"both", "contour"}
+
     cmap = _setup_cmap(cmap)
+    mask_cmap = cmap if mask_cmap is None else _setup_cmap(mask_cmap)
+
     ch_unit = units[this_type]
     this_scaling = scalings[this_type]
     if unit is False:
         this_scaling = 1.0
         ch_unit = 'NA'  # no unit
 
+    # mask param check and preparation
+    if draw_mask is None:
+        if mask is not None:
+            draw_mask = True
+        else:
+            draw_mask = False
+    if draw_contour is None:
+        if mask is not None:
+            draw_contour = True
+        else:
+            draw_contour = False
+    if mask is None:
+        if draw_mask:
+            warn("`mask` is None, not masking the plot ...")
+            draw_mask = False
+        if draw_contour:
+            warn("`mask` is None, not adding contour to the plot ...")
+            draw_contour = False
+
+    if draw_mask:
+        if mask.shape != data.shape:
+            raise ValueError("The mask must have the same shape as the data, "
+                             "i.e., %s, not %s" % (data.shape, mask.shape))
+        if picks is not None:
+            mask = mask[picks, :]
+
+    # Show the image
     # Set amplitude scaling
     data = this_scaling * data[picks, :]
-    im = ax.imshow(data, interpolation='nearest', origin='lower',
-                   extent=[times[0], times[-1], 0, data.shape[0]],
-                   aspect='auto', cmap=cmap[0])
+    if ylim is None or this_type not in ylim:
+        vmax = np.abs(data).max()
+        vmin = -vmax
+    else:
+        vmin, vmax = ylim[this_type]
+    extent = [times[0], times[-1], 0, data.shape[0]]
+    im_args = dict(interpolation='nearest', origin='lower',
+                   extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
+
+    if draw_mask:
+        ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap[0], **im_args)
+        im = ax.imshow(
+            np.ma.masked_where(~mask, data), cmap=cmap[0], **im_args)
+    else:
+        im = ax.imshow(data, cmap=cmap[0], **im_args)
+    if draw_contour and np.unique(mask).size == 2:
+        big_mask = np.kron(mask, np.ones((10, 10)))
+        ax.contour(big_mask, colors=["k"], extent=extent, linewidths=[.75],
+                   corner_mask=False, antialiased=False, levels=[.5])
+
     if xlim is not None:
         if xlim == 'tight':
             xlim = (times[0], times[-1])
         ax.set_xlim(xlim)
-        if ylim is not None and this_type in ylim:
-            im.set_clim(ylim[this_type])
-    cbar = plt.colorbar(im, ax=ax)
-    cbar.ax.set_title(ch_unit)
-    if cmap[1]:
-        ax.CB = DraggableColorbar(cbar, im)
-    ax.set_ylabel('channels (index)')
-    ax.set_title(titles[this_type] + ' (%d channel%s)' % (
-                 len(data), _pl(data)))
-    ax.set_xlabel('time (ms)')
+    ax.set_xlabel('Time (ms)')
+
+    if colorbar:
+        cbar = plt.colorbar(im, ax=ax)
+        cbar.ax.set_title(ch_unit)
+        if cmap[1]:
+            ax.CB = DraggableColorbar(cbar, im)
+
+    ax.set_ylabel('Channels (index)')
+
+    if (draw_mask or draw_contour) and mask is not None:
+        if mask.all():
+            t_end = ", all points masked)"
+        else:
+            fraction = np.float(mask.sum()) / np.float(mask.size)
+            percent = np.floor(fraction * 100).astype(int)
+            t_end = ", " + str(percent) + "% of points masked)"
+    else:
+        t_end = ")"
+    ax.set_title(
+        titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end)
 
 
 @verbose
@@ -613,8 +680,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                         hline=hline, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="butterfly",
                         gfp=gfp, window_title=window_title,
-                        spatial_colors=spatial_colors, zorder=zorder,
-                        selectable=selectable, noise_cov=noise_cov)
+                        spatial_colors=spatial_colors, selectable=selectable,
+                        zorder=zorder, noise_cov=noise_cov)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -779,9 +846,11 @@ def _animate_evoked_topomap(evoked, ch_type='mag', times=None, frame_rate=None,
                               blit=blit, show=show)
 
 
-def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
-                      clim=None, xlim='tight', proj=False, units=None,
-                      scalings=None, titles=None, axes=None, cmap='RdBu_r'):
+def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
+                      show=True, clim=None, xlim='tight', proj=False,
+                      units=None, scalings=None, titles=None, axes=None,
+                      cmap='RdBu_r', colorbar=True, mask=None,
+                      mask_style=None, mask_cmap="Greys", mask_alpha=.25):
     """Plot evoked data as images.
 
     Parameters
@@ -830,6 +899,37 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         resets the scale. Up and down arrows can be used to change the
         colormap. If 'interactive', translates to ``('RdBu_r', True)``.
         Defaults to ``'RdBu_r'``.
+    colorbar : bool
+        If True, plot a colorbar. Defaults to True.
+
+        .. versionadded:: 0.16
+    mask : ndarray | None
+        An array of booleans of the same shape as the data. Entries of the
+        data that correspond to ```False`` in the mask are masked (see
+        `do_mask` below). Useful for, e.g., masking for statistical
+        significance.
+
+        .. versionadded:: 0.16
+    mask_style: None | 'both' | 'contour' | 'mask'
+        If `mask` is not None: if 'contour', a contour line is drawn around
+        the masked areas (``True`` in `mask`). If 'mask', entries not
+        ``True`` in `mask` are shown transparently. If 'both', both a contour
+        and transparency are used.
+        If ``None``, defaults to 'both' if `mask` is not None, and is ignored
+        otherwise.
+
+         .. versionadded:: 0.16
+    mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
+        The colormap chosen for masked parts of the image (see below), if
+        `mask` is not ``None``. If None, `cmap` is reused. Defaults to
+        ``Greys``. Not interactive. Otherwise, as `cmap`.
+    mask_alpha : float
+        A float between 0 and 1. If `mask` is not None, this sets the
+        alpha level (degree of transparency) for the masked-out segments.
+        I.e., if 0, masked-out segments are not visible at all.
+        Defaults to .25.
+
+        .. versionadded:: 0.16
 
     Returns
     -------
@@ -837,10 +937,11 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Figure containing the images.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
-                        show=show, ylim=clim, proj=proj, xlim=xlim,
-                        hline=None, units=units, scalings=scalings,
-                        titles=titles, axes=axes, plot_type="image",
-                        cmap=cmap)
+                        show=show, ylim=clim, proj=proj, xlim=xlim, hline=None,
+                        units=units, scalings=scalings, titles=titles,
+                        axes=axes, plot_type="image", cmap=cmap,
+                        colorbar=colorbar, mask=mask, mask_style=mask_style,
+                        mask_cmap=mask_cmap, mask_alpha=mask_alpha)
 
 
 def _plot_update_evoked(params, bools):

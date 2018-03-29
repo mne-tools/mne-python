@@ -89,6 +89,8 @@ Changelog
 
 - Add the Picard algorithm to perform ICA for :class:`mne.preprocessing.ICA`, by `Pierre Ablin`_ and `Alex Gramfort`_
 
+- Add ability to supply a mask to the plot in :func:`mne.viz.evoked.plot_evoked_image` by `Jona Sassenhagen`.
+
 - Add :func:`mne.time_frequency.csd_morlet` and :func:`mne.time_frequency.csd_array_morlet` to estimate cross-spectral density using Morlet wavelets, by `Marijn van Vliet`_
 
 Bug

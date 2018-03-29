@@ -339,7 +339,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
 
     if mask is not None:
         ax.pcolormesh(time_mesh, freq_mesh, tfr[ch_idx], cmap=cmap, vmin=vmin,
-                      vmax=vmax, mask_alpha=mask_alpha)
+                      vmax=vmax, alpha=mask_alpha)
         img = ax.pcolormesh(time_mesh, freq_mesh,
                             np.ma.masked_where(~mask, tfr[ch_idx]), cmap=cmap,
                             vmin=vmin, vmax=vmax, alpha=1)

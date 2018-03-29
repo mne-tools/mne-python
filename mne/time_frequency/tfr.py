@@ -984,8 +984,30 @@ class AverageTFR(_BaseTFR):
 
     Attributes
     ----------
+    info : instance of Info
+        Measurement info.
+
     ch_names : list
         The names of the channels.
+
+    nave : int
+        Number of averaged epochs.
+
+    data : ndarray, shape (n_channels, n_freqs, n_times)
+        The data array.
+
+    times : ndarray, shape (n_times,)
+        The time values in seconds.
+
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+
+    comment : string
+        Comment on dataset. Can be the condition.
+
+    method : str | None, defaults to None
+        Comment on the method used to compute the data, e.g., morlet wavelet.
+
     """
 
     @verbose
@@ -1897,8 +1919,26 @@ class EpochsTFR(_BaseTFR):
 
     Attributes
     ----------
+    info : instance of Info
+        Measurement info.
+
     ch_names : list
         The names of the channels.
+
+    data : ndarray, shape (n_epochs, n_channels, n_freqs, n_times)
+        The data array.
+
+    times : ndarray, shape (n_times,)
+        The time values in seconds.
+
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+
+    comment : string
+        Comment on dataset. Can be the condition.
+
+    method : str | None, defaults to None
+        Comment on the method used to compute the data, e.g., morlet wavelet.
 
     Notes
     -----
