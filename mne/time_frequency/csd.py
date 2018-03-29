@@ -949,10 +949,11 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     n_times = len(times)
     n_fft = n_times if n_fft is None else n_fft
 
-    window_fun, eigvals, n_tapers, mt_adaptive, orig_frequencies = \
+    window_fun, eigvals, mt_adaptive = \
         _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive)
 
     # Preparing frequencies of interest
+    orig_frequencies = np.fft.rfftfreq(n_fft, 1. / sfreq)
     freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
     frequencies = orig_frequencies[freq_mask]
 

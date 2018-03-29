@@ -481,9 +481,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
              'low number of tapers (%s < 3).' % (len(eigvals),))
         adaptive = False
 
-    freqs = np.fft.rfftfreq(n_times, 1. / sfreq)
-
-    return window_fun, eigvals, adaptive, freqs
+    return window_fun, eigvals, adaptive
 
 
 @verbose
@@ -547,10 +545,11 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     dshape = x.shape[:-1]
     x = x.reshape(-1, n_times)
 
-    dpss, eigvals, adaptive, freqs = _compute_mt_params(
+    dpss, eigvals, adaptive = _compute_mt_params(
         n_times, sfreq, bandwidth, low_bias, adaptive)
 
     # decide which frequencies to keep
+    freqs = np.fft.rfftfreq(n_times, 1. / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
 

@@ -1058,7 +1058,7 @@ def _assemble_spectral_params(mode, n_times, mt_adaptive, mt_bandwidth, sfreq,
     n_tapers = None
     n_times_spectrum = 0
     if mode == 'multitaper':
-        window_fun, eigvals, mt_adaptive, _ = _compute_mt_params(
+        window_fun, eigvals, mt_adaptive = _compute_mt_params(
             n_times, sfreq, mt_bandwidth, mt_low_bias, mt_adaptive)
         spectral_params.update(window_fun=window_fun, eigvals=eigvals)
     elif mode == 'fourier':

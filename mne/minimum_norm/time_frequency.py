@@ -532,7 +532,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     n_times = len(epochs.times)
     sfreq = epochs.info['sfreq']
 
-    dpss, eigvals, adaptive, _ = _compute_mt_params(
+    dpss, eigvals, adaptive = _compute_mt_params(
         n_times, sfreq, bandwidth, low_bias, adaptive, verbose=False)
 
     n_tapers = len(dpss)

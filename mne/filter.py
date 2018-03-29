@@ -1353,7 +1353,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
     dpss_n_times_max = 1000
 
     # figure out what tapers to use
-    window_fun, eigvals, _, _ = _compute_mt_params(
+    window_fun, eigvals, _ = _compute_mt_params(
         n_times, sfreq, mt_bandwidth, False, False,
         interp_from=min(n_times, dpss_n_times_max), verbose=False)
 
