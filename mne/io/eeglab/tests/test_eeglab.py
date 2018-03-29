@@ -138,7 +138,8 @@ def _test_io_set(use_hdf=True):
                    {'trials': eeg.trials, 'srate': eeg.srate,
                     'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                     'epoch': eeg.epoch, 'event': eeg.event[0],
-                    'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+                    'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+                   appendmat=False)
         shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                         one_event_fname.replace('.set', '.fdt'))
         event_id = {eeg.event[0].type: 1}
@@ -157,7 +158,8 @@ def _test_io_set(use_hdf=True):
                    {'trials': eeg.trials, 'srate': eeg.srate,
                     'nbchan': eeg.nbchan, 'data': 'test_one_event.fdt',
                     'epoch': eeg.epoch, 'event': evnts,
-                    'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+                    'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+                   appendmat=False)
         shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                         negative_latency_fname.replace('.set', '.fdt'))
         event_id = {eeg.event[0].type: 1}
@@ -171,7 +173,8 @@ def _test_io_set(use_hdf=True):
                    {'trials': eeg.trials, 'srate': eeg.srate,
                     'nbchan': eeg.nbchan, 'data': 'test_overlap_event.fdt',
                     'epoch': eeg.epoch, 'event': [eeg.event[0], eeg.event[0]],
-                    'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}})
+                    'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+                   appendmat=False)
         shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                         overlap_fname.replace('.set', '.fdt'))
         event_id = {'rt': 1, 'square': 2}
@@ -194,7 +197,8 @@ def _test_io_set(use_hdf=True):
                     'epoch': eeg.epoch, 'event': eeg.epoch,
                     'chanlocs': {'labels': 'E1', 'Y': -6.6069,
                                  'X': 6.3023, 'Z': -2.9423},
-                    'times': eeg.times[:3], 'pnts': 3}})
+                    'times': eeg.times[:3], 'pnts': 3}},
+                   appendmat=False)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             read_raw_eeglab(input_fname=one_chan_fname, preload=True)
@@ -222,7 +226,8 @@ def _test_io_set(use_hdf=True):
                    {'trials': eeg.trials, 'srate': eeg.srate,
                     'nbchan': 3, 'data': np.random.random((3, 3)),
                     'epoch': eeg.epoch, 'event': eeg.epoch,
-                    'chanlocs': chanlocs, 'times': eeg.times[:3], 'pnts': 3}})
+                    'chanlocs': chanlocs, 'times': eeg.times[:3], 'pnts': 3}},
+                   appendmat=False)
         # load it
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
@@ -263,7 +268,8 @@ def _test_io_set(use_hdf=True):
                    {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
                     'data': np.random.random((3, 2)), 'epoch': eeg.epoch,
                     'event': eeg.epoch, 'chanlocs': nopos_chanlocs,
-                    'times': eeg.times[:2], 'pnts': 2}})
+                    'times': eeg.times[:2], 'pnts': 2}},
+                   appendmat=False)
         # load the file
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
