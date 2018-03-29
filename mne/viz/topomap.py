@@ -126,6 +126,21 @@ def _plot_update_evoked_topomap(params, bools):
     params['fig'].canvas.draw()
 
 
+def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
+                  format=None, size="5%"):
+    """Add a colorbar to an axis."""
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes(side, size=size, pad=pad)
+    cbar = plt.colorbar(im, cax=cax, cmap=cmap, format=format)
+    if cmap[1]:
+        ax.CB = DraggableColorbar(cbar, im)
+    if title is not None:
+        cax.set_title(title, y=1.05, fontsize=10)
+    return cbar, cax
+
+
 def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
@@ -201,7 +216,6 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
     from ..channels.layout import (_pair_grad_sensors_from_ch_names, Layout,
                                    _merge_grad_data)
     from ..channels import _get_ch_type
@@ -285,12 +299,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                           sensors=sensors, res=res, axes=axes[proj_idx],
                           outlines=outlines, contours=contours,
                           image_interp=image_interp, show=False)[0]
+
         if colorbar:
-            divider = make_axes_locatable(axes[proj_idx])
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cbar = plt.colorbar(im, cax=cax, cmap=cmap)
-            if cmap[1]:
-                axes[proj_idx].CB = DraggableColorbar(cbar, im)
+            _add_colorbar(axes[proj_idx], im, cmap)
+
     tight_layout(fig=axes[0].get_figure())
     plt_show(show)
     return axes[0].get_figure()
@@ -814,14 +826,10 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       sensors=sensors, image_interp=image_interp,
                       show=show)[0]
     if colorbar:
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
-        divider = make_axes_locatable(axes)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
+        cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
+                                  format='%3.2f')
         cbar.ax.tick_params(labelsize=12)
         cbar.set_ticks((vmin_, vmax_))
-        cbar.ax.set_title('AU', fontsize=10)
     _hide_frame(axes)
 
 
@@ -929,8 +937,6 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     """
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
     from ..channels import _get_ch_type
 
     if picks is None:  # plot components by sets of 20
@@ -994,14 +1000,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                           sensors=sensors)[0]
         im.axes.set_label(ica._ica_names[ii])
         if colorbar:
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
+            cbar, cax = _add_colorbar(ax, im, cmap, title="AU",
+                                      side="right", pad=.05, format='%3.2f')
             cbar.ax.tick_params(labelsize=12)
             cbar.set_ticks((vmin_, vmax_))
-            cbar.ax.set_title('AU', fontsize=10)
-            if cmap[1]:
-                ax.CB = DraggableColorbar(cbar, im)
         _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.88, bottom=0.)
@@ -1175,7 +1177,6 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(tfr, ch_type)
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     picks, pos, merge_grads, names, _ = _prepare_topo_plot(tfr, ch_type,
                                                            layout)
@@ -1233,6 +1234,9 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                                  ifmax=ifmax, cmap=cmap[0], fig=fig_wrapper,
                                  layout=layout)
 
+    if not isinstance(contours, (list, np.ndarray)):
+        _, contours = _set_contour_locator(vmin, vmax, contours)
+
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axes=ax, cmap=cmap[0], image_interp='bilinear',
                          contours=contours, names=names, show_names=show_names,
@@ -1242,18 +1246,13 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     if colorbar:
         from matplotlib import ticker
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar = plt.colorbar(im, cax=cax, format=cbar_fmt, cmap=cmap[0])
+        unit = _handle_default('units', unit)['misc']
+        cbar, cax = _add_colorbar(ax, im, cmap, title=unit, format=cbar_fmt)
         if locator is None:
             locator = ticker.MaxNLocator(nbins=5)
         cbar.locator = locator
         cbar.update_ticks()
         cbar.ax.tick_params(labelsize=12)
-        unit = _handle_default('units', unit)['misc']
-        cbar.ax.set_title(unit)
-        if cmap[1]:
-            ax.CB = DraggableColorbar(cbar, im)
 
     plt_show(show)
     return fig
@@ -1413,7 +1412,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     import matplotlib.pyplot as plt
     from matplotlib import gridspec
     from matplotlib.widgets import Slider
-    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
 
     if colorbar is None:
         colorbar = True
@@ -1637,9 +1635,6 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                              vmax=None, cmap=None, outlines='head',
                              colorbar=False, cbar_fmt='%3.3f'):
     """Plot topomap multi cbar."""
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
-
     _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
     vmax = np.max(data) if vmax is None else vmax
@@ -1652,15 +1647,12 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                          outlines=outlines, show=False)
 
     if colorbar is True:
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="10%", pad=0.25)
-        cbar = plt.colorbar(im, cax=cax, format=cbar_fmt)
+        cbar, cax = _add_colorbar(ax, im, cmap, pad=.25, title=None,
+                                  size="10%", format=cbar_fmt)
         cbar.set_ticks((vmin, vmax))
         if unit is not None:
             cbar.ax.set_title(unit, fontsize=8)
         cbar.ax.tick_params(labelsize=8)
-        if cmap[1]:
-            ax.CB = DraggableColorbar(cbar, im)
 
 
 @verbose

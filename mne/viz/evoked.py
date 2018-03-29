@@ -18,18 +18,20 @@ from numbers import Integral
 import numpy as np
 
 from ..io.pick import (channel_type, _pick_data_channels,
-                       _VALID_CHANNEL_TYPES, channel_indices_by_type)
+                       _VALID_CHANNEL_TYPES, channel_indices_by_type,
+                       _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types)
 from ..externals.six import string_types
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
                     _setup_vmin_vmax, _grad_pair_pick_and_name, _check_cov,
-                    _validate_if_list_of_axes, _triage_rank_sss)
+                    _validate_if_list_of_axes, _triage_rank_sss,
+                    _connection_line, COLORS, _setup_ax_spines,
+                    _setup_plot_projector, _prepare_joint_axes,
+                    _set_title_multiple_electrodes)
 from ..utils import logger, _clean_names, warn, _pl, verbose
-from ..io.pick import _DATA_CH_TYPES_SPLIT
 
 from .topo import _plot_evoked_topo
-from .utils import COLORS, _setup_ax_spines, _setup_plot_projector
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _topomap_animation,
                       _set_contour_locator)
@@ -1120,19 +1122,6 @@ def plot_snr_estimate(evoked, inv, show=True):
     return fig
 
 
-def _connection_line(x, fig, sourceax, targetax):
-    """Connect time series and topolots."""
-    from matplotlib.lines import Line2D
-    transFigure = fig.transFigure.inverted()
-    tf = fig.transFigure
-
-    (xt, yt) = transFigure.transform(targetax.transAxes.transform([.5, .25]))
-    (xs, _) = transFigure.transform(sourceax.transData.transform([x, 0]))
-    (_, ys) = transFigure.transform(sourceax.transAxes.transform([0, 1]))
-    return Line2D((xt, xs), (yt, ys), transform=tf, color='grey',
-                  linestyle='-', linewidth=1.5, alpha=.66, zorder=0)
-
-
 def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                       exclude=None, show=True, ts_args=None,
                       topomap_args=None):
@@ -1197,24 +1186,9 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # channel selection
     # simply create a new evoked object with the desired channel selection
-    evoked = evoked.copy()
-
-    if picks is not None:
-        pick_names = [evoked.info['ch_names'][pick] for pick in picks]
-    else:  # only pick channels that are plotted
-        picks = _pick_data_channels(evoked.info, exclude=[])
-        pick_names = [evoked.info['ch_names'][pick] for pick in picks]
-    evoked.pick_channels(pick_names)
-
-    if exclude == 'bads':
-        exclude = [ch for ch in evoked.info['bads']
-                   if ch in evoked.info['ch_names']]
-    if exclude is not None:
-        evoked.drop_channels(exclude)
-
+    evoked = _pick_inst(evoked, picks, exclude, copy=True)
     info = evoked.info
-    data_types = {'eeg', 'grad', 'mag', 'seeg', 'ecog', 'hbo', 'hbr'}
-    ch_types = set(ch_type for ch_type in data_types if ch_type in evoked)
+    ch_types = _get_channel_types(info)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
@@ -1223,9 +1197,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             ev_ = evoked.copy().pick_channels(
                 [info['ch_names'][idx] for idx in range(info['nchan'])
                  if channel_type(info, idx) == this_type])
-            if len(set([channel_type(ev_.info, idx)
-                        for idx in range(ev_.info['nchan'])
-                        if channel_type(ev_.info, idx) in data_types])) > 1:
+            if len(_get_channel_types(ev_.info)) > 1:
                 raise RuntimeError('Possibly infinite loop due to channel '
                                    'selection problem. This should never '
                                    'happen! Please check your channel types.')
@@ -1235,10 +1207,12 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                     exclude=list(), topomap_args=topomap_args))
         return figs
 
-    fig = plt.figure(figsize=(8.0, 4.2))
-
     # set up time points to show topomaps for
     times = _process_times(evoked, times, few=True)
+
+    # prepare axes for topomap
+    fig, ts_ax, map_ax, cbar_ax = _prepare_joint_axes(len(times),
+                                                      figsize=(8.0, 4.2))
 
     # butterfly/time series plot
     # most of this code is about passing defaults on demand
@@ -1263,12 +1237,6 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                       horizontalalignment='center',
                       verticalalignment='center')
         title_ax.axis('off')
-
-    # prepare axes for topomap
-    # slightly convoluted due to colorbar placement and for vertical alignment
-    ts = len(times) + 2
-    map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(ts - 2)]
-    cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
 
     # topomap
     contours = topomap_args.get('contours', 6)
@@ -1790,15 +1758,15 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
     if len(ch_types) > 1:
         logger.info("Multiple channel types selected, returning one figure "
                     "per type.")
-        figs = []
+        figs = list()
         for ii, t in enumerate(ch_types):
             picks_ = picks_by_types[t]
             title_ = "GFP, " + t if (title is None and gfp is True) else title
             figs.append(plot_compare_evokeds(
                 evokeds, picks=picks_, gfp=gfp, colors=colors,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
-                truncate_yaxis=truncate_yaxis, ylim=ylim,
-                invert_y=invert_y, axes=axes[ii], title=title_, show=show))
+                truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
+                axes=axes[ii], title=title_, show=show))
         return figs
 
     # From now on there is only 1 channel type
@@ -1959,10 +1927,8 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=False, colors=None,
             warn("ymin is all-positive, not truncating yaxis")
         ymax_bound = ax.get_ylim()[-1]
 
-    title = ", ".join(ch_names[:6]) if title is None else title
-    if len(ch_names) > 6 and gfp is False:
-        warn("More than 6 channels, truncating title ...")
-        title += ", ..."
+    title = _set_title_multiple_electrodes(
+        title, "average" if gfp is False else "gfp", ch_names)
     ax.set_title(title)
 
     current_ymin = ax.get_ylim()[0]
