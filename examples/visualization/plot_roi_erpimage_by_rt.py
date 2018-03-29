@@ -61,7 +61,7 @@ order = rts.argsort()  # sorting from fast to slow trials
 rois = dict()
 for pick, channel in enumerate(epochs.ch_names):
     last_char = channel[-1]  # for 10/20, last letter codes the hemisphere
-    roi = ("Midline" if last_char == "z" else
+    roi = ("Midline" if last_char in "z12" else
            ("Left" if int(last_char) % 2 else "Right"))
     rois[roi] = rois.get(roi, list()) + [pick]
 
