@@ -48,7 +48,7 @@ fig = evoked_l_aud.plot(exclude=())
 fig.tight_layout()
 
 ###############################################################################
-# Now let's make it a bit fancier and only use MEG channels. Many of the
+# Now we will make it a bit fancier and only use MEG channels. Many of the
 # MNE-functions include a ``picks`` parameter to include a selection of
 # channels. ``picks`` is simply a list of channel indices that you can easily
 # construct with :func:`mne.pick_types`. See also :func:`mne.pick_channels` and

@@ -1662,7 +1662,7 @@ def _prepare_joint_axes(n_maps, figsize=None):
     map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(n_maps)]
     # Position topomap subplots on the second row, starting on the
     # second column
-    cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
+    cbar_ax = plt.subplot(4, 5 * (ts + 1), 10 * (ts + 1))
     # Position colorbar at the very end of a more finely divided
     # second row of subplots
     return fig, main_ax, map_ax, cbar_ax
