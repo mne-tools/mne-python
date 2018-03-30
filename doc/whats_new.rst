@@ -83,7 +83,7 @@ Changelog
 
 - Tighter duality gap computation in ``mne.inverse_sparse.tf_mxne_optim`` and new parametrization with ``alpha`` and  ``l1_ratio`` instead of ``alpha_space`` and ``alpha_time`` by `Mathurin Massias`_ and `Daniel Strohmeier`_
 
-- Add ``dgap_freq`` parameter in ``mne.inverse_sparse.tf_mxne_optim`` solvers to control the frequency of duality gap computation by `Mathurin Massias`_ and `Daniel Strohmeier`_
+- Add ``dgap_freq`` parameter in ``mne.inverse_sparse.mxne_optim`` solvers to control the frequency of duality gap computation by `Mathurin Massias`_ and `Daniel Strohmeier`_
 
 - Add support for reading Eximia files by `Eric Larson`_ and `Federico Raimondo`_
 
@@ -92,6 +92,8 @@ Changelog
 - Add ability to supply a mask to the plot in :func:`mne.viz.evoked.plot_evoked_image` by `Jona Sassenhagen`.
 
 - Add :func:`mne.time_frequency.csd_morlet` and :func:`mne.time_frequency.csd_array_morlet` to estimate cross-spectral density using Morlet wavelets, by `Marijn van Vliet`_
+
+- Add multidictionary time-frequency support to :func:`mne.inverse_sparse.mxne_inverse.tf_mixed_norm` by `Mathurin Massias`_ and `Daniel Strohmeier`_
 
 Bug
 ~~~
