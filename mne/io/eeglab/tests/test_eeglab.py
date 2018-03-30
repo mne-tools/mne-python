@@ -36,6 +36,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 @testing.requires_testing_data
+@requires_h5py
 def test_io_set():
     """Test importing EEGLAB .set files."""
     _test_io_set(False)
@@ -309,6 +310,7 @@ def test_degenerate():
 
 
 @testing.requires_testing_data
+@requires_h5py
 def test_eeglab_annotations():
     """Test reading annotations in EEGLAB files"""
     for fname in [raw_fname_onefile, raw_fname]:
