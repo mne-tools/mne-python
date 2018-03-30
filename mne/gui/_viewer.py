@@ -226,7 +226,7 @@ class PointObject(Object):
                        Item('color', show_label=False),
                        Item('opacity')))
 
-    def __init__(self, view='points', *args, **kwargs):
+    def __init__(self, view='points', has_norm=False, *args, **kwargs):
         """Init.
 
         Parameters
@@ -234,9 +234,13 @@ class PointObject(Object):
         view : 'points' | 'cloud'
             Whether the view options should be tailored to individual points
             or a point cloud.
+        has_norm : bool
+            Whether a norm can be defined; adds view options based on point
+            norms (default False).
         """
         assert view in ('points', 'cloud', 'arrow')
         self._view = view
+        self._has_norm = bool(has_norm)
         super(PointObject, self).__init__(*args, **kwargs)
 
     def default_traits_view(self):  # noqa: D102
@@ -263,6 +267,10 @@ class PointObject(Object):
             assert self._view == 'cloud'
             visible = Item('visible', show_label=False)
             views = (visible, color, scale)
+
+        if not self._has_norm:
+            return View(HGroup(*views))
+
         group2 = HGroup(dist, Item('project_to_surface', show_label=True,
                                    enabled_when='projectable',
                                    tooltip='Project points onto the surface '

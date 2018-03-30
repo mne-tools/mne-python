@@ -1862,16 +1862,19 @@ class CoregFrame(HasTraits):
         # MRI Fiducials
         point_scale = defaults['mri_fid_scale']
         self.mri_lpa_obj = PointObject(scene=self.scene, color=lpa_color,
-                                       point_scale=point_scale, name='LPA')
+                                       has_norm=True, point_scale=point_scale,
+                                       name='LPA')
         self.model.sync_trait('transformed_mri_lpa',
                               self.mri_lpa_obj, 'points', mutual=False)
         self.mri_nasion_obj = PointObject(scene=self.scene, color=nasion_color,
+                                          has_norm=True,
                                           point_scale=point_scale,
                                           name='Nasion')
         self.model.sync_trait('transformed_mri_nasion',
                               self.mri_nasion_obj, 'points', mutual=False)
         self.mri_rpa_obj = PointObject(scene=self.scene, color=rpa_color,
-                                       point_scale=point_scale, name='RPA')
+                                       has_norm=True, point_scale=point_scale,
+                                       name='RPA')
         self.model.sync_trait('transformed_mri_rpa',
                               self.mri_rpa_obj, 'points', mutual=False)
 
@@ -1882,7 +1885,7 @@ class CoregFrame(HasTraits):
             scale_by_distance=self._initial_kwargs['scale_by_distance'],
             mark_inside=self._initial_kwargs['mark_inside'])
         self.hsp_obj = PointObject(
-            color=defaults['extra_color'], name='Extra',
+            color=defaults['extra_color'], name='Extra', has_norm=True,
             point_scale=defaults['extra_scale'], **kwargs)
         self.model.sync_trait('transformed_hsp_points',
                               self.hsp_obj, 'points', mutual=False)
@@ -1890,14 +1893,14 @@ class CoregFrame(HasTraits):
         # Digitizer EEG
         self.eeg_obj = PointObject(
             color=defaults['eeg_color'], point_scale=defaults['eeg_scale'],
-            name='EEG', projectable=True,
+            name='EEG', projectable=True, has_norm=True,
             project_to_surface=self._initial_kwargs['project_eeg'], **kwargs)
         self.model.sync_trait('transformed_hsp_eeg_points',
                               self.eeg_obj, 'points', mutual=False)
 
         # Digitizer HPI
         self.hpi_obj = PointObject(
-            color=defaults['hpi_color'], name='HPI',
+            color=defaults['hpi_color'], name='HPI', has_norm=True,
             point_scale=defaults['hpi_scale'], **kwargs)
         self.model.sync_trait('transformed_hsp_hpi',
                               self.hpi_obj, 'points', mutual=False)
@@ -1911,17 +1914,17 @@ class CoregFrame(HasTraits):
         opacity = defaults['dig_fid_opacity']
         self.hsp_lpa_obj = PointObject(
             scene=self.scene, color=lpa_color, opacity=opacity,
-            point_scale=point_scale, name='HSP-LPA')
+            has_norm=True, point_scale=point_scale, name='HSP-LPA')
         self.model.sync_trait('transformed_hsp_lpa',
                               self.hsp_lpa_obj, 'points', mutual=False)
         self.hsp_nasion_obj = PointObject(
             scene=self.scene, color=nasion_color, opacity=opacity,
-            point_scale=point_scale, name='HSP-Nasion')
+            has_norm=True, point_scale=point_scale, name='HSP-Nasion')
         self.model.sync_trait('transformed_hsp_nasion',
                               self.hsp_nasion_obj, 'points', mutual=False)
         self.hsp_rpa_obj = PointObject(
             scene=self.scene, color=rpa_color, opacity=opacity,
-            point_scale=point_scale, name='HSP-RPA')
+            has_norm=True, point_scale=point_scale, name='HSP-RPA')
         self.model.sync_trait('transformed_hsp_rpa',
                               self.hsp_rpa_obj, 'points', mutual=False)
 

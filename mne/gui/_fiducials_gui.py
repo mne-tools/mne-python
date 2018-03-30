@@ -505,17 +505,20 @@ class FiducialsFrame(HasTraits):
 
         # fiducials
         self.lpa_obj = PointObject(scene=self.scene, color=lpa_color,
+                                   has_norm=True,
                                    point_scale=self.point_scale)
         self.panel.sync_trait('lpa', self.lpa_obj, 'points', mutual=False)
         self.sync_trait('point_scale', self.lpa_obj, mutual=False)
 
         self.nasion_obj = PointObject(scene=self.scene, color=nasion_color,
+                                      has_norm=True,
                                       point_scale=self.point_scale)
         self.panel.sync_trait('nasion', self.nasion_obj, 'points',
                               mutual=False)
         self.sync_trait('point_scale', self.nasion_obj, mutual=False)
 
         self.rpa_obj = PointObject(scene=self.scene, color=rpa_color,
+                                   has_norm=True,
                                    point_scale=self.point_scale)
         self.panel.sync_trait('rpa', self.rpa_obj, 'points', mutual=False)
         self.sync_trait('point_scale', self.rpa_obj, mutual=False)

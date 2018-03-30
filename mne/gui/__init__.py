@@ -19,21 +19,6 @@ def _initialize_gui(frame, view=None):
         return frame
 
 
-def combine_kit_markers():
-    """Create a new KIT marker file by interpolating two marker files.
-
-    Notes
-    -----
-    The functionality in this GUI is also part of :func:`kit2fiff`.
-    """
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._marker_gui import CombineMarkersFrame
-    frame = CombineMarkersFrame()
-    return _initialize_gui(frame)
-
-
 @verbose
 def coregistration(tabbed=False, split=True, width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=None,
