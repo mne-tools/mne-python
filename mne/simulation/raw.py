@@ -14,7 +14,7 @@ from ..event import _get_stim_channel
 from ..filter import _Interp2
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..source_estimate import VolSourceEstimate
-from ..cov import make_ad_hoc_cov, read_cov
+from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, BaseRaw
 from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
@@ -31,6 +31,23 @@ from ..source_estimate import _BaseSourceEstimate
 from ..utils import logger, verbose, check_random_state, warn, _pl
 from ..parallel import check_n_jobs
 from ..externals.six import string_types
+
+
+def _check_cov(info, cov):
+    """Check that the user provided a valid covariance matrix for the noise."""
+    if isinstance(cov, dict) and not isinstance(cov, Covariance):
+        cov = make_ad_hoc_cov(info, cov, verbose=False)
+    elif isinstance(cov, str) or isinstance(cov, unicode):
+        if cov == 'simple':
+            cov = make_ad_hoc_cov(info, None, verbose=False)
+        else:
+            cov = read_cov(cov, verbose=False)
+    elif isinstance(cov, Covariance):
+        pass
+    else:
+        raise ValueError('Covariance matrix type not recognized. Valid input '
+                         'types are: instance of Covariance, dict, str, None')
+    return cov
 
 
 def _log_ch(start, info, ch):
@@ -74,11 +91,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     bem : str | dict
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
-    cov : instance of Covariance | str | None
-        The sensor covariance matrix used to generate noise. If None,
-        no noise will be added. If 'simple', a basic (diagonal) ad-hoc
-        noise covariance will be used. If a string, then the covariance
-        will be loaded.
+    cov : instance of Covariance | str | dict | 'simple' | None
+        The sensor covariance matrix used to generate noise. If 'simple',
+        default noise values will be generated. If dict, a custom covariance
+        matrix will be used. If a string, then the covariance will be loaded.
+        If None, no noise sill be added.
     blink : bool
         If true, add simulated blink artifacts. See Notes for details.
     ecg : bool
@@ -239,11 +256,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
     src = _ensure_src(src, verbose=False)
     if isinstance(bem, string_types):
         bem = read_bem_solution(bem, verbose=False)
-    if isinstance(cov, string_types):
-        if cov == 'simple':
-            cov = make_ad_hoc_cov(info, verbose=False)
-        else:
-            cov = read_cov(cov, verbose=False)
     approx_events = int((len(times) / info['sfreq']) /
                         (stc.times[-1] - stc.times[0]))
     logger.info('Provided parameters will provide approximately %s event%s'
@@ -433,6 +445,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple',
                                  this_data, meg_picks)
         # add sensor noise, ECG, blink, cHPI
         if cov is not None:
+            cov = _check_cov(info, cov)
             noise, zf = _generate_noise(fwd_info, cov, iir_filter, rng,
                                         len(stc_idxs), zi=zf)
             raw_data[meeg_picks, time_sl] += noise
