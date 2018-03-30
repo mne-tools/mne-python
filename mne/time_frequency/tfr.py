@@ -1524,7 +1524,8 @@ class AverageTFR(_BaseTFR):
                             top=1. if title is not None else 1.2)
 
         # draw the connection lines between time series and topoplots
-        lines = [_connection_line(time_, fig, tf_ax, map_ax_, y=freq_)
+        lines = [_connection_line(time_, fig, tf_ax, map_ax_, y=freq_,
+                                  y_source_transform="transData")
                  for (time_, freq_), map_ax_ in zip(timefreqs_array, map_ax)]
         fig.lines.extend(lines)
 

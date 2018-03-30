@@ -117,7 +117,7 @@ plt.show()
 ###############################################################################
 # Joint Plot
 # ----------
-# You can also create a joint plot that shows both the aggregated TFR
+# You can also create a joint plot showing both the aggregated TFR
 # across channels and topomaps at specific times and frequencies to obtain
 # a quick overview regarding oscillatory effects across time and space.
 

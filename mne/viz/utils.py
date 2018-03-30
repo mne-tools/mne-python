@@ -1662,7 +1662,7 @@ def _prepare_joint_axes(n_maps, figsize=None):
     map_ax = [plt.subplot(4, ts, x + 2 + ts) for x in range(n_maps)]
     # Position topomap subplots on the second row, starting on the
     # second column
-    cbar_ax = plt.subplot(4, 3 * (ts + 1), 6 * (ts + 1))
+    cbar_ax = plt.subplot(4, 5 * (ts + 1), 10 * (ts + 1))
     # Position colorbar at the very end of a more finely divided
     # second row of subplots
     return fig, main_ax, map_ax, cbar_ax
@@ -2131,7 +2131,8 @@ def _setup_butterfly(params):
     params['plot_fun']()
 
 
-def _connection_line(x, fig, sourceax, targetax, y=1):
+def _connection_line(x, fig, sourceax, targetax, y=1.,
+                     y_source_transform="transAxes"):
     """Connect source and target plots with a line.
 
     Connect source and target plots with a line, such as time series
@@ -2142,9 +2143,10 @@ def _connection_line(x, fig, sourceax, targetax, y=1):
     trans_fig = fig.transFigure
     trans_fig_inv = fig.transFigure.inverted()
 
-    xt, yt = trans_fig_inv.transform(targetax.transAxes.transform([.5, 0]))
-    xs, _ = trans_fig_inv.transform(sourceax.transData.transform([x, 0]))
-    _, ys = trans_fig_inv.transform(sourceax.transData.transform([0, y]))
+    xt, yt = trans_fig_inv.transform(targetax.transAxes.transform([.5, 0.]))
+    xs, _ = trans_fig_inv.transform(sourceax.transData.transform([x, 0.]))
+    _, ys = trans_fig_inv.transform(getattr(sourceax, y_source_transform
+                                            ).transform([0., y]))
 
     return Line2D((xt, xs), (yt, ys), transform=trans_fig, color='grey',
                   linestyle='-', linewidth=1.5, alpha=.66, zorder=1,
