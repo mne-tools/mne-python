@@ -49,7 +49,7 @@ matrix:
                SPLIT=0
         - os: linux
           env: PYTHON_VERSION=2.7
-               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.13 scikit-learn=0.15 nose pytest pytest-cov"
+               CONDA_DEPENDENCIES="numpy=1.8 scipy=0.12 matplotlib=1.3 pandas=0.13 scikit-learn=0.15 nose pytest pytest-cov python-picard numexpr"
                SPLIT=1
 
         # Minimal
